@@ -40,6 +40,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.math.BigDecimal;
 import java.util.EventObject;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -50,6 +51,7 @@ import javax.swing.border.Border;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.PanelAdditiveVerpackungsmengen;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -60,6 +62,7 @@ import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperIdentField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperSnrChnrField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
@@ -68,6 +71,7 @@ import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.InventurFac;
 import com.lp.server.artikel.service.InventurlisteDto;
 import com.lp.server.artikel.service.LagerDto;
+import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.EJBExceptionLP;
@@ -91,7 +95,7 @@ public class PanelInventurliste extends PanelBasis {
 	private InventurlisteDto inventurlisteDto = null;
 	private WrapperButton wbuLager = new WrapperButton();
 	private WrapperTextField wtfLager = new WrapperTextField();
-	private WrapperTextField wtfSeriennummer = new WrapperTextField();
+	private WrapperSnrChnrField wtfSeriennummer = new WrapperSnrChnrField(getInternalFrame(), true);
 
 	private WrapperLabel wlaInventurmenge = new WrapperLabel();
 	private WrapperLabel wlaSeriennummer = new WrapperLabel();
@@ -102,14 +106,15 @@ public class PanelInventurliste extends PanelBasis {
 
 	private WrapperNumberField wnfInventurmenge = new WrapperNumberField();
 
+	PanelAdditiveVerpackungsmengen pa = null;
+
 	Integer lastLager = null;
 
 	static final public String ACTION_SPECIAL_LAGER_FROM_LISTE = "action_lager_from_liste";
 
 	private PanelQueryFLR panelQueryFLRLager = null;
 
-	public PanelInventurliste(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	public PanelInventurliste(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameArtikel = (InternalFrameArtikel) internalFrame;
 		jbInit();
@@ -126,27 +131,58 @@ public class PanelInventurliste extends PanelBasis {
 
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 
-		if (!Helper.short2boolean(internalFrameArtikel.getInventurDto()
-				.getBInventurdurchgefuehrt())) {
+		if (!Helper.short2boolean(internalFrameArtikel.getInventurDto().getBInventurdurchgefuehrt())) {
+
+			ArtikelDto artikelTempDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(inventurlisteDto.getArtikelIId());
+			if (artikelTempDto.istArtikelSnrOderchargentragend()) {
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						LPMain.getInstance().getTextRespectUISPr("artikel.invenur.snrchnrupdatenichtmoeglich"));
+				return;
+			}
+
 			super.eventActionUpdate(aE, bNeedNoUpdateI);
+
+			if (inventurlisteDto.getArtikelDto() != null
+					&& inventurlisteDto.getArtikelDto().istArtikelSnrOderchargentragend() == false) {
+				wtfSeriennummer.getButtonSnrAuswahl().setEnabled(false);
+			}
+
 		} else {
-			DialogFactory.showModalDialog(
-					LPMain.getInstance().getTextRespectUISPr("lp.error"),
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.error.inventur.bereitsdurchgefuehrt"));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+					LPMain.getInstance().getTextRespectUISPr("artikel.error.inventur.bereitsdurchgefuehrt"));
 			return;
 		}
 
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	private void setLagerMitLagerplaetzen(Integer lagerIId, Integer artikelIId) throws Throwable {
 
-		if (Helper.short2boolean(internalFrameArtikel.getInventurDto()
-				.getBInventurdurchgefuehrt())) {
+		if (lagerIId != null) {
+			LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate().lagerFindByPrimaryKey(lagerIId);
+			String lager = lagerDto.getCNr();
+
+			if (artikelIId != null) {
+				String s = DelegateFactory.getInstance().getLagerDelegate().getLagerplaezteEinesArtikels(artikelIId,
+						lagerIId);
+				if (s != null && s.length() > 0) {
+					lager += "  (" + LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste.lagerplaetze")
+							+ ":" + s + ")";
+				}
+			}
+
+			wtfLager.setText(lager);
+		} else {
+			wtfLager.setText(null);
+		}
+
+	}
+
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
+
+		if (Helper.short2boolean(internalFrameArtikel.getInventurDto().getBInventurdurchgefuehrt())) {
 			wnfInventurmenge.setActivatable(true);
 		} else {
 			wnfInventurmenge.setActivatable(true);
@@ -162,55 +198,38 @@ public class PanelInventurliste extends PanelBasis {
 			wlaVoraussichtlicherInventurstand.setText(null);
 			if (lastLager != null) {
 				inventurlisteDto.setLagerIId(lastLager);
-				wtfLager.setText(DelegateFactory.getInstance()
-						.getLagerDelegate().lagerFindByPrimaryKey(lastLager)
-						.getCNr());
+
+				setLagerMitLagerplaetzen(lastLager, null);
+
 			} else {
 
 				if (internalFrameArtikel.getInventurDto().getLagerIId() != null) {
-					LagerDto lagerDto = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.lagerFindByPrimaryKeyOhneExc(
-									internalFrameArtikel.getInventurDto()
-											.getLagerIId());
+
 					if (key != null) {
-						wtfLager.setText(lagerDto.getCNr());
-						inventurlisteDto.setLagerIId(lagerDto.getIId());
+
+						setLagerMitLagerplaetzen(internalFrameArtikel.getInventurDto().getLagerIId(), null);
+
+						inventurlisteDto.setLagerIId(internalFrameArtikel.getInventurDto().getLagerIId());
 					}
 				} else {
 
-					ParametermandantDto parameter = DelegateFactory
-							.getInstance()
-							.getParameterDelegate()
-							.getMandantparameter(
-									LPMain.getInstance().getTheClient()
-											.getMandant(),
-									ParameterFac.KATEGORIE_ARTIKEL,
-									ParameterFac.PARAMETER_DEFAULT_LAGER);
-					LagerDto lagerDto = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.lagerFindByPrimaryKeyOhneExc(
-									new Integer(parameter.getCWert()));
+					ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate()
+							.getMandantparameter(LPMain.getInstance().getTheClient().getMandant(),
+									ParameterFac.KATEGORIE_ARTIKEL, ParameterFac.PARAMETER_DEFAULT_LAGER);
+					LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
+							.lagerFindByPrimaryKeyOhneExc(new Integer(parameter.getCWert()));
 
 					if (lagerDto == null) {
 						// SP740
-						DialogFactory
-								.showModalDialog(
-										LPMain.getInstance()
-												.getTextRespectUISPr("lp.error"),
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"artikel.inventur.parameter.defaultlager.falsch"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"), LPMain
+								.getInstance().getTextRespectUISPr("artikel.inventur.parameter.defaultlager.falsch"));
 					}
 
-					if (key != null
-							&& lagerDto != null
-							&& lagerDto.getMandantCNr().equals(
-									LPMain.getInstance().getTheClient()
-											.getMandant())) {
-						wtfLager.setText(lagerDto.getCNr());
+					if (key != null && lagerDto != null
+							&& lagerDto.getMandantCNr().equals(LPMain.getInstance().getTheClient().getMandant())) {
+
+						setLagerMitLagerplaetzen(lagerDto.getIId(), null);
+
 						inventurlisteDto.setLagerIId(lagerDto.getIId());
 					}
 				}
@@ -219,23 +238,21 @@ public class PanelInventurliste extends PanelBasis {
 
 			if (key != null) {
 
-				wtfSeriennummer.setEditable(true);
 				wbuLager.setEnabled(true);
 				wifArtikel.getWbuArtikel().setEnabled(true);
 				wifArtikel.getWtfIdent().setEditable(true);
 				wifArtikel.getWtfIdent().requestFocus();
 			}
+
+			wtfSeriennummer.getButtonSnrAuswahl().setEnabled(false);
 		} else {
-			inventurlisteDto = DelegateFactory.getInstance()
-					.getInventurDelegate()
+			inventurlisteDto = DelegateFactory.getInstance().getInventurDelegate()
 					.inventurlisteFindByPrimaryKey((Integer) key);
 
-			if (Helper.short2boolean(inventurlisteDto.getArtikelDto()
-					.getBSeriennrtragend())
-					|| Helper.short2boolean(inventurlisteDto.getArtikelDto()
-							.getBChargennrtragend())) {
+			if (Helper.short2boolean(inventurlisteDto.getArtikelDto().getBSeriennrtragend())
+					|| Helper.short2boolean(inventurlisteDto.getArtikelDto().getBChargennrtragend())) {
 				wtfSeriennummer.setMandatoryField(true);
-				wtfSeriennummer.setEditable(true);
+
 			}
 
 			else {
@@ -244,31 +261,21 @@ public class PanelInventurliste extends PanelBasis {
 			}
 			dto2Components();
 
-			BigDecimal inventurstand = DelegateFactory
-					.getInstance()
-					.getInventurDelegate()
-					.getInventurstand(
-							inventurlisteDto.getArtikelIId(),
-							inventurlisteDto.getLagerIId(),
-							internalFrameArtikel.getInventurDto().getIId(),
-							internalFrameArtikel.getInventurDto()
-									.getTInventurdatum());
+			BigDecimal inventurstand = DelegateFactory.getInstance().getInventurDelegate().getInventurstand(
+					inventurlisteDto.getArtikelIId(), inventurlisteDto.getLagerIId(),
+					internalFrameArtikel.getInventurDto().getIId(),
+					internalFrameArtikel.getInventurDto().getTInventurdatum());
 
-			wlaVoraussichtlicherInventurstand.setText(LPMain.getInstance()
-					.getTextRespectUISPr(
-							"artikel.inventur.voraussichtlicherinventurstand")
-					+ " "
-					+ Helper.formatZahl(inventurstand, Defaults.getInstance()
-							.getIUINachkommastellenMenge(), LPMain
-							.getInstance().getTheClient().getLocUi()));
+			wlaVoraussichtlicherInventurstand.setText(
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventur.voraussichtlicherinventurstand") + " "
+							+ Helper.formatZahl(inventurstand, Defaults.getInstance().getIUINachkommastellenMenge(),
+									LPMain.getInstance().getTheClient().getLocUi()));
 
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
-		if (!Helper.short2boolean(internalFrameArtikel.getInventurDto()
-				.getBInventurdurchgefuehrt())) {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
+		if (!Helper.short2boolean(internalFrameArtikel.getInventurDto().getBInventurdurchgefuehrt())) {
 			wnfInventurmenge.setActivatable(true);
 
 			wifArtikel.getWbuArtikel().setActivatable(true);
@@ -280,43 +287,60 @@ public class PanelInventurliste extends PanelBasis {
 			inventurlisteDto = new InventurlisteDto();
 
 		} else {
-			DialogFactory.showModalDialog(
-					LPMain.getInstance().getTextRespectUISPr("lp.error"),
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.error.inventur.bereitsdurchgefuehrt"));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+					LPMain.getInstance().getTextRespectUISPr("artikel.error.inventur.bereitsdurchgefuehrt"));
 		}
 	}
 
 	protected void dto2Components() throws Throwable {
 
-		wtfLager.setText(inventurlisteDto.getLagerDto().getCNr());
+		setLagerMitLagerplaetzen(inventurlisteDto.getLagerDto().getIId(), inventurlisteDto.getArtikelIId());
+
 		wnfInventurmenge.setBigDecimal(inventurlisteDto.getNInventurmenge());
 		wtfSeriennummer.setText(inventurlisteDto.getCSeriennrchargennr());
 
-		ArtikelDto artikelTempDto = DelegateFactory.getInstance()
-				.getArtikelDelegate()
+		ArtikelDto artikelTempDto = DelegateFactory.getInstance().getArtikelDelegate()
 				.artikelFindByPrimaryKey(inventurlisteDto.getArtikelIId());
+
+		pa.setVerpackungsmenge(artikelTempDto.getFVerpackungsmenge());
+
+		wtfSeriennummer.setArtikelIdLagerId(artikelTempDto, null);
+
+		wtfSeriennummer
+				.setSeriennummern(
+						SeriennrChargennrMitMengeDto.erstelleDtoAusEinerChargennummer(
+								inventurlisteDto.getCSeriennrchargennr(), inventurlisteDto.getNInventurmenge()),
+						artikelTempDto.getIId(), null);
+
 		wifArtikel.setArtikelDto(artikelTempDto);
 		wlaEinheitMenge.setText(artikelTempDto.getEinheitCNr().trim());
 		inventurlisteDto.setArtikelIId(artikelTempDto.getIId());
 
-		this.setStatusbarPersonalIIdAnlegen(inventurlisteDto
-				.getPersonalIIdAendern());
+		this.setStatusbarPersonalIIdAnlegen(inventurlisteDto.getPersonalIIdAendern());
 		this.setStatusbarTAnlegen(inventurlisteDto.getTAendern());
 
 	}
 
 	void dialogQueryLagerFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRLager = ArtikelFilterFactory.getInstance()
-				.createPanelFLRLager(getInternalFrame(),
-						inventurlisteDto.getLagerIId());
+		panelQueryFLRLager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(),
+				inventurlisteDto.getLagerIId());
 
 		new DialogQuery(panelQueryFLRLager);
 	}
 
 	protected void components2Dto() throws ExceptionLP {
 		inventurlisteDto.setNInventurmenge(wnfInventurmenge.getBigDecimal());
-		inventurlisteDto.setCSeriennrchargennr(wtfSeriennummer.getText());
+
+		inventurlisteDto.setInventurIId(internalFrameArtikel.getInventurDto().getIId());
+
+		if (wtfSeriennummer.getSeriennummern() != null && wtfSeriennummer.getSeriennummern().size() > 0) {
+			inventurlisteDto.setCSeriennrchargennr(wtfSeriennummer.getSeriennummern().get(0).getCSeriennrChargennr());
+			inventurlisteDto.setNInventurmenge(wtfSeriennummer.getSeriennummern().get(0).getNMenge());
+
+		} else {
+			inventurlisteDto.setCSeriennrchargennr(null);
+		}
+
 		inventurlisteDto.setArtikelIId(wifArtikel.getArtikelDto().getIId());
 	}
 
@@ -328,36 +352,40 @@ public class PanelInventurliste extends PanelBasis {
 
 				ArtikelDto artikelTempDto = wifArtikel.getArtikelDto();
 				wifArtikel.setArtikelDto(artikelTempDto);
+				wtfSeriennummer.setArtikelIdLagerId(artikelTempDto, inventurlisteDto.getLagerIId());
 				wlaEinheitMenge.setText(artikelTempDto.getEinheitCNr().trim());
 				inventurlisteDto.setArtikelIId(artikelTempDto.getIId());
 
+				setLagerMitLagerplaetzen(inventurlisteDto.getLagerIId(), inventurlisteDto.getArtikelIId());
+
+				pa.setVerpackungsmenge(artikelTempDto.getFVerpackungsmenge());
+
 				if (Helper.short2boolean(artikelTempDto.getBSeriennrtragend())) {
 					wtfSeriennummer.setMandatoryField(true);
-					wtfSeriennummer.setEditable(true);
-				} else if (Helper.short2boolean(artikelTempDto
-						.getBChargennrtragend())) {
+					wtfSeriennummer.getButtonSnrAuswahl().setEnabled(true);
+
+				} else if (Helper.short2boolean(artikelTempDto.getBChargennrtragend())) {
 					wtfSeriennummer.setMandatoryField(true);
-					wtfSeriennummer.setEditable(true);
+					wtfSeriennummer.getButtonSnrAuswahl().setEnabled(true);
+
 				} else {
 					wtfSeriennummer.setMandatoryField(false);
-					wtfSeriennummer.setEditable(false);
+					wtfSeriennummer.getButtonSnrAuswahl().setEnabled(false);
+
 				}
 			} else if (e.getSource() == panelQueryFLRLager) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LagerDto lagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerFindByPrimaryKey((Integer) key);
-				wtfLager.setText(lagerDto.getCNr());
+
+				setLagerMitLagerplaetzen(lagerDto.getIId(), inventurlisteDto.getArtikelIId());
 				inventurlisteDto.setLagerIId(lagerDto.getIId());
 			}
 		} else if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
-			if (inventurlisteDto != null
-					&& inventurlisteDto.getArtikelDto() != null) {
+			if (inventurlisteDto != null && inventurlisteDto.getArtikelDto() != null) {
 
-				if (Helper.short2boolean(inventurlisteDto.getArtikelDto()
-						.getBSeriennrtragend())
-						|| Helper.short2boolean(inventurlisteDto
-								.getArtikelDto().getBChargennrtragend())) {
+				if (Helper.short2boolean(inventurlisteDto.getArtikelDto().getBSeriennrtragend())
+						|| Helper.short2boolean(inventurlisteDto.getArtikelDto().getBChargennrtragend())) {
 					wtfSeriennummer.setMandatoryField(true);
 					wtfSeriennummer.setEditable(false);
 				} else {
@@ -384,24 +412,19 @@ public class PanelInventurliste extends PanelBasis {
 
 		wifArtikel = new WrapperIdentField(getInternalFrame(), this);
 
-		wtfSeriennummer
-				.setColumnsMax(InventurFac.MAX_INVENTURLISTE_SERIENNRCHARGENNR);
-		wtfSeriennummer.setActivatable(false);
+		wtfSeriennummer.setWnfBelegMenge(wnfInventurmenge);
 
 		getInternalFrame().addItemChangedListener(this);
 
 		wnfInventurmenge.setMandatoryField(true);
 
-		wnfInventurmenge.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenMenge());
+		wnfInventurmenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
 
-		wlaInventurmenge.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.inventurmenge"));
-		wlaSeriennummer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.handlagerbewegung.seriennrchargennreinzeln"));
+		wlaInventurmenge.setText(LPMain.getInstance().getTextRespectUISPr("artikel.inventurmenge"));
+		wlaSeriennummer.setText(
+				LPMain.getInstance().getTextRespectUISPr("artikel.handlagerbewegung.seriennrchargennreinzeln"));
 
-		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.lager"));
+		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr("button.lager"));
 		wbuLager.setActionCommand(PanelInventurliste.ACTION_SPECIAL_LAGER_FROM_LISTE);
 		wbuLager.addActionListener(this);
 
@@ -413,64 +436,61 @@ public class PanelInventurliste extends PanelBasis {
 		wtfLager.setActivatable(false);
 		wlaEinheitMenge.setHorizontalAlignment(SwingConstants.LEFT);
 
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		pa = new PanelAdditiveVerpackungsmengen(getInternalFrame(), wnfInventurmenge);
+
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(wifArtikel.getWbuArtikel(), new GridBagConstraints(0,
-				0, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wifArtikel.getWbuArtikel(), new GridBagConstraints(0, 0, 1, 1, 1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		wifArtikel.getWtfIdent().setUppercaseField(true);
-		jpaWorkingOn.add(wifArtikel.getWtfIdent(), new GridBagConstraints(1, 0,
-				1, 1, 1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wifArtikel.getWtfIdent(), new GridBagConstraints(1, 0, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wifArtikel.getWtfBezeichnung(),
-				new GridBagConstraints(2, 0, 1, 1, 2, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wifArtikel.getWtfBezeichnung(), new GridBagConstraints(2, 0, 1, 1, 2, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wlaSeriennummer, new GridBagConstraints(0, 1, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfSeriennummer, new GridBagConstraints(1, 1, 2, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSeriennummer.getButtonSnrAuswahl(), new GridBagConstraints(0, 1, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSeriennummer, new GridBagConstraints(1, 1, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 2, 1, 1, 0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 2, 2, 1, 0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaInventurmenge, new GridBagConstraints(0, 3, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 2, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfInventurmenge, new GridBagConstraints(1, 3, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 2, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaEinheitMenge, new GridBagConstraints(2, 3, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wlaInventurmenge, new GridBagConstraints(0, 3, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfInventurmenge, new GridBagConstraints(1, 3, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaEinheitMenge, new GridBagConstraints(2, 3, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 20, 0));
-		jpaWorkingOn.add(wlaVoraussichtlicherInventurstand,
-				new GridBagConstraints(1, 4, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD, };
+
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+				ParameterFac.PARAMETER_VERPACKUNGSMENGEN_EINGABE);
+		int bVerpackungsmengeneingabe = (Integer) parameter.getCWertAsObject();
+
+		if (bVerpackungsmengeneingabe > 0) {
+
+			jpaWorkingOn.add(pa, new GridBagConstraints(0, 4, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		}
+
+		jpaWorkingOn.add(wlaVoraussichtlicherInventurstand, new GridBagConstraints(0, 5, 2, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -480,18 +500,20 @@ public class PanelInventurliste extends PanelBasis {
 		return HelperClient.LOCKME_INVENTUR;
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable, Throwable {
-		if (!Helper.short2boolean(internalFrameArtikel.getInventurDto()
-				.getBInventurdurchgefuehrt())) {
-			DelegateFactory.getInstance().getInventurDelegate()
-					.removeInventurliste(inventurlisteDto);
-			this.setKeyWhenDetailPanel(null);
-			super.eventActionDelete(e, false, false);
+		if (!Helper.short2boolean(internalFrameArtikel.getInventurDto().getBInventurdurchgefuehrt())) {
+
+			if (DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.eintrag.loeschen"))) {
+
+				DelegateFactory.getInstance().getInventurDelegate()
+						.removeInventurlisteUndNimmProtokolleintraegeZurueckInventurliste(inventurlisteDto);
+				this.setKeyWhenDetailPanel(null);
+				super.eventActionDelete(e, false, false);
+			}
 		} else {
-			DialogFactory.showModalDialog("Fehler",
-					"Inventur wurde bereits durchgef\u00FChrt");
+			DialogFactory.showModalDialog("Fehler", "Inventur wurde bereits durchgef\u00FChrt");
 		}
 
 	}
@@ -502,56 +524,115 @@ public class PanelInventurliste extends PanelBasis {
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
-			components2Dto();
-			java.math.BigDecimal mengeAusInventurliste = inventurlisteDto
-					.getNInventurmenge();
-			java.math.BigDecimal lagerstandVeraenderung = DelegateFactory
-					.getInstance()
-					.getLagerDelegate()
-					.getLagerstandsVeraenderungOhneInventurbuchungen(
-							inventurlisteDto.getArtikelIId(),
-							inventurlisteDto.getLagerIId(),
-							internalFrameArtikel.getInventurDto()
-									.getTInventurdatum(),
-							new java.sql.Timestamp(System.currentTimeMillis()),
-							inventurlisteDto.getCSeriennrchargennr());
 
-			if (mengeAusInventurliste.subtract(lagerstandVeraenderung)
-					.doubleValue() < 0) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.error"),
+			if (wifArtikel.getArtikelDto().istArtikelSnrOderchargentragend()) {
+				List<SeriennrChargennrMitMengeDto> snrs = wtfSeriennummer.getSeriennummern();
+				String sZeilenAusgelassen = "";
+
+				for (int i = 0; i < snrs.size(); i++) {
+					inventurlisteDto.setIId(null);
+
+					if (wifArtikel.getArtikelDto().isSeriennrtragend() && wnfInventurmenge.getDouble() == 0) {
+						inventurlisteDto.setNInventurmenge(BigDecimal.ZERO);
+					} else {
+						inventurlisteDto.setNInventurmenge(snrs.get(i).getNMenge());
+					}
+
+					inventurlisteDto.setCSeriennrchargennr(snrs.get(i).getCSeriennrChargennr());
+					inventurlisteDto.setInventurIId(internalFrameArtikel.getInventurDto().getIId());
+					java.math.BigDecimal mengeAusInventurliste = inventurlisteDto.getNInventurmenge();
+					java.math.BigDecimal lagerstandVeraenderung = DelegateFactory.getInstance().getLagerDelegate()
+							.getLagerstandsVeraenderungOhneInventurbuchungen(inventurlisteDto.getArtikelIId(),
+									inventurlisteDto.getLagerIId(),
+									internalFrameArtikel.getInventurDto().getTInventurdatum(),
+									new java.sql.Timestamp(System.currentTimeMillis()),
+									inventurlisteDto.getCSeriennrchargennr());
+
+					if (mengeAusInventurliste.subtract(lagerstandVeraenderung).doubleValue() < 0) {
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
 								"Aufgrund der Artikelbewegungen zwischen Inventurdatum ("
-										+ Helper.formatDatum(
-												internalFrameArtikel
-														.getInventurDto()
-														.getTInventurdatum(),
-												LPMain.getInstance()
-														.getTheClient()
-														.getLocUi())
+										+ Helper.formatDatum(internalFrameArtikel.getInventurDto().getTInventurdatum(),
+												LPMain.getInstance().getTheClient().getLocUi())
 										+ ") und jetzt, w\u00FCrde sich ein Inventurstand von "
-										+ mengeAusInventurliste.subtract(
-												lagerstandVeraenderung)
-												.doubleValue()
+										+ mengeAusInventurliste.subtract(lagerstandVeraenderung).doubleValue()
 										+ " ergeben. Bitte korrigieren! Buchung wurde nicht durchgef\u00FChrt.");
+					} else {
+
+						// Nachsehen, ob es schon einen Eintrag gibt, wenn ja,
+						// dann auslassen und nachher Meldung anzeigen
+
+						InventurlisteDto[] vorhandeneDtos = DelegateFactory
+
+								.getInstance().getInventurDelegate()
+								.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennrOhneExc(
+										inventurlisteDto.getInventurIId(), inventurlisteDto.getArtikelIId(),
+										inventurlisteDto.getLagerIId(), inventurlisteDto.getCSeriennrchargennr());
+
+						if (vorhandeneDtos == null || vorhandeneDtos.length == 0) {
+
+							inventurlisteDto.setIId(DelegateFactory.getInstance().getInventurDelegate()
+									.createInventurliste(inventurlisteDto));
+
+						} else {
+							sZeilenAusgelassen += inventurlisteDto.getCSeriennrchargennr() + "\r\n";
+						}
+
+					}
+				}
+				setKeyWhenDetailPanel(inventurlisteDto.getIId());
+
+				lastLager = inventurlisteDto.getLagerIId();
+				super.eventActionSave(e, true);
+				if (getInternalFrame().getKeyWasForLockMe() == null) {
+					getInternalFrame().setKeyWasForLockMe(internalFrameArtikel.getArtikelDto().getIId().toString());
+				}
+				eventYouAreSelected(false);
+				if (sZeilenAusgelassen.length() > 0) {
+
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+							LPMain.getInstance().getTextRespectUISPr("artikel.invenur.snrchnrausgelassen")
+									+ sZeilenAusgelassen);
+				}
+
 			} else {
+
+				components2Dto();
+
+				inventurlisteDto.setCSeriennrchargennr(null);
+				java.math.BigDecimal mengeAusInventurliste = inventurlisteDto.getNInventurmenge();
+				java.math.BigDecimal lagerstandVeraenderung = DelegateFactory.getInstance().getLagerDelegate()
+						.getLagerstandsVeraenderungOhneInventurbuchungen(inventurlisteDto.getArtikelIId(),
+								inventurlisteDto.getLagerIId(),
+								internalFrameArtikel.getInventurDto().getTInventurdatum(),
+								new java.sql.Timestamp(System.currentTimeMillis()),
+								inventurlisteDto.getCSeriennrchargennr());
+
+				if (mengeAusInventurliste.subtract(lagerstandVeraenderung).doubleValue() < 0) {
+					boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							
+							"Aufgrund der Artikelbewegungen zwischen Inventurdatum ("
+									+ Helper.formatDatum(internalFrameArtikel.getInventurDto().getTInventurdatum(),
+											LPMain.getInstance().getTheClient().getLocUi())
+									+ ") und jetzt, w\u00FCrde sich ein Inventurstand von "
+									+ mengeAusInventurliste.subtract(lagerstandVeraenderung).doubleValue()
+									+ " ergeben. Wollen Sie die Buchung trotzdem druchf\u00FChren?",LPMain.getInstance().getTextRespectUISPr("lp.error"));
+					
+					if(b==false) {
+						return;
+					}
+				}
 
 				if (inventurlisteDto.getIId() == null) {
 
-					inventurlisteDto.setInventurIId(internalFrameArtikel
-							.getInventurDto().getIId());
-					inventurlisteDto.setIId(DelegateFactory.getInstance()
-							.getInventurDelegate()
-							.createInventurliste(inventurlisteDto));
+					inventurlisteDto.setInventurIId(internalFrameArtikel.getInventurDto().getIId());
+					inventurlisteDto.setIId(
+							DelegateFactory.getInstance().getInventurDelegate().createInventurliste(inventurlisteDto));
 
 					setKeyWhenDetailPanel(inventurlisteDto.getIId());
 				} else {
-					Integer key_neu = DelegateFactory.getInstance()
-							.getInventurDelegate()
+					Integer key_neu = DelegateFactory.getInstance().getInventurDelegate()
 							.updateInventurliste(inventurlisteDto);
 					inventurlisteDto.setIId(key_neu);
 					setKeyWhenDetailPanel(inventurlisteDto.getIId());
@@ -559,19 +640,16 @@ public class PanelInventurliste extends PanelBasis {
 				lastLager = inventurlisteDto.getLagerIId();
 				super.eventActionSave(e, true);
 				if (getInternalFrame().getKeyWasForLockMe() == null) {
-					getInternalFrame().setKeyWasForLockMe(
-							internalFrameArtikel.getArtikelDto().getIId()
-									.toString());
+					getInternalFrame().setKeyWasForLockMe(internalFrameArtikel.getArtikelDto().getIId().toString());
 				}
 				eventYouAreSelected(false);
-				wtfSeriennummer.setEditable(false);
+
 			}
 		}
 	}
 
 	protected void eventActionDiscard(ActionEvent e) throws Throwable {
 		super.eventActionDiscard(e);
-		wtfSeriennummer.setEditable(false);
 
 	}
 

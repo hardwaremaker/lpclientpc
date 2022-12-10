@@ -32,6 +32,8 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.event.ChangeEvent;
 
 import com.lp.client.frame.LockStateValue;
@@ -42,21 +44,33 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
+import com.lp.client.frame.component.WrapperMenu;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.ReportEntitylog;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.artikel.service.MaterialFac;
+import com.lp.server.system.service.HvDtoLogClass;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
 /**
- * <p>&UUml;berschrift: </p>
- * <p>Beschreibung: </p>
- * <p>Copyright: Copyright (c) 2004</p>
- * <p>Organisation: </p>
+ * <p>
+ * &UUml;berschrift:
+ * </p>
+ * <p>
+ * Beschreibung:
+ * </p>
+ * <p>
+ * Copyright: Copyright (c) 2004
+ * </p>
+ * <p>
+ * Organisation:
+ * </p>
+ * 
  * @author Christian Kollmann
  * @version $Revision: 1.3 $
  */
@@ -66,18 +80,27 @@ public class TabbedPaneMaterial extends TabbedPane {
 	 */
 	private static final long serialVersionUID = 1L;
 	private PanelQuery panelQueryMaterial = null;
-	private PanelQuery panelQueryMaterialzuschlag = null;
 	private PanelBasis panelDetailMaterial = null;
+
+	private PanelQuery panelQueryMaterialzuschlag = null;
 	private PanelBasis panelSplit = null;
 	private PanelBasis panelDetailMaterialzuschlag = null;
 
-	private final static int IDX_PANEL_AUSWAHL = 0;
-	private final static int IDX_PANEL_DETAIL = 1;
-	private final static int IDX_PANEL_ZUSCHLAG = 2;
+	private PanelQuery panelQueryMaterialpreis = null;
+	private PanelBasis panelSplitMaterialpreis = null;
+	private PanelBasis panelDetailMaterialpreis = null;
+
+	private WrapperMenuBar wrapperManuBar = null;
+
+	private final String MENU_INFO_AENDERUNGEN = "MENU_INFO_AENDERUNGEN";
+
+	private int IDX_PANEL_AUSWAHL = -1;
+	private int IDX_PANEL_DETAIL = -1;
+	private int IDX_PANEL_ZUSCHLAG = -1;
+	private int IDX_PANEL_PREIS = -1;
 
 	public TabbedPaneMaterial(InternalFrame internalFrameI) throws Throwable {
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"label.material"));
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr("label.material"));
 
 		jbInit();
 		initComponents();
@@ -91,16 +114,12 @@ public class TabbedPaneMaterial extends TabbedPane {
 		if (panelQueryMaterial == null) {
 			// Artikelauswahlliste
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryMaterial = new PanelQuery(null, null,
-					QueryParameters.UC_ID_MATERIAL, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.auswahl"), true);
+			panelQueryMaterial = new PanelQuery(null, null, QueryParameters.UC_ID_MATERIAL, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), true);
 
-			panelQueryMaterial.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDKennung(),
+			panelQueryMaterial.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDKennung(),
 					SystemFilterFactory.getInstance()
-							.createFKDSprTabelleBezeichnung(
-									MaterialFac.FLR_MATERIAL_MATERIALSPRSET));
+							.createFKDSprTabelleBezeichnung(MaterialFac.FLR_MATERIAL_MATERIALSPRSET));
 
 			setComponentAt(IDX_PANEL_AUSWAHL, panelQueryMaterial);
 
@@ -109,8 +128,8 @@ public class TabbedPaneMaterial extends TabbedPane {
 
 	private void createDetail(Integer key) throws Throwable {
 		if (panelDetailMaterial == null) {
-			panelDetailMaterial = new PanelMaterial(getInternalFrame(), LPMain
-					.getInstance().getTextRespectUISPr("lp.detail"), key);
+			panelDetailMaterial = new PanelMaterial(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.detail"), key);
 			setComponentAt(IDX_PANEL_DETAIL, panelDetailMaterial);
 		}
 	}
@@ -120,65 +139,78 @@ public class TabbedPaneMaterial extends TabbedPane {
 		if (panelQueryMaterialzuschlag == null) {
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
 
-			FilterKriterium[] filters = ArtikelFilterFactory.getInstance()
-					.createFKMaterialzuschlag(key);
+			FilterKriterium[] filters = ArtikelFilterFactory.getInstance().createFKMaterialzuschlag(key);
 
-			panelQueryMaterialzuschlag = new PanelQuery(null, filters,
-					QueryParameters.UC_ID_MATERIALZUSCHLAG, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.zuschlag"), true);
+			panelQueryMaterialzuschlag = new PanelQuery(null, filters, QueryParameters.UC_ID_MATERIALZUSCHLAG,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("label.zuschlag"),
+					true);
 
-			panelDetailMaterialzuschlag = new PanelMaterialzuschlag(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.zuschlag"), null);
+			panelDetailMaterialzuschlag = new PanelMaterialzuschlag(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("label.zuschlag"), null);
 
-			panelSplit = new PanelSplit(getInternalFrame(),
-					panelDetailMaterialzuschlag, panelQueryMaterialzuschlag,
+			panelSplit = new PanelSplit(getInternalFrame(), panelDetailMaterialzuschlag, panelQueryMaterialzuschlag,
 					350);
 
 			setComponentAt(IDX_PANEL_ZUSCHLAG, panelSplit);
 		} else {
 			// filter refreshen.
-			panelQueryMaterialzuschlag.setDefaultFilter(ArtikelFilterFactory
-					.getInstance().createFKMaterialzuschlag(key));
+			panelQueryMaterialzuschlag
+					.setDefaultFilter(ArtikelFilterFactory.getInstance().createFKMaterialzuschlag(key));
+		}
+	}
+
+	private void createMaterialpreis(Integer key) throws Throwable {
+
+		if (panelQueryMaterialpreis == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
+
+			FilterKriterium[] filters = ArtikelFilterFactory.getInstance().createFKMaterialpreis(key);
+
+			panelQueryMaterialpreis = new PanelQuery(null, filters, QueryParameters.UC_ID_MATERIALPREIS,
+					aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.material.preisprokilogramm"), true);
+
+			panelDetailMaterialpreis = new PanelMaterialpreis(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.material.preisprokilogramm"), null);
+
+			panelSplitMaterialpreis = new PanelSplit(getInternalFrame(), panelDetailMaterialpreis,
+					panelQueryMaterialpreis, 350);
+
+			setComponentAt(IDX_PANEL_PREIS, panelSplitMaterialpreis);
+		} else {
+			// filter refreshen.
+			panelQueryMaterialpreis.setDefaultFilter(ArtikelFilterFactory.getInstance().createFKMaterialpreis(key));
 		}
 	}
 
 	private void jbInit() throws Throwable {
 
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_AUSWAHL);
+		IDX_PANEL_AUSWAHL = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.auswahl"));
 
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.detail"),
-				IDX_PANEL_DETAIL);
+		IDX_PANEL_DETAIL = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.detail"));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_MATERIALZUSCHLAG)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MATERIALZUSCHLAG)) {
 
-			insertTab(LPMain.getInstance()
-					.getTextRespectUISPr("label.zuschlag"), null, null, LPMain
-					.getInstance().getTextRespectUISPr("label.zuschlag"),
-					IDX_PANEL_ZUSCHLAG);
+			IDX_PANEL_ZUSCHLAG = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("label.zuschlag"), null,
+					null, LPMain.getInstance().getTextRespectUISPr("label.zuschlag"));
 		}
+
+		IDX_PANEL_PREIS = reiterHinzufuegen(
+				LPMain.getInstance().getTextRespectUISPr("artikel.material.preisprokilogramm"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("artikel.material.preisprokilogramm"));
 
 		createAuswahl();
 
 		panelQueryMaterial.eventYouAreSelected(false);
 		if ((Integer) panelQueryMaterial.getSelectedId() != null) {
-			getInternalFrameArtikel().materialDto = DelegateFactory
-					.getInstance()
-					.getMaterialDelegate()
-					.materialFindByPrimaryKey(
-							(Integer) panelQueryMaterial.getSelectedId());
+			getInternalFrameArtikel().materialDto = DelegateFactory.getInstance().getMaterialDelegate()
+					.materialFindByPrimaryKey((Integer) panelQueryMaterial.getSelectedId());
 		}
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelQueryMaterial,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelQueryMaterial, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		this.addChangeListener(this);
@@ -201,12 +233,14 @@ public class TabbedPaneMaterial extends TabbedPane {
 			} else if (e.getSource() == panelDetailMaterial) {
 				panelDetailMaterial.eventYouAreSelected(false);
 
+			} else if (e.getSource() == panelDetailMaterialpreis) {
+				panelDetailMaterialpreis.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			if (e.getSource() == panelDetailMaterialzuschlag) {
-				panelQueryMaterialzuschlag.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQueryMaterialzuschlag.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelDetailMaterialpreis) {
+				panelQueryMaterialpreis.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
 
@@ -216,59 +250,56 @@ public class TabbedPaneMaterial extends TabbedPane {
 				panelQueryMaterial.setSelectedId(oKey);
 			}
 
-			if (e.getSource() == panelDetailMaterialzuschlag) {
-				Object oKey = panelDetailMaterialzuschlag
-						.getKeyWhenDetailPanel();
+			else if (e.getSource() == panelDetailMaterialzuschlag) {
+				Object oKey = panelDetailMaterialzuschlag.getKeyWhenDetailPanel();
 				panelQueryMaterialzuschlag.eventYouAreSelected(false);
 				panelQueryMaterialzuschlag.setSelectedId(oKey);
 				panelSplit.eventYouAreSelected(false);
 
+			} else if (e.getSource() == panelDetailMaterialpreis) {
+				Object oKey = panelDetailMaterialpreis.getKeyWhenDetailPanel();
+				panelQueryMaterialpreis.eventYouAreSelected(false);
+				panelQueryMaterialpreis.setSelectedId(oKey);
+				panelSplitMaterialpreis.eventYouAreSelected(false);
+
 			}
 		} else if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
 			if (e.getSource() == panelQueryMaterialzuschlag) {
-				Integer iId = (Integer) panelQueryMaterialzuschlag
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryMaterialzuschlag.getSelectedId();
 				panelDetailMaterialzuschlag.setKeyWhenDetailPanel(iId);
 				panelDetailMaterialzuschlag.eventYouAreSelected(false);
 				panelQueryMaterialzuschlag.updateButtons();
+			} else if (e.getSource() == panelQueryMaterialpreis) {
+				Integer iId = (Integer) panelQueryMaterialpreis.getSelectedId();
+				panelDetailMaterialpreis.setKeyWhenDetailPanel(iId);
+				panelDetailMaterialpreis.eventYouAreSelected(false);
+				panelQueryMaterialpreis.updateButtons();
 			} else if (e.getSource() == panelQueryMaterial) {
 				if (panelQueryMaterial.getSelectedId() != null) {
 					Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 
 					getInternalFrameArtikel().setKeyWasForLockMe(key + "");
 
-					getInternalFrameArtikel().materialDto = DelegateFactory
-							.getInstance().getMaterialDelegate()
+					getInternalFrameArtikel().materialDto = DelegateFactory.getInstance().getMaterialDelegate()
 							.materialFindByPrimaryKey((Integer) key);
 					String sBezeichnung = "";
-					if (getInternalFrameArtikel().materialDto
-							.getMaterialsprDto() != null) {
-						sBezeichnung = getInternalFrameArtikel().materialDto
-								.getMaterialsprDto().getCBez() + "";
+					if (getInternalFrameArtikel().materialDto.getMaterialsprDto() != null
+							&& getInternalFrameArtikel().materialDto.getMaterialsprDto().getCBez() != null) {
+						sBezeichnung = getInternalFrameArtikel().materialDto.getMaterialsprDto().getCBez() + "";
 					}
-					getInternalFrame().setLpTitle(
-							InternalFrame.TITLE_IDX_AS_I_LIKE,
-							LPMain.getInstance().getTextRespectUISPr(
-									"label.material")
-									+ ": "
-									+ getInternalFrameArtikel().materialDto
-											.getCNr()
-									+ ", "
-									+ LPMain.getInstance().getTextRespectUISPr(
-											"label.bezeichnung")
-									+ ": "
+					getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+							LPMain.getInstance().getTextRespectUISPr("label.material") + ": "
+									+ getInternalFrameArtikel().materialDto.getCNr() + ", "
+									+ LPMain.getInstance().getTextRespectUISPr("label.bezeichnung") + ": "
 									+ sBezeichnung);
 
 					if (panelQueryMaterial.getSelectedId() == null) {
-						getInternalFrame().enableAllOberePanelsExceptMe(this,
-								IDX_PANEL_AUSWAHL, false);
+						getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 					} else {
-						getInternalFrame().enableAllOberePanelsExceptMe(this,
-								IDX_PANEL_AUSWAHL, true);
+						getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, true);
 					}
 				} else {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, false);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 				}
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
@@ -283,11 +314,17 @@ public class TabbedPaneMaterial extends TabbedPane {
 			} else if (e.getSource() == panelDetailMaterialzuschlag) {
 				setKeyWasForLockMe();
 				if (panelDetailMaterialzuschlag.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryMaterialzuschlag
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryMaterialzuschlag.getId2SelectAfterDelete();
 					panelQueryMaterialzuschlag.setSelectedId(oNaechster);
 				}
 				panelSplit.eventYouAreSelected(false);
+			} else if (e.getSource() == panelDetailMaterialpreis) {
+				setKeyWasForLockMe();
+				if (panelDetailMaterialpreis.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryMaterialpreis.getId2SelectAfterDelete();
+					panelQueryMaterialpreis.setSelectedId(oNaechster);
+				}
+				panelSplitMaterialpreis.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (e.getSource() == panelQueryMaterial) {
@@ -302,6 +339,10 @@ public class TabbedPaneMaterial extends TabbedPane {
 				panelDetailMaterialzuschlag.eventActionNew(e, true, false);
 				panelDetailMaterialzuschlag.eventYouAreSelected(false);
 				this.setSelectedComponent(panelSplit);
+			} else if (e.getSource() == panelQueryMaterialpreis) {
+				panelDetailMaterialpreis.eventActionNew(e, true, false);
+				panelDetailMaterialpreis.eventYouAreSelected(false);
+				this.setSelectedComponent(panelSplitMaterialpreis);
 			}
 		}
 
@@ -330,18 +371,14 @@ public class TabbedPaneMaterial extends TabbedPane {
 
 		String sBezeichnung = "";
 		if (getInternalFrameArtikel().materialDto != null) {
-			if (getInternalFrameArtikel().materialDto.getMaterialsprDto() != null) {
-				sBezeichnung = getInternalFrameArtikel().materialDto
-						.getMaterialsprDto().getCBez();
+			if (getInternalFrameArtikel().materialDto.getMaterialsprDto() != null
+					&& getInternalFrameArtikel().materialDto.getMaterialsprDto().getCBez() != null) {
+				sBezeichnung = getInternalFrameArtikel().materialDto.getMaterialsprDto().getCBez();
 			}
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_AS_I_LIKE,
-					LPMain.getInstance().getTextRespectUISPr("label.material")
-							+ ": "
-							+ getInternalFrameArtikel().materialDto.getCNr()
-							+ ", "
-							+ LPMain.getInstance().getTextRespectUISPr(
-									"label.bezeichnung") + ": " + sBezeichnung);
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+					LPMain.getInstance().getTextRespectUISPr("label.material") + ": "
+							+ getInternalFrameArtikel().materialDto.getCNr() + ", "
+							+ LPMain.getInstance().getTextRespectUISPr("label.bezeichnung") + ": " + sBezeichnung);
 		}
 
 	}
@@ -355,8 +392,7 @@ public class TabbedPaneMaterial extends TabbedPane {
 			createAuswahl();
 			panelQueryMaterial.eventYouAreSelected(false);
 			if (panelQueryMaterial.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_AUSWAHL, false);
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 			}
 
 			panelQueryMaterial.updateButtons();
@@ -371,20 +407,43 @@ public class TabbedPaneMaterial extends TabbedPane {
 			panelDetailMaterial.eventYouAreSelected(false);
 
 		} else if (selectedIndex == IDX_PANEL_ZUSCHLAG) {
-			createMaterialzuschlag(getInternalFrameArtikel().materialDto
-					.getIId());
+			createMaterialzuschlag(getInternalFrameArtikel().materialDto.getIId());
 			panelSplit.eventYouAreSelected(false);
 			panelQueryMaterialzuschlag.updateButtons();
+		}else if (selectedIndex == IDX_PANEL_PREIS) {
+			createMaterialpreis(getInternalFrameArtikel().materialDto.getIId());
+			panelSplitMaterialpreis.eventYouAreSelected(false);
+			panelQueryMaterialpreis.updateButtons();
 		}
 		refreshTitle();
 	}
 
-	protected void lPActionEvent(java.awt.event.ActionEvent e) {
+	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(MENU_INFO_AENDERUNGEN)) {
 
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("lp.report.aenderungen");
+			getInternalFrame().showReportKriterien(new ReportEntitylog(HvDtoLogClass.MATERIALZUSCHLAG,
+					getInternalFrameArtikel().materialDto.getIId() + "", getInternalFrameArtikel(), add2Title,
+					getInternalFrameArtikel().materialDto.getBezeichnung()));
+		}
 	}
 
 	public javax.swing.JMenuBar getJMenuBar() throws Throwable {
-		return new WrapperMenuBar(this);
+		if (wrapperManuBar == null) {
+			wrapperManuBar = new WrapperMenuBar(this);
+
+			JMenuItem menuItemAenderungen = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("lp.report.aenderungen"));
+			menuItemAenderungen.addActionListener(this);
+			menuItemAenderungen.setActionCommand(MENU_INFO_AENDERUNGEN);
+
+			JMenu menuInfo = new WrapperMenu("lp.info", this);
+			menuInfo.add(menuItemAenderungen);
+			wrapperManuBar.addJMenuItem(menuInfo);
+
+		}
+
+		return wrapperManuBar;
 	}
 
 }

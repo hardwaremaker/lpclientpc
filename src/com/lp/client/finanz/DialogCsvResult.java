@@ -301,7 +301,7 @@ public class DialogCsvResult extends JDialog implements TableModel, TableModelLi
 		if(2 == columnIndex) return new Integer(ex.getCode()) ;
 		if(3 == columnIndex) return LPMain.getTextRespectUISPr("fb.konto.import." + ex.getCode()) ;
 		if(4 == columnIndex) {			
-			ArrayList<Object> msgs = ex.getAlInfoForTheClient() ;
+			List<Object> msgs = ex.getAlInfoForTheClient() ;
 			if(msgs != null) {
 				return msgs.get(0) ;
 			}

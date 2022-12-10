@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame;
@@ -38,35 +38,38 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.RenderingHints;
+import java.awt.Transparency;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.swing.AbstractButton;
+import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -79,10 +82,12 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
-import javax.swing.filechooser.FileFilter;
 
-import net.miginfocom.layout.ConstraintListener;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.mime.MediaType;
+import org.apache.tika.mime.MimeTypes;
 
+import com.lp.client.frame.component.ButtonFactory;
 import com.lp.client.frame.component.CompoundIcon;
 import com.lp.client.frame.component.IDirektHilfe;
 import com.lp.client.frame.component.InternalFrame;
@@ -105,6 +110,18 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.ChooserSaveDialog;
+import com.lp.client.frame.filechooser.FileChooserBuilder;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.FileChooserSaveDialog;
+import com.lp.client.frame.filechooser.WrapperSaveFileChooser;
+import com.lp.client.frame.filechooser.filter.FileExtension;
+import com.lp.client.frame.filechooser.filter.HvTaggedFileFilter;
+import com.lp.client.frame.filechooser.filter.HvTaggedVcfFileFilter;
+import com.lp.client.frame.filechooser.open.DirectoryFile;
+import com.lp.client.frame.filechooser.open.WrapperFile;
+import com.lp.client.frame.filechooser.save.AnyFileSaver;
+import com.lp.client.frame.filechooser.save.FileSaver;
 import com.lp.client.frame.report.ReportViewer;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.ClientConfiguration;
@@ -120,9 +137,13 @@ import com.lp.server.partner.service.PartnerkommunikationDto;
 import com.lp.server.rechnung.service.RechnungFac;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.SystemFac;
+import com.lp.server.util.HvOptional;
 import com.lp.util.DoppelIcon;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
+import com.lp.util.StatusIcon;
+
+import net.miginfocom.layout.ConstraintListener;
 
 /**
  * <p>
@@ -173,9 +194,12 @@ public class HelperClient {
 	public static final String SCRUD_MEDIAART_FILE = "mediaart.xml";
 	public static final String SCRUD_AUFTRAGTEXT_FILE = "auftragtext.xml";
 	public static final String SCRUD_AUFTRAGART_FILE = "auftragart.xml";
+	public static final String SCRUD_FORECASTART_FILE = "forecastart.xml";
+	public static final String SCRUD_IMPORTDEF_FILE = "importdef.xml";
 	public static final String SCRUD_MEILENSTEIN_FILE = "meilenstein.xml";
 	public static final String SCRUD_AUFTRAGSERIENNUMMER_FILE = "auftragseriennummer.xml";
 	public static final String SCRUD_RECHNUNGTEXT_FILE = "rechnungtext.xml";
+	public static final String SCRUD_EINGANGSRECHNUNGTEXT_FILE = "eingangsrechnungtext.xml";
 	public static final String SCRUD_GUTSCHRIFTTEXT_FILE = "gutschrifttext.xml";
 	public static final String SCRUD_GUTSCHRIFTGRUND_FILE = "gutschriftgrund.xml";
 	public static final String SCRUD_MAHNTEXT_FILE = "mahntext.xml";
@@ -207,6 +231,7 @@ public class HelperClient {
 	public static final String SCRUD_ANFRAGEART_FILE = "anfrageart.xml";
 	public static final String SCRUD_BESTELLPOSITIONART_FILE = "bestellpositionart.xml";
 	public static final String SCRUD_SELEKTION_FILE = "selektion.xml";
+	public static final String SCRUD_NEWSLETTERGRUND_FILE = "newslettergrund.xml";
 	public static final String SCRUD_KATEGORIE_FILE = "kategorie.xml";
 	public static final String SCRUD_TYP_FILE = "projekttyp.xml";
 	public static final String SCRUD_KONTAKTART_FILE = "projektkontaktart.xml";
@@ -221,7 +246,11 @@ public class HelperClient {
 	public static final String LOCKME_AUFTRAGPOSITION = "lockme_auftragposition";
 	public static final String LOCKME_AUFTRAGTEILNEHMER = "lockme_auftragteilnehmer";
 	public static final String LOCKME_AUFTRAGART = "lockme_auftragart";
+	public static final String LOCKME_FORECASTART = "lockme_forecastart";
+	public static final String LOCKME_IMPORTDEF = "lockme_importdef";
 	public static final String LOCKME_MEILENSTEIN = "lockme_meilenstein";
+	public static final String LOCKME_APKOMMENTAR = "lockme_apkommentar";
+	public static final String LOCKME_VERPACKUNGSMITTEL = "lockme_verpackungsmittel";
 	public static final String LOCKME_AUFTRAGSERIENNUMMERN = "lockme_auftragseriennummern";
 	public static final String LOCKME_LIEFERSCHEIN = "lockme_lieferschein";
 	public static final String LOCKME_LIEFERSCHEINPOSITION = "lockme_lieferscheinposition";
@@ -241,6 +270,8 @@ public class HelperClient {
 	public static final String LOCKME_LAGER = "lockme_lager";
 	public static final String LOCKME_ARTIKELKLASSE = "lockme_artikelklasse";
 	public static final String LOCKME_MATERIAL = "lockme_material";
+	public static final String LOCKME_NACHRICHTENART = "lockme_nachrichtenart";
+	public static final String LOCKME_NACHRICHTENGRUPPE = "lockme_nachrichtengruppe";
 	public static final String LOCKME_SHOPGRUPPE = "lockme_shopgruppe";
 	public static final String LOCKME_ARTIKEL = "lockme_artikel";
 	public static final String LOCKME_THEMA = "lockme_thema";
@@ -252,23 +283,33 @@ public class HelperClient {
 	public static final String LOCKME_LAND = "lockme_land";
 	public static final String LOCKME_LANDPLZORT = "lockme_landplzort";
 	public static final String LOCKME_BESTELLUNG = "lockme_bestellung";
+	public static final String LOCKME_ABRECHNUNGSVORSCHLAG = "lockme_abrechnungsvorschlag";
 	public static final String LOCKME_BESTELLVORSCHLAG = BestellvorschlagFac.LOCKME_BESTELLVORSCHLAG;
 	public static final String LOCKME_PERSONAL = "lockme_personal";
 	public static final String LOCKME_RELIGION = "lockme_religion";
+	public static final String LOCKME_IDENTIFIKATION = "lockme_identifikation";
+	public static final String LOCKME_DSGVOKATEGORIE = "lockme_dsgvokategorie";
+	public static final String LOCKME_ABWESENHEITSART = "lockme_abwesenheitsart";
 	public static final String LOCKME_LOHNGRUPPE = "lockme_lohngruppe";
 	public static final String LOCKME_PENDLERPAUSCHALE = "lockme_pendlerpauschale";
 	public static final String LOCKME_BERUF = "lockme_beruf";
 	public static final String LOCKME_KOLLEKTIV = "lockme_kollektiv";
 	public static final String LOCKME_FAHRZEUG = "lockme_fahrzeug";
+	public static final String LOCKME_EKGRUPPE = "lockme_ekgruppe";
 	public static final String LOCKME_LIEFERANT = "lockme_lieferant";
 	public static final String LOCKME_ZEITMODELL = "lockme_zeitmodell";
+	public static final String LOCKME_VERRECHNUNGSMODELL = "lockme_verrechnungsmodell";
 	public static final String LOCKME_MANDANT = "lockme_mandant";
+	public static final String LOCKME_PANELSPERREN = "lockme_panelsperren";
 	public static final String LOCKME_BETRIEBSKALENDER = "lockme_betriebskalender";
+	public static final String LOCKME_WERKZEUG = "lockme_werkzeug";
+	public static final String LOCKME_VERSCHLEISSTEILWERKZEUG = "lockme_verschleissteilwerkzeug";
 	public static final String LOCKME_ZEITDATEN = "lockme_zeitdaten";
 	public static final String LOCKME_BELEGART = "lockme_belegart";
 	public static final String LOCKME_TAETIGKEITEN = "lockme_taetigkeiten";
 	public static final String LOCKME_BANK = "lockme_bank";
 	public static final String LOCKME_SYSTEMROLLE = "lockme_systemrolle";
+	public static final String LOCKME_HVMABENUTZER = "lockme_hvmabenutzer";
 	public static final String LOCKME_BENUTZER = "lockme_benutzer";
 	public static final String LOCKME_NACHRICHTART = "lockme_nachrichtart";
 	public static final String LOCKME_AUFTRAGDOKUMENT = "lockme_auftragdokumant";
@@ -300,6 +341,7 @@ public class HelperClient {
 	public static final String LOCKME_MEDIAART = "lockme_mediaart";
 	public static final String LOCKME_AUFTRAGTEXT = "lockme_auftragtext";
 	public static final String LOCKME_RECHNUNGTEXT = "lockme_rechnungtext";
+	public static final String LOCKME_EINGANGSRECHNUNGTEXT = "lockme_eingangsrechnungtext";
 	public static final String LOCKME_GUTSCHRIFTGRUND = "lockme_gutschriftgrund";
 	public static final String LOCKME_MAHNTEXT = "lockme_mahntext";
 	public static final String LOCKME_KOSTENSTELLE = "lockme_kostenstelle";
@@ -311,6 +353,7 @@ public class HelperClient {
 	public static final String LOCKME_BESTELLUNGTEXT = "lockme_bestellungtext";
 	public static final String LOCKME_PARAMETERANWENDER = "lockme_parameteranwender";
 	public static final String LOCKME_PARAMETERMANDANT = "lockme_parametermandant";
+	public static final String LOCKME_HVMAPARAMETER = "lockme_hvmaparameter";
 	public static final String LOCKME_ANFRAGE = "lockme_anfrage";
 	public static final String LOCKME_ANFRAGETEXT = "lockme_anfragetext";
 	public static final String LOCKME_WAEHRUNG = "lockme_waehrung";
@@ -329,9 +372,13 @@ public class HelperClient {
 	public static final String LOCKME_LIEFERSCHEINART = "lockme_lieferscheinart";
 	public static final String LOCKME_TAGESART = "lockme_tagesart";
 	public static final String LOCKME_SONDERZEITEN = "lockme_sonderzeiten";
+	public static final String LOCKME_ZEITGUTSCHRIFT = "lockme_zeitgutschrift";
 	public static final String LOCKME_MONTAGEART = "lockme_montageart";
+	public static final String LOCKME_VERRECHENBAR = "lockme_verrechenbar";
 	public static final String LOCKME_FERTIGUNGSGRUPPE = "lockme_fertigungsgruppet";
 	public static final String LOCKME_AUFSCHLAG = "lockme_aufschlag";
+	public static final String LOCKME_WEBLIEFERANT = "lockme_weblieferant";
+	public static final String LOCKME_WEBFINDCHIPS = "lockme_webfindchips";
 	public static final String LOCKME_KOMMENTARIMPORT = "lockme_kommentarimport";
 	public static final String LOCKME_STUECKLISTEEIGENSCHAFTART = "lockme_stuecklisteeigenschaftart";
 	public static final String LOCKME_BEREICH = "lockme_bereich";
@@ -348,17 +395,23 @@ public class HelperClient {
 	public static final String LOCKME_ANFRAGEART = "lockme_anfrageart";
 	public static final String LOCKME_LOS = "lockme_los";
 	public static final String LOCKME_INTERNEBESTELLUNG = "lockme_internebestellung";
+	public static final String LOCKME_BEDARFSUEBERNAHME = "lockme_bedarfsuebernahme";
 	public static final String LOCKME_ZULAGE = "lockme_zulage";
+	public static final String LOCKME_ZAHLTAG = "lockme_zahltag";
 	public static final String LOCKME_LOHNARTSTUNDENFAKTOR = "lockme_lohnartstundenfaktor";
 	public static final String LOCKME_ARTIKELZULAGE = "lockme_artikelzulage";
+	public static final String LOCKME_ARTIKELZUSCHLAG = "lockme_artikelzuschlag";
 	public static final String LOCKME_BESTELLPOSITIONART = "lockme_bestellpositionart";
 	public static final String LOCKME_BESTELLUNG_MAHNTEXT = "lockme_bestellung_mahntext";
 	public static final String LOCKME_BESTELLUNG_MAHNSTUFE = "lockme_bestellung_mahnstufe";
 	public static final String LOCKME_SELEKTION = "lockme_selektion";
+	public static final String LOCKME_NEWSLETTERGRUND = "lockme_newslettergrund";
 	public static final String LOCKME_SERIENBRIEF = "lockme_serienbrief";
 	public static final String LOCKME_PANELDATEN = "lockme_paneldaten";
 	public static final String LOCKME_PANELBESCHREIBUNG = "lockme_panelbeschreibung";
 	public static final String LOCKME_AGSTKL = "lockme_agstkl";
+	public static final String LOCKME_FORECAST = "lockme_forecast";
+	public static final String LOCKME_AUSLIEFERVORSCHLAG = "lockme_ausliefervorschlag";
 	public static final String LOCKME_THECLIENT = "lockme_theclient";
 	public static final String LOCKME_VKPFMENGENSTAFFEL = "lockme_vkpfmengenstaffel";
 	public static final String LOCKME_KUNDESOKO = "lockme_kundesoko";
@@ -390,6 +443,7 @@ public class HelperClient {
 	public static final String LOCKME_EXTRALISTE = "lockme_extraliste";
 	public static final String LOCKME_TELEFONZEITEN = "lockme_telefonzeiten";
 	public static final String LOCKME_DIAETEN = "lockme_diaeten";
+	public static final String LOCKME_ANWESENHEITSBESTAETIGUNG = "lockme_anwesenheitsbestaetigung";
 	public static final String LOCKME_SPERREN = "lockme_sperren";
 	public static final String LOCKME_AUTOMATIK = "lockme_automatik";
 	public static final String LOCKME_AUTOMATIKTIMER = "lockme_automatiktimer";
@@ -413,10 +467,12 @@ public class HelperClient {
 	public static final String LOCKME_GERAETETHISTORIE = "lockme_geraetehistorie";
 	public static final String LOCKME_INSERAT = "lockme_inserat";
 	public static final String LOCKME_BEREITSCHAFTART = "lockme_bereitschaftart";
+	public static final String LOCKME_SCHICHT = "lockme_schicht";
 	public static final String LOCKME_LOSSOLLMATERIAL = "lockme_lossollmaterial";
 
 	public static final String LOCKME_ZUSATZSTATUS = "lockme_zusatzstatus";
 	public static final String LOCKME_SCHWERE = "lockme_schwere";
+	public static final String LOCKME_BEAUSKUNFTUNG = "lockme_beauskunftung";
 	public static final String LOCKME_LAGERPLATZ = "lockme_lagerplatz";
 	public static final String LOCKME_KASSAARTIKEL = "lockme_kassaartikel";
 	public static final String LOCKME_BEDIENERLAGER = "lockme_bedienerlager";
@@ -426,18 +482,24 @@ public class HelperClient {
 	public static final String LOCKME_PROJEKTERLEDIGUNGSGRUND = "lockme_projekterledigungsgrund";
 	public static final String LOCKME_FEIERTAG = "lockme_feiertag";
 	public static final String LOCKME_REACH = "lockme_reach";
+	public static final String LOCKME_LASEROBERFLAECHE = "lockme_laseroberflaeche";
 	public static final String LOCKME_ROHS = "lockme_rohs";
 	public static final String LOCKME_AUTOMOTIVE = "lockme_automotive";
 	public static final String LOCKME_MEDICAL = "lockme_medical";
-	public static final String LOCKME_MEDIAINBOX = "lockme_mediainbox" ;
-	public static final String LOCKME_MEDIASTOREBELEG = "lockme_mediastorebeleg" ;
+	public static final String LOCKME_GEBINDE = "lockme_gebinde";
+	public static final String LOCKME_MEDIAINBOX = "lockme_mediainbox";
+	public static final String LOCKME_MEDIASTOREBELEG = "lockme_mediastorebeleg";
 	public static final String LOCKME_MASCHINENZEITMODELL = "lockme_maschinenzeitmodell";
 	public static final String LOCKME_VORZUG = "lockme_vorzug";
 	public static final String LOCKME_ALLERGEN = "lockme_alergen";
 	public static final String LOCKME_ANFRAGEERLEDIGUNGSGRUND = "lockme_anfrageerledigungsgrund";
 	public static final String LOCKME_PARTNERKOMMENTARART = "lockme_partnerkommentarart";
-	
-	
+	public static final String LOCKME_STUECKLISTESCRIPTART = "lockme_stuecklistescriptart";
+
+	public static final String LOCKME_REVERSECHARGEART = "lockme_reversechargeart";
+	public static final String LOCKME_GEODATENANZEIGE = "lockme_geodatenanzeige";
+	public static final String LOCKME_MAILPROPERTIES = "lockme_mailproperties";
+
 	// Strings fuer File-Association
 	public static final String FILE_ASSOC_OPEN = "open";
 	public static final String FILE_ASSOC_PRINT = "print";
@@ -450,31 +512,19 @@ public class HelperClient {
 	public static final String COMP_PRAEFIX_MENUITEM = "menuItem_";
 	public static final String COMP_PRAEFIX_TOOLBARBUTTON = "toolbarButton_";
 
-	public static final String COMP_NAME_MENU_PROGRAM = COMP_PRAEFIX_MENU
-			+ "Program";
-	public static final String COMP_NAME_MENU_WARENWIRTSCHAFT = COMP_PRAEFIX_MENU
-			+ "Warenwirtschaft";
-	public static final String COMP_NAME_MENU_EINKAUF = COMP_PRAEFIX_MENU
-			+ "Einkauf";
-	public static final String COMP_NAME_MENU_FERTIGUNG = COMP_PRAEFIX_MENU
-			+ "Fertigung";
-	public static final String COMP_NAME_MENU_VERKAUF = COMP_PRAEFIX_MENU
-			+ "Verkauf";
-	public static final String COMP_NAME_MENU_MANAGEMENT = COMP_PRAEFIX_MENU
-			+ "Management";
-	public static final String COMP_NAME_MENU_EXTRAS = COMP_PRAEFIX_MENU
-			+ "Extras";
-	public static final String COMP_NAME_MENU_ANSICHT = COMP_PRAEFIX_MENU
-			+ "Ansicht";
-	public static final String COMP_NAME_MENU_HILFE = COMP_PRAEFIX_MENU
-			+ "Hilfe";
-	public static final String COMP_NAME_MENU_EMAIL = COMP_PRAEFIX_MENU
-			+ "Email";
-	
-	protected static LpLogger myLogger = (LpLogger) LpLogger
-			.getLogger("HelperClient");
+	public static final String COMP_NAME_MENU_PROGRAM = COMP_PRAEFIX_MENU + "Program";
+	public static final String COMP_NAME_MENU_WARENWIRTSCHAFT = COMP_PRAEFIX_MENU + "Warenwirtschaft";
+	public static final String COMP_NAME_MENU_EINKAUF = COMP_PRAEFIX_MENU + "Einkauf";
+	public static final String COMP_NAME_MENU_FERTIGUNG = COMP_PRAEFIX_MENU + "Fertigung";
+	public static final String COMP_NAME_MENU_VERKAUF = COMP_PRAEFIX_MENU + "Verkauf";
+	public static final String COMP_NAME_MENU_MANAGEMENT = COMP_PRAEFIX_MENU + "Management";
+	public static final String COMP_NAME_MENU_EXTRAS = COMP_PRAEFIX_MENU + "Extras";
+	public static final String COMP_NAME_MENU_ANSICHT = COMP_PRAEFIX_MENU + "Ansicht";
+	public static final String COMP_NAME_MENU_HILFE = COMP_PRAEFIX_MENU + "Hilfe";
+	public static final String COMP_NAME_MENU_EMAIL = COMP_PRAEFIX_MENU + "Email";
+
+	protected static LpLogger myLogger = (LpLogger) LpLogger.getLogger("HelperClient");
 	private static ConstraintListener constraintListener;
-	private static Color colorOnFocus;
 
 	private static final String DOUBLE_RIGHT_ARROWS = "\u00BB";
 	private static final String DOUBLE_RIGHT_ARROWS_SPACED = " \u00BB ";
@@ -487,80 +537,99 @@ public class HelperClient {
 	}
 
 	/**
-	 * Mache einen Button.
+	 * Use create methods of {@link ButtonFactory} instead.
 	 * 
 	 * @param icon
-	 *            Icon
 	 * @param tooltip
-	 *            String
 	 * @param ac
-	 *            String
 	 * @return JButton
 	 */
 	static public JButton createButton(Icon icon, String tooltip, String ac) {
 
-		JButton button = new JButton();
-
-		button.setToolTipText(tooltip);
-		button.setActionCommand(ac);
-		button.setIcon(icon);
-		button.setEnabled(false);
-
-		return button;
+//		JButton button = new JButton();
+//
+//		button.setToolTipText(tooltip);
+//		button.setActionCommand(ac);
+//		button.setIcon(icon);
+//		button.setEnabled(false);
+//		setButtonBackgroundBorderColor(button, 
+//				Defaults.getInstance().getButtonBackgroundColor(), 
+//				Defaults.getInstance().getButtonBorderColor());
+//		return button;
+		return ButtonFactory.createJButtonNotEnabled(icon, tooltip, ac);
 	}
 
-	static public WrapperButton createWrapperButton(Icon icon, String tooltip,
-			String ac) {
+	/**
+	 * Use create methods of {@link ButtonFactory} instead.
+	 * 
+	 * @param icon
+	 * @param tooltip
+	 * @param ac
+	 * @return WrapperButton
+	 */
+	static public WrapperButton createWrapperButton(Icon icon, String tooltip, String ac) {
 
-		WrapperButton button = new WrapperButton();
+//		WrapperButton button = new WrapperButton();
+//
+//		button.setToolTipText(tooltip);
+//		button.setActionCommand(ac);
+//		button.setIcon(icon);
+//		button.setEnabled(false);
+//
+//		return button;
+		return ButtonFactory.createWrapperButtonNotEnabled(icon, tooltip, ac);
+	}
 
-		button.setToolTipText(tooltip);
-		button.setActionCommand(ac);
-		button.setIcon(icon);
-		button.setEnabled(false);
-
-		return button;
+	static public void setButtonBackgroundBorderColor(AbstractButton button, Color bgColor, Color borderColor) {
+		boolean hasBgColor = bgColor != null;
+		if (hasBgColor) {
+			button.setBackground(bgColor);
+			button.setBorder(borderColor != null ? BorderFactory.createLineBorder(borderColor, 1, true) : null);
+		}
+		button.setContentAreaFilled(!hasBgColor);
+		button.setOpaque(hasBgColor);
 	}
 
 	/**
 	 * Umsetzung der LP5 GUI - Design - Richtlinien.
 	 * 
-	 * @param c
-	 *            JComponent
+	 * @param c JComponent
 	 */
 	public static void setDefaultsToComponent(JComponent c) {
-		
+
 		// Defaults fuer alle Komponenten
-		Dimension minimumDimension = new Dimension(10, Defaults.getInstance()
-				.getControlHeight());
-		Dimension maximumDimension = new Dimension(10000, Defaults
-				.getInstance().getControlHeight());
+		Dimension minimumDimension = new Dimension(10, Defaults.getInstance().getControlHeight());
+		Dimension maximumDimension = new Dimension(10000, Defaults.getInstance().getControlHeight());
 		c.setMinimumSize(minimumDimension);
 		c.setMaximumSize(maximumDimension);
 		c.setPreferredSize(minimumDimension);
+//		c.setForeground(getDefaultTextColor());
 	}
-	
+
 	/**
-	 * Erm&ouml;glicht das &Auml;ndern der MigLayout Constraints zur Laufzeit.
-	 * Ist der Benutzer als LPAdmin angemeldet, erh&auml;lt man mit einem Rechtsklick
+	 * Erm&ouml;glicht das &Auml;ndern der MigLayout Constraints zur Laufzeit. Ist
+	 * der Benutzer als LPAdmin angemeldet, erh&auml;lt man mit einem Rechtsklick
 	 * auf die <code>JComponent c</code> einen Eingabedialog.
-	 * @param c 
+	 * 
+	 * @param c
 	 */
 	public static void addConstraintListener(Container c) {
-		if(!LPMain.getInstance().isLPAdmin()) return;
-		if(!Defaults.getInstance().isbDebugGUI()) return;
+		if (!LPMain.getInstance().isLPAdmin())
+			return;
+		if (!Defaults.getInstance().isbDebugGUI())
+			return;
 		// damit wir ihn nicht mehrfach adden
 		c.removeMouseListener(getConstraintListener());
 		c.addMouseListener(getConstraintListener());
-		
-		for(Component child : c.getComponents()) {
-			if(child instanceof Container)
-			addConstraintListener((Container)child);
+
+		for (Component child : c.getComponents()) {
+			if (child instanceof Container)
+				addConstraintListener((Container) child);
 		}
 	}
-	
+
 	private static ConstraintListener getConstraintListener() {
-		if(constraintListener == null) {
+		if (constraintListener == null) {
 			constraintListener = new ConstraintListener();
 		}
 		return constraintListener;
@@ -569,16 +638,13 @@ public class HelperClient {
 	/**
 	 * Einer Component die Default Hoehe und eine fixe Breite geben.
 	 * 
-	 * @param c
-	 *            JComponent
-	 * @param iBreite
-	 *            die fixe Breite
+	 * @param c       JComponent
+	 * @param iBreite die fixe Breite
 	 */
 	public static void setDefaultsToComponent(JComponent c, int iBreite) {
 		// Defaults fuer alle Komponenten
-		Dimension dimension = new Dimension(Defaults.getInstance()
-				.bySizeFactor(iBreite), Defaults.getInstance()
-				.getControlHeight());
+		Dimension dimension = new Dimension(Defaults.getInstance().bySizeFactor(iBreite),
+				Defaults.getInstance().getControlHeight());
 
 		c.setMinimumSize(dimension);
 		c.setMaximumSize(dimension);
@@ -599,16 +665,49 @@ public class HelperClient {
 	/**
 	 * Liefert die Farbe des Rahmens fuer Pflichtfelder.<br>
 	 * Der Parameter <code>colorVision</code> legt fest, ob eine Farbe f&uuml;r
-	 * Menschen mit eingeschr&auml;nkter Farbwahrnehmung gew&auml;hlt werden
-	 * soll.
+	 * Menschen mit eingeschr&auml;nkter Farbwahrnehmung gew&auml;hlt werden soll.
 	 * 
-	 * @param colorVision
-	 *            zB.: HelperClient.COLOR_RED_GREEN_BLINDNESS,
-	 *            HelperClient.COLOR_NORMAL
+	 * @param colorVision zB.: HelperClient.COLOR_RED_GREEN_BLINDNESS,
+	 *                    HelperClient.COLOR_NORMAL
 	 * @return Color
 	 */
 	public static Color getMandatoryFieldBorderColor(String colorVision) {
-		return ClientConfiguration.getMandatoryFieldBorderColor(colorVision) ;
+		return ClientConfiguration.getMandatoryFieldBorderColor(colorVision);
+	}
+
+	/**
+	 * Liefert die Farbe eines Standardtextes.<br>
+	 * 
+	 * @return Color
+	 */
+	public static Color getDefaultTextColor() {
+		return Defaults.getInstance().getDefaultTextColor();
+	}
+
+	/**
+	 * Liefert die Farbe eines g&uuml;ltigen Textes.<br>
+	 * Der Parameter <code>colorVision</code> legt fest, ob eine Farbe f&uuml;r
+	 * Menschen mit eingeschr&auml;nkter Farbwahrnehmung gew&auml;hlt werden soll.
+	 * 
+	 * @param colorVision zB.: HelperClient.COLOR_RED_GREEN_BLINDNESS,
+	 *                    HelperClient.COLOR_NORMAL
+	 * @return Color
+	 */
+	public static Color getValidTextColor(String colorVision) {
+		return Defaults.getInstance().getValidTextColor();
+	}
+
+	/**
+	 * Liefert die Farbe eines ung&uuml;ltigen Textes.<br>
+	 * Der Parameter <code>colorVision</code> legt fest, ob eine Farbe f&uuml;r
+	 * Menschen mit eingeschr&auml;nkter Farbwahrnehmung gew&auml;hlt werden soll.
+	 * 
+	 * @param colorVision zB.: HelperClient.COLOR_RED_GREEN_BLINDNESS,
+	 *                    HelperClient.COLOR_NORMAL
+	 * @return Color
+	 */
+	public static Color getInvalidTextColor(String colorVision) {
+		return Defaults.getInstance().getInvalidTextColor();
 	}
 
 	/**
@@ -620,7 +719,8 @@ public class HelperClient {
 		/**
 		 * @todo MB aus lp.properties PJ 4689
 		 */
-		return new Color(220, 220, 255); // ein nicht so helles blau
+		return Defaults.getInstance().getDependenceFieldBgColor();
+//		return new Color(220, 220, 255); // ein nicht so helles blau
 
 	}
 
@@ -633,7 +733,8 @@ public class HelperClient {
 		/**
 		 * @todo MB aus lp.properties PJ 4689
 		 */
-		return new Color(230, 230, 255); // ein helles blau
+		return Defaults.getInstance().getDependenceFieldBgDisabledColor();
+//		return new Color(230, 230, 255); // ein helles blau
 	}
 
 	/**
@@ -642,7 +743,7 @@ public class HelperClient {
 	 * @return Color
 	 */
 	public static Color getNotEditableColor() {
-		return ClientConfiguration.getNotEditableColor() ;
+		return Defaults.getInstance().getNotEditableFieldColor();
 	}
 
 	/**
@@ -653,8 +754,9 @@ public class HelperClient {
 	 */
 	public static Color getSelectedBgColor() {
 		// Color color = new Color(100, 150, 210); // mittel bis dunkelblau
-		Color color = new Color(180, 195, 255); // helles blau
-		return color;
+		return Defaults.getInstance().getSelectedFieldBgColor();
+//		Color color = new Color(180, 195, 255); // helles blau
+//		return color;
 	}
 
 	/**
@@ -663,31 +765,27 @@ public class HelperClient {
 	 * @return Color
 	 */
 	public static Color getEditableColor() {
-		return ClientConfiguration.getEditableColor() ;
+		return Defaults.getInstance().getEditableFieldColor();
 	}
-	
+
 	public static Color stringToColor(String s) {
 		int iColor = Integer.parseInt(s);
 		return new Color(iColor);
 	}
-	
+
 	public static Color getColorOnFocus() {
-		if(colorOnFocus == null) {
-			colorOnFocus = ClientConfiguration.getColorOnFocus() ;
-		}
-		return colorOnFocus;
+		return Defaults.getInstance().getTextfieldOnFocusColor();
 	}
 
 	public static Dimension getInternalFrameSize() {
-		int iSizeX = ClientConfiguration.getInternalFrameSizeWidth() ;
+		int iSizeX = ClientConfiguration.getInternalFrameSizeWidth();
 		int iSizeY = ClientConfiguration.getInternalFrameSizeHeight();
 
-		return new java.awt.Dimension(Defaults.getInstance().bySizeFactor(
-				iSizeX), Defaults.getInstance().bySizeFactor(iSizeY));
+		return new java.awt.Dimension(Defaults.getInstance().bySizeFactor(iSizeX),
+				Defaults.getInstance().bySizeFactor(iSizeY));
 	}
 
-	public static void memberVariablenEinerKlasseBenennen(Component component)
-			throws Throwable {
+	public static void memberVariablenEinerKlasseBenennen(Component component) throws Throwable {
 		// nur dann, wenn der Abbot auch laeuft
 
 		Field[] fields = component.getClass().getDeclaredFields();
@@ -695,11 +793,9 @@ public class HelperClient {
 			String sName = fields[i].getName();
 			try {
 				// Alle final bzw. static konstanten ignorieren
-				if (!(Modifier.isFinal(fields[i].getModifiers()) && Modifier
-						.isStatic(fields[i].getModifiers()))) {
+				if (!(Modifier.isFinal(fields[i].getModifiers()) && Modifier.isStatic(fields[i].getModifiers()))) {
 					// Methode setName(String name) laden
-					Method method = fields[i].getDeclaringClass().getMethod(
-							"setName", new Class[] { String.class });
+					Method method = fields[i].getDeclaringClass().getMethod("setName", new Class[] { String.class });
 					boolean bIsAccessible = fields[i].isAccessible();
 					if (!bIsAccessible) {
 						// Zugriff sichern
@@ -711,17 +807,14 @@ public class HelperClient {
 						// Warnung fuer Felder, die nicht private oder
 						// protected sind
 						if (!Modifier.isPrivate(fields[i].getModifiers())
-								&& !Modifier.isProtected(fields[i]
-										.getModifiers())) {
-							myLogger.warn(sName + " in "
-									+ component.getClass().getName()
-									+ " is not private or protected");
+								&& !Modifier.isProtected(fields[i].getModifiers())) {
+							myLogger.warn(
+									sName + " in " + component.getClass().getName() + " is not private or protected");
 						}
 
 						method.invoke(oComponent, new Object[] { sName });
 					} else if (oComponent instanceof WrapperIdentField) {
-						((WrapperIdentField) oComponent)
-								.setComponentNames(fields[i].getName());
+						((WrapperIdentField) oComponent).setComponentNames(fields[i].getName());
 					}
 					// alte Verfuegbarkeit wiederherstellen
 					fields[i].setAccessible(bIsAccessible);
@@ -762,8 +855,20 @@ public class HelperClient {
 		return new BigDecimal6Renderer();
 	}
 
+	public static BigDecimal5Renderer getBigDecimal5Renderer() {
+		return new BigDecimal5Renderer();
+	}
+
 	public static BigDecimal3Renderer getBigDecimal3Renderer() {
 		return new BigDecimal3Renderer();
+	}
+
+	public static BigDecimal1Renderer getBigDecimal1Renderer() {
+		return new BigDecimal1Renderer();
+	}
+
+	public static BigDecimal0Renderer getBigDecimal0Renderer() {
+		return new BigDecimal0Renderer();
 	}
 
 	public static BigDecimal4Renderer getBigDecimal4Renderer() {
@@ -772,6 +877,10 @@ public class HelperClient {
 
 	public static BigDecimalFinanzRenderer getBigDecimalFinanzRenderer() {
 		return new BigDecimalFinanzRenderer();
+	}
+
+	public static BigDecimal13Renderer getBigDecimal13Renderer() {
+		return new BigDecimal13Renderer();
 	}
 
 	/**
@@ -837,6 +946,7 @@ public class HelperClient {
 
 	/**
 	 * Renderer-Klasse fuer Boolean.
+	 * 
 	 * @return new Instance of {@link BooleanRenderer}
 	 */
 	public static BooleanRenderer getBooleanRenderer() {
@@ -848,15 +958,14 @@ public class HelperClient {
 	 */
 	static class DateRenderer extends LPDefaultTableCellRenderer {
 		/**
-	 * 
-	 */
+		*
+		*/
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
@@ -897,15 +1006,14 @@ public class HelperClient {
 	 */
 	static class ShortRenderer extends LPDefaultTableCellRenderer {
 		/**
-	 * 
-	 */
+		*
+		*/
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			super.setValue(Helper.short2Boolean((Short) value));
@@ -936,15 +1044,14 @@ public class HelperClient {
 	 */
 	static class BigDecimalRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
@@ -953,9 +1060,8 @@ public class HelperClient {
 				// do nothing
 			} else {
 				if (value != null && ((BigDecimal) value).signum() != 0) {
-					sShow = Helper.formatZahl(
-							Helper.rundeKaufmaennisch((BigDecimal) value, 2),
-							2, Defaults.getInstance().getLocUI());
+					sShow = Helper.formatZahl(Helper.rundeKaufmaennisch((BigDecimal) value, 2), 2,
+							Defaults.getInstance().getLocUI());
 				}
 
 				setText((sShow == null) ? "" : sShow);
@@ -972,27 +1078,31 @@ public class HelperClient {
 		}
 	}
 
-	/**
-	 * Renderer-Klasse fuer BigDecimal mit 6 Nachkommastellen.
-	 */
-	static class BigDecimal6Renderer extends LPDefaultTableCellRenderer {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
+	static class BigDecimalRendererBase extends LPDefaultTableCellRenderer {
+		private static final long serialVersionUID = -1318745469034740861L;
+		private final int scale;
+
+		private BigDecimalRendererBase() {
+			this.scale = 2;
+		}
+
+		public BigDecimalRendererBase(int scale) {
+			this.scale = scale;
+		}
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
 
-			if (value != null && ((BigDecimal) value).doubleValue() != 0) {
-				sShow = Helper.formatZahl((BigDecimal) value, 6, Defaults
-						.getInstance().getLocUI());
+			if (value instanceof BigDecimal) {
+				BigDecimal d = (BigDecimal) value;
+				if (d.signum() != 0) {
+					sShow = Helper.formatZahl(d, scale, Defaults.getInstance().getLocUI());
+				}
 			}
 
 			setText((sShow == null) ? "" : sShow);
@@ -1009,84 +1119,89 @@ public class HelperClient {
 	}
 
 	/**
-	 * Renderer-Klasse fuer BigDecimal mit 3 Nachkommastellen.
+	 * Renderer-Klasse fuer BigDecimal mit 13 Nachkommastellen. (Wechselkurs)
 	 */
-	static class BigDecimal3Renderer extends LPDefaultTableCellRenderer {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
+	static class BigDecimal13Renderer extends BigDecimalRendererBase {
+		private static final long serialVersionUID = 5538519656514721425L;
 
-		/**
-		 * Wert formatiert setzen.
-		 * 
-		 * @param value
-		 *            Object
-		 */
-		public void setValue(Object value) {
-			String sShow = null;
-			if (value != null && ((BigDecimal) value).doubleValue() != 0) {
-				sShow = Helper.formatZahl((BigDecimal) value, 3, Defaults
-						.getInstance().getLocUI());
-			}
-			setText((sShow == null) ? "" : sShow);
+		public BigDecimal13Renderer() {
+			super(13);
 		}
+	}
 
-		/**
-		 * Zelle rechts ausrichten.
-		 * 
-		 * @return int
-		 */
-		public int getHorizontalAlignment() {
-			return SwingConstants.RIGHT;
+	/**
+	 * Renderer-Klasse fuer BigDecimal mit 6 Nachkommastellen.
+	 */
+	static class BigDecimal6Renderer extends BigDecimalRendererBase {
+		private static final long serialVersionUID = 8485688789944926784L;
+
+		public BigDecimal6Renderer() {
+			super(6);
+		}
+	}
+
+	/**
+	 * Renderer-Klasse fuer BigDecimal mit 5 Nachkommastellen.
+	 */
+	static class BigDecimal5Renderer extends BigDecimalRendererBase {
+		private static final long serialVersionUID = 2838117047204374031L;
+
+		public BigDecimal5Renderer() {
+			super(5);
 		}
 	}
 
 	/**
 	 * Renderer-Klasse fuer BigDecimal mit 4 Nachkommastellen.
 	 */
-	static class BigDecimal4Renderer extends LPDefaultTableCellRenderer {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
+	static class BigDecimal4Renderer extends BigDecimalRendererBase {
+		private static final long serialVersionUID = 2838117047204374031L;
 
-		/**
-		 * Wert formatiert setzen.
-		 * 
-		 * @param value
-		 *            Object
-		 */
-		public void setValue(Object value) {
-			String sShow = null;
-			if (value != null && ((BigDecimal) value).doubleValue() != 0) {
-				sShow = Helper.formatZahl((BigDecimal) value, 4, Defaults
-						.getInstance().getLocUI());
-			}
-			setText((sShow == null) ? "" : sShow);
+		public BigDecimal4Renderer() {
+			super(4);
 		}
+	}
 
-		/**
-		 * Zelle rechts ausrichten.
-		 * 
-		 * @return int
-		 */
-		public int getHorizontalAlignment() {
-			return SwingConstants.RIGHT;
+	/**
+	 * Renderer-Klasse fuer BigDecimal mit 3 Nachkommastellen.
+	 */
+	static class BigDecimal3Renderer extends BigDecimalRendererBase {
+		private static final long serialVersionUID = 3842174795627077162L;
+
+		public BigDecimal3Renderer() {
+			super(3);
+		}
+	}
+
+	/**
+	 * Renderer-Klasse fuer BigDecimal mit 1 Nachkommastellen.
+	 */
+	static class BigDecimal1Renderer extends BigDecimalRendererBase {
+		private static final long serialVersionUID = 4492398358840855747L;
+
+		public BigDecimal1Renderer() {
+			super(1);
+		}
+	}
+
+	static class BigDecimal0Renderer extends BigDecimalRendererBase {
+		private static final long serialVersionUID = 4492398358840855747L;
+
+		public BigDecimal0Renderer() {
+			super(0);
 		}
 	}
 
 	static class BigDecimalFinanzRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
@@ -1095,9 +1210,8 @@ public class HelperClient {
 				// do nothing
 			} else {
 				if (value != null) {
-					sShow = Helper.formatZahl(
-							Helper.rundeKaufmaennisch((BigDecimal) value, 2),
-							2, Defaults.getInstance().getLocUI());
+					sShow = Helper.formatZahl(Helper.rundeKaufmaennisch((BigDecimal) value, 2), 2,
+							Defaults.getInstance().getLocUI());
 				}
 
 				setText((sShow == null) ? "" : sShow);
@@ -1120,22 +1234,20 @@ public class HelperClient {
 	 */
 	static class DoubleFloatRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
 
 			if (value != null && ((Number) value).doubleValue() != 0) {
-				sShow = Helper.formatZahl((Number) value, 2, Defaults
-						.getInstance().getLocUI());
+				sShow = Helper.formatZahl((Number) value, 2, Defaults.getInstance().getLocUI());
 			}
 
 			setText((sShow == null) ? "" : sShow);
@@ -1156,22 +1268,20 @@ public class HelperClient {
 	 */
 	static class TimestampRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
 
 			if (value != null) {
-				sShow = Helper.formatTimestamp((Timestamp) value, Defaults
-						.getInstance().getLocUI());
+				sShow = Helper.formatTimestamp((Timestamp) value, Defaults.getInstance().getLocUI());
 			}
 
 			setText((sShow == null) ? "" : sShow);
@@ -1188,11 +1298,9 @@ public class HelperClient {
 	}
 
 	/**
-	 * Feststellen, ob ein bestimmtes Datum lt. Betriebskalender ein Feiertag
-	 * ist.
+	 * Feststellen, ob ein bestimmtes Datum lt. Betriebskalender ein Feiertag ist.
 	 * 
-	 * @param date
-	 *            Date
+	 * @param date Date
 	 * @return boolean
 	 */
 	public static boolean isFeiertag(java.util.Date date) {
@@ -1201,12 +1309,15 @@ public class HelperClient {
 		return Defaults.getInstance().getFeiertage().containsKey(t);
 	}
 
+	public static boolean isFeiertagOhneCutTimestamp(java.util.Date date) {
+		Timestamp t = new Timestamp(date.getTime());
+		return Defaults.getInstance().getFeiertage().containsKey(t);
+	}
+
 	/**
-	 * Feststellen, ob ein bestimmtes Datum lt. Betriebskalender ein Feiertag
-	 * ist.
+	 * Feststellen, ob ein bestimmtes Datum lt. Betriebskalender ein Feiertag ist.
 	 * 
-	 * @param date
-	 *            Date
+	 * @param date Date
 	 * @return boolean
 	 */
 	public static String getFeiertagBez(java.util.Date date) {
@@ -1220,23 +1331,21 @@ public class HelperClient {
 	 */
 	static class NumberRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
 
 			if (value != null) {
 				try {
-					sShow = Helper.formatZahl((Number) value, LPMain
-							.getInstance().getTheClient().getLocUi());
+					sShow = Helper.formatZahl((Number) value, LPMain.getInstance().getTheClient().getLocUi());
 				} catch (Throwable t) {
 					sShow = t.getMessage();
 				}
@@ -1257,13 +1366,12 @@ public class HelperClient {
 
 	static class BooleanRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public Component getTableCellRendererComponent(JTable table,
-				Object value, boolean isSelected, boolean hasFocus, int row,
-				int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column) {
 			boolean enabled = false;
 			if (value != null) {
 				enabled = ((Boolean) value).booleanValue();
@@ -1274,8 +1382,7 @@ public class HelperClient {
 			box.setSelected(enabled);
 
 			if (isSelected) {
-				Color c = super.getSpecialForecolor(
-						(DistributedTableModel) table.getModel(), row);
+				Color c = super.getSpecialForecolor((DistributedTableModel) table.getModel(), row);
 				if (c != null)
 					box.setBackground(c);
 				else
@@ -1293,15 +1400,14 @@ public class HelperClient {
 	 */
 	static class LabelRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			// Original.
@@ -1362,10 +1468,13 @@ public class HelperClient {
 	private static HashMap<String, CompoundIcon> hmStatiIconsCompoundIcon = null;
 	private static HashMap<String, CompoundIcon> hmSperrenIconsCompoundIcon = null;
 
+	public static void resetSperrenIcons() {
+		hmSperrenIcons = null;
+	}
+
 	public static JLabel getImageIconStatus(String cNrStatusI) throws Throwable {
 		if (hmStatiIcons == null) {
-			hmStatiIcons = DelegateFactory.getInstance().getLocaleDelegate()
-					.getAllStatiIcon();
+			hmStatiIcons = DelegateFactory.getInstance().getLocaleDelegate().getAllStatiIcon();
 		}
 		JLabel jlaStatus = null;
 
@@ -1391,15 +1500,14 @@ public class HelperClient {
 		}
 
 		/*
-		 * if (cNrStatusI.equals(LocaleFac.STATUS_ANGELEGT)) { if
-		 * (iconStatusAngelegt == null) { iconStatusAngelegt = new
-		 * javax.swing.ImageIcon(
+		 * if (cNrStatusI.equals(LocaleFac.STATUS_ANGELEGT)) { if (iconStatusAngelegt ==
+		 * null) { iconStatusAngelegt = new javax.swing.ImageIcon(
 		 * Object.class.getResource("/com/lp/client/res/status_angelegt.png"));
 		 * jlaIconStatusAngelegt = new JLabel(iconStatusAngelegt); }
 		 * 
 		 * jlaStatus = jlaIconStatusAngelegt; } else if
-		 * (cNrStatusI.equals(LocaleFac.STATUS_OFFEN)) { if (iconStatusOffen ==
-		 * null) { iconStatusOffen = new javax.swing.ImageIcon(
+		 * (cNrStatusI.equals(LocaleFac.STATUS_OFFEN)) { if (iconStatusOffen == null) {
+		 * iconStatusOffen = new javax.swing.ImageIcon(
 		 * Object.class.getResource("/com/lp/client/res/status_offen.png"));
 		 * jlaIconStatusOffen = new JLabel(iconStatusOffen); }
 		 * 
@@ -1407,37 +1515,34 @@ public class HelperClient {
 		 * (cNrStatusI.equals(LocaleFac.STATUS_TEILERLEDIGT)) { if
 		 * (iconStatusTeilerledigt == null) { iconStatusTeilerledigt = new
 		 * javax.swing.ImageIcon(
-		 * Object.class.getResource("/com/lp/client/res/status_teilerledigt.gif"
-		 * )); jlaIconStatusTeilerledigt = new JLabel(iconStatusTeilerledigt); }
+		 * Object.class.getResource("/com/lp/client/res/status_teilerledigt.gif" ));
+		 * jlaIconStatusTeilerledigt = new JLabel(iconStatusTeilerledigt); }
 		 * 
 		 * jlaStatus = jlaIconStatusTeilerledigt; } else if
-		 * (cNrStatusI.equals(LocaleFac.STATUS_ERLEDIGT)) { if
-		 * (iconStatusErledigt == null) { iconStatusErledigt = new
-		 * javax.swing.ImageIcon(
+		 * (cNrStatusI.equals(LocaleFac.STATUS_ERLEDIGT)) { if (iconStatusErledigt ==
+		 * null) { iconStatusErledigt = new javax.swing.ImageIcon(
 		 * Object.class.getResource("/com/lp/client/res/status_erledigt.gif"));
 		 * jlaIconStatusErledigt = new JLabel(iconStatusErledigt); }
 		 * 
 		 * jlaStatus = jlaIconStatusErledigt; } else if
-		 * (cNrStatusI.equals(LocaleFac.STATUS_STORNIERT)) { if
-		 * (iconStatusStorniert == null) { iconStatusStorniert = new
-		 * javax.swing.ImageIcon(
+		 * (cNrStatusI.equals(LocaleFac.STATUS_STORNIERT)) { if (iconStatusStorniert ==
+		 * null) { iconStatusStorniert = new javax.swing.ImageIcon(
 		 * Object.class.getResource("/com/lp/client/res/status_storniert.png"));
 		 * jlaIconStatusStorniert = new JLabel(iconStatusStorniert); }
 		 * 
 		 * jlaStatus = jlaIconStatusStorniert; } else if
-		 * (cNrStatusI.equals(LocaleFac.STATUS_GESTOPPT)) { if
-		 * (iconStatusGestoppt == null) { iconStatusGestoppt = new
-		 * javax.swing.ImageIcon(
+		 * (cNrStatusI.equals(LocaleFac.STATUS_GESTOPPT)) { if (iconStatusGestoppt ==
+		 * null) { iconStatusGestoppt = new javax.swing.ImageIcon(
 		 * Object.class.getResource("/com/lp/client/res/status_gestoppt.png"));
 		 * jlaIconStatusGestoppt = new JLabel(iconStatusGestoppt); }
 		 * 
 		 * jlaStatus = jlaIconStatusGestoppt; } else if (cNrStatusI.equals( //
 		 * 
 		 * @todo muss zu Server passen PJ 4698
-		 * LPMain.getInstance().getTextRespectUISPr("lp.status"))) { if
-		 * (iconStatus == null) { iconStatus = new javax.swing.ImageIcon(
-		 * Object.class.getResource("/com/lp/client/res/status.gif"));
-		 * jlaIconStatus = new JLabel(iconStatus); }
+		 * LPMain.getInstance().getTextRespectUISPr("lp.status"))) { if (iconStatus ==
+		 * null) { iconStatus = new javax.swing.ImageIcon(
+		 * Object.class.getResource("/com/lp/client/res/status.gif")); jlaIconStatus =
+		 * new JLabel(iconStatus); }
 		 * 
 		 * jlaStatus = jlaIconStatus; }
 		 */
@@ -1445,11 +1550,9 @@ public class HelperClient {
 		return jlaStatus;
 	}
 
-	public static JLabel getImageIconSperren(String cBezSperre)
-			throws Throwable {
+	public static JLabel getImageIconSperren(String cBezSperre) throws Throwable {
 		if (hmSperrenIcons == null) {
-			hmSperrenIcons = DelegateFactory.getInstance().getArtikelDelegate()
-					.getAllSperrenIcon();
+			hmSperrenIcons = DelegateFactory.getInstance().getArtikelDelegate().getAllSperrenIcon();
 		}
 		JLabel jlaStatus = null;
 
@@ -1479,13 +1582,12 @@ public class HelperClient {
 
 	static class ImageIconRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public Component getTableCellRendererComponent(JTable table,
-				Object value, boolean isSelected, boolean hasFocus, int row,
-				int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column) {
 			JLabel jlaIcon = null;
 
 			try {
@@ -1509,21 +1611,19 @@ public class HelperClient {
 	static Icon createImageIconImpl(String iconName) {
 		// Der Original-Classloader muss wegen Webstart erhalten bleiben.
 		// LPMain befindet sich im Webstart jar
-		URL imageUrl = LPMain.class.getResource("/com/lp/client/res/"
-				+ iconName);
+		URL imageUrl = LPMain.class.getResource("/com/lp/client/res/" + iconName);
 		Icon icon = new ImageIcon(imageUrl);
 		return icon;
 	}
 
 	static class StatusIconRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public Component getTableCellRendererComponent(JTable table,
-				Object value, boolean isSelected, boolean hasFocus, int row,
-				int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column) {
 			JLabel jlaIcon = null;
 			boolean keinLabel = false;
 			try {
@@ -1537,6 +1637,17 @@ public class HelperClient {
 					// SK: 14081,09
 					// Neben der Statusbezeichnung auch den Tooltip uebersetzt
 					// anzeigen
+				} else if (value instanceof StatusIcon) {
+
+					StatusIcon si = (StatusIcon) value;
+
+					jlaIcon = getImageIconStatus(si.getIcon());
+					if (si.getTooltip() != null) {
+						jlaIcon.setToolTipText(si.getTooltip());
+					} else {
+						jlaIcon.setToolTipText(value.toString().trim());
+					}
+
 				} else if (value instanceof DoppelIcon) {
 					DoppelIcon doppelIcon = (DoppelIcon) value;
 
@@ -1545,38 +1656,33 @@ public class HelperClient {
 
 					jlaIcon1 = getImageIconStatus(doppelIcon.getIcon1());
 
-					String tooltip="";
-					if(doppelIcon.getTooltip1()!=null){
-						tooltip=doppelIcon.getTooltip1();
+					String tooltip = "";
+					if (doppelIcon.getTooltip1() != null) {
+						tooltip = doppelIcon.getTooltip1();
 					}
-					
+
 					if (doppelIcon.getIcon2() != null) {
 
 						try {
 							jlaIcon2 = getImageIconStatus(doppelIcon.getIcon2());
-							CompoundIcon ci = new CompoundIcon(jlaIcon1.getIcon(),
-									jlaIcon2.getIcon());
+							CompoundIcon ci = new CompoundIcon(jlaIcon1.getIcon(), jlaIcon2.getIcon());
 							jlaIcon = new JLabel(ci);
-							
-							if(doppelIcon.getTooltip2()!=null){
-								tooltip+=" ("+doppelIcon.getTooltip2()+")";
+
+							if (doppelIcon.getTooltip2() != null) {
+								tooltip += " (" + doppelIcon.getTooltip2() + ")";
 							}
 							jlaIcon.setToolTipText(tooltip);
 						} catch (NullPointerException e) {
 							Icon icon = createImageIconImpl("leer.png");
-							CompoundIcon ci = new CompoundIcon(jlaIcon1.getIcon(),
-									icon);
+							CompoundIcon ci = new CompoundIcon(jlaIcon1.getIcon(), icon);
 							jlaIcon = new JLabel(ci);
 							jlaIcon.setToolTipText(tooltip);
 						}
 
-						
-						
 					} else {
 
 						Icon icon = createImageIconImpl("leer.png");
-						CompoundIcon ci = new CompoundIcon(jlaIcon1.getIcon(),
-								icon);
+						CompoundIcon ci = new CompoundIcon(jlaIcon1.getIcon(), icon);
 						jlaIcon = new JLabel(ci);
 						jlaIcon.setToolTipText(tooltip);
 					}
@@ -1621,38 +1727,35 @@ public class HelperClient {
 							switch (sTyp.toCharArray()[0]) {
 							case 'D': // DRUCKER
 								sIcon = "printer.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (gedruckt)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (gedruckt)");
 								break;
 							case 'P': // PREVIEW
 								sIcon = "printer_view.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (Vorschau)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Vorschau)");
 								break;
 							case 'M': // MAIL
 								sIcon = "mail.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (Mailversand)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Mailversand)");
 								break;
 							case 'F': // FAX
 								sIcon = "fax.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (Faxversand)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Faxversand)");
 								break;
 							case 'C': // CSV
 								sIcon = "document_out.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (CSV-Export)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (CSV-Export)");
 								break;
 							case 'S': // SAVE
 								sIcon = "save.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (gespeichert)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (gespeichert)");
 								break;
 							case 'R': // SAVE
 								sIcon = "exchange16x16.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (offene Reklamationen)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (offene Reklamationen)");
+								break;
+							case 'O': // Projekte
+								sIcon = "briefcase2_document16x16.png";
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Projekte mit Artikel-Sperre)");
 								break;
 							}
 
@@ -1663,17 +1766,14 @@ public class HelperClient {
 								// Object.class
 								// .getResource("/com/lp/client/res/"
 								// + sIcon));
-								CompoundIcon ci = new CompoundIcon(
-										jlaIcon.getIcon(), icon);
+								CompoundIcon ci = new CompoundIcon(jlaIcon.getIcon(), icon);
 								jlaIcon.setIcon(ci);
 							} else {
 								jlaIcon.setText(sTyp);
 							}
 							if (isSelected) {
-								jlaIcon.setBackground(table
-										.getSelectionBackground());
-								jlaIcon.setForeground(table
-										.getSelectionForeground());
+								jlaIcon.setBackground(table.getSelectionBackground());
+								jlaIcon.setForeground(table.getSelectionForeground());
 							} else {
 								jlaIcon.setBackground(table.getBackground());
 								jlaIcon.setForeground(table.getForeground());
@@ -1703,8 +1803,7 @@ public class HelperClient {
 			if (jlaIcon != null) {
 				jlaIcon.setOpaque(true);
 				if (isSelected) {
-					Color forecolor = super.getSpecialForecolor(
-							(DistributedTableModel) table.getModel(), row);
+					Color forecolor = super.getSpecialForecolor((DistributedTableModel) table.getModel(), row);
 					if (forecolor != null) {
 						jlaIcon.setBackground(forecolor);
 						if (keinLabel)
@@ -1715,8 +1814,7 @@ public class HelperClient {
 							jlaIcon.setForeground(jlaIcon.getBackground());
 					}
 				} else
-					jlaIcon.setBackground(UIManager
-							.getColor("Table.background"));
+					jlaIcon.setBackground(UIManager.getColor("Table.background"));
 			}
 			return jlaIcon;
 		}
@@ -1724,13 +1822,12 @@ public class HelperClient {
 
 	static class SperrenIconRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public Component getTableCellRendererComponent(JTable table,
-				Object value, boolean isSelected, boolean hasFocus, int row,
-				int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column) {
 			JLabel jlaIcon = null;
 			boolean keinLabel = false;
 			try {
@@ -1791,57 +1888,52 @@ public class HelperClient {
 							switch (sTyp.toCharArray()[0]) {
 							case 'D': // DRUCKER
 								sIcon = "printer.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (gedruckt)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (gedruckt)");
 								break;
 							case 'P': // PREVIEW
 								sIcon = "printer_view.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (Vorschau)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Vorschau)");
 								break;
 							case 'M': // MAIL
 								sIcon = "mail.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (Mailversand)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Mailversand)");
 								break;
 							case 'F': // FAX
 								sIcon = "fax.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (Faxversand)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Faxversand)");
 								break;
 							case 'C': // CSV
 								sIcon = "document_out.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (CSV-Export)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (CSV-Export)");
 								break;
 							case 'S': // SAVE
 								sIcon = "save.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (gespeichert)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (gespeichert)");
 								break;
 							case 'R': // SAVE
 								sIcon = "exchange16x16.png";
-								jlaIcon.setToolTipText(jlaIcon.getToolTipText()
-										+ " (offene Reklamationen)");
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (offene Reklamationen)");
+								break;
+							case 'O': // Projekte
+								sIcon = "briefcase2_document16x16.png";
+								jlaIcon.setToolTipText(jlaIcon.getToolTipText() + " (Projekte mit Artikel-Sperre)");
 								break;
 							}
+
 							if (sIcon.length() != 0) {
 								// icon = new ImageIcon(
 								// Object.class
 								// .getResource("/com/lp/client/res/"
 								// + sIcon));
 								icon = createImageIconImpl(sIcon);
-								CompoundIcon ci = new CompoundIcon(
-										jlaIcon.getIcon(), icon);
+								CompoundIcon ci = new CompoundIcon(jlaIcon.getIcon(), icon);
 								jlaIcon.setIcon(ci);
 							} else {
 								jlaIcon.setText(sTyp);
 							}
 							if (isSelected) {
-								jlaIcon.setBackground(table
-										.getSelectionBackground());
-								jlaIcon.setForeground(table
-										.getSelectionForeground());
+								jlaIcon.setBackground(table.getSelectionBackground());
+								jlaIcon.setForeground(table.getSelectionForeground());
 							} else {
 								jlaIcon.setBackground(table.getBackground());
 								jlaIcon.setForeground(table.getForeground());
@@ -1871,8 +1963,7 @@ public class HelperClient {
 			if (jlaIcon != null) {
 				jlaIcon.setOpaque(true);
 				if (isSelected) {
-					Color forecolor = super.getSpecialForecolor(
-							(DistributedTableModel) table.getModel(), row);
+					Color forecolor = super.getSpecialForecolor((DistributedTableModel) table.getModel(), row);
 					if (forecolor != null) {
 						jlaIcon.setBackground(forecolor);
 						if (keinLabel)
@@ -1883,8 +1974,7 @@ public class HelperClient {
 							jlaIcon.setForeground(jlaIcon.getBackground());
 					}
 				} else
-					jlaIcon.setBackground(UIManager
-							.getColor("Table.background"));
+					jlaIcon.setBackground(UIManager.getColor("Table.background"));
 			}
 			return jlaIcon;
 		}
@@ -1892,13 +1982,12 @@ public class HelperClient {
 
 	static class ImageIconHeaderRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public Component getTableCellRendererComponent(JTable table,
-				Object value, boolean isSelected, boolean hasFocus, int row,
-				int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column) {
 			JLabel jlaIcon = null;
 
 			try {
@@ -1925,23 +2014,21 @@ public class HelperClient {
 	 */
 	static class BetragRenderer extends LPDefaultTableCellRenderer {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
 		/**
 		 * Wert formatiert setzen und einfaerben.
 		 * 
-		 * @param value
-		 *            Object
+		 * @param value Object
 		 */
 		public void setValue(Object value) {
 			String sShow = null;
 
 			try {
 				if (value != null) {
-					sShow = Helper.formatZahl((BigDecimal) value, LPMain
-							.getInstance().getTheClient().getLocUi());
+					sShow = Helper.formatZahl((BigDecimal) value, LPMain.getInstance().getTheClient().getLocUi());
 				}
 			} catch (Throwable t) {
 				sShow = t.getMessage();
@@ -1963,7 +2050,7 @@ public class HelperClient {
 	public static int getReportZoom() {
 		int iZoom;
 		try {
-			iZoom = ClientConfiguration.getReportZoom() ; 
+			iZoom = ClientConfiguration.getReportZoom();
 		} catch (Throwable ex) {
 			iZoom = ReportViewer.DEFAULT_ZOOM;
 		}
@@ -1977,9 +2064,9 @@ public class HelperClient {
 	public static Font getDefaultFont() {
 		Font font = null;
 		try {
-			String sFontName = ClientConfiguration.getUiFontName() ;
-			String sFontStyle = ClientConfiguration.getUiFontStyle() ;
-			String sFontSize = ClientConfiguration.getUiFontSize() ;
+			String sFontName = ClientConfiguration.getUiFontName();
+			String sFontStyle = ClientConfiguration.getUiFontStyle();
+			String sFontSize = ClientConfiguration.getUiFontSize();
 
 			int style = Font.PLAIN; // default
 			if (sFontStyle.equalsIgnoreCase("bold")) {
@@ -1997,29 +2084,23 @@ public class HelperClient {
 	}
 
 	/**
-	 * BigDecimals in der DB muessen das Format 15, 4 haben. Es ist moeglich,
-	 * dass das Ergebnis einer Berechnung am Client mehr als 15 Vorkommastellen
-	 * hat. In diesem Fall wird dem Benutzer eine entsprechende Meldung
-	 * angezeigt. checknumberformat: 3
+	 * BigDecimals in der DB muessen das Format 15, 4 haben. Es ist moeglich, dass
+	 * das Ergebnis einer Berechnung am Client mehr als 15 Vorkommastellen hat. In
+	 * diesem Fall wird dem Benutzer eine entsprechende Meldung angezeigt.
+	 * checknumberformat: 3
 	 * 
-	 * @param bdNumberI
-	 *            die Zahl
+	 * @param bdNumberI die Zahl
 	 * @return boolean true, wenn die Zahl gueltig ist
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	public static boolean checkNumberFormat(BigDecimal bdNumberI)
-			throws Throwable {
+	public static boolean checkNumberFormat(BigDecimal bdNumberI) throws Throwable {
 		boolean bFormatgueltig = true;
 
-		if (bdNumberI.doubleValue() > SystemFac.MAX_N_NUMBER
-				|| bdNumberI.doubleValue() < SystemFac.MIN_N_NUMBER) {
+		if (bdNumberI.doubleValue() > SystemFac.MAX_N_NUMBER || bdNumberI.doubleValue() < SystemFac.MIN_N_NUMBER) {
 			bFormatgueltig = false;
 
-			DialogFactory.showModalDialog(
-					LPMain.getInstance().getTextRespectUISPr("lp.warning"),
-					LPMain.getInstance().getTextRespectUISPr(
-							"lp.warning.ergebniskannnichtgespeichertwerden"));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+					LPMain.getInstance().getTextRespectUISPr("lp.warning.ergebniskannnichtgespeichertwerden"));
 		}
 
 		return bFormatgueltig;
@@ -2046,8 +2127,8 @@ public class HelperClient {
 		return value == null ? "" : value;
 	}
 
-	public static void vCardAlsDateiExportieren(PartnerDto partnerDto,
-			AnsprechpartnerDto ansprechpartnerDto) throws Throwable {
+	public static void vCardAlsDateiExportieren(PartnerDto partnerDto, AnsprechpartnerDto ansprechpartnerDto)
+			throws Throwable {
 
 		String crlf = System.getProperty("line.separator");
 
@@ -2067,8 +2148,7 @@ public class HelperClient {
 
 		// String titel = getBlankString(partnerDto.getCTitel()) ;
 
-		sbVcard.append("ORG:" + partnerDto.formatFixName1Name2() + ";" + cname3
-				+ crlf);
+		sbVcard.append("ORG:" + partnerDto.formatFixName1Name2() + ";" + cname3 + crlf);
 
 		// Adresse
 
@@ -2081,112 +2161,77 @@ public class HelperClient {
 
 		if (partnerDto.getLandplzortDto() != null) {
 			plzFirma = getBlankString(partnerDto.getLandplzortDto().getCPlz());
-			landFirma = getBlankString(partnerDto.getLandplzortDto()
-					.getLandDto().getCName());
-			ortFirma = getBlankString(partnerDto.getLandplzortDto().getOrtDto()
-					.getCName());
+			landFirma = getBlankString(partnerDto.getLandplzortDto().getLandDto().getCName());
+			ortFirma = getBlankString(partnerDto.getLandplzortDto().getOrtDto().getCName());
 		}
-		sbVcard.append("ADR;WORK:;;" + cStrasseFirma + ";" + ortFirma + ";;"
-				+ plzFirma + ";" + landFirma + crlf);
+		sbVcard.append("ADR;WORK:;;" + cStrasseFirma + ";" + ortFirma + ";;" + plzFirma + ";" + landFirma + crlf);
 
 		// Ansprechpartner
 		if (ansprechpartnerDto != null) {
 
-			sbVcard.append("FN:"
-					+ ansprechpartnerDto.getPartnerDto().formatFixName2Name1()
-					+ crlf);
+			sbVcard.append("FN:" + ansprechpartnerDto.getPartnerDto().formatFixName2Name1() + crlf);
 
-			String nachname = ansprechpartnerDto.getPartnerDto()
-					.getCName1nachnamefirmazeile1();
+			String nachname = ansprechpartnerDto.getPartnerDto().getCName1nachnamefirmazeile1();
 
-			String vorname = getBlankString(ansprechpartnerDto.getPartnerDto()
-					.getCName2vornamefirmazeile2());
+			String vorname = getBlankString(ansprechpartnerDto.getPartnerDto().getCName2vornamefirmazeile2());
 
-			String vorname2 = getBlankString(ansprechpartnerDto.getPartnerDto()
-					.getCName3vorname2abteilung());
+			String vorname2 = getBlankString(ansprechpartnerDto.getPartnerDto().getCName3vorname2abteilung());
 
-			String titelAnsp = getBlankString(ansprechpartnerDto
-					.getPartnerDto().getCTitel());
+			String titelAnsp = getBlankString(ansprechpartnerDto.getPartnerDto().getCTitel());
 
-			sbVcard.append("N:" + nachname + ";" + vorname + ";;" + titelAnsp
-					+ crlf);
+			sbVcard.append("N:" + nachname + ";" + vorname + ";;" + titelAnsp + crlf);
 
-			String cStrasse = getBlankString(ansprechpartnerDto.getPartnerDto()
-					.getCStrasse());
+			String cStrasse = getBlankString(ansprechpartnerDto.getPartnerDto().getCStrasse());
 			String land = "";
 
 			String plz = "";
 			String ort = "";
 
 			if (ansprechpartnerDto.getPartnerDto().getLandplzortDto() != null) {
-				plz = getBlankString(ansprechpartnerDto.getPartnerDto()
-						.getLandplzortDto().getCPlz());
-				land = getBlankString(ansprechpartnerDto.getPartnerDto()
-						.getLandplzortDto().getLandDto().getCName());
-				ort = getBlankString(ansprechpartnerDto.getPartnerDto()
-						.getLandplzortDto().getOrtDto().getCName());
+				plz = getBlankString(ansprechpartnerDto.getPartnerDto().getLandplzortDto().getCPlz());
+				land = getBlankString(ansprechpartnerDto.getPartnerDto().getLandplzortDto().getLandDto().getCName());
+				ort = getBlankString(ansprechpartnerDto.getPartnerDto().getLandplzortDto().getOrtDto().getCName());
 			}
-			sbVcard.append("ADR;HOME:;;" + cStrasse + ";" + ort + ";"
-					+ vorname2 + ";" + plz + ";" + land + crlf);
+			sbVcard.append("ADR;HOME:;;" + cStrasse + ";" + ort + ";" + vorname2 + ";" + plz + ";" + land + crlf);
 
-			String telefonPrivat = getBlankString(ansprechpartnerDto
-					.getPartnerDto().getCTelefon());
+			String telefonPrivat = getBlankString(ansprechpartnerDto.getPartnerDto().getCTelefon());
 			sbVcard.append("TEL;HOME;VOICE:" + telefonPrivat + crlf);
 
-			String faxPrivat = getBlankString(ansprechpartnerDto
-					.getPartnerDto().getCFax());
+			String faxPrivat = getBlankString(ansprechpartnerDto.getPartnerDto().getCFax());
 			sbVcard.append("TEL;HOME;FAX:" + faxPrivat + crlf);
 
 			// Hier noch einbauen -> DW zusammenbasteln oder Hauptnummer
 
-			String telefon = getBlankString(DelegateFactory
-					.getInstance()
-					.getPartnerDelegate()
-					.partnerkommFindOhneExec(
-							partnerDto.getIId(),
-							ansprechpartnerDto.getPartnerIIdAnsprechpartner(),
-							PartnerFac.KOMMUNIKATIONSART_TELEFON,
-							LPMain.getInstance().getTheClient()
-									.getSMandantenwaehrung()));
+			String telefon = getBlankString(DelegateFactory.getInstance().getPartnerDelegate().partnerkommFindOhneExec(
+					partnerDto.getIId(), ansprechpartnerDto.getIId(), PartnerFac.KOMMUNIKATIONSART_TELEFON,
+					LPMain.getInstance().getTheClient().getSMandantenwaehrung()));
 			sbVcard.append("TEL;WORK;VOICE:" + telefon + crlf);
 
-			String fax = getBlankString(DelegateFactory
-					.getInstance()
-					.getPartnerDelegate()
-					.partnerkommFindOhneExec(
-							partnerDto.getIId(),
-							ansprechpartnerDto.getPartnerIIdAnsprechpartner(),
-							PartnerFac.KOMMUNIKATIONSART_FAX,
-							LPMain.getInstance().getTheClient()
-									.getSMandantenwaehrung()));
+			String fax = getBlankString(DelegateFactory.getInstance().getPartnerDelegate().partnerkommFindOhneExec(
+					partnerDto.getIId(), ansprechpartnerDto.getIId(), PartnerFac.KOMMUNIKATIONSART_FAX,
+					LPMain.getInstance().getTheClient().getSMandantenwaehrung()));
 			sbVcard.append("TEL;WORK;FAX:" + fax + crlf);
 
 			String homepage = getBlankString(partnerDto.getCHomepage());
 			sbVcard.append("URL;WORK:" + homepage + crlf);
-			String homepagePrivate = getBlankString(ansprechpartnerDto
-					.getPartnerDto().getCHomepage());
+			String homepagePrivate = getBlankString(ansprechpartnerDto.getPartnerDto().getCHomepage());
 			sbVcard.append("URL;HOME:" + homepagePrivate + crlf);
 
 			String handy = getBlankString(ansprechpartnerDto.getCHandy());
 			sbVcard.append("TEL;CELL;VOICE:" + handy + crlf);
 
 			if (ansprechpartnerDto.getCEmail() != null) {
-				sbVcard.append("EMAIL;TYPE=INTERNET,PREF:"
-						+ ansprechpartnerDto.getCEmail() + crlf);
+				sbVcard.append("EMAIL;TYPE=INTERNET,PREF:" + ansprechpartnerDto.getCEmail() + crlf);
 			}
 			if (partnerDto.getCEmail() != null) {
-				sbVcard.append("EMAIL;TYPE=INTERNET:" + partnerDto.getCEmail()
-						+ crlf);
+				sbVcard.append("EMAIL;TYPE=INTERNET:" + partnerDto.getCEmail() + crlf);
 			}
 
-			if (ansprechpartnerDto.getPartnerDto()
-					.getDGeburtsdatumansprechpartner() != null) {
-				SimpleDateFormat simpleDateFormat = new SimpleDateFormat(
-						"yyyy-MM-dd");
+			if (ansprechpartnerDto.getPartnerDto().getDGeburtsdatumansprechpartner() != null) {
+				SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 				sbVcard.append("BDAY:"
-						+ simpleDateFormat.format(ansprechpartnerDto
-								.getPartnerDto()
-								.getDGeburtsdatumansprechpartner()) + crlf);
+						+ simpleDateFormat.format(ansprechpartnerDto.getPartnerDto().getDGeburtsdatumansprechpartner())
+						+ crlf);
 				// BDAY:1996-04-15
 
 			}
@@ -2211,62 +2256,29 @@ public class HelperClient {
 
 		sbVcard.append("END:VCARD" + crlf);
 
-		JFileChooser fc = new JFileChooser();
-		fc.setDialogType(JFileChooser.SAVE_DIALOG);
-
-		fc.setApproveButtonText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.report.save"));
-		fc.setDialogTitle(LPMain.getInstance().getTextRespectUISPr(
-				"lp.report.save"));
-
 		String fileName = partnerDto.getCName1nachnamefirmazeile1();
 		if (ansprechpartnerDto != null) {
-
-			fileName = ansprechpartnerDto.getPartnerDto().formatFixName2Name1()
-					+ ", " + fileName;
+			fileName = ansprechpartnerDto.getPartnerDto().formatFixName2Name1() + ", " + fileName;
 		}
-
-		fc.setSelectedFile(new File(fileName + ".vcf"));
-
-		fc.setFileFilter(new FileFilter() {
-			public boolean accept(File f) {
-				return f.getName().toLowerCase().endsWith(".vcf")
-						|| f.isDirectory();
-			}
-
-			public String getDescription() {
-				return "vCard-Dateien";
-			}
-		});
-
-		int returnVal = fc.showSaveDialog(null);
-		if (returnVal == JFileChooser.APPROVE_OPTION) {
-			File file = fc.getSelectedFile();
-
-			Writer output = null;
-
-			try {
-				output = new BufferedWriter(new FileWriter(file));
-
+		fileName = fileName.replace("/", "").replace("\\", "");
+		HvOptional<WrapperFile> wf = showSaveDialog(null, FileChooserConfigToken.ExportVcf, new File(fileName + ".vcf"),
+				new HvTaggedVcfFileFilter());
+		if (wf.isPresent()) {
+			try (BufferedWriter output = new BufferedWriter(new FileWriter(wf.get().getFile()))) {
 				output.write(sbVcard.toString());
 				output.flush();
-				output.close();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		}
 	}
 
 	public static PartnerkommunikationDto erzeugePartnerkommunikationDto(
-			PartnerkommunikationDto partnerkommunikationDto,
-			String sPartnerkommBez, String sPartnerkommInhalt,
+			PartnerkommunikationDto partnerkommunikationDto, String sPartnerkommBez, String sPartnerkommInhalt,
 			Integer iIdPartner, boolean bMandantenabhaengig) throws Throwable {
 
 		if (partnerkommunikationDto == null) {
 			partnerkommunikationDto = new PartnerkommunikationDto();
 			if (bMandantenabhaengig) {
-				partnerkommunikationDto.setCNrMandant(LPMain.getInstance()
-						.getTheClient().getMandant());
+				partnerkommunikationDto.setCNrMandant(LPMain.getInstance().getTheClient().getMandant());
 			}
 		}
 		partnerkommunikationDto.setKommunikationsartCNr(sPartnerkommBez);
@@ -2276,13 +2288,11 @@ public class HelperClient {
 		return partnerkommunikationDto;
 	}
 
-	public static void setToolTipTextMitRechtToComponent(JComponent compI,
-			String rechtCNr) {
+	public static void setToolTipTextMitRechtToComponent(JComponent compI, String rechtCNr) {
 		// Das erforderliche Benutzerrecht im Tooltip anzeigen.
 		if (rechtCNr != null && Defaults.getInstance().darfRechteSehen()) {
 			String sTooltip = compI.getToolTipText();
-			String sRecht = LPMain.getTextRespectUISPr("lp.benutzerrecht")
-					+ ": " + rechtCNr;
+			String sRecht = LPMain.getTextRespectUISPr("lp.benutzerrecht") + ": " + rechtCNr;
 			if (sTooltip == null) {
 				sTooltip = sRecht;
 			} else {
@@ -2296,8 +2306,7 @@ public class HelperClient {
 	 * Setzt die Namen fuer alle menus and menuItems mit dem Namen des
 	 * Action-kommandos.
 	 * 
-	 * @param jMenuBar
-	 *            JMenuBar
+	 * @param jMenuBar JMenuBar
 	 */
 	public static final void setComponentNamesMenuBar(JMenuBar jMenuBar) {
 		Component[] components = jMenuBar.getComponents();
@@ -2308,11 +2317,32 @@ public class HelperClient {
 		}
 	}
 
+	public static final void pruefeAnsprechpartner(Integer partnerIId, Integer ansprechpartnerIId, WrapperTextField wtf)
+			throws ExceptionLP, Throwable {
+
+		if (ansprechpartnerIId != null) {
+			try {
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate()
+						.pruefeAnsprechpartnerZugehoerigkeit(partnerIId, ansprechpartnerIId);
+				wtf.setForeground(Defaults.getInstance().getDefaultTextColor());
+				wtf.setToolTipText(null);
+			} catch (ExceptionLP e) {
+				List al = e.getAlInfoForTheClient();
+				wtf.setForeground(Color.RED);
+				wtf.setToolTipText(LPMain.getMessageTextRespectUISPr("lp.ansprechpartner.partner.zugehoerigkeit.error",
+						al.get(0), al.get(1)));
+			}
+		} else {
+			wtf.setForeground(Defaults.getInstance().getDefaultTextColor());
+			wtf.setToolTipText(null);
+		}
+
+	}
+
 	/**
 	 * Setzt die Namen fuer ein Menue. Ruft sich fuer Untermenues rekursiv auf.
 	 * 
-	 * @param jMenu
-	 *            JMenu
+	 * @param jMenu JMenu
 	 */
 	public static final void setComponentNamesMenu(JMenu jMenu) {
 		if (Defaults.getInstance().isComponentNamingEnabled()) {
@@ -2324,11 +2354,9 @@ public class HelperClient {
 
 					if (jMenuItem.getActionCommand() != null) {
 						if (isMenu) {
-							jMenuItem.setName(COMP_PRAEFIX_MENU
-									+ jMenuItem.getActionCommand().trim());
+							jMenuItem.setName(COMP_PRAEFIX_MENU + jMenuItem.getActionCommand().trim());
 						} else {
-							jMenuItem.setName(COMP_PRAEFIX_MENUITEM
-									+ jMenuItem.getActionCommand().trim());
+							jMenuItem.setName(COMP_PRAEFIX_MENUITEM + jMenuItem.getActionCommand().trim());
 						}
 					}
 					// rekursiv aufrufen fuer Untermenues
@@ -2345,9 +2373,8 @@ public class HelperClient {
 	 * Name den Variablennamen. Notwendig fuer Testumgebungen wie qftest, abbot,
 	 * etc.
 	 * 
-	 * @param object
-	 *            das object, fuer dessen Membervariablen setName aufgerufen
-	 *            werden soll
+	 * @param object das object, fuer dessen Membervariablen setName aufgerufen
+	 *               werden soll
 	 */
 	public static final void setComponentNames(Object object) {
 		setComponentNames(object, null);
@@ -2358,10 +2385,8 @@ public class HelperClient {
 	 * Name den Variablennamen. Notwendig fuer Testumgebungen wie qftest, abbot,
 	 * etc.
 	 * 
-	 * @param object
-	 *            Object
-	 * @param sPraefix
-	 *            String
+	 * @param object   Object
+	 * @param sPraefix String
 	 */
 	public static final void setComponentNames(Object object, String sPraefix) {
 		try {
@@ -2374,33 +2399,29 @@ public class HelperClient {
 	/**
 	 * Alle Member-Variablen der objects vom Typ java.awt.Component erhalten als
 	 * Name den Variablennamen. Notwendig fuer Testumgebungen wie qftest, abbot,
-	 * etc. InternalFrames werden ausgenommen. Fuer diese von deren
-	 * initComponents direkt auf den Klassennamen mit kleinem Anfangsbuchstaben
-	 * gesetzt, da scheinbar nicht alle panels die internalFrames referenzieren
-	 * und daher der Name sonst ggf. nicht gesetzt wuerde.
+	 * etc. InternalFrames werden ausgenommen. Fuer diese von deren initComponents
+	 * direkt auf den Klassennamen mit kleinem Anfangsbuchstaben gesetzt, da
+	 * scheinbar nicht alle panels die internalFrames referenzieren und daher der
+	 * Name sonst ggf. nicht gesetzt wuerde.
 	 * 
 	 * @see InternalFrame#setName(String)
-	 * @param object
-	 *            das object, fuer dessen Membervariablen setName aufgerufen
-	 *            werden soll.
-	 * @param sPraefix
-	 *            String
-	 * @param bGenerateUniqueNames
-	 *            wenn true, dann eindeutige Namen erzeugen.
+	 * @param object               das object, fuer dessen Membervariablen setName
+	 *                             aufgerufen werden soll.
+	 * @param sPraefix             String
+	 * @param bGenerateUniqueNames wenn true, dann eindeutige Namen erzeugen.
 	 * @throws Throwable
 	 */
-	private static final void setComponentNames(Object object, String sPraefix,
-			boolean bGenerateUniqueNames) throws Throwable {
+	private static final void setComponentNames(Object object, String sPraefix, boolean bGenerateUniqueNames)
+			throws Throwable {
 		// nur dann, wenn die Testumgebung laeuft
 		if (Defaults.getInstance().isComponentNamingEnabled()) {
-//			long tStart = System.currentTimeMillis();
+			// long tStart = System.currentTimeMillis();
 			// Field[] fields = object.getClass().getDeclaredFields();
 			Field[] fields = getAllGuiFields(object);
 			for (int i = 0; i < fields.length; i++) {
 				String sName = fields[i].getName();
 				// Alle final bzw. static konstanten ignorieren
-				if (!(Modifier.isFinal(fields[i].getModifiers()) && Modifier
-						.isStatic(fields[i].getModifiers()))) {
+				if (!(Modifier.isFinal(fields[i].getModifiers()) && Modifier.isStatic(fields[i].getModifiers()))) {
 					boolean bIsAccessible = fields[i].isAccessible();
 					if (!bIsAccessible) {
 						// Zugriff sichern
@@ -2412,11 +2433,9 @@ public class HelperClient {
 						// Warnung fuer Felder, die nicht private oder protected
 						// sind
 						if (!Modifier.isPrivate(fields[i].getModifiers())
-								&& !Modifier.isProtected(fields[i]
-										.getModifiers())) {
-							myLogger.warn(sName + " in "
-									+ object.getClass().getName()
-									+ " is not private or protected");
+								&& !Modifier.isProtected(fields[i].getModifiers())) {
+							myLogger.warn(
+									sName + " in " + object.getClass().getName() + " is not private or protected");
 						}
 
 						// internalFrames ausnehmen. (setzen ihren Namen
@@ -2431,8 +2450,7 @@ public class HelperClient {
 							// Den Klassennamen anhaengen, damit eindeutige
 							// Namen vergeben werden.
 							if (bGenerateUniqueNames) {
-								sName = object.getClass().getSimpleName() + "."
-										+ sName;
+								sName = object.getClass().getSimpleName() + "." + sName;
 							}
 
 							java.awt.Component component = (java.awt.Component) oComponent;
@@ -2441,41 +2459,46 @@ public class HelperClient {
 								component.setName(sName);
 								if (component instanceof IDirektHilfe) {
 									IDirektHilfe dh = (IDirektHilfe) component;
-									if (dh.getToken() == null)
+									if (dh.getToken() == null) {
 										dh.setToken(sName);
+									}
 								}
-								if(component instanceof Container)
-									addConstraintListener((Container)component);
+								if (component instanceof Container)
+									addConstraintListener((Container) component);
 
 								// falls ein JPanel, dann rekursiv aufrufen.
-								if (oComponent instanceof JPanel
-										|| oComponent instanceof JScrollPane) {
-									setComponentNames(oComponent, sPraefix,
-											bGenerateUniqueNames);
+								if (oComponent instanceof JPanel || oComponent instanceof JScrollPane) {
+									setComponentNames(oComponent, sPraefix, bGenerateUniqueNames);
 								}
 							}
 						}
 					} else if (oComponent instanceof WrapperIdentField) {
-						((WrapperIdentField) oComponent)
-								.setComponentNames(fields[i].getName());
+						((WrapperIdentField) oComponent).setComponentNames(fields[i].getName());
+
+						if (oComponent instanceof IDirektHilfe) {
+							IDirektHilfe dh = (IDirektHilfe) oComponent;
+							if (dh.getToken() == null) {
+								dh.setToken(sName);
+							}
+						}
+
 					}
 					// alte Verfuegbarkeit wiederherstellen
 					fields[i].setAccessible(bIsAccessible);
 				}
 			}
 			// Dauer loggen
-//			long tEnd = System.currentTimeMillis();
-//			myLogger.debug("setComponentNames for "
-//					+ object.getClass().getName() + " dauerte "
-//					+ (tEnd - tStart) + " ms.");
+			// long tEnd = System.currentTimeMillis();
+			// myLogger.debug("setComponentNames for "
+			// + object.getClass().getName() + " dauerte "
+			// + (tEnd - tStart) + " ms.");
 		}
 	}
 
 	/**
 	 * Ersetzt die Punkte in einem Token durch underlines.
 	 * 
-	 * @param sDottedString
-	 *            String
+	 * @param sDottedString String
 	 * @return String
 	 */
 	public static final String replaceDotsByUnderline(String sDottedString) {
@@ -2487,8 +2510,7 @@ public class HelperClient {
 	 * WrapperIdentField sind aus der Klasse des angegebenen Objekts und auch
 	 * geerbte Felder.
 	 * 
-	 * @param object
-	 *            Object
+	 * @param object Object
 	 * @return Field[]
 	 */
 	public static final Field[] getAllGuiFields(Object object) {
@@ -2508,22 +2530,17 @@ public class HelperClient {
 				try {
 					oField = fields[i].get(object);
 				} catch (Exception ex) {
-					myLogger.debug("Object for " + fields[i].toString()
-							+ " could not be loaded!");
+					myLogger.debug("Object for " + fields[i].toString() + " could not be loaded!");
 				}
 
 				fields[i].setAccessible(bIsAccessible);
-				if ((oField instanceof java.awt.Component)
-						|| (oField instanceof WrapperIdentField)) {
+				if ((oField instanceof java.awt.Component) || (oField instanceof WrapperIdentField)) {
 					allFields.add(fields[i]);
 				}
 			}
-			if (((object instanceof JPanel) && (!cls.getSimpleName().equals(
-					"JPanel")))
-					|| ((object instanceof JInternalFrame) && (!cls
-							.getSimpleName().equals("JInternalFrame")))
-					|| ((object instanceof JTabbedPane) && (!cls
-							.getSimpleName().equals("JTabbedPane")))) {
+			if (((object instanceof JPanel) && (!cls.getSimpleName().equals("JPanel")))
+					|| ((object instanceof JInternalFrame) && (!cls.getSimpleName().equals("JInternalFrame")))
+					|| ((object instanceof JTabbedPane) && (!cls.getSimpleName().equals("JTabbedPane")))) {
 				cls = cls.getSuperclass();
 			} else {
 				cls = null; // exit loop
@@ -2533,8 +2550,7 @@ public class HelperClient {
 
 	}
 
-	public static final void pruefeMemberVariableAufKonvention(Object object,
-			Component c, String sName) {
+	public static final void pruefeMemberVariableAufKonvention(Object object, Component c, String sName) {
 		String sPraefix;
 		if (c instanceof WrapperButton) {
 			sPraefix = "wbu";
@@ -2585,224 +2601,343 @@ public class HelperClient {
 		}
 		if (!sName.startsWith(sPraefix)) {
 			myLogger.warn(sName + " in Klasse " + object.getClass().getName()
-					+ " entspricht nicht den Codierrichtlinien. Muss mit \""
-					+ sPraefix + "\" beginnen");
+					+ " entspricht nicht den Codierrichtlinien. Muss mit \"" + sPraefix + "\" beginnen");
 		}
 	}
 
+	public final static String FILE_FILTER_TXT = "txt";
 	public final static String FILE_FILTER_CSV = "csv";
 	public final static String FILE_FILTER_XLS = "xls";
+	public final static String FILE_FILTER_XML = "xml";
+	public final static String FILE_FILTER_EDI = "edi";
+	public final static String FILE_FILTER_PDF = "pdf";
+	public final static String FILE_FILTER_XLSX = "xlsx";
 
-	public static File[] chooseFile(Component parent, String file_filter,
-			boolean multiselect) {
-		JFileChooser chooser = new JFileChooser();
-		if (FILE_FILTER_CSV.equals(file_filter))
-			chooser.addChoosableFileFilter(new FileFilter() {
-				public boolean accept(File f) {
-					if (f.isDirectory())
-						return true;
-					return f.getName().toLowerCase().endsWith("csv");
-				}
+	/**
+	 * 5.10.2020 (ghp)
+	 * 
+	 * Bitte nicht mehr benutzen, stattdessen die FileOpenerFactory verwenden.
+	 * 
+	 * Falls dort ein Import noch nicht aufgefuehrt ist, bitte dort nach dem Muster
+	 * eintragen (CsvFileOpener, XlsFileOpenerNew, TxtFileOpener
+	 * 
+	 * Falls es zu kompliziert oder unnoetig ist, das in der Factory zu machen,
+	 * bitte direkt die entsprechenden *FileOpener verwenden
+	 * 
+	 * Hintergrund: Um betriebssystemspezifische Filedialoge zu erhalten (Mac zum
+	 * Beispiel) kann der JFileChooser nicht mehr direkt verwendet werden.
+	 * 
+	 * 
+	 * public static File[] chooseFile(Component parent, String file_filter, String
+	 * directory, boolean multiselect) { JFileChooser chooser = new JFileChooser();
+	 * if (FILE_FILTER_CSV.equals(file_filter)) chooser.addChoosableFileFilter(new
+	 * FileFilter() { public boolean accept(File f) { if (f.isDirectory()) return
+	 * true; return f.getName().toLowerCase().endsWith("csv"); }
+	 * 
+	 * public String getDescription() { return "CSV"; } }); if
+	 * (FILE_FILTER_TXT.equals(file_filter)) chooser.addChoosableFileFilter(new
+	 * FileFilter() { public boolean accept(File f) { if (f.isDirectory()) return
+	 * true; return f.getName().toLowerCase().endsWith("txt"); }
+	 * 
+	 * public String getDescription() { return "TXT"; } }); if
+	 * (FILE_FILTER_PDF.equals(file_filter)) chooser.addChoosableFileFilter(new
+	 * FileFilter() { public boolean accept(File f) { if (f.isDirectory()) return
+	 * true; return f.getName().toLowerCase().endsWith("pdf"); }
+	 * 
+	 * public String getDescription() { return "PDF"; } });
+	 * 
+	 * 
+	 * if (FILE_FILTER_EDI.equals(file_filter)) chooser.addChoosableFileFilter(new
+	 * FileFilter() { public boolean accept(File f) { if (f.isDirectory()) return
+	 * true; return f.getName().toLowerCase().endsWith("edi"); }
+	 * 
+	 * public String getDescription() { return "EDI"; } });
+	 * 
+	 * chooser.setMultiSelectionEnabled(multiselect);
+	 * 
+	 * if (directory != null) chooser.setCurrentDirectory(new File(directory));
+	 * File[] f = null; if (chooser.showOpenDialog(parent) ==
+	 * JFileChooser.APPROVE_OPTION) { if (multiselect) f =
+	 * chooser.getSelectedFiles(); else f = new File[] { chooser.getSelectedFile()
+	 * }; } try { LPMain.getInstance().setLastImportDirectory(
+	 * chooser.getCurrentDirectory().getPath()); } catch (Exception e) { // ignore }
+	 * return f; }
+	 * 
+	 * public static File[] chooseFile(Component parent, String file_filter, boolean
+	 * multiselect) {
+	 * 
+	 * return chooseFile(parent, file_filter, LPMain.getInstance()
+	 * .getLastImportDirectory(), multiselect);
+	 * 
+	 * }
+	 */
 
-				public String getDescription() {
-					return "CSV";
-				}
-			});
-		chooser.setMultiSelectionEnabled(multiselect);
-		String directory = LPMain.getInstance().getLastImportDirectory();
-		if (directory != null)
-			chooser.setCurrentDirectory(new File(directory));
-		File[] f = null;
-		if (chooser.showOpenDialog(parent) == JFileChooser.APPROVE_OPTION) {
-			if (multiselect)
-				f = chooser.getSelectedFiles();
-			else
-				f = new File[] { chooser.getSelectedFile() };
+	/**
+	 * Den Anwender ein Verzeichnis ausw&auml;hlen lassen und zwar im Kontext, dass
+	 * aus einem Verzeichnis gelesen werden soll</br>
+	 * <p>
+	 * </p>
+	 * 
+	 * @param parent
+	 * @param baseDirectory
+	 * @return
+	 */
+	public static HvOptional<DirectoryFile> chooseDirectoryNew(Component parent, String baseDirectory) {
+		DirectoryFile directory = FileChooserBuilder.createOpenDialog(parent)
+				.directory(baseDirectory == null ? new File("") : new File(baseDirectory)).addDirectoryFilter()
+				.openSingle();
+		if (directory == null || !directory.hasDirectory()) {
+			return HvOptional.empty();
 		}
-		try {
-			LPMain.getInstance().setLastImportDirectory(
-					chooser.getCurrentDirectory().getPath());
-		} catch (Exception e) {
-			// ignore
-		}
-		return f;
+
+		return HvOptional.of(directory);
 	}
+
+	public static HvOptional<DirectoryFile> chooseDirectoryNew(Component parent, FileChooserConfigToken token) {
+		DirectoryFile directory = FileChooserBuilder.createOpenDialog(token, parent).addDirectoryFilter().openSingle();
+		if (directory == null || !directory.hasDirectory()) {
+			return HvOptional.empty();
+		}
+
+		return HvOptional.of(directory);
+	}
+
+	public static HvOptional<DirectoryFile> saveDirectoryNew(Component parent, FileChooserConfigToken token) {
+		DirectoryFile directory = FileChooserBuilder.createOpenDialog(token, parent)
+				.prompt(LPMain.getTextRespectUISPr("lp.datei.dialog.savebutton")).addDirectoryFilter().openSingle();
+		if (directory == null || !directory.hasDirectory()) {
+			return HvOptional.empty();
+		}
+
+		return HvOptional.of(directory);
+	}
+	/*
+	 * public static File chooseDirectory(Component parent, String baseDirectory) {
+	 * JFileChooser chooser = new JFileChooser();
+	 * chooser.setMultiSelectionEnabled(false);
+	 * chooser.setAcceptAllFileFilterUsed(false);
+	 * 
+	 * if (baseDirectory != null) { chooser.setCurrentDirectory(new
+	 * File(baseDirectory)); } File f = null; if (chooser.showOpenDialog(parent) ==
+	 * JFileChooser.APPROVE_OPTION) { f = chooser.getCurrentDirectory(); }
+	 * 
+	 * try { LPMain.getInstance().setLastImportDirectory(
+	 * chooser.getCurrentDirectory().getPath()); } catch (Exception e) { // ignore }
+	 * 
+	 * return f; }
+	 */
 
 	/**
 	 * Zeigt einen Datei-&Ouml;ffnen Dialog an und gibt die Datei zur&uuml;ck
-	 * @param presetFile 
+	 * <p>
+	 * Nach der Auswahl wird gepr&uuml;ft, ob die Datei existiert und deren
+	 * Extension einer der angegebenen Extensions entspricht.
+	 * </p>
+	 * 
+	 * @param presetFile die vorausgew&auml;hlte Datei (samt zugeh&ouml;rigen
+	 *                   Verzeichnis zu dieser Datei). Ist presetFile null wird das
+	 *                   Verzeichnis verwendet welches als "letztes verwendetes
+	 *                   Import-Verzeichnis" vorhanden ist. Ist auch dieses null,
+	 *                   wird das aktuelle Verzeichnis verwendet und keine Dateiname
+	 *                   vorgegeben.
 	 * @param parent
-	 * @param multiselect 
-	 * @param postfixes 
-	 * @return null wenn das &Ouml;ffnen abgebrochen wurde/nicht m&ouml;glich
-	 *         war, sonst die gew&auml;hlte(n) Datei(en)
+	 * @param postfixes  beliebige Anzahl von ausw&auml;hlbaren Extensions in der
+	 *                   Art ".extension". Bsp: ".eml", ".msg"
+	 * @return HvOptional.empty wenn das &Ouml;ffnen abgebrochen wurde/nicht
+	 *         m&ouml;glich war, sonst die gew&auml;hlte Datei
 	 */
-	public static List<File> showOpenFileDialog(File presetFile,
-			Component parent, boolean multiselect, String... postfixes) {
+	public static HvOptional<WrapperFile> showOpenFileDialog(File presetFile, Component parent, String... postfixes) {
 		if (presetFile == null) {
 			try {
-				presetFile = new File(LPMain.getInstance()
-						.getLastImportDirectory());
+				presetFile = new File(LPMain.getInstance().getLastImportDirectory());
 			} catch (Exception e) {
 			}
-			;
 		}
 
-		JFileChooser fc = createFileChooser(presetFile, postfixes);
-		fc.setMultiSelectionEnabled(multiselect);
-		if (fc.showOpenDialog(parent) == JFileChooser.APPROVE_OPTION) {
-			try {
-				LPMain.getInstance().setLastImportDirectory(
-						fc.getCurrentDirectory().getPath());
-			} catch (Exception e) {
-			}
-			;
-			List<File> list = new ArrayList<File>();
-			if (multiselect)
-				list.addAll(Arrays.asList(fc.getSelectedFiles()));
-			else {
-				list.add(fc.getSelectedFile());
-			}
-			return list;
-		}
-		return null;
-	}
-
-	private static JFileChooser createFileChooser(File presetFile,
-			final String... postfixes) {
-		JFileChooser fc = new JFileChooser();
-		if (presetFile != null)
-			fc.setSelectedFile(presetFile);
-		fc.setAcceptAllFileFilterUsed(postfixes == null
-				|| postfixes.length == 0);
-
-		if (postfixes == null)
-			return fc;
-
-		for (final String postfix : postfixes) {
-			if (postfix == null)
-				fc.setAcceptAllFileFilterUsed(true);
-			fc.addChoosableFileFilter(new FileFilter() {
-
-				@Override
-				public String getDescription() {
-					return (postfix == null ? "" : postfix);
-				}
-
-				@Override
-				public boolean accept(File f) {
-					if (f.isDirectory())
-						return true;
-					if (postfix != null && !f.getName().endsWith(postfix)) {
-						return false;
-					}
-					return true;
-				}
-			});
-		}
-		return fc;
+		WrapperFile wf = FileChooserBuilder.createOpenDialog(FileChooserConfigToken.ImportLast, parent)
+				.selectedFile(presetFile).addFilters(postfixes).openSingle();
+		if (wf == null || !wf.hasFile())
+			return HvOptional.empty();
+		return HvOptional.of(wf);
+		/*
+		 * JFileChooser fc = createFileChooser(presetFile, postfixes);
+		 * fc.setMultiSelectionEnabled(multiselect); if (fc.showOpenDialog(parent) ==
+		 * JFileChooser.APPROVE_OPTION) { try {
+		 * LPMain.getInstance().setLastImportDirectory(
+		 * fc.getCurrentDirectory().getPath()); } catch (Exception e) { } ; List<File>
+		 * list = new ArrayList<File>(); if (multiselect)
+		 * list.addAll(Arrays.asList(fc.getSelectedFiles())); else {
+		 * list.add(fc.getSelectedFile()); } return list; } return null;
+		 */
 	}
 
 	/**
 	 * Zeigt einen Datei-Speichern Dialog an und gibt die neu angelegte Datei
 	 * zurueck
 	 * 
-	 * @param file
-	 *            die zu Speichernde Datei
+	 * @param file       die zu Speichernde Datei
 	 * @param presetFile der/die vorbesetzte Pfad/Datei
 	 * @param parent
-	 * @param postfix
-	 *            wie die Datei enden muss, wenn null keine Filterung.
-	 * @return null wenn das Speichern abgebrochen wurde/nicht moeglich war,
-	 *         sonst die neue Datei
+	 * @param postfix    wie die Datei enden muss, wenn null keine Filterung.
+	 * @return null wenn das Speichern abgebrochen wurde/nicht moeglich war, sonst
+	 *         die neue Datei
 	 */
-	public static File showSaveFileDialog(File file, File presetFile,
-			Component parent, final String postfix) {
-		JFileChooser fc = createFileChooser(presetFile, postfix);
-		if (fc.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION) {
-			File dir = fc.getSelectedFile();
-			if (postfix != null && !dir.getName().endsWith(postfix)) {
-				dir = new File(dir.getPath() + postfix);
-			}
-			if (dir.exists()) {
-				int answer = JOptionPane.showConfirmDialog(parent, LPMain
-						.getTextRespectUISPr("lp.frage.dateiueberschreiben"),
-						LPMain.getTextRespectUISPr("lp.warning"),
-						JOptionPane.YES_NO_OPTION);
-				if (answer == JOptionPane.YES_OPTION)
-					dir.delete();
-				else
-					return null;
-			}
-			FileInputStream src = null;
-			FileOutputStream dest = null;
-			try {
-				dir.createNewFile();
-				src = new FileInputStream(file);
-				dest = new FileOutputStream(dir);
-				FileChannel srcChannel = src.getChannel();
-				FileChannel destChannel = dest.getChannel();
-				long size = srcChannel.size();
-				srcChannel.transferTo(0, size, destChannel);
-				return dir;
-			} catch (IOException e) {
-				JOptionPane
-						.showMessageDialog(
-								parent,
-								LPMain.getTextRespectUISPr("lp.dokumente.fehlerbeimspeichern"),
-								LPMain.getTextRespectUISPr("lp.error"),
-								JOptionPane.ERROR_MESSAGE);
-			} finally {
-				if (src != null)
-					try {
-						src.close();
-					} catch (IOException e) {
-					}
-				if (dest != null)
-					try {
-						dest.close();
-					} catch (IOException e) {
-					}
-			}
+	public static File showSaveFileDialog(File file, File presetFile, Component parent, final String postfix) {
+		ChooserSaveDialog<File> dlg = FileChooserBuilder.createFileSaveDialog().filename(presetFile);
+		WrapperSaveFileChooser<File> wsf;
+		if (postfix != null) {
+			wsf = dlg.addFileFilterSaver(new FileSaver(postfix)).build();
+		} else {
+			wsf = dlg.addFileSaver(new AnyFileSaver()).build();
 		}
-		return null;
+
+		try {
+			return wsf.save(file);
+		} catch (Exception e) {
+			myLogger.error("Saving file " + file.getAbsolutePath() + " failed", e);
+			JOptionPane.showMessageDialog(parent, LPMain.getTextRespectUISPr("lp.dokumente.fehlerbeimspeichern"),
+					LPMain.getTextRespectUISPr("lp.error"), JOptionPane.ERROR_MESSAGE);
+			return null;
+		}
+		/*
+		 * JFileChooser fc = createFileChooser(presetFile, postfix); if
+		 * (fc.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION) { File dir =
+		 * fc.getSelectedFile(); if (postfix != null &&
+		 * !dir.getName().endsWith(postfix)) { dir = new File(dir.getPath() + postfix);
+		 * } if (dir.exists()) { int answer = JOptionPane.showConfirmDialog(parent,
+		 * LPMain .getTextRespectUISPr("lp.frage.dateiueberschreiben"),
+		 * LPMain.getTextRespectUISPr("lp.warning"), JOptionPane.YES_NO_OPTION); if
+		 * (answer == JOptionPane.YES_OPTION) dir.delete(); else return null; }
+		 * FileInputStream src = null; FileOutputStream dest = null; try {
+		 * dir.createNewFile(); src = new FileInputStream(file); dest = new
+		 * FileOutputStream(dir); FileChannel srcChannel = src.getChannel(); FileChannel
+		 * destChannel = dest.getChannel(); long size = srcChannel.size();
+		 * srcChannel.transferTo(0, size, destChannel); return dir; } catch (IOException
+		 * e) { JOptionPane .showMessageDialog( parent,
+		 * LPMain.getTextRespectUISPr("lp.dokumente.fehlerbeimspeichern"),
+		 * LPMain.getTextRespectUISPr("lp.error"), JOptionPane.ERROR_MESSAGE); } finally
+		 * { if (src != null) try { src.close(); } catch (IOException e) { } if (dest !=
+		 * null) try { dest.close(); } catch (IOException e) { } } } return null;
+		 */
+	}
+
+	/**
+	 * Einen "FileChooser" Dialog zum Speichern einer Datei &ouml;ffnen</br>
+	 * <p>
+	 * Es kann der zu speichernde Dateiname vorgegeben werden
+	 * </p>
+	 * <p>
+	 * Existiert im Zielverzeichnis die Datei bereits, wird der Anwender gefragt, ob
+	 * er die Datei &uuml;berschreiben will
+	 * </p>
+	 * 
+	 * @param parent
+	 * @param token
+	 * @param presetFile der Vorgabedateiname
+	 * @return HvOptional.empty() wenn keine Datei gew&auml;hlt wurde, ansonsten die
+	 *         zu speichernde Datei
+	 * @throws Exception
+	 */
+	public static HvOptional<WrapperFile> showSaveDialog(Component parent, FileChooserConfigToken token,
+			File presetFile) throws Exception {
+		FileChooserSaveDialog<File> fsd = new FileChooserSaveDialog<File>(
+				new WrapperSaveFileChooser<File>(token.asToken()));
+		fsd.filename(presetFile).locale(LPMain.getInstance().getUISprLocale());
+
+		File selectedFile = fsd.build().selectSingle();
+		if (selectedFile == null)
+			return HvOptional.empty();
+
+		return HvOptional.of(new WrapperFile(selectedFile));
+	}
+
+	/**
+	 * Einen Datei-Speichern-Dialog anzeigen und die Zieldatei vom Anwender
+	 * ausw&auml;hlen lassen.</br>
+	 * 
+	 * @param parent
+	 * @param token
+	 * @param presetFile kann auch null sein, dann wird kein Dateiname vorgegeben
+	 * @param filters
+	 * @return
+	 * @throws Exception
+	 */
+	public static HvOptional<WrapperFile> showSaveDialog(Component parent, FileChooserConfigToken token,
+			File presetFile, final HvTaggedFileFilter... filters) throws Exception {
+		FileChooserSaveDialog<File> fsd = new FileChooserSaveDialog<File>(
+				new WrapperSaveFileChooser<File>(token.asToken()));
+		fsd.selectedFile(presetFile).locale(LPMain.getInstance().getUISprLocale()).addFilters(filters);
+		File selectedFile = fsd.build().selectSingle();
+		if (selectedFile == null)
+			return HvOptional.empty();
+
+		return HvOptional.of(new WrapperFile(selectedFile));
+	}
+
+	public static HvOptional<WrapperFile> showSaveDialog(Component parent, FileChooserConfigToken token,
+			File presetFile, final FileExtension... extensions) throws Exception {
+		FileChooserSaveDialog<File> fsd = new FileChooserSaveDialog<File>(
+				new WrapperSaveFileChooser<File>(token.asToken()));
+		fsd.filename(presetFile).locale(LPMain.getInstance().getUISprLocale()).addFilters(extensions);
+		File selectedFile = fsd.build().selectSingle();
+		if (selectedFile == null)
+			return HvOptional.empty();
+
+		return HvOptional.of(new WrapperFile(selectedFile));
+	}
+
+	public static HvOptional<WrapperFile> showSaveDialog(Component parent, FileChooserConfigToken token,
+			File presetFile, final String... extensions) throws Exception {
+		FileChooserSaveDialog<File> fsd = new FileChooserSaveDialog<File>(
+				new WrapperSaveFileChooser<File>(token.asToken()));
+		fsd.filename(presetFile).locale(LPMain.getInstance().getUISprLocale()).addFilters(extensions);
+		File selectedFile = fsd.build().selectSingle();
+		if (selectedFile == null)
+			return HvOptional.empty();
+
+		return HvOptional.of(new WrapperFile(selectedFile));
 	}
 
 	public static void desktopOpenEx(File file) throws IOException {
-		// PJ 15451
-		String os = System.getProperty("os.name").toLowerCase();
-		if (os.indexOf("win") >= 0) {
-			Runtime.getRuntime().exec(
-					"rundll32 url.dll,FileProtocolHandler " + file);
-		} else {
+		// SP3535
+
+		if (file.exists()) {
 			java.awt.Desktop.getDesktop().open(file);
+		} else {
+			// SP9815
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+					LPMain.getInstance().getMessageTextRespectUISPr("lp.system.file.open.notexists", file.getPath()));
 		}
+
+		// Aufgrund von SP3535 auskommentiert
+		/*
+		 * // PJ 15451 String os = System.getProperty("os.name").toLowerCase(); if
+		 * (os.indexOf("win") >= 0) { Runtime.getRuntime().exec(
+		 * "rundll32 url.dll,FileProtocolHandler " + file); } else {
+		 * java.awt.Desktop.getDesktop().open(file); }
+		 */
 	}
 
 	/**
 	 * Trys to open a file with the system default application. If no default
 	 * application is set for the filetype, a save-file-dialog will be shown.
 	 * 
-	 * @param file
-	 *            file to open
-	 * @param parent
-	 *            parent component (for dialog ownership, may be null)
+	 * @param file   file to open
+	 * @param parent parent component (for dialog ownership, may be null)
 	 * @return null if opened, else the saved file
 	 * @throws IOException
 	 */
-	public static File desktopTryToOpenElseSave(File file, Component parent)
-			throws IOException {
+	public static File desktopTryToOpenElseSave(File file, Component parent) throws IOException {
 		try {
 			HelperClient.desktopOpenEx(file);
 		} catch (IOException dex) {
 			// catch Exception Windows throws if no application is associated
-			if (dex.getMessage().startsWith("Failed to open file")) {
+			if (dex.getMessage().startsWith("Failed to open")) {
 				return showSaveFileDialog(file, null, parent, null);
 			} else {
 				// catch exception thrown by mac if no application is associated
 				if (dex.getMessage()
-						.startsWith(
-								"Failed to launch the associated application with the specified file")) {
+						.startsWith("Failed to launch the associated application with the specified file")) {
 					return showSaveFileDialog(file, null, parent, null);
 				} else {
 					throw dex;
@@ -2816,12 +2951,10 @@ public class HelperClient {
 		Image image1 = ((ImageIcon) i1).getImage();
 		Image image2 = ((ImageIcon) i2).getImage();
 
-		Image image = new BufferedImage(i1.getIconWidth(), i1.getIconWidth(),
-				BufferedImage.TRANSLUCENT);
+		Image image = new BufferedImage(i1.getIconWidth(), i1.getIconWidth(), BufferedImage.TRANSLUCENT);
 		Graphics g = image.getGraphics();
 		g.drawImage(image1, 0, 0, null);
-		g.drawImage(image2, i1.getIconWidth() - i2.getIconWidth()
-				- offsetRechtsOben, offsetRechtsOben, null);
+		g.drawImage(image2, i1.getIconWidth() - i2.getIconWidth() - offsetRechtsOben, offsetRechtsOben, null);
 		g.dispose();
 
 		return new ImageIcon(image);
@@ -2839,61 +2972,164 @@ public class HelperClient {
 	}
 
 	/**
-	 * ERzeugt ein neues ImageIcon mit dem kurzen Resourcename.</br> Der
-	 * komplette Pfad wird dann "/com/lp/client/res" + resourcename
+	 * ERzeugt ein neues ImageIcon mit dem kurzen Resourcename.</br>
+	 * Der komplette Pfad wird dann "/com/lp/client/res" + resourcename
 	 * 
 	 * @param shortResourceName
 	 * @return ein ImageIcon
 	 */
 	public static ImageIcon createImageIcon(String shortResourceName) {
-		return new ImageIcon(
-				HelperClient.class.getResource("/com/lp/client/res/"
-						+ shortResourceName));
+		return new ImageIcon(HelperClient.class.getResource("/com/lp/client/res/" + shortResourceName));
 	}
 
 	/**
 	 * Berechnet ob schwarz oder wei&szlig als Hintergrundfarbe f&uuml;r das
-	 * menschliche Auge besser lesbar ist, wenn ein dar&uuml;ber liegender Text
-	 * die Farbe <code>c</code> hat, und liefert diese zur&uuml;ck.
+	 * menschliche Auge besser lesbar ist, wenn ein dar&uuml;ber liegender Text die
+	 * Farbe <code>c</code> hat, und liefert diese zur&uuml;ck.
 	 * 
-	 * @param c
-	 *            die Farbe des Textes
-	 * @return <code>Color.black</code> oder <code>Color.white</code>, je
-	 *         nachdem was als Hintergrund besser geeignet ist.
+	 * @param c die Farbe des Textes
+	 * @return <code>Color.black</code> oder <code>Color.white</code>, je nachdem
+	 *         was als Hintergrund besser geeignet ist.
 	 */
 	public static Color getContrastYIQ(Color c) {
-		return (c.getRed() * 299 + c.getGreen() * 587 + c.getBlue() * 114) / 1000 >= 128 ? Color.black
-				: Color.white;
+		return (c.getRed() * 299 + c.getGreen() * 587 + c.getBlue() * 114) / 1000 >= 128 ? Color.black : Color.white;
 	}
-	
-	public static String getServerName() {
-		  String server = System.getProperty("java.naming.provider.url");
 
-		  try {
-		     int iB = server.indexOf("//") + 2;
-		     int iM = server.lastIndexOf(":");
-		     
-		     server = server.substring(iB, iM);
-		  }catch (Exception ex) {
-		       server = "?";
-		  }
-		  
-		  return server;		
+	public static String getServerName() {
+		String server = System.getProperty("java.naming.provider.url");
+
+		try {
+			int iB = server.indexOf("//") + 2;
+			int iM = server.lastIndexOf(":");
+
+			server = server.substring(iB, iM);
+		} catch (Exception ex) {
+			server = "?";
+		}
+
+		return server;
 	}
-	
-	
+
 	/**
 	 * Zwei Objekte auf equals vergleichen und dabei null behandeln.
-	 * <p>sind beide Objekte == null wird true geliefert</p>
-	 * <p>ansonsten wird das !null Objekt als equals Empfaenger benutzt.
+	 * <p>
+	 * sind beide Objekte == null wird true geliefert
+	 * </p>
+	 * <p>
+	 * ansonsten wird das !null Objekt als equals Empfaenger benutzt.
 	 * 
 	 * @param o1
 	 * @param o2
 	 * @return true wenn beide null oder o1.equals(o2) ;
 	 */
 	public static boolean nullableEquals(Object o1, Object o2) {
-		if(o1 == null && o2 == null) return true ;
-		if(o1 == null) return o2.equals(o1) ;
-		return o1.equals(o2) ;
-	}	
+		if (o1 == null && o2 == null)
+			return true;
+		if (o1 == null)
+			return o2.equals(o1);
+		return o1.equals(o2);
+	}
+
+	/**
+	 * 
+	 * @param width
+	 * @param height
+	 * @return Dimension mit an Schriftart angepasster Breite und H�he
+	 */
+	public static Dimension getSizeFactoredDimension(int width, int height) {
+		return new Dimension(Defaults.sizeFactor(width), Defaults.sizeFactor(height));
+	}
+
+	/**
+	 * 
+	 * @param width
+	 * @return Dimension mit an Schriftart angepasster Breite, automatische H�he
+	 */
+	public static Dimension getSizeFactoredDimension(int width) {
+		return new Dimension(Defaults.sizeFactor(width), Defaults.getInstance().getControlHeight());
+	}
+
+	/**
+	 * setzt MinimumSize und Preferred Size des mitgegebenen Components auf die
+	 * mitgebene Dimension
+	 * 
+	 * @param component
+	 * @param dimension
+	 */
+	public static void setMinimumAndPreferredSize(Component component, Dimension dimension) {
+		component.setMinimumSize(dimension);
+		component.setPreferredSize(dimension);
+	}
+
+	/**
+	 * Skaliert ein Image. Wenn width oder height negativ sind, wird das
+	 * Seitenverhaeltnis beachtet, wenn beide negativ sind wird das Originalbild
+	 * zurueck gegeben
+	 * 
+	 * @param src
+	 * @param width
+	 * @param height
+	 * @param interpolation Interpolation, fuer moegliche Werte siehe
+	 *                      {@link RenderingHints#KEY_INTERPOLATION}
+	 * @return
+	 */
+	public static BufferedImage scaleImage(BufferedImage src, int width, int height, Object interpolation) {
+		if (width < 0) {
+			if (height < 0) {
+				return src;
+			}
+			width = (int) (src.getWidth() * ((double) height) / src.getHeight());
+		} else if (height < 0) {
+			height = (int) (src.getHeight() * ((double) width) / src.getWidth());
+		}
+		int type = src.getTransparency() == Transparency.OPAQUE ? BufferedImage.TYPE_INT_RGB
+				: BufferedImage.TYPE_INT_ARGB;
+		BufferedImage newImg = new BufferedImage(width, height, type);
+		Graphics2D g2d = newImg.createGraphics();
+		g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolation);
+		g2d.drawImage(src, 0, 0, width, height, null);
+		g2d.dispose();
+		return newImg;
+	}
+
+	/**
+	 * Holt den MimeType einer Datei &uuml;ber den Inhalt. Falls die Datei nicht
+	 * gelesen werden kann wird <code> null </code> zur&uuml;ck gegeben
+	 * 
+	 * @param f
+	 * @return
+	 */
+	public static MediaType getMimeTypeOfFile(File file) {
+		return getMimeTypeOfFile(file.toPath());
+	}
+
+	/**
+	 * Holt den MimeType einer Datei &uuml;ber den Inhalt. Falls die Datei nicht
+	 * gelesen werden kann wird <code> null </code> zur&uuml;ck gegeben
+	 * 
+	 * @param f
+	 * @return
+	 */
+	public static MediaType getMimeTypeOfFile(Path file) {
+		try {
+			return getMimeTypeOfFile(Files.newInputStream(file));
+		} catch (IOException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Holt den MimeType einer Datei &uuml;ber den Inhalt. Falls die Datei nicht
+	 * gelesen werden kann wird <code> null </code> zur&uuml;ck gegeben
+	 * 
+	 * @param f
+	 * @return
+	 */
+	public static MediaType getMimeTypeOfFile(InputStream stream) {
+		try (InputStream is = new BufferedInputStream(stream)) {
+			return MimeTypes.getDefaultMimeTypes().detect(is, new Metadata());
+		} catch (IOException e) {
+			return null;
+		}
+	}
 }

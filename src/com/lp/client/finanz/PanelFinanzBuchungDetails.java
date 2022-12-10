@@ -2,37 +2,36 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.finanz;
 
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -52,7 +51,6 @@ import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.ISourceEvent;
@@ -64,6 +62,7 @@ import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
@@ -89,16 +88,15 @@ import com.lp.util.Helper;
  * </p>
  * <p>
  * </p>
- * 
+ *
  * @author Martin Bluehweis
  * @version $Revision: 1.22 $
  */
 public class PanelFinanzBuchungDetails extends PanelBasis implements
 		ListSelectionListener {
-	/**
-	 * 
-	 */
+
 	private static final long serialVersionUID = 1L;
+
 	protected BuchungdetailDto buchungdetailDto = null;
 	protected BuchungDto buchungDto = null;
 	// protected KontoDtoSmall kontoDtoGegenkonto = null;
@@ -112,7 +110,7 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 	protected WrapperTextField wtfGegenkontoNummer = new WrapperTextField();
 
 	protected WrapperGotoButton wbuGegenkonto = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_BUCHUNGDETAIL);
+			com.lp.util.GotoHelper.GOTO_BUCHUNGDETAIL);
 	protected WrapperComboBox wcoGegenkonten = new WrapperComboBox();
 
 	protected WrapperLabel wlaGegenkontoName = new WrapperLabel();
@@ -124,7 +122,7 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 	private Border border1;
 	protected WrapperLabel wlaHaben = new WrapperLabel();
 	private WrapperTextField wtfBeleg = new WrapperTextField();
-	private WrapperNumberField wtfAuszug = new WrapperNumberField();
+	private WrapperTextNumberField wtfAuszug = new WrapperTextNumberField();
 	private WrapperLabel wlaBeleg = new WrapperLabel();
 	private WrapperLabel wlaAuszug = new WrapperLabel();
 	private WrapperLabel wlaKostenstelle = new WrapperLabel();
@@ -146,6 +144,9 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 	private WrapperLabel wlaSaldo = new WrapperLabel();
 	private WrapperNumberField wnfSaldoAuszug = null;
 	private WrapperNumberField wnfSaldoAusziffern = null;
+
+//	BigDecimal saldo = new BigDecimal("0.0000");
+//	int res = 0;
 
 	JList list = null;
 	Map<?, ?> mGegenkonten = new TreeMap<Object, Object>();
@@ -219,6 +220,8 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 		// wlaWaehrung1.setPreferredSize(new Dimension(30,
 		// Defaults.getInstance()
 		// .getControlHeight()));
+		wtfBelegart.setHorizontalAlignment(SwingConstants.LEFT);
+		wtfGegenkontoName.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaWaehrung1.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaWaehrung1.setText(LPMain.getTheClient().getSMandantenwaehrung());
 		wlaWaehrung2.setHorizontalAlignment(SwingConstants.LEFT);
@@ -235,6 +238,20 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 		wtfAusziffern = new WrapperTextField();
 		wtfAusziffern.setEditable(false);
 		wnfSaldoAusziffern = new WrapperNumberField();
+		
+		HelperClient.setMinimumAndPreferredSize(wlaSoll, HelperClient.getSizeFactoredDimension(75));
+		HelperClient.setMinimumAndPreferredSize(wtfBuchungsart, HelperClient.getSizeFactoredDimension(100));
+		HelperClient.setMinimumAndPreferredSize(wtfBelegart, HelperClient.getSizeFactoredDimension(100));
+		HelperClient.setMinimumAndPreferredSize(wlaHaben, HelperClient.getSizeFactoredDimension(70));
+		HelperClient.setMinimumAndPreferredSize(wnfHaben, HelperClient.getSizeFactoredDimension(40));
+		HelperClient.setMinimumAndPreferredSize(wlaWaehrung2, HelperClient.getSizeFactoredDimension(25));
+		HelperClient.setMinimumAndPreferredSize(wlaUst, HelperClient.getSizeFactoredDimension(30));
+		HelperClient.setMinimumAndPreferredSize(wnfUst, HelperClient.getSizeFactoredDimension(30));
+		HelperClient.setMinimumAndPreferredSize(wlaAuszug, HelperClient.getSizeFactoredDimension(50));
+		HelperClient.setMinimumAndPreferredSize(wnfUstProzent, HelperClient.getSizeFactoredDimension(40));
+		HelperClient.setMinimumAndPreferredSize(wlaProzent, HelperClient.getSizeFactoredDimension(20));
+		
+	
 
 		list = new JList();
 		// list.setFont(new java.awt.Font("monospaced", 0, 12));
@@ -258,37 +275,37 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 
 		jpaWorkingOn.add(wlaSoll, new GridBagConstraints(0, iZeile, 1, 1, 0.25,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wnfSoll, new GridBagConstraints(1, iZeile, 1, 1, 0.25,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wlaWaehrung1, new GridBagConstraints(2, iZeile, 1, 1,
 				0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wlaHaben, new GridBagConstraints(3, iZeile, 1, 1, 0.25,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wnfHaben, new GridBagConstraints(4, iZeile, 1, 1, 0.25,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wlaWaehrung2, new GridBagConstraints(5, iZeile, 1, 1,
 				0.25, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wlaUst, new GridBagConstraints(6, iZeile, 1, 1, 0.25,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 00, 0));
 		jpaWorkingOn.add(wnfUst, new GridBagConstraints(7, iZeile, 1, 1, 0.25,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 00, 0));
 		jpaWorkingOn.add(wlaWaehrung3, new GridBagConstraints(8, iZeile, 1, 1,
 				0.25, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 00, 0));
 		jpaWorkingOn.add(wnfUstProzent, new GridBagConstraints(9, iZeile, 1, 1,
 				0.25, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 30, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wlaProzent, new GridBagConstraints(10, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 10, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
@@ -387,7 +404,7 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 
 	/**
 	 * eventYouAreSelected
-	 * 
+	 *
 	 * @param bNeedNoYouAreSelectedI
 	 *            boolean
 	 * @throws Throwable
@@ -469,6 +486,25 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 		}
 	}
 
+//	private void berechneSaldofuerAusziffern() throws ExceptionLP, Throwable {
+//		if (buchungdetailDto != null) {
+//			if (buchungdetailDto.getIAusziffern() == null) {
+//				wnfSaldoAusziffern.setText("");
+//			} else {
+//				BigDecimal saldo = DelegateFactory
+//						.getInstance()
+//						.getBuchenDelegate()
+//						.getSaldoVonKontoByAusziffern(
+//								buchungdetailDto.getKontoIId(),
+//								buchungdetailDto.getIAusziffern(),
+//								buchungDto.getIGeschaeftsjahr());
+//				wnfSaldoAusziffern.setBigDecimal(saldo);
+//			}
+//		} else {
+//			wnfSaldoAusziffern.setText("");
+//		}
+//	}
+
 	private void berechneSaldofuerAuszug() throws ExceptionLP, Throwable {
 		if (buchungdetailDto != null) {
 			if (buchungdetailDto.getIAuszug() == null) {
@@ -490,7 +526,7 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 
 	/**
 	 * dto2Components.
-	 * 
+	 *
 	 * @throws Throwable
 	 */
 	private void dto2Components() throws Throwable {
@@ -519,15 +555,15 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 					BuchenFac.HabenBuchung)) {
 				this.wnfHaben.setBigDecimal(buchungdetailDto.getNBetrag());
 				this.wnfSoll.setText("");
-				this.wnfHaben.setEditable(true);
-				this.wnfSoll.setEditable(false);
+//				this.wnfHaben.setEditable(true);
+//				this.wnfSoll.setEditable(false);
 			}
 			if (buchungdetailDto.getBuchungdetailartCNr().equals(
 					BuchenFac.SollBuchung)) {
 				this.wnfSoll.setBigDecimal(buchungdetailDto.getNBetrag());
 				this.wnfHaben.setText("");
-				this.wnfHaben.setEditable(false);
-				this.wnfSoll.setEditable(true);
+//				this.wnfHaben.setEditable(false);
+//				this.wnfSoll.setEditable(true);
 			}
 
 			mGegenkonten = DelegateFactory.getInstance().getBuchenDelegate()
@@ -614,4 +650,20 @@ public class PanelFinanzBuchungDetails extends PanelBasis implements
 		// das panel ist nur lesend
 		return PanelBasis.NO_VALUE_THATS_OK_JCOMPONENT;
 	}
+
+//	protected Boolean isAzkSummeFalsch() throws ExceptionLP, Throwable {
+//		BigDecimal saldo = new BigDecimal("0.0000");
+//		if (buchungdetailDto != null && buchungdetailDto.getIAusziffern() != null) {
+//			saldo = DelegateFactory.getInstance().getBuchenDelegate().getSaldoVonKontoByAusziffern(
+//						buchungdetailDto.getKontoIId(),
+//						buchungdetailDto.getIAusziffern(),
+//						buchungDto.getIGeschaeftsjahr()
+//						);
+//
+//		}
+//		if (saldo.compareTo(new BigDecimal("0.0000")) != 0) {
+//			return true;
+//		}
+//		return false;
+//	}
 }

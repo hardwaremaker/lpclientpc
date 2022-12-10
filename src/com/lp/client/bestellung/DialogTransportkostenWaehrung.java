@@ -237,35 +237,6 @@ public class DialogTransportkostenWaehrung extends JDialog implements
 
 				this.setVisible(false);
 			}
-		} catch (ExceptionLP e1) {
-			if (e1.getICode() == EJBExceptionLP.FEHLER_KEIN_WECHSELKURS_HINTERLEGT) {
-				MessageFormat mf = new MessageFormat(LPMain.getInstance()
-						.getTextRespectUISPr(
-								"lp.error.keinwechselkurshinterlegt"));
-
-				String cWaehrungMandant = null;
-
-				try {
-					cWaehrungMandant = DelegateFactory
-							.getInstance()
-							.getMandantDelegate()
-							.mandantFindByPrimaryKey(
-									LPMain.getInstance().getTheClient()
-											.getMandant()).getWaehrungCNr();
-					mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
-				} catch (Throwable t) {
-					LPMain.getInstance().exitFrame(panelWE.getInternalFrame(),
-							t);
-				}
-
-				Object pattern[] = { cWaehrungMandant,
-						wcoWaehrung.getKeyOfSelectedItem() };
-
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.error"), mf.format(pattern));
-			} else {
-				panelWE.handleException(e1, true);
-			}
 		} catch (Throwable e1) {
 			panelWE.handleException(e1, true);
 		}

@@ -33,18 +33,25 @@
 package com.lp.client.bestellung;
 
 import java.sql.Timestamp;
+import java.util.Locale;
 
 import javax.swing.JComponent;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
+import com.lp.client.pc.LPMain;
+import com.lp.server.bestellung.service.BSMahnungDto;
+import com.lp.server.bestellung.service.BestellungDto;
 import com.lp.server.bestellung.service.BestellungReportFac;
+import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 /**
  * <p>
@@ -66,18 +73,24 @@ import com.lp.server.util.report.JasperPrintLP;
  * @version not attributable Date $Date: 2012/01/18 16:34:58 $
  */
 public class ReportBestellungMahnung extends ReportBeleg implements
-		PanelReportIfJRDS {
+		PanelReportIfJRDS, IDruckTypeReport {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private Integer bsmahnungIId = null;
+	private BestellungDto bestellungDto = null;
+	private LieferantDto lieferantDto = null;
 
 	public ReportBestellungMahnung(InternalFrame internalFrame,
 			PanelBasis panelToRefresh, Integer bsmahnungIId, String sAdd2Title)
 			throws Throwable {
 		super(internalFrame, panelToRefresh, sAdd2Title, null, null, null);
 		this.bsmahnungIId = bsmahnungIId;
+		BSMahnungDto bsmahnungDto = DelegateFactory.getInstance().getBSMahnwesenDelegate().bsmahnungFindByPrimaryKey(bsmahnungIId);
+		bestellungDto = DelegateFactory.getInstance().getBestellungDelegate().bestellungFindByPrimaryKey(bsmahnungDto.getBestellungIId());
+		lieferantDto = DelegateFactory.getInstance().getLieferantDelegate().lieferantFindByPrimaryKey(bestellungDto.getLieferantIIdBestelladresse());
+		
 		this.setVisible(false);
 	}
 
@@ -105,8 +118,18 @@ public class ReportBestellungMahnung extends ReportBeleg implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
+		
+		Locale locLieferant = Helper.string2Locale(lieferantDto.getPartnerDto().getLocaleCNrKommunikation());
+		mailtextDto.setParamLocale(locLieferant);
+		mailtextDto.setMailBetreff(LPMain.getTextRespectSpezifischesLocale("bs.einzelmahnung.mailbetreff", locLieferant)
+				+ " " + bestellungDto.getCNr());
+		mailtextDto.setMailPartnerIId(lieferantDto.getPartnerIId());
+		mailtextDto.setMailAnprechpartnerIId(bestellungDto.getAnsprechpartnerIId());
+		mailtextDto.setMailVertreter(null);
+		mailtextDto.setMailBelegdatum(bestellungDto.getDBelegdatum());
+		mailtextDto.setMailBelegnummer(bestellungDto.getCNr());
+		mailtextDto.setMailProjekt(bestellungDto.getCBez());
 		return mailtextDto;
 	}
 

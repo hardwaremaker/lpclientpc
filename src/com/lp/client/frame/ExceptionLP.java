@@ -32,90 +32,111 @@
  ******************************************************************************/
 package com.lp.client.frame;
 
-
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+import com.lp.util.EJBExceptionData;
 
 /**
- * <p> Diese Klasse kuemmert sich um Exceptions.</p>
- *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- *
- * <p>Erstellung: Josef Ornetsmueller; 09.09.05</p>
- *
- * <p>@author $Author: heidi $</p>
- *
+ * <p>
+ * Diese Klasse kuemmert sich um Exceptions.
+ * </p>
+ * 
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * 
+ * <p>
+ * Erstellung: Josef Ornetsmueller; 09.09.05
+ * </p>
+ * 
+ * <p>
+ * @author $Author: heidi $
+ * </p>
+ * 
  * @version not attributable Date $Date: 2008/08/08 06:50:32 $
  */
-public class ExceptionLP
-    extends Exception
-{
-  /**
-	 * 
-	 */
+public class ExceptionLP extends Exception {
 	private static final long serialVersionUID = 1L;
-private int iCode = -999;
-  private String sMsg = null;
-  private ArrayList<?> alInfoForTheClient = null;
-  private Throwable throwable;
+	private int iCode = -999;
+	private String sMsg = null;
+	private List<?> alInfoForTheClient = null;
+	private Throwable throwable;
+	private EJBExceptionData exceptionData;
 
-  public ExceptionLP(int iCodeI, String sMsgI, ArrayList<?> alInfoForTheClientI,
-                     Throwable throwableI) {
-    iCode = iCodeI;
-    sMsg = sMsgI;
-    alInfoForTheClient = alInfoForTheClientI;
-    super.initCause(throwableI);
-  }
+	public ExceptionLP(int iCodeI, String sMsgI, List<?> alInfoForTheClientI,
+			Throwable throwableI) {
+		iCode = iCodeI;
+		sMsg = sMsgI;
+		alInfoForTheClient = alInfoForTheClientI;
+		super.initCause(throwableI);
+	}
 
-  public ExceptionLP(int iCodeI, String sMsgI, Throwable throwableI) {
-    iCode = iCodeI;
-    sMsg = sMsgI;
-    throwable = throwableI;
-  }
+	public ExceptionLP(int iCodeI, String sMsgI, List<?> alInfoForTheClientI,
+			Throwable throwableI, EJBExceptionData exceptionData) {
+		iCode = iCodeI;
+		sMsg = sMsgI;
+		alInfoForTheClient = alInfoForTheClientI;
+		this.exceptionData = exceptionData ;
+		super.initCause(throwableI);
+	}
 
+	public ExceptionLP(int iCodeI, String sMsgI, Throwable throwableI) {
+		iCode = iCodeI;
+		sMsg = sMsgI;
+		throwable = throwableI;
+	}
 
-  public ExceptionLP(int iCodeI, Throwable throwableI) {
-    iCode = iCodeI;
-    throwable = throwableI;
-  }
+	public ExceptionLP(int iCodeI, Throwable throwableI) {
+		iCode = iCodeI;
+		throwable = throwableI;
+	}
 
+	public ExceptionLP(int iCodeI, String sTextForException, Throwable throwable, Object... alInfoForTheClient) {
+		iCode = iCodeI;
+		sMsg = sTextForException;
+		this.alInfoForTheClient = new ArrayList<Object>(Arrays.asList(alInfoForTheClient));
+		super.initCause(throwable != null ? throwable : new Exception(sTextForException));
+	}
 
-  public void setICode(int iCode) {
-    this.iCode = iCode;
-  }
+	public void setICode(int iCode) {
+		this.iCode = iCode;
+	}
 
+	public void setSMsg(String sMsg) {
+		this.sMsg = sMsg;
+	}
 
-  public void setSMsg(String sMsg) {
-    this.sMsg = sMsg;
-  }
+	public void setAlInfoForTheClient(ArrayList<?> alInfoForTheClient) {
+		this.alInfoForTheClient = alInfoForTheClient;
+	}
 
+	public void setThrowable(Throwable throwable) {
+		this.throwable = throwable;
+	}
 
-  public void setAlInfoForTheClient(ArrayList<?> alInfoForTheClient) {
-    this.alInfoForTheClient = alInfoForTheClient;
-  }
+	public int getICode() {
+		return iCode;
+	}
 
+	public String getSMsg() {
+		return sMsg;
+	}
 
-  public void setThrowable(Throwable throwable) {
-    this.throwable = throwable;
-  }
+	public List<?> getAlInfoForTheClient() {
+		return alInfoForTheClient;
+	}
 
+	public Throwable getThrowable() {
+		return throwable;
+	}
 
-  public int getICode() {
-    return iCode;
-  }
+	public EJBExceptionData getExceptionData() {
+		return exceptionData;
+	}
 
-
-  public String getSMsg() {
-    return sMsg;
-  }
-
-
-  public ArrayList<?> getAlInfoForTheClient() {
-    return alInfoForTheClient;
-  }
-
-
-  public Throwable getThrowable() {
-    return throwable;
-  }
+	public void setExceptionData(EJBExceptionData exceptionData) {
+		this.exceptionData = exceptionData;
+	}
 }

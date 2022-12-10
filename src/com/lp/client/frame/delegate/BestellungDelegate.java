@@ -48,10 +48,12 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.bestellung.service.BSMahnlaufDto;
 import com.lp.server.bestellung.service.BestellpositionDto;
 import com.lp.server.bestellung.service.BestellpositionFac;
+import com.lp.server.bestellung.service.BestellpositionServiceDto;
 import com.lp.server.bestellung.service.BestellungDto;
 import com.lp.server.bestellung.service.BestellungFac;
 import com.lp.server.bestellung.service.BestellungReportFac;
 import com.lp.server.bestellung.service.ImportMonatsbestellungDto;
+import com.lp.server.bestellung.service.OpenTransXmlReportResult;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungDto;
 import com.lp.server.system.service.BelegPruefungDto;
 import com.lp.server.system.service.LocaleFac;
@@ -68,20 +70,17 @@ public class BestellungDelegate extends Delegate {
 
 	public BestellungDelegate() throws Throwable {
 		context = new InitialContext();
-		bestellungFac = (BestellungFac) context
-				.lookup("lpserver/BestellungFacBean/remote");
-		bestellpositionFac = (BestellpositionFac) context
-				.lookup("lpserver/BestellpositionFacBean/remote");
-		bestellungReportFac = (BestellungReportFac) context
-				.lookup("lpserver/BestellungReportFacBean/remote");
+
+		bestellungFac = lookupFac(context, BestellungFac.class);
+		bestellpositionFac = lookupFac(context, BestellpositionFac.class);
+		bestellungReportFac = lookupFac(context, BestellungReportFac.class);
+
 	}
 
-	public Integer createBestellung(BestellungDto bestellungDto)
-			throws ExceptionLP {
+	public Integer createBestellung(BestellungDto bestellungDto) throws ExceptionLP {
 		Integer iIdBestellung = null;
 		try {
-			iIdBestellung = bestellungFac.createBestellung(bestellungDto,
-					LPMain.getTheClient());
+			iIdBestellung = bestellungFac.createBestellung(bestellungDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -89,12 +88,10 @@ public class BestellungDelegate extends Delegate {
 		return iIdBestellung;
 	}
 
-	public boolean enthaeltBestellungMaterialzuschlaege(Integer bestellungIId)
-			throws ExceptionLP {
+	public boolean enthaeltBestellungMaterialzuschlaege(Integer bestellungIId) throws ExceptionLP {
 
 		try {
-			return bestellpositionFac
-					.enthaeltBestellungMaterialzuschlaege(bestellungIId);
+			return bestellpositionFac.enthaeltBestellungMaterialzuschlaege(bestellungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return true;
@@ -102,11 +99,22 @@ public class BestellungDelegate extends Delegate {
 
 	}
 
-	public void aktiviereBelegControlled(Integer iid, Timestamp t)
-			throws ExceptionLP {
+	public BigDecimal getSummeMengeGleicherArtikelInBestellung(Integer iIdBestellungI, Integer bestellpositionIId,
+			Integer artikelIId) throws ExceptionLP {
+
 		try {
-			bestellungFac.aktiviereBelegControlled(iid, t,
-					LPMain.getTheClient());
+			return bestellpositionFac.getSummeMengeGleicherArtikelInBestellung(iIdBestellungI, bestellpositionIId,
+					artikelIId,LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public void aktiviereBelegControlled(Integer iid, Timestamp t) throws ExceptionLP {
+		try {
+			bestellungFac.aktiviereBelegControlled(iid, t, LPMain.getTheClient());
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
@@ -114,10 +122,9 @@ public class BestellungDelegate extends Delegate {
 
 	public Timestamp berechneBelegControlled(Integer iid) throws ExceptionLP {
 		try {
-			BelegPruefungDto pruefungDto = bestellungFac.berechneBelegControlled(iid,
-					LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto) ;
-			return pruefungDto.getBerechnungsZeitpunkt() ;
+			BelegPruefungDto pruefungDto = bestellungFac.berechneBelegControlled(iid, LPMain.getTheClient());
+			dialogBelegpruefung(pruefungDto);
+			return pruefungDto.getBerechnungsZeitpunkt();
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
@@ -126,37 +133,32 @@ public class BestellungDelegate extends Delegate {
 
 	public Timestamp berechneAktiviereBelegControlled(Integer iid) throws ExceptionLP {
 		try {
-			BelegPruefungDto pruefungDto = bestellungFac.berechneAktiviereBelegControlled(iid,
-					LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto) ;
-			return pruefungDto.getBerechnungsZeitpunkt() ;
+			BelegPruefungDto pruefungDto = bestellungFac.berechneAktiviereBelegControlled(iid, LPMain.getTheClient());
+			dialogBelegpruefung(pruefungDto);
+			return pruefungDto.getBerechnungsZeitpunkt();
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
 		return null;
-	}	
-	public void updateBestellung(BestellungDto bestellungDto,
-			boolean pruefeKorrekterStatus) throws ExceptionLP {
+	}
+
+	public void updateBestellung(BestellungDto bestellungDto, boolean pruefeKorrekterStatus) throws ExceptionLP {
 		try {
-			bestellungFac.updateBestellung(bestellungDto,
-					LPMain.getTheClient(), pruefeKorrekterStatus);
+			bestellungFac.updateBestellung(bestellungDto, LPMain.getTheClient(), pruefeKorrekterStatus);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateBestellung(BestellungDto bestellungDto)
-			throws ExceptionLP {
+	public void updateBestellung(BestellungDto bestellungDto) throws ExceptionLP {
 		try {
-			bestellungFac
-					.updateBestellung(bestellungDto, LPMain.getTheClient());
+			bestellungFac.updateBestellung(bestellungDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public BestellungDto bestellungFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public BestellungDto bestellungFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		BestellungDto bestellungDto = null;
 		try {
 			bestellungDto = bestellungFac.bestellungFindByPrimaryKey(iId);
@@ -167,14 +169,36 @@ public class BestellungDelegate extends Delegate {
 		return bestellungDto;
 	}
 
-	public Integer createBestellposition(BestellpositionDto bestellpositionDto,
-			String sPreispflegeI, Integer artikellieferantstaffelIId_ZuAendern)
-			throws ExceptionLP {
+	public BestellungDto bestellungFindByCNrMandantCNr(String cNr) throws ExceptionLP {
+		BestellungDto bestellungDto = null;
+		try {
+			bestellungDto = bestellungFac.bestellungFindByCNrMandantCNr(cNr, LPMain.getTheClient().getMandant());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return bestellungDto;
+	}
+
+	public Integer createBestellposition(BestellpositionDto bestellpositionDto, String sPreispflegeI,
+			Integer artikellieferantstaffelIId_ZuAendern) throws ExceptionLP {
 		Integer iIdBestellposition = null;
 		try {
-			iIdBestellposition = bestellpositionFac.createBestellposition(
-					bestellpositionDto, LPMain.getTheClient(), sPreispflegeI,
-					artikellieferantstaffelIId_ZuAendern);
+			iIdBestellposition = bestellpositionFac.createBestellposition(bestellpositionDto, LPMain.getTheClient(),
+					sPreispflegeI, artikellieferantstaffelIId_ZuAendern);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return iIdBestellposition;
+	}
+
+	public Integer bestellpositionSplitten(Integer bestellpositionIId, BigDecimal bdMengeNeu,
+			Timestamp dLieferterminNeu) throws ExceptionLP {
+		Integer iIdBestellposition = null;
+		try {
+			iIdBestellposition = bestellpositionFac.bestellpositionSplitten(bestellpositionIId, bdMengeNeu,
+					dLieferterminNeu, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -185,16 +209,13 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * L&ouml;schen einer bestehendenreat Bestellposition.
 	 * 
-	 * @param pPos
-	 *            BestellpositionDto
+	 * @param pPos BestellpositionDto
 	 * @throws ExceptionLP
 	 * @throws Throwable
 	 */
-	public void removeBestellposition(BestellpositionDto pPos)
-			throws ExceptionLP {
+	public void removeBestellposition(BestellpositionDto pPos) throws ExceptionLP {
 		try {
-			bestellpositionFac.removeBestellposition(pPos,
-					LPMain.getTheClient());
+			bestellpositionFac.removeBestellposition(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -203,16 +224,13 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * L&ouml;schen des ABTermin von Bestellposition.
 	 * 
-	 * @param pPos
-	 *            BestellpositionDto
+	 * @param pPos BestellpositionDto
 	 * @throws ExceptionLP
 	 * @throws Throwable
 	 */
-	public void removeABTerminVonBestellposition(BestellpositionDto pPos)
-			throws ExceptionLP {
+	public void removeABTerminVonBestellposition(BestellpositionDto pPos) throws ExceptionLP {
 		try {
-			bestellpositionFac.removeABTerminVonBestellposition(pPos,
-					LPMain.getTheClient());
+			bestellpositionFac.removeABTerminVonBestellposition(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -221,14 +239,12 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * Holen einer Auftragsposition.
 	 * 
-	 * @param pKey
-	 *            Integer
+	 * @param pKey Integer
 	 * @throws ExceptionLP
 	 * @throws Throwable
 	 * @return AuftragpositionDto
 	 */
-	public BestellpositionDto bestellpositionFindByPrimaryKey(Integer pKey)
-			throws ExceptionLP {
+	public BestellpositionDto bestellpositionFindByPrimaryKey(Integer pKey) throws ExceptionLP {
 		BestellpositionDto dto = null;
 		try {
 			dto = bestellpositionFac.bestellpositionFindByPrimaryKey(pKey);
@@ -238,8 +254,7 @@ public class BestellungDelegate extends Delegate {
 		return dto;
 	}
 
-	public BestellpositionDto bestellpositionFindByPrimaryKeyOhneExc(Integer pKey)
-			throws ExceptionLP {
+	public BestellpositionDto bestellpositionFindByPrimaryKeyOhneExc(Integer pKey) throws ExceptionLP {
 		BestellpositionDto dto = null;
 		try {
 			dto = bestellpositionFac.bestellpositionFindByPrimaryKeyOhneExc(pKey);
@@ -251,31 +266,27 @@ public class BestellungDelegate extends Delegate {
 
 	/**
 	 * 
-	 * @param bestellpositionDto
-	 *            BestellpositionDto
-	 * @param sPreispflegeI
-	 *            String
+	 * @param bestellpositionDto BestellpositionDto
+	 * @param sPreispflegeI      String
 	 * @throws ExceptionLP
 	 */
-	public void updateBestellposition(BestellpositionDto bestellpositionDto,
-			String sPreispflegeI, Integer artikellieferantstaffelIId_ZuAendern)
-			throws ExceptionLP {
+	public void updateBestellposition(BestellpositionDto bestellpositionDto, String sPreispflegeI,
+			Integer artikellieferantstaffelIId_ZuAendern) throws ExceptionLP {
 
 		try {
-			bestellpositionFac.updateBestellposition(bestellpositionDto,
-					LPMain.getTheClient(), sPreispflegeI,
+			bestellpositionFac.updateBestellposition(bestellpositionDto, LPMain.getTheClient(), sPreispflegeI,
 					artikellieferantstaffelIId_ZuAendern);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateBestellungRechnungsadresse(Integer bestellungIId,
-			Integer lieferantIIdRechnungsadresseNeu) throws ExceptionLP {
+	public void updateBestellungRechnungsadresse(Integer bestellungIId, Integer lieferantIIdRechnungsadresseNeu)
+			throws ExceptionLP {
 
 		try {
-			bestellungFac.updateBestellungRechnungsadresse(bestellungIId,
-					lieferantIIdRechnungsadresseNeu, LPMain.getTheClient());
+			bestellungFac.updateBestellungRechnungsadresse(bestellungIId, lieferantIIdRechnungsadresseNeu,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -283,16 +294,13 @@ public class BestellungDelegate extends Delegate {
 
 	/**
 	 * 
-	 * @param bestellpositionDto
-	 *            BestellpositionDto
+	 * @param bestellpositionDto BestellpositionDto
 	 * @throws ExceptionLP
 	 */
-	public void updateBestellpositionOhneWeitereAktion(
-			BestellpositionDto bestellpositionDto) throws ExceptionLP {
+	public void updateBestellpositionOhneWeitereAktion(BestellpositionDto bestellpositionDto) throws ExceptionLP {
 
 		try {
-			bestellpositionFac.updateBestellpositionOhneWeitereAktion(
-					bestellpositionDto, LPMain.getTheClient());
+			bestellpositionFac.updateBestellpositionOhneWeitereAktion(bestellpositionDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -300,59 +308,51 @@ public class BestellungDelegate extends Delegate {
 
 	/**
 	 * 
-	 * @param bestellpositionDto
-	 *            BestellpositionDto
-	 * @param sPreispflegeI
-	 *            String
+	 * @param bestellpositionDto BestellpositionDto
+	 * @param sPreispflegeI      String
 	 * @throws ExceptionLP
 	 */
-	public void updateBestellpositionMitABTermin(
-			BestellpositionDto bestellpositionDto, String sPreispflegeI)
+	public void updateBestellpositionMitABTermin(BestellpositionDto bestellpositionDto, String sPreispflegeI)
 			throws ExceptionLP {
 		try {
-			bestellpositionFac.updateBestellpositionMitABTermin(
-					bestellpositionDto, LPMain.getTheClient(), sPreispflegeI);
+			bestellpositionFac.updateBestellpositionMitABTermin(bestellpositionDto, LPMain.getTheClient(),
+					sPreispflegeI);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateBestellpositionNurABTermin(Integer bestellpositionIId,
-			java.sql.Date abTerminNeu) throws ExceptionLP {
+	public void updateBestellpositionNurABTermin(Integer bestellpositionIId, java.sql.Date abTerminNeu)
+			throws ExceptionLP {
 		try {
-			bestellpositionFac.updateBestellpositionNurABTermin(
-					bestellpositionIId, abTerminNeu, LPMain.getTheClient());
+			bestellpositionFac.updateBestellpositionNurABTermin(bestellpositionIId, abTerminNeu, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateBestellpositionNurLieferterminBestaetigt(
-			Integer bestellpositionIId) throws ExceptionLP {
+	public void updateBestellpositionNurLieferterminBestaetigt(Integer bestellpositionIId) throws ExceptionLP {
 		try {
-			bestellpositionFac.updateBestellpositionNurLieferterminBestaetigt(
-					bestellpositionIId, LPMain.getTheClient());
+			bestellpositionFac.updateBestellpositionNurLieferterminBestaetigt(bestellpositionIId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
 	public void setForAllPositionenABTermin(Integer bestellungIId, Integer[] markierteBestellpositionenIIds,
-			java.sql.Date abDatum, String abNummer, int iOption)
-			throws ExceptionLP {
+			java.sql.Date abDatum,java.sql.Date abBelegDatum, String abNummer, int iOption) throws ExceptionLP {
 		try {
-			bestellpositionFac.setForAllPositionenABTermin(bestellungIId, markierteBestellpositionenIIds,
-					abDatum, abNummer, iOption, LPMain.getTheClient());
+			bestellpositionFac.setForAllPositionenABTermin(bestellungIId, markierteBestellpositionenIIds, abDatum,abBelegDatum,
+					abNummer, iOption, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void sortiereNachArtikelnummer(Integer bestellungIId)
-			throws ExceptionLP {
+	public void sortiereNachArtikelnummer(Integer bestellungIId) throws ExceptionLP {
 		try {
-			bestellpositionFac.sortiereNachArtikelnummer(bestellungIId,
-					LPMain.getTheClient());
+			bestellpositionFac.sortiereNachArtikelnummer(bestellungIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -364,64 +364,73 @@ public class BestellungDelegate extends Delegate {
 	 * - die Werte der Bestellung berechnet <br>
 	 * - der Status der Bestellung von angelegt auf offen gesetzt
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
-	 * @param iAnzahlKopienI
-	 *            Integer
-	 * @param bMitLogo
-	 *            Boolean
+	 * @param iIdBestellungI PK der Bestellung
+	 * @param iAnzahlKopienI Integer
+	 * @param bMitLogo       Boolean
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP[] printBestellung(Integer iIdBestellungI,
-			Integer iAnzahlKopienI, Boolean bMitLogo) throws ExceptionLP {
+	public JasperPrintLP[] printBestellung(Integer iIdBestellungI, Integer iAnzahlKopienI, Boolean bMitLogo)
+			throws ExceptionLP {
 		JasperPrintLP oPrintO[] = null;
 		try {
-			oPrintO = bestellungReportFac.printBestellung(iIdBestellungI,
-					iAnzahlKopienI, bMitLogo, LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printBestellung(iIdBestellungI, iAnzahlKopienI, bMitLogo,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public JasperPrintLP printWepEtikett(Integer iIdWepI,
-			Integer iIdBestellpositionI, Integer iIdLagerI, Integer iExemplare,
-			Integer iVerpackungseinheit, Double dGewicht,
-			String sWarenverkehrsnummer, String sLagerort,
-			String sUrsprungsland, String sKommentar, BigDecimal bdHandmenge,
-			Integer wePosIId)
+	public JasperPrintLP printWepEtikett(Integer iIdWepI, Integer iIdBestellpositionI, Integer iIdLagerI,
+			Integer iExemplare, Integer iVerpackungseinheit, Double dGewicht, String sWarenverkehrsnummer,
+			String sLagerort, String sUrsprungsland, String sKommentar, BigDecimal bdHandmenge, String chargennummer, boolean bInklLosbuchungen)
 
-	throws ExceptionLP {
-		JasperPrintLP oPrintO = null;
-		try {
-			oPrintO = bestellungReportFac.printWepEtikett(iIdWepI,
-					iIdBestellpositionI, iIdLagerI, iExemplare,
-					iVerpackungseinheit, dGewicht, sWarenverkehrsnummer,
-					sLagerort, sUrsprungsland, sKommentar, bdHandmenge,
-					wePosIId, LPMain.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-		return oPrintO;
-	}
-
-	/**
-	 * Journal "Alle Bestellungen".
-	 * 
-	 * @param krit
-	 *            PK der Bestellung
-	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
-	 */
-	public JasperPrintLP printBestellungenAlle(ReportJournalKriterienDto krit)
 			throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printBestellungenAlle(krit,
-					LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printWepEtikett(iIdWepI, iIdBestellpositionI, iIdLagerI, iExemplare,
+					iVerpackungseinheit, dGewicht, sWarenverkehrsnummer, sLagerort, sUrsprungsland, sKommentar,
+					bdHandmenge, chargennummer,bInklLosbuchungen, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+	
+	public JasperPrintLP printBestelletiketten(ArrayList<Integer> bestellpositionIIds)
+
+			throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = bestellungReportFac.printBestelletiketten(bestellpositionIIds,LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+	public JasperPrintLP printWE_Etiketten(Integer wareneingangIId)
+
+			throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = bestellungReportFac.printWE_Etiketten(wareneingangIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+	/**
+	 * Journal "Alle Bestellungen".
+	 * 
+	 * @param krit PK der Bestellung
+	 * @return JasperPrint der Druck
+	 * @throws ExceptionLP Ausnahme
+	 */
+	public JasperPrintLP printBestellungenAlle(ReportJournalKriterienDto krit) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = bestellungReportFac.printBestellungenAlle(krit, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -431,43 +440,27 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * Offene. Bestellungen drucken.
 	 * 
-	 * @param krit
-	 *            PK der Bestellung
-	 * @param dStichtag
-	 *            Date
-	 * @param bSortierungNachLiefertermin
-	 *            Boolean
-	 * @param artikelklasseIId
-	 *            Integer
-	 * @param artikelgruppeIId
-	 *            Integer
-	 * @param artikelCNrVon
-	 *            String
-	 * @param artikelCNrBis
-	 *            String
-	 * @param projektCBezeichnung
-	 *            String
-	 * @param auftragIId
-	 *            Integer
+	 * @param krit                        PK der Bestellung
+	 * @param dStichtag                   Date
+	 * @param bSortierungNachLiefertermin Boolean
+	 * @param artikelklasseIId            Integer
+	 * @param artikelgruppeIId            Integer
+	 * @param artikelCNrVon               String
+	 * @param artikelCNrBis               String
+	 * @param projektCBezeichnung         String
+	 * @param auftragIId                  Integer
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printBestellungenOffene(
-			ReportJournalKriterienDto krit, java.sql.Date dStichtag,
-			Boolean bSortierungNachLiefertermin, Integer artikelklasseIId,
-			Integer artikelgruppeIId, String artikelCNrVon,
-			String artikelCNrBis, String projektCBezeichnung,
-			Integer auftragIId, Integer iArt, boolean bNurAngelegte,
-			boolean bNurOffeneMengenAnfuehren, Integer[] projekte)
-			throws ExceptionLP {
+	public JasperPrintLP printBestellungenOffene(ReportJournalKriterienDto krit, java.sql.Date dStichtag,
+			Boolean bSortierungNachLiefertermin, Integer artikelklasseIId, Integer artikelgruppeIId,
+			String artikelCNrVon, String artikelCNrBis, String projektCBezeichnung, Integer auftragIId, Integer iArt,
+			boolean bNurAngelegte, boolean bNurOffeneMengenAnfuehren, Integer[] projekte) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printBestellungOffene(krit,
-					dStichtag, bSortierungNachLiefertermin, artikelklasseIId,
-					artikelgruppeIId, artikelCNrVon, artikelCNrBis,
-					projektCBezeichnung, auftragIId, iArt, bNurAngelegte,
-					bNurOffeneMengenAnfuehren, projekte, LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printBestellungOffene(krit, dStichtag, bSortierungNachLiefertermin,
+					artikelklasseIId, artikelgruppeIId, artikelCNrVon, artikelCNrBis, projektCBezeichnung, auftragIId,
+					iArt, bNurAngelegte, bNurOffeneMengenAnfuehren, projekte, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -477,65 +470,72 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * Bestellvorschlag drucken.
 	 * 
-	 * @param krit
-	 *            PK der Bestellung
-	 * @param dStichtag
-	 *            Date
-	 * @param bSortierungNachLiefertermin
-	 *            Boolean
+	 * @param krit                        PK der Bestellung
+	 * @param dStichtag                   Date
+	 * @param bSortierungNachLiefertermin Boolean
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printBestellVorschlag(ReportJournalKriterienDto krit,
-			Boolean bSortierungNachLiefertermin, boolean bAnfragevorschlag)
-			throws ExceptionLP {
+	public JasperPrintLP printBestellVorschlag(ReportJournalKriterienDto krit, Boolean bSortierungNachLiefertermin,
+			boolean bAnfragevorschlag, Integer partnerIIdStandort) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printBestellVorschlag(krit,
-					bSortierungNachLiefertermin, bAnfragevorschlag,
-					LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printBestellVorschlag(krit, bSortierungNachLiefertermin, bAnfragevorschlag,
+					partnerIIdStandort, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public JasperPrintLP printRahmenuebersicht(Integer bestellungIId)
-			throws ExceptionLP {
+	public JasperPrintLP printRahmenuebersicht(Integer bestellungIId) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printRahmenuebersicht(bestellungIId,
-					LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printRahmenuebersicht(bestellungIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public JasperPrintLP printBestellungWareneingangsJournal(
-			ReportJournalKriterienDto krit, Integer artikelklasseIId,
-			Integer artikelgruppeIId, String artikelCNrVon,
-			String artikelCNrBis, String projektCBezeichnung,
+	public JasperPrintLP printZahlungsplan(Timestamp tFaelligBis) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = bestellungReportFac.printZahlungsplan(tFaelligBis, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public JasperPrintLP printBestellungWareneingangsJournal(ReportJournalKriterienDto krit, Integer artikelklasseIId,
+			Integer artikelgruppeIId, String artikelCNrVon, String artikelCNrBis, String projektCBezeichnung,
 			Integer auftragIId, boolean bMitWarenverbrauch) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printBestellungWareneingangsJournal(
-					krit, artikelklasseIId, artikelgruppeIId, artikelCNrVon,
-					artikelCNrBis, projektCBezeichnung, auftragIId,
-					bMitWarenverbrauch, LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printBestellungWareneingangsJournal(krit, artikelklasseIId, artikelgruppeIId,
+					artikelCNrVon, artikelCNrBis, projektCBezeichnung, auftragIId, bMitWarenverbrauch,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public JasperPrintLP printAbholauftrag(Integer bestellungIId)
-			throws ExceptionLP {
+	public JasperPrintLP printAbholauftrag(Integer bestellungIId) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printAbholauftrag(bestellungIId,
-					LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printAbholauftrag(bestellungIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public JasperPrintLP printErwarteteLieferungen() throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = bestellungReportFac.printErwarteteLieferungen(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -545,16 +545,33 @@ public class BestellungDelegate extends Delegate {
 	public JasperPrintLP printGeaenderteArtikel() throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printGeaenderteArtikel(LPMain
-					.getTheClient());
+			oPrintO = bestellungReportFac.printGeaenderteArtikel(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public void vertauscheBestellpositionMinus(Integer rowIndex,
-			TableModel tableModel) throws ExceptionLP {
+	public JasperPrintLP printStandortliste() throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = bestellungReportFac.printStandortliste(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+	public JasperPrintLP printTerminuebersicht(Integer bestellungIId) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = bestellungReportFac.printTerminuebersicht(bestellungIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public void vertauscheBestellpositionMinus(Integer rowIndex, TableModel tableModel) throws ExceptionLP {
 		try {
 			// int pageCount = 0 ;
 
@@ -565,15 +582,13 @@ public class BestellungDelegate extends Delegate {
 				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
 			}
 
-			bestellpositionFac.vertauscheBestellpositionenMinus(baseIId,
-					iidList, LPMain.getTheClient());
+			bestellpositionFac.vertauscheBestellpositionenMinus(baseIId, iidList, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void vertauscheBestellpositionPlus(Integer rowIndex,
-			TableModel tableModel) throws ExceptionLP {
+	public void vertauscheBestellpositionPlus(Integer rowIndex, TableModel tableModel) throws ExceptionLP {
 		try {
 			Integer baseIId = (Integer) tableModel.getValueAt(rowIndex, 0);
 			List<Integer> iidList = new ArrayList<Integer>();
@@ -583,8 +598,7 @@ public class BestellungDelegate extends Delegate {
 				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
 			}
 
-			bestellpositionFac.vertauscheBestellpositionenPlus(baseIId,
-					iidList, LPMain.getTheClient());
+			bestellpositionFac.vertauscheBestellpositionenPlus(baseIId, iidList, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -597,20 +611,15 @@ public class BestellungDelegate extends Delegate {
 	 * Diese Methode wird am Client aufgerufen, bevor die neue Position
 	 * abgespeichert wird.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
-	 * @param iSortierungNeuePositionI
-	 *            die Stelle, an der eingefuegt werden soll
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdBestellungI           PK der Bestellung
+	 * @param iSortierungNeuePositionI die Stelle, an der eingefuegt werden soll
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-			Integer iIdBestellungI, int iSortierungNeuePositionI)
-			throws ExceptionLP {
+	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer iIdBestellungI,
+			int iSortierungNeuePositionI) throws ExceptionLP {
 		try {
-			bestellpositionFac
-					.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-							iIdBestellungI, iSortierungNeuePositionI);
+			bestellpositionFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(iIdBestellungI,
+					iSortierungNeuePositionI);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -619,30 +628,24 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * Alle Positionen zu einer Bestellung bestimmen.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
+	 * @param iIdBestellungI PK der Bestellung
 	 * @return BestellpositionDto[] alle Positionen
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public BestellpositionDto[] bestellpositionFindByBestellung(
-			Integer iIdBestellungI) throws ExceptionLP {
+	public BestellpositionDto[] bestellpositionFindByBestellung(Integer iIdBestellungI) throws ExceptionLP {
 		BestellpositionDto[] aPositionDtos = null;
 		try {
-			aPositionDtos = bestellpositionFac.bestellpositionFindByBestellung(
-					iIdBestellungI, LPMain.getTheClient());
+			aPositionDtos = bestellpositionFac.bestellpositionFindByBestellung(iIdBestellungI, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return aPositionDtos;
 	}
 
-	public String getPositionAsStringDocumentWS(Integer aIIdBSPOSI[])
-			throws ExceptionLP {
+	public String getPositionAsStringDocumentWS(Integer aIIdBSPOSI[]) throws ExceptionLP {
 		String sRet = null;
 		try {
-			sRet = bestellpositionFac.getPositionAsStringDocumentWS(aIIdBSPOSI,
-					LPMain.getInstance().getCNrUser());
+			sRet = bestellpositionFac.getPositionAsStringDocumentWS(aIIdBSPOSI, LPMain.getInstance().getCNrUser());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -653,15 +656,12 @@ public class BestellungDelegate extends Delegate {
 	 * Ein Lieferschein kann manuell freigegeben werden. <br>
 	 * Der Lieferschein muss sich im Status 'Angelegt' befinden.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void manuellFreigeben(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
-			bestellungFac.manuellFreigeben(iIdLieferscheinI,
-					LPMain.getTheClient());
+			bestellungFac.manuellFreigeben(iIdLieferscheinI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -671,15 +671,12 @@ public class BestellungDelegate extends Delegate {
 	 * Bestellung kann manuell erledigt werden. <br>
 	 * Bestellung muss sich im Status 'Geliefert' befinden.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdBestellungI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void manuellErledigen(Integer iIdBestellungI) throws ExceptionLP {
 		try {
-			bestellungFac.manuellErledigen(iIdBestellungI,
-					LPMain.getTheClient());
+			bestellungFac.manuellErledigen(iIdBestellungI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -688,16 +685,12 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * Bestellposition auf vollstaendig geliefert setzen.
 	 * 
-	 * @param iIdBestellpositionI
-	 *            PK der Bestellposition
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdBestellpositionI PK der Bestellposition
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void bestellpositionManuellAufVollstaendigGeliefertSetzen(
-			Integer iIdBestellpositionI) throws ExceptionLP {
+	public void bestellpositionManuellAufVollstaendigGeliefertSetzen(Integer iIdBestellpositionI) throws ExceptionLP {
 		try {
-			bestellpositionFac.manuellAufVollstaendigGeliefertSetzen(
-					iIdBestellpositionI, LPMain.getTheClient());
+			bestellpositionFac.manuellAufVollstaendigGeliefertSetzen(iIdBestellpositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -707,16 +700,12 @@ public class BestellungDelegate extends Delegate {
 	 * Bestellung kann manuell erledigt werden. <br>
 	 * Bestellung muss sich im Status 'Geliefert' befinden.
 	 * 
-	 * @param iIdBestellpositionI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdBestellpositionI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void bestellpositionmanuellErledigungAufheben(
-			Integer iIdBestellpositionI) throws ExceptionLP {
+	public void bestellpositionmanuellErledigungAufheben(Integer iIdBestellpositionI) throws ExceptionLP {
 		try {
-			bestellpositionFac.manuellErledigungAufheben(iIdBestellpositionI,
-					LPMain.getTheClient());
+			bestellpositionFac.manuellErledigungAufheben(iIdBestellpositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -727,10 +716,8 @@ public class BestellungDelegate extends Delegate {
 	 * Das bedeutet: - Den Status der Bestellung anpassen und die Stornodaten
 	 * vermerken. - Die Bestellpositionen loeschen.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdBestellungI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void stornieren(Integer iIdBestellungI) throws ExceptionLP {
 		try {
@@ -741,17 +728,14 @@ public class BestellungDelegate extends Delegate {
 	}
 
 	public boolean bIstKopfartikelEinesArtikelSets(Integer bestellpositionIId) {
-		return bestellpositionFac
-				.bIstKopfartikelEinesArtikelSets(bestellpositionIId);
+		return bestellpositionFac.bIstKopfartikelEinesArtikelSets(bestellpositionIId);
 	}
 
 	/**
 	 * Storno einer Bestellung aufheben.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdBestellungI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void stornoAufheben(Integer iIdBestellungI) throws ExceptionLP {
 		try {
@@ -764,20 +748,16 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * Die Anzahl der mengebehafteten Positionen zu einer Bestellung berechnen.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
+	 * @param iIdBestellungI PK der Bestellung
 	 * @return int die Anzahl
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public int berechneAnzahlMengenbehafteteBestellpositionen(
-			Integer iIdBestellungI) throws ExceptionLP {
+	public int berechneAnzahlMengenbehafteteBestellpositionen(Integer iIdBestellungI) throws ExceptionLP {
 		int iAnzahl = -1;
 
 		try {
-			iAnzahl = bestellpositionFac
-					.berechneAnzahlMengenbehafteteBestellpositionen(
-							iIdBestellungI, LPMain.getTheClient());
+			iAnzahl = bestellpositionFac.berechneAnzahlMengenbehafteteBestellpositionen(iIdBestellungI,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -788,12 +768,9 @@ public class BestellungDelegate extends Delegate {
 	 * @deprecated MB
 	 * 
 	 *             Status einer Bestellung ohne weitere Aktionen aendern.
-	 * @param bestellungIId
-	 *            PK der Bestellung
-	 * @param sStatusI
-	 *            der neue Status
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param bestellungIId PK der Bestellung
+	 * @param sStatusI      der neue Status
+	 * @throws ExceptionLP Ausnahme
 	 */
 	// public void setzeBestellungstatus(Integer bestellungIId, String sStatusI)
 	// throws ExceptionLP {
@@ -808,19 +785,15 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * @deprecated MB
 	 * 
-	 *             Wenn der allgemeine Rabatt in den Konditionen geaendert
-	 *             wurde, dann werden im Anschluss die davon abhaengigen Werte
-	 *             neu berechnet.
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 *             Wenn der allgemeine Rabatt in den Konditionen geaendert wurde,
+	 *             dann werden im Anschluss die davon abhaengigen Werte neu
+	 *             berechnet.
+	 * @param iIdBestellungI PK der Bestellung
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateBestellungKonditionen(Integer iIdBestellungI)
-			throws ExceptionLP {
+	public void updateBestellungKonditionen(Integer iIdBestellungI) throws ExceptionLP {
 		try {
-			bestellungFac.updateBestellungKonditionen(iIdBestellungI,
-					LPMain.getTheClient());
+			bestellungFac.updateBestellungKonditionen(iIdBestellungI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -829,63 +802,51 @@ public class BestellungDelegate extends Delegate {
 	/**
 	 * Den Gesamtwert der Bestellung in Bestellwaehrung berechnen.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
+	 * @param iIdBestellungI PK der Bestellung
 	 * @return BigDecimal der Bestellwert
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public BigDecimal berechneNettowertGesamt(Integer iIdBestellungI)
-			throws ExceptionLP {
+	public BigDecimal berechneNettowertGesamt(Integer iIdBestellungI) throws ExceptionLP {
 		BigDecimal bdBestellwert = new BigDecimal(0);
 		try {
-			bdBestellwert = bestellungFac.berechneNettowertGesamt(
-					iIdBestellungI, LPMain.getTheClient());
+			bdBestellwert = bestellungFac.berechneNettowertGesamt(iIdBestellungI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return bdBestellwert;
 	}
 
-	public Integer getAnzahlBestellpositionen(Integer iIdBestellungI)
-			throws ExceptionLP {
+	public Integer getAnzahlBestellpositionen(Integer iIdBestellungI) throws ExceptionLP {
 		try {
-			return bestellpositionFac
-					.getAnzahlBestellpositionen(iIdBestellungI);
+			return bestellpositionFac.getAnzahlBestellpositionen(iIdBestellungI);
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public ArrayList<Integer> getAngelegtenBestellungen(Integer lieferantIId)
-			throws ExceptionLP {
+	public ArrayList<Integer> getAngelegtenBestellungen(Integer lieferantIId) throws ExceptionLP {
 		try {
-			return bestellungFac.getAngelegtenBestellungen(lieferantIId,
-					LPMain.getTheClient());
+			return bestellungFac.getAngelegtenBestellungen(lieferantIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public Map<?, ?> getListeDerVerknuepftenBestellungen(
-			Integer lossollmaterialIId) throws ExceptionLP {
+	public Map<?, ?> getListeDerVerknuepftenBestellungen(Integer lossollmaterialIId) throws ExceptionLP {
 		try {
-			return bestellpositionFac.getListeDerVerknuepftenBestellungen(
-					lossollmaterialIId, LPMain.getTheClient());
+			return bestellpositionFac.getListeDerVerknuepftenBestellungen(lossollmaterialIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public int getAnzahlMengenbehaftetBSPOS(Integer iIdBestellungI)
-			throws ExceptionLP {
+	public int getAnzahlMengenbehaftetBSPOS(Integer iIdBestellungI) throws ExceptionLP {
 		int iRet = 0;
 		try {
-			iRet = bestellpositionFac.getAnzahlMengenbehaftetBSPOS(
-					iIdBestellungI, LPMain.getTheClient());
+			iRet = bestellpositionFac.getAnzahlMengenbehaftetBSPOS(iIdBestellungI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -909,44 +870,40 @@ public class BestellungDelegate extends Delegate {
 	// }
 
 	/**
-	 * Eine Anfrage kann in 0..n Bestellungen aufscheinen. Hole alle
-	 * Bestellungen zu einer Anfrage.
+	 * Eine Anfrage kann in 0..n Bestellungen aufscheinen. Hole alle Bestellungen zu
+	 * einer Anfrage.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Anfrage
+	 * @param iIdAnfrageI PK der Anfrage
 	 * @return BestellungDto[] die Bestellungen
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public BestellungDto[] bestellungFindByAnfrage(Integer iIdAnfrageI)
-			throws ExceptionLP {
+	public BestellungDto[] bestellungFindByAnfrage(Integer iIdAnfrageI) throws ExceptionLP {
 		BestellungDto[] aBestellungDto = null;
 		try {
-			aBestellungDto = bestellungFac.bestellungFindByAnfrage(iIdAnfrageI,
-					LPMain.getTheClient());
+			aBestellungDto = bestellungFac.bestellungFindByAnfrage(iIdAnfrageI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return aBestellungDto;
 	}
 
-	public Integer erzeugeBestellungAusAnfrage(Integer iIdAnfrageI,
-			TheClientDto theClientDto, InternalFrame internalFrame)
-			throws ExceptionLP {
+	public Integer erzeugeBestellungAusAnfrage(Integer iIdAnfrageI, TheClientDto theClientDto,
+			InternalFrame internalFrame) throws ExceptionLP {
 		Integer iId = null;
 
 		try {
-			iId = bestellungFac.erzeugeBestellungAusAnfrage(iIdAnfrageI,
-					theClientDto);
+			iId = bestellungFac.erzeugeBestellungAusAnfrage(iIdAnfrageI, theClientDto);
 
 			if (iId != null) {
 				BestellungDto besDto = bestellungFindByPrimaryKey(iId);
-				DelegateFactory
-						.getInstance()
-						.getLieferantDelegate()
-						.pruefeLieferant(
-								besDto.getLieferantIIdBestelladresse(),
-								LocaleFac.BELEGART_BESTELLUNG, internalFrame);
+				DelegateFactory.getInstance().getLieferantDelegate().pruefeLieferant(
+						besDto.getLieferantIIdBestelladresse(), LocaleFac.BELEGART_BESTELLUNG, internalFrame);
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						besDto.getAnsprechpartnerIId(), besDto.getAnsprechpartnerIIdLieferadresse(),
+						besDto.getAnsprechpartnerIIdAbholadresse());
+
 			}
 
 		} catch (Throwable t) {
@@ -955,13 +912,24 @@ public class BestellungDelegate extends Delegate {
 		return iId;
 	}
 
-	public Integer erzeugeBestellungAusBestellung(Integer iIdBSI)
-			throws ExceptionLP {
+	public Integer erzeugeBestellungAusBestellung(Integer iIdBSI, InternalFrame internalFrame) throws ExceptionLP {
 		Integer iId = null;
 
 		try {
-			iId = bestellungFac.erzeugeBestellungAusBestellung(iIdBSI,
-					LPMain.getTheClient());
+			iId = bestellungFac.erzeugeBestellungAusBestellung(iIdBSI, LPMain.getTheClient());
+
+			if (iId != null) {
+				BestellungDto besDto = bestellungFindByPrimaryKey(iId);
+				DelegateFactory.getInstance().getLieferantDelegate().pruefeLieferant(
+						besDto.getLieferantIIdBestelladresse(), LocaleFac.BELEGART_BESTELLUNG, internalFrame);
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						besDto.getAnsprechpartnerIId(), besDto.getAnsprechpartnerIIdLieferadresse(),
+						besDto.getAnsprechpartnerIIdAbholadresse());
+
+			}
+
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -969,24 +937,20 @@ public class BestellungDelegate extends Delegate {
 	}
 
 	/**
-	 * Methode zum Erzeugen einer Eingangsrechnung aus einer bestehenden
-	 * Bestellung
+	 * Methode zum Erzeugen einer Eingangsrechnung aus einer bestehenden Bestellung
 	 * 
-	 * @param iIdBestellungI
-	 *            PK des bestehenden Auftrags
-	 * @param eingangsrechnungDtoI
-	 *            der Benutzer kann vorbelegte Eigenschaften uebersteuern
+	 * @param iIdBestellungI       PK des bestehenden Auftrags
+	 * @param eingangsrechnungDtoI der Benutzer kann vorbelegte Eigenschaften
+	 *                             uebersteuern
 	 * @return Integer PK der neuen Eingangsrechnung
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public Integer erzeugeEingangsrechnungAusBestellung(Integer iIdBestellungI,
 			EingangsrechnungDto eingangsrechnungDtoI) throws ExceptionLP {
 		Integer iIdEingangsrechnung = null;
 		try {
-			iIdEingangsrechnung = bestellungFac
-					.erzeugeEingangsrechnungAusBestellung(iIdBestellungI,
-							eingangsrechnungDtoI, LPMain.getTheClient());
+			iIdEingangsrechnung = bestellungFac.erzeugeEingangsrechnungAusBestellung(iIdBestellungI,
+					eingangsrechnungDtoI, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -995,49 +959,48 @@ public class BestellungDelegate extends Delegate {
 
 	/**
 	 * Den Status einer Bestellung von 'geliefert' auf 'offen' setzen. <br>
-	 * Diese Aktion ist nur moeglich, wenn der 'geliefert' Status manuell
-	 * gesetzt wurde.
+	 * Diese Aktion ist nur moeglich, wenn der 'geliefert' Status manuell gesetzt
+	 * wurde.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK des Bestells
+	 * @param iIdBestellungI PK des Bestells
 	 * @throws ExceptionLP
 	 */
-	public void erledigungAufheben(Integer iIdBestellungI) throws ExceptionLP {
+	public void bestellungAufPauschalbetragSetzten(Integer bestellungIId, BigDecimal bdPauschalbetrag)
+			throws ExceptionLP {
 		try {
-			bestellungFac.erledigenAufheben(iIdBestellungI,
-					LPMain.getTheClient());
+			bestellungFac.bestellungAufPauschalbetragSetzten(bestellungIId, bdPauschalbetrag, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void importiereMonatsbestellung(
-			ArrayList<ImportMonatsbestellungDto> importMonatbestellung)
+	public void erledigungAufheben(Integer iIdBestellungI) throws ExceptionLP {
+		try {
+			bestellungFac.erledigenAufheben(iIdBestellungI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void importiereMonatsbestellung(ArrayList<ImportMonatsbestellungDto> importMonatbestellung)
 			throws ExceptionLP {
 		try {
-			bestellungFac.importiereMonatsbestellung(importMonatbestellung,
-					LPMain.getTheClient());
+			bestellungFac.importiereMonatsbestellung(importMonatbestellung, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
 	/**
-	 * Aufgrund des Divisors die Abrufpositionen fuer eine Abrufbestellung
-	 * erzeugen.
+	 * Aufgrund des Divisors die Abrufpositionen fuer eine Abrufbestellung erzeugen.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Abrufbestellung
-	 * @param iDivisorI
-	 *            der Divisor
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdBestellungI PK der Abrufbestellung
+	 * @param iDivisorI      der Divisor
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void erzeugeAbrufpositionen(Integer iIdBestellungI, int iDivisorI)
-			throws ExceptionLP {
+	public void erzeugeAbrufpositionen(Integer iIdBestellungI, int iDivisorI) throws ExceptionLP {
 		try {
-			bestellpositionFac.erzeugeAbrufpositionen(iIdBestellungI,
-					iDivisorI, LPMain.getTheClient());
+			bestellpositionFac.erzeugeAbrufpositionen(iIdBestellungI, iDivisorI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1048,18 +1011,15 @@ public class BestellungDelegate extends Delegate {
 	 * Positionen. <br>
 	 * Wird verwendet, um festzustellen, ob eine Rahmenbestellung erledigt ist.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
+	 * @param iIdBestellungI PK der Bestellung
 	 * @return int offene Menge
 	 * @throws ExceptionLP
 	 */
-	public double berechneOffeneMenge(Integer iIdBestellungI)
-			throws ExceptionLP {
+	public double berechneOffeneMenge(Integer iIdBestellungI) throws ExceptionLP {
 		double dOffeneMenge = 0.0;
 
 		try {
-			dOffeneMenge = bestellpositionFac.berechneOffeneMenge(
-					iIdBestellungI, LPMain.getTheClient());
+			dOffeneMenge = bestellpositionFac.berechneOffeneMenge(iIdBestellungI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1067,23 +1027,42 @@ public class BestellungDelegate extends Delegate {
 		return dOffeneMenge;
 	}
 
+	public Integer getWiederbeschaffungsmoralEinesArtikels(Integer artikelIId) throws ExceptionLP {
+
+		try {
+			return bestellungFac.getWiederbeschaffungsmoralEinesArtikels(artikelIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+
+	}
+	
+	public Integer getWiederbeschaffungsmoralEinesArtikels(Integer artikelIId, Integer lieferantIId) throws ExceptionLP {
+
+		try {
+			return bestellungFac.getWiederbeschaffungsmoralEinesArtikels(artikelIId, lieferantIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+
+	}
+
 	/**
 	 * Eine RahmenbestellungId kann in 0..n Bestellungen aufscheinen. Hole alle
 	 * Abrufbestellungen zu einer Rahmenbestellung.
 	 * 
-	 * @param iIdRahmenBestellungI
-	 *            Integer
+	 * @param iIdRahmenBestellungI Integer
 	 * @return BestellungDto[]
 	 * @throws ExceptionLP
 	 */
-	public BestellungDto[] abrufBestellungenfindByRahmenbestellung(
-			Integer iIdRahmenBestellungI) throws ExceptionLP {
+	public BestellungDto[] abrufBestellungenfindByRahmenbestellung(Integer iIdRahmenBestellungI) throws ExceptionLP {
 		BestellungDto[] aBestellungDtos = null;
 
 		try {
-			aBestellungDtos = bestellungFac
-					.abrufBestellungenfindByRahmenbestellung(
-							iIdRahmenBestellungI, LPMain.getTheClient());
+			aBestellungDtos = bestellungFac.abrufBestellungenfindByRahmenbestellung(iIdRahmenBestellungI,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1092,27 +1071,22 @@ public class BestellungDelegate extends Delegate {
 	}
 
 	/**
-	 * Innerhalb einer Bestellung einer Bestellposition suchen, die eine
-	 * bestimmte Bestellposition referenziert.
+	 * Innerhalb einer Bestellung einer Bestellposition suchen, die eine bestimmte
+	 * Bestellposition referenziert.
 	 * 
-	 * @param iIdBestellungI
-	 *            PK der Bestellung
-	 * @param iIdBestellpositionRahmenpositionI
-	 *            PK der referenzierten Bestellposition
+	 * @param iIdBestellungI                    PK der Bestellung
+	 * @param iIdBestellpositionRahmenpositionI PK der referenzierten
+	 *                                          Bestellposition
 	 * @return BestellpositionDto die gesuchte Bestellposition oder null
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public BestellpositionDto bestellpositionFindByBestellungIIdBestellpositionIIdRahmenposition(
-			Integer iIdBestellungI, Integer iIdBestellpositionRahmenpositionI)
-			throws ExceptionLP {
+	public BestellpositionDto bestellpositionFindByBestellungIIdBestellpositionIIdRahmenposition(Integer iIdBestellungI,
+			Integer iIdBestellpositionRahmenpositionI) throws ExceptionLP {
 		BestellpositionDto bestellpositionDto = null;
 
 		try {
-			bestellpositionDto = bestellpositionFac
-					.bestellpositionFindByBestellungIIdBestellpositionIIdRahmenposition(
-							iIdBestellungI, iIdBestellpositionRahmenpositionI,
-							LPMain.getTheClient());
+			bestellpositionDto = bestellpositionFac.bestellpositionFindByBestellungIIdBestellpositionIIdRahmenposition(
+					iIdBestellungI, iIdBestellpositionRahmenpositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1121,75 +1095,72 @@ public class BestellungDelegate extends Delegate {
 	}
 
 	/**
-	 * Ein Teil einer Rahmenposition oder die gesamte wird in der
-	 * Abrufbestellung als Abrufposition erfasst. <br>
+	 * Ein Teil einer Rahmenposition oder die gesamte wird in der Abrufbestellung
+	 * als Abrufposition erfasst. <br>
 	 * Die erfasste Menge muss dabei > 0 sein.
 	 * 
-	 * @param abrufbestellpositionDtoI
-	 *            die bestehenden Abrufposition
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param abrufbestellpositionDtoI die bestehenden Abrufposition
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateAbrufbestellpositionSichtRahmen(
-			BestellpositionDto abrufbestellpositionDtoI) throws ExceptionLP {
+	public void updateAbrufbestellpositionSichtRahmen(BestellpositionDto abrufbestellpositionDtoI) throws ExceptionLP {
 		try {
-			bestellpositionFac.updateAbrufbestellpositionSichtRahmen(
-					abrufbestellpositionDtoI, LPMain.getTheClient());
+			bestellpositionFac.updateAbrufbestellpositionSichtRahmen(abrufbestellpositionDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
 	/**
-	 * Wenn eine Abrufposition geloescht wird, muss die entsprechende
-	 * Rahmenposition angepasst werden.
+	 * Wenn eine Abrufposition geloescht wird, muss die entsprechende Rahmenposition
+	 * angepasst werden.
 	 * 
-	 * @param abrufbestellpositionDtoI
-	 *            die aktuelle Abrufbestellposition
+	 * @param abrufbestellpositionDtoI die aktuelle Abrufbestellposition
 	 * @throws ExceptionLP
 	 */
-	public void removeAbrufbestellposition(
-			BestellpositionDto abrufbestellpositionDtoI) throws ExceptionLP {
+	public void removeAbrufbestellposition(BestellpositionDto abrufbestellpositionDtoI) throws ExceptionLP {
 		try {
-			bestellpositionFac.removeAbrufbestellposition(
-					abrufbestellpositionDtoI, LPMain.getTheClient());
+			bestellpositionFac.removeAbrufbestellposition(abrufbestellpositionDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
 	public void preispflege(BestellpositionDto besPosDto, String sPreispflegeI,
-			Integer artikellieferantstaffelIId_ZuAendern,
-			boolean bNullPreiseZurueckpflegen) throws ExceptionLP {
+			Integer artikellieferantstaffelIId_ZuAendern, boolean bNullPreiseZurueckpflegen) throws ExceptionLP {
 		try {
-			bestellpositionFac.preispflege(besPosDto, sPreispflegeI,
-					artikellieferantstaffelIId_ZuAendern,
+			bestellpositionFac.preispflege(besPosDto, sPreispflegeI, artikellieferantstaffelIId_ZuAendern,
 					bNullPreiseZurueckpflegen, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
+	public void preispflege(BestellpositionDto besPosDto, String sPreispflegeI,
+			Integer artikellieferantstaffelIId_ZuAendern, boolean bNullPreiseZurueckpflegen, boolean zuschnittsartikelNeuBerechnen) throws ExceptionLP {
+		try {
+			bestellpositionFac.preispflege(besPosDto, sPreispflegeI, artikellieferantstaffelIId_ZuAendern,
+					bNullPreiseZurueckpflegen,zuschnittsartikelNeuBerechnen, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	
 	/**
 	 * Wenn eine neue Abrufposition angelegt wird, muss die entsprechende
 	 * Rahmenposition angepasst werden.
 	 * 
-	 * @param abrufbestellpositionDtoI
-	 *            die aktuelle Abrufbestellposition
+	 * @param abrufbestellpositionDtoI die aktuelle Abrufbestellposition
 	 * @return Integer PK der neuen Abrufposition
 	 * @throws ExceptionLP
 	 */
-	public Integer createAbrufbestellposition(
-			BestellpositionDto abrufbestellpositionDtoI, String sPreispflegeI,
+	public Integer createAbrufbestellposition(BestellpositionDto abrufbestellpositionDtoI, String sPreispflegeI,
 			Integer artikellieferantstaffelIId_ZuAendern) throws ExceptionLP {
 		Integer abrufpositionIId = null;
 
 		try {
-			abrufpositionIId = bestellpositionFac
-					.createAbrufbestellposition(abrufbestellpositionDtoI,
-							sPreispflegeI,
-							artikellieferantstaffelIId_ZuAendern,
-							LPMain.getTheClient());
+			abrufpositionIId = bestellpositionFac.createAbrufbestellposition(abrufbestellpositionDtoI, sPreispflegeI,
+					artikellieferantstaffelIId_ZuAendern, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1197,23 +1168,18 @@ public class BestellungDelegate extends Delegate {
 	}
 
 	/**
-	 * Eine Abrufbestellposition wird korrigiert. Damit mussen auch die Mengen
-	 * in der Rahmenbestellung angepasst werden.
+	 * Eine Abrufbestellposition wird korrigiert. Damit mussen auch die Mengen in
+	 * der Rahmenbestellung angepasst werden.
 	 * 
-	 * @param abrufbestellpositionDtoI
-	 *            die Abrufbestellposition mit den aktuellen Werten
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param abrufbestellpositionDtoI die Abrufbestellposition mit den aktuellen
+	 *                                 Werten
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateAbrufbestellposition(
-			BestellpositionDto abrufbestellpositionDtoI, String sPreispflegeI,
+	public void updateAbrufbestellposition(BestellpositionDto abrufbestellpositionDtoI, String sPreispflegeI,
 			Integer artikellieferantstaffelIId_ZuAendern) throws ExceptionLP {
 		try {
-			bestellpositionFac
-					.updateAbrufbestellposition(abrufbestellpositionDtoI,
-							sPreispflegeI,
-							artikellieferantstaffelIId_ZuAendern,
-							LPMain.getTheClient());
+			bestellpositionFac.updateAbrufbestellposition(abrufbestellpositionDtoI, sPreispflegeI,
+					artikellieferantstaffelIId_ZuAendern, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1223,20 +1189,17 @@ public class BestellungDelegate extends Delegate {
 	 * Alle Abrufpositionen holen, die sich auf eine bestimmte Rahmenposition
 	 * beziehen.
 	 * 
-	 * @param iIdRahmenpositionI
-	 *            PK der Rahmenposition
+	 * @param iIdRahmenpositionI PK der Rahmenposition
 	 * @return BestellpositionDto[] die Abrufpositionen
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public BestellpositionDto[] bestellpositionFindByBestellpositionIIdRahmenposition(
-			Integer iIdRahmenpositionI) throws ExceptionLP {
+	public BestellpositionDto[] bestellpositionFindByBestellpositionIIdRahmenposition(Integer iIdRahmenpositionI)
+			throws ExceptionLP {
 		BestellpositionDto[] aBestellposition = null;
 
 		try {
 			aBestellposition = bestellpositionFac
-					.bestellpositionFindByBestellpositionIIdRahmenposition(
-							iIdRahmenpositionI, LPMain.getTheClient());
+					.bestellpositionFindByBestellpositionIIdRahmenposition(iIdRahmenpositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1244,24 +1207,22 @@ public class BestellungDelegate extends Delegate {
 		return aBestellposition;
 	}
 
-	public void refreshStatusWennAbgerufen(Integer iBestellungId)
-			throws ExceptionLP {
+	public void refreshStatusWennAbgerufen(Integer iBestellungId) throws ExceptionLP {
 
 		try {
-			bestellpositionFac.refreshStatusWennAbgerufen(iBestellungId,
-					LPMain.getTheClient());
+			bestellpositionFac.refreshStatusWennAbgerufen(iBestellungId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 
 	}
 
-	public void checkStatusAbrufBestellungenUndRahmenbestellung(
-			BestellpositionDto bestellpositionDtoI) throws ExceptionLP {
+	public void checkStatusAbrufBestellungenUndRahmenbestellung(BestellpositionDto bestellpositionDtoI)
+			throws ExceptionLP {
 
 		try {
-			bestellpositionFac.checkStatusAbrufBestellungenUndRahmenbestellung(
-					bestellpositionDtoI, LPMain.getTheClient());
+			bestellpositionFac.checkStatusAbrufBestellungenUndRahmenbestellung(bestellpositionDtoI,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1291,11 +1252,9 @@ public class BestellungDelegate extends Delegate {
 	//
 	// }
 
-	public void setzeBSMahnsperre(Integer bestellungIId,
-			java.sql.Date tMahnsperre) throws ExceptionLP {
+	public void setzeBSMahnsperre(Integer bestellungIId, java.sql.Date tMahnsperre) throws ExceptionLP {
 		try {
-			bestellungFac.setzeBSMahnsperre(bestellungIId, tMahnsperre,
-					LPMain.getTheClient());
+			bestellungFac.setzeBSMahnsperre(bestellungIId, tMahnsperre, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -1307,33 +1266,26 @@ public class BestellungDelegate extends Delegate {
 	 * - die Werte der Bestellung berechnet <br>
 	 * - der Status der Bestellung von angelegt auf offen gesetzt
 	 * 
-	 * @param mahnungIId
-	 *            PK der Bestellung
+	 * @param mahnungIId PK der Bestellung
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printBSMahnungAusMahnlauf(Integer mahnungIId,
-			boolean bMitLogo) throws ExceptionLP {
+	public JasperPrintLP printBSMahnungAusMahnlauf(Integer mahnungIId, boolean bMitLogo) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printBSMahnungAusMahnlauf(mahnungIId,
-					bMitLogo, LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printBSMahnungAusMahnlauf(mahnungIId, bMitLogo, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public JasperPrintLP printBSMahnungFuerBestellung(
-			Integer bestellpositionIId, Integer bestellungIId,
-			Integer mahnstufeIId, java.sql.Date dMahndatum, boolean bMitLogo)
-			throws ExceptionLP {
+	public JasperPrintLP printBSMahnungFuerBestellung(Integer bestellpositionIId, Integer bestellungIId,
+			Integer mahnstufeIId, java.sql.Date dMahndatum, boolean bMitLogo) throws ExceptionLP {
 
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = bestellungReportFac.printBSMahnungFuerBestellung(
-					bestellpositionIId, bestellungIId, mahnstufeIId,
+			oPrintO = bestellungReportFac.printBSMahnungFuerBestellung(bestellpositionIId, bestellungIId, mahnstufeIId,
 					dMahndatum, bMitLogo, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
@@ -1341,12 +1293,10 @@ public class BestellungDelegate extends Delegate {
 		return oPrintO;
 	}
 
-	public JasperPrintLP[] printBSSammelMahnung(Integer bsmahnlaufIId,
-			boolean bMitLogo) throws ExceptionLP {
+	public JasperPrintLP[] printBSSammelMahnung(Integer bsmahnlaufIId, boolean bMitLogo) throws ExceptionLP {
 		JasperPrintLP oPrintO[] = null;
 		try {
-			oPrintO = bestellungReportFac.printBSSammelMahnung(bsmahnlaufIId,
-					bMitLogo, LPMain.getTheClient());
+			oPrintO = bestellungReportFac.printBSSammelMahnung(bsmahnlaufIId, bMitLogo, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -1357,8 +1307,7 @@ public class BestellungDelegate extends Delegate {
 
 		Boolean bIsErledigt = null;
 		try {
-			bIsErledigt = bestellungFac.isBSErledigt(iIdBSPOSI,
-					LPMain.getTheClient());
+			bIsErledigt = bestellungFac.isBSErledigt(iIdBSPOSI, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -1369,16 +1318,14 @@ public class BestellungDelegate extends Delegate {
 
 		Boolean bIsGeliefert = null;
 		try {
-			bIsGeliefert = bestellungFac.isBSGeliefert(iIdBSPOSI,
-					LPMain.getTheClient());
+			bIsGeliefert = bestellungFac.isBSGeliefert(iIdBSPOSI, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return bIsGeliefert.booleanValue();
 	}
 
-	public BigDecimal berechneOffeneMengePosition(Integer iIdBSPOSI)
-			throws ExceptionLP {
+	public BigDecimal berechneOffeneMengePosition(Integer iIdBSPOSI) throws ExceptionLP {
 
 		BigDecimal bdOffeneMenge = null;
 		try {
@@ -1389,35 +1336,29 @@ public class BestellungDelegate extends Delegate {
 		return bdOffeneMenge;
 	}
 
-	public void erledigeAlleNichtMengenpositionen(BestellungDto bestellungDto)
-			throws ExceptionLP {
+	public void erledigeAlleNichtMengenpositionen(BestellungDto bestellungDto) throws ExceptionLP {
 		try {
-			bestellpositionFac.erledigeAlleNichtMengenpositionen(bestellungDto,
-					LPMain.getTheClient());
+			bestellpositionFac.erledigeAlleNichtMengenpositionen(bestellungDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 
 	}
 
-	public String getRichtigenBestellStatus(Integer bestellungIId,
-			boolean bRekursiv) throws ExceptionLP {
+	public String getRichtigenBestellStatus(Integer bestellungIId, boolean bRekursiv) throws ExceptionLP {
 		String sReturnVal = "";
 		try {
-			sReturnVal = bestellungFac.getRichtigenBestellStatus(bestellungIId,
-					bRekursiv, LPMain.getTheClient());
+			sReturnVal = bestellungFac.getRichtigenBestellStatus(bestellungIId, bRekursiv, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return sReturnVal;
 	}
 
-	public String getRichtigenBestellpositionStatus(Integer bestellPosIId)
-			throws ExceptionLP {
+	public String getRichtigenBestellpositionStatus(Integer bestellPosIId) throws ExceptionLP {
 		String sReturnVal = "";
 		try {
-			sReturnVal = bestellpositionFac.getRichtigenBestellpositionStatus(
-					bestellPosIId, LPMain.getTheClient());
+			sReturnVal = bestellpositionFac.getRichtigenBestellpositionStatus(bestellPosIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -1437,65 +1378,148 @@ public class BestellungDelegate extends Delegate {
 	public String checkBestellpositionStati() throws ExceptionLP {
 		String retVal = "";
 		try {
-			retVal = bestellpositionFac.checkBestellpositionStati(LPMain
-					.getTheClient());
+			retVal = bestellpositionFac.checkBestellpositionStati(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return retVal;
 	}
 
-	public void sendMahnlauf(String cKommuniaktionsart,
-			BSMahnlaufDto bsMahnlaufDto) throws EJBExceptionLP, Throwable {
+	public void sendMahnlauf(String cKommuniaktionsart, BSMahnlaufDto bsMahnlaufDto) throws EJBExceptionLP, Throwable {
 		try {
 			TheClientDto theClientDto = LPMain.getTheClient();
 
-			bestellungReportFac.sendMahnlauf(cKommuniaktionsart, bsMahnlaufDto,
-					theClientDto.getLocUi(), theClientDto);
+			bestellungReportFac.sendMahnlauf(cKommuniaktionsart, bsMahnlaufDto, theClientDto.getLocUi(), theClientDto);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public Integer getPositionNummer(Integer bestellpositionIId)
-			throws ExceptionLP {
+	public Integer getPositionNummer(Integer bestellpositionIId) throws ExceptionLP {
 		Integer iPosNummer = null;
 		try {
-			iPosNummer = bestellpositionFac.getPositionNummer(
-					bestellpositionIId, LPMain.getTheClient());
+			iPosNummer = bestellpositionFac.getPositionNummer(bestellpositionIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return iPosNummer;
 	}
 
-	public Integer getPositionNummerReadOnly(Integer bestellpositionIId)
-			throws ExceptionLP {
+	public Integer getPositionNummerReadOnly(Integer bestellpositionIId) throws ExceptionLP {
 		Integer iPosNummer = null;
 		try {
-			iPosNummer = bestellpositionFac
-					.getPositionNummerReadOnly(bestellpositionIId);
+			iPosNummer = bestellpositionFac.getPositionNummerReadOnly(bestellpositionIId);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return iPosNummer;
 	}
 
-	public void setzeVersandzeitpunktAufJetzt(Integer iBestellungIId,
-			String sDruckart) throws ExceptionLP {
+	public void setzeVersandzeitpunktAufJetzt(Integer iBestellungIId, String sDruckart) throws ExceptionLP {
 		try {
-			bestellungFac.setzeVersandzeitpunktAufJetzt(iBestellungIId,
-					sDruckart);
+			bestellungFac.setzeVersandzeitpunktAufJetzt(iBestellungIId, sDruckart);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void setAuftragIIdInBestellung(BestellungDto bestellungDto)
-			throws ExceptionLP {
+	public void setAuftragIIdInBestellung(BestellungDto bestellungDto) throws ExceptionLP {
 		try {
-			bestellungFac.setAuftragIIdInBestellung(bestellungDto,
+			bestellungFac.setAuftragIIdInBestellung(bestellungDto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	/**
+	 * Ist diese Bestellposition Teil eines Artikelsets? (Egal ob Kopfartikel, oder
+	 * Artikelsetposition)
+	 * 
+	 * @param positionDto die zu pruefende Bestellposition
+	 * @return true wenn es sich um eine Position innerhalb des Artikelsets handelt
+	 */
+	public boolean istTeilEinesArtikelsets(BestellpositionDto positionDto) throws ExceptionLP {
+		try {
+			return bestellpositionFac.istTeilEinesArtikelsets(positionDto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Die Artikelsetpositions-Artikel, die serien/chargennr behaftet sind.
+	 * 
+	 * @param positionDto
+	 * @param theClientDto
+	 * @return null wenn es keine Position eines Artikelsets ist, oder eine (leere)
+	 *         Liste aller Artikel die in diesem Set serien- oder
+	 *         chargennummerbehaftet sind
+	 */
+	public List<Integer> getArtikelIdsEinesArtikelsetsMitSnrCharge(BestellpositionDto positionDto) throws ExceptionLP {
+		try {
+			return bestellpositionFac.getArtikelIdsEinesArtikelsetsMitSnrCharge(positionDto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return null;
+	}
+
+	public boolean istArtikelsetUnbearbeitet(BestellpositionDto positionDto) throws ExceptionLP {
+		try {
+			return bestellpositionFac.istArtikelsetUnbearbeitet(positionDto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return false;
+	}
+
+	public BigDecimal getErfuellbareSaetzeArtikelset(BigDecimal menge, Integer wareneingangId,
+			BestellpositionDto positionDto) throws ExceptionLP {
+		try {
+			return bestellpositionFac.getErfuellbareSaetzeArtikelset(menge, positionDto, wareneingangId,
 					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public BestellpositionServiceDto bestellpositionFindByPrimaryKey(Integer positionId, boolean ladeArtikel)
+			throws ExceptionLP {
+		try {
+			return bestellpositionFac.bestellpositionFindByPrimaryKey(positionId, ladeArtikel, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public BestellungDto erzeugeAenderungsbestellung(Integer bestellungIId) throws ExceptionLP {
+		try {
+			return bestellungFac.erzeugeAenderungsbestellung(bestellungIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public OpenTransXmlReportResult transformPrint(Integer iIdBestellungI, Integer iAnzahlKopienI, Boolean bMitLogo)
+			throws ExceptionLP {
+		try {
+			return bestellungReportFac.transformPrintBestellung(iIdBestellungI, iAnzahlKopienI, bMitLogo,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return new OpenTransXmlReportResult(new JasperPrintLP[0]);
+		}
+	}
+
+	public void archiviereOpenTransResult(OpenTransXmlReportResult result) throws ExceptionLP {
+		try {
+			bestellungFac.archiviereOpenTransResult(result, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

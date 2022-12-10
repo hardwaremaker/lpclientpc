@@ -32,8 +32,8 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
-
 import java.rmi.RemoteException;
+import java.util.Map;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -41,151 +41,118 @@ import javax.naming.InitialContext;
 import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.LfliefergruppeDto;
 import com.lp.server.partner.service.LfliefergruppesprDto;
+import com.lp.server.partner.service.LieferantFac;
 import com.lp.server.partner.service.LieferantServicesFac;
 import com.lp.server.system.service.TheClientDto;
 import com.lp.util.EJBExceptionLP;
 
-@SuppressWarnings("static-access") 
-public class LieferantServicesDelegate
-    extends Delegate
-{
-  private Context context;
-  private LieferantServicesFac lieferantServicesFac;
+@SuppressWarnings("static-access")
+public class LieferantServicesDelegate extends Delegate {
+	private Context context;
+	private LieferantServicesFac lieferantServicesFac;
 
-  public LieferantServicesDelegate()
-      throws Exception {
-    context = new InitialContext();
-    lieferantServicesFac = (LieferantServicesFac) context.lookup("lpserver/LieferantServicesFacBean/remote");
-  }
+	public LieferantServicesDelegate() throws Exception {
+		context = new InitialContext();
+		lieferantServicesFac = lookupFac(context, LieferantServicesFac.class);
+	}
 
+	public Integer createLfliefergruppe(LfliefergruppeDto lfliefergruppeDto) throws Exception {
+		Integer iId = null;
+		try {
+			lfliefergruppeDto.setMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+			iId = lieferantServicesFac.createLfliefergruppe(lfliefergruppeDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return iId;
+	}
 
-  public Integer createLfliefergruppe(LfliefergruppeDto lfliefergruppeDto)
-      throws Exception {
-    Integer iId = null;
-    try {
-      lfliefergruppeDto.setMandantCNr(
-          LPMain.getInstance().getTheClient().getMandant());
-      iId = lieferantServicesFac.createLfliefergruppe(lfliefergruppeDto,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-    return iId;
-  }
+	public void removeLfliefergruppe(Integer iId) throws Exception {
+		try {
+			lieferantServicesFac.removeLfliefergruppe(iId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
+	public void removeLfliefergruppe(LfliefergruppeDto lfliefergruppeDto) throws Exception {
+		try {
+			lieferantServicesFac.removeLfliefergruppe(lfliefergruppeDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
-  public void removeLfliefergruppe(Integer iId)
-      throws Exception {
-    try {
-      lieferantServicesFac.removeLfliefergruppe(
-          iId,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
+	public void updateLfliefergruppe(LfliefergruppeDto lfliefergruppeDto) throws Exception {
+		try {
+			lieferantServicesFac.updateLfliefergruppe(lfliefergruppeDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
+	public LfliefergruppeDto lfliefergruppeFindByPrimaryKey(Integer iId)
+			throws Exception, RemoteException, EJBExceptionLP, Throwable {
 
-  public void removeLfliefergruppe(LfliefergruppeDto lfliefergruppeDto)
-      throws Exception {
-    try {
-      lieferantServicesFac.removeLfliefergruppe(lfliefergruppeDto,
-                                                LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
+		LfliefergruppeDto lfliefergruppeDto = null;
+		try {
+			lfliefergruppeDto = lieferantServicesFac.lfliefergruppeFindByPrimaryKey(iId,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return lfliefergruppeDto;
+	}
 
+	public Map getAllLiefergruppen() throws Exception, RemoteException, EJBExceptionLP, Throwable {
 
-  public void updateLfliefergruppe(LfliefergruppeDto lfliefergruppeDto)
-      throws Exception {
-    try {
-      lieferantServicesFac.updateLfliefergruppe(
-          lfliefergruppeDto,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
-
-
-  public LfliefergruppeDto lfliefergruppeFindByPrimaryKey(Integer iId)
-      throws Exception, RemoteException, EJBExceptionLP, Throwable {
-
-    LfliefergruppeDto lfliefergruppeDto = null;
-    try {
-      lfliefergruppeDto = lieferantServicesFac.lfliefergruppeFindByPrimaryKey(
-          iId,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-    return lfliefergruppeDto;
-  }
-
+		try {
+			return lieferantServicesFac.getAllLiefergruppen(LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
 //******************************************************************************
-   public Integer createLfliefergruppespr(LfliefergruppesprDto lfliefergruppesprDto)
-       throws Exception {
-     Integer iId = null;
-     try {
-       iId = lieferantServicesFac.createLfliefergruppespr(lfliefergruppesprDto,
-           LPMain.getInstance().getTheClient());
-     }
-     catch (Throwable ex) {
-       handleThrowable(ex);
-     }
-     return iId;
-   }
+	public Integer createLfliefergruppespr(LfliefergruppesprDto lfliefergruppesprDto) throws Exception {
+		Integer iId = null;
+		try {
+			iId = lieferantServicesFac.createLfliefergruppespr(lfliefergruppesprDto,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return iId;
+	}
 
+	public void removeLfliefergruppespr(LfliefergruppesprDto lfliefergruppesprDto) throws Exception {
+		try {
+			lieferantServicesFac.removeLfliefergruppespr(lfliefergruppesprDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
-  public void removeLfliefergruppespr(LfliefergruppesprDto lfliefergruppesprDto)
-      throws Exception {
-    try {
-      lieferantServicesFac.removeLfliefergruppespr(lfliefergruppesprDto,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
+	public void updateLfliefergruppespr(LfliefergruppesprDto lfliefergruppesprDto) throws Exception {
+		try {
+			lieferantServicesFac.updateLfliefergruppespr(lfliefergruppesprDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
+	public LfliefergruppesprDto lfliefergruppesprFindByPrimaryKey(Integer lfliefergruppeIId, String localeCNr,
+			TheClientDto theClientDto) throws Exception {
 
-  public void updateLfliefergruppespr(LfliefergruppesprDto lfliefergruppesprDto)
-      throws Exception {
-    try {
-      lieferantServicesFac.updateLfliefergruppespr(lfliefergruppesprDto,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
-
-
-  public LfliefergruppesprDto lfliefergruppesprFindByPrimaryKey(
-      Integer lfliefergruppeIId,
-      String localeCNr,
-      TheClientDto theClientDto)
-      throws Exception {
-
-    LfliefergruppesprDto lfliefergruppesprDto = null;
-    try {
-      lfliefergruppesprDto = lieferantServicesFac.lfliefergruppesprFindByPrimaryKey(
-          lfliefergruppeIId,
-          localeCNr, theClientDto);
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-    return lfliefergruppesprDto;
-  }
-
-
+		LfliefergruppesprDto lfliefergruppesprDto = null;
+		try {
+			lfliefergruppesprDto = lieferantServicesFac.lfliefergruppesprFindByPrimaryKey(lfliefergruppeIId, localeCNr,
+					theClientDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return lfliefergruppesprDto;
+	}
 
 }

@@ -40,14 +40,19 @@ import javax.swing.ImageIcon;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.TableColumnModelEvent;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LPDefaultTableCellRenderer;
 import com.lp.server.artikel.service.SperrenIcon;
+import com.lp.util.BigDecimal0;
+import com.lp.util.BigDecimal1;
+import com.lp.util.BigDecimal13;
 import com.lp.util.BigDecimal3;
 import com.lp.util.BigDecimal4;
+import com.lp.util.BigDecimal5;
 import com.lp.util.BigDecimal6;
 import com.lp.util.BigDecimalFinanz;
 
@@ -98,7 +103,7 @@ public class WrapperTable extends JTable {
 		setDefaults(internalFrame);
 	}
 
-	public WrapperTable(InternalFrame internalFrame, Vector<?> rowData,
+	public WrapperTable(InternalFrame internalFrame, Vector<? extends Vector<?>> rowData,
 			Vector<?> columnNames) {
 		super(rowData, columnNames);
 		setDefaults(internalFrame);
@@ -124,20 +129,33 @@ public class WrapperTable extends JTable {
 		}
 	}
 
+	 public void columnMoved(TableColumnModelEvent e) {
+		 super.columnMoved(e);
+	 }
+	
 	private void setDefaults(InternalFrame internalFrame) {
 		this.internalFrame = internalFrame;
 		// Hier kann die Zeilenhoehe der Table gesteuert werden --> wieder zurueck
 		// auf Standard
 		// this.setRowHeight(20); // hoehere Zeilen damit Icon Platz hat
 		setDefaultRenderer(String.class, new LPDefaultTableCellRenderer());
+		setDefaultRenderer(BigDecimal0.class,
+				HelperClient.getBigDecimal0Renderer());
+		setDefaultRenderer(BigDecimal1.class,
+				HelperClient.getBigDecimal1Renderer());
 		setDefaultRenderer(BigDecimal3.class,
 				HelperClient.getBigDecimal3Renderer());
 		setDefaultRenderer(BigDecimal4.class,
 				HelperClient.getBigDecimal4Renderer());
+		setDefaultRenderer(BigDecimal5.class,
+				HelperClient.getBigDecimal5Renderer());
 		setDefaultRenderer(BigDecimal6.class,
 				HelperClient.getBigDecimal6Renderer());
 		setDefaultRenderer(BigDecimal.class,
 				HelperClient.getBigDecimalRenderer());
+		setDefaultRenderer(BigDecimal13.class,
+				HelperClient.getBigDecimal13Renderer());
+
 		setDefaultRenderer(Double.class, HelperClient.getDoubleFloatRenderer());
 		setDefaultRenderer(Float.class, HelperClient.getDoubleFloatRenderer());
 		setDefaultRenderer(Byte.class, HelperClient.getNumberRenderer());

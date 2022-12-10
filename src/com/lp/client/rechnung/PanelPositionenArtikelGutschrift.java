@@ -91,8 +91,8 @@ public class PanelPositionenArtikelGutschrift extends
 	 */
 	public PanelPositionenArtikelGutschrift(InternalFrame internalFrame,
 			String add2TitleI, Object key, String sLockMeWer,
-			int iSpaltenbreite1I) throws Throwable {
-		super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I); // VKPF
+			int iSpaltenbreite1I, PanelBasis panelBasisFuerGetKeyWhenDetailPanel) throws Throwable {
+		super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I, panelBasisFuerGetKeyWhenDetailPanel); // VKPF
 		jbInitPanel();
 		initComponents();
 	}
@@ -106,14 +106,14 @@ public class PanelPositionenArtikelGutschrift extends
 	}
 
 	private void addWtfSerienchargennummer() {
-		this.add(wtfSerienchargennummer, new GridBagConstraints(1, 8, 3, 1,
+		this.add(wtfSerienchargennummer, new GridBagConstraints(1, 9, 3, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 	}
 
 	private void addWbuSerienchargennummer() {
 		add(wtfSerienchargennummer.getButtonSnrAuswahl(),
-				new GridBagConstraints(0, 8, 1, 1, 0.0, 0.0,
+				new GridBagConstraints(0, 9, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
 						new Insets(2, 2, 2, 2), 0, 0));
 	}

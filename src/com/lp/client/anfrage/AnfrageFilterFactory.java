@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.anfrage;
 
-import com.lp.client.angebot.AngebotFilterFactory;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
@@ -73,7 +72,6 @@ import com.lp.server.util.fastlanereader.service.query.QueryParameters;
  * 
  * @version $Revision: 1.9 $ Date $Date: 2012/08/23 11:09:58 $
  */
-@SuppressWarnings("static-access")
 public class AnfrageFilterFactory {
 	private static AnfrageFilterFactory filterFactory = null;
 
@@ -112,7 +110,7 @@ public class AnfrageFilterFactory {
 	 *            PK der Anfrage
 	 * @return FilterKriterium[]
 	 */
-	protected FilterKriterium[] createFKAnfrageiid(Integer iIdAnfrageI) {
+	public FilterKriterium[] createFKAnfrageiid(Integer iIdAnfrageI) {
 		FilterKriterium[] krit = null;
 
 		if (iIdAnfrageI != null) {
@@ -152,10 +150,10 @@ public class AnfrageFilterFactory {
 
 	public FilterKriteriumDirekt createFKDProjekt() throws Throwable {
 		return new FilterKriteriumDirekt("c_bez", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.projekt"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als '%XX'
-				true, // wrapWithSingleQuotes
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("label.projekt"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, // wrapWithSingleQuotes
 				true, // ignore case
 				Facade.MAX_UNBESCHRAENKT);
 	}
@@ -199,12 +197,12 @@ public class AnfrageFilterFactory {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
 
 		FilterKriterium krit1 = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
+				+ LPMain.getTheClient().getMandant() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
 		FilterKriterium krit2 = new FilterKriterium("locale_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getLocUiAsString() + "'",
+				+ LPMain.getTheClient().getLocUiAsString() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
@@ -215,8 +213,8 @@ public class AnfrageFilterFactory {
 
 	public FilterKriteriumDirekt createFKDAnfragenummer() throws Throwable {
 		return new FilterKriteriumDirekt("c_nr", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("anf.anfragenummershort"),
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("anf.anfragenummershort"),
 				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
 				true, // wrapWithSingleQuotes
 				false, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -229,15 +227,15 @@ public class AnfrageFilterFactory {
 				.getParametermandant(
 						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
 						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getInstance().getTheClient().getMandant());
+						LPMain.getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
 			FilterKriteriumDirekt fkDirekt1 = new FilterKriteriumDirekt(
 					AnfrageFac.FLR_ANFRAGE_FLRLIEFERANT + "."
 							+ LieferantFac.FLR_PARTNER + "."
 							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
-					"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.lieferant"),
-					FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als
+					"", FilterKriterium.OPERATOR_LIKE, 
+					LPMain.getTextRespectUISPr("lp.lieferant"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH, // Auswertung als
 					// 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -247,9 +245,9 @@ public class AnfrageFilterFactory {
 					AnfrageFac.FLR_ANFRAGE_FLRLIEFERANT + "."
 							+ LieferantFac.FLR_PARTNER + "."
 							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
-					"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.lieferant"),
-					FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als
+					"", FilterKriterium.OPERATOR_LIKE, 
+					LPMain.getTextRespectUISPr("lp.lieferant"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING, // Auswertung als
 					// 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -273,9 +271,9 @@ public class AnfrageFilterFactory {
 		FilterKriterium f1 = new FilterKriterium("c_nr", true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[0] = new QueryType(LPMain.getTextRespectUISPr(
 				"anf.anfragenummer"), f1,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
 		FilterKriterium f2 = new FilterKriterium(
 				AnfrageFac.FLR_ANFRAGE_FLRLIEFERANT + "."
@@ -283,25 +281,25 @@ public class AnfrageFilterFactory {
 						+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
 				true, "", FilterKriterium.OPERATOR_LIKE, false);
 
-		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[1] = new QueryType(LPMain.getTextRespectUISPr(
 				"lp.lieferant"), f2,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
 		FilterKriterium f3 = new FilterKriterium(
 				AnfrageFac.FLR_ANFRAGE_T_BELEGDATUM, true, "",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
-		types[2] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[2] = new QueryType(LPMain.getTextRespectUISPr(
 				"lp.belegdatum"), f3, new String[] {
 				FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_GTE,
-				FilterKriterium.OPERATOR_LTE }, true, false, false);
+				FilterKriterium.OPERATOR_LTE, FilterKriterium.OPERATOR_NOT_EQUAL }, true, false, false);
 
 		FilterKriterium f4 = new FilterKriterium("c_bez", true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[3] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[3] = new QueryType(LPMain.getTextRespectUISPr(
 				"label.projekt"), f4,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, false, false, true);
 
 		return types;
 	}
@@ -315,8 +313,8 @@ public class AnfrageFilterFactory {
 		PanelQueryFLR panelQueryFLRAnfrageerledigungsgrund = new PanelQueryFLR(
 				null, SystemFilterFactory.getInstance().createFKMandantCNr(),
 				QueryParameters.UC_ID_ANFRAGEERLEDIGUNGSGRUND,
-				aWhichButtonIUse, internalFrameI, LPMain.getInstance()
-						.getTextRespectUISPr("anf.erledigungsgrund"));
+				aWhichButtonIUse, internalFrameI, 
+				LPMain.getTextRespectUISPr("anf.erledigungsgrund"));
 
 		return panelQueryFLRAnfrageerledigungsgrund;
 	}
@@ -371,6 +369,8 @@ public class AnfrageFilterFactory {
 				LPMain.getTextRespectUISPr("title.anfrageauswahlliste"));
 		panelQueryFLRAnfrage.befuellePanelFilterkriterienDirekt(
 				createFKDAnfragenummer(), createFKDLieferantName());
+		panelQueryFLRAnfrage.addDirektFilter(createFKDTextSuchen());
+		
 		return panelQueryFLRAnfrage;
 	}
 
@@ -396,6 +396,8 @@ public class AnfrageFilterFactory {
 				LPMain.getTextRespectUISPr("title.anfrageauswahlliste"));
 		panelQueryFLRAnfrage.befuellePanelFilterkriterienDirekt(
 				createFKDAnfragenummer(), createFKDLieferantName());
+		panelQueryFLRAnfrage.addDirektFilter(createFKDTextSuchen());
+		
 		return panelQueryFLRAnfrage;
 	}
 
@@ -413,7 +415,7 @@ public class AnfrageFilterFactory {
 		PanelQueryFLR panelQueryFLR = new PanelQueryFLR(null,
 				SystemFilterFactory.getInstance().createFKMandantCNr(),
 				QueryParameters.UC_ID_ZERTIFIKATART, aWhichButtonIUse,
-				internalFrameI, LPMain.getInstance().getTextRespectUISPr(
+				internalFrameI, LPMain.getTextRespectUISPr(
 						"anf.zertifikatart"));
 		if (selectedId != null) {
 			panelQueryFLR.setSelectedId(selectedId);
@@ -448,5 +450,14 @@ public class AnfrageFilterFactory {
 		}
 
 		return panelQueryFLRAnfrage;
+	}
+	
+	public FilterKriteriumDirekt createFKDTextSuchen() throws Throwable {
+		
+		return new FilterKriteriumDirekt("c_suche", "", 
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("lp.textsuche"), 
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, true, Facade.MAX_UNBESCHRAENKT);
 	}
 }

@@ -40,11 +40,10 @@ import javax.swing.JComponent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.delegate.PartnerDelegate;
-import com.lp.client.frame.report.PanelReportAllgemeinIfJRDS;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
-import com.lp.client.pc.LPMain;
+import com.lp.client.frame.report.PanelReportLogoIfJRDS;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.KurzbriefDto;
 import com.lp.server.partner.service.PartnerDto;
@@ -53,7 +52,7 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access") 
+
 /**
  * <p> Diese Klasse kuemmert sich den Kurzbrief.</p>
  *
@@ -66,15 +65,12 @@ import com.lp.util.Helper;
  * @version not attributable Date $Date: 2012/05/16 09:09:42 $
  */
 public class ReportKurzbrief
-    extends PanelBasis implements PanelReportIfJRDS,PanelReportAllgemeinIfJRDS
+    extends PanelBasis implements PanelReportIfJRDS, PanelReportLogoIfJRDS, IDruckTypeReport
 {
-  /**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
-private KurzbriefDto kurzbriefDto = null;
-  private Integer iIdKunde = null;
-  private boolean bPrintLogo = false;
+	private KurzbriefDto kurzbriefDto = null;
+	private Integer iIdKunde = null;
+	private boolean bPrintLogo = false;
 
   public ReportKurzbrief(InternalFrame internalFrame,
                          KurzbriefDto kurzbriefDtoI,

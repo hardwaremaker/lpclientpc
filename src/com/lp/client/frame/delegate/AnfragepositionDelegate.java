@@ -32,11 +32,16 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import javax.swing.table.TableModel;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.anfrage.service.AnfrageFac;
 import com.lp.server.anfrage.service.AnfragepositionDto;
 import com.lp.server.anfrage.service.AnfragepositionFac;
 import com.lp.server.anfrage.service.AnfragepositionlieferdatenDto;
@@ -63,8 +68,7 @@ public class AnfragepositionDelegate extends Delegate {
 	public AnfragepositionDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			anfragepositionFac = (AnfragepositionFac) context
-					.lookup("lpserver/AnfragepositionFacBean/remote");
+			anfragepositionFac = lookupFac(context, AnfragepositionFac.class);	
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -79,6 +83,22 @@ public class AnfragepositionDelegate extends Delegate {
 	 * @return Integer PK der neuen Anfrageposition
 	 * @throws ExceptionLP
 	 */
+	public Integer createAnfrageposition(
+			AnfragepositionDto anfragepositionDtoI, boolean bMitErsatztypen)
+			throws ExceptionLP {
+		Integer iIdAnfrageposition = null;
+
+		try {
+			iIdAnfrageposition = anfragepositionFac
+					.createAnfrageposition(anfragepositionDtoI,
+							bMitErsatztypen, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return iIdAnfrageposition;
+	}
+
 	public Integer createAnfrageposition(AnfragepositionDto anfragepositionDtoI)
 			throws ExceptionLP {
 		Integer iIdAnfrageposition = null;
@@ -273,6 +293,42 @@ public class AnfragepositionDelegate extends Delegate {
 		}
 	}
 
+	
+	public void vertauscheAnfragepositionenMinus(Integer rowIndex,
+			TableModel tableModel) throws ExceptionLP {
+		try {
+			// int pageCount = 0 ;
+
+			Integer baseIId = (Integer) tableModel.getValueAt(rowIndex, 0);
+			List<Integer> iidList = new ArrayList<Integer>();
+
+			while (--rowIndex >= 0) {
+				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
+			}
+
+			anfragepositionFac.vertauscheAnfragepositionenMinus(baseIId, iidList, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void vertauscheAnfragepositionenPlus(Integer rowIndex,
+			TableModel tableModel) throws ExceptionLP {
+		try {
+			Integer baseIId = (Integer) tableModel.getValueAt(rowIndex, 0);
+			List<Integer> iidList = new ArrayList<Integer>();
+
+			int maxRowCount = tableModel.getRowCount();
+			while (++rowIndex < maxRowCount) {
+				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
+			}
+
+			anfragepositionFac.vertauscheAnfragepositionenPlus(baseIId, iidList, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
 	/**
 	 * Wenn eine neue Position im Hinblick auf iSort vor einer bestehenden
 	 * eingefuegt werden soll, dann schafft diese Methode Platz fuer den neuen
@@ -298,7 +354,15 @@ public class AnfragepositionDelegate extends Delegate {
 			handleThrowable(t);
 		}
 	}
-
+	public void sortiereNachArtikelnummer(Integer anfrageIId)
+			throws ExceptionLP {
+		try {
+			anfragepositionFac
+					.sortiereNachArtikelnummer(anfrageIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 	/**
 	 * Berechnet die Anzahl der mengenbehafteten Positionen zu einer bestimmten
 	 * Anfrage.
@@ -357,4 +421,20 @@ public class AnfragepositionDelegate extends Delegate {
 
 		return aAnfragepositionlieferdatenDto;
 	}
+	
+	public AnfragepositionlieferdatenDto anfragepositionlieferdatenFindByAnfragepositionIId(
+			Integer iIdAnfragepositionI) throws ExceptionLP {
+		AnfragepositionlieferdatenDto aAnfragepositionlieferdatenDto = null;
+
+		try {
+			aAnfragepositionlieferdatenDto = anfragepositionFac
+					.anfragepositionlieferdatenFindByAnfragepositionIId(
+							iIdAnfragepositionI);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return aAnfragepositionlieferdatenDto;
+	}
+	
 }

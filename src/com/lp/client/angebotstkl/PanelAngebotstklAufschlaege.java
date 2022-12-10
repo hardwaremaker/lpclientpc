@@ -37,9 +37,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.math.BigDecimal;
 import java.util.EventObject;
 import java.util.HashMap;
@@ -57,7 +54,6 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.pc.LPMain;
 import com.lp.server.angebotstkl.service.AgstklDto;
 import com.lp.server.angebotstkl.service.AufschlagDto;
 import com.lp.server.partner.service.KundeDto;
@@ -109,10 +105,9 @@ public class PanelAngebotstklAufschlaege extends PanelBasis {
 
 		super.eventYouAreSelected(false);
 
-		Object key = getInternalFrameAngebotstkl().getAgstklDto().getIId();
+		Integer key = getInternalFrameAngebotstkl().getAgstklDto().getIId();
 
-		if (key != null && !key.equals(LPMain.getLockMeForNew())) {
-
+		if (key != null) {
 			agstklDto = DelegateFactory
 					.getInstance()
 					.getAngebotstklDelegate()

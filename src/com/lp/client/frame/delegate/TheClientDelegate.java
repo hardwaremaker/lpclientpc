@@ -32,124 +32,140 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
-
 import java.sql.Timestamp;
+import java.util.List;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.pc.LPMain;
 import com.lp.client.util.ClientConfiguration;
 import com.lp.server.system.service.InstallerDto;
 import com.lp.server.system.service.TheClientDto;
 import com.lp.server.system.service.TheClientFac;
-import com.lp.util.EJBExceptionLP;
+import com.lp.server.system.service.VerfuegbareHostsDto;
 
+public class TheClientDelegate extends Delegate {
+	// zum performancetestzwecken
+	private int iWasteInMs = 0;
+	private Context context;
+	private TheClientFac theClientFac;
 
-public class TheClientDelegate
-    extends Delegate
-{
-  // zum performancetestzwecken
-  private int iWasteInMs = 0;
-  private Context context;
-  private TheClientFac theClientFac;
+	public TheClientDelegate() throws ExceptionLP {
+		try {
+			context = new InitialContext();
+			theClientFac = lookupFac(context, TheClientFac.class);			
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
 
-  public TheClientDelegate()
-      throws ExceptionLP {
-    try {
-        context = new InitialContext();
-     theClientFac = (TheClientFac) context.lookup("lpserver/TheClientFacBean/remote");
-    }
-    catch (Throwable t) {
-      throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
-    }
-  }
+	}
 
+	public void createTheClient(TheClientDto theClientDto) throws Exception {
+		theClientFac.createTheClient(theClientDto);
+	}
 
-  public void createTheClient(TheClientDto theClientDto)
-      throws Exception {
-    theClientFac.createTheClient(theClientDto);
-  }
+	public void updateTheClient(TheClientDto theClientDto) throws Exception {
+		theClientFac.updateTheClient(theClientDto);
+	}
 
+	// public void removeTheClient(TheClientDto theClientDto)
+	// throws Exception {
+	// theClientFac.removeTheClient(theClientDto);
+	// }
+	//
 
-  public void updateTheClient(TheClientDto theClientDto)
-      throws Exception {
-    theClientFac.updateTheClient(theClientDto);
-  }
+	public void removeTheClientTVonTBis(Timestamp tVon, Timestamp tBis)
+			throws Exception {
+		try {
+			theClientFac.removeTheClientTVonTBis(tVon, tBis);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
 
+	}
 
-//  public void removeTheClient(TheClientDto theClientDto)
-//      throws Exception {
-//    theClientFac.removeTheClient(theClientDto);
-//  }
-//
+	public InstallerDto getInstaller() throws ExceptionLP {
+		try {
+			return theClientFac.getInstaller();
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  public void removeTheClientTVonTBis(Timestamp tVon, Timestamp tBis)
-      throws Exception {
-    try {
-      theClientFac.removeTheClientTVonTBis(tVon, tBis);
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
+	public InstallerDto getInstallerWithoutClientFile() throws ExceptionLP {
+		try {
+			return theClientFac.getInstallerWithoutClientFile();
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  }
-  public InstallerDto getInstaller() throws ExceptionLP{
-    try {
-      return theClientFac.getInstaller();
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+	public InstallerDto getInstallerPart(Integer iPart) throws ExceptionLP {
+		try {
+			return theClientFac.getInstallerPart(iPart);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
+	public boolean istNeuerClientVerfuegbar() throws ExceptionLP {
+		try {
+			boolean hasNewClient = theClientFac.istNeuerClientVerfuegbar(ClientConfiguration
+					.getBuildNumber());
+			return hasNewClient;
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return false;
+		}
+	}
 
-  public InstallerDto getInstallerWithoutClientFile() throws ExceptionLP{
-    try {
-      return theClientFac.getInstallerWithoutClientFile();
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+	public void setRmiPort(Integer rmiPort) throws ExceptionLP {
+		try {
+			theClientFac.setRmiPort(LPMain.getTheClient(), rmiPort);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
-  public InstallerDto getInstallerPart(Integer iPart) throws ExceptionLP{
-	  try {
-		  return theClientFac.getInstallerPart(iPart);
-	  }
-	  catch (Throwable ex) {
-		  handleThrowable(ex);
-		  return null;
-	  }
-  }
+	public Integer getRmiPort() throws ExceptionLP {
+		try {
+			return theClientFac.getRmiPort(LPMain.getTheClient());
+		} catch(Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public TheClientDto theClientFindByPrimaryKey(String cNr)
+			throws ExceptionLP {
 
+		TheClientDto theClientDto = null;
+		long lBegin = System.currentTimeMillis();
+		try {
+			theClientDto = theClientFac.theClientFindByPrimaryKey(cNr);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+		iWasteInMs += (System.currentTimeMillis() - lBegin);
+		return theClientDto;
+	}
 
+	public List<VerfuegbareHostsDto> getVerfuegbareHosts(String benutzerCNr,
+			String mandantCNr) throws ExceptionLP {
+		try {
+			return theClientFac.getVerfuegbareHosts(benutzerCNr, mandantCNr,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
 
-  public boolean istNeuerClientVerfuegbar() throws ExceptionLP{
-    try {
-      return theClientFac.istNeuerClientVerfuegbar(ClientConfiguration.getBuildNumber());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return false;
-    }
-  }
-  public TheClientDto theClientFindByPrimaryKey(String cNr)
-      throws ExceptionLP {
-
-    TheClientDto theClientDto = null;
-    long lBegin = System.currentTimeMillis();
-    try {
-      theClientDto = theClientFac.theClientFindByPrimaryKey(cNr);
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-    iWasteInMs += (System.currentTimeMillis() - lBegin);
-    return theClientDto;
-  }
+		}
+	}
 
 }

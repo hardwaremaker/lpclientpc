@@ -91,8 +91,8 @@ public class ReportWochenjournal extends ReportZeiterfassung implements
 		jasperPrint = DelegateFactory
 				.getInstance()
 				.getZeiterfassungDelegate()
-				.printWochenjournal(getPersonalIId(), wdfVon.getTimestamp(),
-						wdfBis.getTimestamp(), getPersonAuswahl(),
+				.printWochenjournal(getPersonalIId(), wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), getPersonAuswahl(),getKostenstelleIIdAbteilung(),
 						mitVersteckten(),nurAnwesende());
 
 		return jasperPrint;

@@ -32,13 +32,18 @@
  ******************************************************************************/
 package com.lp.client.pc;
 
-import java.util.List;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+
+import com.lp.client.frame.ExceptionLP;
 
 public interface IErrorAction {
 	/**
 	 * 
 	 * @param getAlInfoForTheClient
-	 * @return null wenn die Nachricht verarbeitet werden kann, ansonsten die Fehlermeldung
+	 * @return null wenn die Nachricht nicht verarbeitet werden kann, ansonsten die Fehlermeldung
 	 */
-	String getMsg(List<?> getAlInfoForTheClient) ;
+	String getMsg(ExceptionLP exception) ;
+	
+	boolean shouldBeShown(JDialog dialog, JPanel panel, ExceptionLP exception) ;
 }

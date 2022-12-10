@@ -38,12 +38,16 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.JPanel;
-import javax.swing.border.Border;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -52,22 +56,34 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperIBANField;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.delegate.FinanzDelegate;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.finanz.service.BankverbindungDto;
 import com.lp.server.finanz.service.FinanzFac;
+import com.lp.server.finanz.service.Iso20022BankverbindungDto;
+import com.lp.server.finanz.service.Iso20022LastschriftDto;
+import com.lp.server.finanz.service.Iso20022PaymentsDto;
+import com.lp.server.finanz.service.Iso20022StandardEnum;
+import com.lp.server.finanz.service.Iso20022ZahlungauftragDto;
 import com.lp.server.finanz.service.KontoDtoSmall;
 import com.lp.server.partner.service.BankDto;
+import com.lp.server.system.service.MandantFac;
+import com.lp.server.util.BankverbindungId;
 import com.lp.server.util.Facade;
+import com.lp.server.util.KontoId;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.EJBExceptionLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access") 
 /**
@@ -96,10 +112,8 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
   private static final String ACTION_SPECIAL_KONTO =
       "action_special_konto";
 
-  private Border border1;
   private JPanel jPanelWorkingOn = new JPanel();
   private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  private Border border2;
   private WrapperTextField wtfKontoNummer = new WrapperTextField();
   private WrapperLabel wlaBankkontoNummer = new WrapperLabel();
   private WrapperTextField wtfBankkontoNummer = new WrapperTextField();
@@ -121,7 +135,27 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
   private WrapperLabel wlaBic=new WrapperLabel();
   private WrapperTextField wtfBic=new WrapperTextField();
   private WrapperCheckBox wcbInLiquiditaetsvorschau;
+  private WrapperLabel wlaSepaVerzeichnis = new WrapperLabel();
+  private WrapperTextField wtfSepaVerzeichnis = new WrapperTextField(
+		  FinanzFac.MAX_BANKVERBINDUNG_SEPAVERZEICHNIS);
+  private WrapperCheckBox wcbFuerSepaLastschrift;
+  private WrapperCheckBox wcbAlsGeldtransitkonto;
 
+  private WrapperLabel wlaIso20022Standard;
+  private WrapperComboBox wcoIso20022Standard;
+  private WrapperLabel wlaIso20022Zahlungsauftrag;
+  private WrapperComboBox wcoIso20022Zahlungsauftrag;
+  private WrapperLabel wlaIso20022Lastschrift;
+  private WrapperComboBox wcoIso20022Lastschrift;
+  private Map<Iso20022StandardEnum, Iso20022PaymentsDto> isoPaymentsMap;
+  private Iso20022BankverbindungDto iso20022BankverbindungDto;
+  private String waehrungKonto;
+  private WrapperLabel wlaKontowaehrung;
+  private WrapperTextField wtfKontowaehrung;
+
+  private WrapperLabel wlaStellenKontoauszug = new WrapperLabel();
+  private WrapperNumberField wnfStellenKontoauszug = new WrapperNumberField();
+  
   public PanelFinanzBankverbindungKopfdaten(InternalFrame internalFrame,
                                             String add2TitleI, Object key,
                                             TabbedPaneBankverbindung
@@ -146,39 +180,72 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
     jPanelWorkingOn.setLayout(gridBagLayout1);
     
     wcbInLiquiditaetsvorschau = new WrapperCheckBox(LPMain.getTextRespectUISPr("fb.inliquiditaetsvorschau"));
+    
+    wlaStellenKontoauszug.setText(LPMain.getTextRespectUISPr("fb.stellen.kontoauszugsnummer"));
+    wnfStellenKontoauszug.setFractionDigits(0);
+    
     wtfKontoNummer.setMandatoryField(true);
     wtfKontoNummer.setActivatable(false);
-    wlaBankkontoNummer.setText(LPMain.getInstance().getTextRespectUISPr("lp.kontonr"));
-    wtfBankkontoNummer.setMandatoryField(true);
+    wlaBankkontoNummer.setText(LPMain.getTextRespectUISPr("lp.kontonr"));
     wtfBankkontoNummer.setColumnsMax(FinanzFac.MAX_BANKVERBINDUNG_BANKKONTONUMMER);
     wtfBankkontoNummer.setActivatable(true);
     wtfBankBezeichnung1.setMandatoryField(true);
     wtfBankBezeichnung1.setActivatable(false);
-    wlaBic.setText(LPMain.getInstance().getTextRespectUISPr("lp.bic"));
+    wlaBic.setText(LPMain.getTextRespectUISPr("lp.bic"));
     wtfBic.setActivatable(false);
-    wlaBlz.setText(LPMain.getInstance().getTextRespectUISPr("lp.blz"));
+    wlaBlz.setText(LPMain.getTextRespectUISPr("lp.blz"));
     wtfBlz.setActivatable(false);
     wtfBankBezeichnung2.setActivatable(false);
-    wlaIban.setText(LPMain.getInstance().getTextRespectUISPr("lp.iban"));
+    wlaIban.setText(LPMain.getTextRespectUISPr("lp.iban"));
     
     wtfIban = new WrapperIBANField();
-    
     wtfIban.setActivatable(true);
-    wbuBank.setText(LPMain.getInstance().getTextRespectUISPr("button.bank"));
-    wbuBank.setToolTipText(LPMain.getInstance().getTextRespectUISPr("button.bank.tooltip"));
+    wbuBank.setText(LPMain.getTextRespectUISPr("button.bank"));
+    wbuBank.setToolTipText(LPMain.getTextRespectUISPr("button.bank.tooltip"));
     wbuBank.addActionListener(this);
     wbuBank.setActionCommand(ACTION_SPECIAL_BANK);
-    wbuKonto.setText(LPMain.getInstance().getTextRespectUISPr("button.sachkonto"));
-    wbuKonto.setToolTipText(LPMain.getInstance().getTextRespectUISPr("button.sachkonto.tooltip"));
+    wbuKonto.setText(LPMain.getTextRespectUISPr("button.sachkonto"));
+    wbuKonto.setToolTipText(LPMain.getTextRespectUISPr("button.sachkonto.tooltip"));
     wbuKonto.addActionListener(this);
     wbuKonto.setActionCommand(ACTION_SPECIAL_KONTO);
     wtfKontoBezeichnung.setActivatable(false);
     wtfKontoBezeichnung.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
     wlaAbstand.setText("  ");
     wlaBezeichnung.setRequestFocusEnabled(true);
-    wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
+    wlaBezeichnung.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
     wtfBezeichnung.setColumnsMax(FinanzFac.MAX_BANKVERBINDUNG_BEZEICHNUNG);
     wtfBezeichnung.setActivatable(true);
+    wlaSepaVerzeichnis.setText(LPMain.getTextRespectUISPr("fb.sepa.sepaverzeichnis"));
+    wtfSepaVerzeichnis.setActivatable(true);
+    wcbFuerSepaLastschrift = new WrapperCheckBox(LPMain.getTextRespectUISPr("fb.fuersepalastschrift"));
+    wcbAlsGeldtransitkonto = new WrapperCheckBox(LPMain.getTextRespectUISPr("fb.alsgeldtransitkonto"));
+    
+    wlaIso20022Standard = new WrapperLabel();
+    wlaIso20022Standard.setText(LPMain.getTextRespectUISPr("fb.iso20022.standard"));
+    wcoIso20022Standard = new WrapperComboBox();
+    wcoIso20022Standard.setMandatoryFieldDB(false);
+	Map<Iso20022StandardEnum, String> hmStandards = new HashMap<Iso20022StandardEnum, String>();
+	for (Iso20022PaymentsDto paymentsDto : getIsoPaymentsMap().values()) {
+		hmStandards.put(paymentsDto.getStandardDto().getStandardEnum(), paymentsDto.getStandardDto().getCBez());
+	}
+	wcoIso20022Standard.setMap(hmStandards);
+	wcoIso20022Standard.addActionListener(this);
+    
+    wlaIso20022Zahlungsauftrag = new WrapperLabel();
+    wlaIso20022Zahlungsauftrag.setText(LPMain.getTextRespectUISPr("fb.iso20022.zahlungsauftrag"));
+    wcoIso20022Zahlungsauftrag = new WrapperComboBox();
+    wcoIso20022Zahlungsauftrag.setMandatoryFieldDB(false);
+    
+    wlaIso20022Lastschrift = new WrapperLabel();
+    wlaIso20022Lastschrift.setText(LPMain.getTextRespectUISPr("fb.iso20022.lastschrift"));
+    wcoIso20022Lastschrift = new WrapperComboBox();
+    wcoIso20022Lastschrift.setMandatoryFieldDB(false);
+    
+    wlaKontowaehrung = new WrapperLabel();
+    wlaKontowaehrung.setText(LPMain.getTextRespectUISPr("fb.bv.kontowaehrung"));
+    wtfKontowaehrung = new WrapperTextField();
+    wtfKontowaehrung.setActivatable(false);
+    
     this.setLayout(gridBagLayout2);
     wlaButtonBreiteLinks.setMinimumSize(new Dimension(100, 23));
     wlaButtonBreiteLinks.setPreferredSize(new Dimension(100, 23));
@@ -193,116 +260,42 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
     this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.BOTH,
         new Insets(0, 0, 0, 0), 0, 0));
-    jPanelWorkingOn.add(wbuBank,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wtfBankBezeichnung1,
-                        new GridBagConstraints(1, iZeile, 4, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wtfBankBezeichnung2,
-                        new GridBagConstraints(1, iZeile, 4, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wlaBlz,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wtfBlz,
-                        new GridBagConstraints(1, iZeile, 4, 1, 1.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-      iZeile++;
-    jPanelWorkingOn.add(wlaBic,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wtfBic,
-                        new GridBagConstraints(1, iZeile, 4, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wlaBankkontoNummer,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wtfBankkontoNummer,
-                        new GridBagConstraints(1, iZeile, 4, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wlaAbstand,
-                        new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.NONE,
-                                               new Insets(0, 0, 0, 0), 0, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wlaIban,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wtfIban,
-                        new GridBagConstraints(1, iZeile, 4, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wlaBezeichnung,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wtfBezeichnung,
-                        new GridBagConstraints(1, iZeile, 4, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wbuKonto,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jPanelWorkingOn.add(wtfKontoNummer,
-                        new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 80, 0));
-    jPanelWorkingOn.add(wtfKontoBezeichnung,
-                        new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 500, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wcbInLiquiditaetsvorschau,
-                        new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jPanelWorkingOn.add(wlaButtonBreiteLinks,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.NONE,
-                                               new Insets(0, 0, 0, 0), 0, 0));
-    jPanelWorkingOn.add(wlaButtonBreiteRechts,
-                        new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
-                                               GridBagConstraints.CENTER,
-                                               GridBagConstraints.NONE,
-                                               new Insets(0, 0, 0, 0), 0, 0));
-    iZeile++;
+    
+    HvLayout layoutWorkingOn = HvLayoutFactory.create(jPanelWorkingOn,
+    		"wrap 4", "[20%,fill|10%,fill|20%,fill|fill,grow]", "");
+    layoutWorkingOn.add(wbuBank).add(wtfBankBezeichnung1).span(3)
+    	.add(wtfBankBezeichnung2).skipAndSpan(1, 3)
+    	.add(wlaBlz).add(wtfBlz).span(3)
+    	.add(wlaBic).add(wtfBic).span(3)
+    	.add(wlaBankkontoNummer).add(wtfBankkontoNummer).add(wlaAbstand).span(2)
+    	.add(wlaIban).add(wtfIban).span(3)
+    	.add(wlaBezeichnung).add(wtfBezeichnung).span(3)
+    	.add(wbuKonto).add(wtfKontoNummer).add(wtfKontoBezeichnung).span(2)
+    	.add(wlaKontowaehrung).add(wtfKontowaehrung).wrap()
+    	.add(wcbInLiquiditaetsvorschau, "skip 1, span 2, wrap")
+    	.add(wlaStellenKontoauszug).add(wnfStellenKontoauszug).wrap();
+    
+    if (!hasZusatzfunktionSepa() && !hasZusatzfunktionSepaLastschrift()) {
+    	return;
+    }
+    
+    JPanel panelIso20022 = new JPanel();
+    panelIso20022.setBorder(BorderFactory.createTitledBorder("Iso20022 Zahlungen"));
+    HvLayout layoutIso20022 = HvLayoutFactory.create(panelIso20022, 
+    		"wrap 3, ins 0 0 0 0", "[20%,fill|30%,fill|fill,grow]", "[|||]");
+    layoutIso20022
+    	.add(wlaIso20022Standard).add(wcoIso20022Standard).wrap()
+    	.add(wlaSepaVerzeichnis).add(wtfSepaVerzeichnis).span(2);
+    layoutWorkingOn.add(panelIso20022, "span 4, gaptop 20");
+    	
+    if (hasZusatzfunktionZahlungsvorschlag()) {
+    	layoutIso20022.add(wlaIso20022Zahlungsauftrag).add(wcoIso20022Zahlungsauftrag).wrap();
+    }
+    
+    if (hasZusatzfunktionSepaLastschrift()) {
+    	layoutIso20022.add(wlaIso20022Lastschrift).add(wcoIso20022Lastschrift).wrap();
+    }
+
   }
 
   /**
@@ -318,16 +311,64 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
       wtfIban.setIban(bankverbindungDto.getCIban());
       wtfBezeichnung.setText(bankverbindungDto.getCBez());
       wcbInLiquiditaetsvorschau.setSelected(bankverbindungDto.isbInLiquiditaetsVorschau());
+      wnfStellenKontoauszug.setInteger(bankverbindungDto.getIStellenAuszugsnummer());
+      wtfSepaVerzeichnis.setText(bankverbindungDto.getCSepaVerzeichnis());
+      wcbFuerSepaLastschrift.setSelected(bankverbindungDto.isbFuerSepaLastschrift());
+      wcbAlsGeldtransitkonto.setSelected(bankverbindungDto.isbAlsGeldtransitkonto());
       setStatusbarModification(bankverbindungDto) ;
 
       // Konto und Bank holen
-      kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(
+      kontoDto = finanzDelegate().kontoFindByPrimaryKeySmall(
           bankverbindungDto.getKontoIId());
+      waehrungKonto = finanzDelegate().getWaehrungOfKonto(new KontoId(bankverbindungDto.getKontoIId()));
       bankDto = DelegateFactory.getInstance().getPartnerbankDelegate().bankFindByPrimaryKey(
           bankverbindungDto.getBankIId());
+      
+      dto2ComponentsIso20022();
     }
     dto2ComponentsKonto();
     dto2ComponentsBank();
+  }
+  
+  private void dto2ComponentsIso20022() throws ExceptionLP {
+	  if (!hasZusatzfunktionSepa()) {
+		  return;
+	  }
+	  
+      BankverbindungId bankverbindungId = new BankverbindungId(getTabbedPaneBankverbindung().getBankverbindungDto().getIId());
+      iso20022BankverbindungDto = finanzDelegate().iso20022BankverbindungFindByBankverbindungIId(bankverbindungId);
+      if (iso20022BankverbindungDto != null) {
+    	  wcoIso20022Standard.setKeyOfSelectedItem(iso20022BankverbindungDto.getStandardEnum());
+      } else {
+    	  iso20022BankverbindungDto = new Iso20022BankverbindungDto();
+    	  iso20022BankverbindungDto.setBankverbindungIId(bankverbindungId.id());
+    	  wcoIso20022Standard.setKeyOfSelectedItem(null);
+    	  return;
+      }
+      
+      reloadIso20022Combos();
+      wcoIso20022Zahlungsauftrag.setKeyOfSelectedItem(iso20022BankverbindungDto.getZahlungsauftragSchemaIId());
+      wcoIso20022Lastschrift.setKeyOfSelectedItem(iso20022BankverbindungDto.getLastschriftSchemaIId());
+  }
+  
+  private void reloadIso20022Combos() throws ExceptionLP {
+	  if (wcoIso20022Standard.isSelectedItemEmpty()) {
+		  return;
+	  }
+	  
+      Iso20022PaymentsDto paymentsDto = getIsoPaymentsMap().get(wcoIso20022Standard.getKeyOfSelectedItem());
+      Map<Integer, String> hmZahlungsauftrag = new HashMap<Integer, String>();
+      for (Iso20022ZahlungauftragDto zaDto : paymentsDto.getZahlungsauftragDtos()) {
+    	  hmZahlungsauftrag.put(zaDto.getIId(), zaDto.getSchemaDto().getCBez());
+	  }
+      wcoIso20022Zahlungsauftrag.setMap(hmZahlungsauftrag);
+
+      Map<Integer, String> hmLastschrift = new HashMap<Integer, String>();
+      for (Iso20022LastschriftDto laDto : paymentsDto.getLastschriftDtos()) {
+    	  hmLastschrift.put(laDto.getIId(), laDto.getSchemaDto().getCBez());
+	  }
+   	  wcoIso20022Lastschrift.setActivatable(!paymentsDto.getLastschriftDtos().isEmpty());
+      wcoIso20022Lastschrift.setMap(hmLastschrift);
   }
 
   private void components2Dto()
@@ -350,9 +391,35 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
     bankverbindungDto.setCIban(wtfIban.getIban());
     bankverbindungDto.setCKontonummer(wtfBankkontoNummer.getText());
     bankverbindungDto.setbInLiquiditaetsVorschau(wcbInLiquiditaetsvorschau.isSelected());
+    bankverbindungDto.setCSepaVerzeichnis(wcoIso20022Standard.isSelectedItemEmpty()
+    		? null : wtfSepaVerzeichnis.getText());
+    bankverbindungDto.setbFuerSepaLastschrift(!wcoIso20022Lastschrift.isSelectedItemEmpty());
+    bankverbindungDto.setbAlsGeldtransitkonto(wcbAlsGeldtransitkonto.isSelected());
+    
+    bankverbindungDto.setIStellenAuszugsnummer(wnfStellenKontoauszug.getInteger());
+    
     getTabbedPaneBankverbindung().setBankverbindungDto(bankverbindungDto);
   }
 
+  private void components2DtoIso20022() {
+	  if (!hasZusatzfunktionSepa()) {
+		  return;
+	  }
+	  
+	  if (iso20022BankverbindungDto == null) {
+		  iso20022BankverbindungDto = new Iso20022BankverbindungDto();
+	  }
+	  iso20022BankverbindungDto.setBankverbindungIId(getTabbedPaneBankverbindung().getBankverbindungDto().getIId());
+	  if (wcoIso20022Standard.isSelectedItemEmpty()) {
+		  iso20022BankverbindungDto.setZahlungsauftragSchemaIId(null);
+		  iso20022BankverbindungDto.setLastschriftSchemaIId(null);
+		  return;
+	  }
+	  
+	  iso20022BankverbindungDto.setZahlungsauftragSchemaIId((Integer)wcoIso20022Zahlungsauftrag.getKeyOfSelectedItem());
+	  iso20022BankverbindungDto.setLastschriftSchemaIId(
+			  wcoIso20022Lastschrift.isSelectedItemEmpty() ? null : (Integer)wcoIso20022Lastschrift.getKeyOfSelectedItem());
+  }
 
   /**
    * Loesche das Konto.
@@ -368,7 +435,7 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
     BankverbindungDto bankverbindungDto = getTabbedPaneBankverbindung().
         getBankverbindungDto();
     if (bankverbindungDto != null) {
-      DelegateFactory.getInstance().getFinanzDelegate().removeBankverbindung(bankverbindungDto);
+      finanzDelegate().removeBankverbindung(bankverbindungDto);
       super.eventActionDelete(e, true, true);
     }
   }
@@ -384,22 +451,71 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
       throws Throwable {
     if (allMandatoryFieldsSetDlg()) {
       components2Dto();
-      BankverbindungDto bankverbindungDto = DelegateFactory.getInstance().
-          getFinanzDelegate().updateBankverbindung(getTabbedPaneBankverbindung().
+      if (!pruefeIban()) {
+    	  return;
+      }
+      BankverbindungDto bankverbindungDto = finanzDelegate().updateBankverbindung(getTabbedPaneBankverbindung().
           getBankverbindungDto());
       this.setKeyWhenDetailPanel(bankverbindungDto.getIId());
       getTabbedPaneBankverbindung().setBankverbindungDto(bankverbindungDto);
+      
+	  if (hasZusatzfunktionSepa()) {
+	      components2DtoIso20022();
+	      boolean isSelected = iso20022BankverbindungDto.hasLastschriftSchema() || iso20022BankverbindungDto.hasZahlungsauftragSchema();
+	      if (iso20022BankverbindungDto.getIId() == null && isSelected) {
+	    	  finanzDelegate().createIso20022Bankverbindung(iso20022BankverbindungDto);
+	      } else if (iso20022BankverbindungDto.getIId() != null && isSelected) {
+	    	  finanzDelegate().updateIso20022Bankverbindung(iso20022BankverbindungDto);
+	      } else if (iso20022BankverbindungDto.getIId() != null && !isSelected) {
+	    	  finanzDelegate().removeIso20022Bankverbindung(iso20022BankverbindungDto.getIId());
+	      }
+	  }
+      
       super.eventActionSave(e, true);
       eventYouAreSelected(false);
     }
   }
 
-  protected void eventActionSpecial(ActionEvent e) throws Throwable {
+  private boolean pruefeIban() {
+      if (!wtfIban.pruefeIBAN()) {
+    	  return false;
+      }
+
+      if (!hasZusatzfunktionSepa() && !hasZusatzfunktionSepaLastschrift()) {
+    	  return true;
+      }
+      
+      if (!wcbFuerSepaLastschrift.isSelected() 
+			  && Helper.isStringEmpty(wtfSepaVerzeichnis.getText())) {
+		  // wenn nicht fuer Sepa genutzt, dann egal
+		  return true;
+	  }
+	  
+	  if (!Helper.isStringEmpty(wtfIban.getIban())) {
+		  return true;
+	  }
+	  
+	  DialogFactory.showModalDialog(
+			  LPMain.getTextRespectUISPr("lp.error"),
+			  LPMain.getTextRespectUISPr("finanz.bankverbindung.error.fuersepa.keineiban"));
+	  return false;
+  }
+
+protected void eventActionSpecial(ActionEvent e) throws Throwable {
     if (e.getActionCommand().equals(ACTION_SPECIAL_KONTO)) {
       dialogQueryKonto(e);
     }
     if (e.getActionCommand().equals(ACTION_SPECIAL_BANK)) {
       dialogQueryBank(e);
+    }
+    
+    if (e.getSource() == wcoIso20022Standard) {
+    	if (wcoIso20022Standard.isSelectedItemEmpty()) {
+    		enableIso20022Nachrichten(false);
+    	} else {
+    		enableIso20022Nachrichten(true);
+    	}
+    	reloadIso20022Combos();
     }
   }
 
@@ -408,8 +524,10 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
     if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
       if (e.getSource() == panelQueryFLRKonto) {
         Object key = ( (ISourceEvent) e.getSource()).getIdSelected();
-        kontoDto = DelegateFactory.getInstance().getFinanzDelegate().
+        kontoDto = finanzDelegate().
             kontoFindByPrimaryKeySmall( (Integer) key);
+        waehrungKonto = finanzDelegate().getWaehrungOfKonto(new KontoId(kontoDto.getIId()));
+
         dto2ComponentsKonto();
       }
       else if (e.getSource() == panelQueryFLRBank) {
@@ -474,6 +592,7 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
     getTabbedPaneBankverbindung().setBankverbindungDto(null);
     kontoDto = null;
     bankDto = null;
+    waehrungKonto = null;
   }
 
   public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
@@ -484,8 +603,7 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
       if (bankverbindungDto != null) {
         Object key = bankverbindungDto.getIId();
         //muss: alter kunde; einlesen; wenn bereits geloescht: exception nach oben.
-        getTabbedPaneBankverbindung().setBankverbindungDto(DelegateFactory.getInstance().
-            getFinanzDelegate().bankverbindungFindByPrimaryKey( (Integer) key));
+        getTabbedPaneBankverbindung().setBankverbindungDto(finanzDelegate().bankverbindungFindByPrimaryKey( (Integer) key));
         dto2Components();
       }
     }
@@ -497,6 +615,7 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
     if (kontoDto != null) {
       this.wtfKontoNummer.setText(kontoDto.getCNr());
       this.wtfKontoBezeichnung.setText(kontoDto.getCBez());
+      wtfKontowaehrung.setText(waehrungKonto);
     }
   }
 
@@ -520,6 +639,7 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
         ACTION_DELETE,
         ACTION_DISCARD};
     enableToolsPanelButtons(aWhichButtonIUse);
+    
   }
 
   /**
@@ -557,4 +677,47 @@ private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
       throws Exception {
     return wbuBank;
   }
+  
+  private boolean hasZusatzfunktionSepa() {
+	  return LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SEPA);
+  }
+  
+  private boolean hasZusatzfunktionSepaLastschrift() {
+	  return LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SEPA_LASTSCHRIFT);
+  }
+  
+  private boolean hasZusatzfunktionZahlungsvorschlag() {
+	  return LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZAHLUNGSVORSCHLAG);
+  }
+  
+  private void loadMapIsoPayments() throws ExceptionLP {
+	  isoPaymentsMap = finanzDelegate().getMapOfIso20022Payments();
+  }
+
+  public Map<Iso20022StandardEnum, Iso20022PaymentsDto> getIsoPaymentsMap() throws ExceptionLP {
+	  if (isoPaymentsMap == null) {
+		  loadMapIsoPayments();
+	  }
+	  return isoPaymentsMap;
+  }
+  
+	private FinanzDelegate finanzDelegate() throws ExceptionLP {
+		return DelegateFactory.getInstance().getFinanzDelegate();
+	}
+	
+	private void enableIso20022Nachrichten(boolean enabled) {
+		wlaIso20022Zahlungsauftrag.setVisible(enabled);
+		wcoIso20022Zahlungsauftrag.setVisible(enabled);
+		wcoIso20022Zahlungsauftrag.setMandatoryField(enabled);
+		
+		wlaIso20022Lastschrift.setVisible(enabled);
+		wlaIso20022Lastschrift.setVisible(enabled);
+		wcoIso20022Lastschrift.setVisible(enabled);
+		
+		wlaSepaVerzeichnis.setVisible(enabled);
+		wtfSepaVerzeichnis.setVisible(enabled);
+	}
 }

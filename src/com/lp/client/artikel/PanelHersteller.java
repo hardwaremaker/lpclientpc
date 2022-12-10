@@ -65,7 +65,6 @@ import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.Facade;
-import com.lp.util.EJBExceptionLP;
 
 @SuppressWarnings("static-access")
 public class PanelHersteller extends PanelBasis {
@@ -84,6 +83,8 @@ public class PanelHersteller extends PanelBasis {
 	private WrapperLabel wlaHersteller = new WrapperLabel();
 	private WrapperTextField wtfHersteller = new WrapperTextField();
 	private WrapperTextField wtfPartner = new WrapperTextField();
+	private WrapperLabel wlaLeadIn = new WrapperLabel();
+	private WrapperTextField wtfLeadIn = new WrapperTextField() ;
 	private PanelQueryFLR panelQueryFLRPartner = null;
 	static final public String ACTION_SPECIAL_PARTNER_FROM_LISTE = "action_partner_from_liste";
 	private HerstellerDto herstellerDto = null;
@@ -110,13 +111,13 @@ public class PanelHersteller extends PanelBasis {
 
 	protected void components2Dto() throws Throwable {
 		herstellerDto.setCNr(wtfHersteller.getText());
-
+		herstellerDto.setCLeadIn(wtfLeadIn.getText());
 	}
 
 	protected void dto2Components() {
 		wtfHersteller.setText(herstellerDto.getCNr());
 		wtfPartner.setText(herstellerDto.getPartnerDto().formatAnrede());
-
+		wtfLeadIn.setText(herstellerDto.getCLeadIn()) ;
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -268,6 +269,10 @@ public class PanelHersteller extends PanelBasis {
 		wtfHersteller.setText("");
 		wtfHersteller.setMandatoryField(true);
 
+		wlaLeadIn.setText(LPMain.getTextRespectUISPr("lp.hersteller.leadin")) ;
+		wtfLeadIn.setText("") ;
+		wtfLeadIn.setColumnsMax(40);
+		
 		bHerstellerkopplung = LPMain
 				.getInstance()
 				.getDesktop()
@@ -343,6 +348,12 @@ public class PanelHersteller extends PanelBasis {
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfPartner, new GridBagConstraints(1, 1, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaLeadIn, new GridBagConstraints(0, 2, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfLeadIn, new GridBagConstraints(1, 2, 1, 1, 0.2,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,

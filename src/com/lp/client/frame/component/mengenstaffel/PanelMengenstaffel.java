@@ -43,22 +43,31 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.partner.InternalFrameKunde;
 import com.lp.client.partner.PanelKundesokomengenstaffel;
 import com.lp.client.pc.LPMain;
 
 @SuppressWarnings("static-access")
 /**
- * <p>In diesem Fenster wird eine Kundesokomengenstaffel erfasst.
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 07.07.2006</p>
- * <p> </p>
+ * <p>
+ * In diesem Fenster wird eine Kundesokomengenstaffel erfasst.
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 07.07.2006
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.7 $
  */
@@ -84,17 +93,13 @@ public abstract class PanelMengenstaffel extends PanelBasis {
 	protected PanelMengenstaffelArtgru panelArtgru = null;
 	protected boolean bMitKundenartikelnummer = false;
 
-	public PanelMengenstaffel(InternalFrame internalFrame, String add2TitleI,
-			Object key, boolean bMitKundenartikelnummer) throws Throwable {
+	public PanelMengenstaffel(InternalFrame internalFrame, String add2TitleI, Object key,
+			boolean bMitKundenartikelnummer) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 		this.bMitKundenartikelnummer = bMitKundenartikelnummer;
 		initPanel();
 		jbInit();
 		initComponents();
-	}
-
-	protected InternalFrameKunde getInternalFrameKunde() {
-		return (InternalFrameKunde) getInternalFrame();
 	}
 
 	void jbInit() throws Throwable {
@@ -105,49 +110,40 @@ public abstract class PanelMengenstaffel extends PanelBasis {
 		setBorder(BorderFactory.createEmptyBorder(3, 3, 10, 3));
 
 		// Zeile - die Toolbar
-		add(getToolsPanel(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(getToolsPanel(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// zusaetzliche buttons
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE,
-				PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DELETE,
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DELETE,
 				PanelBasis.ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		createPanelArt();
 		iZeile++;
-		add(jPanelArt, new GridBagConstraints(0, iZeile++, 1, 1, 1.0, 0.0,
-				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(jPanelArt, new GridBagConstraints(0, iZeile++, 1, 1, 1.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
 
 		if (this instanceof PanelKundesokomengenstaffel) {
-			panelArtikel = new PanelMengenstaffelArtikel(getInternalFrame(),
-					"Artikel", false);
+			panelArtikel = new PanelMengenstaffelArtikel(getInternalFrame(), "Artikel", false);
 		} else {
-			panelArtikel = new PanelMengenstaffelArtikel(getInternalFrame(),
-					"Artikel", true);
+			panelArtikel = new PanelMengenstaffelArtikel(getInternalFrame(), "Artikel", true);
 		}
 
-		add(panelArtikel, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(panelArtikel, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
-		panelArtgru = new PanelMengenstaffelArtgru(getInternalFrame(),
-				"Artikelgruppe");
+		panelArtgru = new PanelMengenstaffelArtgru(getInternalFrame(), "Artikelgruppe");
 
-		add(panelArtgru, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(panelArtgru, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Statusbar an den unteren Rand des Panels haengen
 		iZeile++;
-		add(getPanelStatusbar(), new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.SOUTH, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.SOUTH,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	public void createPanelArt() {
@@ -157,46 +153,35 @@ public abstract class PanelMengenstaffel extends PanelBasis {
 			jPanelArt.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
 		}
 
-		wlaArt = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"label.art"));
+		wlaArt = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.art"));
 		HelperClient.setDefaultsToComponent(wlaArt, 94);
 
-		wlaKundeartikelnummer = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("kunde.soko.kundeartikelnummer"));
+		wlaKundeartikelnummer = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("kunde.soko.kundeartikelnummer"));
 
 		wcoArt = new WrapperComboBox();
 		wcoArt.setMandatoryFieldDB(true);
 		wcoArt.setMap(artMap);
-		wcoArt.addActionListener(new PanelMengenstaffel_wcoArt_actionAdapter(
-				this));
+		wcoArt.addActionListener(new PanelMengenstaffel_wcoArt_actionAdapter(this));
 
-		jPanelArt.add(wlaArt, new GridBagConstraints(0, 0, 1, 1, 0, 0.0,
-				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelArt.add(wcoArt, new GridBagConstraints(1, 0, 1, 1, 1.0, 0.0,
-				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jPanelArt.add(wlaArt, new GridBagConstraints(0, 0, 1, 1, 0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelArt.add(wcoArt, new GridBagConstraints(1, 0, 1, 1, 1.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		if (bMitKundenartikelnummer) {
 
-			jPanelArt.add(wlaKundeartikelnummer,
-					new GridBagConstraints(2, 0, 1, 1, 1.0, 0.0,
-							GridBagConstraints.NORTH,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
-			jPanelArt.add(wtfKundeartikelnummer,
-					new GridBagConstraints(3, 0, 1, 1, 1.0, 0.0,
-							GridBagConstraints.NORTH,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
+			jPanelArt.add(wlaKundeartikelnummer, new GridBagConstraints(2, 0, 1, 1, 1.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			jPanelArt.add(wtfKundeartikelnummer, new GridBagConstraints(3, 0, 1, 1, 1.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		}
 	}
 
 	private void initPanel() throws Throwable {
 
 		ART_ARTIKEL = LPMain.getInstance().getTextRespectUISPr("lp.artikel");
-		ART_ARTIKELGRUPPE = LPMain.getInstance().getTextRespectUISPr(
-				"lp.artikelgruppe");
+		ART_ARTIKELGRUPPE = LPMain.getInstance().getTextRespectUISPr("lp.artikelgruppe");
 
 		artMap = new HashMap<String, String>();
 		artMap.put(ART_ARTIKEL, ART_ARTIKEL);
@@ -224,13 +209,25 @@ public abstract class PanelMengenstaffel extends PanelBasis {
 	/**
 	 * Auswahl der Art der SOKO ist erfolgt.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 */
 	void wcoArt_actionPerformed(ActionEvent e) {
 		Object currentArt = wcoArt.getKeyOfSelectedItem();
-		String waehrungCNr = getInternalFrameKunde().getTpKunde().getKundeDto()
-				.getCWaehrung();
+		String waehrungCNr = "";
+		Integer kundenpreislisteIId = null;
+		if (getInternalFrame() instanceof InternalFrameKunde) {
+			InternalFrameKunde ifk = (InternalFrameKunde) getInternalFrame();
+			waehrungCNr = ifk.getTpKunde().getKundeDto().getCWaehrung();
+			kundenpreislisteIId = ifk.getTpKunde().getKundeDto().getVkpfArtikelpreislisteIIdStdpreisliste();
+		} else {
+
+			try {
+				waehrungCNr = LPMain.getTheClient().getSMandantenwaehrung();
+				kundenpreislisteIId=DelegateFactory.getInstance().getMandantDelegate().mandantFindByPrimaryKey( LPMain.getTheClient().getMandant()).getVkpfArtikelpreislisteIId();
+			}catch (Throwable e1) {
+				handleException(e1, true);
+			}
+		}
 
 		if (currentArt.equals(ART_ARTIKEL)) {
 			panelArtikel.setVisible(true);
@@ -241,9 +238,7 @@ public abstract class PanelMengenstaffel extends PanelBasis {
 			wlaKundeartikelnummer.setVisible(true);
 			wtfKundeartikelnummer.setVisible(true);
 			panelArtikel.setWaehrungCNr(waehrungCNr);
-			panelArtikel.setKundenpreislisteIId(getInternalFrameKunde()
-					.getTpKunde().getKundeDto()
-					.getVkpfArtikelpreislisteIIdStdpreisliste());
+			panelArtikel.setKundenpreislisteIId(kundenpreislisteIId);
 			panelArtikel.setLabels(waehrungCNr);
 		} else if (currentArt.equals(ART_ARTIKELGRUPPE)) {
 			panelArtikel.setVisible(false);
@@ -255,15 +250,12 @@ public abstract class PanelMengenstaffel extends PanelBasis {
 			wtfKundeartikelnummer.setVisible(false);
 			wtfKundeartikelnummer.setText(null);
 			panelArtgru.setWaehrungCNr(waehrungCNr);
-			panelArtgru.setKundenpreislisteIId(getInternalFrameKunde()
-					.getTpKunde().getKundeDto()
-					.getVkpfArtikelpreislisteIIdStdpreisliste());
+			panelArtgru.setKundenpreislisteIId(kundenpreislisteIId);
 		}
 	}
 }
 
-class PanelMengenstaffel_wcoArt_actionAdapter implements
-		java.awt.event.ActionListener {
+class PanelMengenstaffel_wcoArt_actionAdapter implements java.awt.event.ActionListener {
 	PanelMengenstaffel adaptee;
 
 	PanelMengenstaffel_wcoArt_actionAdapter(PanelMengenstaffel adaptee) {

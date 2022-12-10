@@ -40,31 +40,51 @@ import java.awt.event.FocusEvent;
 import java.math.BigDecimal;
 import java.util.EventObject;
 
+import javax.swing.ImageIcon;
+import javax.swing.JSplitPane;
+
+import com.lp.client.angebot.DialogAngebotpositionSchnellerfassung;
+import com.lp.client.angebot.InternalFrameAngebot;
 import com.lp.client.angebotstkl.AngebotstklFilterFactory;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.angebot.service.AngebotpositionDto;
 import com.lp.server.angebotstkl.service.AgstklDto;
 import com.lp.server.angebotstkl.service.AngebotstklFac;
 import com.lp.server.system.service.MandantFac;
 
 @SuppressWarnings("static-access")
 /**
- * <p>PanelPositionen fuer Angebotsstueckliste.</p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 13.12.05</p>
- * <p> </p>
+ * <p>
+ * PanelPositionen fuer Angebotsstueckliste.
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 13.12.05
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.5 $
  */
-public class PanelPositionenAngebotstueckliste extends
-		PanelPositionenPreiseingabe {
+public class PanelPositionenAngebotstueckliste extends PanelPositionenPreiseingabe {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
 	public final static String ACTION_SPECIAL_AGSTKL_FROM_LISTE = "action_special_agstkl_from_liste";
+	public final static String ACTION_SCHNELLERFASSUNG = "ACTION_SPECIAL_SCHNELLERFASSUNG";
+
+	private WrapperButton buttonSchnellerfassung = null;
+
+	public WrapperButton getButtonSchnellerfassung() {
+		return buttonSchnellerfassung;
+	}
 
 	// optionaler Block fuer die AGSTKL Auswahl und Anzeige
 	public WrapperButton wbuAgstklauswahl = null;
@@ -80,11 +100,11 @@ public class PanelPositionenAngebotstueckliste extends
 	private WrapperNumberField wnfKalkulatorischerWertAgstkl = null;
 	private WrapperLabel wlaWaehrungKalkulatorischerWertAgstkl = null;
 
-	public WrapperGotoButton wbuAgstklGoto = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_ANGEBOTSTKL_AUSWAHL);
+	public WrapperGotoButton wbuAgstklGoto = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_ANGEBOTSTKL_AUSWAHL);
 
 	/** Die gewaehlte Angebotstueckliste hinterlegen. */
 	public AgstklDto agstklDto = null;
+	public AngebotpositionDto angebotpositionDto = null;
 
 	/** Die Waehrung des Belegs, zu dem die Position gehoert. */
 	private String belegwaehrungCNr = null;
@@ -94,25 +114,17 @@ public class PanelPositionenAngebotstueckliste extends
 	/**
 	 * Konstruktor.
 	 * 
-	 * @param internalFrame
-	 *            der InternalFrame auf dem das Panel sitzt
-	 * @param add2TitleI
-	 *            der default Titel des Panels
-	 * @param key
-	 *            PK der Position
-	 * @param sLockMeWer
-	 *            String
-	 * @param iSpaltenbreite1I
-	 *            die Breites der ersten Spalte
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param internalFrame    der InternalFrame auf dem das Panel sitzt
+	 * @param add2TitleI       der default Titel des Panels
+	 * @param key              PK der Position
+	 * @param sLockMeWer       String
+	 * @param iSpaltenbreite1I die Breites der ersten Spalte
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelPositionenAngebotstueckliste(InternalFrame internalFrame,
-			String add2TitleI, Object key, String sLockMeWer,
-			int iSpaltenbreite1I) throws Throwable {
-		super(internalFrame, add2TitleI, key, sLockMeWer,
-				internalFrame.bRechtDarfPreiseSehenVerkauf,
-				internalFrame.bRechtDarfPreiseAendernVerkauf, iSpaltenbreite1I);
+	public PanelPositionenAngebotstueckliste(InternalFrame internalFrame, String add2TitleI, Object key,
+			String sLockMeWer, int iSpaltenbreite1I, PanelBasis panelBasisFuerGetKeyWhenDetailPanel) throws Throwable {
+		super(internalFrame, add2TitleI, key, sLockMeWer, internalFrame.bRechtDarfPreiseSehenVerkauf,
+				internalFrame.bRechtDarfPreiseAendernVerkauf, iSpaltenbreite1I, panelBasisFuerGetKeyWhenDetailPanel);
 		jbInit();
 		initComponents();
 		initPanel();
@@ -124,41 +136,49 @@ public class PanelPositionenAngebotstueckliste extends
 
 		setLayout(new GridBagLayout());
 
-		wbuAgstklauswahl = new WrapperButton(LPMain.getInstance()
-				.getTextRespectUISPr("button.agstkl"));
+		wbuAgstklauswahl = new WrapperButton(LPMain.getInstance().getTextRespectUISPr("button.agstkl"));
 		wbuAgstklauswahl.setActionCommand(ACTION_SPECIAL_AGSTKL_FROM_LISTE);
 		wbuAgstklauswahl.addActionListener(this);
 
 		wtfAgstkl = new WrapperTextField();
 		wtfAgstkl.setActivatable(false);
 
-		wlaBezeichnungAgstkl = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.bezeichnung"));
+		wlaBezeichnungAgstkl = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.bezeichnung"));
 
 		wtfBezeichnungAgstkl = new WrapperTextField();
 
-		wcbAlternativeAgstkl = new WrapperCheckBox(LPMain.getInstance()
-				.getTextRespectUISPr("angb.alternative"));
+		wcbAlternativeAgstkl = new WrapperCheckBox(LPMain.getInstance().getTextRespectUISPr("angb.alternative"));
 
-		wlaKalkulatorischerWertAgstkl = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("angb.kalkulatorischerwert"));
+		wlaKalkulatorischerWertAgstkl = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("angb.kalkulatorischerwert"));
 		wnfKalkulatorischerWertAgstkl = new WrapperNumberField();
 		wlaWaehrungKalkulatorischerWertAgstkl = new WrapperLabel();
 
-		add(wbuAgstklauswahl, new GridBagConstraints(0, iYGridBagNext, 1, 1,
-				0.0, 0.0, GridBagConstraints.NORTH,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 24), 0, 0));
-		add(wbuAgstklGoto.getWrapperButtonGoTo(), new GridBagConstraints(0,
-				iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.EAST,
-				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 10, 0));
-		add(wtfAgstkl, new GridBagConstraints(1, iYGridBagNext, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		add(wlaBezeichnungAgstkl, new GridBagConstraints(2, iYGridBagNext, 1,
-				1, 0.0, 0.0, GridBagConstraints.NORTH,
+		buttonSchnellerfassung = new WrapperButton();
+		buttonSchnellerfassung.setIcon(new ImageIcon(getClass().getResource("/com/lp/client/res/flash.png")));
+		buttonSchnellerfassung.setActionCommand(ACTION_SCHNELLERFASSUNG);
+		buttonSchnellerfassung.addActionListener(this);
+		buttonSchnellerfassung.setActivatable(false);
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MV_AG_SCHNELLERFASSUNG)) {
+
+			add(buttonSchnellerfassung, new GridBagConstraints(0, iYGridBagNext, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.NONE, new Insets(1, 2, 1, 2), 10, 0));
+			add(wbuAgstklauswahl, new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 22, 2, 24), 0, 0));
+		} else {
+			add(wbuAgstklauswahl, new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 20), 0, 0));
+		}
+
+		add(wbuAgstklGoto.getWrapperButtonGoTo(), new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0,
+				GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 10, 0));
+		add(wtfAgstkl, new GridBagConstraints(1, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		add(wtfBezeichnungAgstkl, new GridBagConstraints(3, iYGridBagNext, 5,
-				1, 0.0, 0.0, GridBagConstraints.NORTH,
+		add(wlaBezeichnungAgstkl, new GridBagConstraints(2, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		add(wtfBezeichnungAgstkl, new GridBagConstraints(3, iYGridBagNext, 5, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iYGridBagNext++;
@@ -179,23 +199,18 @@ public class PanelPositionenAngebotstueckliste extends
 		iYGridBagNext++;
 		addZeileBruttogesamtpreis(this, iYGridBagNext);
 
-		add(wcbAlternativeAgstkl, new GridBagConstraints(1, 8, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(10, 0, 2, 2), 0, 0));
-		add(wlaKalkulatorischerWertAgstkl, new GridBagConstraints(3, 8, 3, 1,
-				0.0, 0.0, GridBagConstraints.NORTH,
+		add(wcbAlternativeAgstkl, new GridBagConstraints(1, 8, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(10, 0, 2, 2), 0, 0));
+		add(wlaKalkulatorischerWertAgstkl, new GridBagConstraints(3, 8, 3, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(10, 2, 2, 2), 0, 0));
-		add(wnfKalkulatorischerWertAgstkl, new GridBagConstraints(6, 8, 1, 1,
-				0.0, 0.0, GridBagConstraints.NORTH,
+		add(wnfKalkulatorischerWertAgstkl, new GridBagConstraints(6, 8, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(10, 2, 2, 2), 0, 0));
-		add(wlaWaehrungKalkulatorischerWertAgstkl, new GridBagConstraints(7, 8,
-				1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
-				GridBagConstraints.HORIZONTAL, new Insets(10, 2, 2, 2), 0, 0));
+		add(wlaWaehrungKalkulatorischerWertAgstkl, new GridBagConstraints(7, 8, 1, 1, 0.0, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL, new Insets(10, 2, 2, 2), 0, 0));
 	}
 
 	private void initPanel() throws Throwable {
-		belegwaehrungCNr = LPMain.getInstance().getTheClient()
-				.getSMandantenwaehrung();
+		belegwaehrungCNr = LPMain.getInstance().getTheClient().getSMandantenwaehrung();
 	}
 
 	protected void setDefaults() throws Throwable {
@@ -218,11 +233,8 @@ public class PanelPositionenAngebotstueckliste extends
 
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryFLRAgstklauswahl) {
-				Integer agstklIId = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				agstklDto = DelegateFactory.getInstance()
-						.getAngebotstklDelegate()
-						.agstklFindByPrimaryKey(agstklIId);
+				Integer agstklIId = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				agstklDto = DelegateFactory.getInstance().getAngebotstklDelegate().agstklFindByPrimaryKey(agstklIId);
 				agstklDto2components();
 			}
 		}
@@ -241,30 +253,22 @@ public class PanelPositionenAngebotstueckliste extends
 	public void preisBerechnen() throws ExceptionLP, Throwable {
 
 		// PJ18725 Wenn Mengenstaffel
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
 			BigDecimal bdMenge = BigDecimal.ONE;
 			if (wnfMenge.getBigDecimal() != null) {
 				bdMenge = wnfMenge.getBigDecimal();
 			}
 
-			BigDecimal nKalkulatorischerWert = DelegateFactory
-					.getInstance()
-					.getAngebotstklDelegate()
-					.berechneKalkulatorischenAgstklwert(agstklDto.getIId(),
-							bdMenge, belegwaehrungCNr);
+			BigDecimal nKalkulatorischerWert = DelegateFactory.getInstance().getAngebotstklDelegate()
+					.berechneKalkulatorischenAgstklwert(agstklDto.getIId(), bdMenge, belegwaehrungCNr);
 			wnfKalkulatorischerWertAgstkl.setBigDecimal(nKalkulatorischerWert);
 
-			BigDecimal bdVkPreisGewaehlt = DelegateFactory.getInstance()
-					.getAngebotstklDelegate()
+			BigDecimal bdVkPreisGewaehlt = DelegateFactory.getInstance().getAngebotstklDelegate()
 					.getVKPreisGewaehlt(bdMenge, agstklDto.getIId());
 
-			BigDecimal bdVkPreisberechnet = DelegateFactory.getInstance()
-					.getAngebotstklDelegate()
-					.getVKPreis(bdMenge, agstklDto.getIId())[AngebotstklFac.VKPREIS_LT_AGTSKLPOSITIONSPREIS];
+			BigDecimal bdVkPreisberechnet = DelegateFactory.getInstance().getAngebotstklDelegate().getVKPreis(bdMenge,
+					agstklDto.getIId())[AngebotstklFac.VKPREIS_LT_AGTSKLPOSITIONSPREIS];
 
 			if (bdVkPreisGewaehlt == null) {
 				// IMS 1565 Wenn eine AGSTKL neu uebernommen wird, den
@@ -283,11 +287,8 @@ public class PanelPositionenAngebotstueckliste extends
 
 		} else {
 
-			BigDecimal nKalkulatorischerWert = DelegateFactory
-					.getInstance()
-					.getAngebotstklDelegate()
-					.berechneKalkulatorischenAgstklwert(agstklDto.getIId(),
-							null, belegwaehrungCNr);
+			BigDecimal nKalkulatorischerWert = DelegateFactory.getInstance().getAngebotstklDelegate()
+					.berechneKalkulatorischenAgstklwert(agstklDto.getIId(), null, belegwaehrungCNr);
 			wnfKalkulatorischerWertAgstkl.setBigDecimal(nKalkulatorischerWert);
 			// IMS 1565 Wenn eine AGSTKL neu uebernommen wird, den
 			// kalkulatorischen Wert
@@ -300,8 +301,7 @@ public class PanelPositionenAngebotstueckliste extends
 	/**
 	 * Hier kommen die events meiner speziellen Buttons an.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -309,12 +309,41 @@ public class PanelPositionenAngebotstueckliste extends
 
 		if (e.getActionCommand().equals(ACTION_SPECIAL_AGSTKL_FROM_LISTE)) {
 			dialogQueryAgestkl(e);
+
+		} else if (e.getActionCommand().equals(ACTION_SCHNELLERFASSUNG)) {
+			// PJ20553
+
+			if (angebotpositionDto != null) {
+
+				AngebotpositionDto agposDto = DelegateFactory.getInstance().getAngebotpositionDelegate()
+						.angebotpositionFindByPrimaryKey((Integer) angebotpositionDto.getIId());
+
+				if (agposDto.getAgstklIId() != null) {
+
+					AgstklDto agstklDto = DelegateFactory.getInstance().getAngebotstklDelegate()
+							.agstklFindByPrimaryKey(agposDto.getAgstklIId());
+
+					DialogAngebotpositionSchnellerfassung d = new DialogAngebotpositionSchnellerfassung(
+							getInternalFrame(), agstklDto, angebotpositionDto.getBelegIId(), agposDto);
+					
+					d.setVisible(true);
+					if (d.getAngebotpositionIId() != null) {
+
+						if (getInternalFrame() instanceof InternalFrameAngebot) {
+							InternalFrameAngebot iFrame = (InternalFrameAngebot) getInternalFrame();
+
+							iFrame.getTabbedPaneAngebot().getAngebotPositionen().eventYouAreSelected(false);
+						}
+					}
+				}
+
+			}
 		}
 	}
 
 	public void dialogQueryAgestkl(ActionEvent e) throws Throwable {
-		panelQueryFLRAgstklauswahl = AngebotstklFilterFactory.getInstance()
-				.createPanelFLRAgstkl(getInternalFrame(), true, false);
+		panelQueryFLRAgstklauswahl = AngebotstklFilterFactory.getInstance().createPanelFLRAgstkl(getInternalFrame(),
+				true, false);
 		new DialogQuery(panelQueryFLRAgstklauswahl);
 	}
 

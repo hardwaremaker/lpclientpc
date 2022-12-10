@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.bestellung;
 
-
 import java.util.EventObject;
 
 import javax.swing.ImageIcon;
@@ -56,347 +55,336 @@ import com.lp.server.bestellung.service.BestellungDto;
 import com.lp.server.bestellung.service.BestellungsartDto;
 import com.lp.server.bestellung.service.BestellungstatusDto;
 import com.lp.server.bestellung.service.BestellungtextDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.util.EJBExceptionLP;
 
-
 /**
- *
- * <p> Diese Klasse kuemmert sich um die Bestellungen</p>
- *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- *
- * <p>Erstellung: Guenther Hodina; dd.mm.05</p>
- *
- * <p>@author $Author: christian $</p>
- *
+ * 
+ * <p>
+ * Diese Klasse kuemmert sich um die Bestellungen
+ * </p>
+ * 
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * 
+ * <p>
+ * Erstellung: Guenther Hodina; dd.mm.05
+ * </p>
+ * 
+ * <p>
+ * 
+ * @author $Author: christian $
+ *         </p>
+ * 
  * @version not attributable Date $Date: 2012/07/10 12:37:51 $
  */
-public class InternalFrameBestellung
-    extends InternalFrame
-{
-/**
+public class InternalFrameBestellung extends InternalFrame {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-//  public static String I_ID_RAHMENBESTELLUNG = "iIdRahmenbestellung";
-  public final static String I_ID_ABRUFBESTELLUNG = "iIdAbrufbestellung";
-
-  public final static int IDX_PANE_BESTELLUNG = 0;
-  public final static int IDX_PANE_VORSCHLAG = 1;
-  public final static int IDX_PANE_MAHNWESEN = 2;
-  public final static int IDX_PANE_BESTELLUNGGRUNDDATEN = 3;
-
-  private TabbedPaneBestellung tpBestellung = null;
-  private TabbedPaneBestellungGrunddaten tpBestellungGrunddaten = null;
-  private TabbedPaneBestellvorschlag tpBestellvorschlag = null;
-  private TabbedPaneBESMahnwesen tpBESMahnwesen = null;
-
-  private BestellungsartDto bestellungsartDto = new BestellungsartDto();
-  private BestellungstatusDto bestellungstatusDto = null;
-  private BestellungtextDto bestellungtextDto = new BestellungtextDto();
-  private BestellpositionartDto bestellpositionartDto = new BestellpositionartDto();
-  private BSMahnstufeDto bsmahnstufeDto = new BSMahnstufeDto();
-  private BSMahntextDto bsmahntextDto = new BSMahntextDto();
-
-
-  public InternalFrameBestellung(String title, String belegartCNr,
-                                 String sRechtModulweitI)
-      throws Throwable {
-    super(title, belegartCNr, sRechtModulweitI);
-    jbInit();
-    initComponents();
-  }
-
-
-  private void jbInit()
-      throws Throwable {
-
-    //1 unteres tab: Partner; lazy loading; ist auch default.
-    tabbedPaneRoot.insertTab(
-        LPMain.getTextRespectUISPr("bes.bestellung.tooltip"),
-        null,
-        null,
-        LPMain.getTextRespectUISPr("bes.bestellung.tooltip"),
-        IDX_PANE_BESTELLUNG);
-
-    //2 unteres tab: Partner; lazy loading; ist auch default.
-    tabbedPaneRoot.insertTab(
-        LPMain.getTextRespectUISPr("bes.title.panel.bestellvorschlag"),
-        null,
-        null,
-        LPMain.getTextRespectUISPr("bes.title.panel.bestellvorschlag"),
-        IDX_PANE_VORSCHLAG);
-
-    //3 unteres tab: Partner; lazy loading; ist auch default.
-    tabbedPaneRoot.insertTab(
-        LPMain.getTextRespectUISPr("bes.title.panel.mahnwesen"),
-        null,
-        null,
-        LPMain.getTextRespectUISPr("bes.title.panel.mahnwesen"),
-        IDX_PANE_MAHNWESEN);
-
-    //4 unteres tab: Partner; lazy loading; ist auch default.
-    // nur anzeigen wenn Benutzer Recht dazu hat
-    if(DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)){
-      tabbedPaneRoot.insertTab(
-          LPMain.getTextRespectUISPr("bes.title.panel.bestellunggrunddaten"),
-          null,
-          null,
-          LPMain.getTextRespectUISPr("bes.title.panel.bestellunggrunddaten"),
-          IDX_PANE_BESTELLUNGGRUNDDATEN);
-    }
-    // Defaulttabbedpane setzen.
-    refreshAuswahlTP();
-    tpBestellung.lPEventObjectChanged(null);
-
-    //ich selbst moechte informiert werden.
-    addItemChangedListener(this);
-    //awt: listener bin auch ich.
-    registerChangeListeners();
-
-    // dem frame das icon setzen
-    ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
-        "/com/lp/client/res/shoppingcart_full16x16.png"));
-    setFrameIcon(iicon);
-  }
-
-
-  public void lPStateChanged(EventObject e)
-      throws Throwable {
-    int selectedCur = 0;
-
-    try {
-      selectedCur = ( (JTabbedPane) e.getSource()).getSelectedIndex();
-    }
-    catch (Exception ex) {
-      /** @todo JO na servas  PJ 4728 */
-      selectedCur = ( (Desktop) e.getSource()).getSelectedIndex();
-    }
-
-    DelegateFactory.getInstance().getBestellvorschlagDelegate().
-        removeLockDesBestellvorschlagesWennIchIhnSperre();
-
-    if (selectedCur == IDX_PANE_BESTELLUNG) {
-      refreshAuswahlTP();
-      tabbedPaneRoot.setSelectedComponent(tpBestellung);
-      //Info an Tabbedpane, bist selektiert worden.
-      tpBestellung.changed(new ItemChangedEvent(this,
-                                                ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
-      tpBestellung.lPEventObjectChanged(null);
-    }
-
-    else if (selectedCur == IDX_PANE_BESTELLUNGGRUNDDATEN) {
-      refreshTPBestellungGrunddaten();
-      tabbedPaneRoot.setSelectedComponent(tpBestellungGrunddaten);
-      //Info an Tabbedpane, bist selektiert worden.
-      tpBestellungGrunddaten.changed(new ItemChangedEvent(this,
-          ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
-      tpBestellungGrunddaten.lPEventObjectChanged(null);
-    }
-    else if (selectedCur == IDX_PANE_VORSCHLAG) {
-      try {
-        DelegateFactory.getInstance().getBestellvorschlagDelegate().
-            pruefeBearbeitenDesBestellvorschlagsErlaubt();
-        refreshTPBestellvorschlag();
-        tabbedPaneRoot.setSelectedComponent(tpBestellvorschlag);
-        //Info an Tabbedpane, bist selektiert worden.
-        tpBestellvorschlag.changed(new ItemChangedEvent(this,
-            ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
-        tpBestellvorschlag.lPEventObjectChanged(null);
-      }
-      catch (ExceptionLP efc) {
-        if (efc != null &&
-            efc.getICode() == EJBExceptionLP.FEHLER_BESTELLVORSCHLAG_IST_GESPERRT) {
-          tabbedPaneRoot.setSelectedComponent(tpBestellung);
-          //Benutzer der gerade sperrt finden
-          String[] sHelper = efc.getSMsg().split(" ");
-          String sLocker = DelegateFactory.getInstance().getPersonalDelegate().
-              personalFindByPrimaryKey(Integer.parseInt(sHelper[sHelper.length - 1])).getCKurzzeichen();
-          DialogFactory.showModalDialog(
-              LPMain.getTextRespectUISPr("lp.warning"),
-              LPMain.getInstance().getMsg(efc) + sLocker);
-        }
-        else {
-          throw efc;
-        }
-      }
-    }
-    else if (selectedCur == IDX_PANE_MAHNWESEN) {
-      refreshTPBESMahnwesen();
-      tabbedPaneRoot.setSelectedComponent(tpBESMahnwesen);
-      //Info an Tabbedpane, bist selektiert worden.
-      tpBESMahnwesen.changed(new ItemChangedEvent(this,
-                                                  ItemChangedEvent.
-                                                  ACTION_YOU_ARE_SELECTED));
-      tpBESMahnwesen.lPEventObjectChanged(null);
-    }
-
-  }
-
-
-  public void lPEventItemChanged(ItemChangedEvent eI) {
-    //nothing here
-  }
-
-
-  public TabbedPaneBestellung getTabbedPaneBestellung() {
-    return tpBestellung;
-  }
-
-
-  public TabbedPaneBestellvorschlag getTabbedPaneBestellvorschlag() {
-    return tpBestellvorschlag;
-  }
-
-
-  private void refreshTPBestellungGrunddaten()
-      throws Throwable {
-    if (tpBestellungGrunddaten == null) {
-      tpBestellungGrunddaten = new TabbedPaneBestellungGrunddaten(this);
-      tabbedPaneRoot.setComponentAt(IDX_PANE_BESTELLUNGGRUNDDATEN, tpBestellungGrunddaten);
-      initComponents();
-    }
-  }
-
-
-  private void refreshTPBestellvorschlag()
-      throws Throwable {
-    if (tpBestellvorschlag == null) {
-      tpBestellvorschlag = new TabbedPaneBestellvorschlag(this);
-      tabbedPaneRoot.setComponentAt(IDX_PANE_VORSCHLAG, tpBestellvorschlag);
-      initComponents();
-    }
-  }
-
-
-  private void refreshTPBESMahnwesen()
-      throws Throwable {
-    if (tpBESMahnwesen == null) {
-      tpBESMahnwesen = new TabbedPaneBESMahnwesen(this);
-      tabbedPaneRoot.setComponentAt(IDX_PANE_MAHNWESEN, tpBESMahnwesen);
-      initComponents();
-    }
-  }
-
-
-  private void refreshAuswahlTP()
-      throws Throwable {
-    if (tpBestellung == null) {
-      tpBestellung = new TabbedPaneBestellung(this);
-      tabbedPaneRoot.setComponentAt(IDX_PANE_BESTELLUNG, tpBestellung);
-      initComponents();
-    }
-  }
-
-
-  public void setBestellungtextDto(BestellungtextDto bestellungtextDtoI) {
-    this.bestellungtextDto = bestellungtextDtoI;
-  }
-
-
-  public BestellungtextDto getBestellungtextDto() {
-    return bestellungtextDto;
-  }
-
-
-  public void setBestellungsartDto(BestellungsartDto bestellungartDto) {
-    this.bestellungsartDto = bestellungartDto;
-  }
-
-
-  public BestellungsartDto getBestellungsartDto() {
-    return bestellungsartDto;
-  }
-
-
-  public void setBestellungstatusDto(BestellungstatusDto bestellungstatusDto) {
-    this.bestellungstatusDto = bestellungstatusDto;
-  }
-
-
-  public BestellungstatusDto getBestellungstatusDto() {
-    return bestellungstatusDto;
-  }
-
-
-  public BestellpositionartDto getBestellpositionartDto() {
-    return this.bestellpositionartDto;
-  }
-
-
-  public void setBestellpositionartDto(BestellpositionartDto bestellpositionartDtoI) {
-    this.bestellpositionartDto = bestellpositionartDtoI;
-  }
-
-
-  public BSMahnstufeDto getBSMahnstufeDto() {
-    return bsmahnstufeDto;
-  }
-
-
-  public void setBSMahnstufeDto(BSMahnstufeDto bsmahnstufeDtoI) {
-    this.bsmahnstufeDto = bsmahnstufeDtoI;
-  }
-
-
-  public BSMahntextDto getBSMahntextDto() {
-    return bsmahntextDto;
-  }
-
-
-  public void setBSMahntextDto(BSMahntextDto bsmahntextDtoI) {
-    this.bsmahntextDto = bsmahntextDtoI;
-  }
-
-
-  public int execute(Command commandI)
-      throws Throwable {
-
-    int iRetCmd = ICommand.COMMAND_DONE;
-
-    if (commandI instanceof CommandGoto) {
-      CommandGoto gotoCommand = (CommandGoto) commandI;
-      if (gotoCommand.getsInternalFrame().equals(Command.S_INTERNALFRAME_BESTELLUNG)) {
-        if (gotoCommand.getTabbedPaneAsClass().equals(Command.CLASS_TABBED_PANE_BESTELLUNG)) {
-          if (gotoCommand.getsPanel().equals(Command.PANELBESTELLUNG_POSITIONSICHT_RAHMEN)) {
-            Integer iIdBes =
-                (Integer) gotoCommand.getHmOfExtraData().get(I_ID_ABRUFBESTELLUNG);
-            //leeres dto
-            BestellungDto besDtoNew = new BestellungDto();
-            //iIdBes hinterlegen
-            besDtoNew.setIId(iIdBes);
-            tpBestellung.setBestellungDto(besDtoNew);
-
-            tpBestellung.getPanelBestellungAuswahlQP1().setSelectedId(iIdBes);
-            tpBestellung.initializeDtos(iIdBes);
-
-            tpBestellung.setSelectedIndex(
-                TabbedPaneBestellung.IDX_PANEL_BESTELLPOSITIONSICHTRAHMEN);
-          }
-
-          else if (gotoCommand.getsPanel().equals(Command.PANEL_BESTELLUNG_POSITIONEN)) {
-            Integer iIdBes =
-                (Integer) gotoCommand.getHmOfExtraData().get(I_ID_ABRUFBESTELLUNG);
-            //leeres dto
-            BestellungDto besDtoNew = new BestellungDto();
-            //iIdBes hinterlegen
-            besDtoNew.setIId(iIdBes);
-            tpBestellung.setBestellungDto(besDtoNew);
-
-            tpBestellung.getPanelBestellungAuswahlQP1().setSelectedId(iIdBes);
-
-            tpBestellung.refreshBestellungPositionen(iIdBes);
-            tpBestellung.setSelectedIndex(TabbedPaneBestellung.IDX_PANEL_BESTELLPOSITION);
-          }
-        }
-      }
-     }
-    else {
-      iRetCmd = ICommand.COMMAND_NOT_DONE;
-    }
-
-    return iRetCmd;
-  }
+	// public static String I_ID_RAHMENBESTELLUNG = "iIdRahmenbestellung";
+	public final static String I_ID_ABRUFBESTELLUNG = "iIdAbrufbestellung";
+
+	public static int IDX_PANE_BESTELLUNG = -1;
+	public static int IDX_PANE_VORSCHLAG = -1;
+	public static int IDX_PANE_WAREZWISCHENMANDANTEN = -1;
+	public static int IDX_PANE_MAHNWESEN = -1;
+	public static int IDX_PANE_BESTELLUNGGRUNDDATEN = -1;
+
+	private TabbedPaneBestellung tpBestellung = null;
+	private TabbedPaneBestellungGrunddaten tpBestellungGrunddaten = null;
+	private TabbedPaneBestellvorschlag tpBestellvorschlag = null;
+	private TabbedPaneBESMahnwesen tpBESMahnwesen = null;
+	private TabbedPaneWarezwischenMandanten tpWarezwischenMandanten = null;
+
+	private BestellungsartDto bestellungsartDto = new BestellungsartDto();
+	private BestellungstatusDto bestellungstatusDto = null;
+	private BestellungtextDto bestellungtextDto = new BestellungtextDto();
+	private BestellpositionartDto bestellpositionartDto = new BestellpositionartDto();
+	private BSMahnstufeDto bsmahnstufeDto = new BSMahnstufeDto();
+	private BSMahntextDto bsmahntextDto = new BSMahntextDto();
+
+	public String sRechtModulweit = null;
+
+	public InternalFrameBestellung(String title, String belegartCNr, String sRechtModulweitI) throws Throwable {
+		super(title, belegartCNr, sRechtModulweitI);
+		sRechtModulweit = sRechtModulweitI;
+		jbInit();
+		initComponents();
+	}
+
+	private void jbInit() throws Throwable {
+
+		int tabIndex = 0;
+		IDX_PANE_BESTELLUNG = tabIndex;
+
+		// 1 unteres tab: Partner; lazy loading; ist auch default.
+		tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("bes.bestellung.tooltip"), null, null,
+				LPMain.getTextRespectUISPr("bes.bestellung.tooltip"), IDX_PANE_BESTELLUNG);
+
+		tabIndex++;
+		IDX_PANE_VORSCHLAG = tabIndex;
+		// 2 unteres tab: Partner; lazy loading; ist auch default.
+		tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("bes.title.panel.bestellvorschlag"), null, null,
+				LPMain.getTextRespectUISPr("bes.title.panel.bestellvorschlag"), IDX_PANE_VORSCHLAG);
+
+		tabIndex++;
+		IDX_PANE_MAHNWESEN = tabIndex;
+
+		// 3 unteres tab: Partner; lazy loading; ist auch default.
+		tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("bes.title.panel.mahnwesen"), null, null,
+				LPMain.getTextRespectUISPr("bes.title.panel.mahnwesen"), IDX_PANE_MAHNWESEN);
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)) {
+			tabIndex++;
+			IDX_PANE_WAREZWISCHENMANDANTEN = tabIndex;
+
+			// 3 unteres tab: Partner; lazy loading; ist auch default.
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("bes.warezwischenmandanten"), null, null,
+					LPMain.getTextRespectUISPr("bes.warezwischenmandanten"), IDX_PANE_WAREZWISCHENMANDANTEN);
+		}
+
+		// 4 unteres tab: Partner; lazy loading; ist auch default.
+		// nur anzeigen wenn Benutzer Recht dazu hat
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+
+			tabIndex++;
+			IDX_PANE_BESTELLUNGGRUNDDATEN = tabIndex;
+
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("bes.title.panel.bestellunggrunddaten"), null, null,
+					LPMain.getTextRespectUISPr("bes.title.panel.bestellunggrunddaten"), IDX_PANE_BESTELLUNGGRUNDDATEN);
+		}
+		// Defaulttabbedpane setzen.
+		refreshAuswahlTP();
+		tpBestellung.lPEventObjectChanged(null);
+
+		// ich selbst moechte informiert werden.
+		addItemChangedListener(this);
+		// awt: listener bin auch ich.
+		registerChangeListeners();
+
+		// dem frame das icon setzen
+		ImageIcon iicon = new javax.swing.ImageIcon(
+				getClass().getResource("/com/lp/client/res/shoppingcart_full16x16.png"));
+		setFrameIcon(iicon);
+	}
+
+	public void lPStateChanged(EventObject e) throws Throwable {
+		int selectedCur = 0;
+		setRechtModulweit(sRechtModulweit);
+		try {
+			selectedCur = ((JTabbedPane) e.getSource()).getSelectedIndex();
+		} catch (Exception ex) {
+			/** @todo JO na servas PJ 4728 */
+			selectedCur = ((Desktop) e.getSource()).getSelectedIndex();
+		}
+
+		DelegateFactory.getInstance().getBestellvorschlagDelegate().removeLockDesBestellvorschlagesWennIchIhnSperre();
+
+		if (selectedCur == IDX_PANE_BESTELLUNG) {
+			refreshAuswahlTP();
+			tabbedPaneRoot.setSelectedComponent(tpBestellung);
+			// Info an Tabbedpane, bist selektiert worden.
+			tpBestellung.changed(new ItemChangedEvent(this, ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
+			tpBestellung.lPEventObjectChanged(null);
+		}
+
+		else if (selectedCur == IDX_PANE_BESTELLUNGGRUNDDATEN) {
+			refreshTPBestellungGrunddaten();
+			tabbedPaneRoot.setSelectedComponent(tpBestellungGrunddaten);
+			// Info an Tabbedpane, bist selektiert worden.
+			tpBestellungGrunddaten.changed(new ItemChangedEvent(this, ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
+			tpBestellungGrunddaten.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_PANE_VORSCHLAG) {
+			try {
+				DelegateFactory.getInstance().getBestellvorschlagDelegate()
+						.pruefeBearbeitenDesBestellvorschlagsErlaubt();
+			} catch (ExceptionLP efc) {
+				if (efc != null && efc.getICode() == EJBExceptionLP.FEHLER_BESTELLVORSCHLAG_IST_GESPERRT) {
+					// Benutzer der gerade sperrt finden
+					String[] sHelper = efc.getSMsg().split(" ");
+					String sLocker = DelegateFactory.getInstance().getPersonalDelegate()
+							.personalFindByPrimaryKey(Integer.parseInt(sHelper[sHelper.length - 1])).getCKurzzeichen();
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+							LPMain.getInstance().getMsg(efc) + sLocker);
+					
+					setRechtModulweit(RechteFac.RECHT_MODULWEIT_READ);
+					
+				} else {
+					throw efc;
+				}
+			}
+			
+			
+			
+			refreshTPBestellvorschlag();
+			tabbedPaneRoot.setSelectedComponent(tpBestellvorschlag);
+			// Info an Tabbedpane, bist selektiert worden.
+			tpBestellvorschlag.changed(new ItemChangedEvent(this, ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
+			tpBestellvorschlag.lPEventObjectChanged(null);
+
+		} else if (selectedCur == IDX_PANE_MAHNWESEN) {
+			refreshTPBESMahnwesen();
+			tabbedPaneRoot.setSelectedComponent(tpBESMahnwesen);
+			// Info an Tabbedpane, bist selektiert worden.
+			tpBESMahnwesen.changed(new ItemChangedEvent(this, ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
+			tpBESMahnwesen.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_PANE_WAREZWISCHENMANDANTEN) {
+			refreshWarenzwischenmandanten();
+			tabbedPaneRoot.setSelectedComponent(tpWarezwischenMandanten);
+			// Info an Tabbedpane, bist selektiert worden.
+			tpWarezwischenMandanten.changed(new ItemChangedEvent(this, ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
+			tpWarezwischenMandanten.lPEventObjectChanged(null);
+		}
+
+	}
+
+	public void lPEventItemChanged(ItemChangedEvent eI) {
+		// nothing here
+	}
+
+	public TabbedPaneBestellung getTabbedPaneBestellung() {
+		return tpBestellung;
+	}
+
+	public TabbedPaneBestellvorschlag getTabbedPaneBestellvorschlag() {
+		return tpBestellvorschlag;
+	}
+
+	private void refreshTPBestellungGrunddaten() throws Throwable {
+		if (tpBestellungGrunddaten == null) {
+			tpBestellungGrunddaten = new TabbedPaneBestellungGrunddaten(this);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_BESTELLUNGGRUNDDATEN, tpBestellungGrunddaten);
+			initComponents();
+		}
+	}
+
+	private void refreshTPBestellvorschlag() throws Throwable {
+		if (tpBestellvorschlag == null) {
+			tpBestellvorschlag = new TabbedPaneBestellvorschlag(this);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_VORSCHLAG, tpBestellvorschlag);
+			initComponents();
+		}
+	}
+
+	private void refreshTPBESMahnwesen() throws Throwable {
+		if (tpBESMahnwesen == null) {
+			tpBESMahnwesen = new TabbedPaneBESMahnwesen(this);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_MAHNWESEN, tpBESMahnwesen);
+			initComponents();
+		}
+	}
+
+	private void refreshWarenzwischenmandanten() throws Throwable {
+		if (tpWarezwischenMandanten == null) {
+			tpWarezwischenMandanten = new TabbedPaneWarezwischenMandanten(this);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_WAREZWISCHENMANDANTEN, tpWarezwischenMandanten);
+			initComponents();
+		}
+	}
+
+	private void refreshAuswahlTP() throws Throwable {
+		if (tpBestellung == null) {
+			tpBestellung = new TabbedPaneBestellung(this);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_BESTELLUNG, tpBestellung);
+			initComponents();
+		}
+	}
+
+	public void setBestellungtextDto(BestellungtextDto bestellungtextDtoI) {
+		this.bestellungtextDto = bestellungtextDtoI;
+	}
+
+	public BestellungtextDto getBestellungtextDto() {
+		return bestellungtextDto;
+	}
+
+	public void setBestellungsartDto(BestellungsartDto bestellungartDto) {
+		this.bestellungsartDto = bestellungartDto;
+	}
+
+	public BestellungsartDto getBestellungsartDto() {
+		return bestellungsartDto;
+	}
+
+	public void setBestellungstatusDto(BestellungstatusDto bestellungstatusDto) {
+		this.bestellungstatusDto = bestellungstatusDto;
+	}
+
+	public BestellungstatusDto getBestellungstatusDto() {
+		return bestellungstatusDto;
+	}
+
+	public BestellpositionartDto getBestellpositionartDto() {
+		return this.bestellpositionartDto;
+	}
+
+	public void setBestellpositionartDto(BestellpositionartDto bestellpositionartDtoI) {
+		this.bestellpositionartDto = bestellpositionartDtoI;
+	}
+
+	public BSMahnstufeDto getBSMahnstufeDto() {
+		return bsmahnstufeDto;
+	}
+
+	public void setBSMahnstufeDto(BSMahnstufeDto bsmahnstufeDtoI) {
+		this.bsmahnstufeDto = bsmahnstufeDtoI;
+	}
+
+	public BSMahntextDto getBSMahntextDto() {
+		return bsmahntextDto;
+	}
+
+	public void setBSMahntextDto(BSMahntextDto bsmahntextDtoI) {
+		this.bsmahntextDto = bsmahntextDtoI;
+	}
+
+	public int execute(Command commandI) throws Throwable {
+
+		int iRetCmd = ICommand.COMMAND_DONE;
+
+		if (commandI instanceof CommandGoto) {
+			CommandGoto gotoCommand = (CommandGoto) commandI;
+			if (gotoCommand.getsInternalFrame().equals(Command.S_INTERNALFRAME_BESTELLUNG)) {
+				if (gotoCommand.getTabbedPaneAsClass().equals(Command.CLASS_TABBED_PANE_BESTELLUNG)) {
+					if (gotoCommand.getsPanel().equals(Command.PANELBESTELLUNG_POSITIONSICHT_RAHMEN)) {
+						Integer iIdBes = (Integer) gotoCommand.getHmOfExtraData().get(I_ID_ABRUFBESTELLUNG);
+						// leeres dto
+						BestellungDto besDtoNew = new BestellungDto();
+						// iIdBes hinterlegen
+						besDtoNew.setIId(iIdBes);
+						tpBestellung.setBestellungDto(besDtoNew);
+
+						tpBestellung.getPanelBestellungAuswahlQP1().setSelectedId(iIdBes);
+						tpBestellung.initializeDtos(iIdBes);
+
+						tpBestellung.setSelectedIndex(TabbedPaneBestellung.IDX_PANEL_BESTELLPOSITIONSICHTRAHMEN);
+					}
+
+					else if (gotoCommand.getsPanel().equals(Command.PANEL_BESTELLUNG_POSITIONEN)) {
+						Integer iIdBes = (Integer) gotoCommand.getHmOfExtraData().get(I_ID_ABRUFBESTELLUNG);
+						// leeres dto
+						BestellungDto besDtoNew = new BestellungDto();
+						// iIdBes hinterlegen
+						besDtoNew.setIId(iIdBes);
+						tpBestellung.setBestellungDto(besDtoNew);
+
+						tpBestellung.getPanelBestellungAuswahlQP1().setSelectedId(iIdBes);
+
+						tpBestellung.refreshBestellungPositionen(iIdBes);
+						tpBestellung.setSelectedIndex(TabbedPaneBestellung.IDX_PANEL_BESTELLPOSITION);
+					}
+				}
+			}
+		} else {
+			iRetCmd = ICommand.COMMAND_NOT_DONE;
+		}
+
+		return iRetCmd;
+	}
 
 }

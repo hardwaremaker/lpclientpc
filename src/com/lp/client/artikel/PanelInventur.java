@@ -50,7 +50,6 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
-import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
@@ -80,17 +79,13 @@ public class PanelInventur extends PanelBasis {
 	private WrapperLabel wlaInventurdatum = new WrapperLabel();
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 	private WrapperDateField wdfInventurdatum = new WrapperDateField();
-	private WrapperButton wbuInventur_Durchfuehren = new WrapperButton();
 	private WrapperButton wbuLager = new WrapperButton();
 	private WrapperTextField wtfLager = new WrapperTextField();
 	private PanelQueryFLR panelQueryFLRLager = null;
 	private WrapperLabel wlaInventurdurchgefuehrt = new WrapperLabel();
 	private WrapperLabel wlaAbwertungdurchgefuehrt = new WrapperLabel();
 
-	private WrapperCheckBox wcbNichtInventierteArtikelAufNullSetzen = new WrapperCheckBox();
-
 	static final public String ACTION_SPECIAL_LAGER_FROM_LISTE = "action_lager_from_liste";
-	static final public String ACTION_SPECIAL_INVENTUR_DURCHFUEHREN = "action_inventur_durchfuehren";
 
 	public PanelInventur(InternalFrame internalFrame, String add2TitleI,
 			Object pk) throws Throwable {
@@ -134,12 +129,10 @@ public class PanelInventur extends PanelBasis {
 			key = internalFrameArtikel.getInventurDto().getIId();
 		}
 
-		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
+		if (key == null) {
 			leereAlleFelder(this);
 			clearStatusbar();
 			wbuLager.setEnabled(true);
-			wbuInventur_Durchfuehren.setEnabled(false);
-
 		} else {
 			internalFrameArtikel.setInventurDto(DelegateFactory
 					.getInstance()
@@ -153,38 +146,21 @@ public class PanelInventur extends PanelBasis {
 							.getTextRespectUISPr("artikel.inventur")
 							+ ": "
 							+ internalFrameArtikel.getInventurDto().getCBez());
-			if (Helper.short2boolean(internalFrameArtikel.getInventurDto()
-					.getBInventurdurchgefuehrt())) {
-				wbuInventur_Durchfuehren.setActivatable(false);
-			} else {
-				wbuInventur_Durchfuehren.setActivatable(true);
-			}
+
 		}
 	}
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
 		super.eventActionUpdate(aE, bNeedNoUpdateI);
-		if(Helper.short2boolean(internalFrameArtikel.getInventurDto().getBInventurdurchgefuehrt())){
-			wdfInventurdatum.setEnabled(false);
-			wcbNichtInventierteArtikelAufNullSetzen.setEnabled(false);
-		}
-		
+
 	}
-	
+
 	protected void eventItemchanged(EventObject eI) throws Throwable {
 
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
-			if (e.getSource() == internalFrameArtikel.getTabbedPaneInventur()
-					.getPanelQueryInventur()) {
-				if (Helper.short2boolean(internalFrameArtikel.getInventurDto()
-						.getBInventurdurchgefuehrt())) {
-					wbuInventur_Durchfuehren.setActivatable(false);
-				} else {
-					wbuInventur_Durchfuehren.setActivatable(true);
-				}
-			} else if (e.getSource() == panelQueryFLRLager) {
+			if (e.getSource() == panelQueryFLRLager) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				LagerDto lagerDto = DelegateFactory.getInstance()
 						.getLagerDelegate()
@@ -230,20 +206,8 @@ public class PanelInventur extends PanelBasis {
 		wlaAbwertungdurchgefuehrt.setHorizontalAlignment(SwingConstants.LEFT);
 
 		wtfLager.setActivatable(false);
-		wbuInventur_Durchfuehren.setText(LPMain.getInstance()
-				.getTextRespectUISPr("artikel.inventur.durchfuehren"));
-		wbuInventur_Durchfuehren.setActivatable(false);
+
 		getInternalFrame().addItemChangedListener(this);
-
-		wbuInventur_Durchfuehren
-				.setActionCommand(PanelInventur.ACTION_SPECIAL_INVENTUR_DURCHFUEHREN);
-		wbuInventur_Durchfuehren.addActionListener(this);
-
-		wcbNichtInventierteArtikelAufNullSetzen
-				.setText(LPMain
-						.getInstance()
-						.getTextRespectUISPr(
-								"artikel.inventur.nichtinventierteartikelaufnullsetzen"));
 
 		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
@@ -278,16 +242,6 @@ public class PanelInventur extends PanelBasis {
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wcbNichtInventierteArtikelAufNullSetzen,
-				new GridBagConstraints(1, 3, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-
-		jpaWorkingOn.add(wbuInventur_Durchfuehren, new GridBagConstraints(1, 4,
-				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(20, 2, 2, 2), 0, 0));
-
 		jpaWorkingOn.add(wlaInventurdurchgefuehrt, new GridBagConstraints(1, 5,
 				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(20, 2, 2, 2), 0, 0));
@@ -311,14 +265,13 @@ public class PanelInventur extends PanelBasis {
 		internalFrameArtikel.getInventurDto().setCBez(wtfBezeichnung.getText());
 		internalFrameArtikel.getInventurDto().setTInventurdatum(
 				wdfInventurdatum.getTimestamp());
-		internalFrameArtikel.getInventurDto().setBNichtinventierteartikelabbuchen(wcbNichtInventierteArtikelAufNullSetzen.getShort());
+
 	}
 
 	protected void dto2Components() throws Throwable {
 		wtfBezeichnung.setText(internalFrameArtikel.getInventurDto().getCBez());
 		wdfInventurdatum.setTimestamp(internalFrameArtikel.getInventurDto()
 				.getTInventurdatum());
-		wcbNichtInventierteArtikelAufNullSetzen.setShort(internalFrameArtikel.getInventurDto().getBNichtinventierteartikelabbuchen());
 
 		if (internalFrameArtikel.getInventurDto().getLagerIId() != null) {
 			LagerDto lagerDto = DelegateFactory
@@ -388,40 +341,7 @@ public class PanelInventur extends PanelBasis {
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equals(ACTION_SPECIAL_INVENTUR_DURCHFUEHREN)) {
-
-			if (wcbNichtInventierteArtikelAufNullSetzen.isSelected()) {
-
-				String sMeldung = "'"
-						+ LPMain.getInstance()
-								.getTextRespectUISPr(
-										"artikel.inventur.nichtinventierteartikelaufnullsetzen")
-						+ "' ";
-
-				sMeldung += LPMain
-						.getInstance()
-						.getTextRespectUISPr(
-								"artikel.inventur.warnung.nichtinventierteartikelaufnullsetzen");
-
-				boolean b = DialogFactory.showModalJaNeinDialog(
-						getInternalFrame(), sMeldung);
-
-				if (b == false) {
-					return;
-				}
-			}
-
-			DelegateFactory
-					.getInstance()
-					.getInventurDelegate()
-					.inventurDurchfuehren(
-							internalFrameArtikel.getInventurDto().getIId(),
-							wcbNichtInventierteArtikelAufNullSetzen
-									.isSelected());
-			DialogFactory.showModalDialog("Info", "Inventur durchgef\u00FChrt!");
-			eventYouAreSelected(false);
-			wbuInventur_Durchfuehren.setEnabled(false);
-		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LAGER_FROM_LISTE)) {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_LAGER_FROM_LISTE)) {
 			panelQueryFLRLager = ArtikelFilterFactory
 					.getInstance()
 					.createPanelFLRLager(
@@ -448,6 +368,13 @@ public class PanelInventur extends PanelBasis {
 				internalFrameArtikel.getInventurDto()
 						.setBInventurdurchgefuehrt(Helper.boolean2Short(false));
 
+				internalFrameArtikel.getInventurDto()
+						.setBNichtinventierteartikelabbuchen(
+								Helper.boolean2Short(false));
+				internalFrameArtikel.getInventurDto()
+						.setBNichtinventierteSnrchnrArtikelabbuchen(
+								Helper.boolean2Short(false));
+
 				internalFrameArtikel.getInventurDto().setIId(
 						DelegateFactory
 								.getInstance()
@@ -470,14 +397,14 @@ public class PanelInventur extends PanelBasis {
 									.getTextRespectUISPr("lp.error"),
 									"Es gibt bereits Inventuren nach dem angegebenen Inventurdatum");
 				}
-				// diesem panel den key setzen.
-				setKeyWhenDetailPanel(internalFrameArtikel.getInventurDto()
-						.getIId());
 			} else {
 				DelegateFactory.getInstance().getInventurDelegate()
 						.updateInventur(internalFrameArtikel.getInventurDto());
 			}
 
+			// diesem panel den key setzen.
+			setKeyWhenDetailPanel(internalFrameArtikel.getInventurDto()
+					.getIId());
 			super.eventActionSave(e, true);
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
 				getInternalFrame().setKeyWasForLockMe(

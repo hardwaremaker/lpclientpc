@@ -45,13 +45,23 @@ import com.lp.server.finanz.service.MahnlaufDto;
 import com.lp.server.finanz.service.MahnstufeDto;
 import com.lp.server.finanz.service.MahnungDto;
 import com.lp.server.finanz.service.MahnwesenFac;
+import com.lp.server.finanz.service.SepaXmlExportResult;
+import com.lp.server.rechnung.service.LastschriftvorschlagDto;
+import com.lp.server.rechnung.service.LastschriftvorschlagKomplettDto;
 import com.lp.server.rechnung.service.RechnungDto;
+import com.lp.server.system.service.ParameterFac;
 
 /**
- * <p><I>BusinesDelegate fuer das Mahnwesen</I> </p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p> </p>
- * @author  Martin Bluehweis
+ * <p>
+ * <I>BusinesDelegate fuer das Mahnwesen</I>
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * </p>
+ * 
+ * @author Martin Bluehweis
  * @version $Revision: 1.7 $
  */
 public class MahnwesenDelegate extends Delegate {
@@ -61,8 +71,7 @@ public class MahnwesenDelegate extends Delegate {
 	public MahnwesenDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			mahnwesenFac = (MahnwesenFac) context
-					.lookup("lpserver/MahnwesenFacBean/remote");
+			mahnwesenFac = lookupFac(context, MahnwesenFac.class);	
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -70,7 +79,8 @@ public class MahnwesenDelegate extends Delegate {
 
 	public MahnlaufDto createMahnlaufMitMahnvorschlag() throws ExceptionLP {
 		try {
-			return mahnwesenFac.createMahnlaufMitMahnvorschlag(LPMain.getTheClient());
+			return mahnwesenFac.createMahnlaufMitMahnvorschlag(LPMain
+					.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -142,7 +152,8 @@ public class MahnwesenDelegate extends Delegate {
 
 	public MahnstufeDto[] mahnstufeFindAll() throws ExceptionLP {
 		try {
-			return mahnwesenFac.mahnstufeFindByMandantCNr(LPMain.getTheClient().getMandant());
+			return mahnwesenFac.mahnstufeFindByMandantCNr(LPMain.getTheClient()
+					.getMandant());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -151,7 +162,8 @@ public class MahnwesenDelegate extends Delegate {
 
 	public LinkedHashMap<?, ?> getAllMahnstufe() throws ExceptionLP {
 		try {
-			return mahnwesenFac.getAllMahnstufe(LPMain.getTheClient().getMandant());
+			return mahnwesenFac.getAllMahnstufe(LPMain.getTheClient()
+					.getMandant());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -169,11 +181,11 @@ public class MahnwesenDelegate extends Delegate {
 	public MahnungDto updateMahnung(MahnungDto mahnungDto) throws ExceptionLP {
 		try {
 			if (mahnungDto.getIId() != null) {
-				return mahnwesenFac.updateMahnung(mahnungDto, LPMain
-						.getTheClient());
+				return mahnwesenFac.updateMahnung(mahnungDto,
+						LPMain.getTheClient());
 			} else {
-				return mahnwesenFac.createMahnung(mahnungDto, LPMain
-						.getTheClient());
+				return mahnwesenFac.createMahnung(mahnungDto,
+						LPMain.getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -200,8 +212,8 @@ public class MahnwesenDelegate extends Delegate {
 
 	public void mahneMahnungRueckgaengig(Integer mahnungIId) throws ExceptionLP {
 		try {
-			mahnwesenFac.mahneMahnungRueckgaengig(mahnungIId, LPMain
-					.getTheClient());
+			mahnwesenFac.mahneMahnungRueckgaengig(mahnungIId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -210,7 +222,8 @@ public class MahnwesenDelegate extends Delegate {
 	public void mahneMahnlaufRueckgaengig(Integer mahnlaufIId)
 			throws ExceptionLP {
 		try {
-			mahnwesenFac.mahneMahnlaufRueckgaengig(mahnlaufIId, LPMain.getTheClient());
+			mahnwesenFac.mahneMahnlaufRueckgaengig(mahnlaufIId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -249,11 +262,11 @@ public class MahnwesenDelegate extends Delegate {
 
 	public Boolean bGibtEsEinenOffenenMahnlauf() throws ExceptionLP {
 		try {
-			return mahnwesenFac.bGibtEsEinenOffenenMahnlauf(LPMain.getTheClient().getMandant(), 
-					LPMain.getTheClient());
+			return mahnwesenFac.bGibtEsEinenOffenenMahnlauf(LPMain
+					.getTheClient().getMandant(), LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
-			return Boolean.FALSE ;
+			return Boolean.FALSE;
 		}
 	}
 
@@ -289,12 +302,140 @@ public class MahnwesenDelegate extends Delegate {
 			return null;
 		}
 	}
+
 	public MahnungDto[] mahnungFindByRechnungIId(Integer rechnungIId)
 			throws ExceptionLP {
 		try {
 			return mahnwesenFac.mahnungFindByRechnungIId(rechnungIId);
 		} catch (Throwable ex) {
 			return null;
+		}
+	}
+
+	public LastschriftvorschlagDto lastschriftvorschlagFindByPrimaryKey(
+			Integer lastschriftvorschlagIId) throws ExceptionLP {
+		try {
+			return mahnwesenFac
+					.lastschriftvorschlagFindByPrimaryKey(lastschriftvorschlagIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public LastschriftvorschlagKomplettDto lastschriftvorschlagKomplettFindByPrimaryKey(
+			Integer lastschriftvorschlagIId) throws ExceptionLP {
+		try {
+			return mahnwesenFac.lastschriftvorschlagKomplettFindByPrimaryKey(
+					lastschriftvorschlagIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public BigDecimal getGesamtwertEinesLastschriftvorschlaglaufs(
+			Integer mahnlaufIId) throws ExceptionLP {
+		try {
+			return mahnwesenFac.getGesamtwertEinesLastschriftvorschlaglaufs(
+					mahnlaufIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public LastschriftvorschlagDto updateLastschriftvorschlag(
+			LastschriftvorschlagDto dto) throws ExceptionLP {
+		try {
+			return mahnwesenFac.updateLastschriftvorschlag(dto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void removeLastschriftvorschlag(Integer lastschriftvorschlagIId)
+			throws ExceptionLP {
+		try {
+			mahnwesenFac.removeLastschriftvorschlag(lastschriftvorschlagIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public SepaXmlExportResult exportiereLastschriftvorschlaege(
+			Integer mahnlaufIId) throws ExceptionLP {
+		try {
+			return mahnwesenFac.exportiereLastschriftvorschlaege(mahnlaufIId,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public String getLastschriftvorschlagSepaExportFilename()
+			throws ExceptionLP {
+		try {
+			return mahnwesenFac
+					.getLastschriftvorschlagSepaExportFilename(LPMain
+							.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void archiviereLastschriftvorschlag(Integer mahnlaufIId, String xml)
+			throws ExceptionLP {
+		try {
+			mahnwesenFac.archiviereLastschriftvorschlag(mahnlaufIId, xml,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public Boolean isLastschriftvorschlagOffen(Integer mahnlaufIId)
+			throws ExceptionLP {
+		try {
+			return mahnwesenFac.isLastschriftvorschlagOffen(mahnlaufIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void removeMahnlaufIgnoriereGespeicherteLastschriften(
+			MahnlaufDto mahnlaufDto) throws ExceptionLP {
+		try {
+			mahnwesenFac.removeMahnlaufIgnoriereGespeicherteLastschriften(
+					mahnlaufDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public boolean isLastschriftvorschlagExportierbar(Integer mahnlaufIId)
+			throws ExceptionLP {
+		try {
+			return mahnwesenFac.isLastschriftvorschlagExportierbar(mahnlaufIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return false;
+		}
+	}
+
+	public int anzahlDerOffenenRechnungenMitMahnstufeGroesser(Integer kundeIId,
+			int mahnstufe) throws ExceptionLP {
+		try {
+			return mahnwesenFac.anzahlDerOffenenRechnungenMitMahnstufeGroesser(
+					kundeIId, mahnstufe, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return 0;
 		}
 	}
 }

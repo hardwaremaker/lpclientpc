@@ -167,7 +167,7 @@ public class DialogArtikelbilder extends JDialog {
 		if (bilder != null && bilder.size() > 0) {
 			wbfBild = new ImageViewer(Helper.imageToByteArray(bilder.get(0)));
 		} else {
-			wbfBild = new ImageViewer(null);
+			wbfBild = new ImageViewer((byte[])null);
 		}
 
 		setLabelTextUndZeigeBildAn();

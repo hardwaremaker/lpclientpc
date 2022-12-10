@@ -45,6 +45,7 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 
@@ -89,12 +90,16 @@ private JPanel jpaWorkingOn = new JPanel();
 
   private void jbInit()
       throws Throwable {
-    Border borderStatusbarFeld = BorderFactory.createBevelBorder(BevelBorder.LOWERED,
-        Color.white,
-        Color.white,
-        new Color(115, 114, 105), /** @todo JO 18.03.06 ->lp.properties  PJ 5108 */
-        new Color(165, 163, 151));
-    jpaWorkingOn = new JPanel();
+	  Color borderColor = Defaults.getInstance().getStatusbarBorderColor();
+    Border borderStatusbarFeld = borderColor != null ?
+			BorderFactory.createLineBorder(borderColor, 1) :    
+			BorderFactory.createBevelBorder(BevelBorder.LOWERED,
+			            Color.white,
+			            Color.white,
+			            new Color(115, 114, 105), /** @todo JO 18.03.06 ->lp.properties  PJ 5108 */
+			            new Color(165, 163, 151));
+			
+	jpaWorkingOn = new JPanel();
     wlaSpalte0 = new WrapperLabel();
     wlaSpalte1 = new WrapperLabel();
     wlaSpalte2 = new WrapperLabel();
@@ -107,18 +112,18 @@ private JPanel jpaWorkingOn = new JPanel();
     //jpaWorkingOn.setBackground(SystemColor.activeCaptionBorder);
     jpaWorkingOn.setBorder(BorderFactory.createEmptyBorder());
     this.setLayout(gridBagLayout1);
-    wlaSpalte0.setMaximumSize(new Dimension(Helper.getBreiteInPixel(4), iHeight));
-    wlaSpalte0.setMinimumSize(new Dimension(Helper.getBreiteInPixel(4), iHeight));
-    wlaSpalte0.setPreferredSize(new Dimension(Helper.getBreiteInPixel(4), iHeight));
-    wlaSpalte1.setMaximumSize(new Dimension(Helper.getBreiteInPixel(10), iHeight));
-    wlaSpalte1.setMinimumSize(new Dimension(Helper.getBreiteInPixel(10), iHeight));
-    wlaSpalte1.setPreferredSize(new Dimension(Helper.getBreiteInPixel(10), iHeight));
-    wlaSpalte2.setMaximumSize(new Dimension(Helper.getBreiteInPixel(4), iHeight));
-    wlaSpalte2.setMinimumSize(new Dimension(Helper.getBreiteInPixel(4), iHeight));
-    wlaSpalte2.setPreferredSize(new Dimension(Helper.getBreiteInPixel(4), iHeight));
-    wlaSpalte3.setMaximumSize(new Dimension(Helper.getBreiteInPixel(10), iHeight));
-    wlaSpalte3.setMinimumSize(new Dimension(Helper.getBreiteInPixel(10), iHeight));
-    wlaSpalte3.setPreferredSize(new Dimension(Helper.getBreiteInPixel(10), iHeight));
+    wlaSpalte0.setMaximumSize(new Dimension(Helper.getBreiteInPixel(5), iHeight));
+    wlaSpalte0.setMinimumSize(new Dimension(Helper.getBreiteInPixel(5), iHeight));
+    wlaSpalte0.setPreferredSize(new Dimension(Helper.getBreiteInPixel(5), iHeight));
+    wlaSpalte1.setMaximumSize(new Dimension(Helper.getBreiteInPixel(13), iHeight));
+    wlaSpalte1.setMinimumSize(new Dimension(Helper.getBreiteInPixel(13), iHeight));
+    wlaSpalte1.setPreferredSize(new Dimension(Helper.getBreiteInPixel(13), iHeight));
+    wlaSpalte2.setMaximumSize(new Dimension(Helper.getBreiteInPixel(5), iHeight));
+    wlaSpalte2.setMinimumSize(new Dimension(Helper.getBreiteInPixel(5), iHeight));
+    wlaSpalte2.setPreferredSize(new Dimension(Helper.getBreiteInPixel(5), iHeight));
+    wlaSpalte3.setMaximumSize(new Dimension(Helper.getBreiteInPixel(13), iHeight));
+    wlaSpalte3.setMinimumSize(new Dimension(Helper.getBreiteInPixel(13), iHeight));
+    wlaSpalte3.setPreferredSize(new Dimension(Helper.getBreiteInPixel(13), iHeight));
     wlaSpalte4.setMaximumSize(new Dimension(10000, iHeight));
     wlaSpalte4.setMinimumSize(new Dimension(10, iHeight));
     wlaSpalte4.setPreferredSize(new Dimension(10, iHeight));
@@ -135,7 +140,8 @@ private JPanel jpaWorkingOn = new JPanel();
     wlaSpalte4.setBorder(borderStatusbarFeld);
     wlaSpalte5.setBorder(borderStatusbarFeld);
     wlaSpalte6.setBorder(borderStatusbarFeld);
-    Font defaultFont = HelperClient.getDefaultFont();
+    Font labelUIFont = UIManager.getFont("Label.font");
+    Font defaultFont = labelUIFont != null ? labelUIFont : HelperClient.getDefaultFont();
     // ca. 90% der standardgroesse
     Font statusbarFont = new Font(defaultFont.getFontName(), defaultFont.getStyle(),
                                   (defaultFont.getSize() * 9) / 10);

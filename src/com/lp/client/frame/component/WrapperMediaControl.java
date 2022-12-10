@@ -37,25 +37,49 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.ObjectInputStream;
+import java.math.BigDecimal;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.TreeMap;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.Timer;
+import javax.swing.TransferHandler;
 
-import net.sf.jasperreports.engine.JasperPrint;
+import org.apache.tika.mime.MediaType;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.frame.report.ReportViewer;
 import com.lp.client.pc.LPMain;
+import com.lp.client.rechtschreibung.IRechtschreibPruefbar;
+import com.lp.client.util.IconFactory;
+import com.lp.editor.util.TextBlockOverflowException;
 import com.lp.server.system.service.MediaFac;
 import com.lp.util.Helper;
+
+import net.sf.jasperreports.engine.JasperPrint;
 
 @SuppressWarnings("static-access")
 /*
@@ -69,7 +93,7 @@ import com.lp.util.Helper;
  * 
  * @version not attributable Date $Date: 2009/04/24 07:55:59 $
  */
-public class WrapperMediaControl extends PanelBasis {
+public class WrapperMediaControl extends PanelBasis implements IRechtschreibPruefbar {
 
 	/**
 	 * 
@@ -92,42 +116,51 @@ public class WrapperMediaControl extends PanelBasis {
 	private WrapperTiffViewer wtv;
 	private WrapperSonstige ws;
 	private WrapperPdfField wpf;
+	private WrapperMailViewField wmf;
 	private ReportViewer rv;
 	private int iSpaltenbreite1 = 80;
 	private boolean bMitDefaultbildFeld = false;
 	protected boolean bWithoutButtons = false;
+	private boolean bDropEnabled = true;
+
+	private WrapperButton jbuFromClipboard = new WrapperButton();
 
 	private WrapperCheckBox wcbDefaultbild = new WrapperCheckBox();
 	private WrapperComboBox wcoArt = new WrapperComboBox();
 	private WrapperButton wbuBildEntfernen = new WrapperButton();
 	private WrapperTextField wtfTextFieldFuerDateiname = null;
 
-	public WrapperMediaControl(InternalFrame internalFrame, String addTitel)
-			throws Throwable {
+	public void setPDFVorschauAnzeigen(boolean bPDFVorschau) {
+		wpf.setPDFVorschauAnzeigen(bPDFVorschau);
+	}
+
+	public WrapperMediaControl(InternalFrame internalFrame, String addTitel) throws Throwable {
 		this(internalFrame, addTitel, false);
 	}
 
-	public WrapperMediaControl(InternalFrame internalFrame, String addTitel,
-			boolean bMitDefaultbildFeld,
+	public WrapperMediaControl(InternalFrame internalFrame, String addTitel, boolean bMitDefaultbildFeld,
 			WrapperTextField wtfTextFieldFuerDateiname) throws Throwable {
 		this(internalFrame, addTitel, bMitDefaultbildFeld);
 		this.wtfTextFieldFuerDateiname = wtfTextFieldFuerDateiname;
 		jbInit();
 	}
 
-	public WrapperMediaControl(InternalFrame internalFrame, String addTitel,
-			boolean bMitDefaultbildFeld) throws Throwable {
+	public WrapperMediaControl(InternalFrame internalFrame, String addTitel, boolean bMitDefaultbildFeld)
+			throws Throwable {
 		this(internalFrame, addTitel, bMitDefaultbildFeld, false);
 	}
 
-	public WrapperMediaControl(InternalFrame internalFrame, String addTitel,
-			boolean bMitDefaultbildFeld, boolean bWithoutButtons)
-			throws Throwable {
+	public WrapperMediaControl(InternalFrame internalFrame, String addTitel, boolean bMitDefaultbildFeld,
+			boolean bWithoutButtons) throws Throwable {
 		super(internalFrame, addTitel);
 		this.bMitDefaultbildFeld = bMitDefaultbildFeld;
 		this.bWithoutButtons = bWithoutButtons;
 		jbInit();
 		initComponents();
+	}
+
+	public void setDropAreaEnabled(boolean enableDropArea) {
+		bDropEnabled = enableDropArea;
 	}
 
 	public void cleanup() {
@@ -148,6 +181,7 @@ public class WrapperMediaControl extends PanelBasis {
 		paWorkOn.remove(rv);
 		rv.cleanup();
 		rv = null;
+		wmf.cleanup();
 
 	}
 
@@ -155,124 +189,130 @@ public class WrapperMediaControl extends PanelBasis {
 		return null;
 	}
 
+	public Map<String, String> getSelectableMimeTypes(boolean ohneText) {
+		Map<String, String> tmArten = new TreeMap<String, String>();
+		if (!ohneText) {
+			tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML, MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML);
+		}
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG, MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG, MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF, MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF, MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF, MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT, MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER, MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822, MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822);
+		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK, MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK);
+		return tmArten;
+	}
+
 	private void jbInit() throws Throwable {
 		this.setLayout(new GridBagLayout());
+
+		HvDropTarget dt = new HvDropTarget(this);
+		dt.addDropListener(new FileImportDropHandler(this));
+//		this.setTransferHandler(new FileImportTransferHandlerMC(this));
 
 		jPanelArt.setLayout(gridBagLayout1);
 		paWorkOn.setLayout(gridBagLayout1);
 
 		wef = createEditorField();
-		wbf = new WrapperBildField(getInternalFrame(), "",
-				wtfTextFieldFuerDateiname, bWithoutButtons);
-		wtv = new WrapperTiffViewer(getInternalFrame(), "",
-				wtfTextFieldFuerDateiname);
-		ws = new WrapperSonstige(getInternalFrame(), "",
-				wtfTextFieldFuerDateiname);
-		wpf = new WrapperPdfField(getInternalFrame(), "",
-				wtfTextFieldFuerDateiname);
-		rv = new ReportViewer(null);
+		wbf = new WrapperBildField(getInternalFrame(), "", wtfTextFieldFuerDateiname, bWithoutButtons);
+		wtv = new WrapperTiffViewer(getInternalFrame(), "", wtfTextFieldFuerDateiname);
+		ws = new WrapperSonstige(getInternalFrame(), "", wtfTextFieldFuerDateiname);
+		wpf = new WrapperPdfField(getInternalFrame(), "", wtfTextFieldFuerDateiname);
+		wmf = new WrapperMailViewField(getInternalFrame(), "", bWithoutButtons);
+		initReportViewer(new ReportViewer(null));
 		wbf.setVisible(false);
 		wtv.setVisible(false);
-		wef.setVisible(false);
+		enableEditorField(false);
 		ws.setVisible(false);
 		wpf.setVisible(false);
 		rv.setVisible(false);
-		TreeMap<String, String> tmArten = new TreeMap<String, String>();
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML,
-				MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML);
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG,
-				MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG);
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG,
-				MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG);
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF,
-				MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF);
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF,
-				MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF);
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF,
-				MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT,
-				MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT);
-		tmArten.put(MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER,
-				MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER);
-		wcoArt.setMap(tmArten);
+		wmf.setVisible(false);
+		wcoArt.setMap(getSelectableMimeTypes(false));
 		if (!bWithoutButtons) {
 			if (jPanelArt == null) {
 				jPanelArt = new JPanel();
 				GridBagLayout gridBagLayout = new GridBagLayout();
 				jPanelArt.setLayout(gridBagLayout);
-				jPanelArt
-						.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+				jPanelArt.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 			}
-			wlaArt = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-					"label.art"));
-			wlaArt.setMaximumSize(new Dimension(iSpaltenbreite1, Defaults
-					.getInstance().getControlHeight()));
-			wlaArt.setMinimumSize(new Dimension(iSpaltenbreite1, Defaults
-					.getInstance().getControlHeight()));
-			wlaArt.setPreferredSize(new Dimension(iSpaltenbreite1, Defaults
-					.getInstance().getControlHeight()));
+			wlaArt = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.art"));
+			wlaArt.setMaximumSize(new Dimension(iSpaltenbreite1, Defaults.getInstance().getControlHeight()));
+			wlaArt.setMinimumSize(new Dimension(iSpaltenbreite1, Defaults.getInstance().getControlHeight()));
+			wlaArt.setPreferredSize(new Dimension(iSpaltenbreite1, Defaults.getInstance().getControlHeight()));
 			// wcoArt.setMandatoryField(true);
 
-			wcbDefaultbild.setText(LPMain.getInstance().getTextRespectUISPr(
-					"lp.defaultbild"));
+			wcbDefaultbild.setText(LPMain.getInstance().getTextRespectUISPr("lp.defaultbild"));
+
+			HelperClient.setMinimumAndPreferredSize(wcbDefaultbild, HelperClient.getSizeFactoredDimension(150));
 
 			wbuBildEntfernen = new WrapperButton();
-			wbuBildEntfernen.setIcon(new ImageIcon(getClass().getResource(
-					"/com/lp/client/res/leeren.png")));
+			wbuBildEntfernen.setIcon(new ImageIcon(getClass().getResource("/com/lp/client/res/leeren.png")));
 			wbuBildEntfernen.setActionCommand(ACTION_SPECIAL_BILD_ENTFERNEN);
 			wbuBildEntfernen.addActionListener(this);
 
-			wcoArt.addActionListener(new WrapperMediaControl_jComboBoxPositionsart_actionAdapter(
-					this));
-			jPanelArt.add(wlaArt, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-					GridBagConstraints.WEST, GridBagConstraints.NONE,
-					new Insets(2, 2, 2, 2), 50, 0));
-			jPanelArt.add(wcoArt, new GridBagConstraints(1, 0, 1, 1, 1, 0,
-					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-					new Insets(2, 2, 2, 2), 0, 0));
-			jPanelArt.add(wbuBildEntfernen, new GridBagConstraints(2, 0, 0, 1,
-					0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE,
-					new Insets(2, 2, 2, 2), 50, 0));
+			jbuFromClipboard = new WrapperButton();
+			jbuFromClipboard.setIcon(IconFactory.getPaste());
+			jbuFromClipboard.setActionCommand("FROM_CLIPBOARD");
+			jbuFromClipboard.addActionListener(this);
+			jbuFromClipboard.setToolTipText(LPMain.getTextRespectUISPr("lp.bildfield.paste"));
+
+			HelperClient.setMinimumAndPreferredSize(jbuFromClipboard, new Dimension(
+					Defaults.getInstance().getControlHeight(), Defaults.getInstance().getControlHeight()));
+
+			wcoArt.addActionListener(new WrapperMediaControl_jComboBoxPositionsart_actionAdapter(this));
+			jPanelArt.add(wlaArt, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 50, 0));
+
+			jPanelArt.add(jbuFromClipboard, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.NONE, new Insets(2, 2, 2, Defaults.sizeFactor(22)), 0, 0));
+
+			jPanelArt.add(wcoArt, new GridBagConstraints(1, 0, 1, 1, 1, 0, GridBagConstraints.WEST,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 25, 2, 2), 0, 0));
+			jPanelArt.add(wbuBildEntfernen, new GridBagConstraints(2, 0, 0, 1, 0, 0, GridBagConstraints.EAST,
+					GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 50, 0));
 
 			if (bMitDefaultbildFeld == true) {
-				jPanelArt.add(wcbDefaultbild, new GridBagConstraints(5, 0, 0,
-						1, 0, 0, GridBagConstraints.WEST,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						150, 0));
+				jPanelArt.add(wcbDefaultbild, new GridBagConstraints(5, 0, 0, 1, 0, 0, GridBagConstraints.WEST,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 				/*
-				 * jPanelArt.add(wcbDefaultbild, new GridBagConstraints(2, 0, 1,
-				 * 1, 0, 0.0 , GridBagConstraints.WEST, GridBagConstraints.NONE,
-				 * new Insets(2, 2, 2, 2), 100, 0));
+				 * jPanelArt.add(wcbDefaultbild, new GridBagConstraints(2, 0, 1, 1, 0, 0.0 ,
+				 * GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2),
+				 * 100, 0));
 				 */
 			}
 		}
-		paWorkOn.add(wbf, new GridBagConstraints(0, 0, 1, 2, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		paWorkOn.add(wtv, new GridBagConstraints(0, 0, 1, 2, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		paWorkOn.add(wef, new GridBagConstraints(0, 0, 1, 2, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		paWorkOn.add(ws, new GridBagConstraints(0, 0, 1, 2, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		paWorkOn.add(wpf, new GridBagConstraints(0, 0, 1, 2, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		paWorkOn.add(rv, new GridBagConstraints(0, 0, 1, 2, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-
-		this.add(jPanelArt, new GridBagConstraints(0, 0, 1, 1, 0, 0,
-				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+		paWorkOn.add(wbf, new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		paWorkOn.add(wtv, new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		paWorkOn.add(wef, new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		paWorkOn.add(ws, new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		paWorkOn.add(wpf, new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		paWorkOn.add(wmf, new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		this.add(paWorkOn, new GridBagConstraints(0, 2, 1, 1, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
+		this.add(jPanelArt, new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		this.add(paWorkOn, new GridBagConstraints(0, 2, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+	}
+
+	public WrapperButton getWbuBildEntfernen() {
+		return wbuBildEntfernen;
+	}
+
+	private void initReportViewer(ReportViewer reportViewer) {
+		rv = reportViewer;
+		paWorkOn.add(rv, new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
 	}
 
 	/**
@@ -292,31 +332,39 @@ public class WrapperMediaControl extends PanelBasis {
 		return wcbDefaultbild.getShort();
 	}
 
+	private String getNormalizedMimeType() {
+		String mime = getMimeType();
+		if (wcoArt.isSelectedItemEmpty()) {
+			mime = MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT;
+		}
+		return mime;
+	}
+
 	public void setOMedia(byte[] media) throws Throwable {
 
-		wcoArt.setKeyOfSelectedItem(getMimeType());
-		if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML)) {
-			if (media != null) {
-				wef.setText(new String(media));
-			} else {
-				wef.setText("");
-			}
-		} else if (getMimeType().equals(
-				MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF)) {
-			if (media != null) {
-				wtv.setImage(media);
-			}
-		} else if (getMimeType()
-				.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
-			if (media != null) {
-				ws.setDatei(media);
-			}
-		} else if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF)) {
-			if (media != null) {
-				wpf.setPdf(media);
-			}
-		} else if (getMimeType().equals(
-				MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER)) {
+//	Das ist ein No-Op. getMimeType() aus wcoArt.getKeyOfSelected()
+// den Wert der jetzt gesetzt wird.
+//		wcoArt.setKeyOfSelectedItem(getMimeType());
+
+		String mime = getNormalizedMimeType();
+		if (MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML.equals(mime)) {
+			setEditorContent(media);
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF.equals(mime)) {
+			wtv.setImage(media);
+//			if (media != null) {
+//				wtv.setImage(media);
+//			}
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT.equals(mime)) {
+			ws.setDatei(media);
+//			if (media != null) {
+//				ws.setDatei(media);
+//			}
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_APP_PDF.equals(mime)) {
+			wpf.setPdf(media);
+//			if (media != null) {
+//				wpf.setPdf(media);
+//			}
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER.equals(mime)) {
 			if (media != null) {
 				ByteArrayInputStream bStream = new ByteArrayInputStream(media);
 				ObjectInputStream oStream = new ObjectInputStream(bStream);
@@ -324,103 +372,76 @@ public class WrapperMediaControl extends PanelBasis {
 				rv.loadReport(jPrint);
 				rv.refreshPage();
 			}
-		} else {
-			try {
-				BufferedImage image = Helper.byteArrayToImage(media);
-				wbf.setImage(media);
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK.contentEquals(mime)) {
+			wmf.setMail(media, mime);
+		}
 
-				if (media != null && image != null) {
-					wbf.wnfGroesse.setDouble(new Double(((double) media.length)
-							/ ((double) 1024)));
-					wbf.wtfGroesse.setText(image.getWidth(this) + "x"
-							+ image.getHeight(this));
-				} else {
-					wbf.wnfGroesse.setDouble(new Double(0));
-					wbf.wtfGroesse.setText("");
-					wbf.setImage(null);
-				}
+		else {
+			try {
+				wbf.setImage(media);
 			} catch (Exception ex) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.system.image.format"), "");
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.system.image.format"), "");
 			}
 		}
 	}
 
 	public void setOMediaText(String media) throws Throwable {
-
 		wcoArt.setKeyOfSelectedItem(getMimeType());
 		if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML)) {
-			if (media != null) {
-				wef.setText(media);
-			} else {
-				wef.setText("");
-			}
+			setEditorContent(media);
 		}
 	}
 
 	public void setOMediaImage(byte[] media) throws Throwable {
 
-		wcoArt.setKeyOfSelectedItem(getMimeType());
-		if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF)) {
+// Ist faktisch ein Noop
+//		wcoArt.setKeyOfSelectedItem(getMimeType());
+		String mime = getNormalizedMimeType();
+		if (MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF.equals(mime)) {
 			wtv.setImage(media);
-		} else if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF)) {
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_APP_PDF.equals(mime)) {
 			wpf.setPdf(media);
-		} else if (getMimeType()
-				.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT.equals(mime)) {
 			ws.setDatei(media);
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK.equals(mime)) {
+			wmf.setMail(media, mime);
 		} else {
 			try {
-				BufferedImage image = Helper.byteArrayToImage(media);
 				wbf.setImage(media);
-
-				if (media != null && image != null) {
-					wbf.wnfGroesse.setDouble(new Double(((double) media.length)
-							/ ((double) 1024)));
-					wbf.wtfGroesse.setText(image.getWidth(this) + "x"
-							+ image.getHeight(this));
-				} else {
-					wbf.wnfGroesse.setDouble(new Double(0));
-					wbf.wtfGroesse.setText("");
-					wbf.setImage(null);
-				}
 			} catch (Exception ex) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.system.image.format"), "");
-
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.system.image.format"), "");
 			}
-
 		}
-
 	}
 
 	/**
 	 * 
-	 * @deprecated AD gibt Probleme mit dem encoding bei Text use setOMediaText
-	 *             oder setOMediaimage
+	 * @deprecated AD gibt Probleme mit dem encoding bei Text use setOMediaText oder
+	 *             setOMediaimage
 	 * @throws Throwable
 	 * @return byte[]
 	 */
 	public byte[] getOMedia() throws Throwable {
-		if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG)
-				|| getMimeType()
-						.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF)
-				|| getMimeType()
-						.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG)) {
-			Image im = wbf.getImage();
-			if (im != null) {
-				return Helper.imageToByteArray((BufferedImage) im);
-			} else {
-				return null;
-			}
-		} else if (getMimeType()
-				.equals(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML)) {
-			return wef.getText().getBytes();
-		} else if (getMimeType()
-				.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
+		String mime = getNormalizedMimeType();
+		if (MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG.equals(mime)) {
+			BufferedImage im = wbf.getImage();
+			return im != null ? Helper.imageToByteArray(im) : null;
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML.equals(mime)) {
+			return getEditorContentAsByte();
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT.equals(mime)) {
 			return ws.getDatei();
-		} else if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF)) {
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_APP_PDF.equals(mime)) {
 			return wpf.getPdf();
-		} else {
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK.equals(mime)) {
+			return wmf.getMailData();
+		} else
+
+		{
 			// tiff to byte[]
 			return wtv.getImage();
 		}
@@ -428,37 +449,28 @@ public class WrapperMediaControl extends PanelBasis {
 
 	public String getOMediaText() throws Throwable {
 		if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML)) {
-			return wef.getText();
+			return getEditorContent();
 		} else {
 			return null;
 		}
-
 	}
 
 	public byte[] getOMediaImage() throws Throwable {
-		if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG)
-				|| getMimeType()
-						.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF)
-				|| getMimeType()
-						.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG)) {
-			Image im = wbf.getImage();
-			if (im != null) {
-				return Helper.imageToByteArray((BufferedImage) im);
-			} else {
-				return null;
-			}
-		} else if (getMimeType().equals(
-				MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF)) {
+		String mime = getNormalizedMimeType();
+		if (MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG.equals(mime)) {
+			return wbf.getImageOriginalBytes();
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF.equals(mime)) {
 			return wtv.getImage();
-		} else if (getMimeType()
-				.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
-			// tiff to byte[]
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT.equals(mime)) {
 			return ws.getDatei();
-		} else if (getMimeType().equals(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF)) {
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_APP_PDF.equals(mime)) {
 			return wpf.getPdf();
-		}
-
-		else {
+		} else if (MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822.equals(mime)
+				|| MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK.equals(mime)) {
+			return wmf.getMailData();
+		} else {
 			return null;
 		}
 	}
@@ -478,6 +490,7 @@ public class WrapperMediaControl extends PanelBasis {
 		wtv.setDateiname(dateiname);
 		wpf.setDateiname(dateiname);
 		ws.setDateiname(dateiname);
+		wmf.setDateiname(dateiname);
 	}
 
 	public String getDateiname() {
@@ -488,9 +501,11 @@ public class WrapperMediaControl extends PanelBasis {
 				dateiName = wtv.getDateiname();
 			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF)) {
 				dateiName = wpf.getDateiname();
-			} else if (currentArt
-					.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
 				dateiName = ws.getDateiname();
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822)
+					|| currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK)) {
+				dateiName = wmf.getDateiname();
 			} else {
 				dateiName = wbf.getDateiname();
 			}
@@ -502,104 +517,147 @@ public class WrapperMediaControl extends PanelBasis {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_BILD_ENTFERNEN)) {
 			wbf.setImage(null);
 			wtv.setImage(null);
+			wpf.setPdf(null);
+			wpf.setDateiname(null);
+			wmf.removeContent();
+		} else if (e.getSource().equals(jbuFromClipboard)) {
+			Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+			Transferable transferData = systemClipboard.getContents(null);
+			if (transferData != null) {
+				if (transferData.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+					Image img = (Image) transferData.getTransferData(DataFlavor.imageFlavor);
+					BufferedImage o = Helper.imageToBufferedImage(img);
+					setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG);
+					setDateiname("zwischenablage" + pngExtension);
+					wbf.setImage(Helper.imageToByteArrayWithType(o, pngExtension.substring(1)));
+
+				} else if (transferData.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+
+					@SuppressWarnings("unchecked")
+					List<File> l = (List<File>) transferData.getTransferData(DataFlavor.javaFileListFlavor);
+					Iterator<File> iter = l.iterator();
+					while (iter.hasNext()) {
+						File file = iter.next();
+
+						if (file.getPath().toLowerCase().endsWith(".jpg")
+								|| file.getPath().toLowerCase().endsWith(".png")
+								|| file.getPath().toLowerCase().endsWith(".gif")
+								|| file.getPath().toLowerCase().endsWith(".tiff")
+								|| file.getPath().toLowerCase().endsWith(".pdf")) {
+
+							String extension = file.getPath().toLowerCase().substring(file.getPath().length() - 3,
+									file.getPath().length());
+							
+							if(file.getPath().toLowerCase().endsWith(".tiff")) {
+								 extension = file.getPath().toLowerCase().substring(file.getPath().length() - 4,
+											file.getPath().length());
+							}
+							
+
+							if (extension.toUpperCase().equals("PDF")) {
+								setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
+								setOMedia(Helper.getBytesFromFile(file));
+							} else {
+
+								if (extension.toUpperCase().equals("GIF")) {
+									setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF);
+									setOMediaImage(Helper.getBytesFromFile(file));
+								} else if (extension.toUpperCase().equals("PNG")) {
+									setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG);
+									setOMediaImage(Helper.getBytesFromFile(file));
+								} else if (extension.toUpperCase().equals("JPG")
+										|| extension.toUpperCase().equals("JPEG")) {
+									setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG);
+									setOMediaImage(Helper.getBytesFromFile(file));
+								} else if (extension.toUpperCase().equals("TIFF")) {
+									setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF);
+									setOMediaImage(Helper.getBytesFromFile(file));
+								}
+
+							}
+
+							setDateiname("zwischenablage" + "." + extension);
+
+							break;
+						}
+
+					}
+
+				}
+
+			}
+
 		}
+	}
+
+	protected void enableEditorField(boolean enable) {
+		wef.setVisible(enable);
+	}
+
+	protected void setEditorContent(String content) {
+		wef.setText(content == null ? "" : content);
+	}
+
+	protected void setEditorContent(byte[] content) {
+		wef.setText(content == null ? "" : new String(content));
+	}
+
+	protected String getEditorContent() throws TextBlockOverflowException {
+		return wef.getText();
+	}
+
+	protected byte[] getEditorContentAsByte() throws TextBlockOverflowException {
+		return wef.getText() != null ? wef.getText().getBytes() : null;
 	}
 
 	/**
 	 * Auswahl der Positionsart ist erfolgt.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 */
 	void jComboBoxPositionsart_actionPerformed(ActionEvent e) {
 
 		Object currentArt = wcoArt.getKeyOfSelectedItem();
+		wpf.setVisible(false);
+		wtv.setVisible(false);
+		wbf.setVisible(false);
+		enableEditorField(false);
+		wcbDefaultbild.setVisible(false);
+		ws.setVisible(false);
+		if (rv != null) {
+			rv.setVisible(false);
+		}
+		wmf.setVisible(false);
 		if (currentArt != null) {
 			if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML)) {
-				wbf.setVisible(false);
-				wef.setVisible(true);
-				wtv.setVisible(false);
-				wcbDefaultbild.setVisible(false);
-				ws.setVisible(false);
-				wpf.setVisible(false);
-				rv.setVisible(false);
-			} else if (currentArt
-					.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG)) {
+				enableEditorField(true);
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG)) {
 				wbf.setVisible(true);
-				wtv.setVisible(false);
 				wbf.setBildExtension(jpgExtension);
-				wef.setVisible(false);
 				wcbDefaultbild.setVisible(true);
-				ws.setVisible(false);
-				wpf.setVisible(false);
-				rv.setVisible(false);
-			}
-			if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG)) {
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG)) {
 				wbf.setVisible(true);
-				wtv.setVisible(false);
 				wbf.setBildExtension(pngExtension);
-				wef.setVisible(false);
 				wcbDefaultbild.setVisible(true);
-				ws.setVisible(false);
-				wpf.setVisible(false);
-				rv.setVisible(false);
-			}
-			if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF)) {
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF)) {
 				wbf.setVisible(true);
-				wtv.setVisible(false);
 				wbf.setBildExtension(gifExtension);
-				wef.setVisible(false);
 				wcbDefaultbild.setVisible(true);
-				ws.setVisible(false);
-				wpf.setVisible(false);
-				rv.setVisible(false);
-			}
-			if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF)) {
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF)) {
 				wtv.setVisible(true);
-				wbf.setVisible(false);
 				wbf.setBildExtension(tiffExtension);
-				wef.setVisible(false);
 				wcbDefaultbild.setVisible(true);
-				ws.setVisible(false);
-				wpf.setVisible(false);
-				rv.setVisible(false);
-			}
-			if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT)) {
 				ws.setVisible(true);
-				wtv.setVisible(false);
-				wbf.setVisible(false);
-				wef.setVisible(false);
 				wcbDefaultbild.setVisible(true);
-				wpf.setVisible(false);
-				rv.setVisible(false);
-			}
-			if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF)) {
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF)) {
 				wpf.setVisible(true);
-				wtv.setVisible(false);
-				wbf.setVisible(false);
-				wef.setVisible(false);
-				wcbDefaultbild.setVisible(false);
-				ws.setVisible(false);
-				rv.setVisible(false);
-			}
-			if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER)) {
-				wpf.setVisible(false);
-				wtv.setVisible(false);
-				wbf.setVisible(false);
-				wef.setVisible(false);
-				wcbDefaultbild.setVisible(false);
-				ws.setVisible(false);
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER)) {
 				rv.setVisible(true);
-			}
-		} else {
-			wpf.setVisible(false);
-			wtv.setVisible(false);
-			wbf.setVisible(false);
-			wef.setVisible(false);
-			wcbDefaultbild.setVisible(false);
-			ws.setVisible(false);
-			if (rv != null) {
-				rv.setVisible(false);
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK)) {
+				wmf.setVisible(true);
+			} else if (currentArt.equals(MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822)) {
+				wmf.setVisible(true);
 			}
 		}
 	}
@@ -612,14 +670,112 @@ public class WrapperMediaControl extends PanelBasis {
 		return wcoArt;
 	}
 
+	public void setReportViewer(ReportViewer reportViewer) {
+		initReportViewer(reportViewer);
+	}
+
+	private class FileImportDropHandler implements DropListener {
+		WrapperMediaControl wmc=null;
+		public FileImportDropHandler(WrapperMediaControl wmc) {
+			this.wmc=wmc;
+		}
+
+		@Override
+		public void filesDropped(List<File> files) {
+			if (!wcoArt.isEnabled()) {
+				return;
+			}
+			if (!bDropEnabled) {
+				return;
+			}
+			try {
+				for (File f : files) {
+					MediaType mimeType = HelperClient.getMimeTypeOfFile(f);
+					String filename = f.getName();
+
+					String extension = filename.substring(filename.lastIndexOf(".") + 1);
+
+					setDateiname(filename);
+					
+					
+					FileValidator validator = new FileValidator();
+					long size = f.length() / 1024l;
+					if (!validator.validateFileSize(new BigDecimal(size))) {
+						return;
+					}
+					
+
+					if (extension.toUpperCase().equals("PDF")) {
+						setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
+						setOMedia(Helper.getBytesFromFile(f));
+						getInternalFrame().fireItemChanged(wmc, ItemChangedEvent.GOTO_DETAIL_PANEL);
+					} else if (extension.toUpperCase().equals("GIF")) {
+						setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF);
+						setOMediaImage(Helper.getBytesFromFile(f));
+						getInternalFrame().fireItemChanged(wmc, ItemChangedEvent.GOTO_DETAIL_PANEL);
+					} else if (extension.toUpperCase().equals("PNG")) {
+						setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG);
+						setOMediaImage(Helper.getBytesFromFile(f));
+						getInternalFrame().fireItemChanged(wmc, ItemChangedEvent.GOTO_DETAIL_PANEL);
+					} else if (extension.toUpperCase().equals("JPG") || extension.toUpperCase().equals("JPEG")) {
+						setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG);
+						setOMediaImage(Helper.getBytesFromFile(f));
+						getInternalFrame().fireItemChanged(wmc, ItemChangedEvent.GOTO_DETAIL_PANEL);
+					} else if (extension.toUpperCase().equals("TIFF")) {
+						setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF);
+						setOMediaImage(Helper.getBytesFromFile(f));
+						getInternalFrame().fireItemChanged(wmc, ItemChangedEvent.GOTO_DETAIL_PANEL);
+					} else if (extension.toUpperCase().equals("EML")) {
+						setMimeType(MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822);
+						setOMedia(Helper.getBytesFromFile(f));
+						getInternalFrame().fireItemChanged(wmc, ItemChangedEvent.GOTO_DETAIL_PANEL);
+					} else if (extension.toUpperCase().equals("MSG")) {
+						setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK);
+						setOMedia(Helper.getBytesFromFile(f));
+						getInternalFrame().fireItemChanged(wmc, ItemChangedEvent.GOTO_DETAIL_PANEL);
+					}else {
+						//SP9757
+						JOptionPane pane = new JOptionPane(filename);
+						final JDialog dialog = pane
+								.createDialog(LPMain.getTextRespectUISPr("lp.datei.nicht.hinzugefuegt"));
+						dialog.setModal(true);
+						dialog.setSize(400, dialog.getHeight());
+						
+						dialog.setLocationRelativeTo(getInternalFrame());
+
+						dialog.setVisible(true);
+					}
+					
+					
+				
+					
+				}
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	@Override
+	public void aktiviereRechtschreibpruefung() {
+		wef.aktiviereRechtschreibpruefung();
+	}
+
+	@Override
+	public void deaktiviereRechtschreibpruefung() {
+		wef.deaktiviereRechtschreibpruefung();
+	}
+
+	@Override
+	public void setRechtschreibpruefungLocale(Locale loc) {
+		wef.setRechtschreibpruefungLocale(loc);
+	}
 }
 
-class WrapperMediaControl_jComboBoxPositionsart_actionAdapter implements
-		java.awt.event.ActionListener {
+class WrapperMediaControl_jComboBoxPositionsart_actionAdapter implements java.awt.event.ActionListener {
 	WrapperMediaControl adaptee;
 
-	WrapperMediaControl_jComboBoxPositionsart_actionAdapter(
-			WrapperMediaControl adaptee) {
+	WrapperMediaControl_jComboBoxPositionsart_actionAdapter(WrapperMediaControl adaptee) {
 		this.adaptee = adaptee;
 	}
 

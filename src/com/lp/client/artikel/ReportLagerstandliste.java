@@ -44,6 +44,10 @@ import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.ItemChangedEvent;
@@ -64,12 +68,12 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.LagerReportFac;
+import com.lp.server.artikel.service.LagerplatzDto;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-public class ReportLagerstandliste extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportLagerstandliste extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -85,6 +89,8 @@ public class ReportLagerstandliste extends PanelBasis implements
 	private PanelQueryFLR panelQueryFLRArtikel_Bis = null;
 
 	private WrapperCheckBox wcbVersteckte = null;
+	private WrapperCheckBox wcbDetailliert = null;
+	private WrapperCheckBox wcbLagerstandMitBelegen = null;
 
 	private WrapperSelectField wsfLager = null;
 	private WrapperSelectField wsfLagerplatz = null;
@@ -126,8 +132,7 @@ public class ReportLagerstandliste extends PanelBasis implements
 	private WrapperRadioButton wrbPreisGest = new WrapperRadioButton();
 	private ButtonGroup buttonGroupPreis = new ButtonGroup();
 
-	public ReportLagerstandliste(InternalFrameArtikel internalFrame,
-			String add2Title) throws Throwable {
+	public ReportLagerstandliste(InternalFrameArtikel internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
 		LPMain.getTextRespectUISPr("artikel.report.lagerstandsliste");
 
@@ -145,71 +150,52 @@ public class ReportLagerstandliste extends PanelBasis implements
 		jpaWorkingOn.setLayout(gridBagLayout2);
 		wlaStichtag.setText(LPMain.getTextRespectUISPr("lp.stichtag"));
 
-		wsfLager = new WrapperSelectField(WrapperSelectField.LAGER,
-				getInternalFrame(), true);
-		wsfArtikelgruppe = new WrapperSelectField(
-				WrapperSelectField.ARTIKELGRUPPE, getInternalFrame(), true);
-		wsfArtikelklasse = new WrapperSelectField(
-				WrapperSelectField.ARTIKELKLASSE, getInternalFrame(), true);
-		wsfShopgruppe = new WrapperSelectField(WrapperSelectField.SHOPGRUPPE,
-				getInternalFrame(), true);
-		wsfLagerplatz = new WrapperSelectField(WrapperSelectField.LAGERPLATZ,
-				getInternalFrame(), true);
-		wsfVkpreisliste = new WrapperSelectField(
-				WrapperSelectField.VKPREISLISTE, getInternalFrame(), true);
+		wsfLager = new WrapperSelectField(WrapperSelectField.LAGER, getInternalFrame(), true);
+		wsfArtikelgruppe = new WrapperSelectField(WrapperSelectField.ARTIKELGRUPPE, getInternalFrame(), true);
+		wsfArtikelklasse = new WrapperSelectField(WrapperSelectField.ARTIKELKLASSE, getInternalFrame(), true);
+		wsfShopgruppe = new WrapperSelectField(WrapperSelectField.SHOPGRUPPE, getInternalFrame(), true);
+		wsfLagerplatz = new WrapperSelectField(WrapperSelectField.LAGERPLATZ, getInternalFrame(), true);
+		wsfVkpreisliste = new WrapperSelectField(WrapperSelectField.VKPREISLISTE, getInternalFrame(), true);
 
-		wcbOhneAZArtikel
-				.setText(LPMain
-						.getTextRespectUISPr("artikel.report.lagerstandsliste.ohneazartikel"));
+		wcbOhneAZArtikel.setText(LPMain.getTextRespectUISPr("artikel.report.lagerstandsliste.ohneazartikel"));
 		wcbNurLagerbewerteteArtikel
-				.setText(LPMain
-						.getTextRespectUISPr("artikel.report.lagerstandsliste.nurlagerbewerteteartikel"));
+				.setText(LPMain.getTextRespectUISPr("artikel.report.lagerstandsliste.nurlagerbewerteteartikel"));
 
-		wbuArtikelnrVon.setText(LPMain
-				.getTextRespectUISPr("artikel.artikelnummer")
-				+ " "
-				+ LPMain.getTextRespectUISPr("lp.von"));
-		wbuArtikelnrBis.setText(LPMain
-				.getTextRespectUISPr("artikel.artikelnummer")
-				+ " "
-				+ LPMain.getTextRespectUISPr("lp.bis"));
+		wbuArtikelnrVon.setText(
+				LPMain.getTextRespectUISPr("artikel.artikelnummer") + " " + LPMain.getTextRespectUISPr("lp.von"));
+		wbuArtikelnrBis.setText(
+				LPMain.getTextRespectUISPr("artikel.artikelnummer") + " " + LPMain.getTextRespectUISPr("lp.bis"));
 		wcbOhneAZArtikel.setSelected(true);
 		wcbNurLagerbewerteteArtikel.setSelected(true);
 
-		wcbVersteckte = new WrapperCheckBox(
-				LPMain.getTextRespectUISPr("lp.versteckte"));
+		wcbDetailliert = new WrapperCheckBox(LPMain.getTextRespectUISPr("artikel.report.lagerstandsliste.detailliert"));
+		
+		wcbLagerstandMitBelegen = new WrapperCheckBox(LPMain.getTextRespectUISPr("artikel.report.lagerstandsliste.mitbelegen"));
+		
+		wcbVersteckte = new WrapperCheckBox(LPMain.getTextRespectUISPr("lp.versteckte"));
 
 		wlaSortierung.setText(LPMain.getTextRespectUISPr("label.sortierung"));
 
 		wcbMitAbgewertetemGestpreis
-				.setText(LPMain
-						.getTextRespectUISPr("artikel.report.lagerstandsliste.mitabgewertetemgestpreis"));
+				.setText(LPMain.getTextRespectUISPr("artikel.report.lagerstandsliste.mitabgewertetemgestpreis"));
 
 		wcbMitNichtLagerbewirtschaftetenArtikeln
-		.setText(LPMain
-				.getTextRespectUISPr("artikel.lagerstandsliste.mitnichtlagerbewirtschafteten"));
+				.setText(LPMain.getTextRespectUISPr("artikel.lagerstandsliste.mitnichtlagerbewirtschafteten"));
 
 		wcbMitArtikelOhneLagerstand
-				.setText(LPMain
-						.getTextRespectUISPr("artikel.report.lagerstandsliste.mitartikelohnelagerstand"));
+				.setText(LPMain.getTextRespectUISPr("artikel.report.lagerstandsliste.mitartikelohnelagerstand"));
 
 		wrbSortArtikelnr.setSelected(true);
-		wrbSortArtikelnr.setText(LPMain
-				.getTextRespectUISPr("artikel.artikelnummer"));
-		wrbSortArtikelgruppe.setText(LPMain
-				.getTextRespectUISPr("lp.artikelgruppe"));
-		wrbSortArtikelklasse.setText(LPMain
-				.getTextRespectUISPr("lp.artikelklasse"));
+		wrbSortArtikelnr.setText(LPMain.getTextRespectUISPr("artikel.artikelnummer"));
+		wrbSortArtikelgruppe.setText(LPMain.getTextRespectUISPr("lp.artikelgruppe"));
+		wrbSortArtikelklasse.setText(LPMain.getTextRespectUISPr("lp.artikelklasse"));
 		wrbSortLagerwert.setText(LPMain.getTextRespectUISPr("lp.lagerwert"));
-		wrbSortGestehungspreis.setText(LPMain
-				.getTextRespectUISPr("lp.gestehungspreis"));
+		wrbSortGestehungspreis.setText(LPMain.getTextRespectUISPr("lp.gestehungspreis"));
 		wrbSortShopgruppe.setText(LPMain.getTextRespectUISPr("lp.shopgruppe"));
 		wrbSortReferenznummer.setText(LPMain.getTextRespectUISPr("lp.referenznummer"));
 		wrbSortLagerort.setText(LPMain.getTextRespectUISPr("artikel.lagerort"));
-		wrbSortBezeichnung
-				.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
-		wrbSortKurzBezeichnung.setText(LPMain
-				.getTextRespectUISPr("artikel.kurzbez"));
+		wrbSortBezeichnung.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
+		wrbSortKurzBezeichnung.setText(LPMain.getTextRespectUISPr("artikel.kurzbez"));
 
 		buttonGroupSortierung.add(wrbSortArtikelnr);
 		buttonGroupSortierung.add(wrbSortArtikelgruppe);
@@ -225,9 +211,7 @@ public class ReportLagerstandliste extends PanelBasis implements
 		buttonGroupPreis.add(wrbPreisGest);
 		buttonGroupPreis.add(wrbPreisVKPreisliste);
 		wrbPreisGest.setText(LPMain.getTextRespectUISPr("lp.gestehungspreis"));
-		wrbPreisVKPreisliste
-				.setText(LPMain
-						.getTextRespectUISPr("artikel.handlagerbewegung.verkaufspreis"));
+		wrbPreisVKPreisliste.setText(LPMain.getTextRespectUISPr("artikel.handlagerbewegung.verkaufspreis"));
 
 		wtdArtikel.setEditable(false);
 
@@ -255,160 +239,118 @@ public class ReportLagerstandliste extends PanelBasis implements
 
 		wsfVkpreisliste.setEnabled(false);
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
+		HelperClient.setMinimumAndPreferredSize(wsfLager, HelperClient.getSizeFactoredDimension(120));
 
 		int iZeile = 0;
-		jpaWorkingOn.add(wsfLager.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wsfLager, new GridBagConstraints(0, iZeile, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(2, iZeile, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wsfLager.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfLager, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortArtikelnr, new GridBagConstraints(3, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+//		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(2, iZeile, 1, 1,
+//				0, 0.0, GridBagConstraints.CENTER,
+//				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortArtikelnr, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortBezeichnung, new GridBagConstraints(4, iZeile,
-				1, 1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbSortBezeichnung, new GridBagConstraints(4, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		if (DelegateFactory.getInstance().getTheJudgeDelegate()
-				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
-			jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(2, iZeile,
-					1, 1, 0, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 90,
-					0));
+		JPanel panelLagerCb = new JPanel();
+		HvLayout layoutLagerCb = HvLayoutFactory.create(panelLagerCb, "ins 0");
+		layoutLagerCb.add(wcbDetailliert, 100);
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
+			layoutLagerCb.add(wcbVersteckte, Defaults.sizeFactor(100));
 		}
+		layoutLagerCb.add(wlaSortierung, "w 100, al right, push");
+		jpaWorkingOn.add(panelLagerCb, new GridBagConstraints(2, iZeile, 1, 1, 0.5, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 200, 0));
 		iZeile++;
-		jpaWorkingOn.add(wtdArtikel, new GridBagConstraints(1, iZeile, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), -20, 0));
-		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, iZeile, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtdArtikel, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -20, 0));
+		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbNurLagerbewerteteArtikel, new GridBagConstraints(2,
-				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbNurLagerbewerteteArtikel, new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wrbSortArtikelgruppe, new GridBagConstraints(3,
-				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortLagerwert, new GridBagConstraints(4, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
-		iZeile++;
-		jpaWorkingOn.add(wsfArtikelgruppe, new GridBagConstraints(0, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wsfArtikelgruppe.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wcbMitNichtLagerbewirtschaftetenArtikeln, new GridBagConstraints(2,
-				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wrbSortArtikelklasse, new GridBagConstraints(3,
-				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortGestehungspreis, new GridBagConstraints(4,
-				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbSortArtikelgruppe, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortLagerwert, new GridBagConstraints(4, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wsfArtikelklasse.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wsfArtikelklasse, new GridBagConstraints(0, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wsfArtikelgruppe, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbOhneAZArtikel, new GridBagConstraints(2, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wsfArtikelgruppe.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbMitNichtLagerbewirtschaftetenArtikeln, new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wrbSortArtikelklasse, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortGestehungspreis, new GridBagConstraints(4, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wsfArtikelklasse.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfArtikelklasse, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortKurzBezeichnung, new GridBagConstraints(3,
-				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbOhneAZArtikel, new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortLagerort, new GridBagConstraints(4, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbSortKurzBezeichnung, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortLagerort, new GridBagConstraints(4, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wsfShopgruppe.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wsfShopgruppe, new GridBagConstraints(0, iZeile, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wsfShopgruppe.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfShopgruppe, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortShopgruppe, new GridBagConstraints(3, iZeile,
-				1, 1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbSortShopgruppe, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortReferenznummer, new GridBagConstraints(4, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbMitArtikelOhneLagerstand, new GridBagConstraints(2,
-				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortReferenznummer, new GridBagConstraints(4, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbMitArtikelOhneLagerstand, new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wbuArtikelnrVon, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuArtikelnrVon, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 120, 0));
-		jpaWorkingOn.add(wtfArtikelnrVon, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfArtikelnrVon, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 120, 0));
-		jpaWorkingOn.add(wbuArtikelnrBis, new GridBagConstraints(2, iZeile, 1,
-				1, 0.10, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuArtikelnrBis, new GridBagConstraints(2, iZeile, 1, 1, 0.10, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 140, 0));
-		jpaWorkingOn.add(wtfArtikelnrBis, new GridBagConstraints(3, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfArtikelnrBis, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wsfLagerplatz, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wsfLagerplatz, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wsfLagerplatz.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
+		jpaWorkingOn.add(wsfLagerplatz.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wrbPreisGest, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbPreisGest, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbMitAbgewertetemGestpreis, new GridBagConstraints(3,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbMitAbgewertetemGestpreis, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wrbPreisVKPreisliste, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wsfVkpreisliste.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wsfVkpreisliste, new GridBagConstraints(0, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbPreisVKPreisliste, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfVkpreisliste.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfVkpreisliste, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wcbArtikelarten, new GridBagConstraints(3, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbArtikelarten, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wcbLagerstandMitBelegen, new GridBagConstraints(4, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
 		iZeile++;
-
 
 	}
 
@@ -421,17 +363,15 @@ public class ReportLagerstandliste extends PanelBasis implements
 	}
 
 	void dialogQueryArtikelFromListe_Von(ActionEvent e) throws Throwable {
-		panelQueryFLRArtikel_Von = ArtikelFilterFactory
-				.getInstance()
-				.createPanelFLRArtikel(getInternalFrame(), artikelIId_Von, true);
+		panelQueryFLRArtikel_Von = ArtikelFilterFactory.getInstance().createPanelFLRArtikel(getInternalFrame(),
+				artikelIId_Von, true);
 
 		new DialogQuery(panelQueryFLRArtikel_Von);
 	}
 
 	void dialogQueryArtikelFromListe_Bis(ActionEvent e) throws Throwable {
-		panelQueryFLRArtikel_Bis = ArtikelFilterFactory
-				.getInstance()
-				.createPanelFLRArtikel(getInternalFrame(), artikelIId_Bis, true);
+		panelQueryFLRArtikel_Bis = ArtikelFilterFactory.getInstance().createPanelFLRArtikel(getInternalFrame(),
+				artikelIId_Bis, true);
 
 		new DialogQuery(panelQueryFLRArtikel_Bis);
 	}
@@ -442,18 +382,22 @@ public class ReportLagerstandliste extends PanelBasis implements
 
 			if (e.getSource() == panelQueryFLRArtikel_Von) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtikelDto artikelDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey((Integer) key);
 				artikelIId_Von = artikelDto.getIId();
 				wtfArtikelnrVon.setText(artikelDto.getCNr());
 			} else if (e.getSource() == panelQueryFLRArtikel_Bis) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtikelDto artikelDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey((Integer) key);
 				artikelIId_Bis = artikelDto.getIId();
 				wtfArtikelnrBis.setText(artikelDto.getCNr());
+			} else if (e.getSource() == wsfLagerplatz.getPanelQueryFLR()) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+
+				LagerplatzDto lagerplatzDto = DelegateFactory.getInstance().getLagerDelegate()
+						.lagerplatzFindByPrimaryKey((Integer) key);
+				wsfLager.setKey(lagerplatzDto.getLagerIId());
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
 			if (e.getSource() == panelQueryFLRArtikel_Von) {
@@ -469,8 +413,7 @@ public class ReportLagerstandliste extends PanelBasis implements
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_ARTIKELVON_FROM_LISTE)) {
 			dialogQueryArtikelFromListe_Von(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ARTIKELBIS_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ARTIKELBIS_FROM_LISTE)) {
 			dialogQueryArtikelFromListe_Bis(e);
 		} else {
 			if (e.getSource().equals(wrbPreisGest)) {
@@ -490,7 +433,8 @@ public class ReportLagerstandliste extends PanelBasis implements
 
 		int iArtikelarten = -1;
 
-		if (((Integer) wcbArtikelarten.getKeyOfSelectedItem()).intValue() == LagerReportFac.REPORT_LAGERSTANDSLISTE_ARTIKEL_ALLE) {
+		if (((Integer) wcbArtikelarten.getKeyOfSelectedItem())
+				.intValue() == LagerReportFac.REPORT_LAGERSTANDSLISTE_ARTIKEL_ALLE) {
 			iArtikelarten = LagerReportFac.REPORT_LAGERSTANDSLISTE_ARTIKEL_ALLE;
 		} else if (((Integer) wcbArtikelarten.getKeyOfSelectedItem())
 				.intValue() == LagerReportFac.REPORT_LAGERSTANDSLISTE_ARTIKEL_NURSTKL) {
@@ -521,22 +465,14 @@ public class ReportLagerstandliste extends PanelBasis implements
 		} else if (wrbSortReferenznummer.isSelected()) {
 			iOptionSortierung = LagerReportFac.REPORT_LAGERSTANDSLISTE_SORTIERUNG_REFERENZNUMMER;
 		}
-		
-		return DelegateFactory
-				.getInstance()
-				.getLagerReportDelegate()
-				.printLagerstandliste(wsfLager.getIKey(),
-						wtdArtikel.getTimestamp(),
-						!wcbOhneAZArtikel.isSelected(),
-						wtfArtikelnrVon.getText(), wtfArtikelnrBis.getText(),
-						wsfArtikelgruppe.getIKey(), wsfArtikelklasse.getIKey(),
-						wsfVkpreisliste.getIKey(), iOptionSortierung,
-						iArtikelarten,
-						wcbNurLagerbewerteteArtikel.isSelected(),
-						wcbMitAbgewertetemGestpreis.isSelected(),
-						wcbMitArtikelOhneLagerstand.isSelected(),
-						wsfLagerplatz.getIKey(), wcbVersteckte.isSelected(),
-						wsfShopgruppe.getIKey(),wcbMitNichtLagerbewirtschaftetenArtikeln.isSelected());
+
+		return DelegateFactory.getInstance().getLagerReportDelegate().printLagerstandliste(wsfLager.getIKey(),
+				wtdArtikel.getTimestamp(), !wcbOhneAZArtikel.isSelected(), wtfArtikelnrVon.getText(),
+				wtfArtikelnrBis.getText(), wsfArtikelgruppe.getIKey(), wsfArtikelklasse.getIKey(),
+				wsfVkpreisliste.getIKey(), iOptionSortierung, iArtikelarten, wcbNurLagerbewerteteArtikel.isSelected(),
+				wcbMitAbgewertetemGestpreis.isSelected(), wcbMitArtikelOhneLagerstand.isSelected(),
+				wsfLagerplatz.getIKey(), wcbVersteckte.isSelected(), wsfShopgruppe.getIKey(),
+				wcbMitNichtLagerbewirtschaftetenArtikeln.isSelected(), wcbDetailliert.isSelected(),wcbLagerstandMitBelegen.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -544,8 +480,7 @@ public class ReportLagerstandliste extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

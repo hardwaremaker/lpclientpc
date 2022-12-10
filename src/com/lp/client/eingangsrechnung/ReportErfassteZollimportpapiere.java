@@ -47,6 +47,7 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperDateField;
@@ -116,10 +117,8 @@ public class ReportErfassteZollimportpapiere
     wlaVon.setText("Datum: Von");
     wlaBis.setText("Bis");
   
-    wlaVon.setMinimumSize(new Dimension(25, Defaults.getInstance().getControlHeight()));
-    wlaVon.setPreferredSize(new Dimension(25, Defaults.getInstance().getControlHeight()));
-    wlaBis.setMinimumSize(new Dimension(25, Defaults.getInstance().getControlHeight()));
-    wlaBis.setPreferredSize(new Dimension(25, Defaults.getInstance().getControlHeight()));
+    HelperClient.setMinimumAndPreferredSize(wlaVon, HelperClient.getSizeFactoredDimension(35));
+    HelperClient.setMinimumAndPreferredSize(wlaBis, HelperClient.getSizeFactoredDimension(25));
     jpaWorkingOn.setLayout(gridBagLayout1);
     jpaWorkingOn.setBorder(border1);
   

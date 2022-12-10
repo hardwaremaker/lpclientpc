@@ -161,7 +161,7 @@ private WrapperLabel wlaKritAuswertung = null;
 
     wlaKritAuswertung.setText(
         getDefaultFilter()[EingangsrechnungFac.IDX_KRIT_DATUM]
-        .formatFilterKriterium(LPMain.getInstance().getTextRespectUISPr("lp.auswertung")));
+        .formatFilterKriterium(LPMain.getInstance().getTextRespectUISPr("lp.auswertung")+" "+  getDefaultFilter()[EingangsrechnungFac.IDX_KRIT_JAHR].kritName+" /"));
     wlaKritAuswertung.setMaximumSize(new Dimension(350,
         Defaults.getInstance().getControlHeight()));
     wlaKritAuswertung.setMinimumSize(new Dimension(350,

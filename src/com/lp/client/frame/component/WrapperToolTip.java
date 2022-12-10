@@ -127,7 +127,9 @@ public class WrapperToolTip extends JWindow implements ActionListener,
 			"WrapperRadioButton", "WrapperDateField", "JTextFieldDateEditor",
 			"WrapperKeyValueField", "PaintingCornerInfoButton");
 	
-	private static final List<String> useComponentNaming = Arrays.asList("WrapperDateField");
+	private static final List<String> useComponentNaming = Arrays.asList(
+			"WrapperDateField",	"WrapperTelefonField", "WrapperEmailField", 
+			"WrapperURLField");
 
 	// private static final List<String> standardNames =
 	// Arrays.asList("Desktop", "JDesktopPane", "JRootPane", "JLayeredPane",

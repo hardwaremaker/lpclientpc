@@ -54,8 +54,6 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.anfrage.service.AnfrageServiceFac;
-import com.lp.server.anfrage.service.AnfragetextDto;
-import com.lp.server.system.service.MediaFac;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
@@ -92,6 +90,18 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 	private WrapperLabel wlaAnfragewaehrung2 = null;
 	private WrapperNumberField wnfTransportkosteninanfragewaehrung = null;
 
+	private WrapperLabel wlaBankspeseninanfragewaehrung = null;
+	private WrapperLabel wlaBankspesenWaehrung = null;
+	private WrapperNumberField wnfBankspeseninanfragewaehrung = null;
+
+	private WrapperLabel wlaSonstigespeseninanfragewaehrung = null;
+	private WrapperLabel wlaSonstigespesenWaehrung = null;
+	private WrapperNumberField wnfSonstigespeseninanfragewaehrung = null;
+
+	private WrapperLabel wlaZollkostenninanfragewaehrung = null;
+	private WrapperLabel wlaZollkostenWaehrung = null;
+	private WrapperNumberField wnfZollkosteninanfragewaehrung = null;
+
 	private WrapperLabel wlaAngebotnummer = null;
 	private WrapperTextField wtfAngebotnummer = null;
 
@@ -100,8 +110,14 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 	private WrapperLabel wlaAngebotsgueltigkeit = null;
 	private WrapperDateField wdfAngebotsgueltigkeit = null;
 
-	public PanelAnfrageLieferkonditionen(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
+	private WrapperLabel wlaPreisGueltigAb = null;
+	private WrapperDateField wdfPreisGueltigAb = null;
+
+	
+	private WrapperLabel wlaRabattAuslieferant = null;
+	private WrapperNumberField wnfRabattAuslieferant = null;
+
+	public PanelAnfrageLieferkonditionen(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 
 		intFrame = (InternalFrameAnfrage) internalFrame;
@@ -117,22 +133,40 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 		wtfSpedition.setMandatoryField(true);
 
 		LPMain.getInstance();
-		wlaAnfragewertinanfragewaehrung = new WrapperLabel(
-				LPMain.getTextRespectUISPr("anf.anfragewert"));
+		wlaAnfragewertinanfragewaehrung = new WrapperLabel(LPMain.getTextRespectUISPr("anf.anfragewert"));
 
 		wnfAnfragewertinanfragewaehrung = new WrapperNumberField();
 		wnfAnfragewertinanfragewaehrung.setToken("anf.anfragewert");
 		wnfAnfragewertinanfragewaehrung.setActivatable(false);
-		wnfAnfragewertinanfragewaehrung.setFractionDigits(Defaults
-				.getInstance().getIUINachkommastellenPreiseEK());
+		wnfAnfragewertinanfragewaehrung.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
 
 		wlaAnfragewaehrung1 = new WrapperLabel();
 		HelperClient.setDefaultsToComponent(wlaAnfragewaehrung1, 240);
 		wlaAnfragewaehrung1.setHorizontalAlignment(SwingConstants.LEADING);
 
 		LPMain.getInstance();
-		wlaTransportkosteninanfragewaehrung = new WrapperLabel(
-				LPMain.getTextRespectUISPr("bes.transportkosten"));
+		wlaTransportkosteninanfragewaehrung = new WrapperLabel(LPMain.getTextRespectUISPr("bes.transportkosten"));
+
+		wlaZollkostenninanfragewaehrung = new WrapperLabel(LPMain.getTextRespectUISPr("bes.zollkosten"));
+		wnfZollkosteninanfragewaehrung = new WrapperNumberField();
+		wnfZollkosteninanfragewaehrung.setMinimumValue(0);
+		wnfZollkosteninanfragewaehrung.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wlaZollkostenWaehrung = new WrapperLabel();
+		wlaZollkostenWaehrung.setHorizontalAlignment(SwingConstants.LEADING);
+
+		wlaSonstigespeseninanfragewaehrung = new WrapperLabel(LPMain.getTextRespectUISPr("bes.sonstigespesen"));
+		wnfSonstigespeseninanfragewaehrung = new WrapperNumberField();
+		wnfSonstigespeseninanfragewaehrung.setMinimumValue(0);
+		wnfSonstigespeseninanfragewaehrung.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wlaSonstigespesenWaehrung = new WrapperLabel();
+		wlaSonstigespesenWaehrung.setHorizontalAlignment(SwingConstants.LEADING);
+
+		wlaBankspeseninanfragewaehrung = new WrapperLabel(LPMain.getTextRespectUISPr("bes.bankspesen"));
+		wnfBankspeseninanfragewaehrung = new WrapperNumberField();
+		wnfBankspeseninanfragewaehrung.setMinimumValue(0);
+		wnfBankspeseninanfragewaehrung.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wlaBankspesenWaehrung = new WrapperLabel();
+		wlaBankspesenWaehrung.setHorizontalAlignment(SwingConstants.LEADING);
 
 		wefKopftext.setVisible(false);
 		wefFusstext.setVisible(false);
@@ -141,83 +175,110 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 
 		wnfTransportkosteninanfragewaehrung = new WrapperNumberField();
 		wnfTransportkosteninanfragewaehrung.setToken("bes.transportkosten");
-		wnfTransportkosteninanfragewaehrung.setFractionDigits(Defaults
-				.getInstance().getIUINachkommastellenPreiseEK());
+		wnfTransportkosteninanfragewaehrung.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
 
 		wlaAnfragewaehrung2 = new WrapperLabel();
 		wlaAnfragewaehrung2.setHorizontalAlignment(SwingConstants.LEADING);
 
 		LPMain.getInstance();
-		wlaAngebotnummer = new WrapperLabel(
-				LPMain.getTextRespectUISPr("anf.angebotnummer"));
+		wlaAngebotnummer = new WrapperLabel(LPMain.getTextRespectUISPr("anf.angebotnummer"));
 		wtfAngebotnummer = new WrapperTextField();
 		wtfAngebotnummer.setToken("anf.angebotnummer");
 		wtfAngebotnummer.setColumnsMax(40);
 		wtfAngebotnummer.setMandatoryField(true);
 
-		wlaAngebotsdatum = new WrapperLabel(
-				LPMain.getTextRespectUISPr("anfr.angebotsdatum"));
+		wlaAngebotsdatum = new WrapperLabel(LPMain.getTextRespectUISPr("anfr.angebotsdatum"));
 		wdfAngebotsdatum = new WrapperDateField();
 		// wdfAngebotsdatum.setToken("anfr.angebotsdatum");
-		wlaAngebotsgueltigkeit = new WrapperLabel(
-				LPMain.getTextRespectUISPr("anfr.angebotguelitgbis"));
+		wlaAngebotsgueltigkeit = new WrapperLabel(LPMain.getTextRespectUISPr("anfr.angebotguelitgbis"));
 		wdfAngebotsgueltigkeit = new WrapperDateField();
+		
+		wlaPreisGueltigAb = new WrapperLabel(LPMain.getTextRespectUISPr("anfr.angebot.preisgueltigab"));
+		wdfPreisGueltigAb = new WrapperDateField();
+		
 
 		iZeile = 5; // mein eigener Teil beginnt nach den ersten drei Zeilen des
 					// BasisPanel
 
+		wlaRabattAuslieferant = new WrapperLabel(
+				LPMain.getTextRespectUISPr("anf.lieferkonditionen.rabattauslieferant"));
+		wnfRabattAuslieferant = new WrapperNumberField();
+		wnfRabattAuslieferant.setActivatable(false);
+
+		jPanelWorkingOn.add(wlaRabattAuslieferant, new GridBagConstraints(2, iZeile - 2, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		jPanelWorkingOn.add(wnfRabattAuslieferant, new GridBagConstraints(3, iZeile - 2, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
+
 		// Zeile
-		jPanelWorkingOn.add(wlaAnfragewertinanfragewaehrung,
-				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
-		jPanelWorkingOn.add(wnfAnfragewertinanfragewaehrung,
-				new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaAnfragewaehrung1, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaAnfragewertinanfragewaehrung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
+		jPanelWorkingOn.add(wnfAnfragewertinanfragewaehrung, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaAnfragewaehrung1, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jPanelWorkingOn.add(wlaTransportkosteninanfragewaehrung,
-				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfTransportkosteninanfragewaehrung,
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaAnfragewaehrung2, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaTransportkosteninanfragewaehrung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfTransportkosteninanfragewaehrung, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaAnfragewaehrung2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jPanelWorkingOn.add(wlaAngebotnummer, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfAngebotnummer, new GridBagConstraints(1, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jPanelWorkingOn.add(wlaAngebotsdatum, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wdfAngebotsdatum, new GridBagConstraints(1, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jPanelWorkingOn.add(wlaAngebotsgueltigkeit, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wdfAngebotsgueltigkeit, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaZollkostenninanfragewaehrung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfZollkosteninanfragewaehrung, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaZollkostenWaehrung, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD };
+		// Zeile
+		iZeile++;
+		jPanelWorkingOn.add(wlaBankspeseninanfragewaehrung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfBankspeseninanfragewaehrung, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaBankspesenWaehrung, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		// Zeile
+		iZeile++;
+		jPanelWorkingOn.add(wlaSonstigespeseninanfragewaehrung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 10, 2), 0, 0));
+		jPanelWorkingOn.add(wnfSonstigespeseninanfragewaehrung, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 10, 2), 0, 0));
+		jPanelWorkingOn.add(wlaSonstigespesenWaehrung, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 10, 2), 0, 0));
+
+		// Zeile
+		iZeile++;
+		jPanelWorkingOn.add(wlaAngebotnummer, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfAngebotnummer, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jPanelWorkingOn.add(wlaAngebotsdatum, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wdfAngebotsdatum, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jPanelWorkingOn.add(wlaAngebotsgueltigkeit, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wdfAngebotsgueltigkeit, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jPanelWorkingOn.add(wlaPreisGueltigAb, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wdfPreisGueltigAb, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD };
 		this.enableToolsPanelButtons(aWhichButtonIUse);
 
 	}
@@ -228,18 +289,9 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 
 		wlaAnfragewaehrung1.setText(tpAnfrage.getAnfrageDto().getWaehrungCNr());
 		wlaAnfragewaehrung2.setText(tpAnfrage.getAnfrageDto().getWaehrungCNr());
-
-		// die Anfragetexte vorbelegen
-		String localeCNr = LPMain.getTheClient().getLocUiAsString();
-
-		if (tpAnfrage.getAnfrageDto().getArtCNr()
-				.equals(AnfrageServiceFac.ANFRAGEART_LIEFERANT)
-				&& tpAnfrage.getLieferantDto().getPartnerDto()
-						.getLocaleCNrKommunikation() != null) {
-			localeCNr = tpAnfrage.getLieferantDto().getPartnerDto()
-					.getLocaleCNrKommunikation();
-		}
-
+		wlaBankspesenWaehrung.setText(tpAnfrage.getAnfrageDto().getWaehrungCNr());
+		wlaSonstigespesenWaehrung.setText(tpAnfrage.getAnfrageDto().getWaehrungCNr());
+		wlaZollkostenWaehrung.setText(tpAnfrage.getAnfrageDto().getWaehrungCNr());
 	}
 
 	protected String getLockMeWer() {
@@ -251,87 +303,88 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 		holeZahlungsziel(tpAnfrage.getAnfrageDto().getZahlungszielIId());
 		holeSpediteur(tpAnfrage.getAnfrageDto().getSpediteurIId());
 
-		wnfAllgemeinerRabatt.setDouble(tpAnfrage.getAnfrageDto()
-				.getFAllgemeinerRabattsatz());
+		wnfAllgemeinerRabatt.setDouble(tpAnfrage.getAnfrageDto().getFAllgemeinerRabattsatz());
+
+		if (tpAnfrage.getLieferantDto() != null) {
+			wnfRabattAuslieferant.setDouble(tpAnfrage.getLieferantDto().getNRabatt());
+		}
+
 		wtfLieferartort.setText(tpAnfrage.getAnfrageDto().getCLieferartort());
 
 		// die Werte der Anfrage
-		BigDecimal bdAnfragewertinanfragewaehrung = tpAnfrage.getAnfrageDto()
-				.getNGesamtwertinbelegwaehrung();
+		BigDecimal bdAnfragewertinanfragewaehrung = tpAnfrage.getAnfrageDto().getNGesamtwertinbelegwaehrung();
 
 		if (bdAnfragewertinanfragewaehrung == null
-				|| tpAnfrage.getAnfrageDto().getStatusCNr()
-						.equals(AnfrageServiceFac.ANFRAGESTATUS_STORNIERT)) {
-			bdAnfragewertinanfragewaehrung = DelegateFactory
-					.getInstance()
-					.getAnfrageDelegate()
+				|| tpAnfrage.getAnfrageDto().getStatusCNr().equals(AnfrageServiceFac.ANFRAGESTATUS_STORNIERT)) {
+			bdAnfragewertinanfragewaehrung = DelegateFactory.getInstance().getAnfrageDelegate()
 					.berechneNettowertGesamt(tpAnfrage.getAnfrageDto().getIId());
 		}
 
-		wnfAnfragewertinanfragewaehrung
-				.setBigDecimal(bdAnfragewertinanfragewaehrung);
-		wnfTransportkosteninanfragewaehrung.setBigDecimal(tpAnfrage
-				.getAnfrageDto().getNTransportkosteninanfragewaehrung());
+		wnfAnfragewertinanfragewaehrung.setBigDecimal(bdAnfragewertinanfragewaehrung);
+		wnfTransportkosteninanfragewaehrung
+				.setBigDecimal(tpAnfrage.getAnfrageDto().getNTransportkosteninanfragewaehrung());
+
+		wnfBankspeseninanfragewaehrung.setBigDecimal(tpAnfrage.getAnfrageDto().getNBankspeseninanfragewaehrung());
+		wnfZollkosteninanfragewaehrung.setBigDecimal(tpAnfrage.getAnfrageDto().getNZollkosteninanfragewaehrung());
+		wnfSonstigespeseninanfragewaehrung
+				.setBigDecimal(tpAnfrage.getAnfrageDto().getNSonstigespeseninanfragewaehrung());
 
 		wtfAngebotnummer.setText(tpAnfrage.getAnfrageDto().getCAngebotnummer());
 
-		wdfAngebotsdatum.setTimestamp(tpAnfrage.getAnfrageDto()
-				.getTAngebotdatum());
-		wdfAngebotsgueltigkeit.setTimestamp(tpAnfrage.getAnfrageDto()
-				.getTAngebotgueltigbis());
+		wdfAngebotsdatum.setTimestamp(tpAnfrage.getAnfrageDto().getTAngebotdatum());
+		wdfAngebotsgueltigkeit.setTimestamp(tpAnfrage.getAnfrageDto().getTAngebotgueltigbis());
+		
+		wdfPreisGueltigAb.setTimestamp(tpAnfrage.getAnfrageDto().getTPreisgueltigab());
 
 		aktualisiereStatusbar();
 	}
 
 	private void components2Dto() throws Throwable {
-		tpAnfrage.getAnfrageDto().setFAllgemeinerRabattsatz(
-				wnfAllgemeinerRabatt.getDouble());
+		tpAnfrage.getAnfrageDto().setFAllgemeinerRabattsatz(wnfAllgemeinerRabatt.getDouble());
 		tpAnfrage.getAnfrageDto().setLieferartIId(lieferartDto.getIId());
 
 		tpAnfrage.getAnfrageDto().setZahlungszielIId(zahlungszielDto.getIId());
 		tpAnfrage.getAnfrageDto().setSpediteurIId(spediteurDto.getIId());
 
-		tpAnfrage.getAnfrageDto().setTAngebotdatum(
-				Helper.cutTimestamp(wdfAngebotsdatum.getTimestamp()));
-		tpAnfrage.getAnfrageDto().setTAngebotgueltigbis(
-				Helper.cutTimestamp(wdfAngebotsgueltigkeit.getTimestamp()));
+		tpAnfrage.getAnfrageDto().setTAngebotdatum(Helper.cutTimestamp(wdfAngebotsdatum.getTimestamp()));
+		tpAnfrage.getAnfrageDto().setTAngebotgueltigbis(Helper.cutTimestamp(wdfAngebotsgueltigkeit.getTimestamp()));
+		
+		tpAnfrage.getAnfrageDto().setTPreisgueltigab(Helper.cutTimestamp(wdfPreisGueltigAb.getTimestamp()));
 
 		tpAnfrage.getAnfrageDto().setCLieferartort(wtfLieferartort.getText());
-		tpAnfrage.getAnfrageDto().setNTransportkosteninanfragewaehrung(
-				wnfTransportkosteninanfragewaehrung.getBigDecimal());
+		tpAnfrage.getAnfrageDto()
+				.setNTransportkosteninanfragewaehrung(wnfTransportkosteninanfragewaehrung.getBigDecimal());
+
+		tpAnfrage.getAnfrageDto().setNBankspeseninanfragewaehrung(wnfBankspeseninanfragewaehrung.getBigDecimal());
+		tpAnfrage.getAnfrageDto().setNZollkosteninanfragewaehrung(wnfZollkosteninanfragewaehrung.getBigDecimal());
+		tpAnfrage.getAnfrageDto()
+				.setNSonstigespeseninanfragewaehrung(wnfSonstigespeseninanfragewaehrung.getBigDecimal());
 
 		tpAnfrage.getAnfrageDto().setCAngebotnummer(wtfAngebotnummer.getText());
 
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
 		// Bei Delete Angebotsnummer entfernen (Wenn noch keine Lieferdaten
 		// erfasst sind)
 		tpAnfrage.getAnfrageDto().setCAngebotnummer(null);
 
-		DelegateFactory.getInstance().getAnfrageDelegate()
-				.updateAnfrage(tpAnfrage.getAnfrageDto(),false, null);
+		DelegateFactory.getInstance().getAnfrageDelegate().updateAnfrage(tpAnfrage.getAnfrageDto(), false, null);
 
 		super.eventActionDelete(e, true, true);
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
 			components2Dto();
 
-			DelegateFactory.getInstance().getAnfrageDelegate()
-					.updateAnfrage(tpAnfrage.getAnfrageDto(),false, null);
+			DelegateFactory.getInstance().getAnfrageDelegate().updateAnfrage(tpAnfrage.getAnfrageDto(), false, null);
 
-			DelegateFactory
-					.getInstance()
-					.getAnfrageDelegate()
-					.updateAnfrageLieferKonditionen(
-							tpAnfrage.getAnfrageDto().getIId());
+			DelegateFactory.getInstance().getAnfrageDelegate()
+					.updateAnfrageLieferKonditionen(tpAnfrage.getAnfrageDto().getIId());
 
 			super.eventActionSave(e, false); // buttons schalten
 
@@ -339,8 +392,7 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 		}
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 
 		// neu einlesen, ausloeser war ev. ein refresh oder discard
@@ -349,32 +401,26 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 		// zuerst alles zuruecksetzen, ausloeser war ev. ein discard
 		setDefaults();
 
-		tpAnfrage.setAnfrageDto(DelegateFactory.getInstance()
-				.getAnfrageDelegate().anfrageFindByPrimaryKey((Integer) oKey));
+		tpAnfrage.setAnfrageDto(
+				DelegateFactory.getInstance().getAnfrageDelegate().anfrageFindByPrimaryKey((Integer) oKey));
 		dto2Components();
 
 		LPMain.getInstance();
-		tpAnfrage.setTitleAnfrage(LPMain
-				.getTextRespectUISPr("anf.panel.konditionen"));
+		tpAnfrage.setTitleAnfrage(LPMain.getTextRespectUISPr("anf.panel.konditionen"));
 
-		tpAnfrage.getAnfrageLieferKonditionen().updateButtons(
-				getLockedstateDetailMainKey());
-		tpAnfrage.enableLieferdaten();
+		tpAnfrage.getAnfrageLieferKonditionen().updateButtons(getLockedstateDetailMainKey());
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		if (tpAnfrage.istAktualisierenAnfrageErlaubt()) {
 			super.eventActionUpdate(aE, false); // Buttons schalten
 		}
 	}
 
 	private void aktualisiereStatusbar() throws Throwable {
-		setStatusbarPersonalIIdAnlegen(tpAnfrage.getAnfrageDto()
-				.getPersonalIIdAnlegen());
+		setStatusbarPersonalIIdAnlegen(tpAnfrage.getAnfrageDto().getPersonalIIdAnlegen());
 		setStatusbarTAnlegen(tpAnfrage.getAnfrageDto().getTAnlegen());
-		setStatusbarPersonalIIdAendern(tpAnfrage.getAnfrageDto()
-				.getPersonalIIdAendern());
+		setStatusbarPersonalIIdAendern(tpAnfrage.getAnfrageDto().getPersonalIIdAendern());
 		setStatusbarTAendern(tpAnfrage.getAnfrageDto().getTAendern());
 		setStatusbarStatusCNr(tpAnfrage.getAnfrageStatus());
 	}
@@ -385,9 +431,8 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 
 		switch (code) {
 		case EJBExceptionLP.FEHLER_FORMAT_NUMBER:
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-					.getTextRespectUISPr("lp.error.belegwerte"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.belegwerte"));
 			break;
 
 		default:
@@ -402,16 +447,11 @@ public class PanelAnfrageLieferkonditionen extends PanelKonditionen {
 		LockStateValue lockStateValue = super.getLockedstateDetailMainKey();
 
 		if (tpAnfrage.getAnfrageDto().getIId() != null) {
-			if (tpAnfrage.getAnfrageDto().getStatusCNr()
-					.equals(AnfrageServiceFac.ANFRAGESTATUS_STORNIERT)
-					|| tpAnfrage.getAnfrageDto().getStatusCNr()
-							.equals(AnfrageServiceFac.ANFRAGESTATUS_ERFASST)
-					|| tpAnfrage.getAnfrageDto().getStatusCNr()
-							.equals(AnfrageServiceFac.ANFRAGESTATUS_ANGELEGT)
-					|| tpAnfrage.getAnfrageDto().getStatusCNr()
-							.equals(AnfrageServiceFac.ANFRAGESTATUS_ERLEDIGT)) {
-				lockStateValue = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+			if (tpAnfrage.getAnfrageDto().getStatusCNr().equals(AnfrageServiceFac.ANFRAGESTATUS_STORNIERT)
+					|| tpAnfrage.getAnfrageDto().getStatusCNr().equals(AnfrageServiceFac.ANFRAGESTATUS_ERFASST)
+					|| tpAnfrage.getAnfrageDto().getStatusCNr().equals(AnfrageServiceFac.ANFRAGESTATUS_ANGELEGT)
+					|| tpAnfrage.getAnfrageDto().getStatusCNr().equals(AnfrageServiceFac.ANFRAGESTATUS_ERLEDIGT)) {
+				lockStateValue = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 			}
 		}
 

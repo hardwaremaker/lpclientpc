@@ -41,6 +41,7 @@ import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
@@ -50,6 +51,7 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -82,8 +84,14 @@ public class PanelLohnart extends PanelBasis {
 	private WrapperTextNumberField wnfLohnart = new WrapperTextNumberField();
 	private LohnartDto lohnartDto = null;
 
-	public PanelLohnart(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	private WrapperLabel wlaAusfallsprinzip = new WrapperLabel();
+
+	private WrapperLabel wlaAusfallsprinzipWochen = new WrapperLabel();
+	private WrapperNumberField wnfAusfallsprinzipWochen = new WrapperNumberField();
+	private WrapperLabel wlaAusfallsprinzipUestd = new WrapperLabel();
+	private WrapperNumberField wnfAusfallsprinzipUestd = new WrapperNumberField();
+
+	public PanelLohnart(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFramePersonal = (InternalFramePersonal) internalFrame;
 		jbInit();
@@ -93,24 +101,19 @@ public class PanelLohnart extends PanelBasis {
 	}
 
 	protected void setDefaults() throws Throwable {
-		
-		Map m=DelegateFactory.getInstance()
-		.getPersonalDelegate().getAllSprPersonalarten();
-		
-		wcoPersonalart.emptyEntry=LPMain.getInstance().getTextRespectUISPr(
-		"pers.lohnart.alle");
+
+		Map m = DelegateFactory.getInstance().getPersonalDelegate().getAllSprPersonalarten();
+
+		wcoPersonalart.emptyEntry = LPMain.getInstance().getTextRespectUISPr("pers.lohnart.alle");
 		wcoPersonalart.setMap(m);
-		
-		
-		
+
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
 		return wnfLohnart;
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		lohnartDto = new LohnartDto();
 
@@ -120,11 +123,9 @@ public class PanelLohnart extends PanelBasis {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		DelegateFactory.getInstance().getPersonalDelegate()
-				.removeLohnart(lohnartDto.getIId());
+		DelegateFactory.getInstance().getPersonalDelegate().removeLohnart(lohnartDto.getIId());
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
 	}
@@ -132,31 +133,35 @@ public class PanelLohnart extends PanelBasis {
 	protected void components2Dto() throws Throwable {
 		lohnartDto.setCBez(wtfBezeichnung.getText());
 		lohnartDto.setCKommentar(wtfKommentar.getText());
-		lohnartDto.setPersonalartCNr((String)wcoPersonalart.getKeyOfSelectedItem());
+		lohnartDto.setPersonalartCNr((String) wcoPersonalart.getKeyOfSelectedItem());
 		lohnartDto.setILohnart(wnfLohnart.getInteger());
 		lohnartDto.setCTyp(PersonalFac.LOHNART_TYP_STUNDEN);
+
+		lohnartDto.setIAusfallWochen(wnfAusfallsprinzipWochen.getInteger());
+		lohnartDto.setFMindestuestd(wnfAusfallsprinzipUestd.getDouble());
+
 	}
 
-	protected void dto2Components() {
-		
+	protected void dto2Components()throws Throwable {
+
 		wcoPersonalart.setKeyOfSelectedItem(lohnartDto.getPersonalartCNr());
 		wnfLohnart.setInteger(lohnartDto.getILohnart());
 		wtfBezeichnung.setText(lohnartDto.getCBez());
 		wtfKommentar.setText(lohnartDto.getcKommentar());
 
+		wnfAusfallsprinzipWochen.setInteger(lohnartDto.getIAusfallWochen());
+		wnfAusfallsprinzipUestd.setDouble(lohnartDto.getFMindestuestd());
+
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (lohnartDto.getIId() == null) {
-				lohnartDto.setIId(DelegateFactory.getInstance()
-						.getPersonalDelegate().createLohnart(lohnartDto));
+				lohnartDto.setIId(DelegateFactory.getInstance().getPersonalDelegate().createLohnart(lohnartDto));
 				setKeyWhenDetailPanel(lohnartDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getPersonalDelegate()
-						.updateLohnart(lohnartDto);
+				DelegateFactory.getInstance().getPersonalDelegate().updateLohnart(lohnartDto);
 			}
 			super.eventActionSave(e, true);
 
@@ -183,72 +188,78 @@ public class PanelLohnart extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
-		wlaLohnart.setText(LPMain.getInstance().getTextRespectUISPr(
-		"pers.lohnart"));
-		
-		wlaPersonalart.setText(LPMain.getInstance().getTextRespectUISPr(
-		"pers.personal.personalart"));
-		
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
+		wlaLohnart.setText(LPMain.getInstance().getTextRespectUISPr("pers.lohnart"));
+
+		wlaPersonalart.setText(LPMain.getInstance().getTextRespectUISPr("pers.personal.personalart"));
+
 		wtfBezeichnung.setColumnsMax(80);
-		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.kommentar"));
+		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr("lp.kommentar"));
 		wtfKommentar.setColumnsMax(80);
-		//wcoPersonalart.setMandatoryField(true);
+		// wcoPersonalart.setMandatoryField(true);
 		wnfLohnart.setMandatoryField(true);
 
 		wtfBezeichnung.setMandatoryField(true);
+
+		wlaAusfallsprinzip.setText(LPMain.getInstance().getTextRespectUISPr("pers.lohnart.ausfallsprinzip"));
+		wlaAusfallsprinzipWochen
+				.setText(LPMain.getInstance().getTextRespectUISPr("pers.lohnart.ausfallsprinzip.wochen"));
+		wlaAusfallsprinzipUestd
+				.setText(LPMain.getInstance().getTextRespectUISPr("pers.lohnart.ausfallsprinzip.mindestuestd"));
+
+		wnfAusfallsprinzipWochen.setFractionDigits(0);
+
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
 		iZeile++;
-		jpaWorkingOn.add(wlaLohnart, new GridBagConstraints(0, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaLohnart, new GridBagConstraints(0, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfLohnart, new GridBagConstraints(1, iZeile, 1,
-				1, 0.3, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wnfLohnart, new GridBagConstraints(1, iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 50, 0));
 		iZeile++;
 
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1,
-				1, 0.3, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wlaAusfallsprinzip, new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+
 		iZeile++;
-		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 1,
-				1, 0.3, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
+
+		jpaWorkingOn.add(wlaAusfallsprinzipWochen, new GridBagConstraints(2, iZeile, 1, 1, 0.3, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfAusfallsprinzipWochen, new GridBagConstraints(3, iZeile, 1, 1, 0.3, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
-		jpaWorkingOn.add(wlaPersonalart, new GridBagConstraints(0, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaPersonalart, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcoPersonalart, new GridBagConstraints(1, iZeile, 1,
-				1, 0.3, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wcoPersonalart, new GridBagConstraints(1, iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 200, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		jpaWorkingOn.add(wlaAusfallsprinzipUestd, new GridBagConstraints(2, iZeile, 1, 1, 0.3, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfAusfallsprinzipUestd, new GridBagConstraints(3, iZeile, 1, 1, 0.3, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -258,8 +269,7 @@ public class PanelLohnart extends PanelBasis {
 		return HelperClient.LOCKME_ZULAGE;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
@@ -270,8 +280,7 @@ public class PanelLohnart extends PanelBasis {
 
 			clearStatusbar();
 		} else {
-			lohnartDto = DelegateFactory.getInstance().getPersonalDelegate()
-					.lohnartFindByPrimaryKey((Integer) key);
+			lohnartDto = DelegateFactory.getInstance().getPersonalDelegate().lohnartFindByPrimaryKey((Integer) key);
 
 			dto2Components();
 		}

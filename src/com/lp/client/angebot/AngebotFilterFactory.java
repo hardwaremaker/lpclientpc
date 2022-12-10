@@ -41,8 +41,6 @@ import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.angebot.service.AngebotFac;
 import com.lp.server.angebot.service.AngebotServiceFac;
 import com.lp.server.angebot.service.AngebotpositionFac;
-import com.lp.server.auftrag.service.AuftragFac;
-import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.partner.service.KundeFac;
 import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.system.service.ParameterFac;
@@ -52,7 +50,6 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-@SuppressWarnings("static-access")
 /*
  * <p> Diese Klasse ist ein Singleton und kuemmert sich um alle Filter in der
  * Angebot.</p>
@@ -114,10 +111,9 @@ public class AngebotFilterFactory {
 	public FilterKriteriumDirekt createFKDTextSuchen() throws Throwable {
 
 		return new FilterKriteriumDirekt("c_suche", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.textsuche"),
-				FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als '%XX'
-				true, // wrapWithSingleQuotes
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.textsuche"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, // wrapWithSingleQuotes
 				true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
@@ -157,12 +153,12 @@ public class AngebotFilterFactory {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
 
 		FilterKriterium krit1 = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
+				+ LPMain.getTheClient().getMandant() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
 		FilterKriterium krit2 = new FilterKriterium("locale_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getLocUiAsString() + "'",
+				+ LPMain.getTheClient().getLocUiAsString() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
@@ -173,8 +169,8 @@ public class AngebotFilterFactory {
 
 	public FilterKriteriumDirekt createFKDAngebotnummer() throws Throwable {
 		return new FilterKriteriumDirekt("c_nr", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("angb.angebotsnummershort"),
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("angb.angebotsnummershort"),
 				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
 				true, // wrapWithSingleQuotes
 				false, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -182,10 +178,10 @@ public class AngebotFilterFactory {
 
 	public FilterKriteriumDirekt createFKDProjekt() throws Throwable {
 		return new FilterKriteriumDirekt("c_bez", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("ang.filter.projanf"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als '%XX'
-				true, // wrapWithSingleQuotes
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("ang.filter.projanf"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, // wrapWithSingleQuotes
 				true, // ignore case
 				Facade.MAX_UNBESCHRAENKT);
 	}
@@ -198,15 +194,15 @@ public class AngebotFilterFactory {
 				.getParametermandant(
 						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
 						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getInstance().getTheClient().getMandant());
+						LPMain.getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
 			FilterKriteriumDirekt fkDirekt1 = new FilterKriteriumDirekt(
 					AngebotFac.FLR_ANGEBOT_FLRKUNDE + "."
 							+ KundeFac.FLR_PARTNER + "."
 							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
-					"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.kunde.modulname"),
-					FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als
+					"", FilterKriterium.OPERATOR_LIKE, 
+					LPMain.getTextRespectUISPr("lp.kunde.modulname"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH, // Auswertung als
 															// 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -217,9 +213,9 @@ public class AngebotFilterFactory {
 					AngebotFac.FLR_ANGEBOT_FLRKUNDE + "."
 							+ KundeFac.FLR_PARTNER + "."
 							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
-					"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.kunde.modulname"),
-					FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als
+					"", FilterKriterium.OPERATOR_LIKE, 
+					LPMain.getTextRespectUISPr("lp.kunde.modulname"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING, // Auswertung als
 															// 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -244,34 +240,34 @@ public class AngebotFilterFactory {
 		FilterKriterium f1 = new FilterKriterium("c_nr", true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[0] = new QueryType(LPMain.getTextRespectUISPr(
 				"angb.angebotsnummer"), f1,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
 		FilterKriterium f2 = new FilterKriterium(
 				AngebotFac.FLR_ANGEBOT_FLRKUNDE + "." + KundeFac.FLR_PARTNER
 						+ "." + PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
 				true, "", FilterKriterium.OPERATOR_LIKE, true);
 
-		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[1] = new QueryType(LPMain.getTextRespectUISPr(
 				"lp.kunde.modulname"), f2,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
 		FilterKriterium f3 = new FilterKriterium(
 				AngebotFac.FLR_ANGEBOT_T_BELEGDATUM, true, "",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
-		types[2] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[2] = new QueryType(LPMain.getTextRespectUISPr(
 				"lp.belegdatum"), f3, new String[] {
 				FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_GTE,
-				FilterKriterium.OPERATOR_LTE }, true, false, false);
+				FilterKriterium.OPERATOR_LTE, FilterKriterium.OPERATOR_NOT_EQUAL }, true, false, false);
 
 		FilterKriterium f4 = new FilterKriterium("c_bez", true, "",
 				FilterKriterium.OPERATOR_LIKE, true);
 
-		types[3] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[3] = new QueryType(LPMain.getTextRespectUISPr(
 				"label.projekt"), f4,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
 		return types;
 	}
@@ -300,8 +296,10 @@ public class AngebotFilterFactory {
 				internalFrameI, bShowFilterButton, bShowLeerenButton, fkI);
 
 		panelQueryFLRAngebot.befuellePanelFilterkriterienDirekt(
-				AngebotFilterFactory.getInstance().createFKDAngebotnummer(),
-				AngebotFilterFactory.getInstance().createFKDKundeName());
+				createFKDAngebotnummer(),
+				createFKDKundeName());
+		
+		panelQueryFLRAngebot.addDirektFilter(createFKDTextSuchen());
 
 		return panelQueryFLRAngebot;
 	}
@@ -316,6 +314,7 @@ public class AngebotFilterFactory {
 				createFKDAngebotnummer(), createFKDKundeName(),
 				createFKVAngebotOffene(), LPMain.getInstance()
 						.getTextRespectUISPr("angb.print.alle"));
+		panelQueryFLRAngebot.addDirektFilter(createFKDTextSuchen());
 
 		return panelQueryFLRAngebot;
 	}
@@ -337,7 +336,7 @@ public class AngebotFilterFactory {
 				AngebotFilterFactory.getInstance()
 						.createQTPanelAngebotauswahl(), fk,
 				QueryParameters.UC_ID_ANGEBOT, aWhichButtonIUse,
-				internalFrameI, LPMain.getInstance().getTextRespectUISPr(
+				internalFrameI, LPMain.getTextRespectUISPr(
 						"title.angebotauswahlliste"));
 
 		return panelQueryFLRAngebot;
@@ -410,8 +409,7 @@ public class AngebotFilterFactory {
 				null, AngebotFilterFactory.getInstance()
 						.createFKAngeboterledigungsgrund(),
 				QueryParameters.UC_ID_ANGEBOTERLEDIGUNGSGRUND,
-				aWhichButtonIUse, internalFrameI, LPMain.getInstance()
-						.getTextRespectUISPr(
+				aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr(
 								"title.auswahllisteangeboterledigungsgrund"));
 
 		return panelQueryFLRAngeboterledigungsgrund;
@@ -431,6 +429,16 @@ public class AngebotFilterFactory {
 		fk[1] = new FilterKriterium(AngebotFac.FLR_ANGEBOT_ANGEBOTSTATUS_C_NR,
 				true, "'" + AngebotServiceFac.ANGEBOTSTATUS_OFFEN + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
+
+		return fk;
+	}
+	public FilterKriterium[] createFKAngebotAngelegteUndOffene() throws Throwable {
+		FilterKriterium[] fk = new FilterKriterium[2];
+
+		fk[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
+		fk[1] = new FilterKriterium(AngebotFac.FLR_ANGEBOT_ANGEBOTSTATUS_C_NR,
+				true, "('" + AngebotServiceFac.ANGEBOTSTATUS_ANGELEGT+"','" + AngebotServiceFac.ANGEBOTSTATUS_OFFEN + "')",
+				FilterKriterium.OPERATOR_IN, false);
 
 		return fk;
 	}

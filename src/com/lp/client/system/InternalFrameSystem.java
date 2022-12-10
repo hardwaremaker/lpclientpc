@@ -91,6 +91,7 @@ public class InternalFrameSystem extends InternalFrame {
 	private TabbedPaneLocale tpLocale = null;
 	private TabbedPaneMediastandard tpMedia = null;
 	private TabbedPaneParameter tpParameter = null;
+	private TabbedPaneHVMAParameter tpHVMAParameter = null;
 	private TabbedPaneArbeitsplatzparameter tpArbeitsplatzparameter = null;
 	private TabbedPaneVersandauftrag tpVersandauftrag = null;
 	private TabbedPaneExtraliste tpExtraliste = null;
@@ -121,25 +122,23 @@ public class InternalFrameSystem extends InternalFrame {
 	private MwstsatzbezDto mwstsatzbezDto = new MwstsatzbezDto();
 	private MediaartDto mediaartDto = new MediaartDto();
 
-	public static final int IDX_TABBED_PANE_SYSTEM = 0;
-	public static final int IDX_TABBED_PANE_RECHT = 1;
-	public static final int IDX_PANE_MANDANT = 2;
-	public static final int IDX_PANE_LOCALE = 3;
-	public static final int IDX_PANE_MEDIA = 4;
-	public static final int IDX_PANE_PARAMETER = 5;
-	public static final int IDX_PANE_ARBEITSPLATZPARAMETER = 6;
-	public static final int IDX_PANE_VERSANDAUFTRAG = 7;
-	public static final int IDX_PANE_NACHRICHTENARCHIV = 8;
-	public static final int IDX_PANE_EXTRALISTE = 9;
-	public static final int IDX_PANE_AUTOMATIK = 10;
-	public static final int IDX_PANE_DOKUMENTE = 11;
-	public static final int IDX_PANE_PFLEGE = 12;
-	public static final int IDX_PANE_EIGENSCHAFTENDEFINITION = 13;
+	public int IDX_TABBED_PANE_SYSTEM = -1;
+	public int IDX_TABBED_PANE_RECHT = -1;
+	public static int IDX_PANE_MANDANT = -1;
+	public int IDX_PANE_LOCALE = -1;
+	public int IDX_PANE_MEDIA = -1;
+	public int IDX_PANE_PARAMETER = -1;
+	public int IDX_PANE_ARBEITSPLATZPARAMETER = -1;
+	public int IDX_PANE_VERSANDAUFTRAG = -1;
+	public static int IDX_PANE_NACHRICHTENARCHIV = -1;
+	public int IDX_PANE_EXTRALISTE = -1;
+	public int IDX_PANE_AUTOMATIK = -1;
+	public int IDX_PANE_DOKUMENTE = -1;
+	public int IDX_PANE_PFLEGE = -1;
+	public int IDX_PANE_HVMAPARAMETER = -1;
+	public int IDX_PANE_EIGENSCHAFTENDEFINITION = -1;
 
-	
-	
-	public InternalFrameSystem(String title, String belegartCNr,
-			String sRechtModulweitI) throws Throwable {
+	public InternalFrameSystem(String title, String belegartCNr, String sRechtModulweitI) throws Throwable {
 
 		super(title, belegartCNr, sRechtModulweitI);
 		sRechtModulweit = sRechtModulweitI;
@@ -148,74 +147,112 @@ public class InternalFrameSystem extends InternalFrame {
 	}
 
 	private void jbInit() throws Throwable {
+
+		int tabIndex = 0;
+		IDX_TABBED_PANE_SYSTEM = tabIndex;
+
 		// 1 tab unten; System; lazy loading
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.system.modulname"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.system.tooltip"),
-				IDX_TABBED_PANE_SYSTEM);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.system.modulname"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.system.tooltip"), IDX_TABBED_PANE_SYSTEM);
+
+		tabIndex++;
+		IDX_TABBED_PANE_RECHT = tabIndex;
 
 		// 2 tab unten; Rechte; lazy loading
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"pers.benutzer.gesperrt"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.system.tooltip"),
-				IDX_TABBED_PANE_RECHT);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("pers.benutzer.gesperrt"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.system.tooltip"), IDX_TABBED_PANE_RECHT);
+
+		tabIndex++;
+		IDX_PANE_MANDANT = tabIndex;
 
 		// 2 unteres tab: Mandant; lazy loading.
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.mandant"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.mandant"), IDX_PANE_MANDANT);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.mandant"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.mandant"), IDX_PANE_MANDANT);
+
+		tabIndex++;
+		IDX_PANE_LOCALE = tabIndex;
 
 		// 4. Tab unten: Locale
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.locale"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.locale"), IDX_PANE_LOCALE);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.locale"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.locale"), IDX_PANE_LOCALE);
+
+		tabIndex++;
+		IDX_PANE_MEDIA = tabIndex;
 
 		// 5. Tab unten: Media
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.medien"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.medien"), IDX_PANE_MEDIA);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.medien"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.medien"), IDX_PANE_MEDIA);
+
+		tabIndex++;
+		IDX_PANE_PARAMETER = tabIndex;
 
 		// 6. Tab unten: Parameter
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.parameter"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.parameter"), IDX_PANE_PARAMETER);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.parameter"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.parameter"), IDX_PANE_PARAMETER);
+
+		tabIndex++;
+		IDX_PANE_ARBEITSPLATZPARAMETER = tabIndex;
+
 		// 6. Tab unten: Parameter
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.arbeitsplatzparameter"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.arbeitsplatzparameter"),
-				IDX_PANE_ARBEITSPLATZPARAMETER);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.arbeitsplatzparameter"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.arbeitsplatzparameter"), IDX_PANE_ARBEITSPLATZPARAMETER);
+
+		tabIndex++;
+		IDX_PANE_VERSANDAUFTRAG = tabIndex;
+
 		// 7. Tab unten: Versandauftraege
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.versandauftrag"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.versandauftrag"),
-				IDX_PANE_VERSANDAUFTRAG);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.versandauftrag"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.versandauftrag"), IDX_PANE_VERSANDAUFTRAG);
+
+		tabIndex++;
+		IDX_PANE_NACHRICHTENARCHIV = tabIndex;
+
 		// 8. Tab unten: Nachrichtenarchiv
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"ben.nachrichtenarchiv"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("ben.nachrichtenarchiv"), IDX_PANE_NACHRICHTENARCHIV);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("ben.nachrichtenarchiv"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("ben.nachrichtenarchiv"), IDX_PANE_NACHRICHTENARCHIV);
+
+		tabIndex++;
+		IDX_PANE_EXTRALISTE = tabIndex;
+
 		// 8. Tab unten: Extraliste
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"system.extraliste"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("system.extraliste"), IDX_PANE_EXTRALISTE);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("system.extraliste"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("system.extraliste"), IDX_PANE_EXTRALISTE);
 
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"system.automatik"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("system.automatik"), IDX_PANE_AUTOMATIK);
+		tabIndex++;
+		IDX_PANE_AUTOMATIK = tabIndex;
 
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-				"lp.dokumente"), null, null, LPMain.getInstance()
-				.getTextRespectUISPr("lp.dokumente"), IDX_PANE_DOKUMENTE);
-		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-		"lp.pflege"), null, null, LPMain.getInstance()
-		.getTextRespectUISPr("lp.pflege"), IDX_PANE_PFLEGE);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("system.automatik"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("system.automatik"), IDX_PANE_AUTOMATIK);
 
-		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(
-				RechteFac.RECHT_LP_EIGENSCHAFTSPANELS_BEARBEITEN)) {
+		tabIndex++;
+		IDX_PANE_DOKUMENTE = tabIndex;
+
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.dokumente"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.dokumente"), IDX_PANE_DOKUMENTE);
+
+		tabIndex++;
+		IDX_PANE_PFLEGE = tabIndex;
+
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.pflege"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.pflege"), IDX_PANE_PFLEGE);
+
+		if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_HVMA2)) {
+			tabIndex++;
+			IDX_PANE_HVMAPARAMETER = tabIndex;
+
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.hvmaparameter"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("lp.hvmaparameter"), IDX_PANE_HVMAPARAMETER);
+		}
+
+		if (DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_LP_EIGENSCHAFTSPANELS_BEARBEITEN)) {
+
+			tabIndex++;
+			IDX_PANE_EIGENSCHAFTENDEFINITION = tabIndex;
+
 			// 10. Tab unten: Eigenschaftsdefinition
-			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
-					"lp.eigenschaftsdefinition"), null, null, LPMain
-					.getInstance().getTextRespectUISPr(
-							"lp.eigenschaftsdefinition"),
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.eigenschaftsdefinition"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("lp.eigenschaftsdefinition"),
 					IDX_PANE_EIGENSCHAFTENDEFINITION);
 		}
 
@@ -228,8 +265,7 @@ public class InternalFrameSystem extends InternalFrame {
 		// awt: listener bin auch ich.
 		registerChangeListeners();
 		// das icon setzen.
-		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
-				"/com/lp/client/res/toolbox16x16.png"));
+		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource("/com/lp/client/res/toolbox16x16.png"));
 		setFrameIcon(iicon);
 	}
 
@@ -271,9 +307,9 @@ public class InternalFrameSystem extends InternalFrame {
 		}
 
 		else if (selectedCur == IDX_PANE_VERSANDAUFTRAG) {
-			//PJ 14300: In Versandauftrag darf man seine eigenen immer bearbeiten
+			// PJ 14300: In Versandauftrag darf man seine eigenen immer bearbeiten
 			setRechtModulweit(RechteFac.RECHT_MODULWEIT_UPDATE);
-			
+
 			refreshTPVersandauftrag();
 			tabbedPaneRoot.setSelectedComponent(tpVersandauftrag);
 			tpVersandauftrag.lPEventObjectChanged(null);
@@ -283,6 +319,10 @@ public class InternalFrameSystem extends InternalFrame {
 			refreshTPParameter();
 			tabbedPaneRoot.setSelectedComponent(tpParameter);
 			tpParameter.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_PANE_HVMAPARAMETER) {
+			refreshTPHVMAParameter();
+			tabbedPaneRoot.setSelectedComponent(tpHVMAParameter);
+			tpHVMAParameter.lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_PANE_ARBEITSPLATZPARAMETER) {
 			refreshTPArbeitsplatzparameter();
 			tabbedPaneRoot.setSelectedComponent(tpArbeitsplatzparameter);
@@ -359,8 +399,7 @@ public class InternalFrameSystem extends InternalFrame {
 		if (tpArbeitsplatzparameter == null) {
 			// lazy loading
 			tpArbeitsplatzparameter = new TabbedPaneArbeitsplatzparameter(this);
-			tabbedPaneRoot.setComponentAt(IDX_PANE_ARBEITSPLATZPARAMETER,
-					tpArbeitsplatzparameter);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_ARBEITSPLATZPARAMETER, tpArbeitsplatzparameter);
 			initComponents();
 		}
 	}
@@ -388,8 +427,7 @@ public class InternalFrameSystem extends InternalFrame {
 	private void refreshTPVersandauftrag() throws Throwable {
 		if (tpVersandauftrag == null) {
 			tpVersandauftrag = new TabbedPaneVersandauftrag(this);
-			tabbedPaneRoot.setComponentAt(IDX_PANE_VERSANDAUFTRAG,
-					tpVersandauftrag);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_VERSANDAUFTRAG, tpVersandauftrag);
 			initComponents();
 		}
 	}
@@ -397,8 +435,15 @@ public class InternalFrameSystem extends InternalFrame {
 	private void refreshTPPanel() throws Throwable {
 		if (tpPanel == null) {
 			tpPanel = new TabbedPanePanel(this);
-			tabbedPaneRoot.setComponentAt(IDX_PANE_EIGENSCHAFTENDEFINITION,
-					tpPanel);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_EIGENSCHAFTENDEFINITION, tpPanel);
+			initComponents();
+		}
+	}
+
+	private void refreshTPHVMAParameter() throws Throwable {
+		if (tpHVMAParameter == null) {
+			tpHVMAParameter = new TabbedPaneHVMAParameter(this);
+			tabbedPaneRoot.setComponentAt(IDX_PANE_HVMAPARAMETER, tpHVMAParameter);
 			initComponents();
 		}
 	}
@@ -426,6 +471,7 @@ public class InternalFrameSystem extends InternalFrame {
 			initComponents();
 		}
 	}
+
 	private void refreshTPPflege() throws Throwable {
 		if (tpPflege == null) {
 			tpPflege = new TabbedPanePflege(this);
@@ -458,8 +504,7 @@ public class InternalFrameSystem extends InternalFrame {
 		this.einheitDto = einheitDto;
 	}
 
-	public void setEinheitKonvertierungDto(
-			EinheitKonvertierungDto einheitKonvertierungDto) {
+	public void setEinheitKonvertierungDto(EinheitKonvertierungDto einheitKonvertierungDto) {
 		this.einheitKonvertierungDto = einheitKonvertierungDto;
 	}
 
@@ -598,16 +643,11 @@ public class InternalFrameSystem extends InternalFrame {
 
 			if (gotoCommand.getsInternalFrame() == Command.S_INTERNALFRAME_SYSTEM) {
 				if (gotoCommand.getTabbedPaneAsClass() == Command.CLASS_TABBED_PANE_SYSTEM) {
-					if (gotoCommand.getsPanel().equals(
-							Command.PANEL_LAND_PLZ_ORT)) {
-						tpSystem
-								.setSelectedIndex(TabbedPaneSystem.IDX_PANEL_LANDPLZORT);
-						if (gotoCommand.getSAction().equals(
-								PanelBasis.ACTION_UPDATE)) {
-							tpSystem.getPanelLandPlzOrtBottomD3()
-									.eventActionNew(null, true, false);
-							tpSystem.getPanelLandPlzOrtBottomD3()
-									.eventYouAreSelected(false);
+					if (gotoCommand.getsPanel().equals(Command.PANEL_LAND_PLZ_ORT)) {
+						tpSystem.setSelectedIndex(TabbedPaneSystem.IDX_PANEL_LANDPLZORT);
+						if (gotoCommand.getSAction().equals(PanelBasis.ACTION_UPDATE)) {
+							tpSystem.getPanelLandPlzOrtBottomD3().eventActionNew(null, true, false);
+							tpSystem.getPanelLandPlzOrtBottomD3().eventYouAreSelected(false);
 						}
 					}
 				}

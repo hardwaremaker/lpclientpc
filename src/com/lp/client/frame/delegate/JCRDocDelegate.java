@@ -65,20 +65,14 @@ public class JCRDocDelegate extends Delegate {
 	private JCRDocFac jcrDocFac;
 	private static Boolean jcrOnline;
 
-	public JCRDocDelegate() throws ExceptionLP {
-		try {
-			context = new InitialContext();
-			jcrDocFac = (JCRDocFac) context
-					.lookup("lpserver/JCRDocFacBean/remote");
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
+	public JCRDocDelegate() throws Exception {
+		context = new InitialContext();
+		jcrDocFac = lookupFac(context, JCRDocFac.class);
 	}
-	
 
 	public boolean isOnline() throws ExceptionLP {
 		try {
-			if(jcrOnline == null)
+			if (jcrOnline == null)
 				jcrOnline = jcrDocFac.isOnline();
 			return jcrOnline;
 		} catch (Throwable t) {
@@ -96,7 +90,6 @@ public class JCRDocDelegate extends Delegate {
 		}
 		return node;
 	}
-	
 
 	public JCRDocDto getJCRDocDtoFromNode(DocPath docPath) {
 		JCRDocDto retValue = null;
@@ -121,15 +114,15 @@ public class JCRDocDelegate extends Delegate {
 		return nodes;
 	}
 
-	public void setVisibilityOfDocument(String basePath, String versionPath, boolean hidden)
-			throws ExceptionLP {
+	public void setVisibilityOfDocument(String basePath, String versionPath,
+			boolean hidden) throws ExceptionLP {
 		try {
 			jcrDocFac.setVisibilityOfDocument(basePath, versionPath, hidden);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
-	
+
 	public void addNewDocumentOrNewVersionOfDocument(JCRDocDto jcrDocDto)
 			throws ExceptionLP {
 		try {
@@ -183,10 +176,10 @@ public class JCRDocDelegate extends Delegate {
 	public JCRRepoInfo checkIfNodeExists(DocPath docPath) throws ExceptionLP {
 		try {
 			return jcrDocFac.checkIfNodeExists(docPath);
-		} catch(Throwable t) {
-			handleThrowable(t) ;
+		} catch (Throwable t) {
+			handleThrowable(t);
 		}
-		return new JCRRepoInfo() ;
+		return new JCRRepoInfo();
 	}
 
 	public DokumentgruppierungDto dokumentgruppierungfindbyPrimaryKey(
@@ -411,6 +404,26 @@ public class JCRDocDelegate extends Delegate {
 			return jcrDocFac.getAllDocuments();
 		} catch (Throwable e) {
 			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public void updateVersionOfDocument(JCRDocDto jcrDocDto, String jcrVersion)
+			throws ExceptionLP {
+		try {
+			jcrDocFac.updateVersionOfDocument(jcrDocDto, jcrVersion,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public DocNodeVersion getLastJcrDocVersion(JCRDocDto jcrDoc)
+			throws ExceptionLP {
+		try {
+			return jcrDocFac.getLastVersionOfJcrDoc(jcrDoc);
+		} catch (Throwable e) {
+			handleThrowable(e);
 		}
 		return null;
 	}

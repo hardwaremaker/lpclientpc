@@ -225,7 +225,7 @@ public class InseratFilterFactory {
 			throws Throwable {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
 
-		kriterien[0] = new FilterKriterium("inserat_i_id", true, inseratIId
+		kriterien[0] = new FilterKriterium("flrinserater.inserat_i_id", true, inseratIId
 				+ "", FilterKriterium.OPERATOR_EQUAL, false);
 
 		return kriterien;

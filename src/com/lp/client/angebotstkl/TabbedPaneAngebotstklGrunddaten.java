@@ -45,8 +45,12 @@ import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.component.WrapperMenuBar;
+import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
+import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
@@ -68,11 +72,21 @@ public class TabbedPaneAngebotstklGrunddaten extends TabbedPane {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private final static int IDX_AUFSCHLAG = 0;
+	public int IDX_AUFSCHLAG = -1;
+	public int IDX_WEBLIEFERANT = -11;
+	public int IDX_WEBFINDCHIPS = -12;
 
 	private PanelQuery panelAufschlagQP1 = null;
 	private PanelAufschlag panelAufschlagBottomD1 = null;
 	private PanelSplit panelAufschlagSP1 = null;
+
+	private PanelQuery panelWeblieferantQP1 = null;
+	private PanelWeblieferant panelWeblieferantBottomD1 = null;
+	private PanelSplit panelWeblieferantSP1 = null;
+	
+	private PanelQuery panelWebFindChipsQP1 = null;
+	private PanelWebFindChips panelWebFindChipsBottomD1 = null;
+	private PanelSplit panelWebFindChipsSP1 = null;
 
 	private WrapperMenuBar wrapperMenuBar = null;
 
@@ -85,14 +99,57 @@ public class TabbedPaneAngebotstklGrunddaten extends TabbedPane {
 
 	private void jbInit() throws Throwable {
 
-		// Tab 1: Liefergruppen
-		insertTab(LPMain.getInstance().getTextRespectUISPr("as.aufschlag"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("as.aufschlag"),
-				IDX_AUFSCHLAG);
+		ParametermandantDto parameter = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(
+						LPMain.getInstance().getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_ANGEBOTSSTUECKLISTE,
+						ParameterFac.PARAMETER_KALKULATIONSART);
+		int iKalkulationsart = (java.lang.Integer) parameter.getCWertAsObject();
 
-		// Default
-		refreshAufschlag();
+		int tabIndex = -1;
+
+		if (iKalkulationsart == 2) {
+			tabIndex++;
+
+			IDX_AUFSCHLAG = tabIndex;
+			insertTab(LPMain.getInstance().getTextRespectUISPr("as.aufschlag"),
+					null, null,
+					LPMain.getInstance().getTextRespectUISPr("as.aufschlag"),
+					IDX_AUFSCHLAG);
+
+			// Default
+			refreshAufschlag();
+
+		}
+
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_WEB_BAUTEIL_ANFRAGE)) {
+			tabIndex++;
+
+			IDX_WEBLIEFERANT = tabIndex;
+			insertTab(
+					LPMain.getInstance().getTextRespectUISPr(
+							"agstkl.weblieferant"),
+					null,
+					null,
+					LPMain.getInstance().getTextRespectUISPr(
+							"agstkl.weblieferant"), IDX_WEBLIEFERANT);
+
+			// Default
+			refreshWeblieferant();
+			
+			tabIndex++;
+			IDX_WEBFINDCHIPS = tabIndex;
+			insertTab(LPMain.getTextRespectUISPr("agstkl.webfindchips"), null, null, 
+					LPMain.getTextRespectUISPr("agstkl.webfindchips"), IDX_WEBFINDCHIPS);
+			refreshWebFindChips();
+
+		}
 
 		addChangeListener(this);
 		getInternalFrame().addItemChangedListener(this);
@@ -119,12 +176,31 @@ public class TabbedPaneAngebotstklGrunddaten extends TabbedPane {
 				panelAufschlagBottomD1.setKeyWhenDetailPanel(iId);
 				panelAufschlagBottomD1.eventYouAreSelected(false);
 				panelAufschlagQP1.updateButtons();
+			} else if (eI.getSource() == panelWeblieferantQP1) {
+				Integer iId = (Integer) panelWeblieferantQP1.getSelectedId();
+				getInternalFrame().setKeyWasForLockMe(iId == null ? null : iId.toString());
+				panelWeblieferantBottomD1.setKeyWhenDetailPanel(iId);
+				panelWeblieferantBottomD1.eventYouAreSelected(false);
+				panelWeblieferantQP1.updateButtons();
+			} else if (eI.getSource() == panelWebFindChipsQP1) {
+				Integer iId = (Integer) panelWebFindChipsQP1.getSelectedId();
+				panelWebFindChipsBottomD1.setKeyWhenDetailPanel(iId);
+				panelWebFindChipsBottomD1.eventYouAreSelected(false);
+				panelWebFindChipsQP1.updateButtons();
 			}
+
 		} else if (eI.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			// hier kommt man nach upd im D bei einem 1:n hin.
 			if (eI.getSource() == panelAufschlagBottomD1) {
 				// btnstate: 2 im QP die Buttons in den Zustand neu setzen.
 				panelAufschlagQP1.updateButtons(new LockStateValue(
+						PanelBasis.LOCK_FOR_NEW));
+			} else if (eI.getSource() == panelWeblieferantBottomD1) {
+				// btnstate: 2 im QP die Buttons in den Zustand neu setzen.
+				panelWeblieferantQP1.updateButtons(new LockStateValue(
+						PanelBasis.LOCK_FOR_NEW));
+			} else if (eI.getSource() == panelWebFindChipsBottomD1) {
+				panelWebFindChipsQP1.updateButtons(new LockStateValue(
 						PanelBasis.LOCK_FOR_NEW));
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_NEW) {
@@ -132,7 +208,16 @@ public class TabbedPaneAngebotstklGrunddaten extends TabbedPane {
 				panelAufschlagBottomD1.eventActionNew(eI, true, false);
 				panelAufschlagBottomD1.eventYouAreSelected(false);
 				setSelectedComponent(panelAufschlagSP1);
+			} else if (eI.getSource() == panelWeblieferantQP1) {
+				panelWeblieferantBottomD1.eventActionNew(eI, true, false);
+				panelWeblieferantBottomD1.eventYouAreSelected(false);
+				setSelectedComponent(panelWeblieferantSP1);
+			} else if (eI.getSource() == panelWebFindChipsQP1) {
+				panelWebFindChipsBottomD1.eventActionNew(eI, true, false);
+				panelWebFindChipsBottomD1.eventYouAreSelected(false);
+				setSelectedComponent(panelWebFindChipsSP1);
 			}
+
 		} else if (eI.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			if (eI.getSource() == panelAufschlagBottomD1) {
 				if (panelAufschlagBottomD1.getKeyWhenDetailPanel() == null) {
@@ -141,10 +226,28 @@ public class TabbedPaneAngebotstklGrunddaten extends TabbedPane {
 					panelAufschlagQP1.setSelectedId(oNaechster);
 				}
 				panelAufschlagSP1.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelWeblieferantBottomD1) {
+				if (panelWeblieferantBottomD1.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelWeblieferantQP1
+							.getId2SelectAfterDelete();
+					panelWeblieferantQP1.setSelectedId(oNaechster);
+				}
+				panelWeblieferantSP1.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelWebFindChipsBottomD1) {
+				if (panelWebFindChipsBottomD1.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelWebFindChipsQP1
+							.getId2SelectAfterDelete();
+					panelWebFindChipsQP1.setSelectedId(oNaechster);
+				}
+				panelWebFindChipsSP1.eventYouAreSelected(false);
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_DISCARD) {
 			if (eI.getSource() == panelAufschlagBottomD1) {
 				panelAufschlagSP1.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelWeblieferantBottomD1) {
+				panelWeblieferantSP1.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelWebFindChipsBottomD1) {
+				panelWebFindChipsSP1.eventYouAreSelected(false);
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_SAVE) {
 			if (eI.getSource() == panelAufschlagBottomD1) {
@@ -152,7 +255,122 @@ public class TabbedPaneAngebotstklGrunddaten extends TabbedPane {
 				panelAufschlagQP1.eventYouAreSelected(false);
 				panelAufschlagQP1.setSelectedId(oKey);
 				panelAufschlagSP1.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelWeblieferantBottomD1) {
+				Object oKey = panelWeblieferantBottomD1.getKeyWhenDetailPanel();
+				panelWeblieferantQP1.eventYouAreSelected(false);
+				panelWeblieferantQP1.setSelectedId(oKey);
+				panelWeblieferantSP1.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelWebFindChipsBottomD1) {
+				Object oKey = panelWebFindChipsBottomD1.getKeyWhenDetailPanel();
+				panelWebFindChipsQP1.eventYouAreSelected(false);
+				panelWebFindChipsQP1.setSelectedId(oKey);
+				panelWebFindChipsSP1.eventYouAreSelected(false);
 			}
+		}
+		if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
+			if (eI.getSource() == panelWeblieferantQP1) {
+				int iPos = panelWeblieferantQP1.getTable().getSelectedRow();
+
+				// wenn die Position nicht die erste ist
+				if (iPos > 0) {
+					Integer iIdPosition = (Integer) panelWeblieferantQP1
+							.getSelectedId();
+
+					Integer iIdPositionMinus1 = (Integer) panelWeblieferantQP1
+							.getTable().getValueAt(iPos - 1, 0);
+
+					DelegateFactory
+							.getInstance()
+							.getAngebotstklDelegate()
+							.vertauscheWeblieferant(iIdPosition,
+									iIdPositionMinus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelWeblieferantQP1.setSelectedId(iIdPosition);
+				}
+			}
+		} else if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
+			if (eI.getSource() == panelWeblieferantQP1) {
+				int iPos = panelWeblieferantQP1.getTable().getSelectedRow();
+
+				// wenn die Position nicht die letzte ist
+				if (iPos < panelWeblieferantQP1.getTable().getRowCount() - 1) {
+					Integer iIdPosition = (Integer) panelWeblieferantQP1
+							.getSelectedId();
+
+					Integer iIdPositionPlus1 = (Integer) panelWeblieferantQP1
+							.getTable().getValueAt(iPos + 1, 0);
+
+					DelegateFactory
+							.getInstance()
+							.getAngebotstklDelegate()
+							.vertauscheWeblieferant(iIdPosition,
+									iIdPositionPlus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelWeblieferantQP1.setSelectedId(iIdPosition);
+				}
+			}
+		}
+	}
+	
+	private void refreshWebFindChips() throws Throwable {
+		if (panelWebFindChipsSP1 == null) {
+			String[] aButton = {};
+			
+			panelWebFindChipsQP1 = new PanelQuery(null, 
+					new FilterKriterium[] {AngebotstklFilterFactory.getInstance().createFKWebpartner()}, 
+					QueryParameters.UC_ID_WEBFINDCHIPS, aButton, getInternalFrame(),
+					LPMain.getTextRespectUISPr("agstkl.webfindchips"), true);
+			
+			panelWebFindChipsBottomD1 = new PanelWebFindChips(getInternalFrame(), 
+					LPMain.getTextRespectUISPr("agstkl.webfindchips"), null);
+			
+			panelWebFindChipsSP1 = new PanelSplit(getInternalFrame(), 
+					panelWebFindChipsBottomD1, panelWebFindChipsQP1, 200);
+			setComponentAt(IDX_WEBFINDCHIPS, panelWebFindChipsSP1);
+			
+			panelWebFindChipsQP1.eventYouAreSelected(true);
+		}
+	}
+
+	private void refreshWeblieferant() throws Throwable {
+
+		if (panelWeblieferantSP1 == null) {
+
+			// Buttons.
+			String[] aButton = { PanelBasis.ACTION_NEW,
+					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1, };
+
+			FilterKriterium[] kriterien = new FilterKriterium[1];
+			kriterien[0] = new FilterKriterium("flrlieferant.mandant_c_nr",
+					true, "'"
+							+ LPMain.getInstance().getTheClient().getMandant()
+							+ "'", FilterKriterium.OPERATOR_EQUAL, false);
+
+			panelWeblieferantQP1 = new PanelQuery(null, kriterien,
+					QueryParameters.UC_ID_WEBLIEFERANT, aButton,
+					getInternalFrame(), LPMain.getInstance()
+							.getTextRespectUISPr("agstkl.weblieferant"), true); // liste
+			// refresh
+			// wenn
+			// lasche
+			// geklickt
+			// wurde
+
+			panelWeblieferantBottomD1 = new PanelWeblieferant(
+					getInternalFrame(), LPMain.getInstance()
+							.getTextRespectUISPr("agstkl.weblieferant"), null);
+
+			panelWeblieferantSP1 = new PanelSplit(getInternalFrame(),
+					panelWeblieferantBottomD1, panelWeblieferantQP1, 200);
+			setComponentAt(IDX_WEBLIEFERANT, panelWeblieferantSP1);
+
+			// liste soll sofort angezeigt werden
+			panelWeblieferantQP1.eventYouAreSelected(true);
 		}
 	}
 
@@ -193,16 +411,27 @@ public class TabbedPaneAngebotstklGrunddaten extends TabbedPane {
 
 		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
 
-		switch (selectedIndex) {
-
-		case IDX_AUFSCHLAG: {
+		if (selectedIndex == IDX_AUFSCHLAG) {
 			refreshAufschlag();
 			panelAufschlagSP1.eventYouAreSelected(false);
 			panelAufschlagQP1.updateButtons();
 			getInternalFrame().setLpTitle(
 					InternalFrame.TITLE_IDX_OHRWASCHLOBEN, "");
-			break;
-		}
+
+		} else if (selectedIndex == IDX_WEBLIEFERANT) {
+			refreshWeblieferant();
+			panelWeblieferantSP1.eventYouAreSelected(false);
+			panelWeblieferantQP1.updateButtons();
+			getInternalFrame().setLpTitle(
+					InternalFrame.TITLE_IDX_OHRWASCHLOBEN, "");
+
+		} else if (selectedIndex == IDX_WEBFINDCHIPS) {
+			refreshWebFindChips();
+			panelWebFindChipsSP1.eventYouAreSelected(false);
+			panelWebFindChipsQP1.updateButtons();
+			getInternalFrame().setLpTitle(
+					InternalFrame.TITLE_IDX_OHRWASCHLOBEN, "");
+
 		}
 	}
 

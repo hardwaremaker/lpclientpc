@@ -48,6 +48,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.ItemChangedEvent;
@@ -62,8 +63,10 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
+import com.lp.client.frame.report.PanelReportNotifyIntialize;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungOffeneKriterienDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungReportFac;
 import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.system.service.MailtextDto;
@@ -71,52 +74,51 @@ import com.lp.server.util.report.JasperPrintLP;
 
 
 public class ReportEingangsrechnungOffene
-    extends PanelBasis implements PanelReportIfJRDS
+    extends PanelBasis implements PanelReportIfJRDS, PanelReportNotifyIntialize
 {
-  /**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
-private LieferantDto lieferantDto = null;
+	private LieferantDto lieferantDto = null;
 
-  private final static String ACTION_SPECIAL_LIEFERANT =
-      "action_special_eroffene_lieferant";
-  private final static String ACTION_SPECIAL_LIEFERANT_EINER =
-      "action_special_eroffene_lieferant_einer";
-  private final static String ACTION_SPECIAL_LIEFERANT_ALLE =
-      "action_special_eroffene_lieferant_alle";
-  private final static String ACTION_SPECIAL_LIEFERANTEN =
-      "action_special_eroffene_lieferanten";
-  private final static String ACTION_SPECIAL_RECHNUNGSNUMMER =
-      "action_special_eroffene_rechnungsnummer";
+	private static final String ACTION_SPECIAL_LIEFERANT =
+			"action_special_eroffene_lieferant";
+	private static final String ACTION_SPECIAL_LIEFERANT_EINER =
+			"action_special_eroffene_lieferant_einer";
+	private static final String ACTION_SPECIAL_LIEFERANT_ALLE =
+			"action_special_eroffene_lieferant_alle";
+	private static final String ACTION_SPECIAL_LIEFERANTEN =
+			"action_special_eroffene_lieferanten";
+	private static final String ACTION_SPECIAL_RECHNUNGSNUMMER =
+			"action_special_eroffene_rechnungsnummer";
 
-  private PanelQueryFLR panelQueryFLRLieferant = null;
+	private PanelQueryFLR panelQueryFLRLieferant = null;
 
-  protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  private WrapperDateField wdfDatum = new WrapperDateField();
-  private WrapperRadioButton wrbRechnungsnummer = new WrapperRadioButton();
-  private WrapperRadioButton wrbFaelligkeit = new WrapperRadioButton();
-  private WrapperRadioButton wrbFaelligkeitSkonto1 = new WrapperRadioButton();
-  private WrapperRadioButton wrbFaelligkeitSkonto2 = new WrapperRadioButton();
-  private WrapperRadioButton wrbLieferanten = new WrapperRadioButton();
-  private WrapperRadioButton wrbLieferantAlle = new WrapperRadioButton();
-  private WrapperRadioButton wrbLieferantEiner = new WrapperRadioButton();
-  private WrapperRadioButton wrbStichtagRechnungsdatum = new WrapperRadioButton();
-  private WrapperRadioButton wrbStichtagFreigabedatum = new WrapperRadioButton();
-  private ButtonGroup bgSortierung = new ButtonGroup();
-  private ButtonGroup bgLieferant = new ButtonGroup();
-  private ButtonGroup bgStichtag = new ButtonGroup();
-  private WrapperButton wbuLieferant = new WrapperButton();
-  private WrapperTextField wtfLieferant = new WrapperTextField();
-  private WrapperLabel wlaSortierung = new WrapperLabel();
-  private WrapperLabel wlaStichtag = new WrapperLabel();
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	private WrapperDateField wdfDatum = new WrapperDateField();
+	private WrapperRadioButton wrbRechnungsnummer = new WrapperRadioButton();
+	private WrapperRadioButton wrbFaelligkeit = new WrapperRadioButton();
+	private WrapperRadioButton wrbFaelligkeitSkonto1 = new WrapperRadioButton();
+	private WrapperRadioButton wrbFaelligkeitSkonto2 = new WrapperRadioButton();
+	private WrapperRadioButton wrbLieferanten = new WrapperRadioButton();
+	private WrapperRadioButton wrbLieferantAlle = new WrapperRadioButton();
+	private WrapperRadioButton wrbLieferantEiner = new WrapperRadioButton();
+	private WrapperRadioButton wrbStichtagRechnungsdatum = new WrapperRadioButton();
+	private WrapperRadioButton wrbStichtagFreigabedatum = new WrapperRadioButton();
+	private ButtonGroup bgSortierung = new ButtonGroup();
+	private ButtonGroup bgLieferant = new ButtonGroup();
+	private ButtonGroup bgStichtag = new ButtonGroup();
+	private WrapperButton wbuLieferant = new WrapperButton();
+	private WrapperTextField wtfLieferant = new WrapperTextField();
+	private WrapperLabel wlaSortierung = new WrapperLabel();
+	private WrapperLabel wlaStichtag = new WrapperLabel();
 	private WrapperCheckBox wcbNichtZugeordneteBelege = null;
 
 	private TabbedPaneEingangsrechnung tabbedPaneEingangsrechnung = null;
   
+	private boolean initialized = false;
+	
   public ReportEingangsrechnungOffene(TabbedPaneEingangsrechnung tabbedPaneEingangsrechnung,
                                       String add2Title)
       throws Throwable {
@@ -159,7 +161,7 @@ private LieferantDto lieferantDto = null;
 		}
 	});
 	
-    wdfDatum.setMandatoryField(true);
+  
     wlaSortierung.setText(LPMain.getTextRespectUISPr("label.sortierung"));
     wlaSortierung.setHorizontalAlignment(SwingConstants.LEFT);
     wrbRechnungsnummer.setText(LPMain.getTextRespectUISPr("rechnung.rechnungsnummer"));
@@ -177,22 +179,7 @@ private LieferantDto lieferantDto = null;
     wrbStichtagRechnungsdatum.setText(LPMain.getTextRespectUISPr("label.belegdatum"));
     
     wtfLieferant.setActivatable(false);
-    wrbRechnungsnummer.setMinimumSize(new Dimension(120,
-        Defaults.getInstance().getControlHeight()));
-    wrbRechnungsnummer.setPreferredSize(new Dimension(120,
-        Defaults.getInstance().getControlHeight()));
-    wrbFaelligkeit.setMinimumSize(new Dimension(120,
-            Defaults.getInstance().getControlHeight()));
-    wrbFaelligkeit.setPreferredSize(new Dimension(120,
-            Defaults.getInstance().getControlHeight()));
-    wrbFaelligkeitSkonto1.setMinimumSize(new Dimension(120,
-                Defaults.getInstance().getControlHeight()));
-    wrbFaelligkeitSkonto1.setPreferredSize(new Dimension(120,
-                Defaults.getInstance().getControlHeight()));
-    wrbFaelligkeitSkonto2.setMinimumSize(new Dimension(120,
-                    Defaults.getInstance().getControlHeight()));
-    wrbFaelligkeitSkonto2.setPreferredSize(new Dimension(120,
-                    Defaults.getInstance().getControlHeight()));
+    HelperClient.setMinimumAndPreferredSize(wrbRechnungsnummer, HelperClient.getSizeFactoredDimension(130));
     
     wrbLieferantAlle.setMinimumSize(new Dimension(60,
                                                   Defaults.getInstance().getControlHeight()));
@@ -344,28 +331,31 @@ private LieferantDto lieferantDto = null;
 
   public JasperPrintLP getReport(String sDrucktype)
       throws Throwable {
-    Integer lieferantIId = null;
-    if (wrbLieferanten.isSelected() &&
-        wrbLieferantEiner.isSelected() &&
-        lieferantDto != null) {
-      lieferantIId = lieferantDto.getIId();
-    }
-    int iSortierung=0;
-    if (wrbRechnungsnummer.isSelected()) {
-      iSortierung = EingangsrechnungReportFac.REPORT_OFFENE_SORT_RECHNUNGSNUMMER;
-    }
-    else if(wrbLieferanten.isSelected()){
-      iSortierung = EingangsrechnungReportFac.REPORT_OFFENE_SORT_LIEFERANT;
-    } else if(wrbFaelligkeit.isSelected()){
-    	iSortierung = EingangsrechnungReportFac.REPORT_OFFENE_SORT_FAELLIGKEIT;
-    } else if(wrbFaelligkeitSkonto1.isSelected()){
-    	iSortierung = EingangsrechnungReportFac.REPORT_OFFENE_SORT_FAELLIGKEIT_SKONTO1;
-    } else if(wrbFaelligkeitSkonto2.isSelected()){
-    	iSortierung = EingangsrechnungReportFac.REPORT_OFFENE_SORT_FAELLIGKEIT_SKONTO2;
-    }
-    return DelegateFactory.getInstance().getEingangsrechnungDelegate().printOffene(
-        iSortierung, lieferantIId,
-        wdfDatum.getDate(),wrbStichtagFreigabedatum.isSelected(),tabbedPaneEingangsrechnung.isBZusatzkosten(), wcbNichtZugeordneteBelege.isSelected());
+	  EingangsrechnungOffeneKriterienDto kritDto = new EingangsrechnungOffeneKriterienDto();
+	  if (lieferantDto != null && 
+		  wrbLieferanten.isSelected() && 
+		  wrbLieferantEiner.isSelected()) {
+		  kritDto.setLieferantId(lieferantDto.getIId());
+	  }
+	  
+	  if (wrbRechnungsnummer.isSelected()) {
+		  kritDto.sort = EingangsrechnungReportFac.REPORT_OFFENE_SORT_RECHNUNGSNUMMER;
+	  }	else if(wrbLieferanten.isSelected()){
+		  kritDto.sort = EingangsrechnungReportFac.REPORT_OFFENE_SORT_LIEFERANT;
+	  } else if(wrbFaelligkeit.isSelected()){
+		  kritDto.sort = EingangsrechnungReportFac.REPORT_OFFENE_SORT_FAELLIGKEIT;
+	  } else if(wrbFaelligkeitSkonto1.isSelected()){
+		  kritDto.sort = EingangsrechnungReportFac.REPORT_OFFENE_SORT_FAELLIGKEIT_SKONTO1;
+	  } else if(wrbFaelligkeitSkonto2.isSelected()){
+		  kritDto.sort = EingangsrechnungReportFac.REPORT_OFFENE_SORT_FAELLIGKEIT_SKONTO2;
+      }
+	  
+	  kritDto.dStichtag = wdfDatum.getDate();
+	  kritDto.stichtagIsFreigabedatum = wrbStichtagFreigabedatum.isSelected();
+	  kritDto.mitNichtZugeordnetenBelegen = wcbNichtZugeordneteBelege.isSelected();
+	  kritDto.zusatzkosten = tabbedPaneEingangsrechnung.isBZusatzkosten();
+
+	  return DelegateFactory.eingangsrechnung().printOffene(kritDto);
   }
 
 
@@ -377,11 +367,13 @@ private LieferantDto lieferantDto = null;
     else if (e.getActionCommand().equals(ACTION_SPECIAL_LIEFERANT_ALLE)) {
       wbuLieferant.setVisible(false);
       wtfLieferant.setVisible(false);
+      wtfLieferant.setMandatoryField(false);
     }
     else if (e.getActionCommand().equals(ACTION_SPECIAL_LIEFERANT_EINER)) {
       wbuLieferant.setVisible(true);
       wtfLieferant.setVisible(true);
-      if (lieferantDto == null) {
+      wtfLieferant.setMandatoryField(true);
+      if (lieferantDto == null && initialized) {
         wbuLieferant.doClick();
       }
     }
@@ -404,7 +396,7 @@ private LieferantDto lieferantDto = null;
 
   private void dialogQueryLieferant()
       throws Throwable {
-    panelQueryFLRLieferant = PartnerFilterFactory.getInstance().createPanelFLRLieferantGoto(
+    panelQueryFLRLieferant = PartnerFilterFactory.getInstance().createPanelFLRLieferant(
         getInternalFrame(),
         (lieferantDto != null) ? lieferantDto.getIId() : null,
         true,
@@ -477,4 +469,10 @@ private LieferantDto lieferantDto = null;
       throws Exception {
     return wdfDatum;
   }
+
+
+@Override
+public void setInitialized() {
+	initialized = true;
+}
 }

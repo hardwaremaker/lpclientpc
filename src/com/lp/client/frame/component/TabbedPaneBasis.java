@@ -36,6 +36,7 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.List;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -99,10 +100,10 @@ abstract public class TabbedPaneBasis extends TabbedPane {
 						ParameterFac.KATEGORIE_ARTIKEL,
 						LPMain.getTheClient().getMandant());
 
-		boolean bImmerAusreichendVerfuegbar = (Boolean) parameter
+		int bImmerAusreichendVerfuegbar = (Integer) parameter
 				.getCWertAsObject();
 
-		if (bImmerAusreichendVerfuegbar == false) {
+		if (bImmerAusreichendVerfuegbar == 0) {
 
 			ArtikelDto artikelDto = DelegateFactory.getInstance()
 					.getArtikelDelegate().artikelFindByPrimaryKey(iIdArtikelI);
@@ -121,39 +122,57 @@ abstract public class TabbedPaneBasis extends TabbedPane {
 				// Chargennummern verarbeiten koennen
 				BigDecimal ddMengeAufLager = null;
 
+				String fehlendeSnrChnr = "";
+
 				if (Helper.short2boolean(artikelDto.getBSeriennrtragend())
 						|| Helper.short2boolean(artikelDto
 								.getBChargennrtragend())) {
-					ddMengeAufLager = DelegateFactory
+
+					Object[] oTemp = DelegateFactory
 							.getInstance()
 							.getLagerDelegate()
 							.getMengeMehrererSeriennummernChargennummernAufLager(
 									iIdArtikelI, iIdLagerI,
 									cSerienchargennummerI);
 
+					ddMengeAufLager = (BigDecimal) oTemp[0];
+
+					if (oTemp[1] != null) {
+
+						fehlendeSnrChnr = LPMain.getInstance()
+								.getTextRespectUISPr(
+										"ls.error.mengeamlager.fehlen")
+								+ (String) oTemp[1];
+					}
+
 				} else {
-					ddMengeAufLager = DelegateFactory
+					ddMengeAufLager = (BigDecimal) DelegateFactory
 							.getInstance()
 							.getLagerDelegate()
 							.getMengeMehrererSeriennummernChargennummernAufLager(
-									iIdArtikelI, iIdLagerI, null);
+									iIdArtikelI, iIdLagerI, null)[0];
 
 				}
 
 				if (nMengeI.doubleValue() > ddMengeAufLager.doubleValue()) {
 					MessageFormat mf = new MessageFormat(LPMain.getInstance()
-							.getTextRespectUISPr("ls.error.mengeamlager"));
+							.getTextRespectUISPr("ls.error.mengeamlager")
+							+ " "
+							+ fehlendeSnrChnr + "");
 					mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
 
 					String lagerCNr = DelegateFactory.getInstance()
 							.getLagerDelegate()
 							.lagerFindByPrimaryKey(iIdLagerI).getCNr();
-					String cAnzahlEinheiten = ddMengeAufLager
+					String cAnzahlEinheiten = Helper.formatZahl(
+							ddMengeAufLager, Defaults.getInstance()
+									.getIUINachkommastellenMenge(), LPMain
+									.getTheClient().getLocUi())
 							+ " "
 							+ DelegateFactory.getInstance()
 									.getArtikelDelegate()
 									.artikelFindByPrimaryKey(iIdArtikelI)
-									.getEinheitCNr();
+									.getEinheitCNr().trim();
 
 					Object pattern[] = { lagerCNr, cAnzahlEinheiten };
 

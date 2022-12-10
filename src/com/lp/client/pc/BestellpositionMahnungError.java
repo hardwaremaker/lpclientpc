@@ -32,7 +32,8 @@
  ******************************************************************************/
 package com.lp.client.pc;
 
-import java.util.List;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -43,11 +44,11 @@ import com.lp.util.Helper;
 public class BestellpositionMahnungError implements IErrorAction {
 
 	@Override
-	public String getMsg(List<?> info) {
-		if (info.size() != 3)
+	public String getMsg(ExceptionLP exception) {
+		if (exception.getAlInfoForTheClient().size() != 3)
 			return null;
 		try {
-			int iId = new Integer((String) info.get(2));
+			int iId = new Integer((String) exception.getAlInfoForTheClient().get(2));
 
 			BSMahnungDto[] mahnung = DelegateFactory.getInstance()
 					.getBSMahnwesenDelegate().bsmahnungFindByBestellpositionIIdOhneExc(iId);
@@ -64,5 +65,10 @@ public class BestellpositionMahnungError implements IErrorAction {
 		} catch (Throwable e) {
 		}
 		return null;
+	}
+
+	@Override
+	public boolean shouldBeShown(JDialog dialog, JPanel panel, ExceptionLP exception) {
+		return false;
 	}
 }

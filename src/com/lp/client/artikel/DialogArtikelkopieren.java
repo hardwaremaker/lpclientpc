@@ -43,6 +43,8 @@ import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -50,8 +52,10 @@ import javax.swing.ToolTipManager;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperButtonWithoutCornerInfo;
 import com.lp.client.frame.component.WrapperCheckBoxWithoutCornerInfo;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
@@ -59,6 +63,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.KeyvalueDto;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
@@ -73,8 +78,7 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private final int defaultDismissTimeout = ToolTipManager.sharedInstance()
-			.getDismissDelay();
+	private final int defaultDismissTimeout = ToolTipManager.sharedInstance().getDismissDelay();
 
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private WrapperLabel lNeueArtikelnummer = new WrapperLabel();
@@ -86,6 +90,7 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 	private WrapperCheckBoxWithoutCornerInfo cbMitArtikelgruppe = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitArtikelklasse = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitReferenznummer = new WrapperCheckBoxWithoutCornerInfo();
+	private WrapperCheckBoxWithoutCornerInfo cbMitShopgruppe = new WrapperCheckBoxWithoutCornerInfo();
 
 	private WrapperCheckBoxWithoutCornerInfo cbMitBestellmengeneinheit = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitLagermindeststand = new WrapperCheckBoxWithoutCornerInfo();
@@ -121,6 +126,7 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 	private WrapperCheckBoxWithoutCornerInfo cbMitEkpreise = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitKommentare = new WrapperCheckBoxWithoutCornerInfo();
 
+	private WrapperCheckBoxWithoutCornerInfo cbMitTechnikEigenschaften = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitEigenschaften = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitBreite = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitHoehe = new WrapperCheckBoxWithoutCornerInfo();
@@ -139,15 +145,16 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 	private WrapperCheckBoxWithoutCornerInfo cbMitIndex = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitRevision = new WrapperCheckBoxWithoutCornerInfo();
 
-	private WrapperCheckBoxWithoutCornerInfo cbMitPolarisiert = new WrapperCheckBoxWithoutCornerInfo();
+	private WrapperCheckBoxWithoutCornerInfo cbMitAntistatic = new WrapperCheckBoxWithoutCornerInfo();
 	private WrapperCheckBoxWithoutCornerInfo cbMitFertigungssatzgroesse = new WrapperCheckBoxWithoutCornerInfo();
 
-	private WrapperCheckBoxWithoutCornerInfo cbMitSnrbehaftet = new WrapperCheckBoxWithoutCornerInfo();
-	private WrapperCheckBoxWithoutCornerInfo cbMitChnrbehaftet = new WrapperCheckBoxWithoutCornerInfo();
+	private WrapperComboBox wcoSnrChnr = new WrapperComboBox();
+
+	private WrapperCheckBoxWithoutCornerInfo cbUrsprungsteilVerlinken = new WrapperCheckBoxWithoutCornerInfo();
 
 	private JButton btnEinstellungenSpeichern = new JButton();
 
-	private InternalFrameArtikel internalFrame = null;
+	private InternalFrame internalFrame = null;
 
 	private WrapperButtonWithoutCornerInfo wbuGeneriereArtikelnummer = new WrapperButtonWithoutCornerInfo();
 
@@ -161,11 +168,8 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 
 	public Integer getHerstellerIIdNeu() {
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
 			return wbuHersteller.getIKey();
 		} else {
 			return null;
@@ -173,47 +177,33 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 
 	}
 
-	public DialogArtikelkopieren(ArtikelDto arikelDto_AlterArtikel,
-			InternalFrameArtikel internalFrame) throws Throwable {
-		super(LPMain.getInstance().getDesktop(), "Artikel '"
-				+ arikelDto_AlterArtikel.formatArtikelbezeichnung()
-				+ "' kopieren", true);
+	public DialogArtikelkopieren(ArtikelDto arikelDto_AlterArtikel, InternalFrame internalFrame) throws Throwable {
+		super(LPMain.getInstance().getDesktop(),
+				"Artikel '" + arikelDto_AlterArtikel.formatArtikelbezeichnung() + "' kopieren", true);
 		this.internalFrame = internalFrame;
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		jbInit();
 		HelperClient.memberVariablenEinerKlasseBenennen(this);
 
 		// Gespeicherte Werte setzen
-		setKeyValueDtos(DelegateFactory
-				.getInstance()
-				.getSystemDelegate()
-				.keyvalueFindyByCGruppe(
-						SystemServicesFac.KEYVALUE_ARTIKEL_KOPIEREN));
+		setKeyValueDtos(DelegateFactory.getInstance().getSystemDelegate()
+				.keyvalueFindyByCGruppe(SystemServicesFac.KEYVALUE_ARTIKEL_KOPIEREN));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
 
 			cbMitHersteller.setSelected(false);
 			cbMitHersteller.setEnabled(false);
 
-			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
-							ParameterFac.KATEGORIE_ARTIKEL,
-							LPMain.getTheClient().getMandant());
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
+							ParameterFac.KATEGORIE_ARTIKEL, LPMain.getTheClient().getMandant());
 
 			int maxLaenge = ((Integer) parameter.getCWertAsObject()).intValue();
 
 			if (arikelDto_AlterArtikel.getCNr().length() > maxLaenge) {
-				neueArtikelnummer.setText(arikelDto_AlterArtikel.getCNr()
-						.substring(0, maxLaenge));
-				wbuHersteller.getWrapperTextField().setText(
-						arikelDto_AlterArtikel.getCNr().substring(maxLaenge));
+				neueArtikelnummer.setText(arikelDto_AlterArtikel.getCNr().substring(0, maxLaenge));
+				wbuHersteller.getWrapperTextField().setText(arikelDto_AlterArtikel.getCNr().substring(maxLaenge));
 			} else {
 				neueArtikelnummer.setText(arikelDto_AlterArtikel.getCNr());
 				wbuHersteller.getWrapperTextField().setText(null);
@@ -225,24 +215,16 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 
 		if (neueArtikelnummer.getText() != null) {
 
-			String artikelnummerAbschneiden = neueArtikelnummer.getText()
-					.trim();
+			String artikelnummerAbschneiden = neueArtikelnummer.getText().trim();
 
-			ParametermandantDto parameter = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getMandantparameter(
-							LPMain.getTheClient().getMandant(),
-							ParameterFac.KATEGORIE_ARTIKEL,
-							ParameterFac.PARAMETER_ARTIKELNUMMER_AUSWAHL_ABSCHNEIDEN);
-			int iAnzahlAbschneiden = (java.lang.Integer) parameter
-					.getCWertAsObject();
+			ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+					LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+					ParameterFac.PARAMETER_ARTIKELNUMMER_AUSWAHL_ABSCHNEIDEN);
+			int iAnzahlAbschneiden = (java.lang.Integer) parameter.getCWertAsObject();
 
-			if (iAnzahlAbschneiden > 0
-					&& artikelnummerAbschneiden.length() >= iAnzahlAbschneiden) {
-				artikelnummerAbschneiden = artikelnummerAbschneiden.substring(
-						0, artikelnummerAbschneiden.length()
-								- iAnzahlAbschneiden);
+			if (iAnzahlAbschneiden > 0 && artikelnummerAbschneiden.length() >= iAnzahlAbschneiden) {
+				artikelnummerAbschneiden = artikelnummerAbschneiden.substring(0,
+						artikelnummerAbschneiden.length() - iAnzahlAbschneiden);
 				neueArtikelnummer.setText(artikelnummerAbschneiden);
 			}
 		}
@@ -254,12 +236,8 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource().equals(wbuGeneriereArtikelnummer)) {
 			try {
-				neueArtikelnummer
-						.setText(DelegateFactory
-								.getInstance()
-								.getArtikelDelegate()
-								.generiereNeueArtikelnummer(
-										neueArtikelnummer.getText()));
+				neueArtikelnummer.setText(DelegateFactory.getInstance().getArtikelDelegate()
+						.generiereNeueArtikelnummer(neueArtikelnummer.getText()));
 			} catch (Throwable ex) {
 				LPMain.getInstance().exitFrame(null, ex);
 			}
@@ -275,15 +253,11 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 					al = getKeyValueDtos();
 					KeyvalueDto[] returnArray = new KeyvalueDto[al.size()];
 
-					DelegateFactory
-							.getInstance()
-							.getSystemDelegate()
-							.speichereKeyValueDtos(
-									(KeyvalueDto[]) al.toArray(returnArray));
+					DelegateFactory.getInstance().getSystemDelegate()
+							.speichereKeyValueDtos((KeyvalueDto[]) al.toArray(returnArray));
 
 				} catch (Throwable e1) {
-					internalFrame.getTabbedPaneArtikel().handleException(e1,
-							true);
+					internalFrame.handleException(e1, true);
 				}
 
 			} else {
@@ -303,14 +277,16 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 				{
 
 					if (this.getContentPane().getComponents()[i].getName() != null
-							&& this.getContentPane().getComponents()[i]
-									.getName().equals(dtos[z].getCKey())) {
+							&& this.getContentPane().getComponents()[i].getName().equals(dtos[z].getCKey())) {
 						if (this.getContentPane().getComponents()[i] instanceof WrapperCheckBoxWithoutCornerInfo) {
 
 							WrapperCheckBoxWithoutCornerInfo wcb = (WrapperCheckBoxWithoutCornerInfo) this
 									.getContentPane().getComponents()[i];
 							wcb.setShort(new Short(dtos[z].getCValue()));
 
+						} else if (this.getContentPane().getComponents()[i] instanceof WrapperComboBox) {
+							WrapperComboBox wcb = (WrapperComboBox) this.getContentPane().getComponents()[i];
+							wcb.setKeyOfSelectedItem(new Integer(dtos[z].getCValue()));
 						}
 					}
 				}
@@ -326,18 +302,24 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 
 			{
 				KeyvalueDto reportkonfDto = new KeyvalueDto();
-				reportkonfDto
-						.setCGruppe(SystemServicesFac.KEYVALUE_ARTIKEL_KOPIEREN);
+				reportkonfDto.setCGruppe(SystemServicesFac.KEYVALUE_ARTIKEL_KOPIEREN);
 				if (this.getContentPane().getComponents()[i].getName() != null) {
 					if (this.getContentPane().getComponents()[i] instanceof WrapperCheckBoxWithoutCornerInfo) {
 
-						WrapperCheckBoxWithoutCornerInfo wcb = (WrapperCheckBoxWithoutCornerInfo) this
-								.getContentPane().getComponents()[i];
+						WrapperCheckBoxWithoutCornerInfo wcb = (WrapperCheckBoxWithoutCornerInfo) this.getContentPane()
+								.getComponents()[i];
 						reportkonfDto.setCValue(wcb.getShort() + "");
-						reportkonfDto.setCKey(this.getContentPane()
-								.getComponents()[i].getName());
+						reportkonfDto.setCKey(this.getContentPane().getComponents()[i].getName());
 						reportkonfDto.setCDatentyp("java.lang.Short");
 						alKomponenten.add(reportkonfDto);
+					} else if (this.getContentPane().getComponents()[i] instanceof WrapperComboBox) {
+						WrapperComboBox wcb = (WrapperComboBox) this.getContentPane().getComponents()[i];
+
+						reportkonfDto.setCValue(wcb.getKeyOfSelectedItem() + "");
+						reportkonfDto.setCKey(this.getContentPane().getComponents()[i].getName());
+						reportkonfDto.setCDatentyp("java.lang.Integer");
+						alKomponenten.add(reportkonfDto);
+
 					}
 				}
 			}
@@ -348,32 +330,22 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 	public String getArtikelnummerNeu() throws Throwable {
 		String artikelnummerNeu = neueArtikelnummer.getText();
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
 
-			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
-							ParameterFac.KATEGORIE_ARTIKEL,
-							LPMain.getTheClient().getMandant());
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
+							ParameterFac.KATEGORIE_ARTIKEL, LPMain.getTheClient().getMandant());
 
 			int maxLaenge = ((Integer) parameter.getCWertAsObject()).intValue();
 
-			if (wbuHersteller.getWrapperTextField().getText() != null
-					&& neueArtikelnummer.getText() != null) {
+			if (wbuHersteller.getWrapperTextField().getText() != null && neueArtikelnummer.getText() != null) {
 
 				if (neueArtikelnummer.getText().length() < maxLaenge) {
-					artikelnummerNeu = Helper.fitString2Length(
-							neueArtikelnummer.getText(), maxLaenge, ' ')
+					artikelnummerNeu = Helper.fitString2Length(neueArtikelnummer.getText(), maxLaenge, ' ')
 							+ wbuHersteller.getWrapperTextField().getText();
 				} else {
-					artikelnummerNeu = neueArtikelnummer.getText()
-							+ wbuHersteller.getWrapperTextField().getText();
+					artikelnummerNeu = neueArtikelnummer.getText() + wbuHersteller.getWrapperTextField().getText();
 				}
 			} else {
 				artikelnummerNeu = neueArtikelnummer.getText();
@@ -395,12 +367,14 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		if (cbMitArtikelklasse.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_ARTIKELKLASSE, "");
 		}
+		if (cbMitShopgruppe.isSelected()) {
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_SHOPGRUPPE, "");
+		}
 		if (cbMitReferenznummer.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_REFERENZNUMMER, "");
 		}
 		if (cbMitBestellmengeneinheit.isSelected()) {
-			zuKopieren
-					.put(ArtikelFac.ARTIKEL_KOPIEREN_BESTELLMENGENEINHEIT, "");
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_BESTELLMENGENEINHEIT, "");
 		}
 		if (cbMitLagermindeststand.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_LAGERMINDESTSTAND, "");
@@ -446,8 +420,7 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_MINUTENFAKTOR2, "");
 		}
 		if (cbMitMindestdeckungsbeitrag.isSelected()) {
-			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_MINDESTDECKUNGSBEITRAG,
-					"");
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_MINDESTDECKUNGSBEITRAG, "");
 		}
 		if (cbMitVerkaufsean.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_VERKAUFSEAN, "");
@@ -486,6 +459,9 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		if (cbMitEigenschaften.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_EIGENSCHAFTEN, "");
 		}
+		if (cbMitTechnikEigenschaften.isSelected()) {
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_TECHNIK_EIGENSCHAFTEN, "");
+		}
 		if (cbMitBreite.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_BREITE, "");
 		}
@@ -519,12 +495,11 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		if (cbMitHochsetzen.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_HOCHSETZEN, "");
 		}
-		if (cbMitPolarisiert.isSelected()) {
-			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_POLARISIERT, "");
+		if (cbMitAntistatic.isSelected()) {
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_ANTISTATIC, "");
 		}
 		if (cbMitFertigungssatzgroesse.isSelected()) {
-			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_FERTIGUNGSSATZGROESSE,
-					"");
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_FERTIGUNGSSATZGROESSE, "");
 		}
 		if (cbMitIndex.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_INDEX, "");
@@ -532,11 +507,15 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		if (cbMitRevision.isSelected()) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_REVISION, "");
 		}
-		if (cbMitSnrbehaftet.isSelected()) {
+
+		if (wcoSnrChnr.getKeyOfSelectedItem().equals(ArtikelFac.SNRCHNR_CHNRBEHAFTET)) {
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_CHNRBEHAFTET, "");
+		} else if (wcoSnrChnr.getKeyOfSelectedItem().equals(ArtikelFac.SNRCHNR_SNRBEHAFTET)) {
 			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_SNRBEHAFTET, "");
 		}
-		if (cbMitChnrbehaftet.isSelected()) {
-			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_CHNRBEHAFTET, "");
+
+		if (cbUrsprungsteilVerlinken.isSelected()) {
+			zuKopieren.put(ArtikelFac.ARTIKEL_KOPIEREN_URSPRUNGSTEIL_VERLINKEN, "");
 		}
 
 		return zuKopieren;
@@ -551,58 +530,67 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 
 	private void jbInit() throws Throwable {
 
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
-						ParameterFac.KATEGORIE_ARTIKEL,
-						LPMain.getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
+						ParameterFac.KATEGORIE_ARTIKEL, LPMain.getTheClient().getMandant());
 
-		lNeueArtikelnummer
-				.setText(getResText("artikel.artikelkopieren.neueartikelnummer"));
+		lNeueArtikelnummer.setText(getResText("artikel.artikelkopieren.neueartikelnummer"));
 
 		wbuGeneriereArtikelnummer.setText("G");
-		wbuGeneriereArtikelnummer
-				.setToolTipText(getResText("artikel.generiereartikelnummer"));
+		wbuGeneriereArtikelnummer.setToolTipText(getResText("artikel.generiereartikelnummer"));
 		wbuGeneriereArtikelnummer.addActionListener(this);
 
 		if (parameter.getCWertAsObject() != null) {
-			neueArtikelnummer.setColumnsMax(((Integer) parameter
-					.getCWertAsObject()).intValue());
+			neueArtikelnummer.setColumnsMax(((Integer) parameter.getCWertAsObject()).intValue());
 		}
 		neueArtikelnummer.setUppercaseField(true);
 
-		javax.swing.ImageIcon imageIcon = new javax.swing.ImageIcon(getClass()
-				.getResource("/com/lp/client/res/question_mark_16x16.png"));
+		javax.swing.ImageIcon imageIcon = new javax.swing.ImageIcon(
+				getClass().getResource("/com/lp/client/res/question_mark_16x16.png"));
 		lQuestionMark.setIcon(imageIcon);
 		lQuestionMark.setToolTipText(getResText("artikel.question.mark"));
 		lQuestionMark.addMouseListener(ml);
 
-		btnEinstellungenSpeichern.setText(LPMain
-				.getTextRespectUISPr("artikel.einstellungen.speichern"));
+		btnEinstellungenSpeichern.setText(LPMain.getTextRespectUISPr("artikel.einstellungen.speichern"));
 		btnEinstellungenSpeichern.addActionListener(this);
-
-		wbuHersteller = new WrapperSelectField(WrapperSelectField.HERSTELLER,
-				internalFrame, true);
+		
+		
+		
+		 if(!DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)){
+			 btnEinstellungenSpeichern.setEnabled(false);
+		 }
+		
+	
+		
+		
+		wbuHersteller = new WrapperSelectField(WrapperSelectField.HERSTELLER, internalFrame, true);
 
 		wbuHersteller.getWrapperTextField().setActivatable(false);
 
 		// --
 		cbMitHersteller.setSelected(true);
 		cbMitArtikelgruppe.setSelected(true);
+		cbMitShopgruppe.setSelected(true);
 		cbMitArtikelklasse.setSelected(true);
-		// cbMitReferenznummer.setSelected(true);
 
-		// cbMitBestellmengeneinheit.setSelected(true);
-		// cbMitLagermindeststand.setSelected(true);
-		// cbMitLagersollstand.setSelected(true);
-		// cbMitVerpackungsmenge.setSelected(true);
+		// PJ20380
+		Map m = new LinkedHashMap();
+		wcoSnrChnr.setMandatoryField(true);
+		m.put(ArtikelFac.SNRCHNR_OHNE, LPMain.getTextRespectUISPr("artikel.snrchnr.ohne"));
 
-		// cbMitVerschnittfaktor.setSelected(true);
-		// cbMitVerschnittbasis.setSelected(true);
-		// cbMitJahresmenge.setSelected(true);
-		// cbMitMwstsatz.setSelected(true);
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SERIENNUMMERN)) {
+
+			m.put(ArtikelFac.SNRCHNR_SNRBEHAFTET, LPMain.getTextRespectUISPr("artikel.snrchnr.snr"));
+		}
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_CHARGENNUMMERN)) {
+
+			m.put(ArtikelFac.SNRCHNR_CHNRBEHAFTET, LPMain.getTextRespectUISPr("artikel.snrchnr.chnr"));
+		}
+
+		wcoSnrChnr.setMap(m, false);
 
 		cbMitMaterial.setSelected(true);
 		cbMitGewicht.setSelected(true);
@@ -644,7 +632,7 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		cbMitHochstellen.setSelected(true);
 		cbMitHochsetzen.setSelected(true);
 
-		cbMitPolarisiert.setSelected(true);
+		cbMitAntistatic.setSelected(true);
 
 		cbMitFertigungssatzgroesse.setSelected(true);
 
@@ -653,12 +641,12 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 
 		// -
 
-		cbMitBestellmengeneinheit.setText(getResText("artikel.bestelleinheit")
-				+ "/" + getResText("artikel.umrfkt"));
+		cbMitBestellmengeneinheit.setText(getResText("artikel.bestelleinheit") + "/" + getResText("artikel.umrfkt"));
 
 		cbMitHersteller.setText(getResText("lp.hersteller"));
 
 		cbMitArtikelgruppe.setText(getResText("lp.artikelgruppe"));
+		cbMitShopgruppe.setText(getResText("lp.shopgruppe"));
 		cbMitArtikelklasse.setText(getResText("lp.artikelklasse"));
 		cbMitReferenznummer.setText(getResText("lp.referenznummer"));
 		cbMitLagermindeststand.setText(getResText("artikel.lagermindeststand"));
@@ -668,60 +656,45 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		cbMitJahresmenge.setText(getResText("artikel.jahresmenge"));
 		cbMitMwstsatz.setText(getResText("lp.mwst"));
 
-		cbMitVerpackungsmenge
-				.setText(getResText("artikel.sonstiges.verpackungsmenge"));
+		cbMitVerpackungsmenge.setText(getResText("artikel.sonstiges.verpackungsmenge"));
 		cbMitMaterial.setText(getResText("label.material"));
 		cbMitGewicht.setText(getResText("lp.gewicht"));
-		cbMitMaterialgewicht
-				.setText(getResText("artikel.technik.materialgewicht"));
-		cbMitZugehoerigerartikel
-				.setText(getResText("artikel.sonstiges.zugehoerigerartikel"));
-		cbMitVertreterprovision
-				.setText(getResText("artikel.sonstiges.maxvertreterprovision"));
-		cbMitMinutenfaktor1
-				.setText(getResText("artikel.sonstiges.minutenfaktor") + " 1");
-		cbMitMinutenfaktor2
-				.setText(getResText("artikel.sonstiges.minutenfaktor") + " 2");
-		cbMitMindestdeckungsbeitrag
-				.setText(getResText("artikel.sonstiges.mindestdeckungsbeitrag"));
+		cbMitMaterialgewicht.setText(getResText("artikel.technik.materialgewicht"));
+		cbMitZugehoerigerartikel.setText(getResText("artikel.sonstiges.zugehoerigerartikel"));
+		cbMitVertreterprovision.setText(getResText("artikel.sonstiges.maxvertreterprovision"));
+		cbMitMinutenfaktor1.setText(getResText("artikel.sonstiges.minutenfaktor") + " 1");
+		cbMitMinutenfaktor2.setText(getResText("artikel.sonstiges.minutenfaktor") + " 2");
+		cbMitMindestdeckungsbeitrag.setText(getResText("artikel.sonstiges.mindestdeckungsbeitrag"));
 		cbMitVerkaufsean.setText(getResText("artikel.sonstiges.verkaufsean"));
-		cbMitWarenverkehrsnummer
-				.setText(getResText("artikel.sonstiges.warenverkehrsnummer"));
+		cbMitWarenverkehrsnummer.setText(getResText("artikel.sonstiges.warenverkehrsnummer"));
 		cbMitRabattierbar.setText(getResText("artikel.sonstiges.rabattierbar"));
 		cbMitGarantiezeit.setText(getResText("artikel.sonstiges.garantiezeit"));
 		cbMitFarbcode.setText(getResText("artikel.farbcode"));
-		cbMitErsatzartikel
-				.setText(getResText("artikel.sonstiges.ersatzartikel"));
+		cbMitErsatzartikel.setText(getResText("artikel.sonstiges.ersatzartikel"));
 		cbMitUrsprungsland.setText(getResText("artikel.ursprungsland"));
 		cbMitKatalog.setText(getResText("lp.katalog"));
 		cbMitVkpreise.setText(getResText("artikel.title.panel.preise"));
-		cbMitEkpreise
-				.setText(getResText("artikel.title.panel.artikellieferant"));
-		cbMitKommentare
-				.setText(getResText("artikel.artikelkopieren.mitkommentar"));
+		cbMitEkpreise.setText(getResText("artikel.title.panel.artikellieferant"));
+		cbMitKommentare.setText(getResText("artikel.artikelkopieren.mitkommentar"));
 		cbMitEigenschaften.setText(getResText("lp.eigenschaften"));
+		cbMitTechnikEigenschaften.setText(getResText("artikel.technik.eigenschaften"));
 		cbMitBreite.setText(getResText("artikel.technik.breite"));
 		cbMitHoehe.setText(getResText("artikel.technik.hoehe"));
 		cbMitTiefe.setText(getResText("artikel.technik.tiefe"));
 		cbMitBauform.setText(getResText("artikel.technik.bauform"));
-		cbMitVerpackungsart
-				.setText(getResText("artikel.technik.verpackungsart"));
+		cbMitVerpackungsart.setText(getResText("artikel.technik.verpackungsart"));
 		cbMitAufschlag.setText(getResText("artikel.sonstiges.aufschlag"));
 		cbMitSollverkauf.setText(getResText("artikel.sonstiges.soll"));
 		cbMitRasterliegend.setText(getResText("artikel.technik.rasterliegend"));
 		cbMitRasterstehend.setText(getResText("artikel.technik.rasterstehend"));
 		cbMitHochstellen.setText(getResText("artikel.technik.hochstellen"));
 		cbMitHochsetzen.setText(getResText("artikel.technik.hochsetzen"));
-		cbMitPolarisiert.setText(getResText("artikel.technik.antistatic"));
-		cbMitFertigungssatzgroesse
-				.setText(getResText("artikel.fertigungssatzgroesse"));
+		cbMitAntistatic.setText(getResText("artikel.technik.antistatic"));
+		cbMitFertigungssatzgroesse.setText(getResText("artikel.fertigungssatzgroesse"));
 		cbMitIndex.setText(getResText("artikel.index"));
 		cbMitRevision.setText(getResText("artikel.revision"));
 
-		cbMitSnrbehaftet
-				.setText(getResText("artikel.sonstiges.seriennummernbehaftet"));
-		cbMitChnrbehaftet
-				.setText(getResText("artikel.sonstiges.chargennummernbehaftet"));
+		cbUrsprungsteilVerlinken.setText(getResText("artikel.kopieren.ursprungsteilverlinken"));
 
 		btnOK.setText(getResText("button.ok"));
 		btnAbbrechen.setText(getResText("lp.abbrechen"));
@@ -734,415 +707,186 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		// --------------------------
 		int iZeile = 0;
 
-		this.getContentPane().add(
-				lNeueArtikelnummer,
-				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL,
-						new Insets(5, 5, 5, 50), 0, 0));
+		this.getContentPane().add(lNeueArtikelnummer, new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
+				GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 50), 0, 0));
 
-		this.getContentPane().add(
-				wbuGeneriereArtikelnummer,
-				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.EAST, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 20, 0));
+		this.getContentPane().add(wbuGeneriereArtikelnummer, new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
+				GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 20, 0));
 
-		this.getContentPane().add(
-				neueArtikelnummer,
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL,
-						new Insets(5, 5, 5, 5), 0, 0));
+		this.getContentPane().add(neueArtikelnummer, new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
+				GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5), 0, 0));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_HERSTELLERKOPPLUNG)) {
 
-			this.getContentPane().add(
-					wbuHersteller.getWrapperTextField(),
-					new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
-							GridBagConstraints.WEST, GridBagConstraints.NONE,
-							new Insets(5, 5, 5, 5), 30, 0));
+			this.getContentPane().add(wbuHersteller.getWrapperTextField(), new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
+					GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 30, 0));
 
-			this.getContentPane().add(
-					wbuHersteller.getWrapperButton(),
-					new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
-							GridBagConstraints.EAST,
-							GridBagConstraints.HORIZONTAL, new Insets(5, 50, 5,
-									5), 30, 0));
+			this.getContentPane().add(wbuHersteller.getWrapperButton(), new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
+					GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, new Insets(5, 50, 5, 5), 30, 0));
 		}
 
-		this.getContentPane().add(
-				btnEinstellungenSpeichern,
-				new GridBagConstraints(3, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.EAST, GridBagConstraints.BOTH,
-						new Insets(5, 5, 5, 5), 20, 0));
+		this.getContentPane().add(btnEinstellungenSpeichern, new GridBagConstraints(3, iZeile, 1, 1, 0, 0,
+				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(5, 5, 5, 5), 20, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitHersteller,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						200, 0));
-		this.getContentPane().add(
-				cbMitArtikelgruppe,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						200, 0));
-		this.getContentPane().add(
-				cbMitArtikelklasse,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						200, 0));
-		this.getContentPane().add(
-				cbMitReferenznummer,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						200, 0));
+		this.getContentPane().add(cbMitHersteller, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 200, 0));
+		this.getContentPane().add(cbMitArtikelgruppe, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 200, 0));
+		this.getContentPane().add(cbMitArtikelklasse, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 200, 0));
+		this.getContentPane().add(cbMitReferenznummer, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 200, 0));
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitBestellmengeneinheit,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitLagermindeststand,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitLagersollstand,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitVerpackungsmenge,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitBestellmengeneinheit, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitLagermindeststand, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitLagersollstand, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitVerpackungsmenge, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitVerschnittfaktor,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitVerschnittbasis,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitJahresmenge,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitMwstsatz,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitVerschnittfaktor, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitVerschnittbasis, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitJahresmenge, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitMwstsatz, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitGewicht,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitGewicht, new GridBagConstraints(0, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
-		this.getContentPane().add(
-				cbMitMaterialgewicht,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitMaterial,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitMaterialgewicht, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitMaterial, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
-		this.getContentPane().add(
-				cbMitZugehoerigerartikel,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitZugehoerigerartikel, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitVertreterprovision,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitMinutenfaktor1,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitMinutenfaktor2,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitMindestdeckungsbeitrag,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitVertreterprovision, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitMinutenfaktor1, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitMinutenfaktor2, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitMindestdeckungsbeitrag, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitVerkaufsean,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitWarenverkehrsnummer,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitRabattierbar,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitGarantiezeit,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitVerkaufsean, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitWarenverkehrsnummer, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitRabattierbar, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitGarantiezeit, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitFarbcode,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitPolarisiert,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitErsatzartikel,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitUrsprungsland,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitFarbcode, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitAntistatic, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitErsatzartikel, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitUrsprungsland, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitKatalog,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitVkpreise,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitEkpreise,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitKommentare,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitKatalog, new GridBagConstraints(0, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitVkpreise, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitEkpreise, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitKommentare, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitEigenschaften,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitBreite,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitHoehe,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitTiefe,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitBreite, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitHoehe, new GridBagConstraints(1, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitTiefe, new GridBagConstraints(2, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitShopgruppe, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		
+		// --------------------------
+				iZeile++;
+				this.getContentPane().add(cbMitEigenschaften, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+						GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+				this.getContentPane().add(cbMitTechnikEigenschaften, new GridBagConstraints(1, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+				
+				// --------------------------
+		iZeile++;
+		this.getContentPane().add(cbMitBauform, new GridBagConstraints(0, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitVerpackungsart, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitAufschlag, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitSollverkauf, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
 		// --------------------------
 		iZeile++;
-		this.getContentPane().add(
-				cbMitBauform,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitVerpackungsart,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitAufschlag,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitSollverkauf,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
+		this.getContentPane().add(cbMitRasterliegend, new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitRasterstehend, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitHochstellen, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitHochsetzen, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		// --------------------------
+		iZeile++;
+		this.getContentPane().add(cbMitIndex, new GridBagConstraints(0, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitRevision, new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		this.getContentPane().add(cbMitFertigungssatzgroesse, new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		
+		this.getContentPane().add(cbUrsprungsteilVerlinken, new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
+		// --------------------------
+		iZeile++;
 
-		// --------------------------
-		iZeile++;
-		this.getContentPane().add(
-				cbMitRasterliegend,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitRasterstehend,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitHochstellen,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitHochsetzen,
-				new GridBagConstraints(3, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		// --------------------------
-		iZeile++;
-		this.getContentPane().add(
-				cbMitIndex,
-				new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitRevision,
-				new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		this.getContentPane().add(
-				cbMitFertigungssatzgroesse,
-				new GridBagConstraints(2, iZeile, 1, 1, 1, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5),
-						0, 0));
-		// --------------------------
-		iZeile++;
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_SERIENNUMMERN)) {
+		this.getContentPane().add(wcoSnrChnr, new GridBagConstraints(0, iZeile, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2, 5), 0, 0));
 
-			this.getContentPane().add(
-					cbMitSnrbehaftet,
-					new GridBagConstraints(0, iZeile, 1, 1, 1, 0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2,
-									5), 0, 0));
-		}
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_CHARGENNUMMERN)) {
-			this.getContentPane().add(
-					cbMitChnrbehaftet,
-					new GridBagConstraints(1, iZeile, 1, 1, 1, 0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 5, 2,
-									5), 0, 0));
-		}
+		
 
 		// --------------------------
 
 		iZeile++;
 
-		this.getContentPane().add(
-				btnOK,
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 0, 0));
-		this.getContentPane().add(
-				btnAbbrechen,
-				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 0, 0));
+		this.getContentPane().add(btnOK, new GridBagConstraints(1, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
+		this.getContentPane().add(btnAbbrechen, new GridBagConstraints(2, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
 
-		this.getContentPane().add(
-				lQuestionMark,
-				new GridBagConstraints(3, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(5, 5, 5, 50), 0, 0));
+		this.getContentPane().add(lQuestionMark, new GridBagConstraints(3, iZeile, 1, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(5, 5, 5, 50), 0, 0));
 
 	}
 
@@ -1157,8 +901,7 @@ public class DialogArtikelkopieren extends JDialog implements ActionListener {
 		}
 
 		public void mouseExited(MouseEvent me) {
-			ToolTipManager.sharedInstance().setDismissDelay(
-					defaultDismissTimeout);
+			ToolTipManager.sharedInstance().setDismissDelay(defaultDismissTimeout);
 		}
 
 	};

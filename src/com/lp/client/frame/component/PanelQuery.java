@@ -41,6 +41,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -63,6 +64,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -72,6 +74,10 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.TableColumnModelEvent;
+import javax.swing.event.TableColumnModelListener;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -101,9 +107,11 @@ import com.lp.server.util.fastlanereader.service.query.FilterBlock;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumSchnellansicht;
+import com.lp.server.util.fastlanereader.service.query.IQueryResultData;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
 import com.lp.server.util.fastlanereader.service.query.TableInfo;
+import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 import com.lp.util.Pair;
 
@@ -116,31 +124,30 @@ import com.lp.util.Pair;
  * reverses sorting order. Clicking on a column while holding the CTRL key
  * pressed this column is added to the sorting and previous sorting is kept.
  * <p>
- *
+ * 
  * This view is completely configured through instances of type
  * {@link QueryType}. The first row of the view is composed of a label
  * ("Kriterium"), a combobox that lists the query types and a button that adds a
  * {@link QueryInputRow}of the selected query type to the view. <br>
  * If the user clicks on the refresh button, the entered filter will be
  * evaluated and the desired data shows in the table below.
- *
+ * 
  * @author werner
  */
 public class PanelQuery extends PanelBasis implements ISourceEvent {
+	public void setFireItemChangedEventAfterChange(boolean fireItemChangedEventAfterChange) {
+		this.fireItemChangedEventAfterChange = fireItemChangedEventAfterChange;
+	}
+
 	/**
 	 *
 	 */
 
-	private static final ImageIcon DOKUMENTE = HelperClient
-			.createImageIcon("document_attachment_green16x16.png");
-	private static final ImageIcon KEINE_DOKUMENTE = HelperClient
-			.createImageIcon("document_attachment16x16.png");
-	private static final ImageIcon icon_up = HelperClient
-			.createImageIcon("navigate_open.png");
-	private static final ImageIcon icon_down = HelperClient
-			.createImageIcon("navigate_close.png");
-	private static final ImageIcon iNoSort = HelperClient
-			.createImageIcon("nosort.png");
+	private static final ImageIcon DOKUMENTE = HelperClient.createImageIcon("document_attachment_green16x16.png");
+	private static final ImageIcon KEINE_DOKUMENTE = HelperClient.createImageIcon("document_attachment16x16.png");
+	private static final ImageIcon icon_up = HelperClient.createImageIcon("navigate_open.png");
+	private static final ImageIcon icon_down = HelperClient.createImageIcon("navigate_close.png");
+	private static final ImageIcon iNoSort = HelperClient.createImageIcon("nosort.png");
 	private static final long serialVersionUID = 1L;
 	// private JPanel jpButtons = null;
 	// mehrfachselekt: default false
@@ -151,14 +158,12 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			+ "MY_OWN_NEW_EXTRA_ACTION_SPECIAL_OK";
 
 	/**
-	 * Auf diesem Panel sitzt die Reihe der fuer dieses Panel vorgesehenen
-	 * Buttons
+	 * Auf diesem Panel sitzt die Reihe der fuer dieses Panel vorgesehenen Buttons
 	 */
 	private JPanel panelButtonAction = null;
 
 	/**
-	 * Auf diesem Panel sitzen alle weiteren Panels und die Tabelle der
-	 * Datensaetze
+	 * Auf diesem Panel sitzen alle weiteren Panels und die Tabelle der Datensaetze
 	 */
 	private JPanel panelWorkingOn = null;
 
@@ -171,13 +176,17 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		return hmDirektFilter;
 	}
 
+	int columnValue = -1;
+	int columnNewValue = -1;
+
 	private BildAufAbListener bildAufAbListener = new BildAufAbListener();
 
-	private JCheckBox cbSchnellansicht = new JCheckBox();
+	private WrapperCheckBox cbSchnellansicht = new WrapperCheckBox();
 	private FilterKriterium[] fkSchnellansicht = null;
 	private FilterKriterium[] fkKey = null;
 
 	public FilterKriterium fkComboBox = null;
+	public FilterKriterium fkComboBox2 = null;
 
 	private QueryParameters queryParameters = null;
 	// sitzt am panelKriterium links
@@ -206,6 +215,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	private JButton jbDokumente;
 	private PanelDokumentenablage panelDokumentenverwaltung = null;
 	private Boolean bShowDocButton = null;
+	private boolean bSortierbar = true;
+
+	public boolean isSortierbar() {
+		return bSortierbar;
+	}
+
+	public void setSortierbar(boolean bSortierbar) {
+		this.bSortierbar = bSortierbar;
+	}
 
 	private boolean strechColumns = false;
 	private int[] columnWidthsFromHandler;
@@ -233,20 +251,21 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * ------------------------------------------------------------------------
-	 * -- Auf diesem Panel sitzen die direkt eingebbaren Filterkriterien. <br>
+	 * ------------------------------------------------------------------------ --
+	 * Auf diesem Panel sitzen die direkt eingebbaren Filterkriterien. <br>
 	 * Es kann 0..2 dieser Filterkriterien geben. <br>
 	 * Die Filterkriterien sind jeweils vom Typ String. <br>
 	 * Das Ausloesen eines Roundtrip zur DB erfolgt dabei ueber ENTER.
-	 *
+	 * 
 	 * Ausserdem gibt es eine optionale CheckBox, die entscheidet, ob versteckte
 	 * Entitaeten in der Liste angezeigt werden oder nicht. <br>
-	 * Das Ausloesen eines Roundtrip zur DB erfolgt dabei ueber die Aenderung
-	 * des Flag. <br>
+	 * Das Ausloesen eines Roundtrip zur DB erfolgt dabei ueber die Aenderung des
+	 * Flag. <br>
 	 * Per default werden die versteckten Entitaeten mitangezeigt.
 	 */
 	// private JPanel panelFilterkriterienDirekt = null;
 	private WrapperCheckBox wcbVersteckteFelderAnzeigen = null;
+
 	public WrapperCheckBox getWcbVersteckteFelderAnzeigen() {
 		return wcbVersteckteFelderAnzeigen;
 	}
@@ -255,31 +274,50 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	// --------------------------------------------------------------------------
 	// -
 
+	public void setFkVersteckteFelderNichtAnzeigen(FilterKriterium fkVersteckteFelderNichtAnzeigen) {
+		this.fkVersteckteFelderNichtAnzeigen = fkVersteckteFelderNichtAnzeigen;
+	}
+
 	private WrapperCheckBox wcbErsteSortierungUebersteuern = null;
 	private SortierKriterium sortierkriteriumErsteSortierungUebersteuern = null;
 
 	private WrapperComboBox wcoFilter = new WrapperComboBox();
+	private WrapperComboBox wcoFilter2 = new WrapperComboBox();
 	private JPanel multiselektInfo;
 
-	public void setFilterComboBox(Map<?, ?> m, FilterKriterium fk,
-			boolean bMandatory) {
+	public void setFilterComboBox(Map<?, ?> m, FilterKriterium fk, boolean bMandatory) {
 		setFilterComboBox(m, fk, bMandatory, null, true);
 
 	}
-	public void setFilterComboBox(Map<?, ?> m, FilterKriterium fk,
-			boolean bMandatory, String beiLeer) {
+
+	public void setFilterComboBox(Map<?, ?> m, FilterKriterium fk, boolean bMandatory, String beiLeer) {
 		setFilterComboBox(m, fk, bMandatory, beiLeer, true);
 
 	}
 
-	public void setFilterComboBox(Map<?, ?> m, FilterKriterium fk,
-			boolean bMandatory, String beiLeer, boolean bSortieren) {
+	public void setFilterComboBox2(Map<?, ?> m, FilterKriterium fk, boolean bMandatory, String beiLeer) {
+		setFilterComboBox2(m, fk, bMandatory, beiLeer, true);
+
+	}
+
+	public void setFilterComboBox(Map<?, ?> m, FilterKriterium fk, boolean bMandatory, String beiLeer,
+			boolean bSortieren) {
+		setFilterComboBox(m, fk, bMandatory, beiLeer, bSortieren, null);
+	}
+
+	public void setFilterComboBox(Map<?, ?> m, FilterKriterium fk, boolean bMandatory, String beiLeer,
+			boolean bSortieren, Object keyDefault) {
 
 		if (beiLeer != null) {
 			wcoFilter.setEmptyEntry(beiLeer);
 		}
 		wcoFilter.setMandatoryField(bMandatory);
 		wcoFilter.setMap(m, bSortieren);
+
+		if (keyDefault != null) {
+			wcoFilter.setKeyOfSelectedItem(keyDefault);
+		}
+
 		wcoFilter.addActionListener(this);
 
 		fkComboBox = fk;
@@ -290,21 +328,47 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		ComboBoxPopupMenuListener listener = new ComboBoxPopupMenuListener();
 		wcoFilter.addPopupMenuListener(listener);
 
-		getToolBar().getToolsPanelCenter().add(wcoFilter,
-				new GridBagConstraints(-1, -1, 1, 1, 1, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL,
-						new Insets(0, 0, 0, 0), 0, 0));
+		getToolBar().getToolsPanelCenter().add(wcoFilter, new GridBagConstraints(-1, -1, 1, 1, 1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
-//		getToolBar().getToolsPanelCenter().add(wcoFilter);
+		// getToolBar().getToolsPanelCenter().add(wcoFilter);
 
-		if (idUsecase == QueryParameters.UC_ID_ARTIKELLISTE
-				&& getInternalFrame() != null) {
+		if (idUsecase == QueryParameters.UC_ID_ARTIKELLISTE && getInternalFrame() != null) {
 			if (getInternalFrame().getILetzteGewaehlteArtikelgruppenIId() != null) {
-				wcoFilter.setKeyOfSelectedItem(getInternalFrame()
-						.getILetzteGewaehlteArtikelgruppenIId());
+				wcoFilter.setKeyOfSelectedItem(getInternalFrame().getILetzteGewaehlteArtikelgruppenIId());
 			}
 		}
+
+	}
+
+	public WrapperComboBox getWcoFilter() {
+		return wcoFilter;
+	}
+
+	public WrapperComboBox getWcoFilter2() {
+		return wcoFilter2;
+	}
+
+	public void setFilterComboBox2(Map<?, ?> m, FilterKriterium fk, boolean bMandatory, String beiLeer,
+			boolean bSortieren) {
+
+		if (beiLeer != null) {
+			wcoFilter2.setEmptyEntry(beiLeer);
+		}
+		wcoFilter2.setMandatoryField(bMandatory);
+		wcoFilter2.setMap(m, bSortieren);
+		wcoFilter2.addActionListener(this);
+
+		fkComboBox2 = fk;
+
+		wcoFilter2.setMinimumSize(new Dimension(150, -1));
+		wcoFilter2.setPreferredSize(new Dimension(150, -1));
+
+		ComboBoxPopupMenuListener listener = new ComboBoxPopupMenuListener();
+		wcoFilter2.addPopupMenuListener(listener);
+
+		getToolBar().getToolsPanelCenter().add(wcoFilter2, new GridBagConstraints(-1, -1, 1, 1, 1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 2, 0, 0), 0, 0));
 
 	}
 
@@ -319,14 +383,18 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		return dataSource;
 	}
 
+	public IQueryResultData getResultData() {
+		return dataSource.getResultData();
+	}
+
 	/** das TableModel */
 	private DistributedTableModelImpl tableModel;
 
 	/**
 	 * the SortierKriterium[] as initialized using
 	 * {@link TableInfo#getDataBaseColumnNames()
-	 * TableInfo#getDataBaseColumnNames()}. There is one SortierKriterium for
-	 * each data base column name.
+	 * TableInfo#getDataBaseColumnNames()}. There is one SortierKriterium for each
+	 * data base column name.
 	 */
 	private HashMap<String, SortierKriterium> sortierKriterien;
 
@@ -334,8 +402,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	private ArrayList<SortierKriterium> currentSortierKriterien;
 
 	/**
-	 * the use case id to identify the use case to the server. The server uses
-	 * this to delegate to the correct instance of
+	 * the use case id to identify the use case to the server. The server uses this
+	 * to delegate to the correct instance of
 	 * {@link com.lp.server.util.fastlanereader.UseCaseHandler UseCaseHandler}.
 	 */
 	private int idUsecase;
@@ -364,25 +432,33 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	public static final String ACTION_ADD_FILTERKRITERIUM = "action_add_filterkriterium";
 	public static final String ACTION_REMOVE_FILTERKRITERIUM = "action_remove_filterkriterium";
 
-	static final public String LEAVEALONE_QUERYVIEW_SAVE = LEAVEALONE
-			+ "QUERYVIEWSAVE";
+	// static final public String LEAVEALONE_QUERYVIEW_SAVE = LEAVEALONE
+	// + "QUERYVIEWSAVE";
 
-	public static final String LEAVEALONE_PRINTPANELQUERY = LEAVEALONE
-			+ "PRINTPANELQUERY";
+	static final public String LEAVEALONE_QUERYVIEW_SAVE = ALWAYSENABLED + "QUERYVIEWSAVE";
 
-	public static final String LEAVEALONE_DOKUMENTE = LEAVEALONE + "DOKUMENTE";
+	public static final String LEAVEALONE_PRINTPANELQUERY = ALWAYSENABLED + "PRINTPANELQUERY";
+
+	public static final String LEAVEALONE_DOKUMENTE = ALWAYSENABLED + "DOKUMENTE";
 
 	public void addButtonAuswahlBestaetigen(String recht) throws Throwable {
 		createAndSaveAndShowButton("/com/lp/client/res/check2.png",
-				LPMain.getTextRespectUISPr("lp.tooltip.kriterienuebernehmen"),
-				MY_OWN_NEW_EXTRA_ACTION_SPECIAL_OK, recht);
+				LPMain.getTextRespectUISPr("lp.tooltip.kriterienuebernehmen"), MY_OWN_NEW_EXTRA_ACTION_SPECIAL_OK,
+				recht);
+	}
+
+	public void addButtonAuswahlBestaetigen(String recht, String text) throws Throwable {
+		createAndSaveAndShowButton("/com/lp/client/res/check2.png", text, MY_OWN_NEW_EXTRA_ACTION_SPECIAL_OK, recht);
+	}
+
+	public void addButtonAuswahlBestaetigen(String recht, String icon, String text) throws Throwable {
+		createAndSaveAndShowButton(icon, text, MY_OWN_NEW_EXTRA_ACTION_SPECIAL_OK, recht);
 	}
 
 	public PanelQuery(QueryType[] typesI, /* @todo saubaer PJ 5059 */
-	FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI,
-			InternalFrame internalFrameI, String add2TitleI) throws Throwable {
-		this(typesI, filtersI, idUsecaseI, aWhichButtonIUseI, internalFrameI,
-				add2TitleI, false);
+			FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI, InternalFrame internalFrameI,
+			String add2TitleI) throws Throwable {
+		this(typesI, filtersI, idUsecaseI, aWhichButtonIUseI, internalFrameI, add2TitleI, false);
 
 		// super(internalFrameI, add2TitleI);
 		//
@@ -405,22 +481,17 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		// }
 	}
 
-	public PanelQuery(QueryType[] typesI, FilterKriterium[] filtersI,
-			int idUsecaseI, String[] aWhichButtonIUseI,
-			InternalFrame internalFrameI, String add2TitleI,
-			boolean refreshWhenYouAreSelectedI,
-			FilterKriterium kritVersteckteFelderNichtAnzeigenI,
-			String labelTextVersteckte) throws Throwable{
-		this(typesI,filtersI,idUsecaseI,aWhichButtonIUseI,internalFrameI,add2TitleI,refreshWhenYouAreSelectedI,kritVersteckteFelderNichtAnzeigenI,labelTextVersteckte,null,null);
+	public PanelQuery(QueryType[] typesI, FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI,
+			InternalFrame internalFrameI, String add2TitleI, boolean refreshWhenYouAreSelectedI,
+			FilterKriterium kritVersteckteFelderNichtAnzeigenI, String labelTextVersteckte) throws Throwable {
+		this(typesI, filtersI, idUsecaseI, aWhichButtonIUseI, internalFrameI, add2TitleI, refreshWhenYouAreSelectedI,
+				kritVersteckteFelderNichtAnzeigenI, labelTextVersteckte, null, null);
 	}
 
-	public PanelQuery(QueryType[] typesI, FilterKriterium[] filtersI,
-			int idUsecaseI, String[] aWhichButtonIUseI,
-			InternalFrame internalFrameI, String add2TitleI,
-			boolean refreshWhenYouAreSelectedI,
-			FilterKriterium kritVersteckteFelderNichtAnzeigenI,
-			String labelTextVersteckte, SortierKriterium sortierkriterium,
-			String textSortierkriterium) throws Throwable {
+	public PanelQuery(QueryType[] typesI, FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI,
+			InternalFrame internalFrameI, String add2TitleI, boolean refreshWhenYouAreSelectedI,
+			FilterKriterium kritVersteckteFelderNichtAnzeigenI, String labelTextVersteckte,
+			SortierKriterium sortierkriterium, String textSortierkriterium) throws Throwable {
 
 		super(internalFrameI, add2TitleI);
 
@@ -429,9 +500,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		}
 
 		/*
-		 * Laut CK darf typesI durchaus null sein. Daher die Pr&uuml;fung
-		 * entfernt (ghp) if (typesI == null && isFilterIn(aWhichButtonIUseI)) {
-		 * throw new Throwable("typesI == null && isIn(aWhichButtonIUseI)"); }
+		 * Laut CK darf typesI durchaus null sein. Daher die Pr&uuml;fung entfernt (ghp)
+		 * if (typesI == null && isFilterIn(aWhichButtonIUseI)) { throw new
+		 * Throwable("typesI == null && isIn(aWhichButtonIUseI)"); }
 		 */
 
 		// filters = filtersI;
@@ -446,30 +517,20 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (kritVersteckteFelderNichtAnzeigenI != null) {
 			fkVersteckteFelderNichtAnzeigen = kritVersteckteFelderNichtAnzeigenI;
 
-			wcbVersteckteFelderAnzeigen = new WrapperCheckBox(
-					labelTextVersteckte);
+			wcbVersteckteFelderAnzeigen = new WrapperCheckBox(labelTextVersteckte);
 			wcbVersteckteFelderAnzeigen.addKeyListener(bildAufAbListener);
 			wcbVersteckteFelderAnzeigen.addMouseListener(this);
-			HelperClient
-					.setDefaultsToComponent(wcbVersteckteFelderAnzeigen, 40);
+			HelperClient.setDefaultsToComponent(wcbVersteckteFelderAnzeigen, 40);
 
 			// filterkritversteckt: 2 hier wird ueber die Anzeige entschieden
 			if (DelegateFactory.getInstance().getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
-				wcbVersteckteFelderAnzeigen
-						.setSelected(DelegateFactory
-								.getInstance()
-								.getParameterDelegate()
-								.getMandantparameter(
-										LPMain.getTheClient().getMandant(),
-										ParameterFac.KATEGORIE_ALLGEMEIN,
-										ParameterFac.PARAMETER_AUSWAHLLISTE_VERSTECKTE_ANZEIGEN_DEFAULT)
-								.asBoolean());
-				panelFilter.add(wcbVersteckteFelderAnzeigen,
-						new GridBagConstraints(8, iZeile, 1, 1, 0.1, 0.0,
-								GridBagConstraints.NORTH,
-								GridBagConstraints.BOTH,
-								new Insets(2, 2, 2, 2), 0, 0));
+				wcbVersteckteFelderAnzeigen.setSelected(DelegateFactory.getInstance().getParameterDelegate()
+						.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+								ParameterFac.PARAMETER_AUSWAHLLISTE_VERSTECKTE_ANZEIGEN_DEFAULT)
+						.asBoolean());
+				panelFilter.add(wcbVersteckteFelderAnzeigen, new GridBagConstraints(8, iZeile, 1, 1, 0.1, 0.0,
+						GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 			} else {
 				wcbVersteckteFelderAnzeigen.setSelected(false);
@@ -478,7 +539,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		}
 
 		if (sortierkriterium != null) {
-			setzeErstesUebersteuerbaresSortierkriterium(textSortierkriterium,sortierkriterium);
+			setzeErstesUebersteuerbaresSortierkriterium(textSortierkriterium, sortierkriterium);
 		}
 
 		initComponents();
@@ -492,16 +553,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	public PanelQuery(QueryType[] typesI, /** @todo saubaer PJ 5059 */
-	FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI,
-			InternalFrame internalFrameI, String add2TitleI,
-			boolean refreshWhenYouAreSelectedI) throws Throwable {
+	FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI, InternalFrame internalFrameI,
+			String add2TitleI, boolean refreshWhenYouAreSelectedI) throws Throwable {
 
 		super(internalFrameI, add2TitleI);
 
 		/*
-		 * Laut CK darf typesI durchaus null sein. Daher die Pr&uuml;fung
-		 * entfernt (ghp) if (typesI == null && isFilterIn(aWhichButtonIUseI)) {
-		 * throw new Throwable("typesI == null && isIn(aWhichButtonIUseI)"); }
+		 * Laut CK darf typesI durchaus null sein. Daher die Pr&uuml;fung entfernt (ghp)
+		 * if (typesI == null && isFilterIn(aWhichButtonIUseI)) { throw new
+		 * Throwable("typesI == null && isIn(aWhichButtonIUseI)"); }
 		 */
 
 		// filters = filtersI;
@@ -523,33 +583,24 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * Konstruktor fuer eine FLR Liste, in der ein bestimmter Datensatz
-	 * selektiert ist. <br>
+	 * Konstruktor fuer eine FLR Liste, in der ein bestimmter Datensatz selektiert
+	 * ist. <br>
 	 * Der Key dieses Datensatzes wird als Parameter uebergeben.
-	 *
-	 * @param typesI
-	 *            die UI Filterkriterien fuer den Benutzer
-	 * @param filtersI
-	 *            die default Filterkriterien, die fuer den Benutzer nicht
-	 *            sichtbar sind
-	 * @param idUsecaseI
-	 *            die ID des gewuenschten UseCase
-	 * @param aWhichButtonIUseI
-	 *            welche Buttons sind auf dem Panel sichtbar
-	 * @param internalFrameI
-	 *            den InternalFrame als Kontext setzen
-	 * @param add2TitleI
-	 *            der Titel dieses Panels
-	 * @param oSelectedIdI
-	 *            der Datensatz mit diesem Key soll selektiert werden
+	 * 
+	 * @param typesI            die UI Filterkriterien fuer den Benutzer
+	 * @param filtersI          die default Filterkriterien, die fuer den Benutzer
+	 *                          nicht sichtbar sind
+	 * @param idUsecaseI        die ID des gewuenschten UseCase
+	 * @param aWhichButtonIUseI welche Buttons sind auf dem Panel sichtbar
+	 * @param internalFrameI    den InternalFrame als Kontext setzen
+	 * @param add2TitleI        der Titel dieses Panels
+	 * @param oSelectedIdI      der Datensatz mit diesem Key soll selektiert werden
 	 * @throws Throwable
 	 */
 	public PanelQuery(QueryType[] typesI, /** @todo saubaer PJ 5059 */
-	FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI,
-			InternalFrame internalFrameI, String add2TitleI, Object oSelectedIdI)
-			throws Throwable {
-		this(typesI, filtersI, idUsecaseI, aWhichButtonIUseI, internalFrameI,
-				add2TitleI, false);
+	FilterKriterium[] filtersI, int idUsecaseI, String[] aWhichButtonIUseI, InternalFrame internalFrameI,
+			String add2TitleI, Object oSelectedIdI) throws Throwable {
+		this(typesI, filtersI, idUsecaseI, aWhichButtonIUseI, internalFrameI, add2TitleI, false);
 
 		// super(internalFrameI, add2TitleI);
 		//
@@ -579,9 +630,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * isIn
-	 *
-	 * @param aWhichButtonIUseI
-	 *            String[]
+	 * 
+	 * @param aWhichButtonIUseI String[]
 	 * @return boolean
 	 */
 	// private boolean isFilterIn(String[] aWhichButtonIUseI) {
@@ -598,18 +648,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	// }
 
 	/**
-	 * Setze alle Defaultwerte; hier koennen jetzt "schwerer" Methoden
-	 * aufgerufen werden. jbinit: 4
-	 *
+	 * Setze alle Defaultwerte; hier koennen jetzt "schwerer" Methoden aufgerufen
+	 * werden. jbinit: 4
+	 * 
 	 * @throws Throwable
 	 */
 	private void setDefaults() throws Throwable {
 
-		ArbeitsplatzparameterDto parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.holeArbeitsplatzparameter(
-						ParameterFac.ARBEITSPLATZPARAMETER_MAX_ANZAHL_IN_AUSWAHLLISTEN);
+		ArbeitsplatzparameterDto parameter = DelegateFactory.getInstance().getParameterDelegate()
+				.holeArbeitsplatzparameter(ParameterFac.ARBEITSPLATZPARAMETER_MAX_ANZAHL_IN_AUSWAHLLISTEN);
 
 		if (parameter != null && parameter.getCWert() != null) {
 			iAnzahlZeilen = new Integer(parameter.getCWert());
@@ -621,9 +668,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 		// jetzt fix: R
 		String[] aWhichButtonIUse = {
-		// PanelBasis.ACTION_NEW,
-		PanelBasis.ACTION_REFRESH
-		// PanelBasis.ACTION_FILTER,
+				// PanelBasis.ACTION_NEW,
+				PanelBasis.ACTION_REFRESH
+				// PanelBasis.ACTION_FILTER,
 		};
 
 		// welche buttons brauchen wir?
@@ -635,7 +682,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * Nach dem Listenaufbau wird die erste Zeile als Default markiert
-	 *
+	 * 
 	 */
 	protected void setRowSelection(int row) {
 		if (table.getModel().getRowCount() > 0) {
@@ -644,8 +691,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * Initialisiere alle Komponenten; braucht der JBX-Designer; hier bitte
-	 * keine wilden Dinge wie zum Server gehen, etc. machen. jbinit: 3
+	 * Initialisiere alle Komponenten; braucht der JBX-Designer; hier bitte keine
+	 * wilden Dinge wie zum Server gehen, etc. machen. jbinit: 3
+	 * 
 	 * @return JPanel
 	 */
 
@@ -665,9 +713,19 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		return wcoFilter.getKeyOfSelectedItem();
 	}
 
+	public Object getKeyOfFilterComboBox2() {
+		return wcoFilter2.getKeyOfSelectedItem();
+	}
+
 	public void setKeyOfFilterComboBox(Object key) {
 		if (wcoFilter != null) {
 			wcoFilter.setKeyOfSelectedItem(key);
+		}
+	}
+
+	public void setKeyOfFilterComboBox2(Object key) {
+		if (wcoFilter2 != null) {
+			wcoFilter2.setKeyOfSelectedItem(key);
 		}
 	}
 
@@ -678,49 +736,47 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 		panelButtonAction = getToolsPanel();
 
-		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jpButtons = new JPanel();
 		// GridBagLayout gridBagLayoutAll = new GridBagLayout();
 		// jpButtons.setLayout(gridBagLayoutAll);
 
+		// AxD: Wegen SP9063 von JComboBox zu WrapperComboBox. Trotzdem sollte sich
+		// Groesse gleich verhalten (automatisch an Textbreite angepasst)
+		cbSchnellansicht.setAutoPreferredSize();
+
 		// PJ 14497
-		cbSchnellansicht.setText(LPMain
-				.getTextRespectUISPr("lp.schnellansicht"));
+		cbSchnellansicht.setOpaque(false);
+		cbSchnellansicht.setText(LPMain.getTextRespectUISPr("lp.schnellansicht"));
 		cbSchnellansicht.setVisible(false);
 		cbSchnellansicht.setSelected(true);
 		getToolBar().getToolsPanelRight().add(cbSchnellansicht);
 
 		// SK Dokumentenablage
-		getToolBar().addButtonRight(
-				"/com/lp/client/res/document_attachment16x16.png",
-				LPMain.getTextRespectUISPr("lp.dokumentablage"),
-				LEAVEALONE_DOKUMENTE, null, null);
+		getToolBar().addButtonRight("/com/lp/client/res/document_attachment16x16.png",
+				LPMain.getTextRespectUISPr("lp.dokumentablage"), LEAVEALONE_DOKUMENTE, null, null);
 
 		// CK: Listen-Druck-Icon einbauen
-		getToolBar().addButtonRight("/com/lp/client/res/table_sql_view.png",
-				LPMain.getTextRespectUISPr("lp.flrdruck"),
+		getToolBar().addButtonRight("/com/lp/client/res/table_sql_view.png", LPMain.getTextRespectUISPr("lp.flrdruck"),
 				LEAVEALONE_PRINTPANELQUERY, null, null);
 
 		// RK: Tabelleneinstellungen-speichern Button
-		getToolBar()
-				.addButtonRight(
-						"/com/lp/client/res/table_sql_add.png",
-						LPMain.getTextRespectUISPr("lp.tabelle.einstellungen.speichern"),
-						LEAVEALONE_QUERYVIEW_SAVE, null, null);
+		getToolBar().addButtonRight("/com/lp/client/res/table_sql_add.png",
+				LPMain.getTextRespectUISPr("lp.tabelle.einstellungen.speichern"), LEAVEALONE_QUERYVIEW_SAVE, null,
+				null);
+
+		getHmOfButtons().get(LEAVEALONE_QUERYVIEW_SAVE).getButton().addMouseListener(this);
 
 		jbDokumente = getHmOfButtons().get(LEAVEALONE_DOKUMENTE).getButton();
-		enableToolsPanelButtons(true, LEAVEALONE_QUERYVIEW_SAVE,
-				LEAVEALONE_PRINTPANELQUERY);
+		enableToolsPanelButtons(true, LEAVEALONE_QUERYVIEW_SAVE, LEAVEALONE_PRINTPANELQUERY);
 
 		panelWorkingOn = new JPanel();
 		panelWorkingOn.setLayout(new GridBagLayout());
 
-		add(panelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(panelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// alle weiteren Panels und die Tabelle werden auf das panelWorkingOn
 		// gesetzt
@@ -728,8 +784,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		// Filterkriterien
 		panelKriterium = new JPanel();
 		panelKriterium.setLayout(new GridBagLayout());
-		panelWorkingOn.add(panelKriterium, new GridBagConstraints(0, iZeile, 1,
-				1, 1.0, 0.0, GridBagConstraints.NORTH,
+		panelWorkingOn.add(panelKriterium, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Auf diesem Panel sitzen die zuschaltbaren QueryInputRows
@@ -739,9 +794,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		panelFilterzeilen.setLayout(new GridBagLayout());
 		panelFilterzeilen.setAlignmentY((float) 0.5);
 		panelFilterzeilen.setPreferredSize(new Dimension(300, 1));
-		panelWorkingOn.add(panelFilterzeilen, new GridBagConstraints(0, iZeile,
-				1, 1, 1.0, 0.0, GridBagConstraints.NORTH,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		panelWorkingOn.add(panelFilterzeilen, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Auf diesem Panel sitzen die direkt eingebbaren Filterkriterien
 		iZeile++;
@@ -749,8 +803,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		panelFilter = new JPanel();
 		panelFilter.setLayout(new GridBagLayout());
 		// panelFilterkriterienDirekt.setBorder(new EtchedBorder());
-		panelWorkingOn.add(panelFilter, new GridBagConstraints(0, iZeile, 1, 1,
-				1.0, 0.0, GridBagConstraints.NORTH,
+		panelWorkingOn.add(panelFilter, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		// n+1 zeile: tabelle
@@ -762,8 +815,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			currentSortierKriterien.clear();
 		}
 		sortierKriterien = new HashMap<String, SortierKriterium>();
-		List<SortierKriterium> tmpList = ClientPerspectiveManager.getInstance()
-				.loadQueryColumnSorting(idUsecase);
+		List<SortierKriterium> tmpList = ClientPerspectiveManager.getInstance().loadQueryColumnSorting(idUsecase);
 
 		// setQueryViewSaveBtnLoaded(tmpList != null && tmpList.size() > 0);
 		if (tmpList == null)
@@ -772,14 +824,13 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			currentSortierKriterien = new ArrayList<SortierKriterium>(tmpList);
 
 		// den Datenbestand fuellen
-		dataSource = new DistributedTableDataSourceImpl(new Integer(idUsecase));
+		dataSource = new DistributedTableDataSourceImpl(new Integer(idUsecase), defaultFilter);
 
 		// die UI Namen aller moeglichen Sortierkriterien mit den Spaltennamen
 		// auf der Tabelle verknuepfen
 		TableInfo helper = this.dataSource.getTableInfo();
 		dbColumnNames = helper.getDataBaseColumnNames();
-		Object[] columnNames = this.dataSource.getTableInfo()
-				.getColumnHeaderValues();
+		Object[] columnNames = this.dataSource.getTableInfo().getColumnHeaderValues();
 
 		for (int i = 0; i < columnNames.length; i++) {
 			SortierKriterium kriterium = null;
@@ -790,8 +841,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 				}
 			}
 			if (kriterium == null) {
-				kriterium = new SortierKriterium(dbColumnNames[i], true,
-						SortierKriterium.SORT_ASC);
+				kriterium = new SortierKriterium(dbColumnNames[i], true, SortierKriterium.SORT_ASC);
 			}
 			sortierKriterien.put(dbColumnNames[i], kriterium);
 		}
@@ -812,6 +862,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (clearKriterien)
 			currentSortierKriterien.clear();
 
+		// Wenn Sortiert, dann die vertausche Buttons nicht anzeigen
+		setVertauscheButtonsEnabled(currentSortierKriterien.isEmpty());
+
 		// den Datenbestand dem TableModel zuordnen
 		tableModel = new DistributedTableModelImpl(this.dataSource);
 
@@ -820,7 +873,6 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		table.setLocale(LPMain.getInstance().getUISprLocale());
 		// per Default keine Mehrfachselektierung erlaubt
 		this.setMultipleRowSelectionEnabled(bMultipleRowSelectionEnabled);
-		table.setColumnSelectionAllowed(false);
 
 		table.addKeyListener(bildAufAbListener); // ich werde von allen
 													// KeyEvents auf der
@@ -829,7 +881,29 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		// Tabelle informiert
 
 		// jetzt den TableHeader einstellen
-		table.getTableHeader().setReorderingAllowed(false);
+		table.getTableHeader().setReorderingAllowed(true);
+
+		table.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
+			public void columnAdded(TableColumnModelEvent e) {
+			}
+
+			public void columnMarginChanged(ChangeEvent e) {
+			}
+
+			public void columnMoved(TableColumnModelEvent e) {
+				if (columnValue == -1)
+					columnValue = e.getFromIndex();
+
+				columnNewValue = e.getToIndex();
+			}
+
+			public void columnRemoved(TableColumnModelEvent e) {
+			}
+
+			public void columnSelectionChanged(ListSelectionEvent e) {
+			}
+		});
+
 		table.getTableHeader().addMouseListener(this); // ich werde von allen
 		// MouseEvents auf den
 		// TableHeader
@@ -842,21 +916,17 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 		// die Tabelle in ein ScrollPane einbetten und anzeigen
 		tableScrollPane = new JScrollPane(table);
-		tableScrollPane
-				.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		tableScrollPane
-				.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		tableScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		tableScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-		panelWorkingOn.add(tableScrollPane, new GridBagConstraints(0, iZeile,
-				1, 1, 1.0, 1.0, GridBagConstraints.SOUTH,
+		panelWorkingOn.add(tableScrollPane, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTH,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		iZeile++;
 		multiselektInfo = new JPanel();
 		multiselektInfo.setBackground(Color.yellow);
 		multiselektInfo.setBorder(BorderFactory.createEmptyBorder());
 		multiselektInfo.setLayout(new GridBagLayout());
-		panelWorkingOn.add(multiselektInfo, new GridBagConstraints(0, iZeile,
-				1, 1, 1.0, 0.0, GridBagConstraints.SOUTH,
+		panelWorkingOn.add(multiselektInfo, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.SOUTH,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		hmDirektFilter = new LinkedHashMap<Integer, PanelFilterKriteriumDirekt>();
 	}
@@ -866,13 +936,11 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	private void sortTableModel() throws ExceptionLP {
-		SortierKriterium[] sortKriterien = new SortierKriterium[currentSortierKriterien
-				.size()];
+		SortierKriterium[] sortKriterien = new SortierKriterium[currentSortierKriterien.size()];
 		sortKriterien = currentSortierKriterien.toArray(sortKriterien);
 
 		if (queryParameters != null)
-			queryParameters.setSortKrit(sortKriterien.length == 0 ? null
-					: sortKriterien);
+			queryParameters.setSortKrit(sortKriterien.length == 0 ? null : sortKriterien);
 
 		myLogger.debug(SortierKriterium.arrayToString(sortKriterien));
 
@@ -881,16 +949,23 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		// die Liste neu aufbauen, nach dem Sortieren ist wieder der aktuell
 		// selektierte Datensatz markiert
 
-		tableModel.sort(sortKriterien.length == 0 ? null : sortKriterien,
-				getSelectedId());
+		try {
+			tableModel.sort(sortKriterien.length == 0 ? null : sortKriterien, getSelectedId());
+		} catch (ExceptionLP e) {
+			// SP9438 QueryParameters neu setzen
+			if (e.getICode() == EJBExceptionLP.FEHLER_FLR) {
+				tableModel.sort(sortKriterien.length == 0 ? null : sortKriterien, queryParameters, getSelectedId());
+			} else {
+				throw e;
+			}
+		}
+
 	}
 
 	private void initColumnsSize(String[] dbColumnNames) throws ExceptionLP {
 		// int[] columnHeaderWidths = null;
-		int[] columnHeaderWidths = ClientPerspectiveManager.getInstance()
-				.loadQueryColumnWidthsAsArray(idUsecase);
-		columnWidthsFromHandler = dataSource.getTableInfo()
-				.getColumnHeaderWidths();
+		int[] columnHeaderWidths = ClientPerspectiveManager.getInstance().loadQueryColumnWidthsAsArray(idUsecase);
+		columnWidthsFromHandler = dataSource.getTableInfo().getColumnHeaderWidths();
 		if (columnHeaderWidths == null
 				|| (columnHeaderWidths != null && dbColumnNames.length > columnHeaderWidths.length)) {
 			// wenn keine einstellungen gefunden/geladen
@@ -900,13 +975,19 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 				columnHeaderWidths = new int[columnWidthsFromHandler.length];
 				for (int i = 0; i < columnWidthsFromHandler.length; i++) {
 					if (columnWidthsFromHandler[i] != -1)
-						columnHeaderWidths[i] = Helper.getBreiteInPixel(Math
-								.abs(columnWidthsFromHandler[i]));
+						columnHeaderWidths[i] = Helper.getBreiteInPixel(Math.abs(columnWidthsFromHandler[i]));
 					else
 						columnHeaderWidths[i] = -1;
 				}
+			} else {
+
+				columnHeaderWidths = new int[dbColumnNames.length];
+				for (int i = 0; i < dbColumnNames.length; i++) {
+					columnHeaderWidths[i] = -1;
+				}
+
 			}
-		} else if (columnHeaderWidths != null) {
+		} else if (columnHeaderWidths != null && dbColumnNames.length == columnHeaderWidths.length) {
 			setQueryViewSaveBtnLoaded(true);
 		}
 
@@ -914,8 +995,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		setColumnWidthToZero(0);
 
 		// die letzte Spalte Verstecken, wenn Color
-		Class<?> letzteKlasse = dataSource.getColumnClasses()[dataSource
-				.getColumnClasses().length - 1];
+		Class<?> letzteKlasse = dataSource.getColumnClasses()[dataSource.getColumnClasses().length - 1];
 		if (letzteKlasse.equals(java.awt.Color.class)) {
 			setColumnWidthToZero(dataSource.getColumnClasses().length - 1);
 		}
@@ -928,17 +1008,14 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			// table.setRowSorter(sorter);
 
 			// die Breite aller weiteren Spalten setzen
-			for (int i = 1; i < columnHeaderWidths.length
-					&& i < table.getColumnModel().getColumnCount(); i++) {
+			for (int i = 1; i < columnHeaderWidths.length && i < table.getColumnModel().getColumnCount(); i++) {
 				TableColumn tc = table.getColumnModel().getColumn(i);
 
-				if (tc.getHeaderValue() instanceof String
-						&& i < dbColumnNames.length) {
+				int iIndex = tableModel.getSavedPosition(i);
+				if (tc.getHeaderValue() instanceof String && i < dbColumnNames.length) {
 					JLabel jlaLabel;
-					if (dbColumnNames[i]
-							.equals(com.lp.server.util.Facade.NICHT_SORTIERBAR)) {
-						jlaLabel = new JLabel((String) tc.getHeaderValue(),
-								iNoSort, SwingConstants.LEADING);
+					if (dbColumnNames[iIndex].equals(com.lp.server.util.Facade.NICHT_SORTIERBAR)) {
+						jlaLabel = new JLabel((String) tc.getHeaderValue(), iNoSort, SwingConstants.LEADING);
 
 						// sorter.setSortable(i, false);
 					} else {
@@ -947,17 +1024,23 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 					}
 					tc.setHeaderRenderer(new HeaderCellRenderer());
-					jlaLabel.setToolTipText((String) tc.getHeaderValue());
+					jlaLabel.setToolTipText(getHeaderToolTip(i));
 					jlaLabel.setBorder(BorderFactory.createRaisedBevelBorder());
 					tc.setHeaderValue(jlaLabel);
 				}
 
-				setHeaderColumnWidth(i, columnHeaderWidths[i]);
+				setHeaderColumnWidth(iIndex, columnHeaderWidths[i]);
 			}
 
 		}
 
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+	}
+
+	private String getHeaderToolTip(int column) {
+		String toolTip = tableModel.getColumnToolTip(column);
+		return (toolTip != null) ? toolTip : tableModel.getColumnName(column);
+
 	}
 
 	@Override
@@ -986,8 +1069,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (columnsToStrech.size() == 0)
 			return;
 
-		int sharedTotal = table.getColumnModel().getTotalColumnWidth()
-				- alreadyDefinedSize;
+		int sharedTotal = table.getColumnModel().getTotalColumnWidth() - alreadyDefinedSize;
 		for (TableColumn tc : columnsToStrech) {
 			int newSize = sharedTotal / columnsToStrech.size();
 			tc.setPreferredWidth(newSize);
@@ -1010,35 +1092,28 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	private String sAspect = null;
 
 	/**
-	 * Das ist der Inhalt des zuschaltbaren Panels mit der Auswahl der
-	 * moeglichen Kriterien.
+	 * Das ist der Inhalt des zuschaltbaren Panels mit der Auswahl der moeglichen
+	 * Kriterien.
 	 */
 	private void createAndShowKriterium() {
-		labelCriteria = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.kriterium"));
+		labelCriteria = new WrapperLabel(LPMain.getTextRespectUISPr("lp.kriterium"));
 
 		comboBoxTypes = new WrapperComboBox(types);
 
-		buttonAddFilterkriterium = createWrapperButtonActionListenerThis(
-				"/com/lp/client/res/plus_sign.png",
-				LPMain.getTextRespectUISPr("lp.tooltip.kriterium"),
-				ACTION_ADD_FILTERKRITERIUM);
+		buttonAddFilterkriterium = createWrapperButtonActionListenerThis("/com/lp/client/res/plus_sign.png",
+				LPMain.getTextRespectUISPr("lp.tooltip.kriterium"), ACTION_ADD_FILTERKRITERIUM);
 		buttonAddFilterkriterium.setEnabled(true);
-		buttonAddFilterkriterium.setPreferredSize(new Dimension(Defaults
-				.getInstance().getControlHeight(), Defaults.getInstance()
-				.getControlHeight()));
+		buttonAddFilterkriterium.setPreferredSize(
+				new Dimension(Defaults.getInstance().getControlHeight(), Defaults.getInstance().getControlHeight()));
 
-		panelKriterium.add(labelCriteria, new GridBagConstraints(0, 0, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		panelKriterium.add(labelCriteria, new GridBagConstraints(0, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelKriterium.add(comboBoxTypes, new GridBagConstraints(1, 0, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		panelKriterium.add(comboBoxTypes, new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelKriterium.add(buttonAddFilterkriterium, new GridBagConstraints(2,
-				0, 1, 1, 0.1, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.WEST, new Insets(2, 2, 2, 2), 0, 0));
+		panelKriterium.add(buttonAddFilterkriterium, new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.WEST, new Insets(2, 2, 2, 2), 0, 0));
 	}
 
 	public void setDefaultFilter(FilterKriterium[] defaultFilter) {
@@ -1057,9 +1132,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	 * called whenever buttonAdd or buttonRefresh is clicked. Depending on the
 	 * clicked button either a new QueryInputRow is added to the view, or the
 	 * current query is executed and the result gets displayed in the table.
-	 *
-	 * @param e
-	 *            ActionEvent
+	 * 
+	 * @param e ActionEvent
 	 */
 	public void lPPanelActionPerformed(ActionEvent e) {
 
@@ -1115,9 +1189,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	/**
 	 * called whenever the user clicks on a column's header. The sorting is
 	 * implemented here.
-	 *
-	 * @param e
-	 *            MouseEvent
+	 * 
+	 * @param e MouseEvent
 	 * @throws ExceptionLP
 	 */
 	protected void eventMouseClicked(MouseEvent e) throws ExceptionLP {
@@ -1132,17 +1205,38 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			if (e.getClickCount() == 2) {
 				fireItemChangedEvent_GOTO_DETAIL_PANEL();
 			}
+		} else if (e.getSource().equals(getHmOfButtons().get(LEAVEALONE_QUERYVIEW_SAVE).getButton())) {
+			if (e.getButton() == MouseEvent.BUTTON3) {
+
+				if (DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("lp.tabelleneintellungen.loeschen"))) {
+					ClientPerspectiveManager.getInstance().removeQueryColumnPositions(idUsecase);
+					ClientPerspectiveManager.getInstance().removeQueryColumnWidth(idUsecase);
+					ClientPerspectiveManager.getInstance().removeQueryColumnSorting(idUsecase);
+					ClientPerspectiveManager.getInstance().removeQueryDetailHeight(idUsecase);
+
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+							LPMain.getTextRespectUISPr("lp.tabelleneintellungen.loeschen.info"));
+
+				}
+			}
 		} else if (e.getSource().getClass() == JTableHeader.class) {
 			// auf tabellenheaderspalte geklickt -> sortieren
+
+			if (bSortierbar == false) {
+				return;
+			}
+
 			int index = table.getColumnModel().getColumnIndexAtX(e.getX());
 
-			if (dbColumnNames[index]
-					.equals(com.lp.server.util.Facade.NICHT_SORTIERBAR)
-					|| index == 0)
+			int modelIndex = table.getColumnModel().getColumn(index).getModelIndex();
+
+			index = tableModel.getSavedPosition(modelIndex);
+
+			if (dbColumnNames[index].equals(com.lp.server.util.Facade.NICHT_SORTIERBAR) || index == 0)
 				return;
 
-			SortierKriterium tmpSortierKriterium = sortierKriterien
-					.get(dbColumnNames[index]);
+			SortierKriterium tmpSortierKriterium = sortierKriterien.get(dbColumnNames[index]);
 
 			// @uw 2005-02-23 : Wir haben seit spaetestens Hibernate3 einen Bug,
 			// wenn
@@ -1236,8 +1330,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		return currentSortierKriterien;
 	}
 
-	public void setCurrentSortierKriterien(
-			ArrayList<SortierKriterium> currentSortierKriterien) {
+	public void setCurrentSortierKriterien(ArrayList<SortierKriterium> currentSortierKriterien) {
 		this.currentSortierKriterien = currentSortierKriterien;
 	}
 
@@ -1256,23 +1349,22 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * gets the id of the row currently selected in the table (this is not the
-	 * row number!).
-	 *
-	 * MB 19.09.06 aufgrund der mehrfachselektierung ist es auch moeglich, dass
-	 * gar kein datensatz ausgewaehlt ist. in diesem fall zieht die zeile, in
-	 * der der cursor steht.
-	 *
+	 * gets the id of the row currently selected in the table (this is not the row
+	 * number!).
+	 * 
+	 * MB 19.09.06 aufgrund der mehrfachselektierung ist es auch moeglich, dass gar
+	 * kein datensatz ausgewaehlt ist. in diesem fall zieht die zeile, in der der
+	 * cursor steht.
+	 * 
 	 * sind mehrere zeilen selektiert, so soll die zuletzt markierte (cursor)
 	 * ziehen.
-	 *
+	 * 
 	 * @return the row's id.
 	 */
 	public Object getSelectedId() {
 		Object selectedId = null; // key object des Datensatzes
 		// ist mindestens eine zeile selektiert?
-		if (table.getSelectedRow() >= 0
-				&& table.getSelectedRow() < tableModel.getRowCount()) {
+		if (table.getSelectedRow() >= 0 && table.getSelectedRow() < tableModel.getRowCount()) {
 
 			selectedId = getSelectedIdIfSelectionExists();
 		}
@@ -1289,17 +1381,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * Liefert die Id der Zeile auf der sich der Cursor befindet.
-	 * Falls der Cursor im Table nicht gesetzt ist, so wird die Id der
-	 * ersten Zeile retourniert.
-	 *
+	 * Liefert die Id der Zeile auf der sich der Cursor befindet. Falls der Cursor
+	 * im Table nicht gesetzt ist, so wird die Id der ersten Zeile retourniert.
+	 * 
 	 * @return Id der Cursor-Zeile
 	 */
 	protected Object getIdFromCursorPositionInTable() {
 		Object selectedId = null;
 		if (table.getRowCount() >= 1) {
-			int iZeileCursor = table.getSelectionModel()
-					.getAnchorSelectionIndex();
+			int iZeileCursor = table.getSelectionModel().getAnchorSelectionIndex();
 			if (iZeileCursor == -1) { // nichts selektiert
 				selectedId = table.getValueAt(0, 0); // erste Zeile
 				// selektieren
@@ -1311,17 +1401,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * Liefert die Id der selektierten Zeile.
-	 * Liegt der Cursor im selektierten Bereich, wird diese Id retourniert.
-	 * Liegt der Cursor au&szlig;erhalb, so wird die Id der ersten selektierten
-	 * Zeile retourniert
-	 *
+	 * Liefert die Id der selektierten Zeile. Liegt der Cursor im selektierten
+	 * Bereich, wird diese Id retourniert. Liegt der Cursor au&szlig;erhalb, so wird
+	 * die Id der ersten selektierten Zeile retourniert
+	 * 
 	 * @return Id der selektierten Zeile
 	 */
 	protected Object getSelectedIdIfSelectionExists() {
 		Object selectedId = null;
-		int iZeileCursor = table.getSelectionModel()
-				.getAnchorSelectionIndex();
+		int iZeileCursor = table.getSelectionModel().getAnchorSelectionIndex();
 		int[] iZeilenSelektiert = table.getSelectedRows();
 		boolean bZeileMitCursorIstSelektiert = false;
 		for (int i = 0; i < iZeilenSelektiert.length; i++) {
@@ -1341,31 +1429,66 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * gets the id of the row currently selected in the table (this is not the
-	 * row number!).
-	 *
+	 * gets the id of the row currently selected in the table (this is not the row
+	 * number!).
+	 * 
 	 * @return the row's id.
 	 */
 	public Object[] getSelectedIds() {
 		Object[] selectedIds = null; // key object des Datensatzes
-		if (table.getSelectedRow() >= 0
-				&& table.getSelectedRow() < tableModel.getRowCount()) {
+		Object[] selectedIds2 = null;
+		if (table.getSelectedRow() >= 0 && table.getSelectedRow() < tableModel.getRowCount()) {
 			selectedIds = new Object[table.getSelectedRowCount()];
+			selectedIds2 = new Object[table.getSelectedRowCount()];
 			for (int i = 0; i < table.getSelectedRowCount(); i++) {
-				selectedIds[i] = table
-						.getValueAt(table.getSelectedRows()[i], 0);
+				selectedIds[i] = table.getValueAt(table.getSelectedRows()[i], 0);
+
+				selectedIds2[i] = table.getModel().getValueAt(table.convertRowIndexToView(table.getSelectedRows()[i]),
+						0);
+
+			}
+		} else {
+			// wenn die Tabelle aber nicht leer ist, dann gilt die zeile, in der
+			// der cursor steht als selektiert.
+			return new Object[] { getIdFromCursorPositionInTable() };
+		}
+
+		return selectedIds;
+	}
+
+	public ArrayList<Integer> getSelectedIdsAsInteger() {
+		ArrayList<Integer> selectedIds = new ArrayList<Integer>();
+
+		if (table.getSelectedRow() >= 0 && table.getSelectedRow() < tableModel.getRowCount()) {
+
+			for (int i = 0; i < table.getSelectedRowCount(); i++) {
+
+				selectedIds.add((Integer) table.getValueAt(table.getSelectedRows()[i], 0));
+
 			}
 		}
 		return selectedIds;
 	}
 
-	public void uebersteuereSpaltenUeberschrift(int spalte,
-			String textUebersteuert) {
+	public ArrayList<String> getSelectedIdsAsString() {
+		ArrayList<String> selectedIds = new ArrayList<String>();
+
+		if (table.getSelectedRow() >= 0 && table.getSelectedRow() < tableModel.getRowCount()) {
+
+			for (int i = 0; i < table.getSelectedRowCount(); i++) {
+
+				selectedIds.add((String) table.getValueAt(table.getSelectedRows()[i], 0));
+
+			}
+		}
+		return selectedIds;
+	}
+
+	public void uebersteuereSpaltenUeberschrift(int spalte, String textUebersteuert) {
 
 		JTableHeader header = getTable().getTableHeader();
 
-		javax.swing.table.TableColumn c = header.getColumnModel().getColumn(
-				spalte);
+		javax.swing.table.TableColumn c = header.getColumnModel().getColumn(spalte);
 
 		if (c != null) {
 			JLabel label = new JLabel(textUebersteuert);
@@ -1376,15 +1499,14 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * gets the id of the row currently selected in the table (this is not the
-	 * row number!).
-	 *
+	 * gets the id of the row currently selected in the table (this is not the row
+	 * number!).
+	 * 
 	 * @return the row's id.
 	 */
 	public Object getId2SelectAfterDelete() {
 		Object selectedId = null; // key object des Datensatzes
-		if (table.getSelectedRow() >= 0
-				&& table.getSelectedRow() < tableModel.getRowCount()) {
+		if (table.getSelectedRow() >= 0 && table.getSelectedRow() < tableModel.getRowCount()) {
 			// wenn es darunter noch eine Zeile gibt, dann die
 			if (table.getSelectedRow() <= (tableModel.getRowCount() - 2)) {
 				selectedId = table.getValueAt(table.getSelectedRow() + 1, 0);
@@ -1429,7 +1551,10 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (oKeyI != null) {
 			// Jetzt muessen wir dafuer sorgen, dass der richtige Datensatz
 			// selektiert ist.
-			tableModel.sort(null, oKeyI);
+			SortierKriterium[] sortKriterien = new SortierKriterium[currentSortierKriterien.size()];
+			sortKriterien = currentSortierKriterien.toArray(sortKriterien);
+
+			tableModel.sort(sortKriterien.length == 0 ? null : sortKriterien, oKeyI);
 
 			// AD: System.out.println("UC: " + this.idUsecase +
 			// " Set Selected ID: " + oKeyI.toString());
@@ -1440,14 +1565,13 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 * whenever a sort occured, this method asures that the row that was
-	 * selected before the sort operation is selected and visisble again.
+	 * whenever a sort occured, this method asures that the row that was selected
+	 * before the sort operation is selected and visisble again.
 	 */
 	private void scrollAndSelect() {
 		int indexOfSelectedRow = this.tableModel.getIndexOfSelectedRow();
 
-		if (indexOfSelectedRow >= 0
-				&& indexOfSelectedRow < this.table.getRowCount()) {
+		if (indexOfSelectedRow >= 0 && indexOfSelectedRow < this.table.getRowCount()) {
 			int totalRows = this.table.getRowCount();
 			int scrollMax = this.table.getRowHeight() * totalRows;
 			// myLogger.info("scrollMax = " + scrollMax);
@@ -1460,7 +1584,10 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			// count
 			// abgesetzt wird und keine Daten geholt werden.
 			this.dataSource.setReturnNullOnGetValueAt(true);
-			this.tableModel.fireTableDataChanged();
+			// ghp this.tableModel.fireTableDataChanged();
+
+			// myLogger.debug("setting new scroll value '" + scrollValue +
+			// "' (rows=" + totalRows + ").");
 			this.tableScrollPane.getVerticalScrollBar().setValue(scrollValue);
 			this.dataSource.setReturnNullOnGetValueAt(false);
 
@@ -1486,9 +1613,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		}
 	}
 
-	public void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
+	protected void eventActionRefreshUpdateDb(ActionEvent e, Object keyOfSelectedRow) throws ExceptionLP {
 		long tStart = System.currentTimeMillis();
+
 		// die fuer die Abfrage zu verwendenden FilterKriterien sammeln
 		ArrayList<FilterKriterium> alFilterKriterien = new ArrayList<FilterKriterium>();
 
@@ -1502,23 +1629,18 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		// die UI Zeilen mit FilterKriterien einhaengen
 		if (queryInputRows != null && queryInputRows.size() > 0) {
 			for (int i = 0; i < queryInputRows.size(); i++) {
-				alFilterKriterien.add(queryInputRows.elementAt(i)
-						.getKriterium());
+				alFilterKriterien.add(queryInputRows.elementAt(i).getKriterium());
 			}
 		}
 		// Alle DirektFilter einhaengen
-		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter
-				.hasNext();) {
-			PanelFilterKriteriumDirekt panelFkd = hmDirektFilter.get(iter
-					.next());
-			if (panelFkd.fkd != null
-					&& panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_STRING
+		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter.hasNext();) {
+			PanelFilterKriteriumDirekt panelFkd = hmDirektFilter.get(iter.next());
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_STRING
 					&& panelFkd.wtfFkdirektValue1.getText() != null
-					&& panelFkd.wtfFkdirektValue1.getText().length() > 0) {
+					&& panelFkd.wtfFkdirektValue1.getText().trim().length() > 0) {
 				// den eingegeben Wert bestimmen, bereinigen und richtig
 				// verpacken
-				String sValue = panelFkd.wtfFkdirektValue1.getText()
-						.replaceAll("'", "");
+				String sValue = panelFkd.wtfFkdirektValue1.getText().replaceAll("'", "");
 				panelFkd.wtfFkdirektValue1.setText(sValue); // korrigierten wert
 				// zurueckschreiben.
 
@@ -1526,26 +1648,62 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 				panelFkd.fkd.wrapWithProzent();
 				panelFkd.fkd.wrapWithSingleQuotes();
 
-				alFilterKriterien.add(new FilterKriterium(
-						panelFkd.fkd.kritName, true, panelFkd.fkd.value,
+				alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true, panelFkd.fkd.value,
 						panelFkd.fkd.operator, panelFkd.fkd.isBIgnoreCase()));
 			}
-			if (panelFkd.fkd != null
-					&& panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL
 					&& panelFkd.wnfFkdirektValue1.getBigDecimal() != null) {
 				// den eingegeben Wert bestimmen, bereinigen und richtig
 				// verpacken
-				alFilterKriterien.add(new FilterKriterium(
-						panelFkd.fkd.kritName, true, panelFkd.wnfFkdirektValue1
-								.getBigDecimal(), panelFkd.fkd.operator,
+				alFilterKriterien.add(
+						new FilterKriterium(panelFkd.fkd.kritName, true, panelFkd.wnfFkdirektValue1.getBigDecimal(),
+								panelFkd.fkd.operator, panelFkd.fkd.isBIgnoreCase()));
+			}
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_DATE
+					&& panelFkd.wdfFkdirektValue1.getDate() != null) {
+				// den eingegeben Wert bestimmen, bereinigen und richtig
+				// verpacken
+				if (panelFkd.fkd.operator.equals(FilterKriterium.OPERATOR_LT)) {
+					alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true,
+							"'" + Helper.formatDateWithSlashes(
+									Helper.addiereTageZuDatum(panelFkd.wdfFkdirektValue1.getDate(), 1)) + "'",
+							panelFkd.fkd.operator, panelFkd.fkd.isBIgnoreCase(), true));
+				} else {
+					alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true,
+							"'" + Helper.formatDateWithSlashes(panelFkd.wdfFkdirektValue1.getDate()) + "'",
+							panelFkd.fkd.operator, panelFkd.fkd.isBIgnoreCase(), true));
+				}
+
+			}
+
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_BOOLEAN
+					&& panelFkd.wcbFkdirektValue1.isSelected()) {
+				// den eingegeben Wert bestimmen, bereinigen und richtig
+				// verpacken
+				alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true, "", panelFkd.fkd.operator,
 						panelFkd.fkd.isBIgnoreCase()));
+			}
+
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_COMBOBOX
+					&& panelFkd.wcomboFkdirektValue1 != null) {
+				if (panelFkd.wcomboFkdirektValue1.getKeyOfSelectedItem() != null) {
+
+					if (panelFkd.fkd.wrapWithSingleQuotes == true) {
+						panelFkd.fkd.value = "'" + panelFkd.wcomboFkdirektValue1.getKeyOfSelectedItem() + "'";
+					} else {
+						panelFkd.fkd.value = panelFkd.wcomboFkdirektValue1.getKeyOfSelectedItem() + "";
+					}
+
+					alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true, panelFkd.fkd.value,
+							panelFkd.fkd.operator, panelFkd.fkd.isBIgnoreCase()));
+
+				}
 			}
 
 		}
 
 		// Filterkriterium fuer Schnellansicht einhaengen
-		if (cbSchnellansicht.isEnabled() && cbSchnellansicht.isSelected()
-				&& fkSchnellansicht != null) {
+		if (cbSchnellansicht.isEnabled() && cbSchnellansicht.isSelected() && fkSchnellansicht != null) {
 
 			for (int i = 0; i < fkSchnellansicht.length; i++) {
 				alFilterKriterien.add(fkSchnellansicht[i]);
@@ -1563,9 +1721,19 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			alFilterKriterien.add(fkComboBox);
 		}
 
+		if (fkComboBox2 != null && wcoFilter2.getKeyOfSelectedItem() != null) {
+
+			if (fkComboBox2.wrapWithSingleQuotes == true) {
+				fkComboBox2.value = "'" + wcoFilter2.getKeyOfSelectedItem() + "'";
+			} else {
+				fkComboBox2.value = wcoFilter2.getKeyOfSelectedItem() + "";
+			}
+
+			alFilterKriterien.add(fkComboBox2);
+		}
+
 		// Filterkriterium fuer Schnellansicht einhaengen
 		if (fkKey != null) {
-
 			for (int i = 0; i < fkKey.length; i++) {
 				alFilterKriterien.add(fkKey[i]);
 			}
@@ -1576,9 +1744,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (fkVersteckteFelderNichtAnzeigen != null) {
 			// workaround: Wenn die CheckBox mit der SpaceBar gesetzt wurde, ist
 			// der Wert verdreht
-			if (e != null
-					&& e.getActionCommand().equals(
-							"WORKAROUND_ZWEITER_PARAMETER_IST_KEYCODE")) {
+			if (e != null && e.getActionCommand().equals("WORKAROUND_ZWEITER_PARAMETER_IST_KEYCODE")) {
 				if (wcbVersteckteFelderAnzeigen.isSelected()) { // genau
 					// verkehrt!
 					alFilterKriterien.add(fkVersteckteFelderNichtAnzeigen);
@@ -1594,8 +1760,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		}
 
 		// das Array der FilterKriterien instanziieren und befuellen
-		FilterKriterium[] kriterien = new FilterKriterium[alFilterKriterien
-				.size()];
+		FilterKriterium[] kriterien = new FilterKriterium[alFilterKriterien.size()];
 
 		for (int i = 0; i < alFilterKriterien.size(); i++) {
 			kriterien[i] = alFilterKriterien.get(i);
@@ -1603,18 +1768,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 		// alle FilterKriterien werden in einem Block verpackt und sind mit AND
 		// verknuepft!
-		FilterBlock filter = new FilterBlock(kriterien,
-				FilterKriterium.BOOLOPERATOR_AND);
+		FilterBlock filter = new FilterBlock(kriterien, FilterKriterium.BOOLOPERATOR_AND);
 
 		// PJ18155
 
 		ArrayList<SortierKriterium> kritsWithUebersteuertem = new ArrayList<SortierKriterium>();
 
 		if (sortierkriteriumErsteSortierungUebersteuern != null) {
-			if (wcbErsteSortierungUebersteuern != null
-					&& wcbErsteSortierungUebersteuern.isSelected()) {
-				kritsWithUebersteuertem
-						.add(sortierkriteriumErsteSortierungUebersteuern);
+			if (wcbErsteSortierungUebersteuern != null && wcbErsteSortierungUebersteuern.isSelected()) {
+				kritsWithUebersteuertem.add(sortierkriteriumErsteSortierungUebersteuern);
 			}
 		}
 
@@ -1622,11 +1784,184 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			kritsWithUebersteuertem.add(currentSortierKriterien.get(i));
 		}
 
-		SortierKriterium[] sortKriterien = kritsWithUebersteuertem
-				.toArray(new SortierKriterium[0]);
+		SortierKriterium[] sortKriterien = kritsWithUebersteuertem.toArray(new SortierKriterium[0]);
 
-		queryParameters = new QueryParameters(new Integer(idUsecase),
-				sortKriterien, filter, this.getSelectedId(), listOfExtraData);
+		queryParameters = new QueryParameters(new Integer(idUsecase), sortKriterien, filter, keyOfSelectedRow,
+				listOfExtraData);
+
+		queryParameters.iMaxAnzahlZeilen = iAnzahlZeilen;
+
+		tableModel.setQuery(queryParameters);
+
+		scrollAndSelect();
+
+		long tEnd = System.currentTimeMillis();
+		myLogger.info("refresh FLR Liste UC=" + idUsecase + ": " + (tEnd - tStart) + " ms");
+	}
+
+	public void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
+		eventActionRefreshUpdateDb(e, getSelectedId());
+		fireItemChangedEvent_ITEM_CHANGED();
+	}
+
+	public void refreshMe(ActionEvent e, Object keyOfSelectedRow) throws Throwable {
+		eventActionRefreshUpdateDb(e, keyOfSelectedRow);
+	}
+
+	public void refreshMe(Object keyOfSelectedRow) throws Throwable {
+		eventActionRefreshUpdateDb(null, keyOfSelectedRow);
+	}
+
+	public void eventActionRefresh0(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
+		long tStart = System.currentTimeMillis();
+		// die fuer die Abfrage zu verwendenden FilterKriterien sammeln
+		ArrayList<FilterKriterium> alFilterKriterien = new ArrayList<FilterKriterium>();
+
+		// die default FilterKriterien einhaengen
+		if (defaultFilter != null && defaultFilter.length > 0) {
+			for (int i = 0; i < defaultFilter.length; i++) {
+				alFilterKriterien.add(defaultFilter[i]);
+			}
+		}
+
+		// die UI Zeilen mit FilterKriterien einhaengen
+		if (queryInputRows != null && queryInputRows.size() > 0) {
+			for (int i = 0; i < queryInputRows.size(); i++) {
+				alFilterKriterien.add(queryInputRows.elementAt(i).getKriterium());
+			}
+		}
+		// Alle DirektFilter einhaengen
+		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter.hasNext();) {
+			PanelFilterKriteriumDirekt panelFkd = hmDirektFilter.get(iter.next());
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_STRING
+					&& panelFkd.wtfFkdirektValue1.getText() != null
+					&& panelFkd.wtfFkdirektValue1.getText().length() > 0) {
+				// den eingegeben Wert bestimmen, bereinigen und richtig
+				// verpacken
+				String sValue = panelFkd.wtfFkdirektValue1.getText().replaceAll("'", "");
+				panelFkd.wtfFkdirektValue1.setText(sValue); // korrigierten wert
+				// zurueckschreiben.
+
+				panelFkd.fkd.value = sValue;
+				panelFkd.fkd.wrapWithProzent();
+				panelFkd.fkd.wrapWithSingleQuotes();
+
+				alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true, panelFkd.fkd.value,
+						panelFkd.fkd.operator, panelFkd.fkd.isBIgnoreCase()));
+			}
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL
+					&& panelFkd.wnfFkdirektValue1.getBigDecimal() != null) {
+				// den eingegeben Wert bestimmen, bereinigen und richtig
+				// verpacken
+				alFilterKriterien.add(
+						new FilterKriterium(panelFkd.fkd.kritName, true, panelFkd.wnfFkdirektValue1.getBigDecimal(),
+								panelFkd.fkd.operator, panelFkd.fkd.isBIgnoreCase()));
+			}
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_DATE
+					&& panelFkd.wdfFkdirektValue1.getDate() != null) {
+				// den eingegeben Wert bestimmen, bereinigen und richtig
+				// verpacken
+				alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true,
+						panelFkd.wdfFkdirektValue1.getDateFormatString(), panelFkd.fkd.operator,
+						panelFkd.fkd.isBIgnoreCase()));
+			}
+			if (panelFkd.fkd != null && panelFkd.fkd.iTyp == FilterKriteriumDirekt.TYP_BOOLEAN
+					&& panelFkd.wcbFkdirektValue1.isSelected()) {
+				// den eingegeben Wert bestimmen, bereinigen und richtig
+				// verpacken
+				alFilterKriterien.add(new FilterKriterium(panelFkd.fkd.kritName, true, "", panelFkd.fkd.operator,
+						panelFkd.fkd.isBIgnoreCase()));
+			}
+
+		}
+
+		// Filterkriterium fuer Schnellansicht einhaengen
+		if (cbSchnellansicht.isEnabled() && cbSchnellansicht.isSelected() && fkSchnellansicht != null) {
+
+			for (int i = 0; i < fkSchnellansicht.length; i++) {
+				alFilterKriterien.add(fkSchnellansicht[i]);
+			}
+		}
+
+		if (fkComboBox != null && wcoFilter.getKeyOfSelectedItem() != null) {
+
+			if (fkComboBox.wrapWithSingleQuotes == true) {
+				fkComboBox.value = "'" + wcoFilter.getKeyOfSelectedItem() + "'";
+			} else {
+				fkComboBox.value = wcoFilter.getKeyOfSelectedItem() + "";
+			}
+
+			alFilterKriterien.add(fkComboBox);
+		}
+
+		if (fkComboBox2 != null && wcoFilter2.getKeyOfSelectedItem() != null) {
+
+			if (fkComboBox2.wrapWithSingleQuotes == true) {
+				fkComboBox2.value = "'" + wcoFilter2.getKeyOfSelectedItem() + "'";
+			} else {
+				fkComboBox2.value = wcoFilter2.getKeyOfSelectedItem() + "";
+			}
+
+			alFilterKriterien.add(fkComboBox2);
+		}
+
+		// Filterkriterium fuer Schnellansicht einhaengen
+		if (fkKey != null) {
+
+			for (int i = 0; i < fkKey.length; i++) {
+				alFilterKriterien.add(fkKey[i]);
+			}
+		}
+
+		// das FilterKriterium fuer die Anzeige der versteckten Felder
+		// einhaengen
+		if (fkVersteckteFelderNichtAnzeigen != null) {
+			// workaround: Wenn die CheckBox mit der SpaceBar gesetzt wurde, ist
+			// der Wert verdreht
+			if (e != null && e.getActionCommand().equals("WORKAROUND_ZWEITER_PARAMETER_IST_KEYCODE")) {
+				if (wcbVersteckteFelderAnzeigen.isSelected()) { // genau
+					// verkehrt!
+					alFilterKriterien.add(fkVersteckteFelderNichtAnzeigen);
+				}
+			} else {
+				// den eingegebenen Wert bestimmen und richtig verpacken
+				if (!wcbVersteckteFelderAnzeigen.isSelected()) {
+					alFilterKriterien.add(fkVersteckteFelderNichtAnzeigen);
+				}
+				// else: alle Felder anzeigen, d.h. dass das Kriterium nicht
+				// uebergeben wird
+			}
+		}
+
+		// das Array der FilterKriterien instanziieren und befuellen
+		FilterKriterium[] kriterien = new FilterKriterium[alFilterKriterien.size()];
+
+		for (int i = 0; i < alFilterKriterien.size(); i++) {
+			kriterien[i] = alFilterKriterien.get(i);
+		}
+
+		// alle FilterKriterien werden in einem Block verpackt und sind mit AND
+		// verknuepft!
+		FilterBlock filter = new FilterBlock(kriterien, FilterKriterium.BOOLOPERATOR_AND);
+
+		// PJ18155
+
+		ArrayList<SortierKriterium> kritsWithUebersteuertem = new ArrayList<SortierKriterium>();
+
+		if (sortierkriteriumErsteSortierungUebersteuern != null) {
+			if (wcbErsteSortierungUebersteuern != null && wcbErsteSortierungUebersteuern.isSelected()) {
+				kritsWithUebersteuertem.add(sortierkriteriumErsteSortierungUebersteuern);
+			}
+		}
+
+		for (int i = 0; i < currentSortierKriterien.size(); i++) {
+			kritsWithUebersteuertem.add(currentSortierKriterien.get(i));
+		}
+
+		SortierKriterium[] sortKriterien = kritsWithUebersteuertem.toArray(new SortierKriterium[0]);
+
+		queryParameters = new QueryParameters(new Integer(idUsecase), sortKriterien, filter, this.getSelectedId(),
+				listOfExtraData);
 
 		queryParameters.iMaxAnzahlZeilen = iAnzahlZeilen;
 
@@ -1647,59 +1982,50 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		// }
 
 		long tEnd = System.currentTimeMillis();
-		myLogger.info("refresh FLR Liste UC=" + idUsecase + ": "
-				+ (tEnd - tStart) + " ms");
+		myLogger.info("refresh FLR Liste UC=" + idUsecase + ": " + (tEnd - tStart) + " ms");
 		// @uw bei einem PanelSplit muss die Detailanzeige auch refresh kriegen
 		fireItemChangedEvent_ITEM_CHANGED();
 	}
 
 	/**
 	 * Die Breite einer Spalte festlegen.
-	 *
-	 * @param iColumnIndex
-	 *            der Index der Spalte
-	 * @param iColumnWidth
-	 *            die Breite der Spalte in Zeichen
+	 * 
+	 * @param iColumnIndex der Index der Spalte
+	 * @param iColumnWidth die Breite der Spalte in Zeichen
 	 */
 	private void setHeaderColumnWidth(int iColumnIndex, int iColumnWidth) {
 
 		// 28.02.13 RK: alle Spalten sind ab sofort variabel!
 
-		TableColumn tc = table.getTableHeader().getColumnModel()
-				.getColumn(iColumnIndex);
+		TableColumn tc = table.getTableHeader().getColumnModel().getColumn(iColumnIndex);
 		// if (iColumnWidth != QueryParameters.FLR_BREITE_SHARE_WITH_REST) {
 		tc.setPreferredWidth(iColumnWidth);
 		tc.setWidth(iColumnWidth);
 		// tc.setResizable(false);
 		// }
-		tc.setMinWidth(Helper
-				.getBreiteInPixel(QueryParameters.FLR_BREITE_MINIMUM));
+		tc.setMinWidth(Helper.getBreiteInPixel(QueryParameters.FLR_BREITE_MINIMUM));
 
 	}
 
 	/**
 	 * Die Spalte verstecken.
-	 *
-	 * @param iColumnIndex
-	 *            der Index der Spalte
+	 * 
+	 * @param iColumnIndex der Index der Spalte
 	 */
 	private void setColumnWidthToZero(int iColumnIndex) {
 		TableColumn tc = table.getColumnModel().getColumn(iColumnIndex);
 		tc.setMinWidth(0);
 		tc.setPreferredWidth(0);
 
-		boolean showIIds = iColumnIndex == 0
-				&& Defaults.getInstance().isShowIIdColumn();
-		tc.setMaxWidth(showIIds ? Helper
-				.getBreiteInPixel(QueryParameters.FLR_BREITE_M) : 0);
+		boolean showIIds = iColumnIndex == 0 && Defaults.getInstance().isShowIIdColumn();
+		tc.setMaxWidth(showIIds ? Helper.getBreiteInPixel(QueryParameters.FLR_BREITE_M) : 0);
 		tc.setResizable(showIIds);
 	}
 
 	/**
 	 * eventActionFilter
-	 *
-	 * @param e
-	 *            ActionEvent
+	 * 
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionFilter(ActionEvent e) throws Throwable {
@@ -1719,18 +2045,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	private void setQueryViewSaveBtnLoaded(boolean b) {
-		ImageIcon icon = HelperClient.createImageIcon("table_sql_"
-				+ (b ? "check" : "add") + ".png");
-		getHmOfButtons().get(LEAVEALONE_QUERYVIEW_SAVE).getButton()
-				.setIcon(icon);
+		ImageIcon icon = HelperClient.createImageIcon("table_sql_" + (b ? "check" : "add") + ".png");
+		getHmOfButtons().get(LEAVEALONE_QUERYVIEW_SAVE).getButton().setIcon(icon);
 	}
 
 	/**
-	 * Event Spezial wurde ausgeloest; das sind alle die du hier selbst
-	 * definierst; dh. du wirst aufgerufen.
-	 *
-	 * @param e
-	 *            ActionEvent
+	 * Event Spezial wurde ausgeloest; das sind alle die du hier selbst definierst;
+	 * dh. du wirst aufgerufen.
+	 * 
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -1741,21 +2064,20 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (e.getSource().equals(wcoFilter)) {
 
 			// SP1600
-			if (idUsecase == QueryParameters.UC_ID_ARTIKELLISTE
-					&& getInternalFrame() != null) {
-				if (wcoFilter.getKeyOfSelectedItem() != null
-						&& wcoFilter.getKeyOfSelectedItem() instanceof Integer) {
-					getInternalFrame().setILetzteGewaehlteArtikelgruppenIId(
-							(Integer) wcoFilter.getKeyOfSelectedItem());
+			if (idUsecase == QueryParameters.UC_ID_ARTIKELLISTE && getInternalFrame() != null) {
+				if (wcoFilter.getKeyOfSelectedItem() != null && wcoFilter.getKeyOfSelectedItem() instanceof Integer) {
+					getInternalFrame().setILetzteGewaehlteArtikelgruppenIId((Integer) wcoFilter.getKeyOfSelectedItem());
 				} else {
-					getInternalFrame().setILetzteGewaehlteArtikelgruppenIId(
-							null);
+					getInternalFrame().setILetzteGewaehlteArtikelgruppenIId(null);
 				}
 			}
 
 			eventActionRefresh(null, false);
 		}
 
+		if (e.getSource().equals(wcoFilter2)) {
+			eventActionRefresh(null, false);
+		}
 		if (e.getActionCommand().equals(LEAVEALONE_QUERYVIEW_SAVE)) {
 			saveQueryViewSettings();
 			setQueryViewSaveBtnLoaded(true);
@@ -1763,23 +2085,21 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 		else if (e.getActionCommand().equals(ACTION_ADD_FILTERKRITERIUM)) {
 
-			QueryType tmpType = (QueryType) this.comboBoxTypes
-					.getSelectedItem();
+			QueryType tmpType = (QueryType) this.comboBoxTypes.getSelectedItem();
 
 			QueryInputRow newRow = new QueryInputRow(tmpType, this);
-			Dimension d = new Dimension(10, 30);
+			// Dimension d = new Dimension(10, 30);
+			Dimension d = HelperClient.getSizeFactoredDimension(10, 30);
 			newRow.setMinimumSize(d);
 			newRow.setPreferredSize(d);
 			queryInputRows.add(newRow);
 
-			panelFilterzeilen.add(newRow, new GridBagConstraints(0,
-					panelFilterzeilen.getComponentCount(), 1, 1, 1.0, 0.0,
-					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-					new Insets(2, 2, 2, 2), 0, 0));
+			panelFilterzeilen.add(newRow, new GridBagConstraints(0, panelFilterzeilen.getComponentCount(), 1, 1, 1.0,
+					0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 			Dimension oldSize = panelFilterzeilen.getSize();
 			Dimension newSize = new Dimension((int) oldSize.getWidth(),
-					(int) oldSize.getHeight() + 33);
+					(int) oldSize.getHeight() + Defaults.sizeFactor(33));
 			panelFilterzeilen.setMinimumSize(newSize);
 			panelFilterzeilen.setPreferredSize(newSize);
 
@@ -1799,8 +2119,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 				buttonAddFilterkriterium.setEnabled(true);
 			}
 			Dimension oldSize = panelFilterzeilen.getSize();
-			Dimension newSize = new Dimension((int) oldSize.getWidth(),
-					(int) oldSize.getHeight() - 33);
+			Dimension newSize = new Dimension((int) oldSize.getWidth(), (int) oldSize.getHeight() - 33);
 			panelFilterzeilen.setMinimumSize(newSize);
 			panelFilterzeilen.setPreferredSize(newSize);
 
@@ -1808,16 +2127,14 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			SwingUtilities.getRootPane(this).repaint();
 		}
 
-		else if (e.getActionCommand().equals(
-				ACTION_POSITION_VORPOSITIONEINFUEGEN)) {
+		else if (e.getActionCommand().equals(ACTION_POSITION_VORPOSITIONEINFUEGEN)) {
 			// posreihung: 1 eindeutiger spezieller Neu Button
 
 			// btnstate: 7 Wie bei neu schalten.
 			LockStateValue l = new LockStateValue(null, null, LOCK_FOR_NEW);
 			updateButtons(l);
 
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ACTION_POSITION_VORPOSITIONEINFUEGEN);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_POSITION_VORPOSITIONEINFUEGEN);
 		}
 
 		else if (e.getActionCommand().startsWith(ACTION_MY_OWN_NEW)) {
@@ -1825,49 +2142,64 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			// info befuellt
 			sAspect = e.getActionCommand();
 
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ACTION_MY_OWN_NEW);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_MY_OWN_NEW);
+			sAspect = null;
+
+			// SP8351
+			if (e.getActionCommand().equals(ACTION_EINFUEGEN_LIKE_NEW)) {
+				eventYouAreSelected(false);
+			}
+
 		}
 
 		else if (e.getActionCommand().indexOf("special") != -1) {
 			// spezialbutton: sAspect String wird mit button info befuellt
 			sAspect = e.getActionCommand();
 
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ACTION_SPECIAL_BUTTON);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_SPECIAL_BUTTON);
 		}
 
 		else if (e.getActionCommand().equals(ACTION_POSITION_VONNNACHNMINUS1)) {
 			// posreihung: 2 die Actions der Buttons fuer die Reihung der
 			// Positionen weitergeben
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1);
+			if ((ActionEvent.CTRL_MASK & e.getModifiers()) != 0) {
+				myLogger.warn("ctrl-click");
+				sAspect = "control";
+			}
+
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1);
 		}
 
 		else if (e.getActionCommand().equals(ACTION_POSITION_VONNNACHNPLUS1)) {
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1);
 		} else if (e.getActionCommand().equals(ACTION_KOPIEREN)) {
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ACTION_KOPIEREN);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_KOPIEREN);
 		} else if (e.getActionCommand().equals(ACTION_EINFUEGEN_LIKE_NEW)) {
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ACTION_EINFUEGEN);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_EINFUEGEN);
 		}
 
-		else if (e.getActionCommand().startsWith(LEAVEALONE)) {
+		else if (e.getActionCommand().startsWith(ALWAYSENABLED)) {
 			if (e.getActionCommand().equals(LEAVEALONE_PRINTPANELQUERY)) {
 				// LISTE DRUCKEN
 
-				if (this instanceof PanelQueryFLR) {
-					PanelQueryFLR thisPanel = (PanelQueryFLR) this;
-					thisPanel.getDialog().setVisible(false);
+				// SP3362
+				if (SwingUtilities.getWindowAncestor(this) instanceof JDialog) {
+					JDialog d = (JDialog) SwingUtilities.getWindowAncestor(this);
+					if (d != null) {
+						d.setVisible(false);
+					}
 				}
-				getInternalFrame().showReportKriterien(
-						new ReportPanelQuery(getDataSource().getUuid(),
-								getInternalFrame(), "", queryParameters));
-			}
-			if (e.getActionCommand().equals(LEAVEALONE_DOKUMENTE)) {
+
+				// SP5540
+				int[] widths = new int[table.getColumnCount()];
+				int size = table.getColumnCount();
+				for (int i = 0; i < size; i++) {
+					widths[i] = table.getColumnModel().getColumn(i).getWidth();
+				}
+
+				getInternalFrame().showReportKriterien(new ReportPanelQuery(getDataSource().getUuid(),
+						getInternalFrame(), "", queryParameters, widths));
+			} else if (e.getActionCommand().equals(LEAVEALONE_DOKUMENTE)) {
 				// Dokumentenablage oeffnen
 				Object sKey = null;
 				if (bBenutzeUebersteuerteId == true) {
@@ -1876,31 +2208,27 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					sKey = getSelectedId();
 				}
 
-				PrintInfoDto values = DelegateFactory.getInstance()
-						.getJCRDocDelegate()
-						.getPathAndPartnerAndTable(sKey, idUsecase);
+				PrintInfoDto values = DelegateFactory.getInstance().getJCRDocDelegate().getPathAndPartnerAndTable(sKey,
+						idUsecase);
 
 				DocPath docPath = values.getDocPath();
 				Integer iPartnerIId = values.getiId();
 				String sTable = values.getTable();
 				if (docPath != null) {
-					panelDokumentenverwaltung = new PanelDokumentenablage(
-							getInternalFrame(), "", docPath, sTable,
+					panelDokumentenverwaltung = new PanelDokumentenablage(getInternalFrame(), "", docPath, sTable,
 							sKey.toString(), true, iPartnerIId);
-					getInternalFrame().showPanelDialog(
-							panelDokumentenverwaltung);
-					getInternalFrame().addItemChangedListener(
-							panelDokumentenverwaltung);
+					getInternalFrame().showPanelDialog(panelDokumentenverwaltung);
+					getInternalFrame().addItemChangedListener(panelDokumentenverwaltung);
 				} else {
 					// Show Dialog
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.hint"),
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
 							LPMain.getTextRespectUISPr("jcr.hinweis.keinpfad"));
 				}
 			} else {
-				getInternalFrame().fireItemChanged(this,
-						ItemChangedEvent.ACTION_LEAVE_ME_ALONE_BUTTON);
+				getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_LEAVE_ME_ALONE_BUTTON);
 			}
+		} else if (e.getActionCommand().startsWith(LEAVEALONE)) {
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_LEAVE_ME_ALONE_BUTTON);
 		}
 	}
 
@@ -1914,8 +2242,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 				// Direktfilter
 				if (e.getSource().getClass() == WrapperTextField.class
 						|| e.getSource().getClass() == WrapperNumberField.class) {
-					if (e.getKeyChar() == KeyEvent.VK_ENTER
-							|| e.getKeyCode() == 10) {
+					if (e.getKeyChar() == KeyEvent.VK_ENTER || e.getKeyCode() == 10) {
 						// die Abfrage mit den aktuellen Kriterien ausloesen
 						if (!getBFilterHasChanged()) {
 							// in der tabelle
@@ -1931,35 +2258,25 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 							eventActionRefresh(null, false);
 							setBFilterHasChanged(false);
 						}
-					} else if (e.getKeyCode() == KeyEvent.VK_UP
-							|| e.getKeyCode() == KeyEvent.VK_DOWN) {
+					} else if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
 						int iRowCount = table.getRowCount();
 						int iSelectedRow = table.getSelectedRow();
-						if (e.getKeyCode() == KeyEvent.VK_UP
-								&& iSelectedRow > 0) {
-							table.setRowSelectionInterval(iSelectedRow - 1,
-									iSelectedRow - 1);
+						if (e.getKeyCode() == KeyEvent.VK_UP && iSelectedRow > 0) {
+							table.setRowSelectionInterval(iSelectedRow - 1, iSelectedRow - 1);
 							// JO 24.4.06 opt. kein evt wenn key up.
 							fireItemChangedEvent_ITEM_CHANGED();
-						} else if (e.getKeyCode() == KeyEvent.VK_DOWN
-								&& iSelectedRow < (iRowCount - 1)) {
-							table.setRowSelectionInterval(iSelectedRow + 1,
-									iSelectedRow + 1);
+						} else if (e.getKeyCode() == KeyEvent.VK_DOWN && iSelectedRow < (iRowCount - 1)) {
+							table.setRowSelectionInterval(iSelectedRow + 1, iSelectedRow + 1);
 							// JO 24.4.06 opt. kein evt wenn key down.
 							fireItemChangedEvent_ITEM_CHANGED();
 						}
 						int indexOfSelectedRow = table.getSelectedRow();
-						table.scrollRectToVisible(table.getCellRect(
-								indexOfSelectedRow, 0, true));
-					} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP
-							|| e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
+						table.scrollRectToVisible(table.getCellRect(indexOfSelectedRow, 0, true));
+					} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP || e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
 						if (table.getRowCount() > 0) {
-							int iSichtbareHoehe = (int) tableScrollPane
-									.getViewport().getSize().getHeight();
-							int iZellenHoehe = (int) table.getCellRect(0, 0,
-									true).getHeight();
-							int iSichtbareZeilen = iSichtbareHoehe
-									/ iZellenHoehe;
+							int iSichtbareHoehe = (int) tableScrollPane.getViewport().getSize().getHeight();
+							int iZellenHoehe = (int) table.getCellRect(0, 0, true).getHeight();
+							int iSichtbareZeilen = iSichtbareHoehe / iZellenHoehe;
 
 							int iSelectedRow = table.getSelectedRow();
 							if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
@@ -1973,10 +2290,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 									iSelectedRow = table.getRowCount() - 1;
 								}
 							}
-							table.setRowSelectionInterval(iSelectedRow,
-									iSelectedRow);
-							table.scrollRectToVisible(table.getCellRect(
-									iSelectedRow, 0, true));
+							table.setRowSelectionInterval(iSelectedRow, iSelectedRow);
+							table.scrollRectToVisible(table.getCellRect(iSelectedRow, 0, true));
 							fireItemChangedEvent_ITEM_CHANGED();
 						}
 					} else if (e.getKeyCode() == KeyEvent.VK_END) {
@@ -1984,32 +2299,26 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 							boolean wasVisible = table.isVisible();
 							table.setVisible(false);
 							int selectedRow = table.getRowCount() - 1;
-							table.setRowSelectionInterval(selectedRow,
-									selectedRow);
-							table.scrollRectToVisible(table.getCellRect(
-									selectedRow, 0, true));
+							table.setRowSelectionInterval(selectedRow, selectedRow);
+							table.scrollRectToVisible(table.getCellRect(selectedRow, 0, true));
 							table.setVisible(wasVisible);
 							fireItemChangedEvent_ITEM_CHANGED();
 						}
 					} else if (e.getKeyCode() == KeyEvent.VK_HOME) {
 						if (table.getRowCount() > 0) {
 							/**
-							 * Table auf non-visible setzen. Hintergrund: Der
-							 * JTable repaint (scrollRectToVisible) Mechanismus
-							 * nutzt anscheinend manchmal die zuletzt
-							 * selektierte Zeile f&uuml;r den repaint. Das ist
-							 * hier aber fatal, da dann noch mal die Daten aus
-							 * der Datenbank gezogen werden. Deshalb als
-							 * Workaround auf non-visible setzen. Kann auch ein
-							 * "Bug" von sun/oracle sein. Keine Ahnung.
-							 *
+							 * Table auf non-visible setzen. Hintergrund: Der JTable repaint
+							 * (scrollRectToVisible) Mechanismus nutzt anscheinend manchmal die zuletzt
+							 * selektierte Zeile f&uuml;r den repaint. Das ist hier aber fatal, da dann noch
+							 * mal die Daten aus der Datenbank gezogen werden. Deshalb als Workaround auf
+							 * non-visible setzen. Kann auch ein "Bug" von sun/oracle sein. Keine Ahnung.
+							 * 
 							 * Gerold, 6.12.2011
 							 */
 							boolean wasVisible = table.isVisible();
 							table.setVisible(false);
 							table.setRowSelectionInterval(0, 0);
-							table.scrollRectToVisible(table.getCellRect(0, 0,
-									true));
+							table.scrollRectToVisible(table.getCellRect(0, 0, true));
 							table.setVisible(wasVisible);
 							fireItemChangedEvent_ITEM_CHANGED();
 						}
@@ -2041,8 +2350,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 				// bekomme
 				// immer den Vorzustand der CheckBox, Swing Fehler? PJ 5068
 				else if (e.getSource() == wcbVersteckteFelderAnzeigen) {
-					if (e.getKeyChar() == KeyEvent.VK_SPACE
-							|| e.getKeyCode() == 32) {
+					if (e.getKeyChar() == KeyEvent.VK_SPACE || e.getKeyCode() == 32) {
 						// workaround in Abstimmung mit JO
 						ActionEvent ae = new ActionEvent(this, e.getKeyCode(),
 								"WORKAROUND_ZWEITER_PARAMETER_IST_KEYCODE");
@@ -2052,49 +2360,41 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 						e.consume();
 					}
 				} else if (e.getSource() == table) {
-					if (e.getKeyCode() == KeyEvent.VK_UP
-							|| e.getKeyCode() == KeyEvent.VK_DOWN) {
+					if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
 						int iRowCount = table.getRowCount();
 						int iSelectedRow = table.getSelectedRow();
-						if (e.getKeyCode() == KeyEvent.VK_UP
-								&& iSelectedRow > 0) {
+						if (e.getKeyCode() == KeyEvent.VK_UP && iSelectedRow > 0) {
 							// ListSelectionEvent muss ausgeloest werden. die
 							// beiden
 							// nachfolgenden zeilen machen das :-)
-							table.setRowSelectionInterval(iSelectedRow - 1,
-									iSelectedRow - 1);
+							table.setRowSelectionInterval(iSelectedRow - 1, iSelectedRow - 1);
 							e.consume();
 							// sichtbaren bereich noetigenfalls anpassen
-							table.scrollRectToVisible(table.getCellRect(
-									iSelectedRow - 1, 0, true));
+							table.scrollRectToVisible(table.getCellRect(iSelectedRow - 1, 0, true));
 							// zuhoerer informieren
 							fireItemChangedEvent_ITEM_CHANGED();
-						} else if (e.getKeyCode() == KeyEvent.VK_DOWN
-								&& iSelectedRow < (iRowCount - 1)) {
+						} else if (e.getKeyCode() == KeyEvent.VK_DOWN && iSelectedRow < (iRowCount - 1)) {
 							// ListSelectionEvent muss ausgeloest werden. die
 							// beiden
 							// nachfolgenden zeilen machen das :-)
-							table.setRowSelectionInterval(iSelectedRow + 1,
-									iSelectedRow + 1);
+							table.setRowSelectionInterval(iSelectedRow + 1, iSelectedRow + 1);
 							e.consume();
 							// sichtbaren bereich noetigenfalls anpassen
-							table.scrollRectToVisible(table.getCellRect(
-									iSelectedRow + 1, 0, true));
+							table.scrollRectToVisible(table.getCellRect(iSelectedRow + 1, 0, true));
 							// zuhoerer informieren
 							fireItemChangedEvent_ITEM_CHANGED();
 						}
 					} else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-						fireItemChangedEvent_GOTO_DETAIL_PANEL();
-						eventKeyPressed(e);
-					} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP
-							|| e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
+						//SP9846
 						if (table.getRowCount() > 0) {
-							int iSichtbareHoehe = (int) tableScrollPane
-									.getViewport().getSize().getHeight();
-							int iZellenHoehe = (int) table.getCellRect(0, 0,
-									true).getHeight();
-							int iSichtbareZeilen = iSichtbareHoehe
-									/ iZellenHoehe;
+							fireItemChangedEvent_GOTO_DETAIL_PANEL();
+						}
+						eventKeyPressed(e);
+					} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP || e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
+						if (table.getRowCount() > 0) {
+							int iSichtbareHoehe = (int) tableScrollPane.getViewport().getSize().getHeight();
+							int iZellenHoehe = (int) table.getCellRect(0, 0, true).getHeight();
+							int iSichtbareZeilen = iSichtbareHoehe / iZellenHoehe;
 
 							int iSelectedRow = table.getSelectedRow();
 							if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
@@ -2108,11 +2408,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 									iSelectedRow = table.getRowCount() - 1;
 								}
 							}
-							table.setRowSelectionInterval(iSelectedRow,
-									iSelectedRow);
+							table.setRowSelectionInterval(iSelectedRow, iSelectedRow);
 							e.consume();
-							table.scrollRectToVisible(table.getCellRect(
-									iSelectedRow, 0, true));
+							table.scrollRectToVisible(table.getCellRect(iSelectedRow, 0, true));
 							fireItemChangedEvent_ITEM_CHANGED();
 						}
 					}
@@ -2158,9 +2456,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 		/**
 		 * getIdSelected
-		 *
+		 * 
 		 * @deprecated MB: use getSelectedId()
-		 *
+		 * 
 		 * @return Object
 		 */
 	}
@@ -2171,17 +2469,13 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * eventActionNew
-	 *
-	 * @param eventObject
-	 *            ActionEvent
-	 * @param bLockMeI
-	 *            boolean
-	 * @param bNeedNoNewI
-	 *            boolean
+	 * 
+	 * @param eventObject ActionEvent
+	 * @param bLockMeI    boolean
+	 * @param bNeedNoNewI boolean
 	 * @throws Throwable
 	 */
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 
 		LockStateValue l = new LockStateValue(null, null, LOCK_FOR_NEW);
 		updateButtons(l);
@@ -2189,37 +2483,32 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_NEW);
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		LockStateValue l = new LockStateValue(null, null, LOCK_DISABLE_ALL);
 		updateButtons(l);
-		getInternalFrame()
-				.fireItemChanged(this, ItemChangedEvent.ACTION_UPDATE);
+		getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_UPDATE);
 		// super.eventActionUpdate(aE,bNeedNoUpdateI);
 	}
 
 	/**
 	 * eventActionPrint
-	 *
-	 * @param e
-	 *            ActionEvent
+	 * 
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionPrint(ActionEvent e) throws Throwable {
 		getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_PRINT);
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
-		getInternalFrame()
-				.fireItemChanged(this, ItemChangedEvent.ACTION_DELETE);
+		getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_DELETE);
 	}
 
 	/**
 	 * getInternalFrameTitle
-	 *
+	 * 
 	 * @return String
 	 */
 	/*
@@ -2231,19 +2520,16 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 *
-	 * @param bNeedNoYouAreSelectedI
-	 *            boolean
+	 * 
+	 * @param bNeedNoYouAreSelectedI boolean
 	 * @throws Throwable
 	 */
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
-		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
-				this.getAdd2Title());
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN, this.getAdd2Title());
 		if (refreshWhenYouAreSelected) {
 			eventActionRefresh(null, false);
 		}
-		setFirstFocusableComponent();
+//		setFirstFocusableComponent();
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -2251,7 +2537,9 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			// Das Eingabefeld des ersten Direktfilters
 			return hmDirektFilter.get(new Integer(0)).wtfFkdirektValue1;
 		} else {
-			return NO_VALUE_THATS_OK_JCOMPONENT;
+			// PJ21655 Wenn keine Filter, dann Fokus auf Liste, falls existiert
+			return table != null ? table : NO_VALUE_THATS_OK_JCOMPONENT;
+//			return NO_VALUE_THATS_OK_JCOMPONENT;
 		}
 	}
 
@@ -2260,7 +2548,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	/**
-	 *
+	 * 
 	 * @return LockStateValue
 	 * @throws Throwable
 	 */
@@ -2270,7 +2558,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * Hole den "Lock" fuer diese Panel.
-	 *
+	 * 
 	 * @return LockMeDto
 	 * @throws Exception
 	 */
@@ -2283,7 +2571,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * btnstate: 8 Hier werden die Buttons speziell fuer das PanelQuery gesetzt.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	public void updateButtons() throws Throwable {
@@ -2294,9 +2582,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * btnstate: 9 Hier werden die Buttons speziell fuer das PanelQuery gesetzt.
-	 *
-	 * @param lockstateValueI
-	 *            LockStateValue
+	 * 
+	 * @param lockstateValueI LockStateValue
 	 * @throws Exception
 	 */
 	public void updateButtons(LockStateValue lockstateValueI) throws Exception {
@@ -2312,24 +2599,24 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		int iLockstate = lockstateValueI.getIState();
 
 		// Rechte
-		if (getInternalFrame().getRechtModulweit().equals(
-				RechteFac.RECHT_MODULWEIT_READ)) {
+		if (getInternalFrame().getRechtModulweit().equals(RechteFac.RECHT_MODULWEIT_READ)) {
 			iLockstate = LOCK_ENABLE_REFRESHANDPRINT_ONLY;
 		}
 
-		Collection<?> buttons = getHmOfButtons().values();
+		Collection<LPButtonAction> buttons = getHmOfButtons().values();
 
 		if (!bMehrfachSelektiert) {
-			for (Iterator<?> iter = buttons.iterator(); iter.hasNext();) {
-				LPButtonAction item = (LPButtonAction) iter.next();
+			for (Iterator<LPButtonAction> iter = buttons.iterator(); iter.hasNext();) {
+				LPButtonAction item = iter.next();
 
 				if (iLockstate == LOCK_DISABLE_ALL) {
 					setEnabledDirektFilterFelder(false);
-					if (item.getButton().getActionCommand()
-							.equals(ACTION_REFRESH)) {
-						item.getButton().setEnabled(true);
+					if (item.getButton().getActionCommand().equals(ACTION_REFRESH)) {
+						// item.getButton().setEnabled(true);
+						item.shouldBeEnabledTo(true);
 					} else {
-						item.getButton().setEnabled(false);
+						// item.getButton().setEnabled(false);
+						item.shouldBeEnabledTo(false);
 					}
 				}
 
@@ -2337,26 +2624,20 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					// Neu...
 					setEnabledDirektFilterFelder(false);
 					if (item.getButton().getActionCommand().equals(ACTION_NEW)
-							|| item.getButton().getActionCommand()
-									.startsWith(ACTION_MY_OWN_NEW)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_REFRESH)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_FILTER)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_POSITION_VONNNACHNMINUS1)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_POSITION_VONNNACHNPLUS1)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_PRINT)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_KOPIEREN) // ||
+							|| item.getButton().getActionCommand().startsWith(ACTION_MY_OWN_NEW)
+							|| item.getButton().getActionCommand().equals(ACTION_REFRESH)
+							|| item.getButton().getActionCommand().equals(ACTION_FILTER)
+							|| item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNMINUS1)
+							|| item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNPLUS1)
+							|| item.getButton().getActionCommand().equals(ACTION_PRINT)
+							|| item.getButton().getActionCommand().equals(ACTION_KOPIEREN) // ||
 					// item.getButton().getActionCommand().equals(
 					// ACTION_EINFUEGEN) //||
 					// item.getButton().getActionCommand().equals(
 					// ACTION_POSITION_VORPOSITIONEINFUEGEN)
 					) {
-						item.getButton().setEnabled(false);
+						// item.getButton().setEnabled(false);
+						item.shouldBeEnabledTo(false);
 					}
 				}
 
@@ -2364,22 +2645,18 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					// wenn es in der Tabelle keinen Eintrag gibt ...
 					setEnabledDirektFilterFelder(true);
 					if (item.getButton().getActionCommand().equals(ACTION_NEW)
-							|| item.getButton().getActionCommand()
-									.startsWith(ACTION_MY_OWN_NEW)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_REFRESH)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_EINFUEGEN_LIKE_NEW)) {
-						item.getButton().setEnabled(true);
+							|| item.getButton().getActionCommand().startsWith(ACTION_MY_OWN_NEW)
+							|| item.getButton().getActionCommand().equals(ACTION_REFRESH)
+							|| item.getButton().getActionCommand().equals(ACTION_EINFUEGEN_LIKE_NEW)) {
+						// item.getButton().setEnabled(true);
+						item.shouldBeEnabledTo(true);
 					} else {
-						if (item.getButton().getActionCommand()
-								.equals(ACTION_PRINT)
-								|| item.getButton().getActionCommand()
-										.equals(ACTION_KOPIEREN)
-								|| item.getButton().getActionCommand()
-										.indexOf(LEAVEALONE) == -1) {
+						if (item.getButton().getActionCommand().equals(ACTION_PRINT)
+								|| item.getButton().getActionCommand().equals(ACTION_KOPIEREN)
+								|| item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 							// es ist kein leave me alone button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				}
@@ -2388,52 +2665,56 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					// wenn es mindestens einen Eintrag in der Tabelle gibt ...
 					setEnabledDirektFilterFelder(true);
 					if (item.getButton().getActionCommand().equals(ACTION_NEW)
-							|| item.getButton().getActionCommand()
-									.startsWith(ACTION_MY_OWN_NEW)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_REFRESH)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_UPDATE)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_FILTER)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_POSITION_VONNNACHNMINUS1)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_POSITION_VONNNACHNPLUS1)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_PRINT)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_KOPIEREN)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_NEXT)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_PREVIOUS)// ||
+							|| item.getButton().getActionCommand().startsWith(ACTION_MY_OWN_NEW)
+							|| item.getButton().getActionCommand().equals(ACTION_REFRESH)
+							|| item.getButton().getActionCommand().equals(ACTION_UPDATE)
+							|| item.getButton().getActionCommand().equals(ACTION_FILTER)
+							|| item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNMINUS1)
+							|| item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNPLUS1)
+							|| item.getButton().getActionCommand().equals(ACTION_PRINT)
+							|| item.getButton().getActionCommand().equals(ACTION_KOPIEREN)
+							|| item.getButton().getActionCommand().equals(ACTION_NEXT)
+							|| item.getButton().getActionCommand().equals(ACTION_PREVIOUS)// ||
 					// item.getButton().getActionCommand().equals(
 					// ACTION_EINFUEGEN) //||
 					// item.getButton().getActionCommand().equals(
 					// ACTION_POSITION_VORPOSITIONEINFUEGEN)
 					) {
-						item.getButton().setEnabled(true);
+
+						if (item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNMINUS1)
+								|| item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNPLUS1)) {
+							if (currentSortierKriterien.isEmpty()
+									|| getIdUsecase() == QueryParameters.UC_ID_OFFENE_AGS) {
+								// SP9790
+								item.shouldBeEnabledTo(true);
+							} else {
+								// SP9717
+								item.shouldBeEnabledTo(false);
+								item.getButton().setVisible(false);
+							}
+						} else {
+							item.shouldBeEnabledTo(true);
+						}
+
 					} else {
-						if (item.getButton().getActionCommand()
-								.indexOf(LEAVEALONE) == -1) {
+						if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 							// es ist kein leave me alone button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				}
 
-				else if (iLockstate == LOCK_IS_LOCKED_BY_OTHER_USER
-						|| iLockstate == LOCK_IS_LOCKED_BY_ME) {
+				else if (iLockstate == LOCK_IS_LOCKED_BY_OTHER_USER || iLockstate == LOCK_IS_LOCKED_BY_ME) {
 					setEnabledDirektFilterFelder(true);
 					// der refresh-button ist immer enabled
-					if (item.getButton().getActionCommand()
-							.equals(ACTION_REFRESH)) {
-						item.getButton().setEnabled(true);
-					} else if (item.getButton().getActionCommand()
-							.indexOf(LEAVEALONE) == -1) {
+					if (item.getButton().getActionCommand().equals(ACTION_REFRESH)) {
+						// item.getButton().setEnabled(true);
+						item.shouldBeEnabledTo(true);
+					} else if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
-						item.getButton().setEnabled(false);
+						// item.getButton().setEnabled(false);
+						item.shouldBeEnabledTo(false);
 					}
 				}
 
@@ -2442,19 +2723,18 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
 
-						if (item.getButton().getActionCommand()
-								.indexOf(ACTION_REFRESH) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_KOPIEREN) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_FILTER) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_PRINT) > -1) {
+						if (item.getButton().getActionCommand().indexOf(ACTION_REFRESH) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_KOPIEREN) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_FILTER) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_PRINT) > -1) {
 							// es ist ein Refresh button
-							item.getButton().setEnabled(true);
+							// item.getButton().setEnabled(true);
+							item.shouldBeEnabledTo(true);
 						} else {
 							// es ist kein Refresh button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							// item.shouldBeEnabledTo(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				} else if (iLockstate == LOCK_ENABLE_REFRESHANDUPDATE_ONLY) {
@@ -2462,17 +2742,16 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
 
-						if (item.getButton().getActionCommand()
-								.indexOf(ACTION_REFRESH) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_KOPIEREN) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_UPDATE) > -1) {
+						if (item.getButton().getActionCommand().indexOf(ACTION_REFRESH) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_KOPIEREN) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_UPDATE) > -1) {
 							// es ist ein Refresh button
-							item.getButton().setEnabled(true);
+							// item.getButton().setEnabled(true);
+							item.shouldBeEnabledTo(true);
 						} else {
 							// es ist kein Refresh button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				} else if (iLockstate == LOCK_ENABLE_REFRESHANDUPDATEANDPRINT_ONLY) {
@@ -2480,19 +2759,17 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
 
-						if (item.getButton().getActionCommand()
-								.indexOf(ACTION_REFRESH) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_UPDATE) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_KOPIEREN) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_PRINT) > -1) {
+						if (item.getButton().getActionCommand().indexOf(ACTION_REFRESH) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_UPDATE) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_KOPIEREN) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_PRINT) > -1) {
 							// es ist ein Refresh button
-							item.getButton().setEnabled(true);
+							// item.getButton().setEnabled(true);
+							item.shouldBeEnabledTo(true);
 						} else {
 							// es ist kein Refresh button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				} else {
@@ -2505,11 +2782,12 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 				if (iLockstate == LOCK_DISABLE_ALL) {
 					setEnabledDirektFilterFelder(false);
-					if (item.getButton().getActionCommand()
-							.equals(ACTION_REFRESH)) {
-						item.getButton().setEnabled(true);
+					if (item.getButton().getActionCommand().equals(ACTION_REFRESH)) {
+						// item.getButton().setEnabled(true);
+						item.shouldBeEnabledTo(true);
 					} else {
-						item.getButton().setEnabled(false);
+						// item.getButton().setEnabled(false);
+						item.shouldBeEnabledTo(false);
 					}
 				}
 				/** @todo JO->MB bitte review wegen IMS 2485 PJ 5070 */
@@ -2518,30 +2796,21 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					// Neu...
 					setEnabledDirektFilterFelder(false);
 					if (item.getButton().getActionCommand().equals(ACTION_NEW)
-							|| item.getButton().getActionCommand()
-									.startsWith(ACTION_MY_OWN_NEW)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_REFRESH)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_FILTER)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_POSITION_VONNNACHNMINUS1)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_POSITION_VONNNACHNPLUS1)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_PRINT)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_KOPIEREN)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_EINFUEGEN_LIKE_NEW)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_NEXT)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_PREVIOUS) // ||
+							|| item.getButton().getActionCommand().startsWith(ACTION_MY_OWN_NEW)
+							|| item.getButton().getActionCommand().equals(ACTION_REFRESH)
+							|| item.getButton().getActionCommand().equals(ACTION_FILTER)
+							|| item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNMINUS1)
+							|| item.getButton().getActionCommand().equals(ACTION_POSITION_VONNNACHNPLUS1)
+							|| item.getButton().getActionCommand().equals(ACTION_PRINT)
+							|| item.getButton().getActionCommand().equals(ACTION_KOPIEREN)
+							|| item.getButton().getActionCommand().equals(ACTION_EINFUEGEN_LIKE_NEW)
+							|| item.getButton().getActionCommand().equals(ACTION_NEXT)
+							|| item.getButton().getActionCommand().equals(ACTION_PREVIOUS) // ||
 					// item.getButton().getActionCommand().equals(
 					// ACTION_POSITION_VORPOSITIONEINFUEGEN)
 					) {
-						item.getButton().setEnabled(false);
+						// item.getButton().setEnabled(false);
+						item.shouldBeEnabledTo(false);
 					}
 				}
 
@@ -2578,45 +2847,44 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					// item.getButton().getActionCommand().startsWith(
 					// ACTION_MY_OWN_NEW) ||
 					item.getButton().getActionCommand().equals(ACTION_REFRESH)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_FILTER)
-							||
+							|| item.getButton().getActionCommand().equals(ACTION_FILTER) ||
 							// item.getButton().getActionCommand().equals(
 							// ACTION_POSITION_VONNNACHNMINUS1) ||
 							// item.getButton().getActionCommand().equals(
 							// ACTION_POSITION_VONNNACHNPLUS1) ||
-							item.getButton().getActionCommand()
-									.equals(ACTION_PRINT)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_KOPIEREN)
-							|| item.getButton().getActionCommand()
-									.equals(MY_OWN_NEW_EXTRA_ACTION_SPECIAL_OK)
-							|| item.getButton().getActionCommand()
-									.equals(ACTION_EINFUEGEN_LIKE_NEW) // ||
+							item.getButton().getActionCommand().equals(ACTION_PRINT)
+							|| item.getButton().getActionCommand().equals(ACTION_KOPIEREN)
+							|| item.getButton().getActionCommand().equals(MY_OWN_NEW_EXTRA_ACTION_SPECIAL_OK)
+							|| item.getButton().getActionCommand().equals(ACTION_EINFUEGEN_LIKE_NEW) // ||
 					// item.getButton().getActionCommand().equals(
 					// ACTION_POSITION_VORPOSITIONEINFUEGEN)
 					) {
-						item.getButton().setEnabled(true);
+						// item.getButton().setEnabled(true);
+						item.shouldBeEnabledTo(true);
+					} else if (item.getButton().getActionCommand()
+							.startsWith(PanelBasis.ACTION_MY_OWN_NEW_ENABLED_ON_MULTISELECT)) {
+
+						item.shouldBeEnabledTo(true);
+
 					} else {
-						if (item.getButton().getActionCommand()
-								.indexOf(LEAVEALONE) == -1) {
+						if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 							// es ist kein leave me alone button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				}
 
-				else if (iLockstate == LOCK_IS_LOCKED_BY_OTHER_USER
-						|| iLockstate == LOCK_IS_LOCKED_BY_ME) {
+				else if (iLockstate == LOCK_IS_LOCKED_BY_OTHER_USER || iLockstate == LOCK_IS_LOCKED_BY_ME) {
 					setEnabledDirektFilterFelder(true);
 					// der refresh-button ist immer enabled
-					if (item.getButton().getActionCommand()
-							.equals(ACTION_REFRESH)) {
-						item.getButton().setEnabled(true);
-					} else if (item.getButton().getActionCommand()
-							.indexOf(LEAVEALONE) == -1) {
+					if (item.getButton().getActionCommand().equals(ACTION_REFRESH)) {
+						// item.getButton().setEnabled(true);
+						item.shouldBeEnabledTo(true);
+					} else if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
-						item.getButton().setEnabled(false);
+						// item.getButton().setEnabled(false);
+						item.shouldBeEnabledTo(false);
 					}
 				}
 
@@ -2625,17 +2893,16 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
 
-						if (item.getButton().getActionCommand()
-								.indexOf(ACTION_REFRESH) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_KOPIEREN) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_PRINT) > -1) {
+						if (item.getButton().getActionCommand().indexOf(ACTION_REFRESH) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_KOPIEREN) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_PRINT) > -1) {
 							// es ist ein Refresh button
-							item.getButton().setEnabled(true);
+							// item.getButton().setEnabled(true);
+							item.shouldBeEnabledTo(true);
 						} else {
 							// es ist kein Refresh button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				} else if (iLockstate == LOCK_ENABLE_REFRESHANDUPDATE_ONLY) {
@@ -2643,17 +2910,16 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
 
-						if (item.getButton().getActionCommand()
-								.indexOf(ACTION_REFRESH) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_KOPIEREN) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_UPDATE) > -1) {
+						if (item.getButton().getActionCommand().indexOf(ACTION_REFRESH) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_KOPIEREN) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_UPDATE) > -1) {
 							// es ist ein Refresh button
-							item.getButton().setEnabled(true);
+							// item.getButton().setEnabled(true);
+							item.shouldBeEnabledTo(true);
 						} else {
 							// es ist kein Refresh button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				} else if (iLockstate == LOCK_ENABLE_REFRESHANDUPDATEANDPRINT_ONLY) {
@@ -2661,19 +2927,17 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					if (item.getButton().getActionCommand().indexOf(LEAVEALONE) == -1) {
 						// es ist kein leave me alone button
 
-						if (item.getButton().getActionCommand()
-								.indexOf(ACTION_REFRESH) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_UPDATE) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_KOPIEREN) > -1
-								|| item.getButton().getActionCommand()
-										.indexOf(ACTION_PRINT) > -1) {
+						if (item.getButton().getActionCommand().indexOf(ACTION_REFRESH) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_UPDATE) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_KOPIEREN) > -1
+								|| item.getButton().getActionCommand().indexOf(ACTION_PRINT) > -1) {
 							// es ist ein Refresh button
-							item.getButton().setEnabled(true);
+							// item.getButton().setEnabled(true);
+							item.shouldBeEnabledTo(true);
 						} else {
 							// es ist kein Refresh button
-							item.getButton().setEnabled(false);
+							// item.getButton().setEnabled(false);
+							item.shouldBeEnabledTo(false);
 						}
 					}
 				} else {
@@ -2704,47 +2968,40 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	/**
 	 * Setzen von 0..2 direkten Filterkriterien und der CheckBox fuer die
 	 * versteckten Entitaeten.
-	 *
-	 * @param kritDirekt1I
-	 *            der erste Direktfilter, null erlaubt
-	 * @param kritDirekt2I
-	 *            der zweite Firektfilter, null erlaubt
-	 * @param kritVersteckteFelderNichtAnzeigenI
-	 *            FilterKriterium fuer die versteckten Entitaeten, null erlaubt
-	 * @throws Throwable
-	 *             Ausnahme
+	 * 
+	 * @param kritDirekt1I                       der erste Direktfilter, null
+	 *                                           erlaubt
+	 * @param kritDirekt2I                       der zweite Firektfilter, null
+	 *                                           erlaubt
+	 * @param kritVersteckteFelderNichtAnzeigenI FilterKriterium fuer die
+	 *                                           versteckten Entitaeten, null
+	 *                                           erlaubt
+	 * @throws Throwable Ausnahme
 	 * @deprecated VersteckteKriterien ueber Konstruktor befuellen
 	 */
-	public void befuellePanelFilterkriterienDirektUndVersteckte(
-			FilterKriteriumDirekt kritDirekt1I,
-			FilterKriteriumDirekt kritDirekt2I,
-			FilterKriterium kritVersteckteFelderNichtAnzeigenI)
-			throws Throwable {
-		befuellePanelFilterkriterienDirektUndVersteckte(kritDirekt1I,
-				kritDirekt2I, kritVersteckteFelderNichtAnzeigenI,
+	public void befuellePanelFilterkriterienDirektUndVersteckte(FilterKriteriumDirekt kritDirekt1I,
+			FilterKriteriumDirekt kritDirekt2I, FilterKriterium kritVersteckteFelderNichtAnzeigenI) throws Throwable {
+		befuellePanelFilterkriterienDirektUndVersteckte(kritDirekt1I, kritDirekt2I, kritVersteckteFelderNichtAnzeigenI,
 				LPMain.getTextRespectUISPr("lp.versteckte"));
 	}
 
 	/**
 	 * Setzen von 0..2 direkten Filterkriterien und der CheckBox fuer die
 	 * versteckten Entitaeten.
-	 *
-	 * @param kritDirekt1I
-	 *            der erste Direktfilter, null erlaubt
-	 * @param kritDirekt2I
-	 *            der zweite Firektfilter, null erlaubt
-	 * @param kritVersteckteFelderNichtAnzeigenI
-	 *            FilterKriterium fuer die versteckten Entitaeten, null erlaubt
-	 * @param sTextLabelVersteckt
-	 *            String
-	 * @throws Throwable
-	 *             Ausnahme
+	 * 
+	 * @param kritDirekt1I                       der erste Direktfilter, null
+	 *                                           erlaubt
+	 * @param kritDirekt2I                       der zweite Firektfilter, null
+	 *                                           erlaubt
+	 * @param kritVersteckteFelderNichtAnzeigenI FilterKriterium fuer die
+	 *                                           versteckten Entitaeten, null
+	 *                                           erlaubt
+	 * @param sTextLabelVersteckt                String
+	 * @throws Throwable Ausnahme
 	 * @deprecated VersteckteKriterien ueber Konstruktor befuellen
 	 */
-	public void befuellePanelFilterkriterienDirektUndVersteckte(
-			FilterKriteriumDirekt kritDirekt1I,
-			FilterKriteriumDirekt kritDirekt2I,
-			FilterKriterium kritVersteckteFelderNichtAnzeigenI,
+	public void befuellePanelFilterkriterienDirektUndVersteckte(FilterKriteriumDirekt kritDirekt1I,
+			FilterKriteriumDirekt kritDirekt2I, FilterKriterium kritVersteckteFelderNichtAnzeigenI,
 			String sTextLabelVersteckt) throws Throwable {
 
 		// das erste Kriterium
@@ -2759,30 +3016,20 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (kritVersteckteFelderNichtAnzeigenI != null) {
 			fkVersteckteFelderNichtAnzeigen = kritVersteckteFelderNichtAnzeigenI;
 
-			wcbVersteckteFelderAnzeigen = new WrapperCheckBox(
-					sTextLabelVersteckt);
+			wcbVersteckteFelderAnzeigen = new WrapperCheckBox(sTextLabelVersteckt);
 			wcbVersteckteFelderAnzeigen.addKeyListener(bildAufAbListener);
 			wcbVersteckteFelderAnzeigen.addMouseListener(this);
-			HelperClient
-					.setDefaultsToComponent(wcbVersteckteFelderAnzeigen, 40);
+			HelperClient.setDefaultsToComponent(wcbVersteckteFelderAnzeigen, 40);
 
 			// filterkritversteckt: 2 hier wird ueber die Anzeige entschieden
 			if (DelegateFactory.getInstance().getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
-				wcbVersteckteFelderAnzeigen
-						.setSelected(DelegateFactory
-								.getInstance()
-								.getParameterDelegate()
-								.getMandantparameter(
-										LPMain.getTheClient().getMandant(),
-										ParameterFac.KATEGORIE_ALLGEMEIN,
-										ParameterFac.PARAMETER_AUSWAHLLISTE_VERSTECKTE_ANZEIGEN_DEFAULT)
-								.asBoolean());
-				panelFilter.add(wcbVersteckteFelderAnzeigen,
-						new GridBagConstraints(8, iZeile, 1, 1, 0.1, 0.0,
-								GridBagConstraints.NORTH,
-								GridBagConstraints.BOTH,
-								new Insets(2, 2, 2, 2), 0, 0));
+				wcbVersteckteFelderAnzeigen.setSelected(DelegateFactory.getInstance().getParameterDelegate()
+						.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+								ParameterFac.PARAMETER_AUSWAHLLISTE_VERSTECKTE_ANZEIGEN_DEFAULT)
+						.asBoolean());
+				panelFilter.add(wcbVersteckteFelderAnzeigen, new GridBagConstraints(8, iZeile, 1, 1, 0.1, 0.0,
+						GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			} else {
 				wcbVersteckteFelderAnzeigen.setSelected(false);
 			}
@@ -2794,8 +3041,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		}
 	}
 
-	private void setzeErstesUebersteuerbaresSortierkriterium(String text,
-			SortierKriterium sortierkriterium) throws Throwable {
+	private void setzeErstesUebersteuerbaresSortierkriterium(String text, SortierKriterium sortierkriterium)
+			throws Throwable {
 		this.sortierkriteriumErsteSortierungUebersteuern = sortierkriterium;
 
 		wcbErsteSortierungUebersteuern = new WrapperCheckBox(text);
@@ -2803,48 +3050,52 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		wcbErsteSortierungUebersteuern.addMouseListener(this);
 		HelperClient.setDefaultsToComponent(wcbErsteSortierungUebersteuern, 40);
 
-		panelFilter.add(wcbErsteSortierungUebersteuern, new GridBagConstraints(
-				8, iZeile+1, 1, 1, 0.1, 0.0, GridBagConstraints.NORTH,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelFilter.add(wcbErsteSortierungUebersteuern, new GridBagConstraints(8, iZeile + 1, 1, 1, 0.1, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		wcbErsteSortierungUebersteuern.setSelected(false);
 
 	}
 
-	private Boolean getMandantParameterSchnellansicht(
-			FilterKriteriumSchnellansicht fks) {
-		return getMandantParameterSchnellansicht(fks.getKategorie(),
-				fks.getParameter());
+	private Boolean getMandantParameterSchnellansicht(FilterKriteriumSchnellansicht fks) {
+		return getMandantParameterSchnellansicht(fks.getKategorie(), fks.getParameter());
 	}
 
-	private Boolean getMandantParameterSchnellansicht(String kategorie,
-			String parameter) {
+	private Boolean getMandantParameterSchnellansicht(String kategorie, String parameter) {
 		try {
 			return DelegateFactory.getInstance().getParameterDelegate()
-					.getMandantparameterReturnsNull(kategorie, parameter)
-					.asBoolean();
+					.getMandantparameterReturnsNull(kategorie, parameter).asBoolean();
 		} catch (Throwable e) {
 		}
 		return null;
 	}
 
-	public void befuelleFilterkriteriumSchnellansicht(
-			FilterKriterium[] kritSchnellansicht) {
+	public void befuelleFilterkriteriumSchnellansicht(FilterKriterium[] kritSchnellansicht) {
 		fkSchnellansicht = kritSchnellansicht;
 		if (kritSchnellansicht == null)
 			return;
 		Boolean defaultValue = null;
-		if (fkSchnellansicht.length > 0
-				&& fkSchnellansicht[0] instanceof FilterKriteriumSchnellansicht) {
+		if (fkSchnellansicht.length > 0 && fkSchnellansicht[0] instanceof FilterKriteriumSchnellansicht) {
 			defaultValue = getMandantParameterSchnellansicht((FilterKriteriumSchnellansicht) fkSchnellansicht[0]);
 		}
 		if (defaultValue == null) {
-			defaultValue = getMandantParameterSchnellansicht(
-					ParameterFac.KATEGORIE_ALLGEMEIN,
+			defaultValue = getMandantParameterSchnellansicht(ParameterFac.KATEGORIE_ALLGEMEIN,
 					ParameterFac.PARAMETER_AUSWAHLLISTE_NUR_OFFENE_DEFAULT);
 		}
-		cbSchnellansicht
-				.setSelected(defaultValue == null ? true : defaultValue);
+		cbSchnellansicht.setSelected(defaultValue == null ? true : defaultValue);
+		cbSchnellansicht.setVisible(true);
+		cbSchnellansicht.removeMouseListener(this);
+		cbSchnellansicht.addMouseListener(this);
+	}
+
+	public void befuelleFilterkriteriumSchnellansicht(FilterKriterium[] kritSchnellansicht, boolean bDefdaultValue,
+			String text) {
+		fkSchnellansicht = kritSchnellansicht;
+		if (kritSchnellansicht == null)
+			return;
+
+		cbSchnellansicht.setText(text);
+		cbSchnellansicht.setSelected(bDefdaultValue);
 		cbSchnellansicht.setVisible(true);
 		cbSchnellansicht.removeMouseListener(this);
 		cbSchnellansicht.addMouseListener(this);
@@ -2856,15 +3107,12 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * Setzen von 0..2 direkten Filterkriterien.
-	 *
-	 * @param oKrit1
-	 *            das erste Kriterium
-	 * @param oKrit2
-	 *            das zweite Kriterium
+	 * 
+	 * @param oKrit1 das erste Kriterium
+	 * @param oKrit2 das zweite Kriterium
 	 * @throws ExceptionLP
 	 */
-	public void befuellePanelFilterkriterienDirekt(
-			FilterKriteriumDirekt oKrit1, FilterKriteriumDirekt oKrit2)
+	public void befuellePanelFilterkriterienDirekt(FilterKriteriumDirekt oKrit1, FilterKriteriumDirekt oKrit2)
 			throws ExceptionLP {
 		if (oKrit1 != null) {
 			addDirektFilter(oKrit1);
@@ -2888,12 +3136,27 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * mouseClicked.
-	 *
-	 * @param e
-	 *            MouseEvent
+	 * 
+	 * @param e MouseEvent
 	 */
 	final public void mouseReleased(MouseEvent e) {
 		try {
+			if (e.getSource().equals(table.getTableHeader())) {
+				// Wenn eine spalte auf Spalte 0 (id) oder an die letzte Steller (Color)
+				// verschoben
+				// werden soll, muss dies verhindert werden
+				if (columnValue != -1) {
+					if (columnNewValue == 0) {
+						table.moveColumn(columnNewValue, 1);
+					}
+					if (this.dataSource.getTableInfo().getColumnClasses()[columnNewValue].equals(Color.class)) {
+						table.moveColumn(columnNewValue, columnNewValue - 1);
+					}
+				}
+				columnValue = -1;
+				columnNewValue = -1;
+			}
+
 			if (e.getSource() == table) {
 				fireItemChangedEvent_ITEM_CHANGED(e);
 			}
@@ -2911,14 +3174,31 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			@Override
 			protected Void doInBackground() throws Exception {
 				List<Integer> widths = new ArrayList<Integer>();
+				List<Integer> colPositions = new ArrayList<Integer>();
 				int size = table.getColumnCount();
 				for (int i = 0; i < size; i++) {
-					widths.add(table.getColumnModel().getColumn(i).getWidth());
+
+					if (i == 0) {
+						colPositions.add(0);
+						System.out.println("SavedPostion:" + i + " ModelIndex: " + 0);
+						widths.add(table.getColumnModel().getColumn(i).getWidth());
+					} else {
+						int modelIndex = table.getColumnModel().getColumn(i).getModelIndex();
+						if (tableModel.hasSavedPositions()) {
+							modelIndex = tableModel.getSavedPosition(modelIndex);
+						}
+						if (modelIndex != 0) {
+							colPositions.add(modelIndex);
+						}
+						widths.add(table.getColumnModel().getColumn(modelIndex).getWidth());
+						System.out.println("SavedPostion:" + i + " ModelIndex: " + modelIndex);
+					}
 				}
-				ClientPerspectiveManager.getInstance().saveQueryColumnWidths(
-						idUsecase, widths);
-				ClientPerspectiveManager.getInstance().saveQueryColumnSorting(
-						idUsecase, currentSortierKriterien);
+
+				ClientPerspectiveManager.getInstance().saveQueryColumnPosition(idUsecase, colPositions);
+				ClientPerspectiveManager.getInstance().saveQueryColumnWidths(idUsecase, widths);
+				ClientPerspectiveManager.getInstance().saveQueryColumnSorting(idUsecase, currentSortierKriterien);
+
 				saveFramePosition();
 				return null;
 			}
@@ -2927,23 +3207,19 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	protected void saveFramePosition() {
-		ClientPerspectiveManager.getInstance().saveInternalFramePosition(
-				getInternalFrame().getBelegartCNr());
+		ClientPerspectiveManager.getInstance().saveInternalFramePosition(getInternalFrame().getBelegartCNr());
 	}
 
 	public void clearDirektFilter() {
-		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter
-				.hasNext();) {
-			PanelFilterKriteriumDirekt panelFkd = hmDirektFilter.get(iter
-					.next());
-			panelFkd.clear(); 
-//			panelFkd.wtfFkdirektValue1.setText(null);
+		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter.hasNext();) {
+			PanelFilterKriteriumDirekt panelFkd = hmDirektFilter.get(iter.next());
+			panelFkd.clear();
+			// panelFkd.wtfFkdirektValue1.setText(null);
 		}
 	}
 
 	public void clearZusatzFilter() {
-		for (Iterator<QueryInputRow> iter = queryInputRows.iterator(); iter
-				.hasNext();) {
+		for (Iterator<QueryInputRow> iter = queryInputRows.iterator(); iter.hasNext();) {
 			QueryInputRow item = iter.next();
 			item.setValue(null);
 		}
@@ -2964,23 +3240,19 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	/**
 	 * Pruefen, ob in einen Filter etwas eingegeben wurde.
-	 *
+	 * 
 	 * @return boolean
 	 */
 	public boolean isFilterActive() {
 		boolean bActive = false;
-		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter
-				.hasNext();) {
-			PanelFilterKriteriumDirekt panelFkd = hmDirektFilter.get(iter
-					.next());
-			if (panelFkd.wtfFkdirektValue1.getText() != null
-					|| getBFilterHasChanged()) {
+		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter.hasNext();) {
+			PanelFilterKriteriumDirekt panelFkd = hmDirektFilter.get(iter.next());
+			if (panelFkd.wtfFkdirektValue1.getText() != null || getBFilterHasChanged()) {
 				bActive = true;
 			}
 		}
 		// und auch die Zusatzfilter anschaun
-		for (Iterator<QueryInputRow> iter = queryInputRows.iterator(); iter
-				.hasNext();) {
+		for (Iterator<QueryInputRow> iter = queryInputRows.iterator(); iter.hasNext();) {
 			QueryInputRow item = iter.next();
 			if (item.getValue() != null) {
 				bActive = true;
@@ -2993,11 +3265,10 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	protected void fireItemChangedEvent_ITEM_CHANGED() throws Throwable {
 		// Wenn gewuenscht wird ein ItemChangedEvent gefeuert
 		if (fireItemChangedEventAfterChange) {
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ITEM_CHANGED);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ITEM_CHANGED);
 			/**
-			 * @todo MB->JO workaround fuers panelSplit, damit der focus im
-			 *       direktfilter bleibt PJ 5078 bitte beseitigen
+			 * @todo MB->JO workaround fuers panelSplit, damit der focus im direktfilter
+			 *       bleibt PJ 5078 bitte beseitigen
 			 */
 			this.setFirstFocusableComponent();
 		}
@@ -3006,19 +3277,91 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	protected void fireItemChangedEvent_ITEM_CHANGED(MouseEvent e) throws Throwable {
 		// Wenn gewuenscht wird ein ItemChangedEvent gefeuert
 		if (fireItemChangedEventAfterChange) {
-			getInternalFrame().fireItemChanged(this,
-					ItemChangedEvent.ITEM_CHANGED, e);
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.ITEM_CHANGED, e);
 			/**
-			 * @todo MB->JO workaround fuers panelSplit, damit der focus im
-			 *       direktfilter bleibt PJ 5078 bitte beseitigen
+			 * @todo MB->JO workaround fuers panelSplit, damit der focus im direktfilter
+			 *       bleibt PJ 5078 bitte beseitigen
 			 */
 			this.setFirstFocusableComponent();
+
+			if (queryParameters != null && queryParameters.getSortKrit() != null) {
+				// SP9402 Spezialfall
+				if (idUsecase != QueryParameters.UC_ID_OFFENE_AGS) {
+					setVertauscheButtonsEnabled(queryParameters.getSortKrit().length == 0);
+				}
+			}
 		}
 	}
 
+	public void addDirektFilterDatumVonBis(FilterKriteriumDirekt fkdVon, java.util.Date defaultVon,
+			FilterKriteriumDirekt fkdBis, java.util.Date defaultBis) throws ExceptionLP {
+		PanelFilterKriteriumDirekt panelFkd = new PanelFilterKriteriumDirekt(fkdVon);
+		int index = hmDirektFilter.size();
+
+		iZeile++;
+
+		// die ungeraden rechts positionieren
+		int iSpalte = 0;
+
+		panelFilter.add(panelFkd.wlaFkdirektName1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iSpalte++;
+
+		iSpalte++;
+
+		if (defaultVon != null) {
+			panelFkd.wdfFkdirektValue1.setDate(defaultVon);
+		}
+
+		panelFkd.wdfFkdirektValue1.setMandatoryField(true);
+
+		panelFkd.iTyp = PanelFilterKriteriumDirekt.TYP_DATE_VON;
+
+		panelFilter.add(panelFkd.wdfFkdirektValue1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iSpalte++;
+		panelFilter.add(panelFkd.wlaEmpty1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iSpalte++;
+
+		hmDirektFilter.put(new Integer(index), panelFkd);
+
+		PanelFilterKriteriumDirekt panelFkdBis = new PanelFilterKriteriumDirekt(fkdBis);
+		panelFilter.add(panelFkdBis.wlaFkdirektName1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iSpalte++;
+
+		iSpalte++;
+
+		if (defaultVon != null) {
+			panelFkdBis.wdfFkdirektValue1.setDate(defaultVon);
+		}
+		panelFkdBis.wdfFkdirektValue1.setMandatoryField(true);
+
+		panelFkdBis.iTyp = PanelFilterKriteriumDirekt.TYP_DATE_BIS;
+
+		panelFilter.add(panelFkdBis.wdfFkdirektValue1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iSpalte++;
+
+		WrapperDateRangeController wdrBereich = new WrapperDateRangeController(panelFkd.wdfFkdirektValue1,
+				panelFkdBis.wdfFkdirektValue1);
+
+		panelFilter.add(wdrBereich, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		index++;
+
+		hmDirektFilter.put(new Integer(index), panelFkdBis);
+
+	}
+
 	public void addDirektFilter(FilterKriteriumDirekt fkd) throws ExceptionLP {
-		PanelFilterKriteriumDirekt panelFkd = new PanelFilterKriteriumDirekt(
-				fkd);
+		PanelFilterKriteriumDirekt panelFkd = new PanelFilterKriteriumDirekt(fkd);
 		int index = hmDirektFilter.size();
 
 		// fuer jeden zweiten direktfilter eine neue zeile beginnen
@@ -3028,29 +3371,47 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		// die ungeraden rechts positionieren
 		int iSpalte = 4 * (index % 2);
 
-		panelFilter.add(panelFkd.wlaFkdirektName1, new GridBagConstraints(
-				iSpalte, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.NORTH,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-
-		iSpalte++;
-		panelFilter.add(panelFkd.wlaFkdirektOperator1, new GridBagConstraints(
-				iSpalte, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		iSpalte++;
-		if (fkd.iTyp == FilterKriteriumDirekt.TYP_STRING) {
-			panelFilter.add(panelFkd.wtfFkdirektValue1, new GridBagConstraints(
-					iSpalte, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.NORTH,
-					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL) {
-			panelFilter.add(panelFkd.wnfFkdirektValue1, new GridBagConstraints(
-					iSpalte, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.NORTH,
-					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		if (fkd.iTyp != FilterKriteriumDirekt.TYP_BOOLEAN) {
+			panelFilter.add(panelFkd.wlaFkdirektName1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+					GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		}
 
 		iSpalte++;
-		panelFilter.add(panelFkd.wlaEmpty1, new GridBagConstraints(iSpalte,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		if (fkd.iTyp == FilterKriteriumDirekt.TYP_DATE || fkd.iTyp == FilterKriteriumDirekt.TYP_BOOLEAN) {
+
+		} else {
+			panelFilter.add(panelFkd.wlaFkdirektOperator1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.0, 0.0,
+					GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
+
+		iSpalte++;
+		if (fkd.iTyp == FilterKriteriumDirekt.TYP_STRING) {
+			panelFilter.add(panelFkd.wtfFkdirektValue1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+					GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL) {
+			panelFilter.add(panelFkd.wnfFkdirektValue1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+					GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_DATE) {
+
+			if (fkd.getDefaultWert() != null && fkd.getDefaultWert() instanceof java.util.Date) {
+				panelFkd.wdfFkdirektValue1.setDate((java.util.Date) fkd.getDefaultWert());
+			}
+
+			panelFilter.add(panelFkd.wdfFkdirektValue1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+					GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_BOOLEAN) {
+
+			panelFilter.add(panelFkd.wcbFkdirektValue1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+					GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_COMBOBOX) {
+
+			panelFilter.add(panelFkd.wcomboFkdirektValue1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.1, 0.0,
+					GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
+
+		iSpalte++;
+		panelFilter.add(panelFkd.wlaEmpty1, new GridBagConstraints(iSpalte, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iSpalte++;
 		// KeyListener
@@ -3068,18 +3429,15 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	public void addStatusBar() throws Throwable {
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
-	public void setStatusbarSpalte5(Object o, boolean bEnabled)
-			throws Throwable {
+	public void setStatusbarSpalte5(Object o, boolean bEnabled) throws Throwable {
 		super.setStatusbarSpalte5(o);
 	}
 
-	public void setStatusbarSpalte6(String o, boolean bEnabled)
-			throws Throwable {
+	public void setStatusbarSpalte6(String o, boolean bEnabled) throws Throwable {
 		super.getPanelStatusbar().setLockFieldWithoutIcon(o);
 	}
 
@@ -3088,24 +3446,27 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	}
 
 	protected void fireItemChangedEvent_GOTO_DETAIL_PANEL() {
-		getInternalFrame().fireItemChanged(this,
-				ItemChangedEvent.GOTO_DETAIL_PANEL);
+		getInternalFrame().fireItemChanged(this, ItemChangedEvent.GOTO_DETAIL_PANEL);
 	}
 
 	private void setEnabledDirektFilterFelder(boolean bEnabled) {
-		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter
-				.hasNext();) {
+		for (Iterator<Integer> iter = hmDirektFilter.keySet().iterator(); iter.hasNext();) {
 			PanelFilterKriteriumDirekt item = hmDirektFilter.get(iter.next());
 			if (item.fkd.iTyp == FilterKriteriumDirekt.TYP_STRING) {
 				item.wtfFkdirektValue1.setEditable(bEnabled);
 			} else if (item.fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL) {
 				item.wnfFkdirektValue1.setEditable(bEnabled);
+			} else if (item.fkd.iTyp == FilterKriteriumDirekt.TYP_DATE) {
+				item.wdfFkdirektValue1.setEditable(bEnabled);
+			} else if (item.fkd.iTyp == FilterKriteriumDirekt.TYP_BOOLEAN) {
+				item.wcbFkdirektValue1.setEnabled(bEnabled);
+			} else if (item.fkd.iTyp == FilterKriteriumDirekt.TYP_COMBOBOX) {
+				item.wcomboFkdirektValue1.setEnabled(bEnabled);
 			}
 		}
 	}
 
-	public void setMultipleRowSelectionEnabled(
-			boolean bMultipleRowSelectionEnabled) {
+	public void setMultipleRowSelectionEnabled(boolean bMultipleRowSelectionEnabled) {
 		this.bMultipleRowSelectionEnabled = bMultipleRowSelectionEnabled;
 		// mehrfachselekt: diese methode setzt das
 		if (bMultipleRowSelectionEnabled) {
@@ -3125,14 +3486,12 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		if (e.getSource().equals(this)) {
 
 			// wurde die Selektion in meiner tabelle veraendert?
-			if (e.getID() == ItemChangedEvent.ACTION_TABLE_SELECTION_CHANGED
-					&& e.getSource() == table) {
+			if (e.getID() == ItemChangedEvent.ACTION_TABLE_SELECTION_CHANGED && e.getSource() == table) {
 				// Buttons updaten
 				updateButtons();
 			}
 
-			if (e.getID() == ItemChangedEvent.ACTION_SAVE
-					|| e.getID() == ItemChangedEvent.ACTION_DELETE
+			if (e.getID() == ItemChangedEvent.ACTION_SAVE || e.getID() == ItemChangedEvent.ACTION_DELETE
 					|| e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			}
 
@@ -3141,49 +3500,46 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 				PrintInfoDto values = null;
 
-//				boolean online = false;
-//				boolean hasFiles = false;
+				// boolean online = false;
+				// boolean hasFiles = false;
 
-				Object idToLoad = bBenutzeUebersteuerteId ?
-						getUebersteuerteId() : getSelectedId() ;
-				if(idToLoad != null) {
-					values = DelegateFactory.getInstance()
-							.getJCRDocDelegate()
-							.getPathAndPartnerAndTable(idToLoad, idUsecase) ;
+				Object idToLoad = bBenutzeUebersteuerteId ? getUebersteuerteId() : getSelectedId();
+				if (idToLoad != null) {
+					values = DelegateFactory.getInstance().getJCRDocDelegate().getPathAndPartnerAndTable(idToLoad,
+							idUsecase);
 				}
-//				if (bBenutzeUebersteuerteId == true) {
-//
-//					if (getUebersteuerteId() != null) {
-//						values = DelegateFactory
-//								.getInstance()
-//								.getJCRDocDelegate()
-//								.getPathAndPartnerAndTable(
-//										getUebersteuerteId(), idUsecase);
-//					}
-//				} else {
-//					if (getSelectedId() != null) {
-//						values = DelegateFactory
-//								.getInstance()
-//								.getJCRDocDelegate()
-//								.getPathAndPartnerAndTable(getSelectedId(),
-//										idUsecase);
-//					}
-//				}
+				// if (bBenutzeUebersteuerteId == true) {
+				//
+				// if (getUebersteuerteId() != null) {
+				// values = DelegateFactory
+				// .getInstance()
+				// .getJCRDocDelegate()
+				// .getPathAndPartnerAndTable(
+				// getUebersteuerteId(), idUsecase);
+				// }
+				// } else {
+				// if (getSelectedId() != null) {
+				// values = DelegateFactory
+				// .getInstance()
+				// .getJCRDocDelegate()
+				// .getPathAndPartnerAndTable(getSelectedId(),
+				// idUsecase);
+				// }
+				// }
 
-				JCRRepoInfo repoInfo = new JCRRepoInfo() ;
+				JCRRepoInfo repoInfo = new JCRRepoInfo();
 				if (values != null && values.getDocPath() != null) {
 					bShowDocButton = true;
-					repoInfo = DelegateFactory.getInstance()
-							.getJCRDocDelegate().checkIfNodeExists(values.getDocPath()) ;
-//						online = info.isOnline() ;
-//						hasFiles = info.isExists() ;
-//						online = DelegateFactory.getInstance()
-//								.getJCRDocDelegate().isOnline();
-//						if (online) {
-//							hasFiles = DelegateFactory.getInstance()
-//									.getJCRDocDelegate()
-//									.checkIfNodeExists(values.getDocPath());
-//						}
+					repoInfo = DelegateFactory.getInstance().getJCRDocDelegate().checkIfNodeExists(values.getDocPath());
+					// online = info.isOnline() ;
+					// hasFiles = info.isExists() ;
+					// online = DelegateFactory.getInstance()
+					// .getJCRDocDelegate().isOnline();
+					// if (online) {
+					// hasFiles = DelegateFactory.getInstance()
+					// .getJCRDocDelegate()
+					// .checkIfNodeExists(values.getDocPath());
+					// }
 				}
 
 				if (bShowDocButton) {
@@ -3191,11 +3547,8 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 					jbDokumente.setVisible(true);
 					enableToolsPanelButtons(repoInfo.isOnline(), LEAVEALONE_DOKUMENTE);
 					if (!repoInfo.isOnline()) {
-						getHmOfButtons()
-								.get(LEAVEALONE_DOKUMENTE)
-								.getButton()
-								.setToolTipText(
-										LPMain.getTextRespectUISPr("lp.dokumente.offline"));
+						getHmOfButtons().get(LEAVEALONE_DOKUMENTE).getButton()
+								.setToolTipText(LPMain.getTextRespectUISPr("lp.dokumente.offline"));
 					}
 				} else {
 					jbDokumente.setVisible(false);
@@ -3237,15 +3590,11 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		multiselektInfo.removeAll();
 		int i = 0;
 		for (Pair<?, ?> pair : pairs) {
-			WrapperLabel label = new WrapperLabel(pair.getKey() + " = "
-					+ pair.getValue());
+			WrapperLabel label = new WrapperLabel(pair.getKey() + " = " + pair.getValue());
 			label.setHorizontalAlignment(SwingConstants.CENTER);
 			label.setPreferredSize(new Dimension(0, 0));
-			multiselektInfo.add(label,
-					new GridBagConstraints(i, 0, 1, 1, 1.0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0,
-									0), 0, 0));
+			multiselektInfo.add(label, new GridBagConstraints(i, 0, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 			i++;
 		}
 		multiselektInfo.setVisible(true);
@@ -3258,8 +3607,7 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 		dataSource = null;
 	}
 
-	protected PropertyVetoException eventActionVetoableChangeLP()
-			throws Throwable {
+	protected PropertyVetoException eventActionVetoableChangeLP() throws Throwable {
 		cleanup();
 		PropertyVetoException pve = null;
 		return pve;
@@ -3268,15 +3616,16 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 	protected void setVertauscheButtonsEnabled(boolean enabled) {
 		Collection<?> buttons = getHmOfButtons().values();
 
+		myLogger.warn("vertausche " + enabled + ".");
+
 		for (Iterator<?> iterator = buttons.iterator(); iterator.hasNext();) {
 			LPButtonAction item = (LPButtonAction) iterator.next();
 
-			if (ACTION_POSITION_VONNNACHNMINUS1.equals(item.getButton()
-					.getActionCommand())
-					|| ACTION_POSITION_VONNNACHNPLUS1.equals(item.getButton()
-							.getActionCommand())) {
+			if (ACTION_POSITION_VONNNACHNMINUS1.equals(item.getButton().getActionCommand())
+					|| ACTION_POSITION_VONNNACHNPLUS1.equals(item.getButton().getActionCommand())) {
 
-				item.getButton().setEnabled(enabled);
+				// item.getButton().setEnabled(enabled);
+				item.shouldBeEnabledTo(enabled);
 				item.getButton().setVisible(enabled);
 			}
 		}
@@ -3288,6 +3637,71 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	protected void setRefreshWenYouAreSelected(boolean refreshWenYouAreSelected) {
 		this.refreshWhenYouAreSelected = refreshWenYouAreSelected;
+	}
+
+	private Integer getNextRowId() {
+		Integer index = getTable().getSelectedRow();
+		if (index < getTable().getRowCount() - 1) {
+			return (Integer) getTable().getValueAt(index + 1, 0);
+		}
+
+		return null;
+	}
+
+	private Integer getPreviousRowId() {
+		Integer index = getTable().getSelectedRow();
+		if (index > 0) {
+			return (Integer) getTable().getValueAt(index - 1, 0);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Den aktuell markierten Satz mit dem nachfolgenden (falls vorhanden) in der
+	 * Reihenfolge tauschen
+	 * 
+	 * @param tauscheFunc diejenige Delegate-Funktion, die das tatsaechliche
+	 *                    Tauschen der beide IIds durchf&uuml;hrt
+	 * @throws Throwable
+	 */
+	public void tauschePlus(IPanelQueryTauscheIdsDelegate tauscheFunc) throws Throwable {
+		tauscheImpl(getNextRowId(), tauscheFunc);
+	}
+
+	/**
+	 * Den aktuell markierten Satz mit dem vorherigen (falls vorhanden) in der
+	 * Reihenfolge tauschen
+	 * 
+	 * @param tauscheFunc diejenige Delegate-Funktion, die das tatsaechliche
+	 *                    Tauschen der beide IIds durchf&uuml;hrt
+	 * @throws Throwable
+	 */
+	public void tauscheMinus(IPanelQueryTauscheIdsDelegate tauscheFunc) throws Throwable {
+		tauscheImpl(getPreviousRowId(), tauscheFunc);
+	}
+
+	protected void tauscheImpl(Integer otherId, IPanelQueryTauscheIdsDelegate tauscheFunc) throws Throwable {
+		if (otherId != null) {
+			Integer actualId = (Integer) getSelectedId();
+			tauscheFunc.tausche(actualId, otherId);
+			setSelectedId(actualId);
+		}
+	}
+
+	public void enableButton(String buttonAction, boolean enable) {
+		getHmOfButtons().get(buttonAction).setEnabled(enable);
+	}
+
+	public void enableButtonIfExists(String buttonAction, boolean enable) {
+		LPButtonAction lpAction = getHmOfButtons().get(buttonAction);
+		if (lpAction != null) {
+			lpAction.setEnabled(enable);
+		}
+	}
+
+	public void shouldBeEnabledToButton(String buttonAction, boolean enable) {
+		getHmOfButtons().get(buttonAction).shouldBeEnabledTo(enable);
 	}
 
 	// @Override
@@ -3304,11 +3718,13 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 
 	private class HeaderCellRenderer implements TableCellRenderer {
 
-		public Component getTableCellRendererComponent(JTable table,
-				Object value, boolean isSelected, boolean hasFocus, int row,
-				int column) {
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+				int row, int column) {
 			if (value == null)
 				return null;
+
+			int modelIndex = table.getColumnModel().getColumn(column).getModelIndex();
+			column = tableModel.getSavedPosition(modelIndex);
 
 			SortierKriterium krit = sortierKriterien.get(dbColumnNames[column]);
 			JLabel label;
@@ -3327,15 +3743,23 @@ public class PanelQuery extends PanelBasis implements ISourceEvent {
 			} else if (!iNoSort.equals(label.getIcon())) {
 				label.setIcon(null);
 			}
+
 			return label;
+		}
+	}
+
+	protected void addSaveQueryViewActionListener(ActionListener listener) {
+		JButton querySaveButton = getToolBar().getButton(LEAVEALONE_QUERYVIEW_SAVE);
+		if (querySaveButton != null) {
+			querySaveButton.addActionListener(listener);
 		}
 	}
 }
 
 class JComponentCellRenderer implements TableCellRenderer {
 
-	public Component getTableCellRendererComponent(JTable table, Object value,
-			boolean isSelected, boolean hasFocus, int row, int column) {
+	public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+			int row, int column) {
 		return (JComponent) value;
 	}
 }

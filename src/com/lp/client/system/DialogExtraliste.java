@@ -44,30 +44,36 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.filechooser.FileFilter;
+import javax.swing.table.TableColumn;
+
+import org.apache.log4j.Logger;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.WrapperTable;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.filter.HvTaggedCsvFileFilter;
+import com.lp.client.frame.filechooser.open.WrapperFile;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.ExtralisteDto;
 import com.lp.server.system.service.ExtralisteRueckgabeTabelleDto;
+import com.lp.server.util.HvOptional;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 import com.lp.util.csv.LPCSVWriter;
 
 @SuppressWarnings("static-access")
 public class DialogExtraliste extends JDialog implements ActionListener {
+	private static final Logger myLogger = Logger.getLogger(DialogExtraliste.class);
+
 	/**
 	 * 
 	 */
@@ -78,7 +84,6 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 	private Integer extralisteIId = null;
 	private JScrollPane jScrollPane1 = new JScrollPane();
 	private boolean bError = false;
-	private File sLetzteDatei = null;
 	private String ACTION_CSV_EXPORT = "CSV_EXPORT";
 	private String ACTION_PRINT = "ACTION_PRINT";
 	private String ACTION_COPY_TO_CLIPBOARD = "ACTION_COPY_TO_CLIPBOARD";
@@ -92,16 +97,14 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 		if (extralisteIId != null) {
 
-			ExtralisteDto extralisteDto = DelegateFactory.getInstance()
-					.getSystemDelegate()
+			ExtralisteDto extralisteDto = DelegateFactory.getInstance().getSystemDelegate()
 					.extralisteFindByPrimaryKey(extralisteIId);
 			if (extralisteDto.getXQuery() != null) {
 
 				setTitle(extralisteDto.getCBez());
 
 				if (extralisteDto.getIDialogbreite() != null) {
-					this.setPreferredSize(new Dimension(extralisteDto
-							.getIDialogbreite(), 500));
+					this.setPreferredSize(new Dimension(extralisteDto.getIDialogbreite(), 500));
 				} else {
 
 					this.setPreferredSize(new Dimension(300, 500));
@@ -130,45 +133,19 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 			try {
 
-				if (extralisteRueckgabeTabelleDto != null
-						&& extralisteRueckgabeTabelleDto.getData() != null) {
-					JFileChooser fc = new JFileChooser();
+				if (extralisteRueckgabeTabelleDto != null && extralisteRueckgabeTabelleDto.getData() != null) {
+					HvOptional<WrapperFile> csv = HelperClient.showSaveDialog(null,
+							FileChooserConfigToken.ExportCsvExtraliste, null, new HvTaggedCsvFileFilter());
+					if (csv.isPresent()) {
+						File file = csv.get().getFile();
 
-					fc.setApproveButtonText(LPMain.getInstance()
-							.getTextRespectUISPr("lp.report.save"));
-					fc.setDialogTitle(LPMain.getInstance().getTextRespectUISPr(
-							"lp.report.save"));
+						LPCSVWriter writer = new LPCSVWriter(new FileWriter(file), ',',
+								LPCSVWriter.DEFAULT_QUOTE_CHARACTER);
 
-					if (sLetzteDatei != null) {
-						fc.setCurrentDirectory(sLetzteDatei);
-					}
-					fc.setFileFilter(new FileFilter() {
-						public boolean accept(File f) {
-							return f.getName().toLowerCase().endsWith(".csv")
-									|| f.isDirectory();
-						}
+						writer.writeNext(extralisteRueckgabeTabelleDto.getColumnNames());
 
-						public String getDescription() {
-							return "CSV-Dateien";
-						}
-					});
-
-					int returnVal = fc.showOpenDialog(null);
-					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						File file = fc.getSelectedFile();
-
-						sLetzteDatei = file;
-
-						LPCSVWriter writer = new LPCSVWriter(new FileWriter(
-								file), ',', LPCSVWriter.DEFAULT_QUOTE_CHARACTER);
-
-						writer.writeNext(extralisteRueckgabeTabelleDto
-								.getColumnNames());
-
-						for (int i = 0; i < extralisteRueckgabeTabelleDto
-								.getData().length; i++) {
-							Object[] zeile = extralisteRueckgabeTabelleDto
-									.getData()[i];
+						for (int i = 0; i < extralisteRueckgabeTabelleDto.getData().length; i++) {
+							Object[] zeile = extralisteRueckgabeTabelleDto.getData()[i];
 
 							String[] strArray = new String[zeile.length];
 
@@ -186,21 +163,28 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 						writer.close();
 
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.hinweis"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"system.extraliste.gespeichert")
-										+ " (" + file.getAbsolutePath() + ") ");
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hinweis"),
+								LPMain.getInstance().getTextRespectUISPr("system.extraliste.gespeichert") + " ("
+										+ file.getAbsolutePath() + ") ");
 
 					}
 
 				}
-			} catch (IOException ex) {
-				ex.printStackTrace();
+			} catch (Exception ex) {
+				myLogger.error("Dialog-Exception:", ex);
 			}
-
 		} else if (e.getActionCommand().equals(ACTION_PRINT)) {
+
+			if (extralisteRueckgabeTabelleDto != null) {
+
+				int[] columnWidths = new int[table.getTableHeader().getColumnModel().getColumnCount()];
+				for (int i = 0; i < table.getTableHeader().getColumnModel().getColumnCount(); i++) {
+					TableColumn tc = table.getTableHeader().getColumnModel().getColumn(i);
+					columnWidths[i] = tc.getPreferredWidth();
+				}
+
+				extralisteRueckgabeTabelleDto.setColumnWidths(columnWidths);
+			}
 
 			bPrint = true;
 			this.setVisible(false);
@@ -209,14 +193,11 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 			StringBuffer excelStr = new StringBuffer();
 
-			if (extralisteRueckgabeTabelleDto != null
-					&& extralisteRueckgabeTabelleDto.getData() != null) {
+			if (extralisteRueckgabeTabelleDto != null && extralisteRueckgabeTabelleDto.getData() != null) {
 
 				// Ueberschriften
-				for (int i = 0; i < extralisteRueckgabeTabelleDto
-						.getColumnNames().length; i++) {
-					excelStr.append(extralisteRueckgabeTabelleDto
-							.getColumnNames()[i]);
+				for (int i = 0; i < extralisteRueckgabeTabelleDto.getColumnNames().length; i++) {
+					excelStr.append(extralisteRueckgabeTabelleDto.getColumnNames()[i]);
 					if (i < extralisteRueckgabeTabelleDto.getColumnNames().length - 1) {
 						excelStr.append(CELL_BREAK);
 					}
@@ -231,16 +212,13 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 						if (zeile[j] instanceof Number) {
 							try {
-								excelStr.append(Helper.formatZahl(
-										(Number) zeile[j], LPMain
-												.getTheClient().getLocUi()));
+								excelStr.append(Helper.formatZahl((Number) zeile[j], LPMain.getTheClient().getLocUi()));
 							} catch (Throwable e1) {
 								//
 							}
 						} else if (zeile[j] instanceof String) {
 							String s = (String) zeile[j];
-							excelStr.append("\""
-									+ escape(s.replaceAll("\"", "\"\"")) + "\"");
+							excelStr.append("\"" + escape(s.replaceAll("\"", "\"\"")) + "\"");
 						} else {
 							excelStr.append(escape(zeile[j]));
 						}
@@ -253,24 +231,24 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 				}
 			}
 
-			Toolkit.getDefaultToolkit()
-					.getSystemClipboard()
-					.setContents(new StringSelection(excelStr.toString()), null);
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(excelStr.toString()),
+					null);
 
 		} else if (e.getActionCommand().equals(ACTION_COPY_TO_CLIPBOARD_HTML)) {
 			StringBuffer htmlStr = new StringBuffer("<tr>");
 			htmlStr.append(LINE_BREAK);
-			if (extralisteRueckgabeTabelleDto != null
-					&& extralisteRueckgabeTabelleDto.getData() != null) {
+			if (extralisteRueckgabeTabelleDto != null && extralisteRueckgabeTabelleDto.getData() != null) {
+
+				// SP5882
+				boolean bMitStyle = DialogFactory.showModalJaNeinDialog(null,
+						LPMain.getInstance().getTextRespectUISPr("lp.extraliste.html.zwischenablage.frage.style"));
 
 				// Ueberschriften
-				for (int i = 0; i < extralisteRueckgabeTabelleDto
-						.getColumnNames().length; i++) {
+				for (int i = 0; i < extralisteRueckgabeTabelleDto.getColumnNames().length; i++) {
 
 					htmlStr.append("  <td>");
 
-					htmlStr.append(extralisteRueckgabeTabelleDto
-							.getColumnNames()[i]);
+					htmlStr.append(extralisteRueckgabeTabelleDto.getColumnNames()[i]);
 					htmlStr.append("</td>");
 					htmlStr.append(LINE_BREAK);
 
@@ -288,23 +266,25 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 						htmlStr.append("  <td>");
 						if (zeile[j] instanceof Number) {
 							try {
-								htmlStr.append(Helper.formatZahl(
-										(Number) zeile[j], LPMain
-												.getTheClient().getLocUi()));
+								htmlStr.append(Helper.formatZahl((Number) zeile[j], LPMain.getTheClient().getLocUi()));
 							} catch (Throwable e1) {
 								//
 							}
-						} if (zeile[j] instanceof Number) {
+						}
+						if (zeile[j] instanceof Number) {
 							try {
-								htmlStr.append(Helper.formatZahl(
-										(Number) zeile[j], LPMain
-												.getTheClient().getLocUi()));
+								htmlStr.append(Helper.formatZahl((Number) zeile[j], LPMain.getTheClient().getLocUi()));
 							} catch (Throwable e1) {
 								//
 							}
 						} else if (zeile[j] instanceof String) {
 							String s = (String) zeile[j];
-							s=s.replaceAll(LINE_BREAK, "<br>");
+
+							if (s != null && bMitStyle == false) {
+								s = Helper.strippHTML(s);
+							}
+
+							s = s.replaceAll(LINE_BREAK, "<br>");
 							htmlStr.append(s);
 						} else {
 							htmlStr.append(escape(zeile[j]));
@@ -319,8 +299,7 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 			htmlStr.append("</tr>");
 
-			Toolkit.getDefaultToolkit().getSystemClipboard()
-					.setContents(new StringSelection(htmlStr.toString()), null);
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(htmlStr.toString()), null);
 		}
 	}
 
@@ -328,8 +307,7 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 		if (cell == null) {
 			return "";
 		} else {
-			return cell.toString().replace(LINE_BREAK, " ")
-					.replace(CELL_BREAK, " ");
+			return cell.toString().replace(LINE_BREAK, " ").replace(CELL_BREAK, " ");
 		}
 
 	}
@@ -355,14 +333,11 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 	private void jbInit() throws Throwable {
 
-		ImageIcon iiCopy = new ImageIcon(getClass().getResource(
-				"/com/lp/client/res/copy.png"));
-		ImageIcon iiCopyHtml = new ImageIcon(getClass().getResource(
-				"/com/lp/client/res/download.png"));
+		ImageIcon iiCopy = new ImageIcon(getClass().getResource("/com/lp/client/res/copy.png"));
+		ImageIcon iiCopyHtml = new ImageIcon(getClass().getResource("/com/lp/client/res/download.png"));
 
 		JButton buttoncc = new JButton();
-		buttoncc.setToolTipText(LPMain
-				.getTextRespectUISPr("lp.inzwischenablagekopieren"));
+		buttoncc.setToolTipText(LPMain.getTextRespectUISPr("lp.inzwischenablagekopieren"));
 		buttoncc.setActionCommand(ACTION_COPY_TO_CLIPBOARD);
 		buttoncc.setIcon(iiCopy);
 		buttoncc.setMinimumSize(HelperClient.getToolsPanelButtonDimension());
@@ -370,18 +345,14 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 		buttoncc.addActionListener(this);
 
 		JButton buttoncchtml = new JButton();
-		buttoncchtml.setToolTipText(LPMain
-				.getTextRespectUISPr("lp.inzwischenablagekopieren.htmltable"));
+		buttoncchtml.setToolTipText(LPMain.getTextRespectUISPr("lp.inzwischenablagekopieren.htmltable"));
 		buttoncchtml.setActionCommand(ACTION_COPY_TO_CLIPBOARD_HTML);
 		buttoncchtml.setIcon(iiCopyHtml);
-		buttoncchtml
-				.setMinimumSize(HelperClient.getToolsPanelButtonDimension());
-		buttoncchtml.setPreferredSize(HelperClient
-				.getToolsPanelButtonDimension());
+		buttoncchtml.setMinimumSize(HelperClient.getToolsPanelButtonDimension());
+		buttoncchtml.setPreferredSize(HelperClient.getToolsPanelButtonDimension());
 		buttoncchtml.addActionListener(this);
 
-		ImageIcon ii = new ImageIcon(getClass().getResource(
-				"/com/lp/client/res/goto.png"));
+		ImageIcon ii = new ImageIcon(getClass().getResource("/com/lp/client/res/goto.png"));
 
 		JButton buttoncsv = new JButton();
 		buttoncsv.setToolTipText("CSV");
@@ -394,8 +365,7 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 		// PJ 14531
 
-		ImageIcon iiPrint = new ImageIcon(getClass().getResource(
-				"/com/lp/client/res/table_sql_view.png"));
+		ImageIcon iiPrint = new ImageIcon(getClass().getResource("/com/lp/client/res/table_sql_view.png"));
 
 		JButton buttonPrint = new JButton();
 		buttonPrint.setToolTipText(LPMain.getTextRespectUISPr("lp.printer"));
@@ -403,20 +373,18 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 		buttonPrint.setIcon(iiPrint);
 
 		buttonPrint.setMinimumSize(HelperClient.getToolsPanelButtonDimension());
-		buttonPrint.setPreferredSize(HelperClient
-				.getToolsPanelButtonDimension());
+		buttonPrint.setPreferredSize(HelperClient.getToolsPanelButtonDimension());
 		buttonPrint.addActionListener(this);
 
 		// Daten holen
 		try {
-			extralisteRueckgabeTabelleDto = DelegateFactory.getInstance()
-					.getSystemDelegate().generiereExtraliste(extralisteIId);
+			extralisteRueckgabeTabelleDto = DelegateFactory.getInstance().getSystemDelegate()
+					.generiereExtraliste(extralisteIId);
 		} catch (ExceptionLP ex) {
 			bError = true;
 			if (ex.getICode() == EJBExceptionLP.FEHLER_HIBERNATE) {
 
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.error"),
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
 						"Hibernate-Exception: " + ex.getSMsg());
 
 				this.dispose();
@@ -426,10 +394,8 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 			}
 
 		}
-		if (extralisteRueckgabeTabelleDto != null
-				&& extralisteRueckgabeTabelleDto.getData() != null) {
-			table = new WrapperTable(null,
-					extralisteRueckgabeTabelleDto.getData(),
+		if (extralisteRueckgabeTabelleDto != null && extralisteRueckgabeTabelleDto.getData() != null) {
+			table = new WrapperTable(null, extralisteRueckgabeTabelleDto.getData(),
 					extralisteRueckgabeTabelleDto.getColumnNames());
 		} else {
 			table = new WrapperTable(null);
@@ -447,22 +413,17 @@ public class DialogExtraliste extends JDialog implements ActionListener {
 
 		add(jpaWorkingOn);
 
-		jpaWorkingOn.add(buttoncsv, new GridBagConstraints(0, 0, 1, 1, 0, 0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(buttoncc, new GridBagConstraints(1, 0, 1, 1, 0, 0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(buttoncchtml, new GridBagConstraints(2, 0, 1, 1, 0, 0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(buttonPrint, new GridBagConstraints(2, 0, 1, 1, 0, 0,
-				GridBagConstraints.NORTHEAST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(buttoncsv, new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(buttoncc, new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(buttoncchtml, new GridBagConstraints(2, 0, 1, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(buttonPrint, new GridBagConstraints(2, 0, 1, 1, 0, 0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(jScrollPane1, new GridBagConstraints(0, 1, 3, 1, 1.0,
-				1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 000, 0));
+		jpaWorkingOn.add(jScrollPane1, new GridBagConstraints(0, 1, 3, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 000, 0));
 
 	}
 

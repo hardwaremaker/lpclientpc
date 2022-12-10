@@ -46,6 +46,7 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -74,9 +75,10 @@ import com.lp.server.util.report.JasperPrintLP;
 @SuppressWarnings("static-access")
 public class ReportAuftragOffene2 extends PanelReportJournalVerkauf implements
 		PanelReportIfJRDS {
-	/**
-	 * 
-	 */
+	public enum OffeneReportType {
+		OFFENE,
+		OFFENE_OHNE_DETAIL;
+	}
 	private static final long serialVersionUID = 1L;
 	/**
 	 * @todo den Vertreter in die Superklasse. warum bauen wir immer alles 17
@@ -185,7 +187,8 @@ public class ReportAuftragOffene2 extends PanelReportJournalVerkauf implements
 		
 		jbgStichtag.add(wrbStichtagErledigt);
 		jbgStichtag.add(wrbStichtagLiefertermin);
-		wrbStichtagErledigt.setSelected(true);
+		//PJ21042
+		wrbStichtagLiefertermin.setSelected(true);
 
 		LinkedHashMap<Integer, String> hm = new LinkedHashMap<Integer, String>();
 		hm.put(1,
@@ -218,6 +221,9 @@ public class ReportAuftragOffene2 extends PanelReportJournalVerkauf implements
 		wcoArtUnverbindlich.setMandatoryField(true);
 		wcoArtUnverbindlich.setKeyOfSelectedItem(0);
 		wcoArtUnverbindlich.setMap(hmUnverbindlich);
+		
+		HelperClient.setMinimumAndPreferredSize(wcbMitAngelegten, HelperClient.getSizeFactoredDimension(200));
+		HelperClient.setMinimumAndPreferredSize(wcoArtUnverbindlich, HelperClient.getSizeFactoredDimension(230));
 
 		iZeile++;
 		jpaWorkingOn.add(wrbSortierungVertreter, new GridBagConstraints(0,
@@ -239,7 +245,7 @@ public class ReportAuftragOffene2 extends PanelReportJournalVerkauf implements
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(1, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+				new Insets(2, 2, 2, 2), 4, 0));
 		jpaWorkingOn.add(wrbStichtagErledigt, new GridBagConstraints(2, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -260,7 +266,7 @@ public class ReportAuftragOffene2 extends PanelReportJournalVerkauf implements
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcbMitAngelegten, new GridBagConstraints(2, iZeile, 2,
 				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 200, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 		jpaWorkingOn.add(wcoArt, new GridBagConstraints(0, iZeile, 2, 1, 0.0,
@@ -268,10 +274,10 @@ public class ReportAuftragOffene2 extends PanelReportJournalVerkauf implements
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcoArtUnverbindlich, new GridBagConstraints(2, iZeile,
 				2, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 200, 0));
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
 
 		this.setEinschraenkungDatumBelegnummerSichtbar(false);
-
+		wrbSortierungLieferadresse.setVisible(true);
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -279,7 +285,7 @@ public class ReportAuftragOffene2 extends PanelReportJournalVerkauf implements
 
 		if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_EINER)) {
 			// wenn noch keiner gewaehlt ist, dann geht der Dialog auf
-			if (vertreterDto.getIId() == null) {
+			if (vertreterDto.getIId() == null && isInitialized()) {
 				wbuVertreter.doClick();
 			}
 

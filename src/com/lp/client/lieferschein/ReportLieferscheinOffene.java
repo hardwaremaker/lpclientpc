@@ -32,14 +32,16 @@
  ******************************************************************************/
 package com.lp.client.lieferschein;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
+import java.util.Date;
 import java.util.LinkedHashMap;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportJournalVerkauf;
@@ -50,90 +52,102 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.system.service.ReportJournalKriterienDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access") 
-public class ReportLieferscheinOffene
-    extends PanelReportJournalVerkauf implements PanelReportIfJRDS
-{
-  /**
+@SuppressWarnings("static-access")
+public class ReportLieferscheinOffene extends PanelReportJournalVerkauf
+		implements PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private WrapperComboBox wcoArt;
-  private WrapperCheckBox wcbMitDetails;
-  public ReportLieferscheinOffene(InternalFrame internalFrame, String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    jbInit();
-    initComponents();
-  }
+	private WrapperComboBox wcoArt;
+	private WrapperCheckBox wcbMitDetails;
 
+	private WrapperLabel wlaStichtag = new WrapperLabel();
+	private WrapperDateField wdfStichtag = new WrapperDateField();
 
-  protected void jbInit()
-      throws Exception {
-    wrbSortierungPartner.setText(LPMain.getInstance().getTextRespectUISPr("button.kunden"));
-    wbuPartner.setText(LPMain.getInstance().getTextRespectUISPr("button.kunde"));
-    wbuPartner.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-        "button.kunde.tooltip"));
+	public ReportLieferscheinOffene(InternalFrame internalFrame,
+			String add2Title) throws Throwable {
+		super(internalFrame, add2Title);
+		jbInit();
+		initComponents();
+	}
 
-    LinkedHashMap<Integer, String> hm = new LinkedHashMap<Integer, String> ();
-    hm.put(0,LPMain.getTextRespectUISPr("ls.alle"));
-    hm.put(1,LPMain.getTextRespectUISPr("ls.menu.journal.verrechenbar"));
-    hm.put(2,LPMain.getTextRespectUISPr("ls.menu.journal.nichtverrechenbar"));
-    wcoArt = new WrapperComboBox();
-    wcoArt.setMandatoryField(true);
-    wcoArt.setKeyOfSelectedItem(0);
-    wcoArt.setMap(hm);
-    wcbMitDetails = new WrapperCheckBox();
-    wcbMitDetails.setText(LPMain.getInstance().getTextRespectUISPr(
-        "auft.offenemitdetaildrucken"));
+	protected void jbInit() throws Exception {
+		wrbSortierungPartner.setText(LPMain.getInstance().getTextRespectUISPr(
+				"button.kunden"));
+		wbuPartner.setText(LPMain.getInstance().getTextRespectUISPr(
+				"button.kunde"));
+		wbuPartner.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
+				"button.kunde.tooltip"));
 
-    wdfVon.setTimestamp(null);
-    wdfBis.setTimestamp(null);
-    
-    jpaWorkingOn.add(wcoArt,
-                  new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                         GridBagConstraints.WEST,
-                                         GridBagConstraints.BOTH,
-                                         new Insets(2, 2, 2, 2),
-                                         0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wcbMitDetails,
-                     new GridBagConstraints(0, iZeile, 6, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
+		LinkedHashMap<Integer, String> hm = new LinkedHashMap<Integer, String>();
+		hm.put(0, LPMain.getTextRespectUISPr("ls.alle"));
+		hm.put(1, LPMain.getTextRespectUISPr("ls.menu.journal.verrechenbar"));
+		hm.put(2,
+				LPMain.getTextRespectUISPr("ls.menu.journal.nichtverrechenbar"));
+		wcoArt = new WrapperComboBox();
+		wcoArt.setMandatoryField(true);
+		wcoArt.setKeyOfSelectedItem(0);
+		wcoArt.setMap(hm);
+		wcbMitDetails = new WrapperCheckBox();
+		wcbMitDetails.setText(LPMain.getInstance().getTextRespectUISPr(
+				"auft.offenemitdetaildrucken"));
 
-  }
+		wdfVon.setTimestamp(null);
+		wdfBis.setTimestamp(null);
 
+		wlaStichtag.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.stichtag"));
+		wdfStichtag.setMandatoryField(true);
+		wdfStichtag.setDate(new Date(System.currentTimeMillis()));
 
-  public String getModul() {
-    return LieferscheinReportFac.REPORT_MODUL;
-  }
+		iZeile++;
 
+		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(1, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcoArt, new GridBagConstraints(0, iZeile, 2, 1, 0.0,
+				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(10, 2, 2, 2), 120, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbMitDetails, new GridBagConstraints(0, iZeile, 6, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		this.setEinschraenkungDatumBelegnummerSichtbar(false);
 
-  public String getReportname() {
-    return LieferscheinReportFac.REPORT_LIEFERSCHEIN_OFFENE;
-  }
+	}
 
+	public String getModul() {
+		return LieferscheinReportFac.REPORT_MODUL;
+	}
 
-  public boolean getBErstelleReportSofort() {
-    return false;
-  }
+	public String getReportname() {
+		return LieferscheinReportFac.REPORT_LIEFERSCHEIN_OFFENE;
+	}
 
+	public boolean getBErstelleReportSofort() {
+		return false;
+	}
 
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien
+				.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 
-
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    ReportJournalKriterienDto krit = new ReportJournalKriterienDto();
-    befuelleKriterien(krit);
-    return DelegateFactory.getInstance().getLieferscheinReportDelegate().
-        printLieferscheinOffene(krit, (Integer) wcoArt.getKeyOfSelectedItem(),wcbMitDetails.isSelected());
-  }
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		ReportJournalKriterienDto krit = new ReportJournalKriterienDto();
+		befuelleKriterien(krit);
+		krit.dStichtag = wdfStichtag.getDate();
+		return DelegateFactory
+				.getInstance()
+				.getLieferscheinReportDelegate()
+				.printLieferscheinOffene(krit,
+						(Integer) wcoArt.getKeyOfSelectedItem(),
+						wcbMitDetails.isSelected(), false);
+	}
 }

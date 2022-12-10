@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.editor;
@@ -43,6 +43,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
@@ -61,7 +64,6 @@ import java.util.Vector;
 import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -77,6 +79,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.UIManager;
@@ -84,6 +87,8 @@ import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.event.UndoableEditEvent;
 import javax.swing.event.UndoableEditListener;
 import javax.swing.table.TableCellEditor;
@@ -108,11 +113,16 @@ import javax.swing.undo.UndoableEdit;
 import javax.swing.undo.UndoableEditSupport;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.rechtschreibung.IRechtschreibPruefbar;
+import com.lp.client.rechtschreibung.SwingMultiRechtschreibAdapter;
+import com.lp.client.util.IconFactory;
 import com.lp.client.util.logger.LpLogger;
 import com.lp.editor.text.LpFormatParser;
 import com.lp.editor.text.LpJasperGenerator;
 import com.lp.editor.text.LpJasperParser;
+import com.lp.editor.text.LpStyledEditorKit;
 import com.lp.editor.ui.LpDecoratedTextPane;
 import com.lp.editor.ui.LpEditorSettings;
 import com.lp.editor.ui.LpEditorSheetPanel;
@@ -127,11 +137,9 @@ import com.lp.editor.util.LpEditorReportData;
 import com.lp.editor.util.LpEditorRow;
 import com.lp.editor.util.TextBlockAttributes;
 import com.lp.editor.util.TextBlockOverflowException;
-import com.lp.server.system.service.ArbeitsplatzparameterDto;
-import com.lp.server.system.service.ParameterFac;
 
 /**
- * 
+ *
  * <p>
  * <I>Der Editor fuer LogistikPur</I>
  * </p>
@@ -143,30 +151,38 @@ import com.lp.server.system.service.ParameterFac;
  * </p>
  * <p>
  * </p>
- * 
+ *
  * @author Kajetan Fuchsberger
  * @author Sascha Zelzer
  * @version $Revision: 1.7 $
  */
-public class LpEditor extends JPanel implements PropertyChangeListener {
+public class LpEditor extends JPanel implements PropertyChangeListener, IRechtschreibPruefbar {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+//	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = -8257645168471867630L;
+
 
 	// private LpLogger log = null;
 	private LpLogger myLogger = (LpLogger) LpLogger.getInstance(LpEditor.class);
+
+	LpEditorSheetPanel sheet;
+	String font;
+//	String size;
+	String zoom;
+	MutableAttributeSet attr;
+	Dimension cbFontNamesSize;
+	Integer fontSize;
 
 	/**
 	 * Identifiziert einen Vector, der an das Dokument via putProperty(Object)
 	 * angehaengt wird und Spalteneigenschaften wie Breite, Default-Attribute,
 	 * Text-Kapazitaet, ... enthaelt
-	 * 
+	 *
 	 * @see TextBlockAttributes
 	 * @see #getTextBlockAttributes(int)
 	 */
 	public static final String COLUMN_TEXT_ATTRIBUTES = "ColTextAttribs";
+
 	/**
 	 * Identifiziert einen Vector, der an das Dokument via putProperty(Object)
 	 * angehaengt wird und den Inhalt der Tabellen enthaelt.
@@ -174,9 +190,9 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	public static final String TABLE_MODELS_PROP = "TableModels";
 
 	/** Feld fuer den Jasper Modus des Editors */
-	public static int MODE_JASPER = 0;
+	public static final int MODE_JASPER = 0;
 
-	private static String EXTRA_TABLE_NEWLINE = "ExtraTableNewline";
+	private static final String EXTRA_TABLE_NEWLINE = "ExtraTableNewline";
 
 	private int iEditorMode = 0;
 
@@ -208,6 +224,10 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	public static String[] getAsAvailableFontSizes() {
 		return asAvailableFontSizes;
+	}
+
+	public static String[] getAsSystemFonts() {
+		return asSystemFonts;
 	}
 
 	public static void setAsAvailableFontSizes(String[] asAvailableFontSizes) {
@@ -255,8 +275,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	Action actionEditSelectAll;
 	Action actionFormatFont, actionFormatColorForeground,
 			actionFormatColorBackground;
-	Action actionFormatAlignLeft, actionFormatAlignRight,
-			actionFormatAlignCenter, actionFormatAlignJustified;
+//	Action actionFormatAlignLeft, actionFormatAlignRight,
+//			actionFormatAlignCenter, actionFormatAlignJustified;
 	Action actionFormatStyleBold, actionFormatStyleItalic,
 			actionFormatStyleUnderline, actionFormatStyleStrikethrough;
 	Action actionInsertTable, actionDeleteTable, actionInsertRowBefore,
@@ -264,7 +284,6 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	Action actionInsertDateTimeUserShortcut;
 	Action actionInsertSignatur;
 	Action actionInsertTextbaustein;
-
 	UndoAction actionEditUndo;
 	RedoAction actionEditRedo;
 
@@ -295,7 +314,6 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	JMenuItem jMenuEditinsertDateTimeUserShortcut = new JMenuItem();
 	JMenuItem jMenuEditinsertSignatur = new JMenuItem();
 	JMenuItem jMenuEditinsertTextbaustein = new JMenuItem();
-	// JMenuItem jMenuEditSelectAll = new JMenuItem();
 	JCheckBoxMenuItem jMenuEditPageBreak = new JCheckBoxMenuItem();
 	JMenuItem jMenuEditSettings = new JMenuItem();
 
@@ -304,11 +322,11 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	JMenu jMenuFormatColor = new JMenu();
 	JMenuItem jMenuFormatColorForeground = new JMenuItem();
 	JMenuItem jMenuFormatColorBackground = new JMenuItem();
-	JMenu jMenuFormatAlign = new JMenu();
-	JMenuItem jMenuFormatAlignLeft = new JMenuItem();
-	JMenuItem jMenuFormatAlignRight = new JMenuItem();
-	JMenuItem jMenuFormatAlignCenter = new JMenuItem();
-	JMenuItem jMenuFormatAlignJustified = new JMenuItem();
+//	JMenu jMenuFormatAlign = new JMenu();
+//	JMenuItem jMenuFormatAlignLeft = new JMenuItem();
+//	JMenuItem jMenuFormatAlignRight = new JMenuItem();
+//	JMenuItem jMenuFormatAlignCenter = new JMenuItem();
+//	JMenuItem jMenuFormatAlignJustified = new JMenuItem();
 	JMenu jMenuFormatStyle = new JMenu();
 	JMenuItem jMenuFormatStyleBold = new JMenuItem();
 	JMenuItem jMenuFormatStyleItalic = new JMenuItem();
@@ -331,18 +349,17 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	JMenuItem jMenuEditCopyPopup = new JMenuItem();
 	JMenuItem jMenuEditPastePopup = new JMenuItem();
 	JMenuItem jMenuEditinsertDateTimeUserShortcutPopup = new JMenuItem();
-	// JMenuItem jMenuEditSelectAllPopup = new JMenuItem();
 
 	JMenu jMenuFormatPopup = new JMenu();
 	JMenuItem jMenuFormatFontPopup = new JMenuItem();
 	JMenu jMenuFormatColorPopup = new JMenu();
 	JMenuItem jMenuFormatColorForegroundPopup = new JMenuItem();
 	JMenuItem jMenuFormatColorBackgroundPopup = new JMenuItem();
-	JMenu jMenuFormatAlignPopup = new JMenu();
-	JMenuItem jMenuFormatAlignLeftPopup = new JMenuItem();
-	JMenuItem jMenuFormatAlignRightPopup = new JMenuItem();
-	JMenuItem jMenuFormatAlignCenterPopup = new JMenuItem();
-	JMenuItem jMenuFormatAlignJustifiedPopup = new JMenuItem();
+//	JMenu jMenuFormatAlignPopup = new JMenu();
+//	JMenuItem jMenuFormatAlignLeftPopup = new JMenuItem();
+//	JMenuItem jMenuFormatAlignRightPopup = new JMenuItem();
+//	JMenuItem jMenuFormatAlignCenterPopup = new JMenuItem();
+//	JMenuItem jMenuFormatAlignJustifiedPopup = new JMenuItem();
 	JMenu jMenuFormatStylePopup = new JMenu();
 	JMenuItem jMenuFormatStyleBoldPopup = new JMenuItem();
 	JMenuItem jMenuFormatStyleItalicPopup = new JMenuItem();
@@ -360,14 +377,15 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	LpToolsPanel jPanelToolBars = new LpToolsPanel();
 	JToolBar jToolBarFile = new JToolBar();
 	JToolBar jToolBarOther = new JToolBar();
-	JToolBar jToolBarAlignment = new JToolBar();
+//	JToolBar jToolBarAlignment = new JToolBar();
 	JToolBar jToolBarFontStyle = new JToolBar();
 	JToolBar jToolBarTable = new JToolBar();
 
-	JComboBox jComboBoxFontNames;
-	JComboBox jComboBoxFontSizes;
+	JComboBox<String> jComboBoxFontNames;
+//	JComboBoxAutoComplete jComboBoxFontNames;
+	JComboBox<String> jComboBoxFontSizes;
 
-	ButtonGroup buttonGroupAlign = new ButtonGroup();
+//	ButtonGroup buttonGroupAlign = new ButtonGroup();
 
 	LpToolBarButton lpButtonFileNew = new LpToolBarButton();
 	LpToolBarButton lpButtonFileOpen = new LpToolBarButton();
@@ -380,15 +398,14 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	LpToolBarButton lpButtonInsertDateTimeUserShortcut = new LpToolBarButton();
 	LpToolBarButton lpButtonInsertSignatur = new LpToolBarButton();
 	LpToolBarButton lpButtonInsertTextbaustein = new LpToolBarButton();
-	LpToolBarToggleButton lpButtonFormatAlignLeft = new LpToolBarToggleButton();
-	LpToolBarToggleButton lpButtonFormatAlignRight = new LpToolBarToggleButton();
-	LpToolBarToggleButton lpButtonFormatAlignCenter = new LpToolBarToggleButton();
-	LpToolBarToggleButton lpButtonFormatAlignJustified = new LpToolBarToggleButton();
+//	LpToolBarToggleButton lpButtonFormatAlignLeft = new LpToolBarToggleButton();
+//	LpToolBarToggleButton lpButtonFormatAlignRight = new LpToolBarToggleButton();
+//	LpToolBarToggleButton lpButtonFormatAlignCenter = new LpToolBarToggleButton();
+//	LpToolBarToggleButton lpButtonFormatAlignJustified = new LpToolBarToggleButton();
 	LpToolBarToggleButton lpButtonFormatStyleBold = new LpToolBarToggleButton();
 	LpToolBarToggleButton lpButtonFormatStyleItalic = new LpToolBarToggleButton();
 	LpToolBarToggleButton lpButtonFormatStyleUnderline = new LpToolBarToggleButton();
 	LpToolBarToggleButton lpButtonFormatStyleStrikethrough = new LpToolBarToggleButton();
-	// LpToolBarButton lpButtonFormatFont = new LpToolBarButton();
 	LpToolBarButton lpButtonFormatColorForeground = new LpToolBarButton();
 	LpToolBarButton lpButtonFormatColorBackground = new LpToolBarButton();
 	LpToolBarButton lpButtonInsertTable = new LpToolBarButton();
@@ -396,6 +413,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	LpToolBarButton lpButtonInsertRowBefore = new LpToolBarButton();
 	LpToolBarButton lpButtonInsertRowAfter = new LpToolBarButton();
 	LpToolBarButton lpButtonDeleteRow = new LpToolBarButton();
+	LpToolBarButton lpButtonClearFormat = new LpToolBarButton();
 
 	// Status Panel
 	JPanel jPanelStatus = new JPanel();
@@ -411,59 +429,57 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	LpDecoratedTextPane jTextPane;
 	Box rulerBox;
 	LpRuler ruler;
-	JComboBox jComboBoxZoom;
-
+	JComboBox<String> jComboBoxZoom;
 	public String localeFuerSignatur = null;
+	private InternalFrame internalFrame;
+//	private Integer fontSize;
+	
+	private SwingMultiRechtschreibAdapter rechtschreibAdapter;
 
 	public void setLocaleAsStringFuerSignatur(String localeFuerSignatur) {
 		this.localeFuerSignatur = localeFuerSignatur;
 	}
 
 	public void cleanup() {
-		jTextPane=null;
-		jComboBoxFontNames = null;
-		jComboBoxFontSizes = null;
-		jComboBoxZoom = null;
-		jTextPane = null;
-		ruler=null;
-		jScrollPane=null;
-		jToolBarOther=null;
-		
+		actionDeleteRow = null;
+		actionDeleteTable = null;
+		actionEditCopy = null;
+		actionEditCut = null;
+		actionEditPaste = null;
+		actionEditRedo = null;
+		actionEditUndo = null;
 		actionFileNew = null;
 		actionFileOpen = null;
 		actionFileSave = null;
 		actionFileSaveAs = null;
+//		actionFormatAlignCenter = null;
+//		actionFormatAlignLeft = null;
+//		actionFormatAlignRight = null;
+		actionFormatColorBackground = null;
+		actionFormatColorForeground = null;
+		actionFormatFont = null;
 		actionFormatStyleBold = null;
 		actionFormatStyleItalic = null;
-		actionFormatStyleUnderline = null;
 		actionFormatStyleStrikethrough = null;
-		actionEditCut = null;
-		actionEditCopy = null;
-		actionEditPaste = null;
+		actionFormatStyleUnderline = null;
 		actionInsertDateTimeUserShortcut = null;
-		actionInsertSignatur = null;
-		actionInsertTextbaustein = null;
-
-		actionInsertTable = null;
-		actionDeleteTable = null;
-		actionInsertRowBefore = null;
 		actionInsertRowAfter = null;
-		actionDeleteRow = null;
-
-		actionFormatAlignLeft = null;
-		actionFormatAlignRight = null;
-		actionFormatAlignCenter = null;
-
-		actionFormatFont = null;
-		actionFormatColorForeground = null;
-		actionFormatColorBackground = null;
-		actionEditUndo = null;
-		actionEditRedo = null;
+		actionInsertRowBefore = null;
+		actionInsertSignatur = null;
+		actionInsertTable = null;
+		actionInsertTextbaustein = null;
+		jComboBoxFontNames = null;
+		jComboBoxFontSizes = null;
+		jComboBoxZoom = null;
+		jScrollPane=null;
+		jTextPane=null;
+		jToolBarOther=null;
+		ruler=null;
 	}
 
 	/**
 	 * Konstruktor fuer den LpEditor. Ruft LpEditor(ownerFrame, null) auf.
-	 * 
+	 *
 	 * @see #LpEditor(JFrame, Locale)
 	 * @param ownerFrame
 	 *            Der JFrame in dem der Editor eingebettet ist
@@ -474,11 +490,11 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Konstruktor fuer den LpEditor
-	 * 
+	 *
 	 * @param ownerFrame
 	 *            Der Frame, in dem der Editor eingebettet ist. Wird fuer das
 	 *            oeffnen von weiteren Dialogen benoetigt.
-	 * 
+	 *
 	 * @param locale
 	 *            Die zu verwendende Sprache. null bedeutet default-locale
 	 */
@@ -488,40 +504,47 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		messages.setLocale(locale);
 
 		try {
-			String zoom = null;
-			String font = null;
-			String size = null;
+//			String zoom = null;
+			zoom = null;
+//			String font = null;
+			font = null;
+			fontSize = null;
 			try {
-				ArbeitsplatzparameterDto zoomDto = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.holeArbeitsplatzparameter(
-								ParameterFac.ARBEITSPLATZPARAMETER_EDITOR_ZOOM);
-				ArbeitsplatzparameterDto fontDto = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.holeArbeitsplatzparameter(
-								ParameterFac.ARBEITSPLATZPARAMETER_EDITOR_SCHRIFTART);
-				ArbeitsplatzparameterDto sizeDto = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.holeArbeitsplatzparameter(
-								ParameterFac.ARBEITSPLATZPARAMETER_EDITOR_SCHRIFT_GROESSE);
-				zoom = zoomDto == null ? null : zoomDto.getCWert();
-				font = fontDto == null ? null : fontDto.getCWert();
-				size = sizeDto == null ? null : sizeDto.getCWert();
+//				ArbeitsplatzparameterDto zoomDto = DelegateFactory
+//						.getInstance()
+//						.getParameterDelegate()
+//						.holeArbeitsplatzparameter(
+//								ParameterFac.ARBEITSPLATZPARAMETER_EDITOR_ZOOM);
+//				ArbeitsplatzparameterDto fontDto = DelegateFactory
+//						.getInstance()
+//						.getParameterDelegate()
+//						.holeArbeitsplatzparameter(
+//								ParameterFac.ARBEITSPLATZPARAMETER_EDITOR_SCHRIFTART);
+//				ArbeitsplatzparameterDto sizeDto = DelegateFactory
+//						.getInstance()
+//						.getParameterDelegate()
+//						.holeArbeitsplatzparameter(
+//								ParameterFac.ARBEITSPLATZPARAMETER_EDITOR_SCHRIFT_GROESSE);
+//				zoom = zoomDto == null ? null : zoomDto.getCWert();
+//				font = fontDto == null ? null : fontDto.getCWert();
+//				size = sizeDto == null ? null : sizeDto.getCWert();
+				zoom = Defaults.getInstance().getEditorZoom();
+				font = Defaults.getInstance().getEditorFont();
+				fontSize = Defaults.getInstance().getEditorFontSize();
 			} catch (Throwable e) {
 			}
 			zoom =  zoom == null ? "100" : zoom;
 			font = font == null ? "Arial" : font;
-			size = size == null ? "10" : size;
-			
-			
+			fontSize = fontSize == null ? Integer.valueOf(10) : fontSize;
+
 			if (asSystemFonts == null) {
 				try {
-					setFontFilter(DelegateFactory.getInstance()
-							.getSystemDelegate().getErlaubteFonts(), false);
+//					setFontFilter(DelegateFactory.getInstance()
+//							.getSystemDelegate().getErlaubteFonts(), false);
+					asSystemFonts = DelegateFactory.getInstance().getSystemDelegate()
+							.getServerSystemReportFonts().toArray(new String[]{});
 				} catch (Throwable e) {
+					myLogger.error("Fehler beim Laden der Fonts vom Server", e);
 					setFontFilter(null, false);
 				}
 			}
@@ -533,9 +556,11 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 				}
 			}
 			font = fontAvailable ? font : "Arial";
-			Font awtFont = new Font(font, Font.PLAIN, new Integer(size));
+			Font awtFont = new Font(font, Font.PLAIN, fontSize);
 			UIManager.put("TextPane.font", awtFont);
-			jTextPane.registerEditorKitForContentType("text/jasper",
+//			jTextPane.registerEditorKitForContentType("text/jasper",
+//					"com.lp.editor.text.LpJasperReportEditorKit");
+			LpDecoratedTextPane.registerEditorKitForContentType("text/jasper",
 					"com.lp.editor.text.LpJasperReportEditorKit");
 			jbInit();
 
@@ -546,7 +571,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			disableTableItems();
 
 			Keymap defaultKeymap = jTextPane.getKeymap();
-			customKeymap = jTextPane.addKeymap("custom", defaultKeymap);
+//			customKeymap = jTextPane.addKeymap("custom", defaultKeymap);
+			customKeymap = LpDecoratedTextPane.addKeymap("custom", defaultKeymap);
 			customKeymap.addActionForKeyStroke(
 					actionEditCopy.getAcceleratorKey(), actionEditCopy);
 			customKeymap.addActionForKeyStroke(
@@ -566,7 +592,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			// zur Zeit gibt es nur diesen Editor - Modus, der den
 			// Editor fuer Jasper Reports vorbereitet
 			if (iEditorMode == MODE_JASPER) {
-				showStatusBar(true);
+				showStatusBar(false);
 				showTabRuler(false);
 				showMenu(false);
 				showFileItems(false);
@@ -578,19 +604,28 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			}
 
 			jComboBoxZoom.setSelectedItem(zoom + "%");
+			jComboBoxFontSizes.setSelectedItem(String.valueOf(fontSize));
 			
-
 		} catch (Exception ex) {
 			myLogger.error(ex.getLocalizedMessage(), ex);
 		}
 
 	}
 
+//	private void setFontSize(Integer fontSize) {
+//		this.fontSize = fontSize;
+//
+//	}
+//
+//	private Integer getFontSize() {
+//		return fontSize;
+//	}
+
 	/**
 	 * Schaltet den Debug - Modus des Editors ein/aus. (Erzeugt eine weiteres
 	 * Fenster zum Betracheten des Dokumenteninhalts und Ein - /Aus- Schalten
 	 * der Bedienelemente.
-	 * 
+	 *
 	 * @param bDebug
 	 *            true: Debug-Modus einschalten, false: Debug - Modus
 	 *            ausschalten.
@@ -610,10 +645,13 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Initialisierung der Oberflaechenelemente des Editors.
-	 * 
+	 *
 	 * @throws Exception
 	 */
 	private void jbInit() throws Exception {
+		rechtschreibAdapter = new SwingMultiRechtschreibAdapter();
+
+		lpButtonClearFormat.setIcon(IconFactory.getEraserClearFormat());
 
 		// asAvailableFontNames =
 		// GraphicsEnvironment.getLocalGraphicsEnvironment().
@@ -628,6 +666,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		actionFileNew = new ActionFileNew(this);
 		actionFileOpen = new ActionFileOpen(this);
 		actionFileSave = new ActionFileSave(this);
+
 		actionFileSaveAs = new ActionFileSaveAs(this);
 		actionFormatStyleBold = new ActionFormatStyleBold(this);
 		actionFormatStyleItalic = new ActionFormatStyleItalic(this);
@@ -682,17 +721,17 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			}
 		});
 
-		actionFormatAlignLeft = new ActionFormatAlignment(this,
-				"Action.LeftAlign", StyleConstants.ALIGN_LEFT);
-		actionFormatAlignRight = new ActionFormatAlignment(this,
-				"Action.RightAlign", StyleConstants.ALIGN_RIGHT);
-		actionFormatAlignCenter = new ActionFormatAlignment(this,
-				"Action.Center", StyleConstants.ALIGN_CENTER);
-
-		// Funktioniert nicht (gleicher Effekt wie Center)
-		// Bug ID: 4263904 auf bugs.sun.com
-		actionFormatAlignJustified = new ActionFormatAlignment(this,
-				"Action.Justify", StyleConstants.ALIGN_JUSTIFIED);
+//		actionFormatAlignLeft = new ActionFormatAlignment(this,
+//				"Action.LeftAlign", StyleConstants.ALIGN_LEFT);
+//		actionFormatAlignRight = new ActionFormatAlignment(this,
+//				"Action.RightAlign", StyleConstants.ALIGN_RIGHT);
+//		actionFormatAlignCenter = new ActionFormatAlignment(this,
+//				"Action.Center", StyleConstants.ALIGN_CENTER);
+//
+//		// Funktioniert nicht (gleicher Effekt wie Center)
+//		// Bug ID: 4263904 auf bugs.sun.com
+//		actionFormatAlignJustified = new ActionFormatAlignment(this,
+//				"Action.Justify", StyleConstants.ALIGN_JUSTIFIED);
 		actionFormatFont = new ActionFormatFont(this);
 		actionFormatColorForeground = new ActionFormatColorForeground(this);
 		actionFormatColorBackground = new ActionFormatColorBackground(this);
@@ -700,17 +739,23 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		actionEditRedo = new RedoAction(this);
 
 		// prepare Combo - Boxes:
-		jComboBoxFontNames = new JComboBox(asSystemFonts);
+		jComboBoxFontNames = new JComboBox<String>(asSystemFonts);
+//		List<String> strings = Arrays.asList(getAsSystemFonts());
+//		StringSearchAble searchable = new StringSearchAble(strings);
+//		jComboBoxFontNames = new JComboBoxAutoComplete(searchable);
 
 		// AD: leere Eintraege wieder entfernen
 		for (int i = 0; i < jComboBoxFontNames.getItemCount() - 1; i++)
 			if (jComboBoxFontNames.getItemAt(i).toString().compareTo("") == 0)
 				jComboBoxFontNames.removeItemAt(i);
 
+		cbFontNamesSize = jComboBoxFontNames.getPreferredSize();
+
 		jComboBoxFontNames
-				.setMaximumSize(jComboBoxFontNames.getPreferredSize());
+//		.setMaximumSize(jComboBoxFontNames.getPreferredSize());
+				.setMaximumSize(cbFontNamesSize);
 		jComboBoxFontNames.setEditable(true);
-		jComboBoxFontNames.setSelectedItem("Arial");
+		jComboBoxFontNames.setSelectedItem(font);
 
 		ActionListener actionListener = new ActionListener() {
 			@Override
@@ -723,18 +768,21 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 				MutableAttributeSet attributeSet = new SimpleAttributeSet();
 				StyleConstants.setFontFamily(attributeSet, sFontName);
 				setCharacterAttributes(attributeSet, false);
-				requestFocusInWindow();
+//				requestFocusInWindow();
 			}
 		};
 		jComboBoxFontNames.addActionListener(actionListener);
+		jComboBoxFontNames.getEditor().getEditorComponent().addKeyListener(keyListener);
+		jComboBoxFontNames.addPopupMenuListener(popupMenuListener);
 
-		jComboBoxFontSizes = new JComboBox(asAvailableFontSizes);
+		jComboBoxFontSizes = new JComboBox<String>(asAvailableFontSizes);
 		Dimension d = new Dimension(Defaults.getInstance().bySizeFactor(50),
 				jComboBoxFontSizes.getPreferredSize().height);
 		jComboBoxFontSizes.setMaximumSize(d);
 		jComboBoxFontSizes.setPreferredSize(d);
 		jComboBoxFontSizes.setEditable(true);
-		
+//		jComboBoxFontSizes.setSelectedItem(getFontSize());
+
 		actionListener = new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -754,8 +802,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		};
 		jComboBoxFontSizes.addActionListener(actionListener);
 
-		jComboBoxZoom = new JComboBox(asZoomFactors);
-		jComboBoxZoom.setEditable(true); 
+		jComboBoxZoom = new JComboBox<String>(asZoomFactors);
+		jComboBoxZoom.setEditable(true);
 		jComboBoxZoom.setPreferredSize(new Dimension(Defaults.getInstance().bySizeFactor(60),
 				jComboBoxZoom.getPreferredSize().height));
 		// jComboBoxZoom.setSelectedIndex(2);
@@ -850,13 +898,13 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 		jMenuFormat.setText(messages.getString("Menu.Format"));
 		jMenuFormat.setMnemonic(messages.getMnemonic("Menu.Format").intValue());
-		jMenuFormatAlign.setText(messages.getString("Menu.Alignment"));
-		jMenuFormatAlign.setMnemonic(messages.getMnemonic("Menu.Alignment")
-				.intValue());
-		jMenuFormatAlignLeft.setAction(actionFormatAlignLeft);
-		jMenuFormatAlignRight.setAction(actionFormatAlignRight);
-		jMenuFormatAlignCenter.setAction(actionFormatAlignCenter);
-		jMenuFormatAlignJustified.setAction(actionFormatAlignJustified);
+//		jMenuFormatAlign.setText(messages.getString("Menu.Alignment"));
+//		jMenuFormatAlign.setMnemonic(messages.getMnemonic("Menu.Alignment")
+//				.intValue());
+//		jMenuFormatAlignLeft.setAction(actionFormatAlignLeft);
+//		jMenuFormatAlignRight.setAction(actionFormatAlignRight);
+//		jMenuFormatAlignCenter.setAction(actionFormatAlignCenter);
+//		jMenuFormatAlignJustified.setAction(actionFormatAlignJustified);
 		jMenuFormatStyle.setText(messages.getString("Menu.Style"));
 		jMenuFormatStyle.setMnemonic(messages.getMnemonic("Menu.Style")
 				.intValue());
@@ -871,10 +919,10 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		jMenuFormatColorForeground.setAction(actionFormatColorForeground);
 		jMenuFormatColorBackground.setAction(actionFormatColorBackground);
 		jMenuBar.add(jMenuFormat);
-		jMenuFormat.add(jMenuFormatAlign);
-		jMenuFormatAlign.add(jMenuFormatAlignLeft);
-		jMenuFormatAlign.add(jMenuFormatAlignRight);
-		jMenuFormatAlign.add(jMenuFormatAlignCenter);
+//		jMenuFormat.add(jMenuFormatAlign);
+//		jMenuFormatAlign.add(jMenuFormatAlignLeft);
+//		jMenuFormatAlign.add(jMenuFormatAlignRight);
+//		jMenuFormatAlign.add(jMenuFormatAlignCenter);
 		// jMenuFormatAlign.add(jMenuFormatAlignJustified);
 		jMenuFormat.add(jMenuFormatStyle);
 		jMenuFormatStyle.add(jMenuFormatStyleBold);
@@ -915,12 +963,12 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 		jMenuFormatPopup.setText(jMenuFormat.getText());
 		jMenuFormatPopup.setMnemonic(jMenuFormat.getMnemonic());
-		jMenuFormatAlignPopup.setText(jMenuFormatAlign.getText());
-		jMenuFormatAlignPopup.setMnemonic(jMenuFormatAlign.getMnemonic());
-		jMenuFormatAlignLeftPopup.setAction(actionFormatAlignLeft);
-		jMenuFormatAlignRightPopup.setAction(actionFormatAlignRight);
-		jMenuFormatAlignCenterPopup.setAction(actionFormatAlignCenter);
-		jMenuFormatAlignJustifiedPopup.setAction(actionFormatAlignJustified);
+//		jMenuFormatAlignPopup.setText(jMenuFormatAlign.getText());
+//		jMenuFormatAlignPopup.setMnemonic(jMenuFormatAlign.getMnemonic());
+//		jMenuFormatAlignLeftPopup.setAction(actionFormatAlignLeft);
+//		jMenuFormatAlignRightPopup.setAction(actionFormatAlignRight);
+//		jMenuFormatAlignCenterPopup.setAction(actionFormatAlignCenter);
+//		jMenuFormatAlignJustifiedPopup.setAction(actionFormatAlignJustified);
 
 		jMenuFormatStylePopup.setText(jMenuFormatStyle.getText());
 		jMenuFormatStylePopup.setMnemonic(jMenuFormatStyle.getMnemonic());
@@ -936,10 +984,10 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		jMenuFormatColorForegroundPopup.setAction(actionFormatColorForeground);
 		jMenuFormatColorBackgroundPopup.setAction(actionFormatColorBackground);
 
-		jMenuFormatPopup.add(jMenuFormatAlignPopup);
-		jMenuFormatAlignPopup.add(jMenuFormatAlignLeftPopup);
-		jMenuFormatAlignPopup.add(jMenuFormatAlignRightPopup);
-		jMenuFormatAlignPopup.add(jMenuFormatAlignCenterPopup);
+//		jMenuFormatPopup.add(jMenuFormatAlignPopup);
+//		jMenuFormatAlignPopup.add(jMenuFormatAlignLeftPopup);
+//		jMenuFormatAlignPopup.add(jMenuFormatAlignRightPopup);
+//		jMenuFormatAlignPopup.add(jMenuFormatAlignCenterPopup);
 		// jMenuFormatAlignPopup.add(jMenuFormatAlignJustifiedPopup);
 		jMenuFormatPopup.add(jMenuFormatStylePopup);
 		jMenuFormatStylePopup.add(jMenuFormatStyleBoldPopup);
@@ -992,7 +1040,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		lpButtonEditRedo.setMnemonic(0);
 		jToolBarOther.add(lpButtonEditRedo);
 
-		jToolBarOther.addSeparator();
+//		jToolBarOther.addSeparator();
 
 		lpButtonEditCut.setAction(actionEditCut);
 		lpButtonEditCut.setMnemonic(0);
@@ -1014,12 +1062,12 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		lpButtonInsertSignatur.setAction(actionInsertSignatur);
 		lpButtonInsertSignatur.setMnemonic(0);
 		jToolBarOther.add(lpButtonInsertSignatur);
-		
+
 		lpButtonInsertTextbaustein.setAction(actionInsertTextbaustein);
 		lpButtonInsertTextbaustein.setMnemonic(0);
 		jToolBarOther.add(lpButtonInsertTextbaustein);
 
-		jToolBarOther.addSeparator();
+//		jToolBarOther.addSeparator();
 
 		jToolBarOther.add(jComboBoxFontNames);
 		jToolBarOther.add(jComboBoxFontSizes);
@@ -1030,28 +1078,29 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		// jToolBarOther.add(lpButtonFormatFont);
 
 		// Alignment Toolbar
-		jToolBarAlignment.setFloatable(false);
-		jToolBarAlignment.setRollover(true);
+//		jToolBarAlignment.setFloatable(false);
+//		jToolBarAlignment.setRollover(true);
 
-		lpButtonFormatAlignLeft.setAction(actionFormatAlignLeft);
-		lpButtonFormatAlignLeft.setMnemonic(0);
-		jToolBarAlignment.add(lpButtonFormatAlignLeft);
-		buttonGroupAlign.add(lpButtonFormatAlignLeft);
-
-		lpButtonFormatAlignRight.setAction(actionFormatAlignRight);
-		lpButtonFormatAlignRight.setMnemonic(0);
-		jToolBarAlignment.add(lpButtonFormatAlignRight);
-		buttonGroupAlign.add(lpButtonFormatAlignRight);
-
-		lpButtonFormatAlignCenter.setAction(actionFormatAlignCenter);
-		lpButtonFormatAlignCenter.setMnemonic(0);
-		jToolBarAlignment.add(lpButtonFormatAlignCenter);
-		buttonGroupAlign.add(lpButtonFormatAlignCenter);
-
-		lpButtonFormatAlignJustified.setAction(actionFormatAlignJustified);
-		lpButtonFormatAlignJustified.setMnemonic(0);
-		// jToolBarAlignment.add(lpButtonFormatAlignJustified);
-		// buttonGroupAlign.add(lpButtonFormatAlignJustified);
+//		lpButtonFormatAlignLeft.setAction(actionFormatAlignLeft);
+//		lpButtonFormatAlignLeft.setMnemonic(0);
+//		jToolBarAlignment.add(lpButtonFormatAlignLeft);
+//		buttonGroupAlign.add(lpButtonFormatAlignLeft);
+//
+//		lpButtonFormatAlignRight.setAction(actionFormatAlignRight);
+//		lpButtonFormatAlignRight.setMnemonic(0);
+//		jToolBarAlignment.add(lpButtonFormatAlignRight);
+//		buttonGroupAlign.add(lpButtonFormatAlignRight);
+//
+//		lpButtonFormatAlignCenter.setAction(actionFormatAlignCenter);
+////		lpButtonFormatAlignCenter.addActionListener(alFormatAlignCenter);
+//		lpButtonFormatAlignCenter.setMnemonic(0);
+//		jToolBarAlignment.add(lpButtonFormatAlignCenter);
+//		buttonGroupAlign.add(lpButtonFormatAlignCenter);
+//
+//		lpButtonFormatAlignJustified.setAction(actionFormatAlignJustified);
+//		lpButtonFormatAlignJustified.setMnemonic(0);
+//		// jToolBarAlignment.add(lpButtonFormatAlignJustified);
+//		// buttonGroupAlign.add(lpButtonFormatAlignJustified);
 
 		// FontStyle Toolbar
 		jToolBarFontStyle.setFloatable(false);
@@ -1073,8 +1122,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 				.setAction(actionFormatStyleStrikethrough);
 		lpButtonFormatStyleStrikethrough.setMnemonic(0);
 		jToolBarFontStyle.add(lpButtonFormatStyleStrikethrough);
-
-		jToolBarFontStyle.addSeparator();
+//		jToolBarFontStyle.addSeparator();
 
 		lpButtonFormatColorForeground.setAction(actionFormatColorForeground);
 		lpButtonFormatColorForeground.setMnemonic(0);
@@ -1083,6 +1131,15 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		lpButtonFormatColorBackground.setAction(actionFormatColorBackground);
 		lpButtonFormatColorBackground.setMnemonic(0);
 		jToolBarFontStyle.add(lpButtonFormatColorBackground);
+//		jToolBarFontStyle.addSeparator();
+
+		lpButtonClearFormat.addActionListener(alClearFormat);
+//		lpButtonClearFormat.addActionListener(actionFormatAlignLeft);
+		lpButtonClearFormat.setMnemonic(0);
+		lpButtonClearFormat.setToolTipText(LpEditorMessages.getInstance().getString(
+				"Action.ClearFormat"));
+		jToolBarFontStyle.add(lpButtonClearFormat);
+//		jToolBarFontStyle.addSeparator();
 
 		// Table Items
 		jToolBarTable.setFloatable(false);
@@ -1106,18 +1163,14 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		jPanelToolBars.setLayout(new FlowLayout(FlowLayout.LEADING, 2, 0));
 		jPanelToolBars.add(jToolBarFile);
 		jPanelToolBars.add(jToolBarOther);
-		jPanelToolBars.add(jToolBarAlignment);
+//		jPanelToolBars.add(jToolBarAlignment);
 		jPanelToolBars.add(jToolBarFontStyle);
 		jPanelToolBars.add(jToolBarTable);
 		jPanelToolBars.add(jComboBoxZoom);
 
-		// Settings:
-
 		// Init Edit - area
 		jToolBarOther.setOrientation(JToolBar.HORIZONTAL);
-
 		this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-
 		Dimension dim = new Dimension(Integer.MAX_VALUE,
 				jMenuBar.getPreferredSize().height);
 		jMenuBar.setMaximumSize(dim);
@@ -1126,13 +1179,13 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		this.add(jMenuBar);
 		this.add(jPanelToolBars);
 
-		jTextPaneBox = Box.createHorizontalBox();
 		jTextPane = new LpDecoratedTextPane();
+		jTextPane.setEditorKit(new LpStyledEditorKit());
+		jTextPaneBox = Box.createHorizontalBox();
 		jTextPaneBox.add(Box.createHorizontalGlue());
-		LpEditorSheetPanel sheet = new LpEditorSheetPanel(jTextPane);
+		sheet = new LpEditorSheetPanel(jTextPane);
 		jTextPaneBox.add(sheet);
 		jTextPaneBox.add(Box.createHorizontalGlue());
-		// jTextPaneBox.setMinimumSize(sheet.getPreferredSize());
 		jScrollPane.getViewport().add(jTextPaneBox, null);
 		rulerBox = Box.createHorizontalBox();
 		ruler = new LpRuler(jTextPane);
@@ -1142,19 +1195,121 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		rulerBox.add(Box.createHorizontalGlue());
 		jScrollPane.setColumnHeaderView(rulerBox);
 
+		rechtschreibAdapter.addComponent(jTextPane);
+		
 		this.add(jScrollPane);
 		this.add(jPanelStatus);
+
 	}
+
+	ActionListener alClearFormat = new ActionListener() {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+
+		    attr = new SimpleAttributeSet();
+
+			StyleConstants.setFontFamily(attr, font);
+			jComboBoxFontNames.setSelectedItem(font);
+
+			StyleConstants.setFontSize(attr, fontSize);
+			jComboBoxFontSizes.setSelectedItem(fontSize.toString());
+
+			zoom = (zoom == null) ? "100" : zoom;
+			double scale = Double.parseDouble(zoom) / 100;
+			jTextPane.setZoomFactor(scale);
+//			jScrollPane.revalidate();
+//			jScrollPane.repaint();
+			jComboBoxZoom.setSelectedItem(zoom + "%");
+
+			StyleConstants.setBold(attr, false);
+			lpButtonFormatStyleBold.setSelected(false);
+
+			StyleConstants.setItalic(attr, false);
+			lpButtonFormatStyleItalic.setSelected(false);
+
+			StyleConstants.setUnderline(attr, false);
+			lpButtonFormatStyleUnderline.setSelected(false);
+
+			StyleConstants.setStrikeThrough(attr, false);
+			lpButtonFormatStyleStrikethrough.setSelected(false);
+
+			StyleConstants.setItalic(attr, false);
+			lpButtonFormatStyleItalic.setSelected(false);
+
+			StyleConstants.setForeground(attr, new Color(0,0,0));
+			lpButtonFormatColorForeground.setSelected(false);
+
+			StyleConstants.setBackground(attr, new Color(255,255,255));
+			lpButtonFormatColorBackground.setSelected(false);
+
+			// Format vorhandener Text
+			jTextPane.getStyledDocument().setCharacterAttributes(0, getStyledDocument().getLength(), attr, false);
+
+			// Format letzte Cursorposition
+			setCharacterAttributes(attr, false);
+
+		}
+	};
+
+	KeyListener keyListener = new KeyAdapter() {
+		@Override
+		public void keyReleased(KeyEvent e) {
+//				if (e.getKeyCode() != 38 && e.getKeyCode() != 40 && e.getKeyCode() != 10) {
+					String a = jComboBoxFontNames.getEditor().getItem().toString();
+					jComboBoxFontNames.removeAllItems();
+					int st = 0;
+
+					for (int i = 0; i < asSystemFonts.length; i++) {
+						if (asSystemFonts[i].toLowerCase().startsWith(a.toLowerCase())) {
+							jComboBoxFontNames.addItem(asSystemFonts[i]);
+							st++;
+						}
+					}
+					jComboBoxFontNames.getEditor().setItem(a);
+					JTextField textField = (JTextField)jComboBoxFontNames.getEditor().getEditorComponent();
+			        textField.setCaretPosition(textField.getCaretPosition());
+					jComboBoxFontNames.setPreferredSize(cbFontNamesSize);
+					if (st != 0) {
+						jComboBoxFontNames.showPopup();
+					}
+//				}
+		}
+	};
+
+	PopupMenuListener popupMenuListener = new PopupMenuListener() {
+
+		@Override
+		public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+		}
+
+		@Override
+		public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+			requestFocusInWindow();
+		}
+
+		@Override
+		public void popupMenuCanceled(PopupMenuEvent e) {
+		}
+	};
+
+//	private LpEditor getLpEditor() {
+//		return this;
+//	}
+
+//	private LpDecoratedTextPane getLpDecoratedTextPane() {
+//		return jTextPane;
+//	}
 
 	/**
 	 * Oeffentlicher Zugriff auf das MenuBar - Objekt des Lp-Editors. Damit ist
 	 * es moeglich, die MenuBar in das Menue eines uebergeordneten Objekts
 	 * einzubinden. Das interne Menue kann dann ueber {@link #showMenu} ein bzw.
 	 * ausgeschaltet werden.
-	 * 
+	 *
 	 * @see #showMenu
 	 * @return Das intern konfigurierte Menue des Editors.
-	 * 
+	 *
 	 */
 	public JMenuBar getMenuBar() {
 		return jMenuBar;
@@ -1163,7 +1318,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * Liefert das MenuItem "Exit". Damit kann der uebergeordnete Frame einen
 	 * ActionListener verknuepfen.
-	 * 
+	 *
 	 * @see #getMenuBar
 	 * @return Das Exit MenuItem.
 	 */
@@ -1174,7 +1329,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * Oeffentlicher Zugriff auf das JTextPaneElement. Sollte nur selten
 	 * gebraucht werden.
-	 * 
+	 *
 	 * @see com.lp.editor.ui.LpTextPane
 	 * @return das interne LpTextPane
 	 */
@@ -1188,17 +1343,17 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Formatierung entspricht. Wurde mit setJasperReport(JasperReport) eine
 	 * Vorlage zur Verfuegung gestellt, so werden zur Zeit zusaetzliche
 	 * Informationen darin nicht in den neuen Report uebernommen.
-	 * 
+	 *
 	 * @return Der neue JasperReport, falls ContentType gleich "text/jasper"
 	 *         ist, null sonst.
-	 * 
+	 *
 	 * @see #setJasperReport(JasperReport)
 	 * @see #newFile(String)
 	 */
 	/*
 	 * public JasperReport getJasperReport() { if
 	 * (!jTextPane.getContentType().equals("text/jasper")) { return null; }
-	 * 
+	 *
 	 * if (jTextPane.getContentType().equals("text/jasper")) { if
 	 * (jasperReportTemplate == null) { return ((LpJasperReportEditorKit)
 	 * jTextPane.getEditorKit())
@@ -1208,12 +1363,12 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Liefert den formatierten Inhalt des Editors in strukturierter Form.
-	 * 
+	 *
 	 * @see com.lp.editor.util.LpEditorReportData
 	 * @see com.lp.editor.util.LpEditorRow
-	 * 
+	 *
 	 * @throws TextBlockOverflowException
-	 * 
+	 *
 	 * @return Den Editor Inhalt, falls ContentType gleich "text/jasper" ist,
 	 *         null sonst.
 	 */
@@ -1256,7 +1411,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Setzt den Inhalt des Editors auf data
-	 * 
+	 *
 	 * @param data
 	 *            LpEditorReportData
 	 * @throws ArrayIndexOutOfBoundsException
@@ -1317,7 +1472,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * Ueberschreibt JComponent.requestFocusInWindow() um dem CellEditor den
 	 * Focus geben zu koennen, falls dieser aktiv ist.
-	 * 
+	 *
 	 * @return boolean
 	 */
 	@Override
@@ -1667,15 +1822,15 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * werden, um z.B. die Kapazitaet festzulegen. Bei Verwendung einer Vorlage
 	 * (z.B. JasperReport) sollten Attribute erst nach dem Setzen dieser
 	 * geaendert werden.
-	 * 
+	 *
 	 * @param index
 	 *            Wenn kleiner als 0, dann werden die Attribute des Fliesztextes
 	 *            uebergeben. Wenn kleiner als die Anzahl der Tabellenspalten
 	 *            werden die Attribute der Spalte mit dem passenden Index
 	 *            uebergeben, sonst null.
-	 * 
+	 *
 	 * @return TextBlockAttributes
-	 * 
+	 *
 	 * @see TextBlockAttributes
 	 */
 	public TextBlockAttributes getTextBlockAttributes(int index) {
@@ -1707,7 +1862,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Formatierten Text erlauben/sperren
-	 * 
+	 *
 	 * @param styledText
 	 *            erlauben
 	 */
@@ -1743,7 +1898,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Setzt die Anzahl der Spalten. Ihre Attribute werden mit Default-Werten
 	 * initialisiert. Sollte nicht nach dem Laden einer Vorlage aufgerufen
 	 * werden.
-	 * 
+	 *
 	 * @param count
 	 *            Anzahl der Spalten
 	 */
@@ -1758,11 +1913,11 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Ruft getText() des verwendeten JTextPane auf. Abhaengig vom Editor-Modus
 	 * wird der Text inklusive Format-Tags zurueckgegeben. Im Jasper Modus wird
 	 * der Text inklusive Tabellen-Daten (in HTML-Tags) zurueckgegeben.
-	 * 
+	 *
 	 * @see #setText
 	 * @see #getReportData
 	 * @throws TextBlockOverflowException
-	 * 
+	 *
 	 * @return Den gesamten Inhalt des Editors (inklusive Format - tags).
 	 */
 	public String getText() throws TextBlockOverflowException {
@@ -1815,19 +1970,19 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Liefert den Text passend zum Text-Stil zur&uuml;ck.
-	 * 
+	 *
 	 * Hintergrund: F&uuml;r die Jasper-Reports werden einige Zeichen in HTML
 	 * encoding dargestellt. In einem "PlainText" Dokument will ich aber kein
-	 * &amp; sondern ein & haben.
-	 * 
+	 * &amp;amp; sondern ein & haben.
+	 *
 	 * Das das hier an dieser Stelle ist, ist mehr als &uuml;berarbeitungs-
 	 * w&uuml;rdig. Eigentlich m&uuml;sste man das dem LpJasperGenerator
 	 * beibringen, der den Text mittels getReportData() liefert. Das ist aber
 	 * eine &ouml;ffentliche Methode und zus&auml;tzlich werden die so
 	 * gelieferten Daten auch noch manipuliert.
-	 * 
+	 *
 	 * Vielleicht f&auml;llt mir da sp&auml;ter noch was sinnvolles ein.
-	 * 
+	 *
 	 * Achtung: Diese Methode geht davon aus, dass beim Bearbeiten des Textes
 	 * bereits der textPaneAttributes.isStyledText == false steht! Denn damit
 	 * hat der Anwender gar nicht mehr die M&ouml;glichkeit irgendwelche
@@ -1844,7 +1999,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * Initialisiert den Editor mit einem neuen Text (inklusive Formatierung).
 	 * Es wird erwartet, dass der Text dem aktuellen ContentType entspricht.
-	 * 
+	 *
 	 * @see #getText
 	 * @param sText
 	 *            Der Text, der als neuer Inhalt des Editors gesetzt werden
@@ -1859,7 +2014,6 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			bReadingInProgress = false;
 		} else {
 			newFile(null);
-
 			bReadingInProgress = true;
 
 			Document doc = jTextPane.getDocument();
@@ -1882,240 +2036,12 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		undoManager.discardAllEdits();
 		actionEditUndo.updateUndoState();
 		actionEditRedo.updateRedoState();
+		updateBufferStatus(textPaneAttributes, -1);
 	}
 
 	/**
-	 * Setzt eine nicht-editierbare JasperReport Vorlage
-	 * 
-	 * @see #setJasperReport(JasperReport, boolean)
-	 * @param report
-	 *            JasperReport
-	 * @throws FontNotFoundException
-	 */
-	/*
-	 * public void setJasperReport(JasperReport report) throws
-	 * FontNotFoundException { setJasperReport(report, false); }
-	 */
-
-	/**
-	 * Setzt als Vorlage einen JasperReport und erzeugt ein leeres Dokument mit
-	 * "text/jasper" als ContentType. Die Attribute fuer Fliesztext und Spalten
-	 * werden dabei neu geschrieben. Folgende Informationen werden von der
-	 * Vorlage verwertet: <br>
-	 * <br>
-	 * pageWidth, pageHeight, leftMargin, rightMargin, topMargin, bottomMargin<br>
-	 * <br>
-	 * Weiters wird nach Report Elementen gesucht, deren key Attribute
-	 * "column{i}" lautet, wobei {i} fuer eine Zahl ab 1 steht. Die Breite
-	 * dieser Elemente wird als Spaltenbreite interpretiert, wobei die
-	 * Numerierung durchgehend sein muss und die Spaltenordnung repraesentiert.<br>
-	 * <br>
-	 * Folgende Formatierungen werden unterstuetzt:<br>
-	 * <br>
-	 * forecolor, backcolor, fontName, size, isUnderline, isItalic, isBold,
-	 * isStrikeThrough textAlignment, isStyledText
-	 * 
-	 * @param report
-	 *            JasperReport
-	 * @param bEditable
-	 *            true bedeutet, man darf die Report-Vorlage aendern (soweit
-	 *            moeglich). Z.B. Alignment, DefaultFont, ...
-	 * @throws FontNotFoundException
-	 * 
-	 * @see #getTextBlockAttributes(int)
-	 */
-	/*
-	 * public void setJasperReport(JasperReport report, boolean bEditable)
-	 * throws FontNotFoundException { int top = report.getTopMargin(); int
-	 * bottom = report.getBottomMargin(); int left = report.getLeftMargin(); int
-	 * right = report.getRightMargin();
-	 * 
-	 * int width = report.getPageWidth(); int height = report.getPageHeight();
-	 * 
-	 * JRSection detail = report.getDetailSection();
-	 * 
-	 * Vector<AttributeSet> vecAttributes = new Vector<AttributeSet>();
-	 * 
-	 * boolean bThrowFontNotFoundException = false; Vector<String>
-	 * vecStrFontNamesNotFound = new Vector<String>();
-	 * 
-	 * newFile("text/jasper"); jTextPane.setPageFormat(new Dimension(width,
-	 * height)); jTextPane.setPageMargin(new Insets(top, left, bottom, right));
-	 * 
-	 * // ======================== Default Style //
-	 * ================================ // Benutzt die neueren "style" Jasper
-	 * Elemente um den Default-Stil // fuer den Report zu finden Style
-	 * defaultStyle = jTextPane.getStyle(StyleContext.DEFAULT_STYLE);
-	 * defaultStyle.removeAttributes(defaultStyle);
-	 * 
-	 * boolean bDefaultFontFound = false; JRStyle[] styles = report.getStyles();
-	 * if (styles != null) { for (int i = 0; i < styles.length; i++) { if
-	 * (styles[i].isDefault()) { bDefaultFontFound = true;
-	 * 
-	 * if (!isFontNameAvailable(styles[i].getFontName())) {
-	 * bThrowFontNotFoundException = true; myLogger.warn(messages.format(
-	 * "FontNotFoundException.DefaultFontName", new Object[] {
-	 * styles[i].getFontName(), report.getName() }));
-	 * vecStrFontNamesNotFound.add(styles[i].getFontName());
-	 * 
-	 * defaultStyle.addAttribute(StyleConstants.FontFamily, ((Font)
-	 * UIManager.get("TextPane.font")) .getFontName()); } else {
-	 * defaultStyle.addAttribute(StyleConstants.FontFamily,
-	 * styles[i].getFontName()); }
-	 * 
-	 * defaultStyle.addAttribute(StyleConstants.FontSize,
-	 * styles[i].getFontSize());
-	 * defaultStyle.addAttribute(StyleConstants.Italic, styles[i].isItalic());
-	 * defaultStyle.addAttribute(StyleConstants.Bold, styles[i].isBold());
-	 * defaultStyle.addAttribute(StyleConstants.Underline,
-	 * styles[i].isUnderline());
-	 * defaultStyle.addAttribute(StyleConstants.StrikeThrough,
-	 * styles[i].isStrikeThrough());
-	 * 
-	 * break; } } }
-	 * 
-	 * // Fallback zu den veralteten "reportFont" Jasper-Elementen um nach //
-	 * den Default-Font zu suchen if (!bDefaultFontFound) { JRReportFont[] fonts
-	 * = report.getFonts(); if (fonts != null) { for (int i = 0; i <
-	 * fonts.length; i++) { if (fonts[i].isDefault()) {
-	 * 
-	 * if (!isFontNameAvailable(fonts[i].getFontName())) {
-	 * bThrowFontNotFoundException = true; myLogger.warn(messages.format(
-	 * "FontNotFoundException.DefaultFontName", new Object[] {
-	 * fonts[i].getFontName(), report.getName() }));
-	 * vecStrFontNamesNotFound.add(fonts[i].getFontName());
-	 * 
-	 * defaultStyle.addAttribute( StyleConstants.FontFamily, ((Font)
-	 * UIManager.get("TextPane.font")) .getFontName()); } else {
-	 * defaultStyle.addAttribute( StyleConstants.FontFamily,
-	 * fonts[i].getFontName()); }
-	 * 
-	 * defaultStyle.addAttribute(StyleConstants.FontSize, new
-	 * Integer(fonts[i].getFontSize()));
-	 * defaultStyle.addAttribute(StyleConstants.Italic, new
-	 * Boolean(fonts[i].isItalic()));
-	 * defaultStyle.addAttribute(StyleConstants.Bold, new
-	 * Boolean(fonts[i].isBold()));
-	 * defaultStyle.addAttribute(StyleConstants.Underline, new
-	 * Boolean(fonts[i].isUnderline()));
-	 * defaultStyle.addAttribute(StyleConstants.StrikeThrough, new
-	 * Boolean(fonts[i].isStrikeThrough())); break; } } } }
-	 * 
-	 * // ================== Tabellenspalten - Attribute //
-	 * ======================= vecCellEditors.clear(); vecCellRenderers.clear();
-	 * vecColTextAttributes.clear(); TextBlockAttributes colAttributes = null;
-	 * for (int i = 1;; i++) { JRBaseTextField element = (JRBaseTextField)
-	 * detail .getElementByKey("column" + i); if (element == null) { break; }
-	 * else { SimpleAttributeSet attributes = new SimpleAttributeSet();
-	 * attributes.addAttributes(defaultStyle.copyAttributes());
-	 * 
-	 * // Alignment if (element.getHorizontalAlignmentValue() ==
-	 * HorizontalAlignEnum.LEFT ) { StyleConstants.setAlignment(attributes,
-	 * StyleConstants.ALIGN_LEFT); } else if
-	 * (element.getHorizontalAlignmentValue() == HorizontalAlignEnum.JUSTIFIED)
-	 * { StyleConstants.setAlignment(attributes,
-	 * StyleConstants.ALIGN_JUSTIFIED); } else if
-	 * (element.getHorizontalAlignmentValue() == HorizontalAlignEnum.CENTER) {
-	 * StyleConstants.setAlignment(attributes, StyleConstants.ALIGN_CENTER); }
-	 * else if (element.getHorizontalAlignmentValue() ==
-	 * HorizontalAlignEnum.RIGHT) { StyleConstants.setAlignment(attributes,
-	 * StyleConstants.ALIGN_RIGHT);
-	 * 
-	 * // Color } StyleConstants .setForeground(attributes,
-	 * element.getForecolor()); StyleConstants .setBackground(attributes,
-	 * element.getBackcolor());
-	 * 
-	 * // Font String strFontName = element.getFontName(); if
-	 * (!isFontNameAvailable(strFontName)) { bThrowFontNotFoundException = true;
-	 * myLogger.warn(messages.format( "FontNotFoundException.FontName", new
-	 * Object[] { strFontName, element.getKey(), report.getName() }));
-	 * vecStrFontNamesNotFound.add(strFontName);
-	 * 
-	 * attributes.addAttribute(StyleConstants.FontFamily, ((Font)
-	 * UIManager.get("TextPane.font")) .getFontName()); } else {
-	 * attributes.addAttribute(StyleConstants.FontFamily, strFontName); }
-	 * 
-	 * attributes.addAttribute(StyleConstants.FontSize, new Integer(
-	 * element.getFontSize())); attributes.addAttribute(StyleConstants.Bold, new
-	 * Boolean( element.isBold()));
-	 * attributes.addAttribute(StyleConstants.Italic, new Boolean(
-	 * element.isItalic())); attributes.addAttribute(StyleConstants.Underline,
-	 * new Boolean( element.isUnderline()));
-	 * attributes.addAttribute(StyleConstants.StrikeThrough, new
-	 * Boolean(element.isStrikeThrough()));
-	 * 
-	 * boolean bEqual = false; for (int j = 0; j < vecAttributes.size(); j++) {
-	 * if (vecAttributes.get(j) .isEqual(attributes)) {
-	 * vecCellEditors.add(vecCellEditors.get(j));
-	 * vecCellRenderers.add(vecCellRenderers.get(j)); bEqual = true; break; } }
-	 * if (!bEqual) { vecAttributes.add(attributes);
-	 * setupNewCellEditor(attributes); vecCellRenderers.add(new
-	 * LpEditorCellRenderer(attributes)); }
-	 * 
-	 * colAttributes = new TextBlockAttributes(attributes); colAttributes.width
-	 * = element.getWidth(); colAttributes.isStyledText =
-	 * element.isStyledText(); vecColTextAttributes.add(colAttributes); }
-	 * 
-	 * showAlignmentItems(bEditable); }
-	 * 
-	 * // Eigenschaften des TextFeld mit key = "textblock" zum // Default -
-	 * Style fuer Fliesztexte hinzufuegen JRBaseTextField textblock =
-	 * (JRBaseTextField) detail .getElementByKey("textblock"); if (textblock !=
-	 * null) {
-	 * 
-	 * // Alignment if (textblock.getHorizontalAlignmentValue() ==
-	 * HorizontalAlignEnum.LEFT) { StyleConstants.setAlignment(defaultStyle,
-	 * StyleConstants.ALIGN_LEFT); } else if
-	 * (textblock.getHorizontalAlignmentValue() ==
-	 * HorizontalAlignEnum.JUSTIFIED) {
-	 * StyleConstants.setAlignment(defaultStyle,
-	 * StyleConstants.ALIGN_JUSTIFIED); } else if
-	 * (textblock.getHorizontalAlignmentValue() == HorizontalAlignEnum.CENTER) {
-	 * StyleConstants.setAlignment(defaultStyle, StyleConstants.ALIGN_CENTER); }
-	 * else if (textblock.getHorizontalAlignmentValue() ==
-	 * HorizontalAlignEnum.RIGHT) { StyleConstants.setAlignment(defaultStyle,
-	 * StyleConstants.ALIGN_RIGHT);
-	 * 
-	 * // Color } StyleConstants .setForeground(defaultStyle,
-	 * textblock.getForecolor()); StyleConstants .setBackground(defaultStyle,
-	 * textblock.getBackcolor());
-	 * 
-	 * // Font String strFontName = textblock.getFontName(); if
-	 * (!isFontNameAvailable(strFontName)) {
-	 * 
-	 * bThrowFontNotFoundException = true; myLogger.warn(messages.format(
-	 * "FontNotFoundException.FontName", new Object[] { strFontName,
-	 * textblock.getKey(), report.getName() }));
-	 * vecStrFontNamesNotFound.add(strFontName);
-	 * 
-	 * defaultStyle.addAttribute(StyleConstants.FontFamily, ((Font)
-	 * UIManager.get("TextPane.font")).getFontName()); } else {
-	 * defaultStyle.addAttribute(StyleConstants.FontFamily, strFontName); }
-	 * 
-	 * defaultStyle.addAttribute(StyleConstants.FontSize, new Integer(
-	 * textblock.getFontSize())); defaultStyle.addAttribute(StyleConstants.Bold,
-	 * new Boolean( textblock.isBold()));
-	 * defaultStyle.addAttribute(StyleConstants.Italic, new Boolean(
-	 * textblock.isItalic()));
-	 * defaultStyle.addAttribute(StyleConstants.Underline, new Boolean(
-	 * textblock.isUnderline()));
-	 * defaultStyle.addAttribute(StyleConstants.StrikeThrough, new
-	 * Boolean(textblock.isStrikeThrough()));
-	 * 
-	 * textPaneAttributes = new TextBlockAttributes(defaultStyle);
-	 * textPaneAttributes.isStyledText = textblock.isStyledText(); }
-	 * 
-	 * jTextPane.setLogicalStyle(defaultStyle); updateUIElements(defaultStyle,
-	 * false); undoManager.discardAllEdits(); jasperReportTemplate = report;
-	 * 
-	 * if (bThrowFontNotFoundException) { throw new FontNotFoundException(
-	 * messages.getString("FontNotFoundException.FontNotFound"),
-	 * vecStrFontNamesNotFound.toArray(new String[] {})); } }
-	 */
-
-	/**
 	 * Schaltet die Sichtbarkeit des eingebetteten Menues um.
-	 * 
+	 *
 	 * @see #getMenuBar
 	 * @param status
 	 *            true: Menue sichtbar, false: Menue unsichtbar
@@ -2126,7 +2052,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Schaltet die Sichtbarkeit der eingebetteten ToolBar um.
-	 * 
+	 *
 	 * @param status
 	 *            true: ToolBar sichtbar, false: ToolBar unsichtbar.
 	 */
@@ -2137,7 +2063,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Schaltet die Sichtbarkeit des eingebetteten TabRulers um.
-	 * 
+	 *
 	 * @param status
 	 *            true: TabRuler sichtbar, false: TabRuler unsichtbar.
 	 */
@@ -2157,7 +2083,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Schaltet die Sichtbarkeit der eingebetteten StatusBar um.
-	 * 
+	 *
 	 * @param status
 	 *            true: StatusBar sichtbar, false: StatusBar unsichtbar.
 	 */
@@ -2189,9 +2115,9 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		return jToolBarTable.isVisible();
 	}
 
-	public boolean isAlignmentItemVisible() {
-		return jToolBarAlignment.isVisible();
-	}
+//	public boolean isAlignmentItemVisible() {
+//		return jToolBarAlignment.isVisible();
+//	}
 
 	public boolean isFontStyleItemVisible() {
 		return jToolBarFontStyle.isVisible();
@@ -2204,18 +2130,26 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * setzt das TextPane auf editierbar/nicht editierbar und schaltet das Popup
 	 * - Menue entsprechend ein/aus.
-	 * 
+	 *
 	 * <font color="#ff0000">ACHTUNG:</font> Menue, Toolbar und Ruler muessen
 	 * extra ausgeschaltet werden!
-	 * 
+	 *
 	 * @param enabled
 	 *            boolean
-	 * 
+	 *
 	 * @see #showMenu
 	 * @see #showToolBar
 	 * @see #showTabRuler
 	 */
 	public void setEditable(boolean enabled) {
+		if(enabled) {
+			rechtschreibAdapter.addComponent(getTextPane());
+			rechtschreibAdapter.aktiviereRechtschreibpruefung();
+		}
+		else {
+			rechtschreibAdapter.removeComponent(getTextPane());
+			rechtschreibAdapter.deaktiviereRechtschreibpruefung();
+		}
 		jTextPane.setEditable(enabled);
 
 		if (!enabled) {
@@ -2230,7 +2164,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Element von fontNames passen. Verglichen wird mit Font.getFamily(), wird
 	 * kein passender Font gefunden so werden die auswaehlbaren Fonts nicht
 	 * geaendert und eine Exception geworfen.
-	 * 
+	 *
 	 * @param fontNames
 	 *            Die Family Namen, nach denen gefiltert werden soll. null
 	 *            bedeutet alle verfuegbaren Fonts bereitzustellen.
@@ -2239,10 +2173,10 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 *            vorhandenen FontFamilies uebereinstimmen. Bei false bleibt
 	 *            Grosz/Kleinschreibung unberuecksichtigt und es wird nur mit
 	 *            String.startsWith() verglichen.
-	 * 
+	 *
 	 * @throws FontNotFoundException
 	 *             wenn ueberhaupt keine Uebereinstimmungen gefunden wurden.
-	 * 
+	 *
 	 * @return Die FontFamilies, auf die die Kriterien gepasst haben.
 	 */
 	public String[] setFontFilter(String[] fontNames, boolean bExactMatch)
@@ -2319,7 +2253,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Setzt die Seitenbreite des editierbaren Bereichs.
-	 * 
+	 *
 	 * @see #getTextPane
 	 * @param width
 	 *            Die Breite in Pixel.
@@ -2330,7 +2264,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Liefert die Seitenbreite des editierbaren Bereichs.
-	 * 
+	 *
 	 * @see #getTextPane
 	 * @return die Seitenbreite des editierbaren Bereichs
 	 */
@@ -2341,7 +2275,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * Schaltet die Sichtbarkeit der Datei - Menuepunkte und dazugehoeriger
 	 * Toolbar - Buttons um.
-	 * 
+	 *
 	 * @param status
 	 *            true: Items sichtbar, false: Items unsichtbar
 	 */
@@ -2354,7 +2288,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * Schaltet die Sichtbarkeit der Menue- und Toolbar-Eintraege fuer Tabellen
 	 * um.
-	 * 
+	 *
 	 * @param status
 	 *            boolean
 	 */
@@ -2367,20 +2301,20 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	/**
 	 * Schaltet die Sichtbarkeit der Menue- und Toolbar-Eintraege fuer das
 	 * Alignment um.
-	 * 
+	 *
 	 * @param status
 	 *            boolean
 	 */
 	public void showAlignmentItems(boolean status) {
-		jToolBarAlignment.setVisible(status);
-		jMenuFormatAlign.setVisible(status);
-		// jMenuFormatAlignPopup.setVisible(status);
+//		jToolBarAlignment.setVisible(status);
+//		jMenuFormatAlign.setVisible(status);
+//		// jMenuFormatAlignPopup.setVisible(status);
 	}
 
 	/**
 	 * Schaltet die Sichtbarkeit der Menue- und Toolbar-Eintraege fuer Bold,
 	 * Italic, Underline, Strikethrough, Forecolor und Backcolor um.
-	 * 
+	 *
 	 * @param status
 	 *            boolean
 	 */
@@ -2398,11 +2332,11 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Initialisiert den Editor mit einem leeren Dokument. Erstellt ein neues
 	 * Dokument und verwirft das alte. Der Filename gilt daraufhin als unbekannt
 	 * und das Dokument als nicht editiert.
-	 * 
+	 *
 	 * @param type
 	 *            Der content-type fuer die neue Datei. null bedeutet keine
 	 *            Aenderung des Typs.
-	 * 
+	 *
 	 * @see #openFile
 	 * @see #openFile(String)
 	 * @see #saveFile(File)
@@ -2427,7 +2361,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 		if (document instanceof StyledDocument) {
 			vecTableModels.clear();
-			document.putProperty("i18n", Boolean.TRUE);
+			//TODO i18n ist fuer den nichtfunktionierenden ersten Tab veranwortlich
+//			document.putProperty("i18n", Boolean.TRUE);
 			document.putProperty(LpEditor.TABLE_MODELS_PROP, vecTableModels);
 			document.putProperty(LpEditor.COLUMN_TEXT_ATTRIBUTES,
 					vecColTextAttributes);
@@ -2444,7 +2379,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		jTextPane.updateUI();
 		actualFile = null;
 		bFileIsEdited = false;
-		updateBufferStatus(textPaneAttributes, 0, true);
+//		updateBufferStatus(textPaneAttributes, 0, true);
 		updateFileName();
 	}
 
@@ -2454,21 +2389,20 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * gilt anschliessend der Name des Files und das Dokument als nicht
 	 * editiert.<br>
 	 * Fuer JasperReports noch nicht vollstaendig implementiert.
-	 * 
+	 *
 	 * @see #newFile
 	 * @see #openFile(String)
 	 * @see #saveFile(File)
 	 * @see #saveFile(String)
-	 * 
+	 *
 	 * @param file
 	 *            File, das eingelesen werden soll.
 	 * @throws FileNotFoundException
 	 *             das angegebene File konnte nicht gefunden werden.
-	 * 
+	 *
 	 */
 	public void openFile(File file) throws FileNotFoundException {
 		LpFormatParser parser = null;
-		FileInputStream stream = new FileInputStream(file);
 
 		bReadingInProgress = true;
 		if (file.getName().toLowerCase().endsWith(".jrxml")
@@ -2479,7 +2413,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			newFile("text/plain");
 		}
 
-		try {
+		try(FileInputStream stream = new FileInputStream(file)) {
 			if (parser != null) {
 				parser.parseFromStream(stream, jTextPane.getStyledDocument(),
 						jTextPane.getCaretPosition());
@@ -2515,17 +2449,17 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * den Fileinhalt ein. Als Filename gilt anschliessend der Name des Files
 	 * und das Dokument als nicht editiert.<br>
 	 * Fuer JasperReports noch nicht vollstaendig implementiert.
-	 * 
+	 *
 	 * @see #newFile
 	 * @see #openFile(File)
 	 * @see #saveFile(File)
 	 * @see #saveFile(String)
-	 * 
+	 *
 	 * @param sFileName
 	 *            Der Name des Files, das eingelesen werden soll.
 	 * @throws FileNotFoundException
 	 *             das angegebene File konnte nicht gefunden werden.
-	 * 
+	 *
 	 */
 	public void openFile(String sFileName) throws FileNotFoundException {
 		openFile(new File(sFileName));
@@ -2535,17 +2469,17 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Speichern des aktuellen Dokuments in eine Datei. Als Filename gilt
 	 * anschliessend der Name des Files und das Dokument als nicht editiert.<br>
 	 * Neuimplementation notwendig.
-	 * 
+	 *
 	 * @see #newFile
 	 * @see #openFile(String)
 	 * @see #openFile(File)
 	 * @see #saveFile(String)
-	 * 
+	 *
 	 * @param file
 	 *            File, in das der Text gespeichert werden soll.
 	 * @throws FileNotFoundException
 	 *             das angegebene File konnte nicht gefunden werden.
-	 * 
+	 *
 	 */
 	public void saveFile(File file) throws FileNotFoundException {
 		// FileOutputStream stream =
@@ -2564,17 +2498,17 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Speichern des aktuellen Dokuments in eine Datei, die ueber ihren
 	 * Dateinamen charakterisiert ist. Als Filename gilt anschliessend der Name
 	 * des Files und das Dokument als nicht editiert.
-	 * 
+	 *
 	 * @see #newFile
 	 * @see #openFile(String)
 	 * @see #openFile(File)
 	 * @see #saveFile(File)
-	 * 
+	 *
 	 * @param sFileName
 	 *            Name des Files, in das der Text gespeichert werden soll.
 	 * @throws FileNotFoundException
 	 *             das angegebene File konnte nicht gefunden werden.
-	 * 
+	 *
 	 */
 	public void saveFile(String sFileName) throws FileNotFoundException {
 		saveFile(new File(sFileName));
@@ -2584,7 +2518,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Von dem Frame aufzurufen, der das LpEditor Panel beinhaelt, wenn dieser
 	 * beendet wird. Fuehrt dann eine Benutzerabfrage durch, ob das Dokument
 	 * gespeichert werden soll.
-	 * 
+	 *
 	 * @return false wenn der Benutzer kein Schliessen wuenscht oder das
 	 *         Speichern des Dokuments fehlgeschlagen ist. true sonst.
 	 */
@@ -2664,20 +2598,20 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		lpButtonFormatStyleStrikethrough.setSelected(StyleConstants
 				.isStrikeThrough(attr));
 
-		switch (StyleConstants.getAlignment(attr)) {
-		case StyleConstants.ALIGN_LEFT:
-			lpButtonFormatAlignLeft.setSelected(true);
-			break;
-		case StyleConstants.ALIGN_RIGHT:
-			lpButtonFormatAlignRight.setSelected(true);
-			break;
-		case StyleConstants.ALIGN_CENTER:
-			lpButtonFormatAlignCenter.setSelected(true);
-			break;
-		case StyleConstants.ALIGN_JUSTIFIED:
-			lpButtonFormatAlignJustified.setSelected(true);
-			break;
-		}
+//		switch (StyleConstants.getAlignment(attr)) {
+//		case StyleConstants.ALIGN_LEFT:
+//			lpButtonFormatAlignLeft.setSelected(true);
+//			break;
+//		case StyleConstants.ALIGN_RIGHT:
+//			lpButtonFormatAlignRight.setSelected(true);
+//			break;
+//		case StyleConstants.ALIGN_CENTER:
+//			lpButtonFormatAlignCenter.setSelected(true);
+//			break;
+//		case StyleConstants.ALIGN_JUSTIFIED:
+//			lpButtonFormatAlignJustified.setSelected(true);
+//			break;
+//		}
 	}
 
 	protected boolean isFontNameAvailable(String strFontName) {
@@ -2691,6 +2625,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	}
 
 	void updateBufferStatus(TextBlockAttributes attr, int pos, boolean bAll) {
+
 		if (!bUpdateBuffer) {
 			return;
 		}
@@ -2715,14 +2650,16 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 				return;
 			}
 
+			currentTextBlockLength = jTextPane.getText().length();
 			String strBufferText = "";
-			String strBufferStat = " (" + currentTextBlockLength + "/";
+			String strBufferStat = " ";
+//			String strBufferStat = " (" + currentTextBlockLength + "/";
 			int val = 0;
 			if (textAttr.capacity > 0) {
 				val = (int) (100.0 * currentTextBlockLength / textAttr.capacity);
-				strBufferStat += textAttr.capacity + ") ";
-			} else {
-				strBufferStat += messages.getString("Status.Unlimited") + ") ";
+//				strBufferStat += textAttr.capacity + ") ";
+//			} else {
+//				strBufferStat += messages.getString("Status.Unlimited") + ") ";
 
 			}
 			jProgressBarBuffer.setValue(val);
@@ -2754,7 +2691,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 			// stellt sicher, dass die Markierungen fuer Kapazitaets
 			// ueberschreitungen neu gezeichnet werden
-			jTextPane.repaint();
+//			jTextPane.repaint();
 			jLabelBufferText.setText(strBufferText + strBufferStat);
 		}
 	}
@@ -2763,7 +2700,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Wird z.B. aufgerufen, wenn begonnen wird eine Zelle zu editieren. Dann
 	 * werden die entsprechenden Actions aktiviert und der aktuelle CellEditor
 	 * gesetzt.
-	 * 
+	 *
 	 * @param event
 	 *            PropertyChangeEvent
 	 */
@@ -2823,6 +2760,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		}
 		document.addDocumentListener(lpDocumentListener);
 
+		rechtschreibAdapter.addComponent(cellEditor.getEditor());
 		vecCellEditors.add(cellEditor);
 	}
 
@@ -2837,9 +2775,9 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Oeffnet ein File, nach Auswahl des Filenamens durch den Benutzer
-	 * 
+	 *
 	 * @return true, wenn das oeffnen erfolgreich war, false, wenn nicht.
-	 * 
+	 *
 	 */
 	protected boolean open() {
 		boolean bSuccess = false;
@@ -2874,7 +2812,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Sichert das Aktuelle file, ggf. nach Frage nach einem Filenamen.
-	 * 
+	 *
 	 * @return true, wenn das sichern erfolgreich war, false, wenn nicht.
 	 */
 	protected boolean save() {
@@ -2900,7 +2838,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Sichert das aktuelle file nach Frage nach einem Filnamen.
-	 * 
+	 *
 	 * @return true, wenn das sichern erfolgreich war, false, wenn nicht.
 	 */
 	protected boolean saveAs() {
@@ -2939,7 +2877,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		actionFormatStyleUnderline.setEnabled(flag);
 		actionFormatStyleStrikethrough.setEnabled(flag);
 
-		enableTextAlignmentItems(flag);
+//		enableTextAlignmentItems(flag);
 	}
 
 	protected void enableTableItems(LpEditorTable table) {
@@ -2950,7 +2888,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			actionInsertRowAfter.setEnabled(true);
 			actionInsertRowBefore.setEnabled(true);
 
-			enableTextAlignmentItems(false);
+//			enableTextAlignmentItems(false);
 		} else if (currentTable != table) {
 			currentTable.removeRowSelectionInterval(0,
 					currentTable.getRowCount() - 1);
@@ -2959,12 +2897,12 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		currentTable = table;
 	}
 
-	protected void enableTextAlignmentItems(boolean newValue) {
-		actionFormatAlignCenter.setEnabled(newValue);
-		actionFormatAlignJustified.setEnabled(newValue);
-		actionFormatAlignLeft.setEnabled(newValue);
-		actionFormatAlignRight.setEnabled(newValue);
-	}
+//	protected void enableTextAlignmentItems(boolean newValue) {
+//		actionFormatAlignCenter.setEnabled(newValue);
+//		actionFormatAlignJustified.setEnabled(newValue);
+//		actionFormatAlignLeft.setEnabled(newValue);
+//		actionFormatAlignRight.setEnabled(newValue);
+//	}
 
 	protected void disableTableItems() {
 		actionInsertTable.setEnabled(true);
@@ -2973,7 +2911,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		actionInsertRowAfter.setEnabled(false);
 		actionInsertRowBefore.setEnabled(false);
 
-		enableTextAlignmentItems(true);
+//		enableTextAlignmentItems(true);
 
 		if (currentTable != null) {
 			currentTable.clearSelection();
@@ -2986,14 +2924,14 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Prueft, ob das gerade geoeffnete File nach der letzten Aenderung
 	 * gesichert wurde, oder nicht und fuehrt ggf. eine Entsprechende
 	 * BenutzerAbfrage und Aktionen durch.
-	 * 
+	 *
 	 * @param sDialogTitle
 	 *            Der Titel des Dialogs (sollte im wesentlichen beschreiben,
 	 *            welche Aktion gerade durchgefuehrt werden sollte, bevor der
 	 *            Dialog aufgerufen wurde.)
 	 * @return true, wenn das File gesichert wurde, bzw vom Benutzer bestaetigt
 	 *         wurde, dass es geloescht werden darf. false, andernfalls.
-	 * 
+	 *
 	 */
 	private boolean checkContentDiscardAllowed(String sDialogTitle) {
 		boolean bAllowed = false;
@@ -3025,9 +2963,9 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * Implementierung von DocumenListener, angepasst fuer den LpEditor.
 	 * Bestimmt, ob das aktuelle Dokument editiert wurde und ruft die
 	 * aktualisierung des Buffer - Zustandes auf.
-	 * 
+	 *
 	 * @see LpEditor#updateBufferStatus(TextBlockAttributes, int)
-	 * 
+	 *
 	 */
 	protected class LpDocumentListener implements DocumentListener {
 		@Override
@@ -3038,6 +2976,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 				updateBufferStatus(currentTextBlockAttributes, -1);
 			}
+//			jTextPane.repaint();
+//			jTextPane.invalidate();
 		}
 
 		@Override
@@ -3047,6 +2987,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 				bFileIsEdited = true;
 				updateBufferStatus(currentTextBlockAttributes, -1);
 			}
+//			jTextPane.repaint();
+//			jTextPane.invalidate();
 		}
 
 		@Override
@@ -3066,6 +3008,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 				currentTextBlockLength = -1;
 				updateBufferStatus(currentTextBlockAttributes, -1);
 			}
+//			jTextPane.repaint();
+//			jTextPane.invalidate();
 		}
 
 	}
@@ -3079,11 +3023,17 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		@Override
 		public void caretUpdate(CaretEvent ce) {
 
-			AttributeSet attr = ((JTextPane) ce.getSource())
+//			MutableAttributeSet attr = ((JTextPane) ce.getSource())
+//					.getInputAttributes();
+			attr = ((JTextPane) ce.getSource())
 					.getInputAttributes();
-
+//
 			boolean selected = ce.getDot() != ce.getMark();
 			updateUIElements(attr, selected);
+
+//			updateBufferStatus(currentTextBlockAttributes, -1);
+
+
 		}
 	}
 
@@ -3099,7 +3049,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * </p>
 	 * <p>
 	 * </p>
-	 * 
+	 *
 	 * @author Sascha Zelzer
 	 * @version $Revision: 1.7 $
 	 */
@@ -3143,7 +3093,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * </p>
 	 * <p>
 	 * </p>
-	 * 
+	 *
 	 * @author Sascha Zelzer
 	 * @version $Revision: 1.7 $
 	 */
@@ -3228,7 +3178,8 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			}
 
 			// SP 922 Tabs unterbinden
-			//text = text.replaceAll("\t", " ");
+//			String str = "" + '\t' + '\t';
+//			text = text.replaceAll("\t", str);
 
 			boolean bReplaced = false;
 
@@ -3292,6 +3243,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 									(int) (currentTextBlockAttributes.capacity - currentTextBlockLength));
 					pasteText = parseEscapeCharacter(pasteText);
 					currentTextBlockLength += pasteText.length();
+
 				} else {
 					pasteText = text;
 					currentTextBlockLength += text.length();
@@ -3358,9 +3310,9 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	/**
 	 * Editor-Attribute / Stile &uuml;bernehmen
-	 * 
+	 *
 	 * Fontnamen, Fontgr&ouml;&szlig;en, Fontattribute ...
-	 * 
+	 *
 	 * @param otherEditor
 	 */
 	public void setupAttributesFrom(LpEditor otherEditor) {
@@ -3368,6 +3320,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 			throw new IllegalArgumentException("otherEditor");
 
 		showToolBar(otherEditor.isToolBarVisible());
+//		showStatusBar(otherEditor.isStatusBarVisible());
 		showMenu(otherEditor.isMenuVisible());
 		showTabRuler(otherEditor.isTableItemVisible());
 		showFileItems(otherEditor.jToolBarFile.isVisible());
@@ -3376,7 +3329,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	}
 
 	/**
-	 * 
+	 *
 	 * <p>
 	 * <I>Implementierung der UndoableEditListeners und Erweiterung von
 	 * UndoManger, angepasst fuer den LpEditor. Speichert die Editier - Events
@@ -3391,14 +3344,14 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 	 * </p>
 	 * <p>
 	 * </p>
-	 * 
+	 *
 	 * @author Sascha Zelzer
 	 * @version $Revision: 1.7 $
 	 */
 	protected class LpCompoundUndoManager extends UndoManager implements
 			UndoableEditListener {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 		private CompoundEdit compoundEdit = null;
@@ -3445,7 +3398,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	private class CompoundTableInsertEdit extends CompoundEdit {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 		private int index;
@@ -3474,7 +3427,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 
 	private class CompoundTableDeleteEdit extends CompoundEdit {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 		private int index;
@@ -3524,7 +3477,7 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 				// }
 			}
 
-			if (e.getButton() == e.BUTTON3) {
+			if (e.getButton() == MouseEvent.BUTTON3) {
 				jPopupMenu.show(e.getComponent(), e.getX(), e.getY());
 			}
 		}
@@ -3548,4 +3501,25 @@ public class LpEditor extends JPanel implements PropertyChangeListener {
 		return parsed;
 	}
 
+	public void setInternalFrame(InternalFrame internalFrame) {
+		this.internalFrame = internalFrame;
+	}
+	public InternalFrame getInternalFrame() {
+		return internalFrame;
+	}
+
+	@Override
+	public void aktiviereRechtschreibpruefung() {
+		rechtschreibAdapter.aktiviereRechtschreibpruefung();
+	}
+
+	@Override
+	public void deaktiviereRechtschreibpruefung() {
+		rechtschreibAdapter.deaktiviereRechtschreibpruefung();
+	}
+	
+	@Override
+	public void setRechtschreibpruefungLocale(Locale loc) {
+		rechtschreibAdapter.setRechtschreibpruefungLocale(loc);
+	}
 }

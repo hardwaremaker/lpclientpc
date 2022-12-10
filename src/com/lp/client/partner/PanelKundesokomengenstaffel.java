@@ -37,21 +37,33 @@ import java.util.EventObject;
 
 import javax.swing.JComponent;
 
+import com.lp.client.artikel.InternalFrameArtikel;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.mengenstaffel.PanelMengenstaffel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.partner.service.KundeDto;
 import com.lp.server.partner.service.KundesokoDto;
 import com.lp.server.partner.service.KundesokomengenstaffelDto;
 
 @SuppressWarnings("static-access")
 /**
- * <p>In diesem Fenster wird eine Kundesokomengenstaffel erfasst.
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 07.07.2006</p>
- * <p> </p>
+ * <p>
+ * In diesem Fenster wird eine Kundesokomengenstaffel erfasst.
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 07.07.2006
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.3 $
  */
@@ -61,18 +73,28 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	protected InternalFrameKunde internalFrameKunde = null;
-
 	private KundesokoDto kundesokoDto = null;
 	private KundesokomengenstaffelDto mengenstaffelDto = null;
 
-	public PanelKundesokomengenstaffel(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
+	public PanelKundesokomengenstaffel(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key, false);
 
-		internalFrameKunde = (InternalFrameKunde) internalFrame;
-
 		initComponents();
+	}
+
+	private KundesokoDto getKundeSokoDto() throws Throwable {
+		if (getInternalFrame() instanceof InternalFrameKunde) {
+
+			InternalFrameKunde ifk = (InternalFrameKunde) getInternalFrame();
+
+			return ifk.getTpKunde().getPanelKundesoko().getKundesokoDto();
+		} else if (getInternalFrame() instanceof InternalFrameArtikel) {
+			InternalFrameArtikel ifa = (InternalFrameArtikel) getInternalFrame();
+			Integer kundesokoIId = (Integer) ifa.getTabbedPaneArtikel().getPanelQuerySoko().getSelectedId();
+
+			return DelegateFactory.getInstance().getKundesokoDelegate().kundesokoFindByPrimaryKey(kundesokoIId);
+		}
+		return null;
 	}
 
 	protected void setDefaults() throws Throwable {
@@ -84,26 +106,18 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 
 		// den Artikel bzw. die Artikelgruppe bei einer neuen Mengenstaffel
 		// initialisieren
-		kundesokoDto = internalFrameKunde.getTpKunde().getPanelKundesoko()
-				.getKundesokoDto();
+		kundesokoDto = getKundeSokoDto();
 
 		if (kundesokoDto.getArtikelIId() != null) {
 			wcoArt.setKeyOfSelectedItem(ART_ARTIKEL);
 
-			panelArtikel.getWifArtikel().setArtikelDto(
-					DelegateFactory
-							.getInstance()
-							.getArtikelDelegate()
-							.artikelFindByPrimaryKey(
-									kundesokoDto.getArtikelIId()));
+			panelArtikel.getWifArtikel().setArtikelDto(DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(kundesokoDto.getArtikelIId()));
 
-			panelArtikel.artikelDto2Components(panelArtikel.getWifArtikel()
-					.getArtikelDto());
+			panelArtikel.artikelDto2Components(panelArtikel.getWifArtikel().getArtikelDto());
 
-			panelArtikel.getWdfGueltigab().setDate(
-					kundesokoDto.getTPreisgueltigab());
-			panelArtikel.getWdfGueltigbis().setDate(
-					kundesokoDto.getTPreisgueltigbis());
+			panelArtikel.getWdfGueltigab().setDate(kundesokoDto.getTPreisgueltigab());
+			panelArtikel.getWdfGueltigbis().setDate(kundesokoDto.getTPreisgueltigbis());
 
 			panelArtikel.wcbWirktNichtInVerkaufspreisfindung.setVisible(false);
 
@@ -112,10 +126,8 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 
 			panelArtgru.artgruDto2components(kundesokoDto.getArtgruIId());
 
-			panelArtgru.getWdfGueltigab().setDate(
-					kundesokoDto.getTPreisgueltigab());
-			panelArtgru.getWdfGueltigbis().setDate(
-					kundesokoDto.getTPreisgueltigbis());
+			panelArtgru.getWdfGueltigab().setDate(kundesokoDto.getTPreisgueltigab());
+			panelArtgru.getWdfGueltigbis().setDate(kundesokoDto.getTPreisgueltigbis());
 		}
 	}
 
@@ -124,8 +136,7 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 
 		panelArtikel.getWifArtikel().getWbuArtikel().setActivatable(bEnabled);
 		panelArtikel.getWifArtikel().getWtfIdent().setActivatable(bEnabled);
-		panelArtikel.getWifArtikel().getWtfBezeichnung()
-				.setActivatable(bEnabled);
+		panelArtikel.getWifArtikel().getWtfBezeichnung().setActivatable(bEnabled);
 		panelArtikel.getWdfGueltigab().setActivatable(bEnabled);
 		panelArtikel.getWdfGueltigbis().setActivatable(bEnabled);
 
@@ -136,8 +147,7 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 		panelArtgru.getWdfGueltigbis().setActivatable(bEnabled);
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			mengenstaffelDto.setKundesokoIId(kundesokoDto.getIId());
 
@@ -145,27 +155,20 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 				// bei Verlassen des Dialogs mit Strg+S
 				panelArtikel.preisSetzen();
 
-				mengenstaffelDto = panelArtikel
-						.components2mengenstaffelDto(mengenstaffelDto);
+				mengenstaffelDto = panelArtikel.components2mengenstaffelDto(mengenstaffelDto);
 			} else { // Artikelgruppe
-				mengenstaffelDto = panelArtgru
-						.components2mengenstaffelDto(mengenstaffelDto);
+				mengenstaffelDto = panelArtgru.components2mengenstaffelDto(mengenstaffelDto);
 			}
 
 			if (mengenstaffelDto.getIId() == null) {
-				Integer mengenstaffelIId = DelegateFactory.getInstance()
-						.getKundesokoDelegate()
+				Integer mengenstaffelIId = DelegateFactory.getInstance().getKundesokoDelegate()
 						.createKundesokomengenstaffel(mengenstaffelDto);
-				mengenstaffelDto = DelegateFactory
-						.getInstance()
-						.getKundesokoDelegate()
-						.kundesokomengenstaffelFindByPrimaryKey(
-								mengenstaffelIId);
+				mengenstaffelDto = DelegateFactory.getInstance().getKundesokoDelegate()
+						.kundesokomengenstaffelFindByPrimaryKey(mengenstaffelIId);
 
 				setKeyWhenDetailPanel(mengenstaffelDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getKundesokoDelegate()
-						.updateKundesokomengenstaffel(mengenstaffelDto);
+				DelegateFactory.getInstance().getKundesokoDelegate().updateKundesokomengenstaffel(mengenstaffelDto);
 			}
 
 			// buttons schalten
@@ -175,15 +178,13 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 
 		setDefaults();
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 
 		// neu einlesen, ausloeser war ev. ein refresh
@@ -193,22 +194,23 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 		setDefaults();
 
 		if (key != null && !key.equals(LPMain.getLockMeForNew())) {
-			mengenstaffelDto = DelegateFactory.getInstance()
-					.getKundesokoDelegate()
+			mengenstaffelDto = DelegateFactory.getInstance().getKundesokoDelegate()
 					.kundesokomengenstaffelFindByPrimaryKey((Integer) key);
 
-			kundesokoDto = DelegateFactory
-					.getInstance()
-					.getKundesokoDelegate()
-					.kundesokoFindByPrimaryKey(
-							mengenstaffelDto.getKundesokoIId());
+			kundesokoDto = DelegateFactory.getInstance().getKundesokoDelegate()
+					.kundesokoFindByPrimaryKey(mengenstaffelDto.getKundesokoIId());
 
 			if (kundesokoDto.getArtikelIId() != null) {
 				wcoArt.setKeyOfSelectedItem(ART_ARTIKEL);
 
+				KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+						.kundeFindByPrimaryKey(kundesokoDto.getKundeIId());
+
+				panelArtikel.setWaehrungCNr(kundeDto.getCWaehrung());
+				panelArtikel.setLabels(kundeDto.getCWaehrung());
+
 				panelArtikel.mengenstaffelDto2components(mengenstaffelDto);
-				panelArtikel.artikelDto2Components(DelegateFactory
-						.getInstance().getArtikelDelegate()
+				panelArtikel.artikelDto2Components(DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey(kundesokoDto.getArtikelIId()));
 			} else {
 				wcoArt.setKeyOfSelectedItem(ART_ARTIKELGRUPPE);
@@ -220,21 +222,47 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 			aktualisiereStatusbar();
 		}
 
-		String sTitel = internalFrameKunde.getKundeDto().getPartnerDto()
-				.formatFixTitelName1Name2();
+		String sTitel = "";
 
-		if (wcoArt.getKeyOfSelectedItem().equals(ART_ARTIKEL)) {
-			sTitel += panelArtikel.baueTitel();
-		} else {
-			sTitel += panelArtgru.baueTitel();
+		if (getInternalFrame() instanceof InternalFrameKunde) {
+			((InternalFrameKunde) getInternalFrame()).getKundeDto().getPartnerDto().formatFixTitelName1Name2();
+			if (wcoArt.getKeyOfSelectedItem().equals(ART_ARTIKEL)) {
+				sTitel += panelArtikel.baueTitel();
+			} else {
+				sTitel += panelArtgru.baueTitel();
+			}
+
+			if (mengenstaffelDto.getIId() != null) {
+				sTitel += " | " + mengenstaffelDto.getNMenge();
+			}
+
 		}
 
-		if (mengenstaffelDto.getIId() != null) {
-			sTitel += " | " + mengenstaffelDto.getNMenge();
-		}
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, sTitel);
 
-		getInternalFrame()
-				.setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, sTitel);
+	}
+
+	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
+		LockStateValue lockStateValue = super.getLockedstateDetailMainKey();
+
+		Object key = getKeyWhenDetailPanel();
+		if (key != null && !key.equals(LPMain.getLockMeForNew())) {
+
+			mengenstaffelDto = DelegateFactory.getInstance().getKundesokoDelegate()
+					.kundesokomengenstaffelFindByPrimaryKey((Integer) key);
+
+			kundesokoDto = DelegateFactory.getInstance().getKundesokoDelegate()
+					.kundesokoFindByPrimaryKey(mengenstaffelDto.getKundesokoIId());
+			KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(kundesokoDto.getKundeIId());
+			if (!kundeDto.getMandantCNr().equals(LPMain.getTheClient().getMandant())) {
+				if (!DelegateFactory.getInstance().getBenutzerServicesDelegate().hatRechtInZielmandant(
+						RechteFac.RECHT_LP_DARF_PREISE_AENDERN_VERKAUF, kundeDto.getMandantCNr())) {
+					lockStateValue = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				}
+			}
+		}
+		return lockStateValue;
 	}
 
 	protected String getLockMeWer() throws Exception {
@@ -245,19 +273,24 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 		return null;
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 		// die Default Mengenstaffel kann nicht geloescht werden
-		if (internalFrameKunde.getTpKunde()
-				.getPanelKundesokomengenstaffelQP11().getTable().getRowCount() == 1) {
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.hint"), LPMain.getInstance()
-					.getTextRespectUISPr("part.hint.defaultmengenstaffel"));
+		int irowCount = 1;
+		if (getInternalFrame() instanceof InternalFrameKunde) {
+			irowCount = ((InternalFrameKunde) getInternalFrame()).getTpKunde().getPanelKundesokomengenstaffelQP11()
+					.getTable().getRowCount();
+		} else if (getInternalFrame() instanceof InternalFrameArtikel) {
+			irowCount = ((InternalFrameArtikel) getInternalFrame()).getTabbedPaneArtikel()
+					.getPanelQuerySokomengenstaffel().getTable().getRowCount();
+		}
+
+		if (irowCount == 1) {
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hint"),
+					LPMain.getInstance().getTextRespectUISPr("part.hint.defaultmengenstaffel"));
 		} else {
 			if (mengenstaffelDto != null && mengenstaffelDto.getIId() != null) {
-				DelegateFactory.getInstance().getKundesokoDelegate()
-						.removeKundesokomengenstaffel(mengenstaffelDto);
+				DelegateFactory.getInstance().getKundesokoDelegate().removeKundesokomengenstaffel(mengenstaffelDto);
 			}
 
 			super.eventActionDelete(e, false, false); // keyWasForLockMe nicht
@@ -273,8 +306,7 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 	/**
 	 * Auswahl der Art der SOKO ist erfolgt.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 */
 	void wcoArt_actionPerformed(ActionEvent e) {
 		Object currentArt = wcoArt.getKeyOfSelectedItem();
@@ -295,12 +327,10 @@ public class PanelKundesokomengenstaffel extends PanelMengenstaffel {
 	}
 }
 
-class PanelKundesokomengenstaffel_wcoArt_actionAdapter implements
-		java.awt.event.ActionListener {
+class PanelKundesokomengenstaffel_wcoArt_actionAdapter implements java.awt.event.ActionListener {
 	PanelKundesokomengenstaffel adaptee;
 
-	PanelKundesokomengenstaffel_wcoArt_actionAdapter(
-			PanelKundesokomengenstaffel adaptee) {
+	PanelKundesokomengenstaffel_wcoArt_actionAdapter(PanelKundesokomengenstaffel adaptee) {
 		this.adaptee = adaptee;
 	}
 

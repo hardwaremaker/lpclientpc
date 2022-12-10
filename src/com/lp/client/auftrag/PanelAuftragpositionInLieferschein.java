@@ -36,7 +36,6 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -148,7 +147,7 @@ public class PanelAuftragpositionInLieferschein extends PanelBasis {
 
 		wbuRechnung = new WrapperGotoButton(
 				LPMain.getTextRespectUISPr("rechnung.modulname"),
-				WrapperGotoButton.GOTO_RECHNUNG_AUSWAHL);
+				com.lp.util.GotoHelper.GOTO_RECHNUNG_AUSWAHL);
 		wbuRechnung.setMaximumSize(new Dimension(90, Defaults.getInstance()
 				.getControlHeight()));
 		wbuRechnung.setPreferredSize(new Dimension(90, Defaults.getInstance()
@@ -171,7 +170,7 @@ public class PanelAuftragpositionInLieferschein extends PanelBasis {
 		
 		wbuLieferschein = new WrapperGotoButton(
 				LPMain.getTextRespectUISPr("ls.modulname"),
-				WrapperGotoButton.GOTO_LIEFERSCHEIN_AUSWAHL);
+				com.lp.util.GotoHelper.GOTO_LIEFERSCHEIN_AUSWAHL);
 		wbuLieferschein.setMaximumSize(new Dimension(90, Defaults.getInstance()
 				.getControlHeight()));
 		wbuLieferschein.setPreferredSize(new Dimension(90, Defaults.getInstance()
@@ -264,7 +263,6 @@ public class PanelAuftragpositionInLieferschein extends PanelBasis {
 
 			dto2Components();
 		}
-		tpAuftrag.enablePanelsNachBitmuster();
 		aktualisiereStatusbar();
 		tpAuftrag.setTitleAuftrag(LPMain.getInstance().getTextRespectUISPr(
 				"auft.title.panel.auftragpositioninlieferschein"));
@@ -286,18 +284,5 @@ public class PanelAuftragpositionInLieferschein extends PanelBasis {
 
 	private void resetPanel() throws Throwable {
 		leereAlleFelder(this);
-	}
-
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
-		super.eventActionRefresh(e, bNeedNoRefreshI);
-
-		tpAuftrag.enablePanelsNachBitmuster();
-	}
-
-	protected void eventActionDiscard(ActionEvent e) throws Throwable {
-		super.eventActionDiscard(e);
-
-		tpAuftrag.enablePanelsNachBitmuster();
 	}
 }

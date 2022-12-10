@@ -32,7 +32,8 @@
  ******************************************************************************/
 package com.lp.client.finanz;
 
-import java.sql.Timestamp;
+import java.io.File;
+import java.util.List;
 import java.util.Locale;
 
 import javax.swing.JMenu;
@@ -54,10 +55,10 @@ import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.component.WrapperMenuItem;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
-import com.lp.client.frame.report.PanelReportKriterien;
-import com.lp.client.lieferschein.LieferscheinFilterFactory;
+import com.lp.client.frame.report.PanelReportKriterienOptions;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
+import com.lp.client.rechnung.PanelLastschriftvorschlag;
 import com.lp.client.rechnung.RechnungFilterFactory;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
@@ -65,14 +66,17 @@ import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.finanz.service.FinanzReportFac;
 import com.lp.server.finanz.service.MahnlaufDto;
 import com.lp.server.finanz.service.MahnungDto;
+import com.lp.server.finanz.service.MahnwesenFac;
+import com.lp.server.finanz.service.SepaXmlExportResult;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.PartnerFac;
-import com.lp.server.partner.service.PartnerkommunikationDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.rechnung.service.RechnungDto;
+import com.lp.server.rechnung.service.sepa.errors.SepaException;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.VersandauftragDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
@@ -102,12 +106,16 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 	private PanelQuery panelQueryMahnung = null;
 	private PanelFinanzMahnungKopfdaten panelDetailMahnung = null;
 	private PanelSplit panelSplitMahnung = null;
+	private PanelQuery panelQueryLastschriftvorschlag = null;
+	private PanelLastschriftvorschlag panelDetailLastschriftvorschlag = null;
+	private PanelSplit panelSplitLastschriftvorschlag = null;
 
 	private PanelQuery mahnsperren = null;
 
-	private final static int IDX_0_MAHNLAUF = 0;
-	private final static int IDX_1_MAHNUNGEN = 1;
-	private final static int IDX_2_MAHNSPERREN = 2;
+	private int IDX_0_MAHNLAUF = -1;
+	private int IDX_1_MAHNUNGEN = -1;
+	private int IDX_LASTSCHRIFTVORSCHLAG = -1;
+	private int IDX_MAHNSPERREN = -1;
 
 	private MahnlaufDto mahnlaufDto = null;
 
@@ -120,6 +128,10 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 			+ "_action_special_fax";
 	private final static String ACTION_SPECIAL_MAIL_MAHNLAUF = PanelBasis.LEAVEALONE
 			+ "_action_special_mail";
+	private final static String ACTION_SPECIAL_SEPA_LASTSCHRIFT_EXPORT = PanelBasis.ALWAYSENABLED
+			+ "_action_special_sepa_lastschrift_export";
+	
+	private Boolean hasZFSepaLastschrift;
 
 	public TabbedPaneMahnwesen(InternalFrame internalFrameI) throws Throwable {
 		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
@@ -135,6 +147,9 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 	public void setMahnlaufDto(MahnlaufDto mahnlaufDto) throws Throwable {
 		this.mahnlaufDto = mahnlaufDto;
 		getPanelQueryMahnung().setDefaultFilter(
+				FinanzFilterFactory.getInstance().createFKMahnung(
+						getMahnlaufDto()));
+		getPanelQueryLastschriftvorschlag().setDefaultFilter(
 				FinanzFilterFactory.getInstance().createFKMahnung(
 						getMahnlaufDto()));
 		String sTitle = null;
@@ -180,13 +195,18 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 	 * @throws Throwable
 	 */
 	private void jbInit() throws Throwable {
+		int index = 0;
 		// 1 tab oben: Mahnlaeufe; lazy loading
+		IDX_0_MAHNLAUF = index;
+		
 		insertTab(
 				LPMain.getTextRespectUISPr("finanz.tab.oben.mahnlaeufe.title"),
 				null,
 				null,
 				LPMain.getTextRespectUISPr("finanz.tab.oben.mahnlaeufe.tooltip"),
 				IDX_0_MAHNLAUF);
+		
+		IDX_1_MAHNUNGEN = ++index;
 		// 2 tab oben: Mahnungen; lazy loading
 		insertTab(
 				LPMain.getTextRespectUISPr("finanz.tab.oben.mahnungen.title"),
@@ -194,9 +214,19 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 				null,
 				LPMain.getTextRespectUISPr("finanz.tab.oben.mahnungen.tooltip"),
 				IDX_1_MAHNUNGEN);
+		
+		if (hatZusatzfunktionSepaLastschrift()) {
+			IDX_LASTSCHRIFTVORSCHLAG = ++index;
+			insertTab(LPMain.getTextRespectUISPr("rechnung.lastschriftvorschlag"), 
+					null, null, 
+					LPMain.getTextRespectUISPr("rechnung.lastschriftvorschlag"), 
+					IDX_LASTSCHRIFTVORSCHLAG);
+		}
+		
+		IDX_MAHNSPERREN = ++index;
 		insertTab(LPMain.getTextRespectUISPr("finanz.mahnsperren"), null, null,
 				LPMain.getTextRespectUISPr("finanz.mahnsperren"),
-				IDX_2_MAHNSPERREN);
+				IDX_MAHNSPERREN);
 		// default selektierung
 		setSelectedComponent(getPanelQueryMahnlauf());
 		// refresh
@@ -225,7 +255,7 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 					QueryParameters.UC_ID_MAHNSPERRE, aWhichButtonIUse,
 					getInternalFrame(), LPMain.getInstance()
 							.getTextRespectUISPr("finanz.mahnsperren"), true);
-			setComponentAt(IDX_2_MAHNSPERREN, mahnsperren);
+			setComponentAt(IDX_MAHNSPERREN, mahnsperren);
 		} else {
 			mahnsperren.setDefaultFilter(RechnungFilterFactory.getInstance()
 					.createFKMahnsperren(
@@ -307,6 +337,11 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 				getPanelDetailMahnung().setKeyWhenDetailPanel(key);
 				getPanelDetailMahnung().eventYouAreSelected(false);
 				getPanelQueryMahnung().updateButtons();
+			} else if (eI.getSource() == getPanelQueryLastschriftvorschlag()) {
+				Object key = ((ISourceEvent) eI.getSource()).getIdSelected();
+				getPanelDetailLastschriftvorschlag().setKeyWhenDetailPanel(key);
+				getPanelDetailLastschriftvorschlag().eventYouAreSelected(false);
+				getPanelQueryLastschriftvorschlag().updateButtons();
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (eI.getSource() == getPanelQueryMahnlauf()) {
@@ -323,21 +358,20 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 				}
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_SPECIAL_BUTTON) {
+			String sAspectInfo = ((ISourceEvent) eI.getSource()).getAspect();
 			if (eI.getSource() == getPanelQueryMahnlauf()) {
-				String sAspectInfo = ((ISourceEvent) eI.getSource())
-						.getAspect();
 				if (ACTION_SPECIAL_REMOVE_MAHNLAUF.equals(sAspectInfo)) {
-					if (getMahnlaufDto() != null) {
-						DelegateFactory.getInstance().getMahnwesenDelegate()
-								.removeMahnlauf(getMahnlaufDto());
-						setMahnlaufDto(null);
-					}
+					removeMahnlauf();
 				} else if (ACTION_SPECIAL_FAX_MAHNLAUF.equals(sAspectInfo)) {
 					sendMahnlauf(PartnerFac.KOMMUNIKATIONSART_FAX);
 				} else if (ACTION_SPECIAL_MAIL_MAHNLAUF.equals(sAspectInfo)) {
 					sendMahnlauf(PartnerFac.KOMMUNIKATIONSART_EMAIL);
 				}
 				getPanelQueryMahnlauf().eventYouAreSelected(false);
+			} else if (eI.getSource() == getPanelQueryLastschriftvorschlag()) {
+				if (ACTION_SPECIAL_SEPA_LASTSCHRIFT_EXPORT.equals(sAspectInfo)) {
+					exportSepaLastschrift();
+				}
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_PRINT) {
 			if (eI.getSource() == getPanelQueryMahnlauf()) {
@@ -362,10 +396,17 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 				}
 				getPanelSplitMahnung().eventYouAreSelected(false);
 
+			} else if (eI.getSource() == getPanelDetailLastschriftvorschlag()) {
+				setKeyWasForLockMe();
+				if (getPanelDetailLastschriftvorschlag().getKeyWhenDetailPanel() == null) {
+					getPanelQueryLastschriftvorschlag().setSelectedId(
+							getPanelQueryLastschriftvorschlag().getId2SelectAfterDelete());
+				}
+				getPanelSplitLastschriftvorschlag().eventYouAreSelected(false);
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_DISCARD
 				|| eI.getID() == ItemChangedEvent.ACTION_DELETE) {
-			if (eI.getSource() == getPanelDetailMahnung()) {
+			if (eI.getSource() == panelDetailMahnung) {
 				getPanelSplitMahnung().eventYouAreSelected(false);
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_SAVE) {
@@ -374,8 +415,94 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 				panelQueryMahnung.eventYouAreSelected(false);
 				panelQueryMahnung.setSelectedId(oKey);
 				panelSplitMahnung.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelDetailLastschriftvorschlag) {
+				Object oKey = panelDetailLastschriftvorschlag.getKeyWhenDetailPanel();
+				panelQueryLastschriftvorschlag.eventYouAreSelected(false);
+				panelQueryLastschriftvorschlag.setSelectedId(oKey);
+				panelSplitLastschriftvorschlag.eventYouAreSelected(false);
 			}
 		}
+	}
+
+	/**
+	 * @throws ExceptionLP
+	 * @throws Throwable
+	 */
+	private void removeMahnlauf() throws ExceptionLP, Throwable {
+		if (getMahnlaufDto() == null) return;
+		
+		try {
+			DelegateFactory.getInstance().getMahnwesenDelegate().removeMahnlauf(getMahnlaufDto());
+		} catch (ExceptionLP exLp) {
+			if (EJBExceptionLP.FEHLER_FINANZ_MAHNLAUF_LASTSCHRIFTVORSCHLAEGE_SCHON_GESPEICHERT == exLp.getICode()) {
+				boolean agreed = DialogFactory.showModalJaNeinDialog(getInternalFrame(), 
+						LPMain.getTextRespectUISPr("rechnung.lastschriftvorschlag.warning.mahnlaufloeschen"));
+				if (!agreed) return;
+				
+				myLogger.warn("Mahnlauf (iId=" + String.valueOf(getMahnlaufDto().getIId()) + ") "
+						+ "wird gel\u00F6scht, obwohl daran bereits gespeicherte "
+						+ "Lastschriftvorschl\u00E4ge h\u00E4ngen. Der Benutzer wurde darauf hingewiesen.");
+				DelegateFactory.getInstance().getMahnwesenDelegate()
+					.removeMahnlaufIgnoriereGespeicherteLastschriften(getMahnlaufDto());
+			} else {
+				throw exLp;
+			}
+		}
+		setMahnlaufDto(null);
+	}
+
+	private void exportSepaLastschrift() throws ExceptionLP, Throwable {
+		
+		if (!DelegateFactory.getInstance().getMahnwesenDelegate().isLastschriftvorschlagExportierbar(getSelectedIIdMahnlauf())) {
+			DialogFactory.showModalDialog(
+					LPMain.getInstance().getTextRespectUISPr("lp.error"), 
+					LPMain.getTextRespectUISPr("rechnung.lastschriftvorschlag.error.keinelastschriften"));
+			return;
+		}
+		
+		Boolean isLastschriftvorschlagOffen = DelegateFactory.getInstance().getMahnwesenDelegate()
+				.isLastschriftvorschlagOffen(getSelectedIIdMahnlauf());
+		if (Boolean.FALSE.equals(isLastschriftvorschlagOffen)) {
+			boolean agreed = DialogFactory.showModalJaNeinDialog(getInternalFrame(), 
+					LPMain.getTextRespectUISPr("rechnung.lastschriftvorschlag.warning.bereitsgespeichert"));
+			
+			if (!agreed) return;
+		} else if (isLastschriftvorschlagOffen == null) {
+			return;
+		}
+		
+		SepaXmlExportResult result = DelegateFactory.getInstance().getMahnwesenDelegate()
+				.exportiereLastschriftvorschlaege(getSelectedIIdMahnlauf());
+		
+		if (result.hasErrors()) {
+			handleSepaExportExceptions(result.getSepaErrors());
+			return;
+		}
+		
+		File dir = new File(result.getExportPath(), MahnwesenFac.LASTSCHRIFT_EXPORT_SEPA_ORDNER);
+		File file = new File(dir, MahnwesenFac.LASTSCHRIFT_EXPORT_SEPA_FILENAME);
+		
+		if (LPMain.getInstance().saveFile(getInternalFrame(),
+				file.getCanonicalPath(), result.getXml().getBytes("UTF-8"), false)) {
+			DelegateFactory.getInstance().getMahnwesenDelegate()
+				.archiviereLastschriftvorschlag(getSelectedIIdMahnlauf(), result.getXml());
+		}
+		
+		getPanelSplitLastschriftvorschlag().eventYouAreSelected(false);
+	}
+
+	private void handleSepaExportExceptions(List<SepaException> sepaErrors) throws Throwable {
+		if (sepaErrors.isEmpty()) return;
+		
+		DialogSepaExportResult dialogResult = new DialogSepaExportLastschriftResult(
+				LPMain.getInstance().getDesktop(), sepaErrors);
+		dialogResult.setVisible(true);
+//		
+//		StringBuilder sb = new StringBuilder();
+//		for (SepaException se : sepaErrors) {
+//			sb.append(se.getMessage()).append("\n");
+//		}
+//		DialogFactory.showMessageMitScrollbar("Sepa-Export Fehler", sb.toString());
 	}
 
 	private void printMahnung() throws Throwable {
@@ -398,62 +525,73 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 	}
 
 	private void printAlleMahnungen() throws Throwable {
-		if (getMahnlaufDto() != null) {
-			Integer mahnlaufIId = getMahnlaufDto().getIId();
-			if (mahnlaufIId != null) {
-				panelQueryMahnung.eventYouAreSelected(false);
-				JasperPrintLP[] prints = null;
-				try {
-					prints = DelegateFactory.getInstance()
-							.getFinanzReportDelegate()
-							.printSammelMahnungen(mahnlaufIId, false);
-					DelegateFactory.getInstance().getMahnwesenDelegate()
-							.mahneMahnlauf(mahnlaufIId);
+		if (getMahnlaufDto() == null) {
+			return;
+		}
+		Integer mahnlaufIId = getMahnlaufDto().getIId();
+		if (mahnlaufIId == null) {
+			return;
+		}
+		
+		panelQueryMahnung.eventYouAreSelected(false);
+		JasperPrintLP[] prints = null;
+		try {
+			prints = DelegateFactory.getInstance()
+					.getFinanzReportDelegate()
+					.printSammelMahnungen(mahnlaufIId, false);
+			DelegateFactory.getInstance().getMahnwesenDelegate()
+					.mahneMahnlauf(mahnlaufIId);
 
-				} catch (ExceptionLP ex) {
-					if (ex.getICode() == EJBExceptionLP.FEHLER_FINANZ_KEINE_MAHNTEXTE_EINGETRAGEN) {
-						String sFehler = LPMain.getInstance().getMsg(ex);
-						if (ex.getAlInfoForTheClient() != null
-								&& !ex.getAlInfoForTheClient().isEmpty()) {
-							sFehler += ": " + ex.getAlInfoForTheClient().get(0);
-						}
-						DialogFactory.showModalDialog(LPMain.getInstance()
-								.getTextRespectUISPr("lp.error"), sFehler);
-						return;
-					} else {
-						throw ex;
-					}
+		} catch (ExceptionLP ex) {
+			if (ex.getICode() == EJBExceptionLP.FEHLER_FINANZ_KEINE_MAHNTEXTE_EINGETRAGEN) {
+				String sFehler = LPMain.getInstance().getMsg(ex);
+				if (ex.getAlInfoForTheClient() != null
+						&& !ex.getAlInfoForTheClient().isEmpty()) {
+					sFehler += ": " + ex.getAlInfoForTheClient().get(0);
 				}
-				for (int i = 0; i < prints.length; i++) {
-					Integer kundeIId = (Integer) prints[i]
-							.getAdditionalInformation(JasperPrintLP.KEY_KUNDE_I_ID);
-					PartnerDto partnerDtoEmpfaenger = null;
-					Integer ansprechpartnerIIdErster = null;
-					if (kundeIId != null) {
-						KundeDto kundeDto = DelegateFactory.getInstance()
-								.getKundeDelegate()
-								.kundeFindByPrimaryKey(kundeIId);
-						partnerDtoEmpfaenger = kundeDto.getPartnerDto();
-						AnsprechpartnerDto ansprechpartnerDtoErster = DelegateFactory
-								.getInstance()
-								.getAnsprechpartnerDelegate()
-								.ansprechpartnerFindErstenEinesPartnersOhneExc(
-										partnerDtoEmpfaenger.getIId());
-						if (ansprechpartnerDtoErster != null) {
-							ansprechpartnerIIdErster = ansprechpartnerDtoErster
-									.getIId();
-						}
-					}
-					getInternalFrame()
-							.showReportKriterien(
-									new ReportSammelmahnung(
-											getInternalFrame(),
-											prints[i],
-											LPMain.getTextRespectUISPr("finanz.sammelmahnung")),
-									partnerDtoEmpfaenger,
-									ansprechpartnerIIdErster);
+				DialogFactory.showModalDialog(LPMain.getInstance()
+						.getTextRespectUISPr("lp.error"), sFehler);
+				return;
+			} else {
+				throw ex;
+			}
+		}
+		for (int i = 0; i < prints.length; i++) {
+			Integer kundeIId = (Integer) prints[i]
+					.getAdditionalInformation(JasperPrintLP.KEY_KUNDE_I_ID);
+			PartnerDto partnerDtoEmpfaenger = null;
+			Integer ansprechpartnerIIdErster = null;
+			if (kundeIId != null) {
+				KundeDto kundeDto = DelegateFactory.getInstance()
+						.getKundeDelegate()
+						.kundeFindByPrimaryKey(kundeIId);
+				partnerDtoEmpfaenger = kundeDto.getPartnerDto();
+				AnsprechpartnerDto ansprechpartnerDtoErster = DelegateFactory
+						.getInstance().getAnsprechpartnerDelegate()
+						.ansprechpartnerFindErstenEinesPartnersOhneExc(
+								partnerDtoEmpfaenger.getIId());
+				if (ansprechpartnerDtoErster != null) {
+					ansprechpartnerIIdErster = ansprechpartnerDtoErster
+							.getIId();
 				}
 			}
+//			getInternalFrame()
+//					.showReportKriterien(
+//							new ReportSammelmahnung(
+//									getInternalFrame(),
+//									prints[i],
+//									LPMain.getTextRespectUISPr("finanz.sammelmahnung")),
+//							partnerDtoEmpfaenger,
+//							ansprechpartnerIIdErster);
+			ReportSammelmahnung reportSammelmahnung = new ReportSammelmahnung(
+					getInternalFrame(),	prints[i],
+					LPMain.getTextRespectUISPr("finanz.sammelmahnung"));
+			PanelReportKriterienOptions options = new PanelReportKriterienOptions();
+			options.setInternalFrame(getInternalFrame());
+			options.setNurVorschauMitDrucken(true);
+			options.setPartnerDtoEmpfaenger(partnerDtoEmpfaenger);
+			options.setAnsprechpartnerIId(ansprechpartnerIIdErster);
+			getInternalFrame().showReportKriterien(reportSammelmahnung, options);
 		}
 	}
 
@@ -507,8 +645,11 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 			getPanelQueryMahnlauf().eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_1_MAHNUNGEN) {
 			getPanelSplitMahnung().eventYouAreSelected(false);
-		} else if (selectedIndex == IDX_2_MAHNSPERREN) {
+		} else if (selectedIndex == IDX_MAHNSPERREN) {
 			getPanelQueryMahnsperren().eventYouAreSelected(false);
+		} else if (selectedIndex == IDX_LASTSCHRIFTVORSCHLAG) {
+			getPanelSplitLastschriftvorschlag().eventYouAreSelected(false);
+			getPanelDetailLastschriftvorschlag().updateGesamtwert();
 		}
 	}
 
@@ -659,6 +800,9 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 					} else {
 						throw ex;
 					}
+				} catch (Throwable t) {
+					System.out.println(t);
+					return;
 				}
 				String sLieferantenNichtGemahnt = "";
 				for (int i = 0; i < prints.length; i++) {
@@ -736,11 +880,11 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 						VersandauftragDto versDto = new VersandauftragDto();
 						versDto.setCEmpfaenger(sEmpfaenger);
 						versDto.setCAbsenderadresse(sAbsenderadresse);
-						String sLocMahnung = LPMain
-								.getTextRespectUISPr("lp.mahnung");
-						versDto.setCDateiname(sLocMahnung + ".pdf");
-						partnerDto.getLocaleCNrKommunikation();
-						versDto.setCBetreff(sLocMahnung);
+						Locale locKunde = Helper.string2Locale(kundeDto
+								.getPartnerDto().getLocaleCNrKommunikation());
+						String mahnung = LPMain.getTextRespectSpezifischesLocale("lp.mahnung", locKunde);
+						versDto.setCBetreff(mahnung);
+						versDto.setCDateiname(mahnung + ".pdf");
 						versDto.setOInhalt(JasperExportManager
 								.exportReportToPdf(prints[i].getPrint()));
 
@@ -769,16 +913,13 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 										.setMailAnprechpartnerIId(ansprechpartnerDtoErster
 												.getIId());
 							}
-							Locale locKunde = Helper.string2Locale(kundeDto
-									.getPartnerDto()
-									.getLocaleCNrKommunikation());
 							mailtextDto.setMailVertreter(null);
 							mailtextDto.setMailBelegdatum(new java.sql.Date(
 									System.currentTimeMillis()));
 							mailtextDto.setMailBelegnummer(null);
 							mailtextDto
 									.setMailBezeichnung(LPMain
-											.getTextRespectUISPr("rech.mailbezeichnung.sammelmahnung")
+											.getTextRespectSpezifischesLocale("rech.mailbezeichnung.sammelmahnung", locKunde)
 											+ " " + sRechnungen);
 							mailtextDto.setMailFusstext(null);
 							mailtextDto.setMailPartnerIId(kundeDto
@@ -789,7 +930,7 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 							if (iMahnstufe != null) {
 								String sBetreff = iMahnstufe
 										+ ". "
-										+ LPMain.getTextRespectUISPr("rech.mailbetreff.mahnung")
+										+ LPMain.getTextRespectSpezifischesLocale("rech.mailbetreff.mahnung", locKunde)
 										+ " " + sRechnungen;
 								mailtextDto.setMailBetreff(sBetreff);
 							}
@@ -823,4 +964,54 @@ public class TabbedPaneMahnwesen extends TabbedPane {
 			}
 		}
 	}
+	
+	public PanelQuery getPanelQueryLastschriftvorschlag() throws Throwable {
+		if (panelQueryLastschriftvorschlag == null) {
+			String[] aWhichButtonIUseLastschriftvorschlag = { };
+			FilterKriterium[] filtersLastschriftvorschlag = FinanzFilterFactory
+					.getInstance().createFKMahnung(getMahnlaufDto());
+
+			panelQueryLastschriftvorschlag = new PanelQuery(null, filtersLastschriftvorschlag,
+					QueryParameters.UC_ID_LASTSCHRIFTVORSCHLAG, aWhichButtonIUseLastschriftvorschlag,
+					getInternalFrame(), LPMain.getInstance()
+							.getTextRespectUISPr("rechnung.lastschriftvorschlag"), true);
+			panelQueryLastschriftvorschlag.setMultipleRowSelectionEnabled(true);
+			
+			if (hatZusatzfunktionSepaLastschrift()) {
+				panelQueryLastschriftvorschlag.createAndSaveAndShowButton(
+						"/com/lp/client/res/sepa16x16.png", 
+						LPMain.getTextRespectUISPr("rechnung.lastschriftvorschlag.button.exportieren"), 
+						ACTION_SPECIAL_SEPA_LASTSCHRIFT_EXPORT, 
+						RechteFac.RECHT_FB_FINANZ_CUD);
+			}
+		}
+		return panelQueryLastschriftvorschlag;
+	}
+
+	private boolean hatZusatzfunktionSepaLastschrift() {
+		if (hasZFSepaLastschrift == null) {
+			hasZFSepaLastschrift = LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SEPA_LASTSCHRIFT);
+		}
+		return hasZFSepaLastschrift;
+	}
+
+	private PanelLastschriftvorschlag getPanelDetailLastschriftvorschlag() throws Throwable {
+		if (panelDetailLastschriftvorschlag == null) {
+			panelDetailLastschriftvorschlag = new PanelLastschriftvorschlag(
+					getInternalFrame(), LPMain.getInstance()
+					.getTextRespectUISPr("rechnung.lastschriftvorschlag"), null, this);
+		}
+		return panelDetailLastschriftvorschlag;
+	}
+	
+	private PanelSplit getPanelSplitLastschriftvorschlag() throws Throwable {
+		if (panelSplitLastschriftvorschlag == null) {
+			panelSplitLastschriftvorschlag = new PanelSplit(getInternalFrame(), 
+					getPanelDetailLastschriftvorschlag(), getPanelQueryLastschriftvorschlag(), 200);
+			setComponentAt(IDX_LASTSCHRIFTVORSCHLAG, panelSplitLastschriftvorschlag);
+		}
+		return panelSplitLastschriftvorschlag;
+	}
+	
 }

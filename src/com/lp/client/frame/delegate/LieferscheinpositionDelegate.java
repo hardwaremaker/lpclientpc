@@ -43,6 +43,9 @@ import javax.swing.table.TableModel;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
+import com.lp.server.auftrag.service.AuftragDto;
+import com.lp.server.lieferschein.service.LieferscheinDto;
+import com.lp.server.lieferschein.service.LieferscheinFac;
 import com.lp.server.lieferschein.service.LieferscheinpositionDto;
 import com.lp.server.lieferschein.service.LieferscheinpositionFac;
 import com.lp.server.system.service.TheClientDto;
@@ -77,8 +80,8 @@ public class LieferscheinpositionDelegate extends Delegate {
 	public LieferscheinpositionDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			lieferscheinpositionFac = (LieferscheinpositionFac) context
-					.lookup("lpserver/LieferscheinpositionFacBean/remote");
+			lieferscheinpositionFac = lookupFac(context, LieferscheinpositionFac.class);
+
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -87,62 +90,81 @@ public class LieferscheinpositionDelegate extends Delegate {
 	/**
 	 * Eine neue Lieferscheinposition anlegen.
 	 * 
-	 * @param pDto
-	 *            LieferscheinpositionDto
+	 * @param pDto LieferscheinpositionDto
 	 * @throws ExceptionLP
 	 * @return Integer
 	 */
-	public Integer createLieferscheinposition(LieferscheinpositionDto pDto,
-			boolean bArtikelSetAufloesen) throws ExceptionLP {
-		Integer pkPosition = null;
-
-		try {
-			pkPosition = lieferscheinpositionFac.createLieferscheinposition(
-					pDto, bArtikelSetAufloesen, LPMain.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-
-		return pkPosition;
-	}
-
-	public Integer createLieferscheinposition(LieferscheinpositionDto pDto,
-			List<SeriennrChargennrMitMengeDto> snrs,
-			boolean bArtikelSetAufloesen) throws ExceptionLP {
-		Integer pkPosition = null;
-
-		try {
-			pkPosition = lieferscheinpositionFac.createLieferscheinposition(
-					pDto, bArtikelSetAufloesen, snrs, LPMain.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-
-		return pkPosition;
-	}
-
-	public Integer updateLieferscheinposition(
-			LieferscheinpositionDto oLieferscheinpositionDtoI)
+	public Integer createLieferscheinposition(LieferscheinpositionDto pDto, boolean bArtikelSetAufloesen)
 			throws ExceptionLP {
+		Integer pkPosition = null;
+
+		try {
+			pkPosition = lieferscheinpositionFac.createLieferscheinposition(pDto, bArtikelSetAufloesen,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return pkPosition;
+	}
+
+	public Integer istLieferscheinpositionMitWEPosAnderermandantVerknuepft(Integer wareneingangspositionIId)
+			throws ExceptionLP {
+		try {
+			return lieferscheinpositionFac
+					.istLieferscheinpositionMitWEPosAnderermandantVerknuepft(wareneingangspositionIId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+
+	}
+
+	public Integer createLieferscheinposition(LieferscheinpositionDto pDto, List<SeriennrChargennrMitMengeDto> snrs,
+			boolean bArtikelSetAufloesen) throws ExceptionLP {
+		Integer pkPosition = null;
+
+		try {
+			pkPosition = lieferscheinpositionFac.createLieferscheinposition(pDto, bArtikelSetAufloesen, snrs,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return pkPosition;
+	}
+
+	public Integer createLieferscheinpositionVerteilen(LieferscheinpositionDto pDto,
+			List<SeriennrChargennrMitMengeDto> snrs, boolean bArtikelSetAufloesen) throws ExceptionLP {
+		Integer pkPosition = null;
+
+		try {
+			pkPosition = lieferscheinpositionFac.createLieferscheinpositionService(pDto, bArtikelSetAufloesen, snrs,
+					true, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return pkPosition;
+	}
+
+	public Integer updateLieferscheinposition(LieferscheinpositionDto oLieferscheinpositionDtoI) throws ExceptionLP {
 		Integer iIdLieferscheinposition = null;
 		try {
-			iIdLieferscheinposition = lieferscheinpositionFac
-					.updateLieferscheinposition(oLieferscheinpositionDtoI,
-							LPMain.getTheClient());
+			iIdLieferscheinposition = lieferscheinpositionFac.updateLieferscheinposition(oLieferscheinpositionDtoI,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return iIdLieferscheinposition;
 	}
 
-	public Integer updateLieferscheinposition(
-			LieferscheinpositionDto oLieferscheinpositionDtoI,
+	public Integer updateLieferscheinposition(LieferscheinpositionDto oLieferscheinpositionDtoI,
 			List<SeriennrChargennrMitMengeDto> identities) throws ExceptionLP {
 		Integer iIdLieferscheinposition = null;
 		try {
-			iIdLieferscheinposition = lieferscheinpositionFac
-					.updateLieferscheinposition(oLieferscheinpositionDtoI,
-							identities, LPMain.getTheClient());
+			iIdLieferscheinposition = lieferscheinpositionFac.updateLieferscheinposition(oLieferscheinpositionDtoI,
+					identities, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -150,35 +172,31 @@ public class LieferscheinpositionDelegate extends Delegate {
 		return iIdLieferscheinposition;
 	}
 
-	public void updateLieferscheinpositionOhneWeitereAktion(
-			LieferscheinpositionDto lieferscheinpositionDto) throws ExceptionLP {
-		try {
-			lieferscheinpositionFac
-					.updateLieferscheinpositionOhneWeitereAktion(
-							lieferscheinpositionDto, LPMain.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-	}
-
-	public void updateLieferscheinpositionSichtAuftrag(
-			LieferscheinpositionDto lieferscheinpositionDto) throws ExceptionLP {
-		try {
-			lieferscheinpositionFac.updateLieferscheinpositionSichtAuftrag(
-					lieferscheinpositionDto, LPMain.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-	}
-
-	public void lieferscheinpositionKeinLieferrestEintragen(
-			Integer lieferscheinpositionIId, boolean bKeinLieferrest)
+	public void updateLieferscheinpositionOhneWeitereAktion(LieferscheinpositionDto lieferscheinpositionDto)
 			throws ExceptionLP {
 		try {
-			lieferscheinpositionFac
-					.lieferscheinpositionKeinLieferrestEintragen(
-							lieferscheinpositionIId, bKeinLieferrest,
-							LPMain.getTheClient());
+			lieferscheinpositionFac.updateLieferscheinpositionOhneWeitereAktion(lieferscheinpositionDto,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void updateLieferscheinpositionSichtAuftrag(LieferscheinpositionDto lieferscheinpositionDto)
+			throws ExceptionLP {
+		try {
+			lieferscheinpositionFac.updateLieferscheinpositionSichtAuftrag(lieferscheinpositionDto,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void lieferscheinpositionKeinLieferrestEintragen(Integer lieferscheinpositionIId, boolean bKeinLieferrest)
+			throws ExceptionLP {
+		try {
+			lieferscheinpositionFac.lieferscheinpositionKeinLieferrestEintragen(lieferscheinpositionIId,
+					bKeinLieferrest, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -187,15 +205,12 @@ public class LieferscheinpositionDelegate extends Delegate {
 	/**
 	 * Eine Lieferscheinposition von der db entfernen.
 	 * 
-	 * @param pPos
-	 *            LieferscheinpositionDto
+	 * @param pPos LieferscheinpositionDto
 	 * @throws ExceptionLP
 	 */
-	public void removeLieferscheinposition(LieferscheinpositionDto pPos)
-			throws ExceptionLP {
+	public void removeLieferscheinposition(LieferscheinpositionDto pPos) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.removeLieferscheinposition(pPos,
-					LPMain.getTheClient());
+			lieferscheinpositionFac.removeLieferscheinposition(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -203,8 +218,7 @@ public class LieferscheinpositionDelegate extends Delegate {
 
 	public void removeLieferscheinpositionen(Object[] ids) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.removeLieferscheinpositionen(ids,
-					LPMain.getTheClient());
+			lieferscheinpositionFac.removeLieferscheinpositionen(ids, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -213,19 +227,17 @@ public class LieferscheinpositionDelegate extends Delegate {
 	/**
 	 * Eine bestimmte Lieferscheinposition ueber ihren pk holen.
 	 * 
-	 * @param iIdLieferscheinpositionI
-	 *            PK der Position
+	 * @param iIdLieferscheinpositionI PK der Position
 	 * @throws ExceptionLP
 	 * @return LieferscheinpositionDto die Position, null wenn es keine gibt
 	 */
-	public LieferscheinpositionDto lieferscheinpositionFindByPrimaryKey(
-			Integer iIdLieferscheinpositionI) throws ExceptionLP {
+	public LieferscheinpositionDto lieferscheinpositionFindByPrimaryKey(Integer iIdLieferscheinpositionI)
+			throws ExceptionLP {
 		LieferscheinpositionDto oLieferscheinpositionDtoO = null;
 
 		try {
 			oLieferscheinpositionDtoO = lieferscheinpositionFac
-					.lieferscheinpositionFindByPrimaryKey(
-							iIdLieferscheinpositionI, LPMain.getTheClient());
+					.lieferscheinpositionFindByPrimaryKey(iIdLieferscheinpositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -233,8 +245,8 @@ public class LieferscheinpositionDelegate extends Delegate {
 		return oLieferscheinpositionDtoO;
 	}
 
-	public LieferscheinpositionDto[] lieferscheinpositionFindByLieferscheinIId(
-			Integer iIdLieferscheinI) throws ExceptionLP {
+	public LieferscheinpositionDto[] lieferscheinpositionFindByLieferscheinIId(Integer iIdLieferscheinI)
+			throws ExceptionLP {
 		LieferscheinpositionDto[] oLieferscheinpositionDtoO = null;
 
 		try {
@@ -250,19 +262,16 @@ public class LieferscheinpositionDelegate extends Delegate {
 	/**
 	 * Anzahl der Positionen eines Lieferscheins bestimmen.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            pk des Lieferscheins
+	 * @param iIdLieferscheinI pk des Lieferscheins
 	 * @throws ExceptionLP
 	 * @return int Anzahl der Positionen
 	 */
-	public int berechneAnzahlMengenbehaftetePositionen(Integer iIdLieferscheinI)
-			throws ExceptionLP {
+	public int berechneAnzahlMengenbehaftetePositionen(Integer iIdLieferscheinI) throws ExceptionLP {
 		int iAnzahlO = -1;
 
 		try {
-			iAnzahlO = lieferscheinpositionFac
-					.berechneAnzahlMengenbehaftetePositionen(iIdLieferscheinI,
-							LPMain.getTheClient());
+			iAnzahlO = lieferscheinpositionFac.berechneAnzahlMengenbehaftetePositionen(iIdLieferscheinI,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -273,19 +282,15 @@ public class LieferscheinpositionDelegate extends Delegate {
 	/**
 	 * Die Anzahl von Artikelpositionen in einem Lieferschein berechnen.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 * @return int die Anzahl der Artikelpositionen mit diesem Status
 	 */
-	public int berechneAnzahlArtikelpositionen(Integer iIdLieferscheinI)
-			throws ExceptionLP {
+	public int berechneAnzahlArtikelpositionen(Integer iIdLieferscheinI) throws ExceptionLP {
 		int iAnzahlO = -1;
 
 		try {
-			iAnzahlO = lieferscheinpositionFac
-					.berechneAnzahlArtikelpositionen(iIdLieferscheinI);
+			iAnzahlO = lieferscheinpositionFac.berechneAnzahlArtikelpositionen(iIdLieferscheinI);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -293,8 +298,7 @@ public class LieferscheinpositionDelegate extends Delegate {
 		return iAnzahlO;
 	}
 
-	public void vertauscheLieferscheinpositionMinus(Integer rowIndex,
-			TableModel tableModel) throws ExceptionLP {
+	public void vertauscheLieferscheinpositionMinus(Integer rowIndex, TableModel tableModel) throws ExceptionLP {
 		try {
 			// int pageCount = 0 ;
 
@@ -305,15 +309,13 @@ public class LieferscheinpositionDelegate extends Delegate {
 				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
 			}
 
-			lieferscheinpositionFac.vertauscheLieferscheinpositionenMinus(
-					baseIId, iidList, LPMain.getTheClient());
+			lieferscheinpositionFac.vertauscheLieferscheinpositionenMinus(baseIId, iidList, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void vertauscheLieferscheinpositionPlus(Integer rowIndex,
-			TableModel tableModel) throws ExceptionLP {
+	public void vertauscheLieferscheinpositionPlus(Integer rowIndex, TableModel tableModel) throws ExceptionLP {
 		try {
 			Integer baseIId = (Integer) tableModel.getValueAt(rowIndex, 0);
 			List<Integer> iidList = new ArrayList<Integer>();
@@ -323,20 +325,19 @@ public class LieferscheinpositionDelegate extends Delegate {
 				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
 			}
 
-			lieferscheinpositionFac.vertauscheLieferscheinpositionenPlus(
-					baseIId, iidList, LPMain.getTheClient());
+			lieferscheinpositionFac.vertauscheLieferscheinpositionenPlus(baseIId, iidList, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void preiseAusAuftragspositionenUebernehmen(Integer auftragIId)
+	public ArrayList<LieferscheinpositionDto> preiseAusAuftragspositionenUebernehmen(Integer auftragIId)
 			throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.preiseAusAuftragspositionenUebernehmen(
-					auftragIId, LPMain.getTheClient());
+			return lieferscheinpositionFac.preiseAusAuftragspositionenUebernehmen(auftragIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
+			return null;
 		}
 	}
 
@@ -347,96 +348,78 @@ public class LieferscheinpositionDelegate extends Delegate {
 	 * Diese Methode wird am Client aufgerufen, bevor die neue Position
 	 * abgespeichert wird.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            der aktuelle Lieferschein
-	 * @param iSortierungNeuePositionI
-	 *            die Stelle, an der eingefuegt werden soll
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI         der aktuelle Lieferschein
+	 * @param iSortierungNeuePositionI die Stelle, an der eingefuegt werden soll
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-			Integer iIdLieferscheinI, int iSortierungNeuePositionI)
-			throws ExceptionLP {
+	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer iIdLieferscheinI,
+			int iSortierungNeuePositionI) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac
-					.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-							iIdLieferscheinI, iSortierungNeuePositionI);
+			lieferscheinpositionFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(iIdLieferscheinI,
+					iSortierungNeuePositionI);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
 	/**
-	 * Der Kupferzuschlag einer Position kann von aussen gesetzt werden (z.B.
-	 * durch die Rechnung). <br>
+	 * Der Kupferzuschlag einer Position kann von aussen gesetzt werden (z.B. durch
+	 * die Rechnung). <br>
 	 * Das Setzen des Kupferzuschlags zieht die folgenden Schritte nach sich: <br>
 	 * - Die Werte der Lieferscheinposition werden neu berechnet und in der DB
 	 * gespeichert <br>
 	 * - Der Gesamtwert des Lieferscheins wird neu berechnet und in der DB
 	 * gespeichert
 	 * 
-	 * @param iIdLieferscheinpositionI
-	 *            PK der Lieferscheinposition
-	 * @param ddKupferzuschlagI
-	 *            der Kupferzuschlag in Prozent, z.B. 30
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinpositionI PK der Lieferscheinposition
+	 * @param ddKupferzuschlagI        der Kupferzuschlag in Prozent, z.B. 30
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void setzeKupferzuschlag(Integer iIdLieferscheinpositionI,
-			Double ddKupferzuschlagI) throws ExceptionLP {
+	public void setzeKupferzuschlag(Integer iIdLieferscheinpositionI, Double ddKupferzuschlagI) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.setzeKupferzuschlag(
-					iIdLieferscheinpositionI, ddKupferzuschlagI,
+			lieferscheinpositionFac.setzeKupferzuschlag(iIdLieferscheinpositionI, ddKupferzuschlagI,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void positionenAnhandAuftragsreihenfolgeAnordnen(
-			Integer iIdLieferscheinI) throws ExceptionLP {
+	public void positionenAnhandAuftragsreihenfolgeAnordnen(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac
-					.positionenAnhandAuftragsreihenfolgeAnordnen(
-							iIdLieferscheinI, LPMain.getTheClient());
+			lieferscheinpositionFac.positionenAnhandAuftragsreihenfolgeAnordnen(iIdLieferscheinI,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateLieferscheinpositionAusRechnung(
-			LieferscheinpositionDto oLieferscheinpositionDtoI,
+	public void updateLieferscheinpositionAusRechnung(LieferscheinpositionDto oLieferscheinpositionDtoI,
 			Integer rechnungpositionIId) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.updateLieferscheinpositionAusRechnung(
-					oLieferscheinpositionDtoI, rechnungpositionIId,
-					LPMain.getTheClient());
+			lieferscheinpositionFac.updateLieferscheinpositionAusRechnung(oLieferscheinpositionDtoI,
+					rechnungpositionIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void updateLieferscheinpositionAusRechnung(
-			LieferscheinpositionDto oLieferscheinpositionDtoI,
-			Integer rechnungpositionIId, List<SeriennrChargennrMitMengeDto> snrs)
-			throws ExceptionLP {
+	public void updateLieferscheinpositionAusRechnung(LieferscheinpositionDto oLieferscheinpositionDtoI,
+			Integer rechnungpositionIId, List<SeriennrChargennrMitMengeDto> snrs) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.updateLieferscheinpositionAusRechnung(
-					oLieferscheinpositionDtoI, rechnungpositionIId, snrs,
-					LPMain.getTheClient());
+			lieferscheinpositionFac.updateLieferscheinpositionAusRechnung(oLieferscheinpositionDtoI,
+					rechnungpositionIId, snrs, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public LieferscheinpositionDto[] getLieferscheinPositionenByLieferschein(
-			Integer iIdLieferscheinI) throws ExceptionLP {
+	public LieferscheinpositionDto[] getLieferscheinPositionenByLieferschein(Integer iIdLieferscheinI)
+			throws ExceptionLP {
 		LieferscheinpositionDto[] lsPos = null;
 
 		try {
-			lsPos = lieferscheinpositionFac
-					.getLieferscheinPositionenByLieferschein(iIdLieferscheinI,
-							LPMain.getTheClient());
+			lsPos = lieferscheinpositionFac.getLieferscheinPositionenByLieferschein(iIdLieferscheinI,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -444,11 +427,9 @@ public class LieferscheinpositionDelegate extends Delegate {
 		return lsPos;
 	}
 
-	public void berechnePauschalposition(BigDecimal wert, Integer positionIId,
-			Integer belegIId) throws ExceptionLP {
+	public void berechnePauschalposition(BigDecimal wert, Integer positionIId, Integer belegIId) throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.berechnePauschalposition(wert, positionIId,
-					belegIId, LPMain.getTheClient());
+			lieferscheinpositionFac.berechnePauschalposition(wert, positionIId, belegIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -456,8 +437,7 @@ public class LieferscheinpositionDelegate extends Delegate {
 
 	public void pruefeVKPreisAufLagerbewegung() throws ExceptionLP {
 		try {
-			lieferscheinpositionFac.pruefeVKPreisAufLagerbewegung(LPMain
-					.getTheClient());
+			lieferscheinpositionFac.pruefeVKPreisAufLagerbewegung(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -467,15 +447,13 @@ public class LieferscheinpositionDelegate extends Delegate {
 	 * Liefert die IId der Position fuer die angegebene Positionsnummer zurueck
 	 * 
 	 * @param rechnungIId
-	 * @param position
-	 *            die Positionsnummer f&uuml;r die die IId ermittelt werden soll
+	 * @param position    die Positionsnummer f&uuml;r die die IId ermittelt werden
+	 *                    soll
 	 * @return null wenn es position nicht gibt, ansonsten die IId
 	 */
-	public Integer getLSPositionIIdFromPositionNummer(Integer rechnungIId,
-			Integer position) throws ExceptionLP {
+	public Integer getLSPositionIIdFromPositionNummer(Integer rechnungIId, Integer position) throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac.getLSPositionIIdFromPositionNummer(
-					rechnungIId, position);
+			return lieferscheinpositionFac.getLSPositionIIdFromPositionNummer(rechnungIId, position);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -496,9 +474,19 @@ public class LieferscheinpositionDelegate extends Delegate {
 	public Integer createLieferscheinAusLieferschein(Integer lieferscheinIId,
 			boolean bUebernimmKonditionenDesKunden) throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac.createLieferscheinAusLieferschein(
+			Integer lieferscheinIIdNeu= lieferscheinpositionFac.createLieferscheinAusLieferschein(
 					lieferscheinIId, bUebernimmKonditionenDesKunden,
 					LPMain.getTheClient());
+			
+			if(lieferscheinIIdNeu!=null) {
+				LieferscheinDto lsDto=DelegateFactory.getInstance().getLsDelegate().lieferscheinFindByPrimaryKey(lieferscheinIIdNeu);
+				
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						lsDto.getAnsprechpartnerIId(), lsDto.getAnsprechpartnerIIdRechnungsadresse());
+			}
+			return lieferscheinIIdNeu;
+			
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -507,9 +495,9 @@ public class LieferscheinpositionDelegate extends Delegate {
 	}
 
 	/**
-	 * Liefert die Positionsnummer der angegebenen Position-IId. Sollte die
-	 * Position selbst keine Nummer haben, wird die unmittelbar vor dieser
-	 * Position liegende letztg&uuml;ltige Nummer geliefert.
+	 * Liefert die Positionsnummer der angegebenen Position-IId. Sollte die Position
+	 * selbst keine Nummer haben, wird die unmittelbar vor dieser Position liegende
+	 * letztg&uuml;ltige Nummer geliefert.
 	 * 
 	 * @param reposIId
 	 * @return Die Positionsnummer (1 - n), oder null wenn die Position nicht
@@ -529,17 +517,14 @@ public class LieferscheinpositionDelegate extends Delegate {
 	 * Die hoechste/letzte in einem Lieferschein bestehende Positionsnummer
 	 * ermitteln
 	 * 
-	 * @param rechnungIId
-	 *            die RechnungsIId fuer die die hoechste Pos.Nummer ermittelt
-	 *            werden soll.
+	 * @param rechnungIId die RechnungsIId fuer die die hoechste Pos.Nummer
+	 *                    ermittelt werden soll.
 	 * 
 	 * @return 0 ... n
 	 */
-	public Integer getLSHighestPositionNumber(Integer rechnungIId)
-			throws ExceptionLP {
+	public Integer getLSHighestPositionNumber(Integer rechnungIId) throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac
-					.getLSHighestPositionNumber(rechnungIId);
+			return lieferscheinpositionFac.getLSHighestPositionNumber(rechnungIId);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -551,15 +536,13 @@ public class LieferscheinpositionDelegate extends Delegate {
 	 * Liefert die IId der Position fuer die angegebene Positionsnummer zurueck
 	 * 
 	 * @param rechnungIId
-	 * @param position
-	 *            die Positionsnummer f&uuml;r die die IId ermittelt werden soll
+	 * @param position    die Positionsnummer f&uuml;r die die IId ermittelt werden
+	 *                    soll
 	 * @return null wenn es position nicht gibt, ansonsten die IId
 	 */
-	public Integer getPositionIIdFromPositionNummer(Integer rechnungIId,
-			Integer position) throws ExceptionLP {
+	public Integer getPositionIIdFromPositionNummer(Integer rechnungIId, Integer position) throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac.getPositionIIdFromPositionNummer(
-					rechnungIId, position);
+			return lieferscheinpositionFac.getPositionIIdFromPositionNummer(rechnungIId, position);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -578,9 +561,9 @@ public class LieferscheinpositionDelegate extends Delegate {
 	}
 
 	/**
-	 * Liefert die Positionsnummer der angegebenen Position-IId. Sollte die
-	 * Position selbst keine Nummer haben, wird die unmittelbar vor dieser
-	 * Position liegende letztg&uuml;ltige Nummer geliefert.
+	 * Liefert die Positionsnummer der angegebenen Position-IId. Sollte die Position
+	 * selbst keine Nummer haben, wird die unmittelbar vor dieser Position liegende
+	 * letztg&uuml;ltige Nummer geliefert.
 	 * 
 	 * @param reposIId
 	 * @return Die Positionsnummer (1 - n), oder null wenn die Position nicht
@@ -600,17 +583,14 @@ public class LieferscheinpositionDelegate extends Delegate {
 	 * Die hoechste/letzte in einem Lieferschein bestehende Positionsnummer
 	 * ermitteln
 	 * 
-	 * @param rechnungIId
-	 *            die RechnungsIId fuer die die hoechste Pos.Nummer ermittelt
-	 *            werden soll.
+	 * @param rechnungIId die RechnungsIId fuer die die hoechste Pos.Nummer
+	 *                    ermittelt werden soll.
 	 * 
 	 * @return 0 ... n
 	 */
-	public Integer getHighestPositionNumber(Integer rechnungIId)
-			throws ExceptionLP {
+	public Integer getHighestPositionNumber(Integer rechnungIId) throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac
-					.getHighestPositionNumber(rechnungIId);
+			return lieferscheinpositionFac.getHighestPositionNumber(rechnungIId);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -619,9 +599,8 @@ public class LieferscheinpositionDelegate extends Delegate {
 	}
 
 	/**
-	 * Prueft, ob fuer alle Lieferscheinpositionen zwischen den beiden
-	 * angegebenen Positionsnummern der gleiche Mehrwertsteuersatz definiert
-	 * ist.
+	 * Prueft, ob fuer alle Lieferscheinpositionen zwischen den beiden angegebenen
+	 * Positionsnummern der gleiche Mehrwertsteuersatz definiert ist.
 	 * 
 	 * @param rechnungIId
 	 * @param vonPositionNumber
@@ -629,12 +608,10 @@ public class LieferscheinpositionDelegate extends Delegate {
 	 * @return true wenn alle Positionen den gleichen Mehrwertsteuersatz haben.
 	 * @throws EJBExceptionLP
 	 */
-	public boolean pruefeAufGleichenMwstSatz(Integer rechnungIId,
-			Integer vonPositionNumber, Integer bisPositionNumber)
+	public boolean pruefeAufGleichenMwstSatz(Integer rechnungIId, Integer vonPositionNumber, Integer bisPositionNumber)
 			throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac.pruefeAufGleichenMwstSatz(
-					rechnungIId, vonPositionNumber, bisPositionNumber);
+			return lieferscheinpositionFac.pruefeAufGleichenMwstSatz(rechnungIId, vonPositionNumber, bisPositionNumber);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -642,11 +619,10 @@ public class LieferscheinpositionDelegate extends Delegate {
 		return false;
 	}
 
-	public List<SeriennrChargennrMitMengeDto> getSeriennrchargennrForArtikelsetPosition(
-			Integer lieferscheinposIId) throws ExceptionLP {
+	public List<SeriennrChargennrMitMengeDto> getSeriennrchargennrForArtikelsetPosition(Integer lieferscheinposIId)
+			throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac
-					.getSeriennrchargennrForArtikelsetPosition(lieferscheinposIId);
+			return lieferscheinpositionFac.getSeriennrchargennrForArtikelsetPosition(lieferscheinposIId);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -654,11 +630,9 @@ public class LieferscheinpositionDelegate extends Delegate {
 		return new ArrayList<SeriennrChargennrMitMengeDto>();
 	}
 
-	public Integer reservierungAufloesen(Integer auftragIId,
-			LieferscheinpositionDto lsPosDto) throws ExceptionLP {
+	public Integer reservierungAufloesen(Integer auftragIId, LieferscheinpositionDto lsPosDto) throws ExceptionLP {
 		try {
-			return lieferscheinpositionFac.reservierungAufloesen(auftragIId, lsPosDto,
-					LPMain.getTheClient());
+			return lieferscheinpositionFac.reservierungAufloesen(auftragIId, lsPosDto, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
@@ -666,4 +640,19 @@ public class LieferscheinpositionDelegate extends Delegate {
 
 	}
 
+	public void sortiereNachAuftragsnummer(Integer lieferscheinIId) throws ExceptionLP {
+		try {
+			lieferscheinpositionFac.sortiereNachAuftragsnummer(lieferscheinIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void sortiereNachArtikelnummer(Integer lieferscheinIId) throws ExceptionLP {
+		try {
+			lieferscheinpositionFac.sortiereNachArtikelnummer(lieferscheinIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 }

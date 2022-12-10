@@ -35,18 +35,11 @@ package com.lp.client.frame.component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.awt.dnd.DropTarget;
 
 import javax.swing.DropMode;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
-import javax.swing.TransferHandler;
-import javax.swing.TransferHandler.TransferSupport;
 
 import com.lp.client.pc.SystemProperties;
 
@@ -54,16 +47,15 @@ import de.wim.outldd.OutlookDD;
 
 public class DragAndDropTarget extends JTextArea {
 
-	private List<DropListener> dropListeners = new ArrayList<DropListener>();
 	private boolean supportFiles = false;
 
 	private JLabel centerText;
 
-	private static final DataFlavor FILE_FLAVOR = DataFlavor.javaFileListFlavor;
-	// private static final DataFlavor MAC_URL_FLAVOR = new
-	// DataFlavor("application/x-java-url; class=java.net.URL; charset=Unicode");
-
 	private static final long serialVersionUID = -3325565552616637854L;
+
+	private HvDropTarget hvdt;
+
+	// FileNameW funktioniert fuer InputStream der OLE Daten von Outlook.
 
 	public DragAndDropTarget() {
 		this("");
@@ -71,11 +63,10 @@ public class DragAndDropTarget extends JTextArea {
 
 	/**
 	 * 
-	 * @param text
-	 *            der Text der auf der Komponente dargestellt werden soll.
+	 * @param text der Text der auf der Komponente dargestellt werden soll.
 	 */
 	public DragAndDropTarget(String text) {
-		if(SystemProperties.isWinOs())
+		if (SystemProperties.isWinOs())
 			OutlookDD.init(OutlookDD.MODE_TEMP_FILES);
 		initCenterText();
 		setCenterText(text);
@@ -84,81 +75,7 @@ public class DragAndDropTarget extends JTextArea {
 		setEnabled(false);
 		setDragEnabled(false);
 		setDropMode(DropMode.INSERT);
-		setTransferHandler(new TransferHandler(null) {
-			private static final long serialVersionUID = -1325964636851599066L;
-
-			
-			@Override
-			public boolean canImport(TransferSupport support) {
-				if (!support.isDrop())
-					return false;
-
-				boolean copySupported = (COPY & support.getSourceDropActions()) == COPY;
-				if (!copySupported) {
-					return false;
-				}
-				support.setDropAction(COPY);
-
-				if (isSupportFiles()
-						&& support.isDataFlavorSupported(FILE_FLAVOR))
-					return true;
-				return false;
-			}
-
-			@Override
-			public boolean importData(TransferSupport support) {
-				if (!canImport(support))
-					return false;
-
-				List<File> files = null;
-				if (isSupportFiles()) {
-					files = tryImportFiles(support);
-				}
-
-				if (files != null) {
-					fireFileDropEvent(files);
-					return true;
-				}
-
-				return false;
-			}
-		});
-	}
-
-	@SuppressWarnings("unchecked")
-	private List<File> tryImportFiles(TransferSupport support) {
-		List<File> files = null;
-		if (support.isDataFlavorSupported(FILE_FLAVOR)) {
-			try {
-				files = (List<File>) support.getTransferable().getTransferData(
-						FILE_FLAVOR);
-			} catch (UnsupportedFlavorException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return files;
-	}
-
-	private void fireFileDropEvent(final List<File> files) {
-		for (DropListener l : dropListeners) {
-			l.filesDropped(this, files);
-		}
-	}
-
-	public void addDropListener(DropListener listener) {
-		dropListeners.add(listener);
-	}
-
-	public void removeDropListener(DropListener listener) {
-		dropListeners.remove(listener);
-	}
-
-	@Override
-	protected void finalize() throws Throwable {
-		dropListeners.clear();
-		super.finalize();
+		hvdt = new HvDropTarget(this);
 	}
 
 	// Fuer transparenten Background
@@ -189,8 +106,15 @@ public class DragAndDropTarget extends JTextArea {
 		setLayout(new GridBagLayout());
 		centerText = new JLabel();
 		centerText.setHorizontalAlignment(JLabel.CENTER);
-		add(centerText, new GridBagConstraints(1, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(centerText, new GridBagConstraints(1, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+	}
+
+	public void addDropListener(DropListener listener) {
+		hvdt.addDropListener(listener);
+	}
+	
+	public void removeDropListener(DropListener listener) {
+		hvdt.removeDropListener(listener);
 	}
 }

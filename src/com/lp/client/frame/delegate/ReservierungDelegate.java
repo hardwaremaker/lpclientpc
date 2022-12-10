@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
-
 import java.math.BigDecimal;
 
 import javax.naming.Context;
@@ -42,82 +41,95 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelreservierungDto;
 import com.lp.server.artikel.service.ReservierungFac;
+import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.ParameterFac;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access") 
-public class ReservierungDelegate
-    extends Delegate
-{
-  private Context context;
-  private ReservierungFac reservierungFac;
-  public ReservierungDelegate()
-      throws Exception {
-    context = new InitialContext();
-    reservierungFac = (ReservierungFac) context.lookup("lpserver/ReservierungFacBean/remote");
-  }
+@SuppressWarnings("static-access")
+public class ReservierungDelegate extends Delegate {
+	private Context context;
+	private ReservierungFac reservierungFac;
 
+	public ReservierungDelegate() throws Exception {
+		context = new InitialContext();
 
-  public BigDecimal getAnzahlReservierungen(Integer artikelIId)
-      throws ExceptionLP {
-    try {
-      return reservierungFac.getAnzahlReservierungen(artikelIId,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+		reservierungFac = lookupFac(context, ReservierungFac.class);
+	}
 
+	public BigDecimal getAnzahlReservierungen(Integer artikelIId) throws ExceptionLP {
+		try {
+			return reservierungFac.getAnzahlReservierungen(artikelIId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  public BigDecimal getAnzahlRahmenreservierungen(Integer artikelIId)
-      throws ExceptionLP {
-    try {
-      return reservierungFac.getAnzahlRahmenreservierungen(artikelIId,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+	public BigDecimal getAnzahlInterneReservierungen(Integer artikelIId) throws ExceptionLP {
+		try {
+			return reservierungFac.getAnzahlReservierungen(artikelIId, null,
+					LPMain.getInstance().getTheClient().getMandant(), null, true, null);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  public ArtikelreservierungDto artikelreservierungFindByPrimaryKey(Integer iId)
-	      throws ExceptionLP {
-	    try {
-	      return reservierungFac.artikelreservierungFindByPrimaryKey(iId);
-	    }
-	    catch (Throwable ex) {
-	      handleThrowable(ex);
-	      return null;
-	    }
-	  }
+	public BigDecimal getAnzahlAuftragsReservierungen(Integer artikelIId) throws ExceptionLP {
+		try {
+			return reservierungFac.getAnzahlReservierungen(artikelIId, null,
+					LPMain.getInstance().getTheClient().getMandant(), null, false, LocaleFac.BELEGART_AUFTRAG);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  
+	public BigDecimal getAnzahlRahmenreservierungen(Integer artikelIId) throws ExceptionLP {
+		try {
+			return reservierungFac.getAnzahlRahmenreservierungen(artikelIId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  public JasperPrintLP printArtikelreservierungen(Integer artikelIId, java.sql.Date dVon,
-                                                  java.sql.Date dBis)
-      throws ExceptionLP {
-    try {
-      return reservierungFac.printArtikelreservierungen(artikelIId, dVon, dBis,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+	public ArtikelreservierungDto artikelreservierungFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return reservierungFac.artikelreservierungFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  public void pruefeReservierungen()
-      throws ExceptionLP {
-    try {
-      reservierungFac.pruefeReservierungen(LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
+	public JasperPrintLP printArtikelreservierungen(Integer artikelIId, java.sql.Date dVon, java.sql.Date dBis,
+			boolean bAlleMandanten, boolean bMonatsstatistik) throws ExceptionLP {
+		try {
+			return reservierungFac.printArtikelreservierungen(artikelIId, dVon, dBis, bAlleMandanten, bMonatsstatistik,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  }
+	public void pruefeReservierungen() throws ExceptionLP {
+		try {
+			reservierungFac.pruefeReservierungen(LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
 
-  
+	}
+
+	public void pruefeReservierungenPerSQL() throws ExceptionLP {
+		try {
+			reservierungFac.pruefeReservierungenPerSQL(LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
+
 }

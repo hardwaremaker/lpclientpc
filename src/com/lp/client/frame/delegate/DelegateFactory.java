@@ -59,6 +59,7 @@ public class DelegateFactory {
 	private AuftragReportDelegate auftragReportDelegate = null;
 	private AuftragRahmenAbrufDelegate auftragRahmenAbrufDelegate = null;
 	private BestellungDelegate bestellungDelegate = null;
+	private NachrichtenDelegate nachrichtenDelegate = null;
 	private BestellungServiceDelegate bestellungServiceDelegate = null;
 	private WareneingangDelegate wareneingangDelegate = null;
 	private BestellvorschlagDelegate bestellvorschlagDelegate = null;
@@ -70,6 +71,8 @@ public class DelegateFactory {
 	private VkPreisfindungDelegate vkPreisfindungDelegate = null;
 	private PartnerDelegate partnerDelegate = null;
 	private PersonalDelegate personalDelegate = null;
+	private HvmaDelegate hvmaDelegate = null;
+	private SchichtDelegate schichtDelegate = null;
 	private MandantDelegate mandantDelegate = null;
 	private LocaleDelegate localeDelegate = null;
 	private FinanzDelegate finanzDelegate = null;
@@ -97,9 +100,12 @@ public class DelegateFactory {
 	private FinanzServiceDelegate finanzServiceDelegate = null;
 	private FinanzReportDelegate finanzReportDelegate = null;
 	private AnfrageDelegate anfrageDelegate = null;
+	private ForecastDelegate forecastDelegate = null;
+	private AusliefervorschlagDelegate ausliefervorschlagDelegate = null;
 	private AnfragepositionDelegate anfragepositionDelegate = null;
 	private AnfrageServiceDelegate anfrageServiceDelegate = null;
 	private AnfrageReportDelegate anfrageReportDelegate = null;
+	private ForecastReportDelegate forecastReportDelegate = null;
 	private RechteDelegate rechteDelegate = null;
 	private AngebotDelegate angebotDelegate = null;
 	private AngebotpositionDelegate angebotpositionDelegate = null;
@@ -118,14 +124,17 @@ public class DelegateFactory {
 	private AngebotstklpositionDelegate angebotstklpositionDelegate = null;
 	private FibuExportDelegate fibuExportDelegate = null;
 	private ArtikelReportDelegate artikelReportDelegate = null;
+	private ArtikelServiceDelegate artikelServiceDelegate = null;
 	private PanelDelegate panelDelegate = null;
 	private LagerReportDelegate lagerReportDelegate = null;
 	private TheClientDelegate theClientDelegate = null;
 	private LogonDelegate logonDelegate = null;
 	private DruckerDelegate druckerDelegate = null;
+	private BelegartmediaDelegate belegartmediaDelegate = null;
 	private LPAsynchSubscriber lPAsynchSubscriber = null;
 	private KundensokoDelegate kundesokoDelegate = null;
 	private ZeiterfassungReportDelegate zeiterfassungReportDelegate = null;
+	private ReisekostenDelegate reisekostenDelegate = null;
 	private ProjektDelegate projektDelegate = null;
 	private ProjektServiceDelegate projektServiceDelegate = null;
 	private DokumenteDelegate dokumenteDelegate = null;
@@ -138,7 +147,9 @@ public class DelegateFactory {
 	private ServerDruckerDelegate serverDruckerDelegate = null;
 	private AutoFehlmengenDruckDelegate autoFehlmengenDruckDelegate = null;
 	private AutoMahnungsversandDelegate autoMahnungsversandDelegate = null;
+	private AutoMonatsabrechnungversandDelegate autoMonatsabrechnungversandDelegate = null;
 	private AutoBestellvorschlagDelegate autoBestellvorschlagDelegate = null;
+	private AutoLoseerledigenDelegate autoLoseerledigenDelegate = null;
 	private JCRDocDelegate jcrDocDelegate = null;
 	private AutoMahnenDelegate autoMahnenDelegate = null;
 	private AutoRahmendetailbedarfdruckDelegate autoRahmendetailbedarfdruckDelegate = null;
@@ -151,6 +162,16 @@ public class DelegateFactory {
 	private InseratDelegate inseratDelegate = null;
 	private PflegeDelegate pflegeDelegate = null;
 	private MaschineDelegate maschineDelegate = null;
+	private JcrDumpDelegate jcrDumpDelegate = null;
+	private AutoJobAuslieferlisteDelegate autoJobAuslieferlisteDelegate = null;
+	private AutoJobLumiquoteDelegate autoJobLumiquoteDelegate = null;
+	private AutoJob4VendingExportDelegate autoJob4VendingExportDelegate = null;
+	private AutoJobErXlsImportDelegate autoJobErXlsImportDelegate = null;
+	private AutoJobArbeitszeitstatusDelegate autoJobArbeitszeitstatusDelegate = null;
+	private AutoJobWEJournalDelegate autoJobWEJournalDelegate = null;
+	private AutoJobWebabfrageArtikellieferantDelegate autoJobWebabfrageArtikellieferantDelegate = null;
+	private AutoJobKpiReportDelegate autoJobKpiReportDelegate = null;
+	private AutoJobBedarfsuebernahmeOffenDelegate autoJobBedarfsuebernahmeOffenDelegate = null;
 
 	static public DelegateFactory getInstance() {
 		if (delegateFactory == null) {
@@ -201,8 +222,7 @@ public class DelegateFactory {
 		return partnerbankDelegate;
 	}
 
-	public PartnerServicesDelegate getPartnerServicesDelegate()
-			throws Throwable {
+	public PartnerServicesDelegate getPartnerServicesDelegate() throws Throwable {
 		if (partnerServicesDelegate == null) {
 			partnerServicesDelegate = new PartnerServicesDelegate();
 		}
@@ -210,9 +230,9 @@ public class DelegateFactory {
 	}
 
 	/*
-	 * public PartnerServicesDelegate getPartnerklassenDelegate() throws
-	 * Throwable { if (partnerklassenDelegate == null) { partnerklassenDelegate
-	 * = new PartnerklasseServicesDelegate(); } return partnerklassenDelegate; }
+	 * public PartnerServicesDelegate getPartnerklassenDelegate() throws Throwable {
+	 * if (partnerklassenDelegate == null) { partnerklassenDelegate = new
+	 * PartnerklasseServicesDelegate(); } return partnerklassenDelegate; }
 	 */
 
 	public LieferscheinDelegate getLsDelegate() throws ExceptionLP {
@@ -222,32 +242,28 @@ public class DelegateFactory {
 		return lieferscheinDelegate;
 	}
 
-	public AutoPaternosterDelegate getAutoPaternosterDelegate()
-			throws ExceptionLP {
+	public AutoPaternosterDelegate getAutoPaternosterDelegate() throws ExceptionLP {
 		if (autoPaternosterDelegate == null) {
 			autoPaternosterDelegate = new AutoPaternosterDelegate();
 		}
 		return autoPaternosterDelegate;
 	}
 
-	public LieferscheinpositionDelegate getLieferscheinpositionDelegate()
-			throws ExceptionLP {
+	public LieferscheinpositionDelegate getLieferscheinpositionDelegate() throws ExceptionLP {
 		if (lieferscheinpositionDelegate == null) {
 			lieferscheinpositionDelegate = new LieferscheinpositionDelegate();
 		}
 		return lieferscheinpositionDelegate;
 	}
 
-	public LieferscheinReportDelegate getLieferscheinReportDelegate()
-			throws ExceptionLP {
+	public LieferscheinReportDelegate getLieferscheinReportDelegate() throws ExceptionLP {
 		if (lieferscheinReportDelegate == null) {
 			lieferscheinReportDelegate = new LieferscheinReportDelegate();
 		}
 		return lieferscheinReportDelegate;
 	}
 
-	public LieferscheinServiceDelegate getLieferscheinServiceDelegate()
-			throws ExceptionLP {
+	public LieferscheinServiceDelegate getLieferscheinServiceDelegate() throws ExceptionLP {
 		if (lieferscheinServiceDelegate == null) {
 			lieferscheinServiceDelegate = new LieferscheinServiceDelegate();
 		}
@@ -267,17 +283,29 @@ public class DelegateFactory {
 		}
 		return artikelReportDelegate;
 	}
+	
+	public ArtikelServiceDelegate getArtikelServiceDelegate() throws Throwable {
+		if (artikelServiceDelegate == null) {
+			artikelServiceDelegate = new ArtikelServiceDelegate();
+		}
+		return artikelServiceDelegate;
+	}
 
-	public ZeiterfassungReportDelegate getZeiterfassungReportDelegate()
-			throws Throwable {
+	public ZeiterfassungReportDelegate getZeiterfassungReportDelegate() throws Throwable {
 		if (zeiterfassungReportDelegate == null) {
 			zeiterfassungReportDelegate = new ZeiterfassungReportDelegate();
 		}
 		return zeiterfassungReportDelegate;
 	}
+	
+	public ReisekostenDelegate getReisekostenDelegate() throws Throwable {
+		if (reisekostenDelegate == null) {
+			reisekostenDelegate = new ReisekostenDelegate();
+		}
+		return reisekostenDelegate;
+	}
 
-	public ArtikelkommentarDelegate getArtikelkommentarDelegate()
-			throws Throwable {
+	public ArtikelkommentarDelegate getArtikelkommentarDelegate() throws Throwable {
 		if (artikelkommentarDelegate == null) {
 			artikelkommentarDelegate = new ArtikelkommentarDelegate();
 		}
@@ -299,8 +327,7 @@ public class DelegateFactory {
 		return benutzerDelegate;
 	}
 
-	public BenutzerServicesDelegate getBenutzerServicesDelegate()
-			throws Throwable {
+	public BenutzerServicesDelegate getBenutzerServicesDelegate() throws Throwable {
 		if (benutzerServicesDelegate == null) {
 			benutzerServicesDelegate = new BenutzerServicesDelegate();
 		}
@@ -328,24 +355,21 @@ public class DelegateFactory {
 		return auftragDelegate;
 	}
 
-	public AuftragpositionDelegate getAuftragpositionDelegate()
-			throws ExceptionLP {
+	public AuftragpositionDelegate getAuftragpositionDelegate() throws ExceptionLP {
 		if (auftragpositionDelegate == null) {
 			auftragpositionDelegate = new AuftragpositionDelegate();
 		}
 		return auftragpositionDelegate;
 	}
 
-	public AuftragteilnehmerDelegate getAuftragteilnehmerDelegate()
-			throws ExceptionLP {
+	public AuftragteilnehmerDelegate getAuftragteilnehmerDelegate() throws ExceptionLP {
 		if (auftragteilnehmerDelegate == null) {
 			auftragteilnehmerDelegate = new AuftragteilnehmerDelegate();
 		}
 		return auftragteilnehmerDelegate;
 	}
 
-	public AuftragServiceDelegate getAuftragServiceDelegate()
-			throws ExceptionLP {
+	public AuftragServiceDelegate getAuftragServiceDelegate() throws ExceptionLP {
 		if (auftragServiceDelegate == null) {
 			auftragServiceDelegate = new AuftragServiceDelegate();
 		}
@@ -373,8 +397,7 @@ public class DelegateFactory {
 		return theClientDelegate;
 	}
 
-	public AuftragRahmenAbrufDelegate getAuftragRahmenAbrufDelegate()
-			throws ExceptionLP {
+	public AuftragRahmenAbrufDelegate getAuftragRahmenAbrufDelegate() throws ExceptionLP {
 		if (auftragRahmenAbrufDelegate == null) {
 			auftragRahmenAbrufDelegate = new AuftragRahmenAbrufDelegate();
 		}
@@ -388,6 +411,13 @@ public class DelegateFactory {
 		return bestellungDelegate;
 	}
 
+	public NachrichtenDelegate getNachrichtenDelegate() throws Throwable {
+		if (nachrichtenDelegate == null) {
+			nachrichtenDelegate = new NachrichtenDelegate();
+		}
+		return nachrichtenDelegate;
+	}
+
 	public ReklamationDelegate getReklamationDelegate() throws Throwable {
 		if (reklamtionDelegate == null) {
 			reklamtionDelegate = new ReklamationDelegate();
@@ -395,16 +425,14 @@ public class DelegateFactory {
 		return reklamtionDelegate;
 	}
 
-	public ReklamationReportDelegate getReklamationReportDelegate()
-			throws Throwable {
+	public ReklamationReportDelegate getReklamationReportDelegate() throws Throwable {
 		if (reklamtionReportDelegate == null) {
 			reklamtionReportDelegate = new ReklamationReportDelegate();
 		}
 		return reklamtionReportDelegate;
 	}
 
-	public BestellungServiceDelegate getBestellungServiceDelegate()
-			throws Throwable {
+	public BestellungServiceDelegate getBestellungServiceDelegate() throws Throwable {
 		if (bestellungServiceDelegate == null) {
 			bestellungServiceDelegate = new BestellungServiceDelegate();
 		}
@@ -419,8 +447,7 @@ public class DelegateFactory {
 		return wareneingangDelegate;
 	}
 
-	public BestellvorschlagDelegate getBestellvorschlagDelegate()
-			throws Throwable {
+	public BestellvorschlagDelegate getBestellvorschlagDelegate() throws Throwable {
 		if (bestellvorschlagDelegate == null) {
 			bestellvorschlagDelegate = new BestellvorschlagDelegate();
 		}
@@ -434,8 +461,7 @@ public class DelegateFactory {
 		return lagerDelegate;
 	}
 
-	public AnsprechpartnerDelegate getAnsprechpartnerDelegate()
-			throws Throwable {
+	public AnsprechpartnerDelegate getAnsprechpartnerDelegate() throws Throwable {
 		if (ansprechpartnerDelegate == null) {
 			ansprechpartnerDelegate = new AnsprechpartnerDelegate();
 		}
@@ -471,8 +497,7 @@ public class DelegateFactory {
 		return projektServiceDelegate;
 	}
 
-	public LieferantServicesDelegate getLieferantServicesDelegate()
-			throws Throwable {
+	public LieferantServicesDelegate getLieferantServicesDelegate() throws Throwable {
 		if (lieferantServicesDelegate == null) {
 			lieferantServicesDelegate = new LieferantServicesDelegate();
 		}
@@ -493,8 +518,7 @@ public class DelegateFactory {
 		return finanzDelegate;
 	}
 
-	public BelegpostionkonvertierungDelegate getBelegpostionkonvertierungDelegate()
-			throws ExceptionLP {
+	public BelegpostionkonvertierungDelegate getBelegpostionkonvertierungDelegate() throws ExceptionLP {
 		if (belegpostionkonvertierungDelegate == null) {
 			belegpostionkonvertierungDelegate = new BelegpostionkonvertierungDelegate();
 		}
@@ -515,8 +539,7 @@ public class DelegateFactory {
 		return rahmenbedarfeDelegate;
 	}
 
-	public ArtikelbestelltDelegate getArtikelbestelltDelegate()
-			throws Throwable {
+	public ArtikelbestelltDelegate getArtikelbestelltDelegate() throws Throwable {
 		if (artikelbestelltDelegate == null) {
 			artikelbestelltDelegate = new ArtikelbestelltDelegate();
 		}
@@ -572,8 +595,7 @@ public class DelegateFactory {
 		return dokumenteDelegate;
 	}
 
-	public AngebotpositionDelegate getAngebotpositionDelegate()
-			throws Throwable {
+	public AngebotpositionDelegate getAngebotpositionDelegate() throws Throwable {
 		if (angebotpositionDelegate == null) {
 			angebotpositionDelegate = new AngebotpositionDelegate();
 		}
@@ -594,8 +616,7 @@ public class DelegateFactory {
 		return angebotstklDelegate;
 	}
 
-	public AngebotstklpositionDelegate getAngebotstklpositionDelegate()
-			throws Throwable {
+	public AngebotstklpositionDelegate getAngebotstklpositionDelegate() throws Throwable {
 		if (angebotstklpositionDelegate == null) {
 			angebotstklpositionDelegate = new AngebotstklpositionDelegate();
 		}
@@ -623,8 +644,7 @@ public class DelegateFactory {
 		return stuecklisteDelegate;
 	}
 
-	public StuecklisteReportDelegate getStuecklisteReportDelegate()
-			throws Throwable {
+	public StuecklisteReportDelegate getStuecklisteReportDelegate() throws Throwable {
 		if (stuecklisteReportDelegate == null) {
 			stuecklisteReportDelegate = new StuecklisteReportDelegate();
 		}
@@ -652,8 +672,7 @@ public class DelegateFactory {
 		return zutrittReportDelegate;
 	}
 
-	public KundesachbearbeiterDelegate getKundesachbearbeiterDelegate()
-			throws ExceptionLP {
+	public KundesachbearbeiterDelegate getKundesachbearbeiterDelegate() throws ExceptionLP {
 		if (kundeSachbearbeiterDelegate == null) {
 			kundeSachbearbeiterDelegate = new KundesachbearbeiterDelegate();
 		}
@@ -688,8 +707,7 @@ public class DelegateFactory {
 		return bsmahnwesenDelegate;
 	}
 
-	public EingangsrechnungDelegate getEingangsrechnungDelegate()
-			throws Throwable {
+	public EingangsrechnungDelegate getEingangsrechnungDelegate() throws Throwable {
 		if (eingangsrechnungDelegate == null) {
 			eingangsrechnungDelegate = new EingangsrechnungDelegate();
 		}
@@ -731,8 +749,7 @@ public class DelegateFactory {
 		return instandhaltungDelegate;
 	}
 
-	public InstandhaltungReportDelegate getInstandhaltungReportDelegate()
-			throws Throwable {
+	public InstandhaltungReportDelegate getInstandhaltungReportDelegate() throws Throwable {
 		if (instandhaltungReportDelegate == null) {
 			instandhaltungReportDelegate = new InstandhaltungReportDelegate();
 		}
@@ -760,8 +777,7 @@ public class DelegateFactory {
 		return mediaDelegate;
 	}
 
-	public RechnungServiceDelegate getRechnungServiceDelegate()
-			throws Throwable {
+	public RechnungServiceDelegate getRechnungServiceDelegate() throws Throwable {
 		if (rechnungServiceDelegate == null) {
 			rechnungServiceDelegate = new RechnungServiceDelegate();
 		}
@@ -789,6 +805,20 @@ public class DelegateFactory {
 		return anfrageDelegate;
 	}
 
+	public ForecastDelegate getForecastDelegate() throws Throwable {
+		if (forecastDelegate == null) {
+			forecastDelegate = new ForecastDelegate();
+		}
+		return forecastDelegate;
+	}
+
+	public AusliefervorschlagDelegate getAusliefervorschlagDelegate() throws Throwable {
+		if (ausliefervorschlagDelegate == null) {
+			ausliefervorschlagDelegate = new AusliefervorschlagDelegate();
+		}
+		return ausliefervorschlagDelegate;
+	}
+
 	public PanelDelegate getPanelDelegate() throws Throwable {
 		if (panelDelegate == null) {
 			panelDelegate = new PanelDelegate();
@@ -796,8 +826,7 @@ public class DelegateFactory {
 		return panelDelegate;
 	}
 
-	public AnfragepositionDelegate getAnfragepositionDelegate()
-			throws Throwable {
+	public AnfragepositionDelegate getAnfragepositionDelegate() throws Throwable {
 		if (anfragepositionDelegate == null) {
 			anfragepositionDelegate = new AnfragepositionDelegate();
 		}
@@ -818,8 +847,14 @@ public class DelegateFactory {
 		return anfrageReportDelegate;
 	}
 
-	public FertigungServiceDelegate getFertigungServiceDelegate()
-			throws Throwable {
+	public ForecastReportDelegate getForecastReportDelegate() throws Throwable {
+		if (forecastReportDelegate == null) {
+			forecastReportDelegate = new ForecastReportDelegate();
+		}
+		return forecastReportDelegate;
+	}
+
+	public FertigungServiceDelegate getFertigungServiceDelegate() throws Throwable {
 		if (fertigungServiceDelegate == null) {
 			fertigungServiceDelegate = new FertigungServiceDelegate();
 		}
@@ -838,6 +873,22 @@ public class DelegateFactory {
 			personalDelegate = new PersonalDelegate();
 		}
 		return personalDelegate;
+
+	}
+
+	public HvmaDelegate getHvmaDelegate() throws Throwable {
+		if (hvmaDelegate == null) {
+			hvmaDelegate = new HvmaDelegate();
+		}
+		return hvmaDelegate;
+
+	}
+
+	public SchichtDelegate getSchichtDelegate() throws Throwable {
+		if (schichtDelegate == null) {
+			schichtDelegate = new SchichtDelegate();
+		}
+		return schichtDelegate;
 	}
 
 	public DruckerDelegate getDruckerDelegate() throws Throwable {
@@ -846,6 +897,14 @@ public class DelegateFactory {
 		}
 		return druckerDelegate;
 	}
+
+	public BelegartmediaDelegate getBelegartmediaDelegate() throws Throwable {
+		if (belegartmediaDelegate == null) {
+			belegartmediaDelegate = new BelegartmediaDelegate();
+		}
+		return belegartmediaDelegate;
+	}
+
 
 	/**
 	 * jmsqueue: anlegen der queue
@@ -888,20 +947,25 @@ public class DelegateFactory {
 		return serverDruckerDelegate;
 	}
 
-	public AutoFehlmengenDruckDelegate getAutoFehlmengenDruckDelegate()
-			throws Throwable {
+	public AutoFehlmengenDruckDelegate getAutoFehlmengenDruckDelegate() throws Throwable {
 		if (autoFehlmengenDruckDelegate == null) {
 			autoFehlmengenDruckDelegate = new AutoFehlmengenDruckDelegate();
 		}
 		return autoFehlmengenDruckDelegate;
 	}
 
-	public AutoMahnungsversandDelegate getAutoMahnungsversandDelegate()
-			throws Throwable {
+	public AutoMahnungsversandDelegate getAutoMahnungsversandDelegate() throws Throwable {
 		if (autoMahnungsversandDelegate == null) {
 			autoMahnungsversandDelegate = new AutoMahnungsversandDelegate();
 		}
 		return autoMahnungsversandDelegate;
+	}
+	
+	public AutoMonatsabrechnungversandDelegate getAutoMonatsabrechnungversandDelegate() throws Throwable {
+		if (autoMonatsabrechnungversandDelegate == null) {
+			autoMonatsabrechnungversandDelegate = new AutoMonatsabrechnungversandDelegate();
+		}
+		return autoMonatsabrechnungversandDelegate;
 	}
 
 	public AutoBestellvorschlagDelegate getautoBestellvorschlagDelegate()
@@ -911,9 +975,15 @@ public class DelegateFactory {
 		}
 		return autoBestellvorschlagDelegate;
 	}
+	public AutoLoseerledigenDelegate getAutoLoseerledigenDelegate()
+			throws CreateException, RemoteException, Throwable {
+		if (autoLoseerledigenDelegate == null) {
+			autoLoseerledigenDelegate = new AutoLoseerledigenDelegate();
+		}
+		return autoLoseerledigenDelegate;
+	}
 
-	public AutoRahmendetailbedarfdruckDelegate getautoRahmendetailbedarfdruckDelegate()
-			throws NamingException {
+	public AutoRahmendetailbedarfdruckDelegate getautoRahmendetailbedarfdruckDelegate() throws NamingException {
 		if (autoRahmendetailbedarfdruckDelegate == null) {
 			autoRahmendetailbedarfdruckDelegate = new AutoRahmendetailbedarfdruckDelegate();
 		}
@@ -946,5 +1016,127 @@ public class DelegateFactory {
 			emailMediaDelegate = new EmailMediaDelegate();
 		}
 		return emailMediaDelegate;
+	}
+
+	public JcrDumpDelegate getJcrDumpDelegate() throws Throwable {
+		if (jcrDumpDelegate == null) {
+			jcrDumpDelegate = new JcrDumpDelegate();
+		}
+		return jcrDumpDelegate;
+	}
+
+	public AutoJobAuslieferlisteDelegate getAutoJobAuslieferlisteDelegate() {
+		if (autoJobAuslieferlisteDelegate == null) {
+			autoJobAuslieferlisteDelegate = new AutoJobAuslieferlisteDelegate();
+		}
+		return autoJobAuslieferlisteDelegate;
+	}
+	public AutoJobLumiquoteDelegate getAutoJobLumiquoteDelegate() {
+		if (autoJobLumiquoteDelegate == null) {
+			autoJobLumiquoteDelegate = new AutoJobLumiquoteDelegate();
+		}
+		return autoJobLumiquoteDelegate;
+	}
+
+	
+	public AutoJob4VendingExportDelegate getAutoJob4VendingExportDelegate() {
+		if (autoJob4VendingExportDelegate == null) {
+			autoJob4VendingExportDelegate = new AutoJob4VendingExportDelegate();
+		}
+		return autoJob4VendingExportDelegate;
+	}
+
+	public AutoJobErXlsImportDelegate getAutoJobErImportXlsImportDelegate() {
+		if (autoJobErXlsImportDelegate == null) {
+			autoJobErXlsImportDelegate = new AutoJobErXlsImportDelegate();
+		}
+		return autoJobErXlsImportDelegate;
+	}
+
+	public AutoJobArbeitszeitstatusDelegate getAutoJobArbeitszeitstatusDelegate() {
+		if (autoJobArbeitszeitstatusDelegate == null) {
+			autoJobArbeitszeitstatusDelegate = new AutoJobArbeitszeitstatusDelegate();
+		}
+		return autoJobArbeitszeitstatusDelegate;
+	}
+
+	public AutoJobWEJournalDelegate getAutoJobWEJournalDelegate() {
+		if (autoJobWEJournalDelegate == null) {
+			autoJobWEJournalDelegate = new AutoJobWEJournalDelegate();
+		}
+		return autoJobWEJournalDelegate;
+	}
+	
+	public AutoJobWebabfrageArtikellieferantDelegate getAutoJobWebabfrageArtikellieferantDelegate() {
+		if (autoJobWebabfrageArtikellieferantDelegate == null) {
+			autoJobWebabfrageArtikellieferantDelegate = new AutoJobWebabfrageArtikellieferantDelegate();
+		}
+		return autoJobWebabfrageArtikellieferantDelegate;
+	}
+	
+	public AutoJobKpiReportDelegate getAutoJobKpiReportDelegate() {
+		if (autoJobKpiReportDelegate == null) {
+			autoJobKpiReportDelegate = new AutoJobKpiReportDelegate();
+		}
+		return autoJobKpiReportDelegate;
+	}
+
+	public AutoJobBedarfsuebernahmeOffenDelegate getAutoJobBedarfsuebernahmeOffenDelegate() {
+		if (autoJobBedarfsuebernahmeOffenDelegate == null) {
+			autoJobBedarfsuebernahmeOffenDelegate = new AutoJobBedarfsuebernahmeOffenDelegate();
+		}
+		return autoJobBedarfsuebernahmeOffenDelegate;
+	}
+	
+	public static MandantDelegate mandant() throws Throwable {
+		return getInstance().getMandantDelegate();
+	}
+	
+	public static FinanzServiceDelegate finanzservice() throws Throwable {
+		return getInstance().getFinanzServiceDelegate();
+	}
+	
+	public static FinanzDelegate finanz() throws Throwable {
+		return getInstance().getFinanzDelegate();
+	}
+	
+	public static EingangsrechnungDelegate er() throws Throwable {
+		return getInstance().getEingangsrechnungDelegate();
+	}
+
+	public static StuecklisteDelegate stkl() throws Throwable {
+		return getInstance().getStuecklisteDelegate();
+	}
+
+	public static FertigungDelegate fertigung() throws Throwable {
+		return getInstance().getFertigungDelegate();
+	}
+	
+	public static MediaDelegate media() throws Throwable {
+		return getInstance().getMediaDelegate();
+	}
+	
+	public static RechnungServiceDelegate rechnungservice() throws Throwable {
+		return getInstance().getRechnungServiceDelegate();
+	}
+	
+	public static SystemDelegate system() throws Throwable {
+		return getInstance().getSystemDelegate();
+	}
+	
+	public static PartnerDelegate partner() throws Throwable {
+		return getInstance().getPartnerDelegate();
+	}
+	
+	public static ParameterDelegate parameter() throws Throwable {
+		return getInstance().getParameterDelegate();
+	}
+	
+	public static ArtikelDelegate artikel() throws Throwable {
+		return getInstance().getArtikelDelegate();
+	}
+	
+	public static EingangsrechnungDelegate eingangsrechnung() throws Throwable {
+		return getInstance().getEingangsrechnungDelegate();
 	}
 }

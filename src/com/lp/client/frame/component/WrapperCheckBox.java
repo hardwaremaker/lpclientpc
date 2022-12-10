@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.frame.component;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.Point;
@@ -49,8 +50,7 @@ import com.lp.client.frame.component.cib.CibIconWrapper;
 import com.lp.client.frame.component.cib.ICibRectangleHolder;
 import com.lp.util.Helper;
 
-public class WrapperCheckBox extends JCheckBox implements IControl,
-		IDirektHilfe, ICibRectangleHolder {
+public class WrapperCheckBox extends JCheckBox implements IControl, IDirektHilfe, ICibRectangleHolder {
 
 	/**
 	 * 
@@ -127,25 +127,44 @@ public class WrapperCheckBox extends JCheckBox implements IControl,
 		this.setSelected(false);
 	}
 
+	public boolean saveReportInformation = true;
+
+	public boolean isSaveReportInformation() {
+		return saveReportInformation;
+	}
+
+	public void setSaveReportInformation(boolean saveReportInformation) {
+		this.saveReportInformation = saveReportInformation;
+	}
+
 	private void setDefaults() {
-		cib = new PaintingCornerInfoButton(this) ;
+		cib = new PaintingCornerInfoButton(this);
 		HelperClient.setDefaultsToComponent(this);
+		Color bgColor = Defaults.getInstance().getCheckboxBackgroundColor();
+		if (bgColor != null) {
+			setOpaque(true);
+			setBackground(bgColor);
+		}
 		setMargin(new Insets(2, 0, 2, 2));
 	}
 
 	public void setMinimumSize(Dimension d) {
-		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setMaximumSize(Dimension d) {
-		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setPreferredSize(Dimension d) {
-		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
+	}
+	
+	/**
+	 * L&auml;sst Swing automatisch die Gr&ouml;&szlig;e f&uuml;r diese Komponente bestimmen
+	 */
+	public void setAutoPreferredSize() {
+		super.setPreferredSize(null);
 	}
 
 	@Override
@@ -162,11 +181,12 @@ public class WrapperCheckBox extends JCheckBox implements IControl,
 	public void removeCib() {
 		cib = null;
 	}
+
 	@Override
 	public String getToken() {
 		return cib.getToolTipToken();
 	}
-	
+
 	@Override
 	public boolean hasContent() throws Throwable {
 		return true;
@@ -175,46 +195,57 @@ public class WrapperCheckBox extends JCheckBox implements IControl,
 	// override getIcon Methods for CornerInfoButton Position
 	@Override
 	public Icon getIcon() {
-		if(super.getIcon() == null) return null;
-		for(Map.Entry<?, ?> map : UIManager.getDefaults().entrySet()) {if(map.getValue() instanceof Icon)System.out.println(map.getKey());}
+		if (super.getIcon() == null)
+			return null;
+		for (Map.Entry<?, ?> map : UIManager.getDefaults().entrySet()) {
+			if (map.getValue() instanceof Icon)
+				System.out.println(map.getKey());
+		}
 		return new CibIconWrapper(super.getIcon());
 	}
-	
+
 	@Override
 	public Icon getDisabledIcon() {
-		if(super.getDisabledIcon() == null) return null;
+		if (super.getDisabledIcon() == null)
+			return null;
 		return new CibIconWrapper(super.getDisabledIcon());
 	}
-	
+
 	@Override
 	public Icon getDisabledSelectedIcon() {
-		if(super.getDisabledSelectedIcon() == null) return null;
+		if (super.getDisabledSelectedIcon() == null)
+			return null;
 		return new CibIconWrapper(super.getDisabledSelectedIcon());
 	}
-	
+
 	@Override
 	public Icon getPressedIcon() {
-		if(super.getPressedIcon() == null) return null;
+		if (super.getPressedIcon() == null)
+			return null;
 		return new CibIconWrapper(super.getPressedIcon());
 	}
-	
+
 	@Override
 	public Icon getRolloverIcon() {
-		if(super.getRolloverIcon() == null) return null;
+		if (super.getRolloverIcon() == null)
+			return null;
 		return new CibIconWrapper(super.getRolloverIcon());
 	}
-	
+
 	@Override
 	public Icon getRolloverSelectedIcon() {
-		if(super.getRolloverSelectedIcon() == null) return null;
+		if (super.getRolloverSelectedIcon() == null)
+			return null;
 		return new CibIconWrapper(super.getRolloverSelectedIcon());
 	}
+
 	@Override
 	public Icon getSelectedIcon() {
-		if(super.getSelectedIcon() == null) return null;
+		if (super.getSelectedIcon() == null)
+			return null;
 		return new CibIconWrapper(super.getSelectedIcon());
 	}
-	
+
 	@Override
 	public Rectangle getIconRect() {
 		return iconRect;

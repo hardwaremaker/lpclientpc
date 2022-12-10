@@ -67,8 +67,6 @@ import javax.swing.JFrame;
  */
 public class JYearChooser extends JSpinField {
 	private static final long serialVersionUID = 2648810220491090064L;
-	protected JDayChooser dayChooser;
-    protected int oldYear;
     protected int startYear;
     protected int endYear;
 
@@ -78,7 +76,6 @@ public class JYearChooser extends JSpinField {
     public JYearChooser() {
         setName("JYearChooser");
         Calendar calendar = Calendar.getInstance();
-        dayChooser = null;
         setMinimum(calendar.getMinimum(Calendar.YEAR));
         setMaximum(calendar.getMaximum(Calendar.YEAR));
         setValue(calendar.get(Calendar.YEAR));
@@ -92,17 +89,17 @@ public class JYearChooser extends JSpinField {
      * @see #getYear
      */
     public void setYear(int y) {
-        super.setValue(y, true, false);
-
-        if (dayChooser != null) {
-            dayChooser.setYear(value);
-        }
-
+    	int oldYear = value;
+        setValue(y, true, false);
         spinner.setValue(new Integer(value));
         firePropertyChange("year", oldYear, value);
-        oldYear = value;
     }
 
+    @Override
+    protected void setValue(int newValue, boolean updateTextField, boolean firePropertyChange) {
+    	super.setValue(newValue, updateTextField, firePropertyChange);
+    }
+    
     /**
      * Sets the year value.
      *
@@ -119,15 +116,6 @@ public class JYearChooser extends JSpinField {
      */
     public int getYear() {
         return super.getValue();
-    }
-
-    /**
-     * Convenience method set a day chooser that might be updated directly.
-     *
-     * @param dayChooser the day chooser
-     */
-    public void setDayChooser(JDayChooser dayChooser) {
-        this.dayChooser = dayChooser;
     }
 
     /**

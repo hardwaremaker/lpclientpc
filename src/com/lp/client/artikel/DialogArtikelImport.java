@@ -46,137 +46,128 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.WrapperTextArea;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelImportDto;
 
-@SuppressWarnings("static-access") 
-public class DialogArtikelImport
-    extends JDialog implements  ActionListener
-{
-  /**
+@SuppressWarnings("static-access")
+public class DialogArtikelImport extends JDialog implements ActionListener {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-JPanel panelUrlaubsanspruch = new JPanel();
-  GridBagLayout gridBagLayout1 = new GridBagLayout();
-  GridBagLayout gridBagLayout2 = new GridBagLayout();
+	JPanel panelUrlaubsanspruch = new JPanel();
+	GridBagLayout gridBagLayout1 = new GridBagLayout();
+	GridBagLayout gridBagLayout2 = new GridBagLayout();
 
-  JButton wbuAbbrechen = new JButton();
-  JCheckBox wcbBestehendeUeberschreiben = new JCheckBox();
+	JButton wbuAbbrechen = new JButton();
+	JCheckBox wcbBestehendeUeberschreiben = new JCheckBox();
 
-  JButton wbuImportieren = new JButton();
-  
-  
-  
-  private ArtikelImportDto[] daten=null;
-  
-  private JScrollPane jspScrollPane = new JScrollPane();
-  private WrapperTextArea wtaFehler = new WrapperTextArea();
-  private TabbedPaneArtikel tpArtikel=null;
-  
+	JButton wbuImportieren = new JButton();
 
+	private ArtikelImportDto[] daten = null;
 
-  public DialogArtikelImport(ArtikelImportDto[] daten, TabbedPaneArtikel tpArtikel)
-      throws Throwable {
-    super(LPMain.getInstance().getDesktop(),
-          "Artikel importieren", true);
-    setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-    this.addWindowListener(new WindowAdapter()
-    {
-      public void windowClosing(WindowEvent e) {
-        setVisible(false);
-        dispose();
-      }
-    });
+	private JScrollPane jspScrollPane = new JScrollPane();
+	private WrapperTextArea wtaFehler = new WrapperTextArea();
+	private TabbedPaneArtikel tpArtikel = null;
 
-    this.daten=daten;
-    this.tpArtikel=tpArtikel;
-    
-       jbInit();
-    pack();
- 
-  }
+	public DialogArtikelImport(ArtikelImportDto[] daten, TabbedPaneArtikel tpArtikel) throws Throwable {
+		super(LPMain.getInstance().getDesktop(), "Artikel importieren", true);
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+		this.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				setVisible(false);
+				dispose();
+			}
+		});
 
+		this.daten = daten;
+		this.tpArtikel = tpArtikel;
 
-  private void jbInit()
-      throws Throwable {
-    panelUrlaubsanspruch.setLayout(gridBagLayout1);
+		jbInit();
+		pack();
 
-    wbuImportieren.setText("Importieren");
-    
-    wcbBestehendeUeberschreiben.setText(LPMain.getInstance().getTextRespectUISPr("artikel.import.bestehendeueberschreiben"));
-    
-    wtaFehler.setText(DelegateFactory.getInstance().getArtikelDelegate().pruefeCSVImport(daten));
-    
-    wbuAbbrechen.setText(LPMain.getInstance().getTextRespectUISPr("lp.abbrechen"));
+	}
 
-    wbuImportieren.addActionListener(this);
-    
-    if(wtaFehler.getText() != null && wtaFehler.getText().length()>0){
-    	wbuImportieren.setEnabled(false);
-    } else {
-    	wtaFehler.setText("Keine Fehler gefunden");
-    }
-    
-    
-    setSize(500, 500);
-    
-    wbuAbbrechen.addActionListener(this);
-    this.getContentPane().setLayout(gridBagLayout2);
+	private void jbInit() throws Throwable {
+		panelUrlaubsanspruch.setLayout(gridBagLayout1);
 
-    this.getContentPane().add(panelUrlaubsanspruch,
-                              new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0
-        , GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 250,
-        50));
+		wbuImportieren.setText("Importieren");
 
- 
+		wcbBestehendeUeberschreiben
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.import.bestehendeueberschreiben"));
+		wcbBestehendeUeberschreiben.addActionListener(this);
 
-    panelUrlaubsanspruch.add(jspScrollPane, new GridBagConstraints(0, 0, 2, 1, 1.0, 1.0
-            , GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-            new Insets(0, 0, 0, 2), 0, 0));
-        jspScrollPane.getViewport().add(wtaFehler, null);
-        
-        
-        
-        
-        
-        panelUrlaubsanspruch.add(wbuImportieren, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0
-                , GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(2, 2, 2, 2),
-                100, 0));
-        panelUrlaubsanspruch.add(wbuAbbrechen, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0
-                , GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(2, 2, 2, 2),
-                100, 0));
-        panelUrlaubsanspruch.add(wcbBestehendeUeberschreiben, new GridBagConstraints(0, 2, 2, 1, 0.0, 0.0
-                , GridBagConstraints.WEST
-                
-                , GridBagConstraints.NONE, new Insets(2, 2, 2, 2),
-                0, 0));
-        
-  }
+		wtaFehler.setText(DelegateFactory.getInstance().getArtikelDelegate().pruefeCSVImport(daten,
+				wcbBestehendeUeberschreiben.isSelected()));
 
+		wbuAbbrechen.setText(LPMain.getInstance().getTextRespectUISPr("lp.abbrechen"));
 
+		wbuImportieren.addActionListener(this);
 
-
-  public void actionPerformed(ActionEvent e) {
-
-    if (e.getSource().equals(wbuImportieren)) {
-    	try {
-			DelegateFactory.getInstance().getArtikelDelegate()
-					.importiereArtikel(daten,wcbBestehendeUeberschreiben.isSelected());
-			
-			
-			this.setVisible(false);
-			
-		} catch (Throwable e2) {
-			tpArtikel.getPanelQueryArtikel().handleException(e2, false);
+		if (wtaFehler.getText() != null && wtaFehler.getText().length() > 0) {
+			wbuImportieren.setEnabled(false);
+		} else {
+			wtaFehler.setText("Keine Fehler gefunden");
 		}
-      
-    } else if (e.getSource().equals(wbuAbbrechen)) {
-    	this.setVisible(false);
-    	
-    }
-  }
+
+		setSize(500, 500);
+
+		wbuAbbrechen.addActionListener(this);
+		this.getContentPane().setLayout(gridBagLayout2);
+
+		this.getContentPane().add(panelUrlaubsanspruch, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 250, 50));
+
+		panelUrlaubsanspruch.add(jspScrollPane, new GridBagConstraints(0, 0, 2, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 2), 0, 0));
+		jspScrollPane.getViewport().add(wtaFehler, null);
+
+		panelUrlaubsanspruch.add(wbuImportieren, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
+		panelUrlaubsanspruch.add(wbuAbbrechen, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
+		panelUrlaubsanspruch.add(wcbBestehendeUeberschreiben,
+				new GridBagConstraints(0, 2, 2, 1, 0.0, 0.0, GridBagConstraints.WEST
+
+						, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+
+	}
+
+	public void actionPerformed(ActionEvent e) {
+
+		if (e.getSource().equals(wbuImportieren)) {
+			try {
+				DelegateFactory.getInstance().getArtikelDelegate().importiereArtikel(daten,
+						wcbBestehendeUeberschreiben.isSelected());
+
+				this.setVisible(false);
+
+			} catch (Throwable e2) {
+				tpArtikel.getPanelQueryArtikel().handleException(e2, false);
+			}
+
+		} else if (e.getSource().equals(wbuAbbrechen)) {
+			this.setVisible(false);
+
+		} else if (e.getSource().equals(wcbBestehendeUeberschreiben)) {
+			try {
+				wtaFehler.setText(DelegateFactory.getInstance().getArtikelDelegate().pruefeCSVImport(daten,
+						wcbBestehendeUeberschreiben.isSelected()));
+
+				if (wtaFehler.getText() != null && wtaFehler.getText().length() > 0) {
+					wbuImportieren.setEnabled(false);
+				} else {
+					wtaFehler.setText("Keine Fehler gefunden");
+					wbuImportieren.setEnabled(true);
+				}
+			} catch (Throwable e1) {
+				tpArtikel.handleException(e1, false);
+			}
+
+		}
+	}
 
 }

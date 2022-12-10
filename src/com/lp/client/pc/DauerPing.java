@@ -40,10 +40,10 @@ import com.lp.client.frame.delegate.DelegateFactory;
 
 public class DauerPing {
 	
-	private DauerPingWrapperTable wrapperTable ;
+	private HeliumInfoWrapperTable wrapperTable ;
 	private Worker worker ;
 	
-	public DauerPing(DauerPingWrapperTable wrapperTable) {
+	public DauerPing(HeliumInfoWrapperTable wrapperTable) {
 //		if(wrapperTable.getRowCount() != 15) {
 //			throw new IllegalArgumentException("WrapperTable von DialogAbout erwartet") ;
 //		}

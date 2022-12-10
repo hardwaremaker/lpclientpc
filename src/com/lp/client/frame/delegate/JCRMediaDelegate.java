@@ -39,6 +39,7 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.jcr.service.JCRMediaDto;
 import com.lp.server.system.jcr.service.JCRMediaFac;
+import com.lp.server.system.jcr.service.JcrDumpFac;
 
 public class JCRMediaDelegate extends Delegate {
 	private JCRMediaFac jcrMediaFac ;
@@ -47,7 +48,7 @@ public class JCRMediaDelegate extends Delegate {
 	public JCRMediaDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			jcrMediaFac = (JCRMediaFac) context.lookup("lpserver/JCRMediaFacBean/remote");
+			jcrMediaFac = lookupFac(context, JCRMediaFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}		

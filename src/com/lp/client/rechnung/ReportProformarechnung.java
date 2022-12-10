@@ -39,6 +39,7 @@ import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
 import com.lp.client.pc.LPMain;
@@ -71,7 +72,7 @@ import com.lp.util.Helper;
  *
  * @version not attributable Date $Date: 2012/10/29 14:36:20 $
  */
-public class ReportProformarechnung extends ReportBeleg {
+public class ReportProformarechnung extends ReportBeleg implements IDruckTypeReport {
 	/**
 	 *
 	 */
@@ -88,7 +89,8 @@ public class ReportProformarechnung extends ReportBeleg {
 		this.kundeDto = kundeDto;
 		// vorbesetzen
 		if (rechnungDto != null) {
-			super.wnfKopien.setInteger(kundeDto.getIDefaultrekopiendrucken());
+//			super.wnfKopien.setInteger(kundeDto.getIDefaultrekopiendrucken());
+			setKopien(kundeDto.getIDefaultrekopiendrucken());
 		}
 	}
 
@@ -112,7 +114,8 @@ public class ReportProformarechnung extends ReportBeleg {
 				.getRechnungDelegate()
 				.printProformarechnung(rechnungDto.getIId(), locKunde,
 						new Boolean(this.isBPrintLogo()),
-						wnfKopien.getInteger());
+//						wnfKopien.getInteger());
+						getKopien(), sDrucktype);
 		// belegkopien: 6 alle zusammenhaengen
 		JasperPrintLP print = prints[0];
 		for (int i = 1; i < prints.length; i++) {
@@ -145,6 +148,9 @@ public class ReportProformarechnung extends ReportBeleg {
 			mailtextDto.setMailProjekt(null);
 			mailtextDto.setMailText(null);
 			mailtextDto.setParamLocale(locKunde);
+			mailtextDto.setProjektIId(rechnungDto.getProjektIId());
+			mailtextDto.setRechnungsart(rechnungDto.getRechnungartCNr());
+			mailtextDto.setMailKopftext(rechnungDto.getCKopftextuebersteuert());
 		}
 		return mailtextDto;
 	}

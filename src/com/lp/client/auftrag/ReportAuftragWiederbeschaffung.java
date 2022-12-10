@@ -43,6 +43,7 @@ import javax.swing.SwingConstants;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
@@ -53,6 +54,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.auftrag.service.AuftragReportFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.report.JasperPrintLP;
@@ -98,6 +100,8 @@ public class ReportAuftragWiederbeschaffung extends PanelBasis implements
 	private WrapperNumberField wnfWBZWennNichtDefiniert = new WrapperNumberField();
 	private WrapperLabel wlaEinheitWBZWennNichtDefiniert = new WrapperLabel();
 
+	private WrapperCheckBox wcbUeberAlleMandanten = new WrapperCheckBox();
+	
 	int iFaktor = 1;
 
 	public ReportAuftragWiederbeschaffung(InternalFrame internalFrame,
@@ -130,7 +134,7 @@ public class ReportAuftragWiederbeschaffung extends PanelBasis implements
 				.getInstance()
 				.getAuftragReportDelegate()
 				.printVerfuegbarkeitspruefung(auftragIId, iSortierung,
-						wnfWBZWennNichtDefiniert.getDouble() * iFaktor);
+						wnfWBZWennNichtDefiniert.getDouble() * iFaktor,wcbUeberAlleMandanten.isSelected());
 	}
 
 	private void jbInit() throws Throwable {
@@ -171,7 +175,22 @@ public class ReportAuftragWiederbeschaffung extends PanelBasis implements
 		}
 
 
-		wnfWBZWennNichtDefiniert.setDouble(2D);
+		wcbUeberAlleMandanten.setText(LPMain.getTextRespectUISPr(
+				"stkl.gesamtkalkulation.ueberallemandanten"));
+		
+		
+		
+		parameter = (ParametermandantDto) DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getParametermandant(
+						ParameterFac.PARAMETER_DEFAULT_WIEDERBESCHAFFUNGSZEIT,
+						ParameterFac.KATEGORIE_ARTIKEL,
+						LPMain.getTheClient().getMandant());
+		
+		
+		
+		wnfWBZWennNichtDefiniert.setInteger((Integer)parameter.getCWertAsObject());
 		wnfWBZWennNichtDefiniert.setMandatoryField(true);
 
 		wrbSortAuftragsposition.setSelected(true);
@@ -221,6 +240,19 @@ public class ReportAuftragWiederbeschaffung extends PanelBasis implements
 		jpaWorkingOn.add(wrbSortGesamtWBZ, new GridBagConstraints(1, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		if (LPMain
+				.getInstance()
+				.getDesktopController()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)) {
+			jpaWorkingOn.add(wcbUeberAlleMandanten,
+					new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
+		
 
 	}
 

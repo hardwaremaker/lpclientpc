@@ -38,7 +38,10 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.reklamation.service.AufnahmeartDto;
 import com.lp.server.reklamation.service.BehandlungDto;
 import com.lp.server.reklamation.service.FehlerDto;
@@ -50,6 +53,8 @@ import com.lp.server.reklamation.service.ReklamationbildDto;
 import com.lp.server.reklamation.service.SchwereDto;
 import com.lp.server.reklamation.service.TermintreueDto;
 import com.lp.server.reklamation.service.WirksamkeitDto;
+import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.TheClientDto;
 
 public class ReklamationDelegate extends Delegate {
 	private Context context;
@@ -57,15 +62,14 @@ public class ReklamationDelegate extends Delegate {
 
 	public ReklamationDelegate() throws Exception {
 		context = new InitialContext();
-		reklamationFac = (ReklamationFac) context
-				.lookup("lpserver/ReklamationFacBean/remote");
+		reklamationFac = lookupFac(context, ReklamationFac.class);
 	}
 
 	public Integer createFehlerangabe(FehlerangabeDto fehlerangabeDto)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.createFehlerangabe(fehlerangabeDto, LPMain
-					.getTheClient());
+			return reklamationFac.createFehlerangabe(fehlerangabeDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -84,8 +88,8 @@ public class ReklamationDelegate extends Delegate {
 
 	public Integer createFehler(FehlerDto fehlerDto) throws ExceptionLP {
 		try {
-			return reklamationFac.createFehler(fehlerDto, LPMain
-					.getTheClient());
+			return reklamationFac
+					.createFehler(fehlerDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -104,8 +108,8 @@ public class ReklamationDelegate extends Delegate {
 	public Integer createAufnahmeart(AufnahmeartDto aufnahmeartDto)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.createAufnahmeart(aufnahmeartDto, LPMain
-					.getTheClient());
+			return reklamationFac.createAufnahmeart(aufnahmeartDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -115,8 +119,8 @@ public class ReklamationDelegate extends Delegate {
 	public Integer createMassnahme(MassnahmeDto massnahmeDto)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.createMassnahme(massnahmeDto, LPMain
-					.getTheClient());
+			return reklamationFac.createMassnahme(massnahmeDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -125,7 +129,8 @@ public class ReklamationDelegate extends Delegate {
 
 	public Integer createSchwere(SchwereDto schwereDto) throws ExceptionLP {
 		try {
-			return reklamationFac.createSchwere(schwereDto);
+			return reklamationFac.createSchwere(schwereDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -145,7 +150,8 @@ public class ReklamationDelegate extends Delegate {
 	public Integer createBehandlung(BehandlungDto beurteilungDto)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.createBehandlung(beurteilungDto);
+			return reklamationFac.createBehandlung(beurteilungDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -155,8 +161,8 @@ public class ReklamationDelegate extends Delegate {
 	public Integer createReklamation(ReklamationDto reklamationDto)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.createReklamation(reklamationDto, LPMain
-					.getTheClient());
+			return reklamationFac.createReklamation(reklamationDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -178,8 +184,8 @@ public class ReklamationDelegate extends Delegate {
 	public Integer createWirksamkeit(WirksamkeitDto wirksamkeitDto)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.createWirksamkeit(wirksamkeitDto, LPMain
-					.getTheClient());
+			return reklamationFac.createWirksamkeit(wirksamkeitDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -242,8 +248,8 @@ public class ReklamationDelegate extends Delegate {
 	public void updateReklamationKommentar(ReklamationDto reklamationDto)
 			throws ExceptionLP {
 		try {
-			reklamationFac.updateReklamationKommentar(reklamationDto, LPMain
-					.getTheClient());
+			reklamationFac.updateReklamationKommentar(reklamationDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -270,8 +276,8 @@ public class ReklamationDelegate extends Delegate {
 	public void updateReklamation(ReklamationDto reklamationDto)
 			throws ExceptionLP {
 		try {
-			reklamationFac.updateReklamation(reklamationDto, LPMain
-					.getTheClient());
+			reklamationFac.updateReklamation(reklamationDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -280,7 +286,8 @@ public class ReklamationDelegate extends Delegate {
 	public void updateBehandlung(BehandlungDto beurteilungDto)
 			throws ExceptionLP {
 		try {
-			reklamationFac.updateBehandlung(beurteilungDto);
+			reklamationFac.updateBehandlung(beurteilungDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -315,8 +322,8 @@ public class ReklamationDelegate extends Delegate {
 	public void updateFehlerangabe(FehlerangabeDto fehlerangabeDto)
 			throws ExceptionLP {
 		try {
-			reklamationFac.updateFehlerangabe(fehlerangabeDto, LPMain
-					.getTheClient());
+			reklamationFac.updateFehlerangabe(fehlerangabeDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -325,8 +332,7 @@ public class ReklamationDelegate extends Delegate {
 
 	public void updateFehler(FehlerDto fehlerDto) throws ExceptionLP {
 		try {
-			reklamationFac.updateFehler(fehlerDto, LPMain
-					.getTheClient());
+			reklamationFac.updateFehler(fehlerDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -335,7 +341,7 @@ public class ReklamationDelegate extends Delegate {
 
 	public void updateSchwere(SchwereDto schwereDto) throws ExceptionLP {
 		try {
-			reklamationFac.updateSchwere(schwereDto);
+			reklamationFac.updateSchwere(schwereDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -353,11 +359,39 @@ public class ReklamationDelegate extends Delegate {
 
 	}
 
+	public Integer erzeugeReklamationAusReklamation(
+			ReklamationDto reklamationDto, InternalFrame internalFrame)
+			throws ExceptionLP {
+		try {
+
+			if (reklamationDto.getKundeIId() != null) {
+				DelegateFactory
+						.getInstance()
+						.getKundeDelegate()
+						.pruefeKunde(reklamationDto.getKundeIId(),
+								LocaleFac.BELEGART_REKLAMATION, internalFrame);
+			}
+
+			// SP5357
+			boolean bAnalyseMitkopieren = DialogFactory.showModalJaNeinDialog(
+					internalFrame,
+					LPMain.getTextRespectUISPr("rekla.kopieren.mitanalyse"));
+
+			return reklamationFac.erzeugeReklamationAusReklamation(
+					reklamationDto.getIId(), bAnalyseMitkopieren,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
 	public void updateAufnahmeart(AufnahmeartDto aufnahmeartDto)
 			throws ExceptionLP {
 		try {
-			reklamationFac.updateAufnahmeart(aufnahmeartDto, LPMain
-					.getTheClient());
+			reklamationFac.updateAufnahmeart(aufnahmeartDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -366,8 +400,7 @@ public class ReklamationDelegate extends Delegate {
 
 	public void updateMassnahme(MassnahmeDto massnahmeDto) throws ExceptionLP {
 		try {
-			reklamationFac.updateMassnahme(massnahmeDto, LPMain
-					.getTheClient());
+			reklamationFac.updateMassnahme(massnahmeDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -377,8 +410,8 @@ public class ReklamationDelegate extends Delegate {
 	public void updateWirksamkeit(WirksamkeitDto wirksamkeitDto)
 			throws ExceptionLP {
 		try {
-			reklamationFac.updateWirksamkeit(wirksamkeitDto, LPMain
-					.getTheClient());
+			reklamationFac.updateWirksamkeit(wirksamkeitDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -388,8 +421,8 @@ public class ReklamationDelegate extends Delegate {
 	public FehlerangabeDto fehlerangabeFindByPrimaryKey(Integer iId)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.fehlerangabeFindByPrimaryKey(iId, LPMain
-					.getTheClient());
+			return reklamationFac.fehlerangabeFindByPrimaryKey(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -411,7 +444,8 @@ public class ReklamationDelegate extends Delegate {
 	public BehandlungDto behandlungFindByPrimaryKey(Integer iId)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.behandlungFindByPrimaryKey(iId);
+			return reklamationFac.behandlungFindByPrimaryKey(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -421,8 +455,8 @@ public class ReklamationDelegate extends Delegate {
 
 	public FehlerDto fehlerFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return reklamationFac.fehlerFindByPrimaryKey(iId, LPMain
-					.getTheClient());
+			return reklamationFac.fehlerFindByPrimaryKey(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -432,7 +466,8 @@ public class ReklamationDelegate extends Delegate {
 
 	public SchwereDto schwereFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return reklamationFac.schwereFindByPrimaryKey(iId);
+			return reklamationFac.schwereFindByPrimaryKey(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -443,8 +478,8 @@ public class ReklamationDelegate extends Delegate {
 	public MassnahmeDto massnahmeFindByPrimaryKey(Integer iId)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.massnahmeFindByPrimaryKey(iId, LPMain
-					.getTheClient());
+			return reklamationFac.massnahmeFindByPrimaryKey(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -463,10 +498,23 @@ public class ReklamationDelegate extends Delegate {
 
 	}
 
-	public ReklamationDto[] reklamationfindOffeneReklamationenEinesArtikels(Integer artikelIId)
+	public ReklamationDto reklamationFindByCNrMandantCNrOhneExc(String cNr)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.reklamationfindOffeneReklamationenEinesArtikels(artikelIId);
+			return reklamationFac.reklamationFindByCNrMandantCNrOhneExc(cNr,
+					LPMain.getTheClient().getMandant());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public ReklamationDto[] reklamationfindOffeneReklamationenEinesArtikels(
+			Integer artikelIId) throws ExceptionLP {
+		try {
+			return reklamationFac
+					.reklamationfindOffeneReklamationenEinesArtikels(artikelIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -488,8 +536,8 @@ public class ReklamationDelegate extends Delegate {
 	public AufnahmeartDto aufnahmeartFindByPrimaryKey(Integer iId)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.aufnahmeartFindByPrimaryKey(iId, LPMain
-					.getTheClient());
+			return reklamationFac.aufnahmeartFindByPrimaryKey(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -500,8 +548,8 @@ public class ReklamationDelegate extends Delegate {
 	public WirksamkeitDto wirksamkeitFindByPrimaryKey(Integer iId)
 			throws ExceptionLP {
 		try {
-			return reklamationFac.wirksamkeitFindByPrimaryKey(iId, LPMain
-					.getTheClient());
+			return reklamationFac.wirksamkeitFindByPrimaryKey(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;

@@ -40,7 +40,9 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
+import com.lp.server.angebotstkl.service.AgstklDto;
 import com.lp.server.angebotstkl.service.AngebotstklFac;
+import com.lp.server.angebotstkl.service.AngebotstklreportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -73,7 +75,7 @@ private Integer angebotstklIId = null;
 
 
   public String getModul() {
-    return AngebotstklFac.REPORT_MODUL;
+    return AngebotstklreportFac.REPORT_MODUL;
   }
   protected JComponent getFirstFocusableComponent()
       throws Exception {
@@ -82,7 +84,7 @@ private Integer angebotstklIId = null;
 
 
   public String getReportname() {
-    return AngebotstklFac.REPORT_ANGEBOTSTUECKLISTE;
+    return AngebotstklreportFac.REPORT_ANGEBOTSTUECKLISTE;
   }
 
 
@@ -100,6 +102,11 @@ private Integer angebotstklIId = null;
 
   public MailtextDto getMailtextDto() throws Throwable  {
     MailtextDto mailtextDto=PanelReportKriterien.getDefaultMailtextDto(this);
+    if (angebotstklIId == null) return mailtextDto;
+    
+    AgstklDto agstklDto = DelegateFactory.getInstance()
+    		.getAngebotstklDelegate().agstklFindByPrimaryKey(angebotstklIId);
+    mailtextDto.setProjektIId(agstklDto.getProjektIId());
     return mailtextDto;
   }
 }

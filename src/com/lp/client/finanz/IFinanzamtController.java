@@ -34,24 +34,38 @@ package com.lp.client.finanz;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.server.finanz.service.FinanzamtDto;
+import com.lp.server.finanz.service.ReversechargeartDto;
+import com.lp.server.finanz.service.SteuerkategorieDto;
 
 public interface IFinanzamtController {
 
-	public void setFinanzamtIId(Integer finanzamtIId) ;
+	void setFinanzamtIId(Integer finanzamtIId) ;
 	
-	public Integer getFinanzamtIId() ;
+	Integer getFinanzamtIId() ;
 	
-	public FinanzamtDto getFinanzamtDto()  throws ExceptionLP ;
+	FinanzamtDto getFinanzamtDto()  throws ExceptionLP ;
 	
-	public void setSteuerkategorieIId(Integer steuerkategorieIId) ;
+	void setSteuerkategorieIId(Integer steuerkategorieIId) ;
 	
-	public Integer getSteuerkategorieIId() ;
-	
-	public boolean createDefaultSteuerkategorie(Integer finanzamtIId) ;
+	Integer getSteuerkategorieIId() ;
+	SteuerkategorieDto getSteuerkategorieDto() ;
 
-	public boolean createDefaultSteuerkategorie() ;
+	void setReversechargeartIId(Integer reversechargeartId) ;
 	
-	public boolean createDefaultSteuerkategoriekonto(Integer finanzamtIId) ;
+	Integer getReversechargeartIId() ;
+	ReversechargeartDto getReversechargeartDto() ;
+	
+	boolean createDefaultReversechargeart() ;
+	
+	boolean createDefaultSteuerkategorie(Integer finanzamtIId) ;
 
-	public boolean createDefaultSteuerkategoriekonto() ;
+	boolean createDefaultSteuerkategorie() ;
+	
+	boolean createDefaultSteuerkategoriekonto(Integer finanzamtIId) ;
+
+	boolean createDefaultSteuerkategoriekonto() ;
+	
+	Integer createSteuerkategorie(SteuerkategorieDto steuerkategorieDto) throws Throwable ;
+	
+	void updateSteuerkategorie(SteuerkategorieDto steuerkategorieDto) throws Throwable ;
 }

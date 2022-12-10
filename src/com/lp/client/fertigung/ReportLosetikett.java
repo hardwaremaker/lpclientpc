@@ -46,7 +46,6 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
-
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -55,7 +54,6 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.fertigung.service.FertigungReportFac;
 import com.lp.server.fertigung.service.LosDto;
-import com.lp.server.fertigung.service.LosablieferungDto;
 import com.lp.server.stueckliste.service.StuecklisteDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.Facade;
@@ -144,6 +142,7 @@ public class ReportLosetikett extends PanelBasis implements PanelReportIfJRDS {
 
 		wlaMenge.setText(LPMain.getTextRespectUISPr("lp.menge"));
 
+		wnfMenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
 		// Mit der letzten Losablieferung vorbesetzen
 		wnfMenge.setBigDecimal(DelegateFactory.getInstance()
 				.getFertigungDelegate()

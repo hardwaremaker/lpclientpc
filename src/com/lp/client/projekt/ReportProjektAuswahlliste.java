@@ -46,14 +46,16 @@ import com.lp.server.util.report.JasperPrintLP;
 public class ReportProjektAuswahlliste extends PanelBasis implements
 		PanelReportIfJRDS {
 
-	/**
-	 * 
-	 */
+	private Integer bereichIId = null;
+
 	private static final long serialVersionUID = 1L;
 
 	public ReportProjektAuswahlliste(InternalFrameProjekt internalFrame,
 			String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
+
+		bereichIId = internalFrame.getTabbedPaneProjekt().getBereichIId();
+
 		jbInit();
 	}
 
@@ -81,7 +83,7 @@ public class ReportProjektAuswahlliste extends PanelBasis implements
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 
 		return DelegateFactory.getInstance().getProjektDelegate()
-				.printProjektOffeneAuswahlListe();
+				.printProjektOffeneAuswahlListe(bereichIId);
 
 	}
 

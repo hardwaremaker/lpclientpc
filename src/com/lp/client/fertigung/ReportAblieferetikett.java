@@ -68,8 +68,7 @@ import com.lp.server.util.report.JasperPrintLP;
  * 
  * @version $Revision: 1.3 $
  */
-public class ReportAblieferetikett extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportAblieferetikett extends PanelBasis implements PanelReportIfJRDS {
 
 	/**
 	 * 
@@ -84,35 +83,31 @@ public class ReportAblieferetikett extends PanelBasis implements
 	private WrapperLabel wlaExemplare = null;
 	protected WrapperNumberField wnfExemplare = null;
 
-	public ReportAblieferetikett(InternalFrame internalFrame,
-			Integer losablieferungIId, String sAdd2Title) throws Throwable {
+	private String snrVonScannerRAW = null;
+
+	public ReportAblieferetikett(InternalFrame internalFrame, Integer losablieferungIId, String sAdd2Title,
+			String snrVonScannerRAW) throws Throwable {
 		super(internalFrame, sAdd2Title);
 		this.losablieferungIId = losablieferungIId;
-
+		this.snrVonScannerRAW = snrVonScannerRAW;
 		jbInit();
 		setDefaults();
 	}
 
 	private void jbInit() throws Throwable {
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		jpaWorkingOn.setLayout(new GridBagLayout());
 		getInternalFrame().addItemChangedListener(this);
 		wlaExemplare = new WrapperLabel();
-		wlaExemplare.setText(LPMain.getInstance().getTextRespectUISPr(
-				"report.exemplare"));
-		wlaExemplare.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaExemplare.setPreferredSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
+		wlaExemplare.setText(LPMain.getInstance().getTextRespectUISPr("report.exemplare"));
+		wlaExemplare.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaExemplare.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
 		wnfExemplare = new WrapperNumberField();
-		wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wnfExemplare.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
+		wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wnfExemplare.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
 		wnfExemplare.setFractionDigits(0);
 		wnfExemplare.setMaximumIntegerDigits(4);
 		wnfExemplare.setMandatoryField(true);
@@ -121,26 +116,20 @@ public class ReportAblieferetikett extends PanelBasis implements
 
 		// PJ17954
 		if (losablieferungIId != null) {
-			LosablieferungDto laDto = DelegateFactory.getInstance()
-					.getFertigungDelegate()
+			LosablieferungDto laDto = DelegateFactory.getInstance().getFertigungDelegate()
 					.losablieferungFindByPrimaryKey(losablieferungIId, false);
-			LosDto lDto = DelegateFactory.getInstance().getFertigungDelegate()
-					.losFindByPrimaryKey(laDto.getLosIId());
+			LosDto lDto = DelegateFactory.getInstance().getFertigungDelegate().losFindByPrimaryKey(laDto.getLosIId());
 			if (lDto.getStuecklisteIId() != null) {
-				StuecklisteDto stklDto = DelegateFactory.getInstance()
-						.getStuecklisteDelegate()
+				StuecklisteDto stklDto = DelegateFactory.getInstance().getStuecklisteDelegate()
 						.stuecklisteFindByPrimaryKey(lDto.getStuecklisteIId());
-				ArtikelDto aDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto aDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey(stklDto.getArtikelIId());
 
-				if (aDto.getFVerpackungsmenge() != null
-						&& aDto.getFVerpackungsmenge().doubleValue() != 0) {
-					
-					double d=lDto.getNLosgroesse().doubleValue()/aDto.getFVerpackungsmenge().doubleValue();
-					int iExemplare =(int)Math.ceil(d);
-					
-				
+				if (aDto.getFVerpackungsmenge() != null && aDto.getFVerpackungsmenge().doubleValue() != 0) {
+
+					double d = lDto.getNLosgroesse().doubleValue() / aDto.getFVerpackungsmenge().doubleValue();
+					int iExemplare = (int) Math.ceil(d);
+
 					if (iExemplare > 1) {
 						wnfExemplare.setInteger(iExemplare);
 					}
@@ -150,36 +139,29 @@ public class ReportAblieferetikett extends PanelBasis implements
 		}
 
 		wlaHandmenge = new WrapperLabel();
-		wlaHandmenge.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.handmenge"));
+		wlaHandmenge.setText(LPMain.getInstance().getTextRespectUISPr("lp.handmenge"));
 		wnfHandmenge = new WrapperNumberField();
 
 		this.setLayout(new GridBagLayout());
-		jpaWorkingOn.add(wlaExemplare, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfExemplare, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(2, iZeile,
-				1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaExemplare, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfExemplare, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(2, iZeile, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 
-		jpaWorkingOn.add(wlaHandmenge, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfHandmenge, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaHandmenge, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfHandmenge, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 	}
 
 	private void setDefaults() throws Throwable {
-		
+
 	}
 
 	public String getModul() {
@@ -191,11 +173,8 @@ public class ReportAblieferetikett extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getFertigungDelegate()
-				.printAblieferEtikett(losablieferungIId,
-						wnfExemplare.getInteger(), wnfHandmenge.getBigDecimal());
+		return DelegateFactory.getInstance().getFertigungDelegate().printAblieferEtikett(losablieferungIId,
+				wnfExemplare.getInteger(), wnfHandmenge.getBigDecimal(), snrVonScannerRAW);
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -203,8 +182,7 @@ public class ReportAblieferetikett extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 

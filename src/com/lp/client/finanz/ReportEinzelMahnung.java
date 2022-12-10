@@ -42,6 +42,7 @@ import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
@@ -50,9 +51,12 @@ import com.lp.server.finanz.service.FinanzReportFac;
 import com.lp.server.finanz.service.MahnungDto;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.rechnung.service.RechnungDto;
+import com.lp.server.rechnung.service.RechnungtextDto;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MediaFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.util.HvOptional;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
@@ -70,7 +74,7 @@ import com.lp.util.Helper;
  * @version not attributable Date $Date: 2012/05/16 09:09:42 $
  */
 public class ReportEinzelMahnung extends ReportBeleg implements
-		PanelReportIfJRDS {
+		PanelReportIfJRDS, IDruckTypeReport {
 	/**
 	 * 
 	 */
@@ -81,8 +85,9 @@ public class ReportEinzelMahnung extends ReportBeleg implements
 	private RechnungDto rechnungDto = null;
 	private KundeDto kundeDto = null;
 
-	public ReportEinzelMahnung(InternalFrame internalFrame, PanelBasis panelToRefresh, Integer mahnungIId,
-			String sAdd2Title) throws Throwable {
+	public ReportEinzelMahnung(InternalFrame internalFrame,
+			PanelBasis panelToRefresh, Integer mahnungIId, String sAdd2Title)
+			throws Throwable {
 		super(internalFrame, panelToRefresh, sAdd2Title, null, null, null);
 		this.mahnungIId = mahnungIId;
 		ParametermandantDto parameter = DelegateFactory
@@ -117,7 +122,7 @@ public class ReportEinzelMahnung extends ReportBeleg implements
 	public boolean getBErstelleReportSofort() {
 		return true;
 	}
-	
+
 	@Override
 	protected String getLockMeWer() throws Exception {
 		// lock ist hier egal
@@ -125,20 +130,25 @@ public class ReportEinzelMahnung extends ReportBeleg implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		
+		JasperPrintLP print = null;
+		
 		if (bAusfuerlich) {
 			Locale locKunde = Helper.string2Locale(kundeDto.getPartnerDto()
 					.getLocaleCNrKommunikation());
-			JasperPrintLP print = DelegateFactory
+			print = DelegateFactory
 					.getInstance()
 					.getRechnungDelegate()
 					.printRechnungAlsMahnung(rechnungDto.getIId(),
 							mahnungDto.getMahnstufeIId(), locKunde,
-							isBPrintLogo());
-			return print;
+							isBPrintLogo(), sDrucktype);
+			
 		} else {
-			return DelegateFactory.getInstance().getFinanzReportDelegate()
+			print= DelegateFactory.getInstance().getFinanzReportDelegate()
 					.printMahnungAusMahnlauf(mahnungIId, isBPrintLogo());
 		}
+		return print;
+		
 	}
 
 	// public MailtextDto getMailtextDto() throws Throwable {
@@ -155,7 +165,7 @@ public class ReportEinzelMahnung extends ReportBeleg implements
 			Locale locKunde = Helper.string2Locale(kundeDto.getPartnerDto()
 					.getLocaleCNrKommunikation());
 			mailtextDto.setMailBetreff(mahnungDto.getMahnstufeIId() + "."
-					+ LPMain.getTextRespectUISPr("rech.mailbetreff.mahnung")
+					+ LPMain.getTextRespectSpezifischesLocale("rech.mailbetreff.mahnung", locKunde)
 					+ " " + rechnungDto.getCNr());
 			mailtextDto.setMailAnprechpartnerIId(rechnungDto
 					.getAnsprechpartnerIId());
@@ -164,12 +174,13 @@ public class ReportEinzelMahnung extends ReportBeleg implements
 					.getTMahndatum().getTime()));
 			mailtextDto.setMailBelegnummer(rechnungDto.getCNr());
 			mailtextDto.setMailBezeichnung(LPMain
-					.getTextRespectUISPr("rech.mailbezeichnung.mahnung"));
-			mailtextDto.setMailFusstext(rechnungDto.getCFusstextuebersteuert());
+					.getTextRespectSpezifischesLocale("rech.mailbezeichnung.mahnung", locKunde));
+			mailtextDto.setMailFusstext(getRechnungFusstext());
 			mailtextDto.setMailPartnerIId(kundeDto.getPartnerIId());
 			mailtextDto.setMailProjekt(null);
 			mailtextDto.setMailText(null);
 			mailtextDto.setParamLocale(locKunde);
+			mailtextDto.setMailKopftext(getRechnungKopftext());
 		}
 		return mailtextDto;
 	}
@@ -205,4 +216,31 @@ public class ReportEinzelMahnung extends ReportBeleg implements
 		// wurde schon aktiviert
 	}
 	
+	private String getRechnungKopftext() throws Throwable {
+		HvOptional<String> kopftext = HvOptional.ofNullable(rechnungDto.getCKopftextuebersteuert());
+		if (kopftext.isPresent()) {
+			return kopftext.get();
+		}
+		
+		return defaultRechnungtextByMediaart(MediaFac.MEDIAART_KOPFTEXT);
+	}
+	
+	private String getRechnungFusstext() throws Throwable {
+		HvOptional<String> fusstext = HvOptional.ofNullable(rechnungDto.getCFusstextuebersteuert());
+		if (fusstext.isPresent()) {
+			return fusstext.get();
+		}
+		
+		return defaultRechnungtextByMediaart(MediaFac.MEDIAART_FUSSTEXT);
+	}
+	
+	private String defaultRechnungtextByMediaart(String mediaart) throws ExceptionLP, Throwable {
+		HvOptional<RechnungtextDto> defaultText = HvOptional.ofNullable(
+				DelegateFactory.getInstance().getRechnungServiceDelegate().rechnungtextFindByMandantLocaleCNr(
+						kundeDto.getPartnerDto().getLocaleCNrKommunikation(), mediaart));
+		return defaultText.isPresent()
+				? defaultText.get().getCTextinhalt()
+				: null;
+	}
+
 }

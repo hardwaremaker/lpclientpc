@@ -70,7 +70,7 @@ private WrapperLabel wlaNachdatum = null;
   private ButtonGroup jbgJahr = null;
   private WrapperLabel wlaEmptyLabel1 = null;
   private WrapperRadioButton wrbKalenderjahr = null;
-  private WrapperRadioButton wrbGeschaeftsjahr = null;
+  protected WrapperRadioButton wrbGeschaeftsjahr = null;
   private FilterKriterium fkKDLF = null;
 
 
@@ -143,9 +143,7 @@ private WrapperLabel wlaNachdatum = null;
   private void setDefaults()
       throws Throwable {
     wrbKalenderjahr.setSelected(true);
-    /**
-     * @todo auswertung nach GJ  PJ 4929
-     */
+   
     wrbGeschaeftsjahr.setVisible(false);
   }
 

@@ -48,20 +48,20 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.text.DecimalFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
@@ -73,19 +73,26 @@ import javax.swing.UIManager;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
+import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperKeyValueField;
 import com.lp.client.frame.component.frameposition.LocalSettingsPathGenerator;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.util.ClientConfiguration;
+import com.lp.client.util.IconFactory;
+import com.lp.client.util.logger.LpLogger;
 import com.lp.server.system.service.AnwenderDto;
 import com.lp.server.system.service.JavaInfoController;
 import com.lp.server.system.service.JavaInfoDto;
 import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.ServerLocaleInfo;
 import com.lp.server.system.service.SystemFac;
+import com.lp.util.Helper;
 
 public class DialogAbout extends JDialog implements ActionListener {
+	private final static LpLogger myLogger = (LpLogger) LpLogger.getInstance(DialogAbout.class);
 
 	private static final long serialVersionUID = 1L;
 	
@@ -99,15 +106,15 @@ public class DialogAbout extends JDialog implements ActionListener {
 	JLabel jLabel1 = new JLabel();
 	JLabel jLabel2 = new JLabel();
 	JLabel lblIpadresse = new JLabel();
-	JButton buttonLogfileAnzeigen = new JButton();
-	DauerPingWrapperTable jTableVersion = null;
+	HeliumInfoWrapperTable jTableVersion = null;
 	JPanel jPanelTable = new JPanel();
+	private WrapperButton buttonLogfileAnzeigen;
+	private WrapperButton buttonLogFileLoeschen;
 	
-	Vector<Vector> vectorData = new Vector<Vector>();
+	Vector<Vector<String>> vectorData = new Vector<Vector<String>>();
 	
 	DecimalFormat nf = new DecimalFormat();
 	
-
 	public DialogAbout(Frame owner, String title, boolean modal)
 			throws Throwable {
 		super(owner, title, modal);
@@ -122,41 +129,98 @@ public class DialogAbout extends JDialog implements ActionListener {
 
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource().equals(buttonLogfileAnzeigen)) {
+			actionLogfileAnzeigen();
+		} else if (e.getSource().equals(buttonLogFileLoeschen)) {
+			actionLogfileLoeschen();
+		}
+	}
+
+	private void actionLogfileLoeschen() {
+		File f = new File(new LocalSettingsPathGenerator().getLogPath());
+		Date dateWeekBefore = Helper.addiereTageZuDatum(new Date(System.currentTimeMillis()), -7);
+		final long dateWeekBeforeMillis = dateWeekBefore.getTime();
+		
+		File[] localFiles = f.listFiles(new FileFilter() {
+			@Override
+			public boolean accept(File fileToCheck) {
+				String s = fileToCheck.getName().toLowerCase();
+				if (!(s.startsWith("lpclient_") && s.endsWith(".log")))
+					return false;
+
+				long timeToCheck = fileToCheck.lastModified();
+				if (timeToCheck > dateWeekBeforeMillis) {
+					return false;
+				}
+				
+				return true;
+			}
+		});
+		
+		if (localFiles == null || localFiles.length < 1) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"), 
+					LPMain.getTextRespectUISPr("lp.aboutdialog.clientlog.loeschen.keinedateien"));
+			return;
+		}
+		
+		loescheClientLogs(localFiles);
+	}
+
+	private void loescheClientLogs(File[] localFiles) {
+		StringBuilder filesBuilder = new StringBuilder();
+		int count = 0;
+		for (File local : localFiles) {
+			if (local.delete()) {
+				filesBuilder.append(local.getName()).append(", ");
+				count++;
+			} else {
+				myLogger.warn("Client-Log " + local.getAbsolutePath() + " konnte nicht geloescht werden");
+			}
+		}
+		
+		if (count > 0) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"), 
+					LPMain.getMessageTextRespectUISPr("lp.aboutdialog.clientlog.loeschen.erfolgreich", count));
+			myLogger.info("Folgende Client-Logs wurden geloescht: " + filesBuilder.toString());
+		}
+		
+	}
+
+	/**
+	 * 
+	 */
+	private void actionLogfileAnzeigen() {
+		try {
+			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+			File logFile = new File(new LocalSettingsPathGenerator().getLogPath(), "lpclient_");
+			BufferedReader in = new BufferedReader(new FileReader(logFile));
+			String zeile = null;
+			StringBuffer text = new StringBuffer();
 			try {
+				String crlf = new String(new byte[] { 13, 10 });
+				while ((zeile = in.readLine()) != null) {
 
-				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+					text.append(zeile).append(crlf);
+				}
 
-				File logFile = new File(new LocalSettingsPathGenerator().getLogPath(), "lpclient_");
-				BufferedReader in = new BufferedReader(new FileReader(logFile));
-				String zeile = null;
-				StringBuffer text = new StringBuffer();
 				try {
-					String crlf = new String(new byte[] { 13, 10 });
-					while ((zeile = in.readLine()) != null) {
-
-						text.append(zeile).append(crlf);
-					}
-
-					try {
-						DialogFactory.showMessageMitScrollbar(
-								logFile.getAbsolutePath(), new String(text),
-								true);
-					} catch (Throwable e1) {
-						e1.printStackTrace();
-					}
-				} catch (IOException e1) {
+					DialogFactory.showMessageMitScrollbar(
+							logFile.getAbsolutePath(), new String(text),
+							true);
+				} catch (Throwable e1) {
 					e1.printStackTrace();
 				}
-				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-			} catch (FileNotFoundException e1) {
-				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-				DialogFactory.showModalDialog("Fehler",
-								"Die angegebene Datei 'log/lpclient_' exisitert nicht.");
-				return;
-			} finally {
-				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			} catch (IOException e1) {
+				e1.printStackTrace();
 			}
-
+			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		} catch (FileNotFoundException e1) {
+			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			DialogFactory.showModalDialog("Fehler",
+							"Die angegebene Datei 'log/lpclient_' existiert nicht.");
+			return;
+		} finally {
+			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		}
 	}
 	
@@ -235,8 +299,20 @@ public class DialogAbout extends JDialog implements ActionListener {
 		Vector<String> row20 = new Vector<String>();
 //		row20.add(LPMain.getInstance().getTextRespectUISPr("lp.server"));
 		row20.add("HELIUM V Client Version");
-		row20.add(anwenderDto.getCVersionServer() + "."
-				+ anwenderDto.getIBuildnummerServer());
+		
+		
+		try {
+			//SP8533
+			if(new Integer(LPMain.getVersionHVBuildnr()).intValue()!=anwenderDto.getIBuildnummerServer().intValue()) {
+				row20.add("<html><body><font color=\"#FF0000\">"+ LPMain.getSVersionHVAllTogether()+"</font></body></html>");
+			}else {
+				row20.add(LPMain.getSVersionHVAllTogether());
+			}
+		} catch (NumberFormatException e) {
+			row20.add("Fehler Buildnummernformat");
+		}
+		
+		
 		row20.add("Von: " + ClientConfiguration.getVersion() + "."
 				+ anwenderDto.getIBuildnummerClienVon());
 		row20.add("Bis: " + ClientConfiguration.getVersion() + "."
@@ -283,6 +359,9 @@ public class DialogAbout extends JDialog implements ActionListener {
 		// Locale
 		Vector<String> row70 = buildLocaleInfo(clientLocaleInfo);
 		vectorData.addElement(row70);
+		
+		//DPI Info
+		//TODO
 
 		// Leerzeile
 		Vector<String> row71 = new Vector<String>();
@@ -312,6 +391,11 @@ public class DialogAbout extends JDialog implements ActionListener {
 		Vector<String> row501 = new Vector<String>();
 		vectorData.add(row501);
 		
+		//DPI
+		//Daten werden automatisch von der Tabelle aktualisiert
+		Vector<String> rowDPI = buildDPIInfo();
+		vectorData.addElement(rowDPI);
+		
 		// Ping
 		// leere zeile die vom Ping ueberschrieben wird  
 		Vector<String> rowPing = new Vector<String>();
@@ -323,7 +407,7 @@ public class DialogAbout extends JDialog implements ActionListener {
 		
 		
 		// Erweitere WrapperTable und fuege DauerPing hinzu
-		jTableVersion = new DauerPingWrapperTable(vectorData, vectorColumns, getVectorDataSize());
+		jTableVersion = new HeliumInfoWrapperTable(vectorData, vectorColumns);
 		
 		
 		// Uebergebe WrapperTable an DauerPing und berechne Pinginformation im Hintergrund
@@ -358,7 +442,7 @@ public class DialogAbout extends JDialog implements ActionListener {
 		panelCenter.setLayout(new BoxLayout(panelCenter,BoxLayout.PAGE_AXIS));
 		
 		JLabel labelCenterImage = new JLabel();		
-		labelCenterImage.setIcon(new ImageIcon(getClass().getResource("/com/lp/client/res/heliumv_info.png")));
+		labelCenterImage.setIcon(IconFactory.getHeliumvAbout());
 		labelCenterImage.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 		labelCenterImage.setAlignmentX(CENTER_ALIGNMENT);
 		panelCenter.add(labelCenterImage);
@@ -381,8 +465,8 @@ public class DialogAbout extends JDialog implements ActionListener {
                 		+ currentFont.getFamily() + "\', sans-serif; "
                 		+ "font-size: " + currentFont.getSize() + "pt;"
                 		+ "font-weight: " + fontStyle + ";\">"
-                		+ "<a style=\"text-decoration: none;\" href=\"mailto:support@HeliumV.com\">support@HeliumV.com</a><br>"
-                		+ "<a style=\"text-decoration: none;\" href=\"http://www.HeliumV.com/\">http://www.HeliumV.com</a><br/>"
+                		+ "<a style=\"text-decoration: none;\" href=\"mailto:support@Helium5.com\">support@Helium5.com</a><br>"
+                		+ "<a style=\"text-decoration: none;\" href=\"https://www.helium5.com/\">https://www.helium5.com</a><br/>"
                 		+ "&#169; HELIUM V IT-Solutions GmbH 2005 - "
                 		+ Calendar.getInstance().get(Calendar.YEAR)
                 		+ "</div>";
@@ -489,7 +573,7 @@ public class DialogAbout extends JDialog implements ActionListener {
 				.mandantFindAll();
 		for (int i = 0; i < mDtos.length; i++) {
 			mandanten += mDtos[i].getCNr() + " " + mDtos[i].getCKbez()
-					+ ", Benutzer: " + mDtos[i].getIBenutzermax() + " | ";
+					+ ", Benutzer: " + mDtos[i].getIBenutzermax() + ", Personen: "+mDtos[i].getIMaxpersonen()+" | ";
 		}
 
 		wkvMandanten.setValue(mandanten);
@@ -510,10 +594,20 @@ public class DialogAbout extends JDialog implements ActionListener {
 				1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
 				new Insets(0, 0, 5, 10), 0, 0));
 
+		buttonLogfileAnzeigen = new WrapperButton();
 		buttonLogfileAnzeigen.setText(LPMain.getTextRespectUISPr("lp.aboutdialog.clientlog"));
 		buttonLogfileAnzeigen.addActionListener(this);
 		
-		panelLizeninfo.add(buttonLogfileAnzeigen, new GridBagConstraints(0, 4,
+		buttonLogFileLoeschen = new WrapperButton();
+		buttonLogFileLoeschen.setText(LPMain.getTextRespectUISPr("lp.aboutdialog.clientlog.loeschen"));
+		buttonLogFileLoeschen.addActionListener(this);
+		buttonLogFileLoeschen.setToolTipText(LPMain.getTextRespectUISPr("lp.aboutdialog.clientlog.loeschen.tooltip"));
+		
+		JPanel panelButtons = new JPanel();
+		HvLayout layoutButtons = HvLayoutFactory.create(panelButtons, "insets 0", "[fill,grow|200,fill]30[200,fill]", "");
+		layoutButtons.add(buttonLogFileLoeschen, "skip 1")
+			.add(buttonLogfileAnzeigen);
+		panelLizeninfo.add(panelButtons, new GridBagConstraints(0, 4,
 				1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE,
 				new Insets(0, 0, 5, 10), 100, 0));
 
@@ -531,6 +625,13 @@ public class DialogAbout extends JDialog implements ActionListener {
 		
 		this.getContentPane().add(panelLizeninfo, BorderLayout.SOUTH);
 
+	}
+
+	private Vector<String> buildDPIInfo() {
+		Vector<String> row = new Vector<String>();
+		row.add("Display");
+		//Die restlichen Spalten werden von der Tabelle automatisch generiert
+		return row;
 	}
 
 	private Vector<String> buildMemoryInfo(JavaInfoDto javaInfo) {

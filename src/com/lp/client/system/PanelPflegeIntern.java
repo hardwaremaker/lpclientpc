@@ -66,8 +66,13 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.frameposition.LocalSettingsPathGenerator;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.XlsFile;
+import com.lp.client.frame.filechooser.open.XlsFileOpenerNew;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.server.util.HvOptional;
 
 public class PanelPflegeIntern extends PanelBasis {
 
@@ -79,6 +84,8 @@ public class PanelPflegeIntern extends PanelBasis {
 	private final String MENUE_PFLEGE_SP2486 = "MENUE_PFLEGE_SP2486";
 	private final String MENUE_PFLEGE_SP2597 = "MENUE_PFLEGE_SP2597";
 	private final String MENUE_PFLEGE_PJ18612 = "MENUE_PFLEGE_PJ18612";
+	private final String MENUE_PFLEGE_SP4129 = "MENUE_PFLEGE_SP4129";
+	private final String MENUE_PFLEGE_PJ19519 = "MENUE_PFLEGE_PJ19519";
 
 	public PanelPflegeIntern(InternalFrame internalFrame, String add2TitleI)
 			throws Throwable {
@@ -169,6 +176,11 @@ public class PanelPflegeIntern extends PanelBasis {
 		fertigung.setBorder(BorderFactory.createTitledBorder("Fertigung"));
 		jpaWorkingOn.add(fertigung);
 
+		JButton btnPJ19519 = new AutoWrapButton("PJ19519 Lose erledigen");
+		btnPJ19519.setActionCommand(MENUE_PFLEGE_PJ19519);
+		btnPJ19519.addActionListener(this);
+		fertigung.add(btnPJ19519);
+
 		JPanel hinweis = new JPanel(new MigLayout("wrap 1"));
 		hinweis.setBorder(BorderFactory.createTitledBorder("Hinweis"));
 		jpaWorkingOn.add(hinweis);
@@ -177,17 +189,24 @@ public class PanelPflegeIntern extends PanelBasis {
 		btnSP2486.setActionCommand(MENUE_PFLEGE_SP2486);
 		btnSP2486.addActionListener(this);
 		artikel.add(btnSP2486);
-		
+
 		JButton btnSP2597 = new AutoWrapButton("SP2597 Sperren");
 		btnSP2597.setActionCommand(MENUE_PFLEGE_SP2597);
 		btnSP2597.addActionListener(this);
 		artikel.add(btnSP2597);
-		
-		JButton btnPJ18612 = new AutoWrapButton("PJ18612 Lieferant von Mandant 001 -> 002");
+
+		JButton btnPJ18612 = new AutoWrapButton(
+				"PJ18612 Lieferant von Mandant 001 -> 002");
 		btnPJ18612.setActionCommand(MENUE_PFLEGE_PJ18612);
 		btnPJ18612.addActionListener(this);
 		artikel.add(btnPJ18612);
-		
+
+		/*
+		 * JButton btnSP4129 = new AutoWrapButton(
+		 * "SP4129 Migriere Chargeneigenschaften/Dokumente");
+		 * btnSP4129.setActionCommand(MENUE_PFLEGE_SP4129);
+		 * btnSP4129.addActionListener(this); artikel.add(btnSP4129);
+		 */
 
 		// Hinweis
 
@@ -227,25 +246,20 @@ public class PanelPflegeIntern extends PanelBasis {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(MENUE_PFLEGE_SP2486)) {
 
-			File[] files = HelperClient.chooseFile(this,
-					HelperClient.FILE_FILTER_XLS, false);
-			if (files == null || files.length < 1 || files[0] == null) {
-				return;
-			}
-			File f = files[0];
-
+			HvOptional<XlsFile> xlsFile = new XlsFileOpenerNew(
+					this, FileChooserConfigToken.ImportLastXls).selectSingle();
+			if(!xlsFile.isPresent()) return;
+			
 			Set<Integer> artikelids = new HashSet<Integer>();
 
-			if (f != null) {
+			Workbook workbook = xlsFile.get().getWorkbook();
+			Sheet sheet = workbook.getSheet(0);
 
-				Workbook workbook = Workbook.getWorkbook(f);
-				Sheet sheet = workbook.getSheet(0);
+			for (int i = 1; i < sheet.getRows(); i++) {
+				Cell[] s = sheet.getRow(i);
 
-				for (int i = 1; i < sheet.getRows(); i++) {
-					Cell[] s = sheet.getRow(i);
+				if (s[1].getType() == CellType.NUMBER) {
 
-					if (s[1].getType() == CellType.NUMBER) {
-					
 					NumberCell n = (jxl.NumberCell) s[1];
 
 					if (n.getValue() == 0) {
@@ -256,35 +270,38 @@ public class PanelPflegeIntern extends PanelBasis {
 
 						artikelids.add(aDto.getIId());
 					}
-					}
-
 				}
-
 			}
+			workbook.close();
 
-			String s=DelegateFactory.getInstance().getPflegeDelegate()
+			String s = DelegateFactory.getInstance().getPflegeDelegate()
 					.sp2486(artikelids);
-			
+
 			java.io.File ausgabedatei = getLogFile("sp2486.txt");
 			java.io.FileWriter fw = new java.io.FileWriter(ausgabedatei);
 			java.io.BufferedWriter bw = new java.io.BufferedWriter(fw);
 			bw.write(s);
 			bw.close();
-			
 
-		}else if (e.getActionCommand().equals(MENUE_PFLEGE_SP2597)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_SP2597)) {
+			DelegateFactory.getInstance().getPflegeDelegate().sp2597();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PJ19519)) {
+			DelegateFactory.getInstance().getPflegeDelegate().pj19519();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PJ18612)) {
+			DelegateFactory.getInstance().getPflegeDelegate().pj18612();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_SP4129)) {
 			DelegateFactory.getInstance().getPflegeDelegate()
-			.sp2597();
-		}else if (e.getActionCommand().equals(MENUE_PFLEGE_PJ18612)) {
-			DelegateFactory.getInstance().getPflegeDelegate()
-			.pj18612();
+					.migriereChargeneigenschaftenUndChargenDokumenteWgSP4129();
+			DialogFactory.showModalDialog("Info", "Migration durchgefuehrt!");
+
 		}
 	}
 
 	private File getLogFile(String baseFilename) {
-		return new File(new LocalSettingsPathGenerator().getLogPath(), baseFilename);
+		return new File(new LocalSettingsPathGenerator().getLogPath(),
+				baseFilename);
 	}
-	
+
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
 			throws Throwable {
 

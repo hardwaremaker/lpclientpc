@@ -41,13 +41,13 @@
   dtyp="java.lang.String"
   labelbez="label.kennung">
   <attribut setMandatoryField="true"/>
-  <attribut setColumnsMax="15"/>
+  <attribut setColumnsMax="120"/>
 </control>
 
 <control
   klasse="com.lp.client.frame.component.WrapperTextField"
   colname="CBez" dtyp="java.lang.String"
   labelbez="label.bezeichnung_lang" istsprache="">
-  <attribut setColumnsMax="40"/>
+  <attribut setColumnsMax="120"/>
 </control>
 </controls>

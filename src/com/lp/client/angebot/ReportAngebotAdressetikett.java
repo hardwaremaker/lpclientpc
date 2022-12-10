@@ -40,6 +40,7 @@ import java.util.EventObject;
 
 import javax.swing.JComponent;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -151,6 +152,7 @@ private WrapperButton wbuAnsprechpartner = new WrapperButton();
         "button.ansprechpartner.long"));
     wlaPartner.setText(LPMain.getInstance().getTextRespectUISPr(
         "part.report.adressetikett.selektierterpartner") + ": ");
+    HelperClient.setMinimumAndPreferredSize(wlaPartner, HelperClient.getSizeFactoredDimension(100));
     wbuAnsprechpartner.setActionCommand(this.
                                         ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE);
     wbuAnsprechpartner.addActionListener(this);

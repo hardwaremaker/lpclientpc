@@ -215,7 +215,7 @@ public class PanelVerkettet extends PanelBasis {
 
 		FilterKriterium[] filters = null;
 
-		filters = new FilterKriterium[6];
+		filters = new FilterKriterium[7];
 		filters[0] = new FilterKriterium(
 				LieferscheinFac.FLR_LIEFERSCHEIN_MANDANT_C_NR, true, "'"
 						+ LPMain.getTheClient().getMandant() + "'",
@@ -247,6 +247,11 @@ public class PanelVerkettet extends PanelBasis {
 		filters[5] = new FilterKriterium(
 				LieferscheinServiceFac.LS_HANDLER_OHNE_VERKETTETE, true, "",
 				FilterKriterium.OPERATOR_NOT_EQUAL, false);
+		
+		filters[6] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_LIEFERSCHEINSTATUS_STATUS_C_NR,
+				true, "'" + LieferscheinFac.LSSTATUS_VERRECHNET + "'",
+				FilterKriterium.OPERATOR_NOT_EQUAL, false);
+		
 
 		String sTitle = LPMain.getTextRespectUISPr("ls.title.tooltip.auswahl");
 

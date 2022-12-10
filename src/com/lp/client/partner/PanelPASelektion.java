@@ -58,8 +58,6 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
-import com.lp.server.partner.ejb.PASelektionPK;
-import com.lp.server.partner.fastlanereader.generated.service.FLRPASelektionPK;
 import com.lp.server.partner.service.PASelektionDto;
 import com.lp.server.partner.service.SelektionDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
@@ -194,27 +192,23 @@ public class PanelPASelektion extends PanelBasis {
 			// Neu.
 			leereAlleFelder(this);
 			clearStatusbar();
-			getTabbedPanePartner().getPASelektionDto().setBIsNew(true);
-			sT = getTabbedPanePartner().getPartnerDto()
+			sT = getTabbedPanePartner().getServicePartnerDto()
 					.formatFixTitelName1Name2();
 		} else {
 			// Update.
-			FLRPASelektionPK pASelektionPK = (FLRPASelektionPK) key;
+			Integer pASelektionPK = (Integer) key;
 			getTabbedPanePartner().setPASelektionDto(
 					DelegateFactory
 							.getInstance()
 							.getPartnerDelegate()
-							.pASelektionFindByPrimaryKey(
-									new PASelektionPK(pASelektionPK
-											.getPartner_i_id(), pASelektionPK
-											.getSelektion_i_id())));
+							.pASelektionFindByPrimaryKey(pASelektionPK));
 			dto2Components();
 
-			getTabbedPanePartner().getPASelektionDto().setBIsNew(false);
+			
 
 			String sB = getTabbedPanePartner().getPASelektionDto()
 					.getCBemerkung();
-			sT = getTabbedPanePartner().getPartnerDto()
+			sT = getTabbedPanePartner().getServicePartnerDto()
 					.formatFixTitelName1Name2()
 					+ (sB == null ? "" : " | " + sB);
 		}
@@ -247,15 +241,15 @@ public class PanelPASelektion extends PanelBasis {
 			checkLockedDlg();
 
 			components2Dto();
-			if (getTabbedPanePartner().getPASelektionDto().isBIsNew()) {
+			if (getTabbedPanePartner().getPASelektionDto().getIId()==null) {
 				// Create.
-				PASelektionPK pASelektionPK = DelegateFactory
+				getTabbedPanePartner().getPASelektionDto().setIId(DelegateFactory
 						.getInstance()
 						.getPartnerDelegate()
 						.createPASelektion(
-								getTabbedPanePartner().getPASelektionDto());
+								getTabbedPanePartner().getPASelektionDto()));
 
-				setKeyWhenDetailPanel(pASelektionPK);
+				setKeyWhenDetailPanel(getTabbedPanePartner().getPASelektionDto().getIId());
 			} else {
 				// Update.
 				DelegateFactory
@@ -277,11 +271,8 @@ public class PanelPASelektion extends PanelBasis {
 			DelegateFactory
 					.getInstance()
 					.getPartnerDelegate()
-					.removePASelektion(
-							new PASelektionPK(getTabbedPanePartner()
-									.getPASelektionDto().getPartnerIId(),
-									getTabbedPanePartner().getPASelektionDto()
-											.getSelektionIId()));
+					.removePASelektion(getTabbedPanePartner()
+									.getPASelektionDto());
 			getTabbedPanePartner().setPASelektionDto(new PASelektionDto());
 
 			super.eventActionDelete(e, false, false);
@@ -290,7 +281,7 @@ public class PanelPASelektion extends PanelBasis {
 
 	private void components2Dto() {
 		getTabbedPanePartner().getPASelektionDto().setPartnerIId(
-				getTabbedPanePartner().getPartnerDto().getIId());
+				getTabbedPanePartner().getServicePartnerDto().getIId());
 		getTabbedPanePartner().getPASelektionDto().setCBemerkung(
 				wtfBemerkung.getText());
 	}

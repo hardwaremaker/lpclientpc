@@ -60,12 +60,14 @@ import javax.swing.tree.TreeSelectionModel;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperJTree;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.stueckliste.service.StuecklisteDto;
+import com.lp.util.GotoHelper;
 
 @SuppressWarnings("static-access")
 public class DialogStuecklisteStruktur extends JDialog implements
@@ -78,16 +80,18 @@ public class DialogStuecklisteStruktur extends JDialog implements
 	private BorderLayout borderLayout = new BorderLayout();
 	private JTree tree = null;
 	InternalFrameStueckliste internalFrame = null;
+	private boolean bMitVersteckten;
 
 	WrapperGotoButton wbuStkl = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_STUECKLISTE_DETAIL);
+			GotoHelper.GOTO_STUECKLISTE_DETAIL);
 	WrapperGotoButton wbuArtikel = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_ARTIKEL_AUSWAHL);
+			GotoHelper.GOTO_ARTIKEL_AUSWAHL);
 
-	public DialogStuecklisteStruktur(InternalFrameStueckliste internalFrame)
-			throws Throwable {
+	public DialogStuecklisteStruktur(InternalFrameStueckliste internalFrame,
+			boolean bMitVersteckten) throws Throwable {
 		super(LPMain.getInstance().getDesktop(), LPMain.getInstance()
 				.getTextRespectUISPr("stkl.baumansicht"), false);
+		this.bMitVersteckten = bMitVersteckten;
 		this.internalFrame = internalFrame;
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		jbInit();
@@ -114,7 +118,7 @@ public class DialogStuecklisteStruktur extends JDialog implements
 		StuecklisteTreeNode root = new StuecklisteTreeNode("ROOT");
 
 		TreeMap<String, Integer> tm = DelegateFactory.getInstance()
-				.getStuecklisteDelegate().holeAlleWurzelstuecklisten();
+				.getStuecklisteDelegate().holeAlleWurzelstuecklisten(bMitVersteckten);
 
 		Iterator it = tm.keySet().iterator();
 		while (it.hasNext()) {
@@ -150,7 +154,7 @@ public class DialogStuecklisteStruktur extends JDialog implements
 		wbuStkl.setPreferredSize(new Dimension(25, 21));
 		wbuStkl.setMinimumSize(new Dimension(25, 21));
 
-		WrapperLabel wlaStkl = new WrapperLabel( LPMain.getInstance()
+		WrapperLabel wlaStkl = new WrapperLabel(LPMain.getInstance()
 				.getTextRespectUISPr("stkl.baumansicht.gehezustkl"));
 		p.add(wlaStkl, new GridBagConstraints(0, 1, 1, 1, 1, 1,
 				GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,
@@ -168,6 +172,13 @@ public class DialogStuecklisteStruktur extends JDialog implements
 				1, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(0, 0, 0, 0), 10, 0));
 
+		WrapperCheckBox mitVersteckten=new WrapperCheckBox(LPMain.getTextRespectUISPr("lp.versteckte"));
+		mitVersteckten.setSelected(bMitVersteckten);
+		mitVersteckten.setEnabled(false);
+		p.add(mitVersteckten, new GridBagConstraints(4, 1,
+				1, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.NONE,
+				new Insets(0, 0, 0, 0), 100, 0));
+		
 		this.getContentPane().add(p, BorderLayout.NORTH);
 
 		wbuStkl.setOKey(null);
@@ -218,7 +229,7 @@ public class DialogStuecklisteStruktur extends JDialog implements
 
 				TreeMap<String, Integer> tmPositionen = DelegateFactory
 						.getInstance().getStuecklisteDelegate()
-						.holeNaechsteEbene(stuecklisteIId);
+						.holeNaechsteEbene(stuecklisteIId, bMitVersteckten);
 
 				Iterator it = tmPositionen.keySet().iterator();
 
@@ -226,6 +237,10 @@ public class DialogStuecklisteStruktur extends JDialog implements
 					String s = (String) it.next();
 					Integer artikelIId = tmPositionen.get(s);
 
+					if(s.contains("|")) {
+						s=s.substring(0,s.indexOf("|"));
+					}
+					
 					StuecklisteTreeNode next = new StuecklisteTreeNode(s, null,
 							artikelIId);
 

@@ -55,6 +55,7 @@ import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.MaterialzuschlagDto;
+import com.lp.server.system.service.SystemFac;
 
 @SuppressWarnings("static-access")
 public class PanelMaterialzuschlag
@@ -185,13 +186,10 @@ public class PanelMaterialzuschlag
   protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI,
                                    boolean bNeedNoDeleteI)
       throws Throwable {
-    MaterialzuschlagDto dto = new MaterialzuschlagDto();
-    dto.setIId( (Integer) getKeyWhenDetailPanel());
-    DelegateFactory.getInstance().getMaterialDelegate().removeMaterialzuschlag(
-        dto);
+   
+    DelegateFactory.getInstance().getMaterialDelegate().removeMaterialzuschlag(materialzuschlagDto);
     this.setKeyWhenDetailPanel(null);
     super.eventActionDelete(e, false, false);
-    materialzuschlagDto = new MaterialzuschlagDto();
   }
 
 
@@ -213,12 +211,12 @@ public class PanelMaterialzuschlag
 
     wlaLagerart.setToolTipText("");
     wlaLagerart.setText(LPMain.getInstance().getTextRespectUISPr(
-        "artikel.technik.zuschlag"));
+        "artikel.material.notierung"));
 
     wlaWaehrung.setText(DelegateFactory.getInstance().getMandantDelegate().
                         mandantFindByPrimaryKey(LPMain.getInstance().
                                                 getTheClient().getMandant()).
-                        getWaehrungCNr());
+                        getWaehrungCNr() +"/"+SystemFac.EINHEIT_KILOGRAMM.trim());
     ;
     wdfGueltigab.setMandatoryField(true);
     wnfZuschlag.setMandatoryField(true);
@@ -243,7 +241,7 @@ public class PanelMaterialzuschlag
                                                GridBagConstraints.HORIZONTAL,
                                                new Insets(2, 2, 2, 2), 0, 0));
     jpaWorkingOn.add(wlaLagerart,
-                        new GridBagConstraints(3, 0, 1, 1, 0.05, 0.0
+                        new GridBagConstraints(3, 0, 1, 1, 0.07, 0.0
                                                , GridBagConstraints.CENTER,
                                                GridBagConstraints.HORIZONTAL,
                                                new Insets(2, 2, 2, 2), 0, 0));
@@ -261,7 +259,7 @@ public class PanelMaterialzuschlag
                         new GridBagConstraints(5, 0, 1, 1, 0, 0.0
                                                , GridBagConstraints.CENTER,
                                                GridBagConstraints.HORIZONTAL,
-                                               new Insets(0, 0, 0, 0), 20, 0));
+                                               new Insets(0, 0, 0, 0), 35, 0));
     String[] aWhichButtonIUse = {
         ACTION_UPDATE,
         ACTION_SAVE,

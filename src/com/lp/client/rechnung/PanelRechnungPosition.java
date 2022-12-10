@@ -64,14 +64,22 @@ import com.lp.client.frame.component.PositionNumberHelperRechnung;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.ArtikelMengenDialogRueckgabe;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.DialogEingabeBetrag;
+import com.lp.client.util.HelperTimestamp;
+import com.lp.client.util.IconFactory;
+import com.lp.server.angebot.service.AngebotServiceFac;
+import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.auftrag.service.AuftragpositionDto;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.inserat.service.InseratDto;
 import com.lp.server.lieferschein.service.LieferscheinDto;
+import com.lp.server.lieferschein.service.LieferscheinFac;
 import com.lp.server.rechnung.service.RechnungDto;
 import com.lp.server.rechnung.service.RechnungFac;
 import com.lp.server.rechnung.service.RechnungPositionDto;
@@ -96,16 +104,13 @@ import com.lp.util.Helper;
  * </p>
  * <p>
  * </p>
- *
+ * 
  * @author Martin Bluehweis
  * @version $Revision: 1.38 $
  */
 
 public class PanelRechnungPosition extends PanelPositionen2 {
-	/**
-	 *
-	 */
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 6943613113178285842L;
 
 	private TabbedPaneRechnungAll tpRechnung = null;
 
@@ -113,11 +118,11 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 	private WrapperTextField wtfAuftragProjekt = null;
 	private WrapperTextField wtfAuftragBestellnummer = null;
 
-	private RechnungDto rechnungDto = null;
-
+	public final static String MY_OWN_NEW_INT_ZWS_UEBERSTEUERN = PanelBasis.ACTION_MY_OWN_NEW
+			+ "MY_OWN_NEW_INT_ZWS_UEBERSTEUERN";
 	/**
 	 * Konstruktor.
-	 *
+	 * 
 	 * @param internalFrame
 	 *            der InternalFrame auf dem das Panel sitzt
 	 * @param add2TitleI
@@ -150,7 +155,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 	private void jbInit() throws Throwable {
 		// zusaetzliche buttons
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, ACTION_PRINT, ACTION_TEXT };
+				ACTION_DELETE, ACTION_DISCARD, ACTION_PRINT, ACTION_TEXT, ACTION_MEDIA };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -194,8 +199,27 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 				new Insets(0, 0, 0, 0), 0, 0));
 		getInternalFrame().addItemChangedListener(this);
 		panelHandeingabe.setVisibleZeileLieferterminposition(false);
+		
+		getToolBar().addButtonCenter("/com/lp/client/res/numeric_keypad.png",
+				LPMain.getTextRespectUISPr("angb.positionen.intzws.uebersteuern"), MY_OWN_NEW_INT_ZWS_UEBERSTEUERN,
+				null, RechteFac.RECHT_RECH_RECHNUNG_CUD);
+		
 	}
 
+	private void refreshMyComponents() throws Throwable {
+
+		// PJ21633
+			if (wcoPositionsart.getKeyOfSelectedItem()
+					.equals(AngebotServiceFac.ANGEBOTPOSITIONART_INTELLIGENTE_ZWISCHENSUMME)
+					&& tpRechnung.getRechnungDto().getStatusCNr().equals(RechnungFac.STATUS_ANGELEGT)) {
+
+				getHmOfButtons().get(MY_OWN_NEW_INT_ZWS_UEBERSTEUERN).getButton().setVisible(true);
+			} else {
+				getHmOfButtons().get(MY_OWN_NEW_INT_ZWS_UEBERSTEUERN).getButton().setVisible(false);
+			}
+
+		}
+	
 	private void initPanel() throws Throwable {
 		// combobox Positionen in der UI Sprache des Benutzers fuellen
 		if (tpRechnung.getRechnungstyp().equals(
@@ -228,7 +252,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 		super.setDefaults();
 
 		// der Vorschlagswert fuer eine frei erfasste Position ist 1
-		panelArtikel.wnfMenge.setDouble(new Double(1));
+		// panelArtikel.wnfMenge.setDouble(new Double(1));
 
 		// dem panelArtikel muss das Lager und der Kunde gesetzt werden
 		if (tpRechnung.getRechnungstyp().equals(
@@ -261,6 +285,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 							.getNKurs().doubleValue()));
 			((PanelPositionenArtikelVerkauf) panelArtikel)
 					.setKundeDto(tpRechnung.getKundeDto());
+
 			((PanelPositionenArtikelVerkauf) panelArtikel)
 					.setGueltigkeitsdatumArtikeleinzelverkaufspreis(new Date(
 							tpRechnung.getRechnungDto().getTBelegdatum()
@@ -280,12 +305,34 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 				if (tpRechnung.getKundeDto() != null
 						&& tpRechnung.getKundeDto().getIId() != null) {
 					// Aktuellen MWST-Satz uebersetzen.
-					MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
-							.getInstance()
-							.getMandantDelegate()
-							.mwstsatzFindByMwstsatzbezIIdAktuellster(
+					Timestamp belegDatum = HelperTimestamp
+							.cutOrToday(panelHandeingabe.getTBelegdatumMwstsatz());
+					MwstsatzDto mwstsatzDtoAktuell = DelegateFactory.mandant()
+							.mwstsatzFindZuDatum(
 									tpRechnung.getKundeDto()
-											.getMwstsatzbezIId());
+											.getMwstsatzbezIId(), belegDatum);
+/*					
+					MwstsatzDto mwstsatzDtoAktuell = null;
+					if (panelHandeingabe.getTBelegdatumMwstsatz() != null) {
+						mwstsatzDtoAktuell = DelegateFactory
+								.getInstance()
+								.getMandantDelegate()
+								.mwstsatzFindZuDatum(
+										tpRechnung.getKundeDto()
+												.getMwstsatzbezIId(),
+										panelHandeingabe
+												.getTBelegdatumMwstsatz());
+					} else {
+
+						mwstsatzDtoAktuell = DelegateFactory
+								.getInstance()
+								.getMandantDelegate()
+								.mwstsatzFindByMwstsatzbezIIdAktuellster(
+										tpRechnung.getKundeDto()
+												.getMwstsatzbezIId());
+
+					}
+*/
 					panelHandeingabe.wcoMwstsatz
 							.setKeyOfSelectedItem(mwstsatzDtoAktuell.getIId());
 				}
@@ -298,41 +345,56 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 
 		if (e.isMouseEvent() && e.isRightButtonPressed()) {
 
-			boolean bStatusAngelegt = tpRechnung.getRechnungDto().getStatusCNr().equals(RechnungServiceFac.RECHNUNGSSTATUS_ANGELEGT);
-			boolean bKonditionen = tpRechnung.pruefeKonditionen(tpRechnung.getRechnungDto());
+			boolean bStatusAngelegt = tpRechnung.getRechnungDto()
+					.getStatusCNr()
+					.equals(RechnungServiceFac.RECHNUNGSSTATUS_ANGELEGT);
+			boolean bKonditionen = tpRechnung.pruefeKonditionen(tpRechnung
+					.getRechnungDto());
+			boolean bRecht = (getCachedRights()
+					.getValueOfKey(RechteFac.RECHT_RECH_RECHNUNG_CUD));
 
-			if (bStatusAngelegt && bKonditionen) {
+			if (bStatusAngelegt && bKonditionen && bRecht) {
 
 				DelegateFactory.getInstance().getRechnungDelegate()
-						.berechneAktiviereBelegControlled(tpRechnung.getRechnungDto().getIId());
+						.prufeSEPAMandatsreferenz(tpRechnung.getRechnungDto());
 
-				RechnungDto rechnungDto = DelegateFactory.getInstance().getRechnungDelegate().rechnungFindByPrimaryKey(tpRechnung.getRechnungDto().getIId());
+				DelegateFactory
+						.getInstance()
+						.getRechnungDelegate()
+						.berechneAktiviereBelegControlled(
+								tpRechnung.getRechnungDto().getIId());
+
+				RechnungDto rechnungDto = DelegateFactory
+						.getInstance()
+						.getRechnungDelegate()
+						.rechnungFindByPrimaryKey(
+								tpRechnung.getRechnungDto().getIId());
 
 				if (tpRechnung instanceof TabbedPaneRechnung) {
-					((InternalFrameRechnung) getInternalFrame()).getTabbedPaneRechnung().setRechnungDto(rechnungDto);
-				}
-				else if (tpRechnung instanceof TabbedPaneGutschrift) {
-					((InternalFrameRechnung) getInternalFrame()).getTabbedPaneGutschrift().setRechnungDto(rechnungDto);
-				}
-				else if (tpRechnung instanceof TabbedPaneProformarechnung) {
-					((InternalFrameRechnung) getInternalFrame()).getTabbedPaneProformarechnung().setRechnungDto(rechnungDto);
+					((InternalFrameRechnung) getInternalFrame())
+							.getTabbedPaneRechnung()
+							.setRechnungDto(rechnungDto);
+				} else if (tpRechnung instanceof TabbedPaneGutschrift) {
+					((InternalFrameRechnung) getInternalFrame())
+							.getTabbedPaneGutschrift().setRechnungDto(
+									rechnungDto);
+				} else if (tpRechnung instanceof TabbedPaneProformarechnung) {
+					((InternalFrameRechnung) getInternalFrame())
+							.getTabbedPaneProformarechnung().setRechnungDto(
+									rechnungDto);
 				}
 
 				eventActionRefresh(e, false);
 
-			}
-			else if (!bStatusAngelegt){
+			} else if (!bStatusAngelegt) {
 				if (tpRechnung instanceof TabbedPaneRechnung) {
 					showDialog("rech.rechnung");
-				}
-				else if (tpRechnung instanceof TabbedPaneGutschrift) {
+				} else if (tpRechnung instanceof TabbedPaneGutschrift) {
 					showDialog("rech.gutschrift");
-				}
-				else if (tpRechnung instanceof TabbedPaneProformarechnung) {
+				} else if (tpRechnung instanceof TabbedPaneProformarechnung) {
 					showDialog("rech.proforma");
 				}
 			}
-
 
 		} else {
 			tpRechnung.print();
@@ -341,15 +403,15 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 	}
 
 	private void showDialog(String str) throws Throwable {
-		DialogFactory.showModalDialog("Status",
-				LPMain.getMessageTextRespectUISPr("status.zustand",
-						LPMain.getTextRespectUISPr(str),
-						tpRechnung.getRechnungStatus().trim()));
+		DialogFactory.showModalDialog("Status", LPMain
+				.getMessageTextRespectUISPr("status.zustand", LPMain
+						.getTextRespectUISPr(str), tpRechnung
+						.getRechnungStatus().trim()));
 	}
 
 	/**
 	 * Behandle Ereignis Neu.
-	 *
+	 * 
 	 * @param eventObject
 	 *            Ereignis
 	 * @param bLockMeI
@@ -360,6 +422,9 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 	 */
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
 			boolean bNeedNoNewI) throws Throwable {
+
+		resetEditorButton();
+
 		super.eventActionNew(eventObject, true, false); // LockMeForNew setzen
 		setDefaults();
 		if (((ItemChangedEvent) eventObject).getID() == ItemChangedEvent.ACTION_POSITION_VORPOSITIONEINFUEGEN) {
@@ -371,7 +436,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 	/**
 	 * Verwerfen der aktuelle Usereingabe und zurueckgehen auf den bestehenden
 	 * Datensatz, wenn einer existiert.
-	 *
+	 * 
 	 * @param e
 	 *            Ereignis
 	 * @throws Throwable
@@ -386,6 +451,9 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
+		
+		refreshMyComponents();
+		
 		if (((InternalFrameRechnung) getInternalFrame())
 				.isUpdateAllowedForRechnungDto(tpRechnung.getRechnungDto())) {
 			// PJ 14648 Setartikel
@@ -422,6 +490,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 		}
 		setzePositionsartAenderbar(getPositionDto());
 		panelArtikel.setzeEinheitAenderbar();
+		panelArtikel.setzeMengeAenderbar(getPositionDto());
 	}
 
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
@@ -450,7 +519,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 					RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
 			} else {
 				((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-						.zeigeSerienchargennummer(true, false);
+						.zeigeSerienchargennummer(true, false, false);
 			}
 		} else {
 			panelArtikel.setArtikelEingabefelderEditable(false);
@@ -463,9 +532,15 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 										.getRechnungDto().getLagerIId());
 			} else {
 				((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-						.zeigeSerienchargennummer(false, false);
+						.zeigeSerienchargennummer(false, false, false);
 			}
 		}
+
+		if (panelArtikel instanceof PanelPositionenArtikelVerkauf) {
+			((PanelPositionenArtikelVerkauf) panelArtikel)
+					.setBelegpositionVerkaufDto(getPositionDto());
+		}
+
 		setzePositionsartAenderbar(getPositionDto());
 		panelArtikel.setzeEinheitAenderbar();
 		RechnungPositionDto positionDto = tpRechnung.getRechnungPositionDto();
@@ -486,11 +561,17 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 		setStatusbarSpalte5(this.getLagerstandFuerStatusbarSpalte5(tpRechnung
 				.getRechnungDto().getLagerIId()));
 
+		setEditorButtonColor();
+
+		
+		refreshMyComponents();
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
 			throws Throwable {
+		boolean bPositionFuerZugehoerigenArtikelAnlegen = false;
 		try {
+
 			if (wirdPreisvorschlagsdialogGeradeAngezeit()) {
 				return;
 			}
@@ -514,9 +595,8 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 				components2Dto();
 				boolean bDiePositionSpeichern = true;
 				if (getPositionsartCNr().equals(LocaleFac.POSITIONSART_IDENT)) {
-					if (getPositionDto().getNMenge().compareTo(
-							new BigDecimal(0)) < 0) {
-						// Menge 0
+					if (getPositionDto().getNMenge().signum() < 0) {
+						// Menge < 0
 						DialogFactory
 								.showModalDialog(
 										LPMain.getTextRespectUISPr("lp.hint"),
@@ -547,7 +627,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 							}
 						}
 					}
-					if (getPositionDto().getNMenge().equals(new BigDecimal(0))) {
+					if (getPositionDto().getNMenge().signum() == 0) {
 						boolean bAnswer = (DialogFactory.showMeldung(
 								"Wirklich Menge 0?",
 								LPMain.getTextRespectUISPr("lp.frage"),
@@ -627,9 +707,9 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 					// PJ 16475 Bei Verleihartikeln nicht pruefen
 					if (Helper.short2boolean(panelArtikel.getArtikelDto()
 							.getBVerleih()) == false) {
-						// auf Unterpreisigkeit pruefen
-						bDiePositionSpeichern = DialogFactory
-								.pruefeUnterpreisigkeitDlg(
+						// auf Unterpreisigkeit und Verpackungsmittelmenge pruefen
+						ArtikelMengenDialogRueckgabe bPositionSpeichernUndNMenge =DialogFactory
+								.pruefeUnterpreisigkeitUndMindestVKMengeDlg(
 										getInternalFrame(),
 										panelArtikel.getArtikelDto().getIId(),
 										tpRechnung.getRechnungDto()
@@ -638,6 +718,12 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 										new Double(tpRechnung.getRechnungDto()
 												.getNKurs().doubleValue()),
 										getPositionDto().getNMenge());
+						
+						bDiePositionSpeichern = bPositionSpeichernUndNMenge.isStore();
+						
+						if(bPositionSpeichernUndNMenge.isChanged()) {
+							getPositionDto().setNMenge(bPositionSpeichernUndNMenge.getAmount());
+						}
 					}
 				}
 
@@ -649,6 +735,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 				if (bDiePositionSpeichern) {
 					if (getPositionDto().getPositionsartCNr().equals(
 							LocaleFac.POSITIONSART_LIEFERSCHEIN)) {
+
 						// Wenn position ein Lieferschein ist ueberpruefen ob
 						// Die Konditionen uebereinstimmen
 						LieferscheinDto lieferscheinDto = DelegateFactory
@@ -657,26 +744,31 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 								.lieferscheinFindByPrimaryKey(
 										getPositionDto().getLieferscheinIId());
 						RechnungDto rechDto = tpRechnung.getRechnungDto();
-						if (!(rechDto.getLieferartIId().equals(lieferscheinDto
-								.getLieferartIId()))
-								|| !(rechDto.getZahlungszielIId()
-										.equals(lieferscheinDto
-												.getZahlungszielIId()))
-								|| !(rechDto.getSpediteurIId()
-										.equals(lieferscheinDto
-												.getSpediteurIId()))) {
-							DialogFactory
-									.showModalDialog(
-											LPMain.getTextRespectUISPr("lp.hint"),
-											LPMain.getTextRespectUISPr("lp.konditionenenichtgleich"));
-						}
-						if (!rechDto.getFAllgemeinerRabattsatz().equals(
-								lieferscheinDto.getFAllgemeinerRabattsatz())) {
-							DialogFactory
-									.showModalDialog(
-											LPMain.getTextRespectUISPr("lp.hint"),
-											LPMain.getTextRespectUISPr("rech.label.allgrabattueberschreiben"));
-						}
+
+						// PJ19395 Wenn kein Sammellieferschein und dir Rechnung
+						// hat einen Auftrag zugeordnet, dann muss der
+						// Lieferschein dem selben Auftrag angehoeren
+						// Aufgrund SP4677 wieder auskommentiert
+						/*
+						 * if (LPMain .getInstance() .getDesktop()
+						 * .darfAnwenderAufZusatzfunktionZugreifen(
+						 * MandantFac.ZUSATZFUNKTION_SAMMELLIEFERSCHEIN) ==
+						 * false) {
+						 * 
+						 * if (rechDto.getAuftragIId() != null) { if
+						 * (lieferscheinDto.getAuftragIId() == null ||
+						 * !rechDto.getAuftragIId() .equals(lieferscheinDto
+						 * .getAuftragIId())) {
+						 * 
+						 * DialogFactory .showModalDialog(
+						 * LPMain.getTextRespectUISPr("lp.hint"),
+						 * LPMain.getTextRespectUISPr(
+						 * "rech.auftragvonrechnungundlieferschein.unterschliedlich"
+						 * )); bDiePositionSpeichern = false; }
+						 * 
+						 * } }
+						 */
+						pruefeKonditionenLS(lieferscheinDto, rechDto);
 
 						ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
 								.getInstance()
@@ -699,6 +791,17 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 
 					}
 					if (getPositionDto().getIId() == null) {
+						if (getPositionsartCNr().equals(
+								LocaleFac.POSITIONSART_IDENT)) {
+							// Soll eine Position mit einem eventuellen
+							// zugehoerigen Artikel angelegt werden?
+
+							bPositionFuerZugehoerigenArtikelAnlegen = DialogFactory
+									.pruefeZugehoerigenArtikelAnlegenDlg(
+											panelArtikel.getArtikelDto(), getPositionDto().getNMenge(), false, this);
+
+						}
+
 						// Soll die neue Position vor der aktuell selektierten
 						// stehen?
 						if (bFuegeNeuePositionVorDerSelektiertenEin) {
@@ -839,6 +942,79 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 			// resetArtikelsetIIdForNewPosition();
 		}
 
+		// wenn eine Position fuer einen zugehoerigen Artikel angelegt werden
+		// soll,
+		// dann muss die Eingabe fuer den zugehoerigen Artikel geoeffnet werden
+		if (bPositionFuerZugehoerigenArtikelAnlegen && getPositionDto() != null) {
+			ArtikelDto artikelDtoZugehoerig = DelegateFactory
+					.getInstance()
+					.getArtikelDelegate()
+					.artikelFindByPrimaryKey(
+							panelArtikel.getArtikelDto()
+									.getArtikelIIdZugehoerig());
+
+			RechnungPositionDto reposDto_Vorgaenger = DelegateFactory
+					.getInstance()
+					.getRechnungDelegate()
+					.rechnungPositionFindByPrimaryKey(getPositionDto().getIId());
+
+			BigDecimal nMengeZugehoerig = reposDto_Vorgaenger.getNMenge();
+			BigDecimal preisZugehoerig =panelArtikel.getArtikelDto().getNPreisZugehoerigerartikel();
+			// PJ19312
+			// PJ19312/PJ21370
+			nMengeZugehoerig = multiplikatorZugehoerigerArtikel(nMengeZugehoerig);
+
+
+			ItemChangedEvent ice = new ItemChangedEvent(this,
+					ItemChangedEvent.ACTION_NEW);
+			tpRechnung.getPanelDetailPositionen().eventActionNew(ice, true,
+					false);
+			tpRechnung.getPanelDetailPositionen().eventYouAreSelected(false);
+
+			tpRechnung.getPanelQueryPositionen(true).updateButtons(
+					tpRechnung.getPanelDetailPositionen()
+							.getLockedstateDetailMainKey());
+
+			panelArtikel.setArtikelDto(artikelDtoZugehoerig);
+			panelArtikel.artikelDto2components();
+			panelArtikel.wnfMenge.setBigDecimal(nMengeZugehoerig);
+
+			//PJ21823
+			panelArtikel.preisUebersteuern(preisZugehoerig);
+			
+			panelArtikel.setArtikelEingabefelderEditable(true);
+			((PanelPositionenArtikelVerkauf) panelArtikel).wbuPreisauswahl
+					.setEnabled(true);
+
+			//SP3912
+			wcoPositionsart.setEnabled(false);
+
+			getPositionDto().setPositionIIdZugehoerig(
+					reposDto_Vorgaenger.getIId());
+
+			int iSortNeu = reposDto_Vorgaenger.getISort() + 1;
+
+			DelegateFactory
+					.getInstance()
+					.getRechnungDelegate()
+					.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
+							tpRechnung.getRechnungDto().getIId(), iSortNeu);
+
+			getPositionDto().setISort(iSortNeu);
+
+			panelArtikel.setzeEinheitAenderbar();
+			
+			
+			boolean bOhneRueckfrage = panelArtikel
+					.zugehoerigenArtikelOhneRueckfrageAnlegen();
+
+			if (bOhneRueckfrage) {
+				tpRechnung.getPanelDetailPositionen().eventActionSave(e,
+						bNeedNoSaveI);
+			}
+			
+		}
+
 		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
 				.getInstance()
 				.getParameterDelegate()
@@ -849,18 +1025,62 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 
 		if ((Boolean) parameter.getCWertAsObject()) {
 
-			wirdLagermindeststandUnterschritten(tpRechnung.getRechnungDto()
-					.getTBelegdatum(), getPositionDto().getNMenge(),
-					getPositionDto().getArtikelIId());
+			wirdLagermindeststandUnterschritten(
+					tpRechnung.getRechnungDto().getTBelegdatum(),
+					getPositionDto().getNMenge(),
+					getPositionDto().getArtikelIId(),
+					DelegateFactory
+							.getInstance()
+							.getLagerDelegate()
+							.getPartnerIIdStandortEinesLagers(
+									tpRechnung.getRechnungDto().getLagerIId()));
 		}
 
 		setzePositionsartAenderbar(getPositionDto());
 		panelArtikel.setzeEinheitAenderbar();
 	}
 
+	private void pruefeKonditionenLS(LieferscheinDto lieferscheinDto,
+			RechnungDto rechDto) throws ExceptionLP, Throwable {
+		if (!DelegateFactory
+				.getInstance()
+				.getRechnungDelegate()
+				.pruefeKonditionenLieferscheinzuRechnung(rechDto.getIId(),
+						lieferscheinDto.getIId())) {
+
+			if (RechnungFac.RECHNUNGTYP_PROFORMARECHNUNG.equals(tpRechnung
+					.getRechnungstyp())) {
+				if (DialogFactory
+						.showModalJaNeinDialog(
+								getInternalFrame(),
+								LPMain.getMessageTextRespectUISPr(
+										"rech.proforma.konditionennichtgleich.auslsuebernehmen",
+										lieferscheinDto.getCNr()))) {
+					DelegateFactory
+							.getInstance()
+							.getRechnungDelegate()
+							.uebernehmeKonditionen(rechDto.getIId(),
+									lieferscheinDto.getIId());
+				}
+			} else {
+				DialogFactory.showModalDialog(LPMain
+						.getTextRespectUISPr("lp.hint"), LPMain
+						.getTextRespectUISPr("lp.konditionenenichtgleich"));
+			}
+		}
+
+		if (!rechDto.getFAllgemeinerRabattsatz().equals(
+				lieferscheinDto.getFAllgemeinerRabattsatz())) {
+			DialogFactory
+					.showModalDialog(
+							LPMain.getTextRespectUISPr("lp.hint"),
+							LPMain.getTextRespectUISPr("rech.label.allgrabattueberschreiben"));
+		}
+	}
+
 	/**
 	 * Eine Position loeschen.
-	 *
+	 * 
 	 * @param e
 	 *            Ereignis
 	 * @param bAdministrateLockKeyI
@@ -905,18 +1125,20 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 									inseratDto.getIId());
 					if (alRe != null && alRe.size() > 0) {
 
-						String s="";
+						String s = "";
 
-						for(int i=0;i<alRe.size();i++){
-							s+=alRe.get(i).getCNr();
-							if(i<alRe.size()-1){
-								s+=", ";							}
+						for (int i = 0; i < alRe.size(); i++) {
+							s += alRe.get(i).getCNr();
+							if (i < alRe.size() - 1) {
+								s += ", ";
+							}
 						}
 
 						DialogFactory
 								.showModalDialog(
 										LPMain.getTextRespectUISPr("lp.info"),
-										LPMain.getTextRespectUISPr("iv.info.weitere.rechnungen.vorhanden")+ " "+s);
+										LPMain.getTextRespectUISPr("iv.info.weitere.rechnungen.vorhanden")
+												+ " " + s);
 
 					}
 
@@ -955,7 +1177,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 										.getRechnungDto().getLagerIId());
 			} else {
 				((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-						.zeigeSerienchargennummer(false, false);
+						.zeigeSerienchargennummer(false, false, false);
 				((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
 						.setSeriennummern(getPositionDto()
 								.getSeriennrChargennrMitMenge(),
@@ -1011,7 +1233,7 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 
 	/**
 	 * Alle Positionsdaten aus dem Panel sammeln.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void components2Dto() throws Throwable {
@@ -1100,10 +1322,6 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 		// mehrfachselekt: hier kriegst dus mit
 	}
 
-	protected JComponent getFirstFocusableComponent() throws Exception {
-		return wcoPositionsart;
-	}
-
 	public boolean handleOwnException(ExceptionLP exfc) {
 		if (exfc.getICode() == EJBExceptionLP.FEHLER_ZUGEBUCHTES_MATERIAL_BEREITS_VOM_LAGER_ENTNOMMEN) {
 			DialogFactory.showModalDialog(LPMain
@@ -1116,6 +1334,24 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(MY_OWN_NEW_INT_ZWS_UEBERSTEUERN)) {
+
+			DialogEingabeBetrag d = new DialogEingabeBetrag(Defaults.getInstance().getIUINachkommastellenPreiseVK(),
+					tpRechnung.getRechnungDto().getWaehrungCNr(), getInternalFrame());
+			d.setTitle(LPMain.getTextRespectUISPr("angb.positionen.intzws.uebersteuern.zielpreis"));
+			LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+
+			d.setVisible(true);
+
+			if (d.bdBetrag == null) {
+				return;
+			}
+			DelegateFactory.getInstance().getRechnungDelegate()
+					.uebersteuereIntelligenteZwischensumme(getPositionDto().getIId(), d.bdBetrag);
+
+			tpRechnung.getPanelPositionen().eventYouAreSelected(false);
+
+		}
 	}
 
 	public void wnfPauschalposition_focusLost(FocusEvent e) {
@@ -1131,6 +1367,22 @@ public class PanelRechnungPosition extends PanelPositionen2 {
 		} catch (ExceptionLP e1) {
 		} catch (Throwable e1) {
 		}
+	}
+
+	private void setEditorButtonColor() {
+		getHmOfButtons()
+				.get(ACTION_TEXT)
+				.getButton()
+				.setIcon(
+						getPositionDto().getXTextinhalt() != null
+								&& getPositionDto().getXTextinhalt().length() > 0 ? IconFactory
+								.getCommentExist() : IconFactory
+								.getEditorEdit());
+	}
+
+	private void resetEditorButton() {
+		getHmOfButtons().get(ACTION_TEXT).getButton()
+				.setIcon(IconFactory.getEditorEdit());
 	}
 
 }

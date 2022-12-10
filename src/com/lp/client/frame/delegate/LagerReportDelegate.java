@@ -40,6 +40,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.ArtikelReportFac;
 import com.lp.server.artikel.service.LagerReportFac;
 import com.lp.server.util.DatumsfilterVonBis;
 import com.lp.server.util.report.JasperPrintLP;
@@ -52,121 +53,99 @@ public class LagerReportDelegate extends Delegate {
 	public LagerReportDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			lagerReportFac = (LagerReportFac) context
-					.lookup("lpserver/LagerReportFacBean/remote");
+
+			lagerReportFac = lookupFac(context, LagerReportFac.class);
+
 		} catch (Throwable t) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
 		}
 
 	}
 
-	public JasperPrintLP printWarenbewegungsjournal(Integer artikelIId,
-			Integer lagerIId, Timestamp tVon, Timestamp tBis) throws Throwable {
+	public JasperPrintLP printWarenbewegungsjournal(Integer artikelIId, Integer lagerIId, Timestamp tVon,
+			Timestamp tBis) throws Throwable {
 		try {
-			return lagerReportFac.printWarenbewegungsjournal(artikelIId,
-					lagerIId, tVon, tBis, LPMain.getTheClient());
+			return lagerReportFac.printWarenbewegungsjournal(artikelIId, lagerIId, tVon, tBis, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printZaehlliste(Integer lagerIId,
-			BigDecimal abLagerwert, BigDecimal abGestpreis, Boolean b1,
-			Boolean b2, Boolean bSortiertNachLagerort, boolean bMitVersteckten,
-			Integer artikelgruppeIId, Integer artikelklasseIId,
-			Integer lagerplatzIId, int iArtikelarten) throws ExceptionLP {
+	public JasperPrintLP printZaehlliste(Integer lagerIId, BigDecimal abLagerwert, BigDecimal abGestpreis, Boolean b1,
+			Boolean b2, int iSortierung, boolean bMitVersteckten, Integer artikelgruppeIId, Integer artikelklasseIId,
+			String lagerplatzVon, String lagerplatzBis, int iArtikelarten, String artikelNrVon, String artikelNrBis,
+			boolean bNurLagerbewerteteArtikel) throws ExceptionLP {
 		try {
-			return lagerReportFac.printZaehlliste(lagerIId, abLagerwert,
-					abGestpreis, b1, b2, bSortiertNachLagerort,
-					bMitVersteckten, artikelgruppeIId, artikelklasseIId,
-					lagerplatzIId, iArtikelarten, LPMain.getTheClient());
+			return lagerReportFac.printZaehlliste(lagerIId, abLagerwert, abGestpreis, b1, b2, iSortierung,
+					bMitVersteckten, artikelgruppeIId, artikelklasseIId, lagerplatzVon, lagerplatzBis, iArtikelarten,
+					artikelNrVon, artikelNrBis, bNurLagerbewerteteArtikel, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printWarenentnahmestatistik(Timestamp tVon,
-			Timestamp tBis, Integer lagerIId, boolean bMitVersteckten,
-			String artikelNrVon, String artikelNrBis, Integer artikelgruppeIId,
-			Integer iSortierung, boolean bMitNichtLagerbewirtschaftetenArtikeln)
-			throws Throwable {
+	public JasperPrintLP printWarenentnahmestatistik(Timestamp tVon, Timestamp tBis, Integer lagerIId,
+			boolean bMitVersteckten, String artikelNrVon, String artikelNrBis, Integer artikelgruppeIId,
+			Integer artikelklasseIId, Integer iSortierung, boolean bMitNichtLagerbewirtschaftetenArtikeln,
+			boolean bDetailliert) throws Throwable {
 		try {
-			return lagerReportFac.printWarenentnahmestatistik(tVon, tBis,
-					lagerIId, bMitVersteckten, artikelNrVon, artikelNrBis,
-					artikelgruppeIId, iSortierung,
-					bMitNichtLagerbewirtschaftetenArtikeln,
-					LPMain.getTheClient());
+			return lagerReportFac.printWarenentnahmestatistik(tVon, tBis, lagerIId, bMitVersteckten, artikelNrVon,
+					artikelNrBis, artikelgruppeIId, artikelklasseIId, iSortierung,
+					bMitNichtLagerbewirtschaftetenArtikeln, bDetailliert, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printLagerstandliste(Integer lagerIId,
-			java.sql.Timestamp tDatum, boolean bMitAZArtikel,
-			String artikelNrVon, String artikelNrBis, Integer artikelgruppeIId,
-			Integer artikelklasseIId, Integer vkPreislisteIId,
-			int iOptionSortierung, int iArtikelarten,
-			boolean bNurLagerbewertete, boolean bMitAbgewertetemGestpreis,
-			boolean bMitArtikelOhneLagerstand, Integer lagerplatzIId,
-			boolean bMitVersteckten, Integer shopgruppeIId,
-			boolean bMitNichtLagerbewirtschaftetenArtikeln) throws Throwable {
+	public JasperPrintLP printLagerstandliste(Integer lagerIId, java.sql.Timestamp tDatum, boolean bMitAZArtikel,
+			String artikelNrVon, String artikelNrBis, Integer artikelgruppeIId, Integer artikelklasseIId,
+			Integer vkPreislisteIId, int iOptionSortierung, int iArtikelarten, boolean bNurLagerbewertete,
+			boolean bMitAbgewertetemGestpreis, boolean bMitArtikelOhneLagerstand, Integer lagerplatzIId,
+			boolean bMitVersteckten, Integer shopgruppeIId, boolean bMitNichtLagerbewirtschaftetenArtikeln,
+			boolean bDetailliert, boolean bLagerstandMitBelegen) throws Throwable {
 		try {
-			return lagerReportFac.printLagerstandliste(lagerIId, tDatum,
-					new Boolean(bMitAZArtikel),
-					new Boolean(bNurLagerbewertete), artikelNrVon,
-					artikelNrBis, artikelgruppeIId, artikelklasseIId,
-					vkPreislisteIId, iOptionSortierung, iArtikelarten,
-					bMitAbgewertetemGestpreis, bMitArtikelOhneLagerstand,
-					lagerplatzIId, bMitVersteckten, shopgruppeIId,
-					bMitNichtLagerbewirtschaftetenArtikeln,
-					LPMain.getTheClient());
+			return lagerReportFac.printLagerstandliste(lagerIId, tDatum, new Boolean(bMitAZArtikel),
+					new Boolean(bNurLagerbewertete), artikelNrVon, artikelNrBis, artikelgruppeIId, artikelklasseIId,
+					vkPreislisteIId, iOptionSortierung, iArtikelarten, bMitAbgewertetemGestpreis,
+					bMitArtikelOhneLagerstand, lagerplatzIId, bMitVersteckten, shopgruppeIId,
+					bMitNichtLagerbewirtschaftetenArtikeln, bDetailliert, bLagerstandMitBelegen, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printGestpreisUnterMinVK(Integer lagerIId,
-			Integer vkPreislisteIId, boolean bMitVersteckten,
-			boolean bVergleichMitMinVKPReis, boolean bMitStuecklisten)
-			throws Throwable {
+	public JasperPrintLP printGestpreisUnterMinVK(Integer lagerIId, Integer vkPreislisteIId, boolean bMitVersteckten,
+			boolean bVergleichMitMinVKPReis, boolean bMitStuecklisten) throws Throwable {
 		try {
-			return lagerReportFac.printGestpreisUeberMinVK(lagerIId,
-					vkPreislisteIId, bMitVersteckten, bVergleichMitMinVKPReis,
-					bMitStuecklisten, LPMain.getTheClient());
+			return lagerReportFac.printGestpreisUeberMinVK(lagerIId, vkPreislisteIId, bMitVersteckten,
+					bVergleichMitMinVKPReis, bMitStuecklisten, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printLadenhueter(Timestamp tVon, Timestamp tBis,
-			Integer iOptionSortierung, String filterVon, String filterBis,
-			Integer lagerIId, boolean bMitHandlagerbewegungen,
-			boolean bMitFertigung, boolean bMitVersteckten,
-			Integer artikelgruppeIId, boolean bZugaengeBeruecksichtigen)
-			throws Throwable {
+	public JasperPrintLP printLadenhueter(Timestamp tVon, Timestamp tBis, Integer iOptionSortierung, String filterVon,
+			String filterBis, Integer lagerIId, boolean bMitHandlagerbewegungen, boolean bMitFertigung,
+			boolean bMitVersteckten, Integer artikelgruppeIId, boolean bZugaengeBeruecksichtigen) throws Throwable {
 		try {
-			return lagerReportFac.printLadenhueter(tVon, tBis,
-					iOptionSortierung, filterVon, filterBis, lagerIId,
-					bMitHandlagerbewegungen, bMitFertigung, bMitVersteckten,
-					artikelgruppeIId, bZugaengeBeruecksichtigen,
-					LPMain.getTheClient());
+			return lagerReportFac.printLadenhueter(tVon, tBis, iOptionSortierung, filterVon, filterBis, lagerIId,
+					bMitHandlagerbewegungen, bMitFertigung, bMitVersteckten, artikelgruppeIId,
+					bZugaengeBeruecksichtigen, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printUmbuchungsbeleg(
-			Integer lagerbewegungIIdBuchungZubuchung,
+	public JasperPrintLP printUmbuchungsbeleg(Integer lagerbewegungIIdBuchungZubuchung,
 			Integer lagerbewegungIIdBuchungabbuchung) throws ExceptionLP {
 		try {
-			return lagerReportFac.printUmbuchungsbeleg(
-					lagerbewegungIIdBuchungZubuchung,
+			return lagerReportFac.printUmbuchungsbeleg(lagerbewegungIIdBuchungZubuchung,
 					lagerbewegungIIdBuchungabbuchung, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -174,25 +153,42 @@ public class LagerReportDelegate extends Delegate {
 		}
 	}
 
-	public JasperPrintLP printLagerbuchungsbeleg(Integer lagerbewegungIIdBuchung)
+	public JasperPrintLP printLagerbuchungsbeleg(Integer iExemplare, Integer lagerbewegungIIdBuchung)
 			throws ExceptionLP {
 		try {
-			return lagerReportFac.printLagerbuchungsbeleg(
-					lagerbewegungIIdBuchung, LPMain.getTheClient());
+			return lagerReportFac.printLagerbuchungsbeleg(iExemplare, lagerbewegungIIdBuchung, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printHitliste(Timestamp tVon, Timestamp tBis,
-			Integer iOptionSortierung, String filterVon, String filterBis,
-			boolean bMitHandlagerbewegungen, boolean bMitFertigung,
-			boolean bMitVersteckten) throws Throwable {
+	public JasperPrintLP printHandlagerbewegungen(Timestamp dVon, Timestamp dBis, Integer artikelIId,
+			Integer artikelgruppeIId) throws ExceptionLP {
 		try {
-			return lagerReportFac.printHitliste(tVon, tBis, null,
-					iOptionSortierung, filterVon, filterBis,
-					bMitHandlagerbewegungen, bMitFertigung, bMitVersteckten,
+			return lagerReportFac.printHandlagerbewegungen(dVon, dBis, artikelIId, artikelgruppeIId,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printChargeneigenschaften(Integer lagerbewegungIIdBuchung) throws ExceptionLP {
+		try {
+			return lagerReportFac.printChargeneigenschaften(lagerbewegungIIdBuchung, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printHitliste(Timestamp tVon, Timestamp tBis, Integer iOptionSortierung, String filterVon,
+			String filterBis, boolean bMitHandlagerbewegungen, boolean bMitFertigung, boolean bMitVersteckten,
+			boolean bNurVerrechnetePositionen) throws Throwable {
+		try {
+			return lagerReportFac.printHitliste(tVon, tBis, null, iOptionSortierung, filterVon, filterBis,
+					bMitHandlagerbewegungen, bMitFertigung, bMitVersteckten, bNurVerrechnetePositionen,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -202,12 +198,24 @@ public class LagerReportDelegate extends Delegate {
 
 	public JasperPrintLP printArtikelgruppen(Timestamp tVon, Timestamp tBis,
 
-	boolean bMitHandlagerbewegungen, boolean bMitFertigung,
-			boolean bMitVersteckten) throws Throwable {
+			boolean bMitHandlagerbewegungen, boolean bMitFertigung, boolean bMitVersteckten,
+			boolean bNurVerrechnetePositionen) throws Throwable {
 		try {
-			return lagerReportFac.printArtikelgruppen(tVon, tBis,
-					bMitHandlagerbewegungen, bMitFertigung, bMitVersteckten,
-					LPMain.getTheClient());
+			return lagerReportFac.printArtikelgruppen(tVon, tBis, bMitHandlagerbewegungen, bMitFertigung,
+					bMitVersteckten, bNurVerrechnetePositionen, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printMaterialbedarfsvorschau(Timestamp tVergangenheit_Von, Timestamp tVergangenheit_Bis,
+			Timestamp tAngebotRealisierungstermin, Timestamp tOffeneRahmenAuftraegeBis, Timestamp tAngelegteAuftraege,
+			Integer kundeIId, Integer artikelgruppeIId, boolean bNurVerrechnetePositionen) throws Throwable {
+		try {
+			return lagerReportFac.printMaterialbedarfsvorschau(tVergangenheit_Von, tVergangenheit_Bis,
+					tAngebotRealisierungstermin, tOffeneRahmenAuftraegeBis, tAngelegteAuftraege, kundeIId,
+					artikelgruppeIId, bNurVerrechnetePositionen, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -216,11 +224,21 @@ public class LagerReportDelegate extends Delegate {
 
 	public JasperPrintLP printShopgruppen(Timestamp tVon, Timestamp tBis,
 
-	boolean bMitHandlagerbewegungen, boolean bMitFertigung,
-			boolean bMitVersteckten) throws Throwable {
+			boolean bMitHandlagerbewegungen, boolean bMitFertigung, boolean bMitVersteckten,
+			boolean bNurVerrechnetePositionen) throws Throwable {
 		try {
-			return lagerReportFac.printShopgruppen(tVon, tBis,
-					bMitHandlagerbewegungen, bMitFertigung, bMitVersteckten,
+			return lagerReportFac.printShopgruppen(tVon, tBis, bMitHandlagerbewegungen, bMitFertigung, bMitVersteckten,
+					bNurVerrechnetePositionen, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printMindesthaltbarkeit(String artikelnrVon, String artikelnrBis,
+			boolean bSortiertNachChargennr, Integer mhalter) throws Throwable {
+		try {
+			return lagerReportFac.printMindesthaltbarkeit(artikelnrVon, artikelnrBis, bSortiertNachChargennr, mhalter,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -228,12 +246,10 @@ public class LagerReportDelegate extends Delegate {
 		}
 	}
 
-	public JasperPrintLP printMindesthaltbarkeit(String artikelnrVon,
-			String artikelnrBis, boolean bSortiertNachChargennr, Integer mhalter)
+	public JasperPrintLP printIndirekterWareneinsatz(DatumsfilterVonBis datumsfilter, Integer kundeIId, int iSortierung)
 			throws Throwable {
 		try {
-			return lagerReportFac.printMindesthaltbarkeit(artikelnrVon,
-					artikelnrBis, bSortiertNachChargennr, mhalter,
+			return lagerReportFac.printIndirekterWareneinsatz(datumsfilter, kundeIId, iSortierung,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -241,45 +257,28 @@ public class LagerReportDelegate extends Delegate {
 		}
 	}
 
-	public JasperPrintLP printIndirekterWareneinsatz(
-			DatumsfilterVonBis datumsfilter, Integer kundeIId, int iSortierung)
-			throws Throwable {
+	public JasperPrintLP printKundeUmsatzstatistik(Timestamp tVon, Timestamp tBis, Integer iOptionKundengruppierung,
+			boolean bUmsatz, Integer iOptionGruppierung, boolean bNurHauptgruppeKlasse, Integer iOptionSortierung,
+			Integer iSortierbasisJahre, boolean bVerwendeAuftragsadresse, boolean bVerwendeStatistikadresse,
+			boolean bMitNichtLagerbewertetenArtikeln, boolean ohneDBBetrachtung,
+			boolean bSortiertNachProvisionsempfaenger) throws Throwable {
 		try {
-			return lagerReportFac.printIndirekterWareneinsatz(datumsfilter,
-					kundeIId, iSortierung, LPMain.getTheClient());
+			return lagerReportFac.printKundeumsatzstatistik(tVon, tBis, iOptionKundengruppierung, bUmsatz,
+					iOptionGruppierung, bNurHauptgruppeKlasse, iOptionSortierung, iSortierbasisJahre,
+					bVerwendeAuftragsadresse, bVerwendeStatistikadresse, bMitNichtLagerbewertetenArtikeln,
+					ohneDBBetrachtung, bSortiertNachProvisionsempfaenger, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printKundeUmsatzstatistik(Timestamp tVon,
-			Timestamp tBis, Integer iOptionKundengruppierung, boolean bUmsatz,
-			Integer iOptionGruppierung, Integer iOptionSortierung,
-			Integer iSortierbasisJahre, boolean bVerwendeStatistikadresse,
-			boolean bMitNichtLagerbewertetenArtikeln, boolean ohneDBBetrachtung)
-			throws Throwable {
+	public JasperPrintLP printLieferantUmsatzstatistik(Timestamp tVon, Timestamp tBis,
+			Integer iOptionLieferantgruppierung, boolean bWareneingangspoitionen, Integer iOptionGruppierung,
+			Integer iOptionSortierung, boolean bNurHauptgruppeKlasse) throws Throwable {
 		try {
-			return lagerReportFac.printKundeumsatzstatistik(tVon, tBis,
-					iOptionKundengruppierung, bUmsatz, iOptionGruppierung,
-					iOptionSortierung, iSortierbasisJahre,
-					bVerwendeStatistikadresse,
-					bMitNichtLagerbewertetenArtikeln, ohneDBBetrachtung,
-					LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printLieferantUmsatzstatistik(Timestamp tVon,
-			Timestamp tBis, Integer iOptionLieferantgruppierung,
-			boolean bWareneingangspoitionen, Integer iOptionGruppierung,
-			Integer iOptionSortierung) throws Throwable {
-		try {
-			return lagerReportFac.printLieferantumsatzstatistik(tVon, tBis,
-					bWareneingangspoitionen, iOptionLieferantgruppierung,
-					iOptionGruppierung, iOptionSortierung,
+			return lagerReportFac.printLieferantumsatzstatistik(tVon, tBis, bWareneingangspoitionen,
+					iOptionLieferantgruppierung, iOptionGruppierung, iOptionSortierung, bNurHauptgruppeKlasse,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);

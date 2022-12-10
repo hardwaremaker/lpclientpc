@@ -102,7 +102,7 @@ public class TabbedPaneBenutzermandantsystemrolle extends TabbedPane {
 
 		panelSplitBenutzermandantsystemrolle = new PanelSplit(
 				getInternalFrame(), panelBottomBenutzermandantsystemrolle,
-				panelQueryBenutzermandantsystemrolle, 330);
+				panelQueryBenutzermandantsystemrolle, 280);
 		addTab(LPMain.getInstance().getTextRespectUISPr(
 				"benutzer.title.tab.benutzermandant"),
 				panelSplitBenutzermandantsystemrolle);

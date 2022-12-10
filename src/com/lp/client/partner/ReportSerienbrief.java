@@ -36,7 +36,7 @@ package com.lp.client.partner;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.report.PanelReportAllgemeinIfJRDS;
+import com.lp.client.frame.report.PanelReportLogoIfJRDS;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.server.partner.service.PartnerReportFac;
@@ -56,7 +56,7 @@ import com.lp.server.util.report.JasperPrintLP;
  * @version not attributable Date $Date: 2009/08/25 13:19:50 $
  */
 public class ReportSerienbrief
-    extends PanelBasis implements PanelReportIfJRDS,PanelReportAllgemeinIfJRDS
+    extends PanelBasis implements PanelReportIfJRDS,PanelReportLogoIfJRDS
 {
   /**
 	 * 

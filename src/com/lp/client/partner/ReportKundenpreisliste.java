@@ -51,6 +51,7 @@ import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -81,6 +82,9 @@ public class ReportKundenpreisliste extends PanelBasis implements
 	static final private String ACTION_SPECIAL_FLR_ARTIKELGRUPPE = "ACTION_SPECIAL_FLR_ARTIKELGRUPPE";
 	static final private String ACTION_SPECIAL_FLR_ARTIKELKLASSE = "ACTION_SPECIAL_FLR_ARTIKELKLASSE";
 
+	private WrapperSelectField wsfShopgruppe = new WrapperSelectField(
+			WrapperSelectField.SHOPGRUPPE, getInternalFrame(), true);
+	
 	private WrapperButton wbuArtikelgruppeFLR = null;
 	private WrapperTextField wtfArtikelgruppe = null;
 	private WrapperButton wbuArtikelklasseFLR = null;
@@ -282,13 +286,13 @@ public class ReportKundenpreisliste extends PanelBasis implements
 						0, 0, 0), 0, 0));
 		jpaWorkingOn.add(wlaPreisgueltigkeit, new GridBagConstraints(1, 0, 1,
 				1, 0.1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 80, 0));
 		jpaWorkingOn.add(wdfPreisgueltigkeit, new GridBagConstraints(2, 0, 1,
 				1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcbMitGesperrte, new GridBagConstraints(3, 0, 1,
 				1, 0.1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
 
 		jpaWorkingOn.add(wbuArtikelgruppeFLR, new GridBagConstraints(0, 1, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -317,13 +321,13 @@ public class ReportKundenpreisliste extends PanelBasis implements
 
 		jpaWorkingOn.add(wbuArtikelnrVon, new GridBagConstraints(0, 3, 1, 1,
 				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 100, 0));
+				new Insets(2, 2, 2, 2), 80, 0));
 		jpaWorkingOn.add(wtfArtikelnrVon, new GridBagConstraints(1, 3, 1, 1,
 				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wbuArtikelnrBis, new GridBagConstraints(2, 3, 1, 1,
 				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 100, 0));
+				new Insets(2, 2, 2, 2), 80, 0));
 		jpaWorkingOn.add(wtfArtikelnrBis, new GridBagConstraints(3, 3, 1, 1,
 				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -331,6 +335,14 @@ public class ReportKundenpreisliste extends PanelBasis implements
 		jpaWorkingOn.add(wcbMitMandantensprache, new GridBagConstraints(3, 4,
 				2, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		
+		
+		jpaWorkingOn.add(wsfShopgruppe.getWrapperButton(), new GridBagConstraints(0, 4, 1, 1,
+				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfShopgruppe.getWrapperTextField(), new GridBagConstraints(1, 4, 1, 1,
+				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
 		
 
 	}
@@ -351,7 +363,7 @@ public class ReportKundenpreisliste extends PanelBasis implements
 						wcbMitGesperrte.isSelected(), wtfArtikelnrVon.getText(),
 						wtfArtikelnrBis.getText(), wcbVersteckte.isSelected(),
 						wdfPreisgueltigkeit.getDate(),
-						wcbNurSonderkonditionen.isSelected(),wcbMitMandantensprache.isSelected());
+						wcbNurSonderkonditionen.isSelected(),wcbMitMandantensprache.isSelected(), wsfShopgruppe.getIKey());
 	}
 
 	public boolean getBErstelleReportSofort() {

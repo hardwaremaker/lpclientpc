@@ -84,10 +84,10 @@ public class DialogFibuFehlerResult extends JDialog implements TableModel, Actio
 	
 	private Map<String, Integer> mapBelegCnrToGotoButton = new HashMap<String, Integer>() {
 		{
-			put(LocaleFac.BELEGART_RECHNUNG, WrapperGotoButton.GOTO_RECHNUNG_AUSWAHL) ;
-			put(LocaleFac.BELEGART_REZAHLUNG, WrapperGotoButton.GOTO_RECHNUNG_AUSWAHL) ;
-			put(LocaleFac.BELEGART_EINGANGSRECHNUNG, WrapperGotoButton.GOTO_EINGANGSRECHNUNG_AUSWAHL) ;
-			put(LocaleFac.BELEGART_ERZAHLUNG, WrapperGotoButton.GOTO_EINGANGSRECHNUNG_AUSWAHL) ;
+			put(LocaleFac.BELEGART_RECHNUNG, com.lp.util.GotoHelper.GOTO_RECHNUNG_AUSWAHL) ;
+			put(LocaleFac.BELEGART_REZAHLUNG, com.lp.util.GotoHelper.GOTO_RECHNUNG_AUSWAHL) ;
+			put(LocaleFac.BELEGART_EINGANGSRECHNUNG, com.lp.util.GotoHelper.GOTO_EINGANGSRECHNUNG_AUSWAHL) ;
+			put(LocaleFac.BELEGART_ERZAHLUNG, com.lp.util.GotoHelper.GOTO_EINGANGSRECHNUNG_AUSWAHL) ;
 		}
 	} ;
 	

@@ -216,6 +216,7 @@ public class PanelArbeitsplatzparameter extends PanelBasis {
 				wtfParameter.setText(parameterDto.getCNr());
 				wtfDatentyp.setText(parameterDto.getCDatentyp());
 				arbeitsplatzparameterDto.setParameterCNr(parameterDto.getCNr());
+				wefBemerkunglarge.setText(parameterDto.getCBemerkung());
 			}
 		}
 

@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.frame.component;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -43,6 +44,8 @@ import java.util.Vector;
 
 import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
+import javax.swing.JList;
+import javax.swing.plaf.basic.BasicComboBoxRenderer;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
@@ -60,8 +63,7 @@ import com.lp.client.frame.HelperClient;
  * @author Martin Bluehweis
  * @version $Revision: 1.9 $
  */
-public class WrapperComboBox extends JComboBox implements IControl,
-		IDirektHilfe {
+public class WrapperComboBox extends JComboBox implements IControl, IDirektHilfe {
 
 	/**
 	 * 
@@ -137,8 +139,7 @@ public class WrapperComboBox extends JComboBox implements IControl,
 	/**
 	 * setMandatoryField
 	 * 
-	 * @param isMandatoryField
-	 *            boolean
+	 * @param isMandatoryField boolean
 	 */
 	public void setMandatoryField(boolean isMandatoryField) {
 		if (isMandatoryFieldDB == false || isMandatoryField == true) {
@@ -161,8 +162,7 @@ public class WrapperComboBox extends JComboBox implements IControl,
 	/**
 	 * setActivatable.
 	 * 
-	 * @param isActivatable
-	 *            boolean
+	 * @param isActivatable boolean
 	 */
 	public void setActivatable(boolean isActivatable) {
 		this.isActivatable = isActivatable;
@@ -181,8 +181,7 @@ public class WrapperComboBox extends JComboBox implements IControl,
 	 * Setzt eine Map. Die Map-Values kommen in die Combobox; und es werden die
 	 * Map-Keys im Array sortedMapKeys sortiert abgelegt
 	 * 
-	 * @param map
-	 *            Map mit den Elementen
+	 * @param map Map mit den Elementen
 	 */
 	public void setMap(Map<?, ?> map) {
 		setMap(map, false);
@@ -204,8 +203,7 @@ public class WrapperComboBox extends JComboBox implements IControl,
 			}
 
 			if (sort) {
-				Collections
-						.sort(items, new WrapperComboBoxItemComparator(true));
+				Collections.sort(items, new WrapperComboBoxItemComparator(true));
 			}
 
 			this.addAll(items.toArray());
@@ -246,13 +244,13 @@ public class WrapperComboBox extends JComboBox implements IControl,
 		if (anObject == null) {
 			this.setSelectedItem(emptyEntry);
 		}
-		
-		if(isMapSet()) {
-			for(int i = 0; i < getItemCount(); i++) {
+
+		if (isMapSet()) {
+			for (int i = 0; i < getItemCount(); i++) {
 				Object item = getItemAt(i);
-				if(item instanceof WrapperComboBoxItem) {
-					WrapperComboBoxItem wcbi = (WrapperComboBoxItem)item;
-					if(wcbi.getValue() != null && wcbi.getValue().equals(anObject)) {
+				if (item instanceof WrapperComboBoxItem) {
+					WrapperComboBoxItem wcbi = (WrapperComboBoxItem) item;
+					if (wcbi.getValue() != null && wcbi.getValue().equals(anObject)) {
 						anObject = item;
 						break;
 					}
@@ -261,11 +259,11 @@ public class WrapperComboBox extends JComboBox implements IControl,
 		}
 		super.setSelectedItem(anObject);
 	}
+
 	/**
 	 * setzt das Schluesselobjekt.
 	 * 
-	 * @param key
-	 *            Object
+	 * @param key Object
 	 * @throws Exception
 	 */
 	public void setKeyOfSelectedItem(Object key) {
@@ -291,8 +289,7 @@ public class WrapperComboBox extends JComboBox implements IControl,
 	@Override
 	public Object getSelectedItem() {
 		Object item = super.getSelectedItem();
-		return item instanceof WrapperComboBoxItem ? ((WrapperComboBoxItem) item)
-				.getValue() : item;
+		return item instanceof WrapperComboBoxItem ? ((WrapperComboBoxItem) item).getValue() : item;
 	}
 
 	/**
@@ -320,8 +317,38 @@ public class WrapperComboBox extends JComboBox implements IControl,
 		this.emptyEntry = Defaults.getInstance().getSComboboxEmptyEntry();
 		setMaximumRowCount(MAXIMUM_ROW_COUNT);
 
+		
+
 	}
 
+	public void showTooltipOnItems() {
+		setRenderer(new BasicComboBoxRenderer() {
+			public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected,
+					boolean cellHasFocus) {
+				if (isSelected) {
+					setBackground(list.getSelectionBackground());
+					setForeground(list.getSelectionForeground());
+					if (index > -1) {
+						if (getItemAt(index) instanceof WrapperComboBoxItem) {
+							WrapperComboBoxItem wc = (WrapperComboBoxItem) getItemAt(index);
+							if (wc.getValue() instanceof String) {
+								list.setToolTipText((String) wc.getValue());
+							}
+						}
+
+					}
+				} else {
+					setBackground(list.getBackground());
+					setForeground(list.getForeground());
+				}
+				setFont(list.getFont());
+				setText((value == null) ? "" : value.toString());
+
+				return this;
+			}
+		});
+	}
+	
 	public boolean isDependenceField() {
 		return dependenceField;
 	}
@@ -334,21 +361,17 @@ public class WrapperComboBox extends JComboBox implements IControl,
 			this.setBackground(new WrapperNumberField().getBackground());
 		}
 	}
-	
 
 	public void setMinimumSize(Dimension d) {
-		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setMaximumSize(Dimension d) {
-		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setPreferredSize(Dimension d) {
-		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void addAll(Object[] items) {
@@ -371,6 +394,7 @@ public class WrapperComboBox extends JComboBox implements IControl,
 	public void removeCib() {
 		cornerInfoButton = null;
 	}
+
 	@Override
 	public String getToken() {
 		return cornerInfoButton.getToolTipToken();
@@ -379,5 +403,13 @@ public class WrapperComboBox extends JComboBox implements IControl,
 	@Override
 	public boolean hasContent() throws Throwable {
 		return getKeyOfSelectedItem() != null;
+	}
+
+	public boolean isSelectedItemEmpty() {
+		Object o = getSelectedItem();
+		if (o == null)
+			return true;
+
+		return o.equals(emptyEntry);
 	}
 }

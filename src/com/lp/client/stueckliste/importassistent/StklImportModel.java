@@ -32,22 +32,25 @@
  ******************************************************************************/
  package com.lp.client.stueckliste.importassistent;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 
 import javax.swing.table.TableModel;
 
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.XlsFile;
+import com.lp.client.pc.LPMain;
 import com.lp.server.angebotstkl.service.AgstklImportSpezifikation;
 import com.lp.server.angebotstkl.service.EinkaufsagstklImportSpezifikation;
+import com.lp.server.stueckliste.service.BestellungStklImportSpezifikation;
+import com.lp.server.stueckliste.service.FertigungsStklImportSpezifikation;
 import com.lp.server.stueckliste.service.IStklImportResult;
 import com.lp.server.stueckliste.service.MontageartDto;
-import com.lp.server.stueckliste.service.FertigungsStklImportSpezifikation;
+import com.lp.server.system.service.MandantFac;
 import com.lp.service.StklImportSpezifikation;
 
 public class StklImportModel {
-	
-	private File importFile;
 	
 	private Map<String, StklImportSpezifikation> importSpezifikationen;
 	private StklImportSpezifikation selectedSpezifikation;
@@ -60,24 +63,47 @@ public class StklImportModel {
 	private String savingName = null;
 	private boolean save = true;
 	private int stklTyp;
-	
-	private Boolean kundeIsGesetzt = false;
-	private Boolean updateArtikel = false;
-
-	/**
-	 * 
-	 * @return die Datei, die Importiert werden soll, kann null sein
+	/*
+	 * Id des Bezugsobjekts (Lieferant oder Kunde) der jeweiligen St&uuml;ckliste
 	 */
-	public File getImportFile() {
-		return importFile;
+	private Integer bezugsobjektIId = null;
+	
+	private Boolean bezugsobjektIsGesetzt = false;
+	private Boolean updateArtikel = false;
+	private XlsFile xlsFile;
+	private CsvFile csvFile;
+	private FileChooserConfigToken chooserConfigToken = FileChooserConfigToken.IntelligenterImportStkl;
+
+	public StklImportModel(int stklTyp, int stklIId,
+			Integer bezugsobjektIId) {
+		this.stklTyp = stklTyp;
+		this.stklIId = stklIId;
+		if(bezugsobjektIId != null) {
+			this.bezugsobjektIId = bezugsobjektIId;
+			this.bezugsobjektIsGesetzt = true;
+		}
 	}
 
-	/**
-	 * setzt die Datei die Importiert werden soll
-	 * @param importFile
-	 */
-	public void setImportFile(File importFile) {
-		this.importFile = importFile;
+	public boolean hasFile() {
+		return getXlsFile() != null || getCsvFile() != null;
+	}
+	
+	public XlsFile getXlsFile() {
+		return xlsFile;
+	}
+	
+	public void setXlsFile(XlsFile xlsFile) {
+		csvFile = null;
+		this.xlsFile = xlsFile;
+	}
+	
+	public CsvFile getCsvFile() {
+		return csvFile;
+	}
+	
+	public void setCsvFile(CsvFile csvFile) {
+		xlsFile = null;
+		this.csvFile = csvFile;
 	}
 	
 	/**
@@ -102,16 +128,18 @@ public class StklImportModel {
 
 	/**
 	 * 
-	 * @return die ausgew&auuml;hlte Import-Spezifikation.
+	 * @return die ausgew&auml;hlte Import-Spezifikation.
 	 */
 	public StklImportSpezifikation getSelectedSpezifikation() {
 		if(selectedSpezifikation == null) {
 			if(isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.FERTIGUNGSSTKL_SPEZ)) {
-				selectedSpezifikation = new FertigungsStklImportSpezifikation();
+				setSelectedSpezifikation(new FertigungsStklImportSpezifikation());
 			} else if(isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.ANGEBOTSSTKL_SPEZ)) {
-				selectedSpezifikation = new AgstklImportSpezifikation();
+				setSelectedSpezifikation(selectedSpezifikation = new AgstklImportSpezifikation());
 			} else if(isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.EINKAUFSANGEBOTSSTKL_SPEZ)) {
-				selectedSpezifikation = new EinkaufsagstklImportSpezifikation();
+				setSelectedSpezifikation(selectedSpezifikation = new EinkaufsagstklImportSpezifikation());
+			} else if(isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.BESTELLUNGSTKL_SPEZ)) {
+				setSelectedSpezifikation(selectedSpezifikation = new BestellungStklImportSpezifikation());
 			}
 		}
 		return selectedSpezifikation;
@@ -250,12 +278,8 @@ public class StklImportModel {
 		this.stklTyp = stklTyp;
 	}
 
-	public Boolean isKundeGesetzt() {
-		return kundeIsGesetzt;
-	}
-
-	public void setKundeIsGesetzt(Boolean kundeIsGesetzt) {
-		this.kundeIsGesetzt = kundeIsGesetzt;
+	public Boolean isBezugsobjektGesetzt() {
+		return bezugsobjektIsGesetzt;
 	}
 
 	public Boolean getUpdateArtikel() {
@@ -265,5 +289,21 @@ public class StklImportModel {
 	public void setUpdateArtikel(Boolean updateArtikel) {
 		this.updateArtikel = updateArtikel;
 	}
+
+	public Integer getBezugsobjektIId() {
+		return bezugsobjektIId;
+	}
 	
+	public void setChooserConfigToken(FileChooserConfigToken chooserConfigToken) {
+		this.chooserConfigToken = chooserConfigToken;
+	}
+	
+	public FileChooserConfigToken getChooserConfigToken() {
+		return chooserConfigToken;
+	}
+	
+	public boolean hasZusatzfunktionKundeSoko() {
+		return LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_KUNDESONDERKONDITIONEN);
+	}
 }

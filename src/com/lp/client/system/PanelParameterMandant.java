@@ -32,19 +32,23 @@
  ******************************************************************************/
 package com.lp.client.system;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
+import java.util.HashSet;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperPasswordField;
@@ -52,6 +56,8 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.IconFactory;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.ejb.ParametermandantPK;
 import com.lp.server.system.fastlanereader.generated.service.FLRParametermandantPK;
 import com.lp.server.system.service.ParameterFac;
@@ -60,10 +66,17 @@ import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /**
- * <p>In diesem Fenster werden Parameter fuer den Mandanten erfasst.
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 2004-09-29</p>
- * <p> </p>
+ * <p>
+ * In diesem Fenster werden Parameter fuer den Mandanten erfasst.
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 2004-09-29
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author uli walch
  * @version $Revision: 1.6 $
  */
@@ -98,10 +111,13 @@ public class PanelParameterMandant extends PanelBasis {
 	private GridBagLayout gridBagLayoutWorkingOn = null;
 	private Border innerBorder = null;
 
+	private WrapperButton wbuLeeren = null;
+
+	static final public String ACTION_SPECIAL_LEEREN = "action_special_leeren";
+
 	private int iZeileWert = -1;
 
-	public PanelParameterMandant(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
+	public PanelParameterMandant(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 
 		intFrame = (InternalFrameSystem) internalFrame;
@@ -118,44 +134,44 @@ public class PanelParameterMandant extends PanelBasis {
 		innerBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
 		this.setBorder(innerBorder);
 
+		wbuLeeren = new WrapperButton(IconFactory.getClear());
+
+		wbuLeeren.setActionCommand(ACTION_SPECIAL_LEEREN);
+		wbuLeeren.addActionListener(this);
+
+		wbuLeeren.setMinimumSize(
+				new Dimension(Defaults.getInstance().getControlHeight(), Defaults.getInstance().getControlHeight()));
+		wbuLeeren.setPreferredSize(
+				new Dimension(Defaults.getInstance().getControlHeight(), Defaults.getInstance().getControlHeight()));
+
 		// Actionpanel setzen und anhaengen
 		JPanel panelButtonAction = getToolsPanel();
-		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// zusaetzliche buttons
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE,
-				PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		// Workingpanel
 		jPanelWorkingOn = new JPanel();
 		gridBagLayoutWorkingOn = new GridBagLayout();
 		jPanelWorkingOn.setLayout(gridBagLayoutWorkingOn);
-		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Statusbar an den unteren Rand des Panels haengen
-		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		wlaBezeichnung = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.bezeichnung"));
+		wlaBezeichnung = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
 		HelperClient.setDefaultsToComponent(wlaBezeichnung, 90);
 
-		wlaKategorie = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.kategorie"));
-		wlaWert = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"lp.wert"));
-		wlaBemerkungsmall = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.bemerkung"));
-		wlaBemerkunglarge = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.bemerkunglang"));
-		wlaDatentyp = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.datentyp"));
+		wlaKategorie = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.kategorie"));
+		wlaWert = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.wert"));
+		wlaBemerkungsmall = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.bemerkung"));
+		wlaBemerkunglarge = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.bemerkunglang"));
+		wlaDatentyp = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.datentyp"));
 
 		wtfBezeichnung = new WrapperTextField();
 		wtfBezeichnung.setColumnsMax(ParameterFac.MAX_PARAMETER_KENNUNG);
@@ -170,90 +186,76 @@ public class PanelParameterMandant extends PanelBasis {
 
 		wtfWert = new WrapperTextField();
 		wtfWert.setMandatoryField(true);
-		wtfWert.setColumnsMax(ParameterFac.MAX_PARAMETER_WERT);
+//		wtfWert.setColumnsMax(ParameterFac.MAX_PARAMETER_WERT);
+		wtfWert.setColumnsMax(3000);
 
 		wtfBemerkungsmall = new WrapperTextField();
 		wtfBemerkungsmall.setMandatoryField(true);
-		wtfBemerkungsmall
-				.setColumnsMax(ParameterFac.MAX_PARAMETER_BEMERKUNGSMALL);
+		wtfBemerkungsmall.setColumnsMax(ParameterFac.MAX_PARAMETER_BEMERKUNGSMALL);
 
-		wefBemerkunglarge = new WrapperEditorField(intFrame, LPMain
-				.getInstance().getTextRespectUISPr("lp.bemerkunglang"));
+		wefBemerkunglarge = new WrapperEditorField(intFrame,
+				LPMain.getInstance().getTextRespectUISPr("lp.bemerkunglang"));
 		// wefBermerkunglarge.setActionMap() auf 3000 beschraenken
 
 		wtfDatentyp = new WrapperTextField();
 		wtfDatentyp.setColumnsMax(ParameterFac.MAX_PARAMETER_DATENTYP);
 
 		// Zeile
-		jPanelWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile,
-				1, 1, 0.05, 0.0, GridBagConstraints.WEST,
+		jPanelWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1, 1, 0.05, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile,
-				1, 1, 0.5, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jPanelWorkingOn.add(wlaKategorie, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfKategorie, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaKategorie, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfKategorie, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jPanelWorkingOn.add(wlaWert, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaWert, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeileWert = iZeile;
 
 		// Zeile
 		iZeile++;
-		jPanelWorkingOn.add(wlaBemerkungsmall, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfBemerkungsmall, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaBemerkungsmall, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfBemerkungsmall, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jPanelWorkingOn.add(wlaBemerkunglarge, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wefBemerkunglarge, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 1.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaBemerkunglarge, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wefBemerkunglarge, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 1.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jPanelWorkingOn.add(wlaDatentyp, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfDatentyp, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaDatentyp, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfDatentyp, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
 			boolean bSpeichern = false;
 
 			if (Helper.istKennwortParameter(parametermandantDto.getCNr())) {
-				if (Helper.istWertVomTyp(new String(wtfPassword.getPassword()),
-						wtfDatentyp.getText())) {
+				if (Helper.istWertVomTyp(new String(wtfPassword.getPassword()), wtfDatentyp.getText())) {
 					bSpeichern = true;
 				}
 			} else {
-				if (Helper.istWertVomTyp(wtfWert.getText(),
-						wtfDatentyp.getText())) {
+				if (Helper.istWertVomTyp(wtfWert.getText(), wtfDatentyp.getText())) {
 					bSpeichern = true;
 				}
 			}
@@ -262,18 +264,13 @@ public class PanelParameterMandant extends PanelBasis {
 				components2Dto();
 
 				if (parametermandantDto.getCNr() == null) {
-					ParametermandantPK pkParametermandant = DelegateFactory
-							.getInstance().getParameterDelegate()
+					ParametermandantPK pkParametermandant = DelegateFactory.getInstance().getParameterDelegate()
 							.createParametermandant(parametermandantDto);
-					parametermandantDto = DelegateFactory
-							.getInstance()
-							.getParameterDelegate()
-							.parametermandantFindByPrimaryKey(
-									pkParametermandant);
+					parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+							.parametermandantFindByPrimaryKey(pkParametermandant);
 					setKeyWhenDetailPanel(pkParametermandant);
 				} else {
-					DelegateFactory.getInstance().getParameterDelegate()
-							.updateParametermandant(parametermandantDto);
+					DelegateFactory.getInstance().getParameterDelegate().updateParametermandant(parametermandantDto);
 				}
 
 				// buttons schalten
@@ -283,51 +280,30 @@ public class PanelParameterMandant extends PanelBasis {
 			} else {
 				if (wtfDatentyp.getText() != null) {
 					if (wtfDatentyp.getText().equals("java.lang.Boolean")) {
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.error"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"system.nurbooleanwerte"));
-					} else if (wtfDatentyp.getText()
-							.equals("java.lang.Integer")) {
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.error"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"system.nurganzzahligewerte"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance().getTextRespectUISPr("system.nurbooleanwerte"));
+					} else if (wtfDatentyp.getText().equals("java.lang.Integer")) {
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance().getTextRespectUISPr("system.nurganzzahligewerte"));
 					} else if (wtfDatentyp.getText().equals("java.lang.Double")) {
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.error"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"system.nurzahlenewerte"));
-					} else if (wtfDatentyp.getText().equals(
-							"java.math.BigDecimal")) {
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.error"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"system.nurzahlenewerte"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance().getTextRespectUISPr("system.nurzahlenewerte"));
+					} else if (wtfDatentyp.getText().equals("java.math.BigDecimal")) {
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance().getTextRespectUISPr("system.nurzahlenewerte"));
 					} else {
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.error"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"system.wertnichtunterstuetzt"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance().getTextRespectUISPr("system.wertnichtunterstuetzt"));
 					}
 				} else {
-					DialogFactory.showModalDialog(
-							LPMain.getInstance()
-									.getTextRespectUISPr("lp.error"),
-							LPMain.getInstance().getTextRespectUISPr(
-									"system.wertnichtunterstuetzt"));
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+							LPMain.getInstance().getTextRespectUISPr("system.wertnichtunterstuetzt"));
 				}
 			}
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		resetPanel();
 	}
@@ -347,17 +323,20 @@ public class PanelParameterMandant extends PanelBasis {
 
 		if (Helper.istKennwortParameter(parametermandantDto.getCNr())) {
 			jPanelWorkingOn.remove(wtfWert);
+			jPanelWorkingOn.remove(wbuLeeren);
 
-			jPanelWorkingOn.add(wtfPassword, new GridBagConstraints(1,
-					iZeileWert, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jPanelWorkingOn.add(wtfPassword, new GridBagConstraints(1, iZeileWert, 1, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			wtfPassword.setText(parametermandantDto.getCWert());
 		} else {
 			jPanelWorkingOn.remove(wtfPassword);
-			jPanelWorkingOn.add(wtfWert, new GridBagConstraints(1, iZeileWert,
-					1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jPanelWorkingOn.add(wtfWert, new GridBagConstraints(1, iZeileWert, 1, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 30), 0, 0));
 			wtfWert.setText(parametermandantDto.getCWert());
+
+			jPanelWorkingOn.add(wbuLeeren, new GridBagConstraints(1, iZeileWert, 1, 1, 0.0, 0.0,
+					GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 5, 0));
+
 		}
 		jPanelWorkingOn.repaint();
 	}
@@ -376,10 +355,23 @@ public class PanelParameterMandant extends PanelBasis {
 		parametermandantDto.setCDatentyp(wtfDatentyp.getText());
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
-		super.eventYouAreSelected(false);
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_LEEREN)) {
+			parametermandantDto.setCWert("");
+			DelegateFactory.getInstance().getParameterDelegate().updateParametermandant(parametermandantDto);
+			eventYouAreSelected(false);
+		}
 
+	}
+
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		super.eventActionUpdate(aE, bNeedNoUpdateI);
+		wbuLeeren.setEnabled(false);
+	}
+
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
+		super.eventYouAreSelected(false);
+		wbuLeeren.setEnabled(false);
 		// teilnehmer neu einlesen, ausloeser war ev. ein refresh
 		Object oKey = getKeyWhenDetailPanel();
 
@@ -389,31 +381,34 @@ public class PanelParameterMandant extends PanelBasis {
 		if (oKey != null && !oKey.equals(LPMain.getLockMeForNew())) {
 			ParametermandantPK pkParametermandant = new ParametermandantPK();
 			pkParametermandant.setCNr(((FLRParametermandantPK) oKey).getC_nr());
-			pkParametermandant.setCKategorie(((FLRParametermandantPK) oKey)
-					.getC_kategorie());
+			pkParametermandant.setCKategorie(((FLRParametermandantPK) oKey).getC_kategorie());
 
-			parametermandantDto = DelegateFactory.getInstance()
-					.getParameterDelegate()
+			parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
 					.parametermandantFindByPrimaryKey(pkParametermandant);
+
+			if (ParameterFac.parameterMitLeeremWert.contains(parametermandantDto.getCNr())) {
+				//SP8303
+				if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_SYSTEM_CUD)) {
+					wbuLeeren.setEnabled(true);
+				}
+			}
+
 			dto2Components();
 
 		}
 
-		getInternalFrame()
-				.setLpTitle(
-						InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
-						LPMain.getInstance().getTextRespectUISPr(
-								"lp.parametermandant"));
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
+				LPMain.getInstance().getTextRespectUISPr("lp.parametermandant"));
 		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
 				LPMain.getInstance().getTheClient().getMandant());
 
 		aktualisiereStatusbar();
+
 	}
 
 	private void aktualisiereStatusbar() throws Throwable {
 		if (parametermandantDto != null && parametermandantDto.getCNr() != null) {
-			setStatusbarPersonalIIdAendern(parametermandantDto
-					.getPersonalIIdAendern());
+			setStatusbarPersonalIIdAendern(parametermandantDto.getPersonalIIdAendern());
 			setStatusbarTAendern(parametermandantDto.getTAendern());
 		}
 	}

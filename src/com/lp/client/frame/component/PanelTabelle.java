@@ -81,7 +81,7 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 
 	private JPanel panelFilterKriterien = null;
 	private JPanel panelOptionaleZeile = null;
-	
+
 	private boolean strechColumns = true;
 	private int[] columnHeaderWidths;
 
@@ -150,18 +150,17 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 				new Insets(0, 0, 0, 0), 0, 0));
 
 		// CK: Listen-Druck-Icon einbauen
-//		JButton bPrint = createAndSaveButton(
-//				"/com/lp/client/res/table_sql_view.png",
-//				LPMain.getTextRespectUISPr("lp.printer"),
-//				LEAVEALONE_PRINTPANELQUERY, null, null);
-//		bPrint.setEnabled(true);
+		// JButton bPrint = createAndSaveButton(
+		// "/com/lp/client/res/table_sql_view.png",
+		// LPMain.getTextRespectUISPr("lp.printer"),
+		// LEAVEALONE_PRINTPANELQUERY, null, null);
+		// bPrint.setEnabled(true);
 
-		getToolBar().addButtonRight(
-				"/com/lp/client/res/table_sql_view.png",
+		getToolBar().addButtonRight("/com/lp/client/res/table_sql_view.png",
 				LPMain.getTextRespectUISPr("lp.printer"),
 				LEAVEALONE_PRINTPANELQUERY, null, null);
 		enableToolsPanelButtons(true, LEAVEALONE_PRINTPANELQUERY);
-//		getToolBar().getToolsPanelRight().add(bPrint);
+		// getToolBar().getToolsPanelRight().add(bPrint);
 
 		// auf dem Aussenpanel wird ausserdem das WorkingPanel angebracht, das
 		// alles andere enthaelt
@@ -220,7 +219,7 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 		// die erste Spalte ist immer der ZeilenHeader
 		TableColumn tcZeilenHeader = table.getColumnModel().getColumn(0);
 		tcZeilenHeader.setCellRenderer(new ZeilenHeaderRenderer());
-//		tcZeilenHeader.setPreferredWidth(SPALTENBREITE_ZEILENHEADER);
+		// tcZeilenHeader.setPreferredWidth(SPALTENBREITE_ZEILENHEADER);
 
 		/**
 		 * @todo das kommt 2 mal vor -> eine Methode
@@ -228,8 +227,7 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 		// die restlichen Spalten werden per default formatiert
 
 		// die Breite der Spalten einstellen
-		columnHeaderWidths = dataSource.getTableInfo()
-				.getColumnHeaderWidths();
+		columnHeaderWidths = dataSource.getTableInfo().getColumnHeaderWidths();
 
 		if (columnHeaderWidths != null) {
 			for (int i = 1; i < columnHeaderWidths.length; i++) {
@@ -257,7 +255,7 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 				iYGridBagNext, 1, 1, 1.0, 0.7, GridBagConstraints.SOUTH,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 	}
-	
+
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
@@ -273,7 +271,7 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 			return;
 		List<TableColumn> columnsToStrech = new ArrayList<TableColumn>();
 		int alreadyDefinedSize = 0;
-		for (int i = 1; i < columnWidths.length-1; i++) {
+		for (int i = 1; i < columnWidths.length - 1; i++) {
 			TableColumn tc = table.getColumnModel().getColumn(i);
 			if (columnWidths[i] == -1 && tc.getMaxWidth() > 0)
 				columnsToStrech.add(tc);
@@ -293,7 +291,7 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 		}
 
 	}
-	
+
 	/**
 	 * Die Spalte verstecken.
 	 * 
@@ -323,16 +321,16 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 	 *            die absolute Breite der Spalte
 	 */
 	protected void setColumnWidth(int iColumnIndex, int iColumnWidth) {
-		if(iColumnWidth == 0) {
+		if (iColumnWidth == 0) {
 			setColumnWidthToZero(iColumnIndex);
 			return;
 		}
-		
+
 		TableColumn tc = table.getColumnModel().getColumn(iColumnIndex);
 		tc.setMinWidth(Helper
 				.getBreiteInPixel(QueryParameters.FLR_BREITE_MINIMUM));
-//		tc.setMaxWidth(iColumnWidth);
-//		tc.setMinWidth(iColumnWidth);
+		// tc.setMaxWidth(iColumnWidth);
+		// tc.setMinWidth(iColumnWidth);
 		tc.setPreferredWidth(iColumnWidth);
 		tc.setWidth(iColumnWidth);
 	}
@@ -432,7 +430,7 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 
 				getInternalFrame().showReportKriterien(
 						new ReportPanelQuery("", getInternalFrame(), title,
-								query));
+								query, columnHeaderWidths));
 			}
 		}
 	}
@@ -446,7 +444,8 @@ public abstract class PanelTabelle extends PanelBasis implements ISourceEvent {
 				new Integer(this.idUsecase), null, filter, null, null);
 
 		getInternalFrame().showReportKriterien(
-				new ReportPanelQuery("", getInternalFrame(), "", query));
+				new ReportPanelQuery("", getInternalFrame(), "", query,
+						columnHeaderWidths));
 	}
 
 	/**

@@ -32,19 +32,25 @@
  ******************************************************************************/
 package com.lp.client.fertigung;
 
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.math.BigDecimal;
 
+import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.component.PanelTabelle;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.pc.LPMain;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class PanelTabelleLosnachkalkulation extends PanelTabelle {
@@ -69,7 +75,7 @@ public class PanelTabelleLosnachkalkulation extends PanelTabelle {
 
 	/**
 	 * PanelTabelle.
-	 *
+	 * 
 	 * @param iUsecaseIdI
 	 *            die eindeutige UseCase ID
 	 * @param sTitelTabbedPaneI
@@ -102,7 +108,7 @@ public class PanelTabelleLosnachkalkulation extends PanelTabelle {
 	/**
 	 * Initialisiere alle Komponenten; braucht der JBX-Designer; hier bitte
 	 * keine wilden Dinge wie zum Server gehen, etc. machen.
-	 *
+	 * 
 	 * @throws Exception
 	 */
 	private void jbInit() throws Exception {
@@ -150,10 +156,49 @@ public class PanelTabelleLosnachkalkulation extends PanelTabelle {
 
 		setFirstColumnVisible(false);
 
-	    // die erste Spalte ist immer der ZeilenHeader
-	    TableColumn tcZeilenHeader = table.getColumnModel().getColumn(1);
-	    tcZeilenHeader.setCellRenderer(new ZeilenHeaderRenderer());
-	    tcZeilenHeader.setPreferredWidth(SPALTENBREITE_ZEILENHEADER);
+		// die erste Spalte ist immer der ZeilenHeader
+		TableColumn tcZeilenHeader = table.getColumnModel().getColumn(1);
+		tcZeilenHeader.setCellRenderer(new ZeilenHeaderRenderer());
+		tcZeilenHeader.setPreferredWidth(SPALTENBREITE_ZEILENHEADER);
+
+		table.setDefaultRenderer(com.lp.util.BigDecimal3.class,
+				new DefaultTableCellRenderer() {
+
+					@Override
+					public Component getTableCellRendererComponent(
+							JTable table, Object value, boolean isSelected,
+							boolean hasFocus, int row, int column) {
+
+						Component c = super.getTableCellRendererComponent(
+								table, value,
+
+								isSelected, hasFocus, row, column);
+
+						if (column == 5 || column == 6 || column == 7) {
+							setBackground(Color.LIGHT_GRAY);
+						} else {
+							setBackground(javax.swing.UIManager
+									.getColor("Table.dropCellForeground"));
+						}
+
+						return this;
+
+					}
+
+					public void setValue(Object value) {
+						String sShow = null;
+						if (value != null
+								&& ((BigDecimal) value).doubleValue() != 0) {
+							sShow = Helper.formatZahl((BigDecimal) value, 3,
+									Defaults.getInstance().getLocUI());
+						}
+						setText((sShow == null) ? "" : sShow);
+					}
+
+					public int getHorizontalAlignment() {
+						return SwingConstants.RIGHT;
+					}
+				});
 
 		getToolBar()
 				.addButtonLeft(
@@ -168,7 +213,7 @@ public class PanelTabelleLosnachkalkulation extends PanelTabelle {
 
 	/**
 	 * eventActionRefresh
-	 *
+	 * 
 	 * @param e
 	 *            ActionEvent
 	 * @param bNeedNoRefreshI

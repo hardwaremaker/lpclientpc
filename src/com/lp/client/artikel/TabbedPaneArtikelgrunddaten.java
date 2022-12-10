@@ -32,8 +32,11 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.event.ChangeEvent;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -48,15 +51,26 @@ import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.ArtikelkommentarFac;
+import com.lp.server.artikel.service.HerstellerDto;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 /**
- * <p>&UUml;berschrift: </p>
- * <p>Beschreibung: </p>
- * <p>Copyright: Copyright (c) 2004</p>
- * <p>Organisation: </p>
+ * <p>
+ * &UUml;berschrift:
+ * </p>
+ * <p>
+ * Beschreibung:
+ * </p>
+ * <p>
+ * Copyright: Copyright (c) 2004
+ * </p>
+ * <p>
+ * Organisation:
+ * </p>
+ * 
  * @author Christian Kollmann
  * @version $Revision: 1.18 $
  */
@@ -79,6 +93,10 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private PanelQuery panelQueryHersteller = null;
 	private PanelBasis panelSplitHersteller = null;
+	public PanelBasis getPanelSplitHersteller() {
+		return panelSplitHersteller;
+	}
+
 	private PanelBasis panelBottomHersteller = null;
 
 	private PanelQuery panelQueryArtikelkommentarart = null;
@@ -112,6 +130,10 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 	private PanelQuery panelQueryReach = null;
 	private PanelBasis panelSplitReach = null;
 	private PanelBasis panelBottomReach = null;
+	
+	private PanelQuery panelQueryLaseroberflaeche = null;
+	private PanelBasis panelSplitLaseroberflaeche = null;
+	private PanelBasis panelBottomLaseroberflaeche = null;
 
 	private PanelQuery panelQueryRohs = null;
 	private PanelBasis panelSplitRohs = null;
@@ -133,6 +155,44 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 	private PanelBasis panelSplitAlergen = null;
 	private PanelBasis panelBottomAlergen = null;
 
+	private PanelQuery panelQueryGebinde = null;
+	private PanelBasis panelSplitGebinde = null;
+	private PanelBasis panelBottomGebinde = null;
+
+	private PanelQuery panelQueryVerpackungsmittel = null;
+	private PanelBasis panelSplitVerpackungsmittel = null;
+	private PanelBasis panelBottomVerpackungsmittel = null;
+
+	private PanelQuery panelQueryDateiverweis = null;
+	private PanelBasis panelSplitDateiverweis = null;
+	private PanelBasis panelBottomDateiverweis = null;
+
+	private PanelQuery panelQueryWaffenkaliber = null;
+	private PanelBasis panelSplitWaffenkaliber = null;
+	private PanelBasis panelBottomWaffenkaliber = null;
+
+	private PanelQuery panelQueryWaffenausfuehrung = null;
+	private PanelBasis panelSplitWaffenausfuehrung = null;
+	private PanelBasis panelBottomWaffenausfuehrung = null;
+
+	private PanelQuery panelQueryWaffentyp = null;
+	private PanelBasis panelSplitWaffentyp = null;
+	private PanelBasis panelBottomWaffentyp = null;
+
+	private PanelQuery panelQueryWaffentypFein = null;
+	private PanelBasis panelSplitWaffentypFein = null;
+	private PanelBasis panelBottomWaffentypFein = null;
+
+	private PanelQuery panelQueryWaffenkategorie = null;
+	private PanelBasis panelSplitWaffenkategorie = null;
+	private PanelBasis panelBottomWaffenkategorie = null;
+
+	private PanelQuery panelQueryWaffenzusatz = null;
+	private PanelBasis panelSplitWaffenzusatz = null;
+	private PanelBasis panelBottomWaffenzusatz = null;
+
+	private final String MENUE_ACTION_HERSTELLER_ZUSAMMENFUEHREN = "ACTION_HERSTELLER_ZUSAMMENFUEHREN";
+
 	private int IDX_PANEL_ARTIKELKLASSEN = -1;
 	private int IDX_PANEL_ARTIKELGRUPPEN = -1;
 	private int IDX_PANEL_LAGER = -1;
@@ -150,13 +210,21 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 	private int IDX_PANEL_MEDICAL = -1;
 	private int IDX_PANEL_VORZUG = -1;
 	private int IDX_PANEL_ALERGEN = -1;
+	private int IDX_PANEL_GEBINDE = -1;
+	private int IDX_PANEL_VERPACKUNGSMITTEL = -1;
+	private int IDX_PANEL_DATEIVERWEIS = -1;
+	private int IDX_PANEL_WAFFENKALIBER = -1;
+	private int IDX_PANEL_WAFFENAUSFUEHRUNG = -1;
+	private int IDX_PANEL_WAFFENTYP = -1;
+	private int IDX_PANEL_WAFFENTYPFEIN = -1;
+	private int IDX_PANEL_WAFFENKATEGORIE = -1;
+	private int IDX_PANEL_WAFFENZUSATZ = -1;
+	private int IDX_PANEL_LASEROBERFLAECHE = -1;
 
 	private WrapperMenuBar wrapperManuBar = null;
 
-	public TabbedPaneArtikelgrunddaten(InternalFrame internalFrameI)
-			throws Throwable {
-		super(internalFrameI, LPMain.getTextRespectUISPr(
-				"lp.grunddaten"));
+	public TabbedPaneArtikelgrunddaten(InternalFrame internalFrameI) throws Throwable {
+		super(internalFrameI, LPMain.getTextRespectUISPr("lp.grunddaten"));
 
 		jbInit();
 		initComponents();
@@ -168,32 +236,22 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createArtikelklassen() throws Throwable {
 		if (panelSplitArtikelklassen == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			panelQueryArtikelklassen = new PanelQuery(ArtikelFilterFactory
-					.getInstance().createQTArtikelklasse(),
-					ArtikelFilterFactory.getInstance()
-							.createFKArtklaMandantCNr(),
-					QueryParameters.UC_ID_ARTIKELKLASSE, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getTextRespectUISPr(
-									"artikel.title.tab.artikelklassen"), true);
+			panelQueryArtikelklassen = new PanelQuery(ArtikelFilterFactory.getInstance().createQTArtikelklasse(),
+					ArtikelFilterFactory.getInstance().createFKArtklaMandantCNr(), QueryParameters.UC_ID_ARTIKELKLASSE,
+					aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.title.tab.artikelklassen"), true);
 
-			panelQueryArtikelklassen
-					.befuellePanelFilterkriterienDirekt(
-							ArtikelFilterFactory.getInstance()
-									.createFKDArtikelklasseKennung(),
-							SystemFilterFactory
-									.getInstance()
-									.createFKDSprTabelleBezeichnung(
-											ArtikelFac.FLR_ARTIKELKLASSE_ARTIKELKLASSESPRSET));
+			panelQueryArtikelklassen.befuellePanelFilterkriterienDirekt(
+					ArtikelFilterFactory.getInstance().createFKDArtikelklasseKennung(),
+					SystemFilterFactory.getInstance()
+							.createFKDSprTabelleBezeichnung(ArtikelFac.FLR_ARTIKELKLASSE_ARTIKELKLASSESPRSET));
 
-			panelBottomArtikelklassen = new PanelArtikelklassen(
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr(
-									"artikel.title.tab.artikelklassen"), null);
-			panelSplitArtikelklassen = new PanelSplit(getInternalFrame(),
-					panelBottomArtikelklassen, panelQueryArtikelklassen, 380);
+			panelBottomArtikelklassen = new PanelArtikelklassen(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.title.tab.artikelklassen"), null);
+			panelSplitArtikelklassen = new PanelSplit(getInternalFrame(), panelBottomArtikelklassen,
+					panelQueryArtikelklassen, 380);
 
 			setComponentAt(IDX_PANEL_ARTIKELKLASSEN, panelSplitArtikelklassen);
 		}
@@ -201,56 +259,41 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createArtikelkommentarart() throws Throwable {
 		if (panelSplitArtikelkommentarart == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			panelQueryArtikelkommentarart = new PanelQuery(ArtikelFilterFactory
-					.getInstance().createQTArtikelkommentarart(), null,
-					QueryParameters.UC_ID_ARTIKELKOMMENTARART,
-					aWhichButtonIUse, getInternalFrame(), LPMain
-							.getTextRespectUISPr("lp.kommentarart"), true);
+			panelQueryArtikelkommentarart = new PanelQuery(
+					ArtikelFilterFactory.getInstance().createQTArtikelkommentarart(), null,
+					QueryParameters.UC_ID_ARTIKELKOMMENTARART, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.kommentarart"), true);
 
-			panelQueryArtikelkommentarart
-					.befuellePanelFilterkriterienDirekt(
-							ArtikelFilterFactory.getInstance()
-									.createFKDArtikelkommentarartKennung(),
-							SystemFilterFactory
-									.getInstance()
-									.createFKDSprTabelleBezeichnung(
-											ArtikelkommentarFac.FLR_ARTIKELKOMMENTARART_ARTIKELKOMMENTARARTSPRSET));
+			panelQueryArtikelkommentarart.befuellePanelFilterkriterienDirekt(
+					ArtikelFilterFactory.getInstance().createFKDArtikelkommentarartKennung(),
+					SystemFilterFactory.getInstance().createFKDSprTabelleBezeichnung(
+							ArtikelkommentarFac.FLR_ARTIKELKOMMENTARART_ARTIKELKOMMENTARARTSPRSET));
 
-			panelBottomArtikelkommentarart = new PanelArtikelkommentarart(
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("lp.kommentarart"), null);
-			panelSplitArtikelkommentarart = new PanelSplit(getInternalFrame(),
-					panelBottomArtikelkommentarart,
+			panelBottomArtikelkommentarart = new PanelArtikelkommentarart(getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.kommentarart"), null);
+			panelSplitArtikelkommentarart = new PanelSplit(getInternalFrame(), panelBottomArtikelkommentarart,
 					panelQueryArtikelkommentarart, 350);
 
-			setComponentAt(IDX_PANEL_ARTIKELKOMMENTARART,
-					panelSplitArtikelkommentarart);
+			setComponentAt(IDX_PANEL_ARTIKELKOMMENTARART, panelSplitArtikelkommentarart);
 		}
 	}
 
 	private void createFarbcode() throws Throwable {
 		if (panelSplitFarbcode == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			panelQueryFarbcode = new PanelQuery(ArtikelFilterFactory
-					.getInstance().createQTArtikelkommentarart(), null,
-					QueryParameters.UC_ID_FARBCODE, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.farbcode"), true);
+			panelQueryFarbcode = new PanelQuery(ArtikelFilterFactory.getInstance().createQTArtikelkommentarart(), null,
+					QueryParameters.UC_ID_FARBCODE, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.farbcode"), true);
 
-			panelQueryFarbcode.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDKennung(),
+			panelQueryFarbcode.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDKennung(),
 					SystemFilterFactory.getInstance().createFKDBezeichnung());
 
-			panelBottomFarbcode = new PanelFarbcode(getInternalFrame(),
-					LPMain.getTextRespectUISPr("artikel.farbcode"),
+			panelBottomFarbcode = new PanelFarbcode(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.farbcode"),
 					null);
-			panelSplitFarbcode = new PanelSplit(getInternalFrame(),
-					panelBottomFarbcode, panelQueryFarbcode, 380);
+			panelSplitFarbcode = new PanelSplit(getInternalFrame(), panelBottomFarbcode, panelQueryFarbcode, 380);
 
 			setComponentAt(IDX_PANEL_FARBCODE, panelSplitFarbcode);
 		}
@@ -258,27 +301,19 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createVorschlagstext() throws Throwable {
 		if (panelSplitVorschlagstext == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
 
-			panelQueryVorschlagstext = new PanelQuery(
-					null,
-					ArtikelFilterFactory.getInstance().createFKVorschlagstext(),
-					QueryParameters.UC_ID_VORSCHLAGSTEXT, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.vorschlagstext"),
-					true);
+			panelQueryVorschlagstext = new PanelQuery(null, ArtikelFilterFactory.getInstance().createFKVorschlagstext(),
+					QueryParameters.UC_ID_VORSCHLAGSTEXT, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.vorschlagstext"), true);
 
-			panelQueryVorschlagstext.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
-					null);
+			panelQueryVorschlagstext
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
-			panelBottomVorschlagstext = new PanelVorschlagstext(
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.vorschlagstext"),
-					null);
-			panelSplitVorschlagstext = new PanelSplit(getInternalFrame(),
-					panelBottomVorschlagstext, panelQueryVorschlagstext, 380);
+			panelBottomVorschlagstext = new PanelVorschlagstext(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.vorschlagstext"), null);
+			panelSplitVorschlagstext = new PanelSplit(getInternalFrame(), panelBottomVorschlagstext,
+					panelQueryVorschlagstext, 380);
 
 			setComponentAt(IDX_PANEL_VORSCHLAGSTEXT, panelSplitVorschlagstext);
 		}
@@ -286,47 +321,52 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createReach() throws Throwable {
 		if (panelSplitReach == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
 
-			panelQueryReach = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_REACH, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.reach"), true);
+			panelQueryReach = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_REACH, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.reach"), true);
 
-			panelQueryReach.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
+			panelQueryReach.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(),
 					null);
 
-			panelBottomReach = new PanelReach(getInternalFrame(), 
-					LPMain.getTextRespectUISPr("artikel.reach"), null);
-			panelSplitReach = new PanelSplit(getInternalFrame(),
-					panelBottomReach, panelQueryReach, 380);
+			panelBottomReach = new PanelReach(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.reach"), null);
+			panelSplitReach = new PanelSplit(getInternalFrame(), panelBottomReach, panelQueryReach, 380);
 
 			setComponentAt(IDX_PANEL_REACH, panelSplitReach);
+		}
+	}
+	private void createLaseroberflaeche() throws Throwable {
+		if (panelSplitLaseroberflaeche == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryLaseroberflaeche = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_LASEROBERFLAECHE, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.laseroberflaeche"), true);
+
+			panelQueryLaseroberflaeche.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(),
+					null);
+
+			panelBottomLaseroberflaeche = new PanelLaseroberflaeche(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.laseroberflaeche"), null);
+			panelSplitLaseroberflaeche = new PanelSplit(getInternalFrame(), panelBottomLaseroberflaeche, panelQueryLaseroberflaeche, 350);
+
+			setComponentAt(IDX_PANEL_LASEROBERFLAECHE, panelSplitLaseroberflaeche);
 		}
 	}
 
 	private void createVorzug() throws Throwable {
 		if (panelSplitVorzug == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
 
-			panelQueryVorzug = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_VORZUG, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.vorzug"), true);
+			panelQueryVorzug = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_VORZUG, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.vorzug"), true);
 
-			panelQueryVorzug.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
-					null);
+			panelQueryVorzug
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
-			panelBottomVorzug = new PanelVorzug(getInternalFrame(),
-					LPMain.getTextRespectUISPr("artikel.vorzug"), null);
-			panelSplitVorzug = new PanelSplit(getInternalFrame(),
-					panelBottomVorzug, panelQueryVorzug, 350);
+			panelBottomVorzug = new PanelVorzug(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.vorzug"), null);
+			panelSplitVorzug = new PanelSplit(getInternalFrame(), panelBottomVorzug, panelQueryVorzug, 350);
 
 			setComponentAt(IDX_PANEL_VORZUG, panelSplitVorzug);
 		}
@@ -334,50 +374,93 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createAlergen() throws Throwable {
 		if (panelSplitAlergen == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER,
-					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
-					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1 };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER,
+					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1, PanelBasis.ACTION_POSITION_VONNNACHNPLUS1 };
 
-			panelQueryAlergen = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_ALERGEN, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.allergen"), true);
+			panelQueryAlergen = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_ALERGEN, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.allergen"), true);
 
-			panelQueryAlergen.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
+			panelQueryAlergen
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+
+			panelBottomAlergen = new PanelAllergen(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.allergen"),
 					null);
-
-			panelBottomAlergen = new PanelAllergen(getInternalFrame(),
-					LPMain.getTextRespectUISPr("artikel.allergen"),
-					null);
-			panelSplitAlergen = new PanelSplit(getInternalFrame(),
-					panelBottomAlergen, panelQueryAlergen, 350);
+			panelSplitAlergen = new PanelSplit(getInternalFrame(), panelBottomAlergen, panelQueryAlergen, 350);
 
 			setComponentAt(IDX_PANEL_ALERGEN, panelSplitAlergen);
 		}
 	}
 
+	private void createGebinde() throws Throwable {
+		if (panelSplitGebinde == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryGebinde = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_GEBINDE, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.gebinde"), true);
+
+			panelQueryGebinde
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+
+			panelBottomGebinde = new PanelGebinde(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.gebinde"),
+					null);
+			panelSplitGebinde = new PanelSplit(getInternalFrame(), panelBottomGebinde, panelQueryGebinde, 350);
+
+			setComponentAt(IDX_PANEL_GEBINDE, panelSplitGebinde);
+		}
+	}
+
+	private void createVerpackungsmittel() throws Throwable {
+		if (panelSplitVerpackungsmittel == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryVerpackungsmittel = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_VERPACKUNGSMITTEL, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.verpackungsmittel"), true);
+
+			panelQueryVerpackungsmittel
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+
+			panelBottomVerpackungsmittel = new PanelVerpackungsmittel(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.verpackungsmittel"), null);
+			panelSplitVerpackungsmittel = new PanelSplit(getInternalFrame(), panelBottomVerpackungsmittel,
+					panelQueryVerpackungsmittel, 320);
+
+			setComponentAt(IDX_PANEL_VERPACKUNGSMITTEL, panelSplitVerpackungsmittel);
+		}
+	}
+
+	private void createDateiverweis() throws Throwable {
+		if (panelSplitDateiverweis == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryDateiverweis = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_DATEIVERWEIS, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.dateiverweisuebersetzung"), true);
+
+			panelBottomDateiverweis = new PanelDateiverweis(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.dateiverweisuebersetzung"), null);
+			panelSplitDateiverweis = new PanelSplit(getInternalFrame(), panelBottomDateiverweis, panelQueryDateiverweis,
+					320);
+
+			setComponentAt(IDX_PANEL_DATEIVERWEIS, panelSplitDateiverweis);
+		}
+	}
+
 	private void createRohs() throws Throwable {
 		if (panelSplitRohs == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
 
-			panelQueryRohs = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_ROHS, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.rohs"), true);
+			panelQueryRohs = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_ROHS, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.rohs"), true);
 
-			panelQueryRohs.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
+			panelQueryRohs.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(),
 					null);
 
-			panelBottomRohs = new PanelRohs(getInternalFrame(), 
-					LPMain.getTextRespectUISPr("artikel.rohs"), null);
-			panelSplitRohs = new PanelSplit(getInternalFrame(),
-					panelBottomRohs, panelQueryRohs, 380);
+			panelBottomRohs = new PanelRohs(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.rohs"), null);
+			panelSplitRohs = new PanelSplit(getInternalFrame(), panelBottomRohs, panelQueryRohs, 380);
 
 			setComponentAt(IDX_PANEL_ROHS, panelSplitRohs);
 		}
@@ -385,24 +468,18 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createAutomotive() throws Throwable {
 		if (panelSplitAutomotive == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
 
-			panelQueryAutomotive = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_AUTOMOTIVE, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.automotive"), true);
+			panelQueryAutomotive = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_AUTOMOTIVE, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.automotive"), true);
 
-			panelQueryAutomotive.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
-					null);
+			panelQueryAutomotive
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
 			panelBottomAutomotive = new PanelAutomotive(getInternalFrame(),
-					LPMain.getTextRespectUISPr(
-							"artikel.automotive"), null);
-			panelSplitAutomotive = new PanelSplit(getInternalFrame(),
-					panelBottomAutomotive, panelQueryAutomotive, 380);
+					LPMain.getTextRespectUISPr("artikel.automotive"), null);
+			panelSplitAutomotive = new PanelSplit(getInternalFrame(), panelBottomAutomotive, panelQueryAutomotive, 380);
 
 			setComponentAt(IDX_PANEL_AUTOMOTIVE, panelSplitAutomotive);
 		}
@@ -410,47 +487,155 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createMedical() throws Throwable {
 		if (panelSplitMedical == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
 
-			panelQueryMedical = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_MEDICAL, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.medical"), true);
+			panelQueryMedical = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_MEDICAL, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.medical"), true);
 
-			panelQueryMedical.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
+			panelQueryMedical
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+
+			panelBottomMedical = new PanelMedical(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.medical"),
 					null);
-
-			panelBottomMedical = new PanelMedical(getInternalFrame(),
-					LPMain.getTextRespectUISPr("artikel.medical"), null);
-			panelSplitMedical = new PanelSplit(getInternalFrame(),
-					panelBottomMedical, panelQueryMedical, 380);
+			panelSplitMedical = new PanelSplit(getInternalFrame(), panelBottomMedical, panelQueryMedical, 380);
 
 			setComponentAt(IDX_PANEL_MEDICAL, panelSplitMedical);
 		}
 	}
 
+	private void createWaffenkaliber() throws Throwable {
+		if (panelSplitWaffenkaliber == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryWaffenkaliber = new PanelQuery(null, null, QueryParameters.UC_ID_WAFFENKALIBER, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getTextRespectUISPr("artikel.waffenkaliber"), true);
+
+			panelQueryWaffenkaliber.befuellePanelFilterkriterienDirekt(
+					SystemFilterFactory.getInstance().createFKDKennung(),
+					SystemFilterFactory.getInstance().createFKDBezeichnung());
+
+			panelBottomWaffenkaliber = new PanelWaffenkaliber(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.waffenkaliber"), null);
+			panelSplitWaffenkaliber = new PanelSplit(getInternalFrame(), panelBottomWaffenkaliber,
+					panelQueryWaffenkaliber, 350);
+
+			setComponentAt(IDX_PANEL_WAFFENKALIBER, panelSplitWaffenkaliber);
+		}
+	}
+
+	private void createWaffenausfuehrung() throws Throwable {
+		if (panelSplitWaffenausfuehrung == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryWaffenausfuehrung = new PanelQuery(null, null, QueryParameters.UC_ID_WAFFENAUSFUEHRUNG,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("artikel.waffenausfuehrung"),
+					true);
+
+			panelQueryWaffenausfuehrung.befuellePanelFilterkriterienDirekt(
+					SystemFilterFactory.getInstance().createFKDKennung(),
+					SystemFilterFactory.getInstance().createFKDBezeichnung());
+
+			panelBottomWaffenausfuehrung = new PanelWaffenausfuehrung(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.waffenausfuehrung"), null);
+			panelSplitWaffenausfuehrung = new PanelSplit(getInternalFrame(), panelBottomWaffenausfuehrung,
+					panelQueryWaffenausfuehrung, 350);
+
+			setComponentAt(IDX_PANEL_WAFFENAUSFUEHRUNG, panelSplitWaffenausfuehrung);
+		}
+	}
+
+	private void createWaffentyp() throws Throwable {
+		if (panelSplitWaffentyp == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryWaffentyp = new PanelQuery(null, null, QueryParameters.UC_ID_WAFFENTYP, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getTextRespectUISPr("artikel.waffentyp"), true);
+
+			panelQueryWaffentyp.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDKennung(),
+					SystemFilterFactory.getInstance().createFKDBezeichnung());
+
+			panelBottomWaffentyp = new PanelWaffentyp(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.waffentyp"), null);
+			panelSplitWaffentyp = new PanelSplit(getInternalFrame(), panelBottomWaffentyp, panelQueryWaffentyp, 350);
+
+			setComponentAt(IDX_PANEL_WAFFENTYP, panelSplitWaffentyp);
+		}
+	}
+
+	private void createWaffentypFein() throws Throwable {
+		if (panelSplitWaffentypFein == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryWaffentypFein = new PanelQuery(null, null, QueryParameters.UC_ID_WAFFENTYPFEIN, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getTextRespectUISPr("artikel.waffentypFein"), true);
+
+			panelQueryWaffentypFein.befuellePanelFilterkriterienDirekt(
+					SystemFilterFactory.getInstance().createFKDKennung(),
+					SystemFilterFactory.getInstance().createFKDBezeichnung());
+
+			panelBottomWaffentypFein = new PanelWaffentypFein(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.waffentypFein"), null);
+			panelSplitWaffentypFein = new PanelSplit(getInternalFrame(), panelBottomWaffentypFein,
+					panelQueryWaffentypFein, 350);
+
+			setComponentAt(IDX_PANEL_WAFFENTYPFEIN, panelSplitWaffentypFein);
+		}
+	}
+
+	private void createWaffenkategorie() throws Throwable {
+		if (panelSplitWaffenkategorie == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryWaffenkategorie = new PanelQuery(null, null, QueryParameters.UC_ID_WAFFENKATEGORIE,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("artikel.waffenkategorie"), true);
+
+			panelQueryWaffenkategorie.befuellePanelFilterkriterienDirekt(
+					SystemFilterFactory.getInstance().createFKDKennung(),
+					SystemFilterFactory.getInstance().createFKDBezeichnung());
+
+			panelBottomWaffenkategorie = new PanelWaffenkategorie(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.waffenkategorie"), null);
+			panelSplitWaffenkategorie = new PanelSplit(getInternalFrame(), panelBottomWaffenkategorie,
+					panelQueryWaffenkategorie, 350);
+
+			setComponentAt(IDX_PANEL_WAFFENKATEGORIE, panelSplitWaffenkategorie);
+		}
+	}
+
+	private void createWaffenzusatz() throws Throwable {
+		if (panelSplitWaffenzusatz == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
+
+			panelQueryWaffenzusatz = new PanelQuery(null, null, QueryParameters.UC_ID_WAFFENZUSATZ, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getTextRespectUISPr("artikel.waffenzusatz"), true);
+
+			panelQueryWaffenzusatz.befuellePanelFilterkriterienDirekt(
+					SystemFilterFactory.getInstance().createFKDKennung(),
+					SystemFilterFactory.getInstance().createFKDBezeichnung());
+
+			panelBottomWaffenzusatz = new PanelWaffenzusatz(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.waffenzusatz"), null);
+			panelSplitWaffenzusatz = new PanelSplit(getInternalFrame(), panelBottomWaffenzusatz, panelQueryWaffenzusatz,
+					350);
+
+			setComponentAt(IDX_PANEL_WAFFENZUSATZ, panelSplitWaffenzusatz);
+		}
+	}
+
 	private void createWebshop() throws Throwable {
 		if (panelSplitWebshop == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, };
 
-			panelQueryWebshop = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_WEBSHOP, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("lp.webshop"), true);
+			panelQueryWebshop = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_WEBSHOP, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.webshop"), true);
 
-			panelQueryWebshop.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
-					null);
+			panelQueryWebshop
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
-			panelBottomWebshop = new PanelWebshop(getInternalFrame(),
-					LPMain.getTextRespectUISPr("lp.webshop"), null);
-			panelSplitWebshop = new PanelSplit(getInternalFrame(),
-					panelBottomWebshop, panelQueryWebshop, 380);
+			panelBottomWebshop = new PanelWebshop(getInternalFrame(), LPMain.getTextRespectUISPr("lp.webshop"), null);
+			panelSplitWebshop = new PanelSplit(getInternalFrame(), panelBottomWebshop, panelQueryWebshop, 250);
 
 			setComponentAt(IDX_PANEL_WEBSHOP, panelSplitWebshop);
 		}
@@ -458,18 +643,14 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createVerleih() throws Throwable {
 		if (panelSplitVerleih == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			panelQueryVerleih = new PanelQuery(null, null,
-					QueryParameters.UC_ID_VERLEIH, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("artikel.verleih"), true);
+			panelQueryVerleih = new PanelQuery(null, null, QueryParameters.UC_ID_VERLEIH, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getTextRespectUISPr("artikel.verleih"), true);
 
-			panelBottomVerleih = new PanelVerleih(getInternalFrame(),
-					LPMain.getTextRespectUISPr("artikel.verleih"), null);
-			panelSplitVerleih = new PanelSplit(getInternalFrame(),
-					panelBottomVerleih, panelQueryVerleih, 330);
+			panelBottomVerleih = new PanelVerleih(getInternalFrame(), LPMain.getTextRespectUISPr("artikel.verleih"),
+					null);
+			panelSplitVerleih = new PanelSplit(getInternalFrame(), panelBottomVerleih, panelQueryVerleih, 330);
 
 			setComponentAt(IDX_PANEL_VERLEIH, panelSplitVerleih);
 		}
@@ -477,25 +658,18 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createLagerplatz() throws Throwable {
 		if (panelSplitLagerplatz == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			panelQueryLagerplatz = new PanelQuery(ArtikelFilterFactory
-					.getInstance().createQTLagerplatz(), ArtikelFilterFactory
-					.getInstance().createFKLagerplatz(),
-					QueryParameters.UC_ID_LAGERPLATZ, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("lp.lagerplatz"), true);
+			panelQueryLagerplatz = new PanelQuery(ArtikelFilterFactory.getInstance().createQTLagerplatz(),
+					ArtikelFilterFactory.getInstance().createFKLagerplatz(), QueryParameters.UC_ID_LAGERPLATZ,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("lp.lagerplatz"), true);
 
-			panelQueryLagerplatz.befuellePanelFilterkriterienDirekt(
-					ArtikelFilterFactory.getInstance().createFKDLagerplatz(),
+			panelQueryLagerplatz
+					.befuellePanelFilterkriterienDirekt(ArtikelFilterFactory.getInstance().createFKDLagerplatz(), null);
+
+			panelBottomLagerplatz = new PanelLagerplatz(getInternalFrame(), LPMain.getTextRespectUISPr("lp.lagerplatz"),
 					null);
-
-			panelBottomLagerplatz = new PanelLagerplatz(getInternalFrame(),
-					LPMain.getTextRespectUISPr("lp.lagerplatz"),
-					null);
-			panelSplitLagerplatz = new PanelSplit(getInternalFrame(),
-					panelBottomLagerplatz, panelQueryLagerplatz, 330);
+			panelSplitLagerplatz = new PanelSplit(getInternalFrame(), panelBottomLagerplatz, panelQueryLagerplatz, 330);
 
 			setComponentAt(IDX_PANEL_LAGERPLATZ, panelSplitLagerplatz);
 		}
@@ -505,20 +679,15 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 		if (panelSplitSperren == null) {
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
 
-			panelQuerySperren = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_SPERREN, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("lp.sperren"), true);
+			panelQuerySperren = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_SPERREN, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.sperren"), true);
 
-			panelQuerySperren.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
-					null);
+			panelQuerySperren
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
-			panelBottomSperren = new PanelSperren(getInternalFrame(),
-					LPMain.getTextRespectUISPr("lp.sperren"), null);
-			panelSplitSperren = new PanelSplit(getInternalFrame(),
-					panelBottomSperren, panelQuerySperren, 230);
+			panelBottomSperren = new PanelSperren(getInternalFrame(), LPMain.getTextRespectUISPr("lp.sperren"), null);
+			panelSplitSperren = new PanelSplit(getInternalFrame(), panelBottomSperren, panelQuerySperren, 210);
 
 			setComponentAt(IDX_PANEL_SPERREN, panelSplitSperren);
 		}
@@ -526,34 +695,28 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createArtikelgruppen() throws Throwable {
 		if (panelSplitArtikelgruppen == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = null;
+			if (zentralerArtikelstammUndNichtHauptmandant()) {
+				aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER };
+			} else {
+				aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
+			}
 
-			panelQueryArtikelgruppen = new PanelQuery(ArtikelFilterFactory
-					.getInstance().createQTArtikelgruppe(),
-					ArtikelFilterFactory.getInstance()
-							.createFKArtgruMandantCNr(),
-					QueryParameters.UC_ID_ARTIKELGRUPPE, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr(
-									"artikel.title.tab.artikelgruppen"), true);
+			panelQueryArtikelgruppen = new PanelQuery(ArtikelFilterFactory.getInstance().createQTArtikelgruppe(),
+					ArtikelFilterFactory.getInstance().createFKArtgruMandantCNr(), QueryParameters.UC_ID_ARTIKELGRUPPE,
+					aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.title.tab.artikelgruppen"), true);
 
-			panelQueryArtikelgruppen
-					.befuellePanelFilterkriterienDirekt(
-							ArtikelFilterFactory.getInstance()
-									.createFKDArtikelgruppeKennung(),
-							SystemFilterFactory
-									.getInstance()
-									.createFKDSprTabelleBezeichnung(
-											ArtikelFac.FLR_ARTIKELGRUPPE_ARTIKELGRUPPESPRSET));
+			panelQueryArtikelgruppen.befuellePanelFilterkriterienDirekt(
+					ArtikelFilterFactory.getInstance().createFKDArtikelgruppeKennung(),
+					SystemFilterFactory.getInstance()
+							.createFKDSprTabelleBezeichnung(ArtikelFac.FLR_ARTIKELGRUPPE_ARTIKELGRUPPESPRSET));
 
-			panelBottomArtikelgruppen = new PanelArtikelgruppen(
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr(
-									"artikel.title.tab.artikelgruppen"), null);
+			panelBottomArtikelgruppen = new PanelArtikelgruppen(getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.title.tab.artikelgruppen"), null);
 
-			panelSplitArtikelgruppen = new PanelSplit(getInternalFrame(),
-					panelBottomArtikelgruppen, panelQueryArtikelgruppen, 350);
+			panelSplitArtikelgruppen = new PanelSplit(getInternalFrame(), panelBottomArtikelgruppen,
+					panelQueryArtikelgruppen, 260);
 
 			setComponentAt(IDX_PANEL_ARTIKELGRUPPEN, panelSplitArtikelgruppen);
 		}
@@ -562,22 +725,16 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 	private void createHersteller() throws Throwable {
 		if (panelSplitHersteller == null) {
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryHersteller = new PanelQuery(null, null,
-					QueryParameters.UC_ID_ARTIKELHERSTELLER, aWhichButtonIUse,
-					getInternalFrame(),
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.hersteller"), true);
+			panelQueryHersteller = new PanelQuery(null, null, QueryParameters.UC_ID_ARTIKELHERSTELLER, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getTextRespectUISPr("artikel.title.tab.hersteller"), true);
 			panelQueryHersteller.befuellePanelFilterkriterienDirekt(
 					ArtikelFilterFactory.getInstance().createFKDHersteller(),
-					ArtikelFilterFactory.getInstance()
-							.createFKDHerstellerPartner());
+					ArtikelFilterFactory.getInstance().createFKDHerstellerPartner());
 
 			panelBottomHersteller = new PanelHersteller(getInternalFrame(),
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.hersteller"), null);
+					LPMain.getTextRespectUISPr("artikel.title.tab.hersteller"), null);
 
-			panelSplitHersteller = new PanelSplit(getInternalFrame(),
-					panelBottomHersteller, panelQueryHersteller, 380);
+			panelSplitHersteller = new PanelSplit(getInternalFrame(), panelBottomHersteller, panelQueryHersteller, 320);
 
 			setComponentAt(IDX_PANEL_HERSTELLER, panelSplitHersteller);
 		}
@@ -585,84 +742,87 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 	private void createLager() throws Throwable {
 		if (panelSplitLager == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1 };
 
-			panelQueryLager = new PanelQuery(ArtikelFilterFactory.getInstance()
-					.createQTLager(), ArtikelFilterFactory.getInstance()
-					.createFKLagerlisteMitVersteckten(),
-					QueryParameters.UC_ID_LAGER_ALLE, aWhichButtonIUse,
-					getInternalFrame(), LPMain
-							.getTextRespectUISPr("button.lager"), true);
+			panelQueryLager = new PanelQuery(ArtikelFilterFactory.getInstance().createQTLager(),
+					ArtikelFilterFactory.getInstance().createFKLagerlisteMitVersteckten(),
+					QueryParameters.UC_ID_LAGER_ALLE, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("button.lager"), true,
+					ArtikelFilterFactory.getInstance().createFKVLagerGrunddaten(), null);
 			panelQueryLager.befuellePanelFilterkriterienDirekt(
-					ArtikelFilterFactory.getInstance()
-							.createFKDLagernameGrunddaten(),
-					ArtikelFilterFactory.getInstance()
-							.createFKDLagerLagerartGrunddaten());
+					ArtikelFilterFactory.getInstance().createFKDLagernameGrunddaten(),
+					ArtikelFilterFactory.getInstance().createFKDLagerLagerartGrunddaten());
 
-			panelBottomLager = new PanelLager(getInternalFrame(),
-					LPMain.getTextRespectUISPr("button.lager"), null);
+			panelBottomLager = new PanelLager(getInternalFrame(), LPMain.getTextRespectUISPr("button.lager"), null);
 
-			panelSplitLager = new PanelSplit(getInternalFrame(),
-					panelBottomLager, panelQueryLager, 320);
+			panelSplitLager = new PanelSplit(getInternalFrame(), panelBottomLager, panelQueryLager, 290);
 
 			setComponentAt(IDX_PANEL_LAGER, panelSplitLager);
 		}
 	}
 
+	public boolean zentralerArtikelstammUndNichtHauptmandant() throws Throwable {
+		boolean bZentralerArtikelstamm = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM);
+
+		boolean bIstHauptmandant = false;
+
+		String hauptMandant = DelegateFactory.getInstance().getMandantDelegate()
+				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getAnwenderDto()
+				.getMandantCNrHauptmandant();
+		if (hauptMandant.equals(LPMain.getTheClient().getMandant())) {
+			bIstHauptmandant = true;
+		}
+
+		if (bZentralerArtikelstamm == true && bIstHauptmandant == false) {
+			return true;
+		} else {
+			return false;
+		}
+
+	}
+
 	private void jbInit() throws Throwable {
 
-		boolean bZentralerArtikelstamm = LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM);
-		boolean bGetrennteLager = LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER);
+		boolean bZentralerArtikelstamm = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM);
+		boolean bGetrennteLager = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER);
 
 		int tabIndex = 0;
 
 		boolean bIstHauptmandant = false;
 
-		String hauptMandant = DelegateFactory
-				.getInstance()
-				.getMandantDelegate()
-				.mandantFindByPrimaryKey(
-						LPMain.getTheClient().getMandant())
-				.getAnwenderDto().getMandantCNrHauptmandant();
-		if (hauptMandant.equals(LPMain.getTheClient()
-				.getMandant())) {
+		String hauptMandant = DelegateFactory.getInstance().getMandantDelegate()
+				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getAnwenderDto()
+				.getMandantCNrHauptmandant();
+		if (hauptMandant.equals(LPMain.getTheClient().getMandant())) {
 			bIstHauptmandant = true;
 		}
-		//SP3192
-		if (bZentralerArtikelstamm && bGetrennteLager
-				&& bIstHauptmandant == false) {
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_MEHRLAGERVERWALTUNG)) {
+
+		// SP3192
+		if (bZentralerArtikelstamm && bGetrennteLager && bIstHauptmandant == false) {
+
+			IDX_PANEL_ARTIKELGRUPPEN = tabIndex;
+			insertTab(LPMain.getTextRespectUISPr("artikel.title.tab.artikelgruppen"), null, null,
+					LPMain.getTextRespectUISPr("artikel.title.tab.artikelgruppen"), IDX_PANEL_ARTIKELGRUPPEN);
+			tabIndex++;
+
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MEHRLAGERVERWALTUNG)) {
 
 				IDX_PANEL_LAGER = tabIndex;
-				insertTab(
-						LPMain.getTextRespectUISPr("label.lager"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr("label.lager"),
-						IDX_PANEL_LAGER);
+				insertTab(LPMain.getTextRespectUISPr("label.lager"), null, null,
+						LPMain.getTextRespectUISPr("label.lager"), IDX_PANEL_LAGER);
 				tabIndex++;
 				createLager();
 
 			}
 
 			IDX_PANEL_LAGERPLATZ = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr("lp.lagerplatz"),
-					null, null,
-					LPMain.getTextRespectUISPr("lp.lagerplatz"),
-					IDX_PANEL_LAGERPLATZ);
+			insertTab(LPMain.getTextRespectUISPr("lp.lagerplatz"), null, null,
+					LPMain.getTextRespectUISPr("lp.lagerplatz"), IDX_PANEL_LAGERPLATZ);
 
 			tabIndex++;
 			createLagerplatz();
@@ -670,167 +830,142 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 
 			IDX_PANEL_ARTIKELKLASSEN = tabIndex;
 			// 1 tab oben: QP1 PartnerFLR; lazy loading
-			insertTab(
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.artikelklassen"),
-					null,
-					null,
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.artikelklassen"),
-					IDX_PANEL_ARTIKELKLASSEN);
+			insertTab(LPMain.getTextRespectUISPr("artikel.title.tab.artikelklassen"), null, null,
+					LPMain.getTextRespectUISPr("artikel.title.tab.artikelklassen"), IDX_PANEL_ARTIKELKLASSEN);
 			tabIndex++;
 			IDX_PANEL_ARTIKELGRUPPEN = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.artikelgruppen"),
-					null,
-					null,
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.artikelgruppen"),
-					IDX_PANEL_ARTIKELGRUPPEN);
+			insertTab(LPMain.getTextRespectUISPr("artikel.title.tab.artikelgruppen"), null, null,
+					LPMain.getTextRespectUISPr("artikel.title.tab.artikelgruppen"), IDX_PANEL_ARTIKELGRUPPEN);
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_MEHRLAGERVERWALTUNG)) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MEHRLAGERVERWALTUNG)) {
 				tabIndex++;
 				IDX_PANEL_LAGER = tabIndex;
-				insertTab(
-						LPMain.getTextRespectUISPr("label.lager"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr("label.lager"),
-						IDX_PANEL_LAGER);
+				insertTab(LPMain.getTextRespectUISPr("label.lager"), null, null,
+						LPMain.getTextRespectUISPr("label.lager"), IDX_PANEL_LAGER);
 			}
 			tabIndex++;
 			IDX_PANEL_HERSTELLER = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.hersteller"),
-					null,
-					null,
-					LPMain.getTextRespectUISPr(
-							"artikel.title.tab.hersteller"),
-					IDX_PANEL_HERSTELLER);
+			insertTab(LPMain.getTextRespectUISPr("artikel.title.tab.hersteller"), null, null,
+					LPMain.getTextRespectUISPr("artikel.title.tab.hersteller"), IDX_PANEL_HERSTELLER);
 
 			tabIndex++;
 			IDX_PANEL_ARTIKELKOMMENTARART = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr("lp.kommentarart"),
-					null,
-					null,
-					LPMain.getTextRespectUISPr("lp.kommentarart"),
-					IDX_PANEL_ARTIKELKOMMENTARART);
+			insertTab(LPMain.getTextRespectUISPr("lp.kommentarart"), null, null,
+					LPMain.getTextRespectUISPr("lp.kommentarart"), IDX_PANEL_ARTIKELKOMMENTARART);
 
 			tabIndex++;
 			IDX_PANEL_FARBCODE = tabIndex;
-			insertTab(
-					LPMain
-							.getTextRespectUISPr("artikel.farbcode"), null,
-					null,
-					LPMain
-							.getTextRespectUISPr("artikel.farbcode"),
-					IDX_PANEL_FARBCODE);
+			insertTab(LPMain.getTextRespectUISPr("artikel.farbcode"), null, null,
+					LPMain.getTextRespectUISPr("artikel.farbcode"), IDX_PANEL_FARBCODE);
 			tabIndex++;
 			IDX_PANEL_SPERREN = tabIndex;
-			insertTab(LPMain.getTextRespectUISPr("lp.sperren"),
-					null, null,
-					LPMain.getTextRespectUISPr("lp.sperren"),
+			insertTab(LPMain.getTextRespectUISPr("lp.sperren"), null, null, LPMain.getTextRespectUISPr("lp.sperren"),
 					IDX_PANEL_SPERREN);
 			tabIndex++;
 			IDX_PANEL_LAGERPLATZ = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr("lp.lagerplatz"),
-					null, null,
-					LPMain.getTextRespectUISPr("lp.lagerplatz"),
-					IDX_PANEL_LAGERPLATZ);
+			insertTab(LPMain.getTextRespectUISPr("lp.lagerplatz"), null, null,
+					LPMain.getTextRespectUISPr("lp.lagerplatz"), IDX_PANEL_LAGERPLATZ);
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_VERLEIH)) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_VERLEIH)) {
 				tabIndex++;
 				IDX_PANEL_VERLEIH = tabIndex;
-				insertTab(
-						LPMain.getTextRespectUISPr(
-								"artikel.verleih"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr(
-								"artikel.verleih"), IDX_PANEL_VERLEIH);
+				insertTab(LPMain.getTextRespectUISPr("artikel.verleih"), null, null,
+						LPMain.getTextRespectUISPr("artikel.verleih"), IDX_PANEL_VERLEIH);
 			}
 
 			tabIndex++;
 			IDX_PANEL_VORSCHLAGSTEXT = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr(
-							"artikel.vorschlagstext"),
-					null,
-					null,
-					LPMain.getTextRespectUISPr(
-							"artikel.vorschlagstext"), IDX_PANEL_VORSCHLAGSTEXT);
+			insertTab(LPMain.getTextRespectUISPr("artikel.vorschlagstext"), null, null,
+					LPMain.getTextRespectUISPr("artikel.vorschlagstext"), IDX_PANEL_VORSCHLAGSTEXT);
 			tabIndex++;
 			IDX_PANEL_WEBSHOP = tabIndex;
-			insertTab(LPMain.getTextRespectUISPr("lp.webshop"),
-					null, null,
-					LPMain.getTextRespectUISPr("lp.webshop"),
+			insertTab(LPMain.getTextRespectUISPr("lp.webshop"), null, null, LPMain.getTextRespectUISPr("lp.webshop"),
 					IDX_PANEL_WEBSHOP);
 
 			tabIndex++;
 			IDX_PANEL_REACH = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr("artikel.reach"),
-					null, null,
-					LPMain.getTextRespectUISPr("artikel.reach"),
-					IDX_PANEL_REACH);
+			insertTab(LPMain.getTextRespectUISPr("artikel.reach"), null, null,
+					LPMain.getTextRespectUISPr("artikel.reach"), IDX_PANEL_REACH);
 
 			tabIndex++;
 			IDX_PANEL_ROHS = tabIndex;
-			insertTab(LPMain.getTextRespectUISPr("artikel.rohs"),
-					null, null,
-					LPMain.getTextRespectUISPr("artikel.rohs"),
-					IDX_PANEL_ROHS);
+			insertTab(LPMain.getTextRespectUISPr("artikel.rohs"), null, null,
+					LPMain.getTextRespectUISPr("artikel.rohs"), IDX_PANEL_ROHS);
 
 			tabIndex++;
 			IDX_PANEL_AUTOMOTIVE = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr(
-							"artikel.automotive"),
-					null,
-					null,
-					LPMain.getTextRespectUISPr(
-							"artikel.automotive"), IDX_PANEL_AUTOMOTIVE);
+			insertTab(LPMain.getTextRespectUISPr("artikel.automotive"), null, null,
+					LPMain.getTextRespectUISPr("artikel.automotive"), IDX_PANEL_AUTOMOTIVE);
 
 			tabIndex++;
 			IDX_PANEL_MEDICAL = tabIndex;
-			insertTab(
-					LPMain.getTextRespectUISPr("artikel.medical"),
-					null,
-					null,
-					LPMain.getTextRespectUISPr("artikel.medical"),
-					IDX_PANEL_MEDICAL);
+			insertTab(LPMain.getTextRespectUISPr("artikel.medical"), null, null,
+					LPMain.getTextRespectUISPr("artikel.medical"), IDX_PANEL_MEDICAL);
 			tabIndex++;
 			IDX_PANEL_VORZUG = tabIndex;
-			insertTab(LPMain
-					.getTextRespectUISPr("artikel.vorzug"), null, null,
-					LPMain.getTextRespectUISPr("artikel.vorzug"),
-					IDX_PANEL_VORZUG);
-			if (LPMain.getInstance().getDesktop()
-					.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_KUECHE)) {
+			insertTab(LPMain.getTextRespectUISPr("artikel.vorzug"), null, null,
+					LPMain.getTextRespectUISPr("artikel.vorzug"), IDX_PANEL_VORZUG);
+			if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_KUECHE)) {
 
 				tabIndex++;
 				IDX_PANEL_ALERGEN = tabIndex;
-				insertTab(
-						LPMain.getTextRespectUISPr(
-								"artikel.allergen"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr(
-								"artikel.allergen"), IDX_PANEL_ALERGEN);
+				insertTab(LPMain.getTextRespectUISPr("artikel.allergen"), null, null,
+						LPMain.getTextRespectUISPr("artikel.allergen"), IDX_PANEL_ALERGEN);
 			}
 
+			tabIndex++;
+			IDX_PANEL_GEBINDE = tabIndex;
+			insertTab(LPMain.getTextRespectUISPr("artikel.gebinde"), null, null,
+					LPMain.getTextRespectUISPr("artikel.gebinde"), IDX_PANEL_GEBINDE);
+
+			tabIndex++;
+			IDX_PANEL_VERPACKUNGSMITTEL = tabIndex;
+			insertTab(LPMain.getTextRespectUISPr("artikel.verpackungsmittel"), null, null,
+					LPMain.getTextRespectUISPr("artikel.verpackungsmittel"), IDX_PANEL_VERPACKUNGSMITTEL);
+
+			tabIndex++;
+			IDX_PANEL_DATEIVERWEIS = tabIndex;
+			insertTab(LPMain.getTextRespectUISPr("artikel.dateiverweisuebersetzung"), null, null,
+					LPMain.getTextRespectUISPr("artikel.dateiverweisuebersetzung"), IDX_PANEL_DATEIVERWEIS);
+
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_WAFFENREGISTER)) {
+				tabIndex++;
+				IDX_PANEL_WAFFENKALIBER = tabIndex;
+				insertTab(LPMain.getTextRespectUISPr("artikel.waffenkaliber"), null, null,
+						LPMain.getTextRespectUISPr("artikel.waffenkaliber"), IDX_PANEL_WAFFENKALIBER);
+				tabIndex++;
+				IDX_PANEL_WAFFENTYP = tabIndex;
+				insertTab(LPMain.getTextRespectUISPr("artikel.waffentyp"), null, null,
+						LPMain.getTextRespectUISPr("artikel.waffentyp"), IDX_PANEL_WAFFENTYP);
+				tabIndex++;
+				IDX_PANEL_WAFFENTYPFEIN = tabIndex;
+				insertTab(LPMain.getTextRespectUISPr("artikel.waffentypfein"), null, null,
+						LPMain.getTextRespectUISPr("artikel.waffentypfein"), IDX_PANEL_WAFFENTYPFEIN);
+				tabIndex++;
+				IDX_PANEL_WAFFENZUSATZ = tabIndex;
+				insertTab(LPMain.getTextRespectUISPr("artikel.waffenzusatz"), null, null,
+						LPMain.getTextRespectUISPr("artikel.waffenzusatz"), IDX_PANEL_WAFFENZUSATZ);
+				tabIndex++;
+				IDX_PANEL_WAFFENKATEGORIE = tabIndex;
+				insertTab(LPMain.getTextRespectUISPr("artikel.waffenkategorie"), null, null,
+						LPMain.getTextRespectUISPr("artikel.waffenkategorie"), IDX_PANEL_WAFFENKATEGORIE);
+				tabIndex++;
+				IDX_PANEL_WAFFENAUSFUEHRUNG = tabIndex;
+				insertTab(LPMain.getTextRespectUISPr("artikel.waffenausfuehrung"), null, null,
+						LPMain.getTextRespectUISPr("artikel.waffenausfuehrung"), IDX_PANEL_WAFFENAUSFUEHRUNG);
+
+			}
+
+			
+			tabIndex++;
+			IDX_PANEL_LASEROBERFLAECHE = tabIndex;
+			insertTab(LPMain.getTextRespectUISPr("artikel.laseroberflaeche"), null, null,
+					LPMain.getTextRespectUISPr("artikel.laseroberflaeche"), IDX_PANEL_LASEROBERFLAECHE);
+
+			
 			createArtikelklassen();
 
 		}
@@ -916,6 +1051,12 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 				panelBottomReach.eventYouAreSelected(false);
 				panelQueryReach.updateButtons();
 
+			}else if (e.getSource() == panelQueryLaseroberflaeche) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomLaseroberflaeche.setKeyWhenDetailPanel(key);
+				panelBottomLaseroberflaeche.eventYouAreSelected(false);
+				panelQueryLaseroberflaeche.updateButtons();
+
 			} else if (e.getSource() == panelQueryRohs) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				panelBottomRohs.setKeyWhenDetailPanel(key);
@@ -946,62 +1087,119 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 				panelBottomAlergen.eventYouAreSelected(false);
 				panelQueryAlergen.updateButtons();
 
+			} else if (e.getSource() == panelQueryGebinde) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomGebinde.setKeyWhenDetailPanel(key);
+				panelBottomGebinde.eventYouAreSelected(false);
+				panelQueryGebinde.updateButtons();
+
+			} else if (e.getSource() == panelQueryVerpackungsmittel) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomVerpackungsmittel.setKeyWhenDetailPanel(key);
+				panelBottomVerpackungsmittel.eventYouAreSelected(false);
+				panelQueryVerpackungsmittel.updateButtons();
+
+			} else if (e.getSource() == panelQueryDateiverweis) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomDateiverweis.setKeyWhenDetailPanel(key);
+				panelBottomDateiverweis.eventYouAreSelected(false);
+				panelQueryDateiverweis.updateButtons();
+
+			} else if (e.getSource() == panelQueryWaffenkaliber) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomWaffenkaliber.setKeyWhenDetailPanel(key);
+				panelBottomWaffenkaliber.eventYouAreSelected(false);
+				panelQueryWaffenkaliber.updateButtons();
+
+			} else if (e.getSource() == panelQueryWaffenausfuehrung) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomWaffenausfuehrung.setKeyWhenDetailPanel(key);
+				panelBottomWaffenausfuehrung.eventYouAreSelected(false);
+				panelQueryWaffenausfuehrung.updateButtons();
+
+			} else if (e.getSource() == panelQueryWaffentyp) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomWaffentyp.setKeyWhenDetailPanel(key);
+				panelBottomWaffentyp.eventYouAreSelected(false);
+				panelQueryWaffentyp.updateButtons();
+
+			} else if (e.getSource() == panelQueryWaffentypFein) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomWaffentypFein.setKeyWhenDetailPanel(key);
+				panelBottomWaffentypFein.eventYouAreSelected(false);
+				panelQueryWaffentypFein.updateButtons();
+
+			} else if (e.getSource() == panelQueryWaffenkategorie) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomWaffenkategorie.setKeyWhenDetailPanel(key);
+				panelBottomWaffenkategorie.eventYouAreSelected(false);
+				panelQueryWaffenkategorie.updateButtons();
+
+			} else if (e.getSource() == panelQueryWaffenzusatz) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomWaffenzusatz.setKeyWhenDetailPanel(key);
+				panelBottomWaffenzusatz.eventYouAreSelected(false);
+				panelQueryWaffenzusatz.updateButtons();
+
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			if (e.getSource() == panelBottomArtikelklassen) {
-				panelQueryArtikelklassen.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryArtikelklassen.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomArtikelgruppen) {
-				panelQueryArtikelgruppen.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryArtikelgruppen.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomHersteller) {
-				panelQueryHersteller.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryHersteller.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomVerleih) {
-				panelQueryVerleih.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryVerleih.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomLager) {
-				panelQueryLager.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryLager.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomArtikelkommentarart) {
-				panelQueryArtikelkommentarart.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryArtikelkommentarart.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomFarbcode) {
-				panelQueryFarbcode.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryFarbcode.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomSperren) {
-				panelQuerySperren.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQuerySperren.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomLagerplatz) {
-				panelQueryLagerplatz.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryLagerplatz.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomVorschlagstext) {
-				panelQueryVorschlagstext.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryVorschlagstext.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomWebshop) {
-				panelQueryWebshop.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryWebshop.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 
 			else if (e.getSource() == panelBottomReach) {
-				panelQueryReach.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryReach.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			}else if (e.getSource() == panelBottomLaseroberflaeche) {
+				panelQueryLaseroberflaeche.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomRohs) {
-				panelQueryRohs.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryRohs.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomAutomotive) {
-				panelQueryAutomotive.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryAutomotive.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomMedical) {
-				panelQueryMedical.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryMedical.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomVorzug) {
-				panelQueryVorzug.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryVorzug.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomAlergen) {
-				panelQueryAlergen.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryAlergen.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomGebinde) {
+				panelQueryGebinde.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomVerpackungsmittel) {
+				panelQueryVerpackungsmittel.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomDateiverweis) {
+				panelQueryDateiverweis.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomWaffenkaliber) {
+				panelQueryWaffenkaliber.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomWaffenausfuehrung) {
+				panelQueryWaffenausfuehrung.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomWaffentyp) {
+				panelQueryWaffentyp.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomWaffentypFein) {
+				panelQueryWaffentypFein.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomWaffenkategorie) {
+				panelQueryWaffenkategorie.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomWaffenzusatz) {
+				panelQueryWaffenzusatz.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 
 		}
@@ -1048,6 +1246,9 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 			else if (e.getSource() == panelQueryReach) {
 				panelBottomReach.eventActionNew(e, true, false);
 				panelBottomReach.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryLaseroberflaeche) {
+				panelBottomLaseroberflaeche.eventActionNew(e, true, false);
+				panelBottomLaseroberflaeche.eventYouAreSelected(false);
 			} else if (e.getSource() == panelQueryRohs) {
 				panelBottomRohs.eventActionNew(e, true, false);
 				panelBottomRohs.eventYouAreSelected(false);
@@ -1063,6 +1264,33 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 			} else if (e.getSource() == panelQueryAlergen) {
 				panelBottomAlergen.eventActionNew(e, true, false);
 				panelBottomAlergen.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryGebinde) {
+				panelBottomGebinde.eventActionNew(e, true, false);
+				panelBottomGebinde.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryVerpackungsmittel) {
+				panelBottomVerpackungsmittel.eventActionNew(e, true, false);
+				panelBottomVerpackungsmittel.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryDateiverweis) {
+				panelBottomDateiverweis.eventActionNew(e, true, false);
+				panelBottomDateiverweis.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryWaffenkaliber) {
+				panelBottomWaffenkaliber.eventActionNew(e, true, false);
+				panelBottomWaffenkaliber.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryWaffenausfuehrung) {
+				panelBottomWaffenausfuehrung.eventActionNew(e, true, false);
+				panelBottomWaffenausfuehrung.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryWaffentyp) {
+				panelBottomWaffentyp.eventActionNew(e, true, false);
+				panelBottomWaffentyp.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryWaffentypFein) {
+				panelBottomWaffentypFein.eventActionNew(e, true, false);
+				panelBottomWaffentypFein.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryWaffenkategorie) {
+				panelBottomWaffenkategorie.eventActionNew(e, true, false);
+				panelBottomWaffenkategorie.eventYouAreSelected(false);
+			} else if (e.getSource() == panelQueryWaffenzusatz) {
+				panelBottomWaffenzusatz.eventActionNew(e, true, false);
+				panelBottomWaffenzusatz.eventYouAreSelected(false);
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
@@ -1092,6 +1320,8 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 				panelSplitReach.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomRohs) {
 				panelSplitRohs.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomLaseroberflaeche) {
+				panelSplitLaseroberflaeche.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomAutomotive) {
 				panelSplitAutomotive.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomMedical) {
@@ -1100,6 +1330,24 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 				panelSplitVorzug.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomAlergen) {
 				panelSplitAlergen.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomGebinde) {
+				panelSplitGebinde.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomVerpackungsmittel) {
+				panelSplitVerpackungsmittel.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomDateiverweis) {
+				panelSplitDateiverweis.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenkaliber) {
+				panelSplitWaffenkaliber.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenausfuehrung) {
+				panelSplitWaffenausfuehrung.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffentyp) {
+				panelSplitWaffentyp.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffentypFein) {
+				panelSplitWaffentypFein.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenkategorie) {
+				panelSplitWaffenkategorie.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenzusatz) {
+				panelSplitWaffenzusatz.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
 			if (e.getSource() == panelBottomArtikelklassen) {
@@ -1130,8 +1378,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 				panelSplitVerleih.eventYouAreSelected(false);
 
 			} else if (e.getSource() == panelBottomArtikelkommentarart) {
-				Object oKey = panelBottomArtikelkommentarart
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomArtikelkommentarart.getKeyWhenDetailPanel();
 				panelQueryArtikelkommentarart.eventYouAreSelected(false);
 				panelQueryArtikelkommentarart.setSelectedId(oKey);
 				panelSplitArtikelkommentarart.eventYouAreSelected(false);
@@ -1174,7 +1421,13 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 				panelQueryReach.setSelectedId(oKey);
 				panelSplitReach.eventYouAreSelected(false);
 
-			} else if (e.getSource() == panelBottomRohs) {
+			} else if (e.getSource() == panelBottomLaseroberflaeche) {
+				Object oKey = panelBottomLaseroberflaeche.getKeyWhenDetailPanel();
+				panelQueryLaseroberflaeche.eventYouAreSelected(false);
+				panelQueryLaseroberflaeche.setSelectedId(oKey);
+				panelSplitLaseroberflaeche.eventYouAreSelected(false);
+
+			}else if (e.getSource() == panelBottomRohs) {
 				Object oKey = panelBottomRohs.getKeyWhenDetailPanel();
 				panelQueryRohs.eventYouAreSelected(false);
 				panelQueryRohs.setSelectedId(oKey);
@@ -1204,6 +1457,60 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 				panelQueryAlergen.setSelectedId(oKey);
 				panelSplitAlergen.eventYouAreSelected(false);
 
+			} else if (e.getSource() == panelBottomGebinde) {
+				Object oKey = panelBottomGebinde.getKeyWhenDetailPanel();
+				panelQueryGebinde.eventYouAreSelected(false);
+				panelQueryGebinde.setSelectedId(oKey);
+				panelSplitGebinde.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomVerpackungsmittel) {
+				Object oKey = panelBottomVerpackungsmittel.getKeyWhenDetailPanel();
+				panelQueryVerpackungsmittel.eventYouAreSelected(false);
+				panelQueryVerpackungsmittel.setSelectedId(oKey);
+				panelSplitVerpackungsmittel.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomDateiverweis) {
+				Object oKey = panelBottomDateiverweis.getKeyWhenDetailPanel();
+				panelQueryDateiverweis.eventYouAreSelected(false);
+				panelQueryDateiverweis.setSelectedId(oKey);
+				panelSplitDateiverweis.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomWaffenkaliber) {
+				Object oKey = panelBottomWaffenkaliber.getKeyWhenDetailPanel();
+				panelQueryWaffenkaliber.eventYouAreSelected(false);
+				panelQueryWaffenkaliber.setSelectedId(oKey);
+				panelSplitWaffenkaliber.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomWaffenausfuehrung) {
+				Object oKey = panelBottomWaffenausfuehrung.getKeyWhenDetailPanel();
+				panelQueryWaffenausfuehrung.eventYouAreSelected(false);
+				panelQueryWaffenausfuehrung.setSelectedId(oKey);
+				panelSplitWaffenausfuehrung.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomWaffentyp) {
+				Object oKey = panelBottomWaffentyp.getKeyWhenDetailPanel();
+				panelQueryWaffentyp.eventYouAreSelected(false);
+				panelQueryWaffentyp.setSelectedId(oKey);
+				panelSplitWaffentyp.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomWaffentypFein) {
+				Object oKey = panelBottomWaffentypFein.getKeyWhenDetailPanel();
+				panelQueryWaffentypFein.eventYouAreSelected(false);
+				panelQueryWaffentypFein.setSelectedId(oKey);
+				panelSplitWaffentypFein.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomWaffenkategorie) {
+				Object oKey = panelBottomWaffenkategorie.getKeyWhenDetailPanel();
+				panelQueryWaffenkategorie.eventYouAreSelected(false);
+				panelQueryWaffenkategorie.setSelectedId(oKey);
+				panelSplitWaffenkategorie.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomWaffenzusatz) {
+				Object oKey = panelBottomWaffenzusatz.getKeyWhenDetailPanel();
+				panelQueryWaffenzusatz.eventYouAreSelected(false);
+				panelQueryWaffenzusatz.setSelectedId(oKey);
+				panelSplitWaffenzusatz.eventYouAreSelected(false);
+
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			if (e.getSource() == panelBottomArtikelklassen) {
@@ -1214,8 +1521,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomArtikelklassen.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryArtikelklassen
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryArtikelklassen.getId2SelectAfterDelete();
 					panelQueryArtikelklassen.setSelectedId(oNaechster);
 				}
 				panelSplitArtikelklassen.eventYouAreSelected(false);
@@ -1227,8 +1533,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomArtikelgruppen.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryArtikelgruppen
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryArtikelgruppen.getId2SelectAfterDelete();
 					panelQueryArtikelgruppen.setSelectedId(oNaechster);
 				}
 				panelSplitArtikelgruppen.eventYouAreSelected(false);
@@ -1240,8 +1545,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomHersteller.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryHersteller
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryHersteller.getId2SelectAfterDelete();
 					panelQueryHersteller.setSelectedId(oNaechster);
 				}
 				panelSplitHersteller.eventYouAreSelected(false);
@@ -1253,8 +1557,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomVerleih.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryVerleih
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryVerleih.getId2SelectAfterDelete();
 					panelQueryVerleih.setSelectedId(oNaechster);
 				}
 				panelSplitVerleih.eventYouAreSelected(false);
@@ -1266,8 +1569,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomLager.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryLager
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryLager.getId2SelectAfterDelete();
 					panelQueryLager.setSelectedId(oNaechster);
 				}
 				panelSplitLager.eventYouAreSelected(false);
@@ -1279,8 +1581,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomArtikelkommentarart.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryArtikelkommentarart
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryArtikelkommentarart.getId2SelectAfterDelete();
 					panelQueryArtikelkommentarart.setSelectedId(oNaechster);
 				}
 				panelSplitArtikelkommentarart.eventYouAreSelected(false);
@@ -1292,8 +1593,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomFarbcode.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryFarbcode
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryFarbcode.getId2SelectAfterDelete();
 					panelQueryFarbcode.setSelectedId(oNaechster);
 				}
 				panelSplitFarbcode.eventYouAreSelected(false);
@@ -1305,8 +1605,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomSperren.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQuerySperren
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQuerySperren.getId2SelectAfterDelete();
 					panelQuerySperren.setSelectedId(oNaechster);
 				}
 				panelSplitSperren.eventYouAreSelected(false);
@@ -1318,8 +1617,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomLagerplatz.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryLagerplatz
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryLagerplatz.getId2SelectAfterDelete();
 					panelQueryLagerplatz.setSelectedId(oNaechster);
 				}
 				panelSplitLagerplatz.eventYouAreSelected(false);
@@ -1331,8 +1629,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomVorschlagstext.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryVorschlagstext
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryVorschlagstext.getId2SelectAfterDelete();
 					panelQueryVorschlagstext.setSelectedId(oNaechster);
 				}
 				panelSplitVorschlagstext.eventYouAreSelected(false);
@@ -1344,8 +1641,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomWebshop.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryWebshop
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryWebshop.getId2SelectAfterDelete();
 					panelQueryWebshop.setSelectedId(oNaechster);
 				}
 				panelSplitWebshop.eventYouAreSelected(false);
@@ -1359,11 +1655,22 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomReach.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryReach
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryReach.getId2SelectAfterDelete();
 					panelQueryReach.setSelectedId(oNaechster);
 				}
 				panelSplitReach.eventYouAreSelected(false);
+			}else if (e.getSource() == panelBottomLaseroberflaeche) {
+				Object oKey = panelQueryLaseroberflaeche.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomLaseroberflaeche.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryLaseroberflaeche.getId2SelectAfterDelete();
+					panelQueryLaseroberflaeche.setSelectedId(oNaechster);
+				}
+				panelSplitLaseroberflaeche.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomRohs) {
 				Object oKey = panelQueryRohs.getSelectedId();
 				if (oKey != null) {
@@ -1372,8 +1679,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomRohs.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryRohs
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryRohs.getId2SelectAfterDelete();
 					panelQueryRohs.setSelectedId(oNaechster);
 				}
 				panelSplitRohs.eventYouAreSelected(false);
@@ -1385,8 +1691,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomAutomotive.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryAutomotive
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryAutomotive.getId2SelectAfterDelete();
 					panelQueryAutomotive.setSelectedId(oNaechster);
 				}
 				panelSplitAutomotive.eventYouAreSelected(false);
@@ -1398,8 +1703,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomMedical.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryMedical
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryMedical.getId2SelectAfterDelete();
 					panelQueryMedical.setSelectedId(oNaechster);
 				}
 				panelSplitMedical.eventYouAreSelected(false);
@@ -1411,8 +1715,7 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomVorzug.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryVorzug
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryVorzug.getId2SelectAfterDelete();
 					panelQueryVorzug.setSelectedId(oNaechster);
 				}
 				panelSplitVorzug.eventYouAreSelected(false);
@@ -1424,39 +1727,158 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 					getInternalFrame().setKeyWasForLockMe(null);
 				}
 				if (panelBottomAlergen.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryAlergen
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryAlergen.getId2SelectAfterDelete();
 					panelQueryAlergen.setSelectedId(oNaechster);
 				}
 				panelSplitAlergen.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomGebinde) {
+				Object oKey = panelQueryGebinde.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomGebinde.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryGebinde.getId2SelectAfterDelete();
+					panelQueryGebinde.setSelectedId(oNaechster);
+				}
+				panelSplitGebinde.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomVerpackungsmittel) {
+				Object oKey = panelQueryVerpackungsmittel.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomVerpackungsmittel.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryVerpackungsmittel.getId2SelectAfterDelete();
+					panelQueryVerpackungsmittel.setSelectedId(oNaechster);
+				}
+				panelSplitVerpackungsmittel.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomDateiverweis) {
+				Object oKey = panelQueryDateiverweis.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomDateiverweis.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryDateiverweis.getId2SelectAfterDelete();
+					panelQueryDateiverweis.setSelectedId(oNaechster);
+				}
+				panelSplitDateiverweis.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenkaliber) {
+				Object oKey = panelQueryWaffenkaliber.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomWaffenkaliber.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryWaffenkaliber.getId2SelectAfterDelete();
+					panelQueryWaffenkaliber.setSelectedId(oNaechster);
+				}
+				panelSplitWaffenkaliber.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenausfuehrung) {
+				Object oKey = panelQueryWaffenausfuehrung.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomWaffenausfuehrung.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryWaffenausfuehrung.getId2SelectAfterDelete();
+					panelQueryWaffenausfuehrung.setSelectedId(oNaechster);
+				}
+				panelSplitWaffenausfuehrung.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffentyp) {
+				Object oKey = panelQueryWaffentyp.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomWaffentyp.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryWaffentyp.getId2SelectAfterDelete();
+					panelQueryWaffentyp.setSelectedId(oNaechster);
+				}
+				panelSplitWaffentyp.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffentypFein) {
+				Object oKey = panelQueryWaffentypFein.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomWaffentypFein.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryWaffentypFein.getId2SelectAfterDelete();
+					panelQueryWaffentypFein.setSelectedId(oNaechster);
+				}
+				panelSplitWaffentypFein.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenkategorie) {
+				Object oKey = panelQueryWaffenkategorie.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomWaffenkategorie.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryWaffenkategorie.getId2SelectAfterDelete();
+					panelQueryWaffenkategorie.setSelectedId(oNaechster);
+				}
+				panelSplitWaffenzusatz.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomWaffenzusatz) {
+				Object oKey = panelQueryWaffenzusatz.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomWaffenzusatz.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryWaffenzusatz.getId2SelectAfterDelete();
+					panelQueryWaffenzusatz.setSelectedId(oNaechster);
+				}
+				panelSplitWaffenzusatz.eventYouAreSelected(false);
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
 			if (e.getSource() == panelQueryAlergen) {
 				int iPos = panelQueryAlergen.getTable().getSelectedRow();
 				if (iPos < panelQueryAlergen.getTable().getRowCount() - 1) {
-					Integer idPos1 = (Integer) panelQueryAlergen
-							.getSelectedId();
-					Integer idPos2 = (Integer) panelQueryAlergen.getTable()
-							.getValueAt(iPos + 1, 0);
+					Integer idPos1 = (Integer) panelQueryAlergen.getSelectedId();
+					Integer idPos2 = (Integer) panelQueryAlergen.getTable().getValueAt(iPos + 1, 0);
 
-					DelegateFactory.getInstance().getArtikelDelegate()
-							.vertauscheAlergen(idPos1, idPos2);
+					DelegateFactory.getInstance().getArtikelDelegate().vertauscheAlergen(idPos1, idPos2);
 					panelQueryAlergen.setSelectedId(idPos1);
+				}
+			} else if (e.getSource() == panelQueryLager) {
+				int iPos = panelQueryLager.getTable().getSelectedRow();
+				if (iPos < panelQueryLager.getTable().getRowCount() - 1) {
+					Integer idPos1 = (Integer) panelQueryLager.getSelectedId();
+					Integer idPos2 = (Integer) panelQueryLager.getTable().getValueAt(iPos + 1, 0);
+
+					DelegateFactory.getInstance().getLagerDelegate().vertauscheLager(idPos1, idPos2);
+					panelQueryLager.setSelectedId(idPos1);
 				}
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
 			if (e.getSource() == panelQueryAlergen) {
 				int iPos = panelQueryAlergen.getTable().getSelectedRow();
 				if (iPos > 0) {
-					Integer idPos1 = (Integer) panelQueryAlergen
-							.getSelectedId();
-					Integer idPos2 = (Integer) panelQueryAlergen.getTable()
-							.getValueAt(iPos - 1, 0);
+					Integer idPos1 = (Integer) panelQueryAlergen.getSelectedId();
+					Integer idPos2 = (Integer) panelQueryAlergen.getTable().getValueAt(iPos - 1, 0);
 
-					DelegateFactory.getInstance().getArtikelDelegate()
-							.vertauscheAlergen(idPos1, idPos2);
+					DelegateFactory.getInstance().getArtikelDelegate().vertauscheAlergen(idPos1, idPos2);
 					panelQueryAlergen.setSelectedId(idPos1);
+				}
+			} else if (e.getSource() == panelQueryLager) {
+				int iPos = panelQueryLager.getTable().getSelectedRow();
+				if (iPos > 0) {
+					Integer idPos1 = (Integer) panelQueryLager.getSelectedId();
+					Integer idPos2 = (Integer) panelQueryLager.getTable().getValueAt(iPos - 1, 0);
+
+					DelegateFactory.getInstance().getLagerDelegate().vertauscheLager(idPos1, idPos2);
+					panelQueryLager.setSelectedId(idPos1);
 				}
 			}
 		}
@@ -1529,7 +1951,11 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 			createReach();
 			panelSplitReach.eventYouAreSelected(false);
 			panelQueryReach.updateButtons();
-		} else if (selectedIndex == IDX_PANEL_ROHS) {
+		}  else if (selectedIndex == IDX_PANEL_LASEROBERFLAECHE) {
+			createLaseroberflaeche();
+			panelSplitLaseroberflaeche.eventYouAreSelected(false);
+			panelQueryLaseroberflaeche.updateButtons();
+		}else if (selectedIndex == IDX_PANEL_ROHS) {
 			createRohs();
 			panelSplitRohs.eventYouAreSelected(false);
 			panelQueryRohs.updateButtons();
@@ -1549,17 +1975,79 @@ public class TabbedPaneArtikelgrunddaten extends TabbedPane {
 			createAlergen();
 			panelSplitAlergen.eventYouAreSelected(false);
 			panelQueryAlergen.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_GEBINDE) {
+			createGebinde();
+			panelSplitGebinde.eventYouAreSelected(false);
+			panelQueryGebinde.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_VERPACKUNGSMITTEL) {
+			createVerpackungsmittel();
+			panelSplitVerpackungsmittel.eventYouAreSelected(false);
+			panelQueryVerpackungsmittel.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_DATEIVERWEIS) {
+			createDateiverweis();
+			panelSplitDateiverweis.eventYouAreSelected(false);
+			panelQueryDateiverweis.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_WAFFENKALIBER) {
+			createWaffenkaliber();
+			panelSplitWaffenkaliber.eventYouAreSelected(false);
+			panelQueryWaffenkaliber.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_WAFFENTYP) {
+			createWaffentyp();
+			panelSplitWaffentyp.eventYouAreSelected(false);
+			panelQueryWaffentyp.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_WAFFENTYPFEIN) {
+			createWaffentypFein();
+			panelSplitWaffentypFein.eventYouAreSelected(false);
+			panelQueryWaffentypFein.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_WAFFENAUSFUEHRUNG) {
+			createWaffenausfuehrung();
+			panelSplitWaffenausfuehrung.eventYouAreSelected(false);
+			panelQueryWaffenausfuehrung.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_WAFFENZUSATZ) {
+			createWaffenzusatz();
+			panelSplitWaffenzusatz.eventYouAreSelected(false);
+			panelQueryWaffenzusatz.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_WAFFENKATEGORIE) {
+			createWaffenkategorie();
+			panelSplitWaffenkategorie.eventYouAreSelected(false);
+			panelQueryWaffenkategorie.updateButtons();
 		}
 
 	}
 
-	protected void lPActionEvent(java.awt.event.ActionEvent e) {
+	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
+
+		if (e.getActionCommand().equals(MENUE_ACTION_HERSTELLER_ZUSAMMENFUEHREN)) {
+			String add2Title = LPMain.getTextRespectUISPr("hersteller.zusammenfuehren");
+
+			HerstellerDto hstDto = null;
+			if (getSelectedIndex() == IDX_PANEL_HERSTELLER && panelQueryHersteller != null
+					&& panelQueryHersteller.getSelectedId() != null) {
+				hstDto = DelegateFactory.getInstance().getArtikelDelegate()
+						.herstellerFindBdPrimaryKey((Integer) panelQueryHersteller.getSelectedId());
+			}
+
+			PanelDialogHerstellerZusammenfuehren d = new PanelDialogHerstellerZusammenfuehren(hstDto,
+					getInternalFrameArtikel(), add2Title);
+			getInternalFrame().showPanelDialog(d);
+			d.setVisible(true);
+
+		}
 
 	}
 
 	public javax.swing.JMenuBar getJMenuBar() throws Throwable {
 		if (wrapperManuBar == null) {
 			wrapperManuBar = new WrapperMenuBar(this);
+
+			JMenu menuDatei = (JMenu) wrapperManuBar.getComponent(WrapperMenuBar.MENU_MODUL);
+
+			JMenuItem menuItemZusammenfuehren = new JMenuItem(LPMain.getTextRespectUISPr("hersteller.zusammenfuehren"));
+			menuItemZusammenfuehren.addActionListener(this);
+			menuItemZusammenfuehren.setActionCommand(MENUE_ACTION_HERSTELLER_ZUSAMMENFUEHREN);
+			HelperClient.setToolTipTextMitRechtToComponent(menuItemZusammenfuehren, RechteFac.RECHT_WW_ARTIKEL_CUD);
+			menuDatei.add(menuItemZusammenfuehren, 0);
+
 		}
 		return wrapperManuBar;
 	}

@@ -39,6 +39,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.text.MessageFormat;
 import java.util.EventObject;
 
 import javax.swing.BorderFactory;
@@ -60,6 +61,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.bestellung.service.BestellpositionDto;
 import com.lp.server.bestellung.service.BestellpositionFac;
@@ -108,6 +110,9 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 
 	private WrapperLabel wlaABTermin = null;
 	private WrapperDateField wdfABTermin = null;
+	
+	private WrapperLabel wlaABBelegdatum = null;
+	private WrapperDateField wdfABBelegdatum = null;
 
 	private WrapperLabel wlaABUrsprungtermin = null;
 	private WrapperDateField wdfABUrsprungtermin = null;
@@ -128,7 +133,7 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 
 	private WrapperLabel wlaLieferterminbestaetigt = new WrapperLabel();
 	private WrapperLabel wlaLieferterminausBestellposition = new WrapperLabel();
-	
+
 	private static final String ACTION_SPECIAL_ABTERMIN_AENDERN = "action_special_abtermin_aendern";
 	private static final String ACTION_SPECIAL_LIEFERTERMIN_BESTAETIGT = "action_special_liefertermin_bestaetigt";
 
@@ -153,8 +158,33 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
+
+		// PJ19485
+		// Wenn es in einem anderen anderen Mandanten ein Auftrag dazu gibt,
+		// dann kann die Bestellung nicht mehr geaendert werden
+		AuftragDto aDto = DelegateFactory
+				.getInstance()
+				.getAuftragDelegate()
+				.istAuftragBeiAnderemMandantenHinterlegt(
+						getBestellpositionDto().getBestellungIId());
+
+		if (aDto != null) {
+
+			MessageFormat mf = new MessageFormat(
+					LPMain.getTextRespectUISPr("bes.error.auftraginanderemmandanten.hinterlegt"));
+			Object[] pattern = new Object[] { aDto.getCNr(),
+					aDto.getMandantCNr() };
+
+			DialogFactory.showModalDialog(
+					LPMain.getTextRespectUISPr("lp.warning"),
+					mf.format(pattern));
+			return;
+
+		}
+
 		getInternalFrameBestellung().getTabbedPaneBestellung().setTitle();
-		WareneingangspositionDto wepDtos[] = DelegateFactory.getInstance()
+		WareneingangspositionDto wepDtos[] = DelegateFactory
+				.getInstance()
 				.getWareneingangDelegate()
 				.wareneingangspositionFindByBestellpositionIId(
 						getBestellpositionDto().getIId());
@@ -164,21 +194,21 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 			DialogFactory
 					.showModalDialog(
 							LPMain.getTextRespectUISPr("lp.hint"),
-							LPMain
-									.getTextRespectUISPr("bes.sichtlieferantenterminebereitsgeliefert"));
+							LPMain.getTextRespectUISPr("bes.sichtlieferantenterminebereitsgeliefert"));
 			return;
 		} else if (wepDtos.length > 0
-				&& DelegateFactory.getInstance().getBestellungDelegate()
+				&& DelegateFactory
+						.getInstance()
+						.getBestellungDelegate()
 						.berechneOffeneMengePosition(
-								getBestellpositionDto().getIId()).compareTo(
-								new BigDecimal(0)) == 0) {
+								getBestellpositionDto().getIId())
+						.compareTo(new BigDecimal(0)) == 0) {
 
 			this.panelOnOrOff();
 			DialogFactory
 					.showModalDialog(
 							LPMain.getTextRespectUISPr("lp.hint"),
-							LPMain
-									.getTextRespectUISPr("bes.sichtlieferantenterminepositionnichtveraenderbar"));
+							LPMain.getTextRespectUISPr("bes.sichtlieferantenterminepositionnichtveraenderbar"));
 			return;
 		}
 
@@ -193,12 +223,38 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
 		if (e.getActionCommand().equals(ACTION_SPECIAL_ABTERMIN_AENDERN)) {
+			
+			// SP6209
+			// Wenn es in einem anderen anderen Mandanten ein Auftrag dazu gibt,
+			// dann kann die Bestellung nicht mehr geaendert werden
+			AuftragDto aDto = DelegateFactory
+					.getInstance()
+					.getAuftragDelegate()
+					.istAuftragBeiAnderemMandantenHinterlegt(
+							getBestellpositionDto().getBestellungIId());
+
+			if (aDto != null) {
+
+				MessageFormat mf = new MessageFormat(
+						LPMain.getTextRespectUISPr("bes.error.auftraginanderemmandanten.hinterlegt"));
+				Object[] pattern = new Object[] { aDto.getCNr(),
+						aDto.getMandantCNr() };
+
+				DialogFactory.showModalDialog(
+						LPMain.getTextRespectUISPr("lp.warning"),
+						mf.format(pattern));
+				return;
+
+			}
+			
 			if (wtfABNummer.getText() != null && wdfABTermin.getDate() != null) {
 				java.sql.Date datumNeu = DialogFactory.showDatumseingabe(LPMain
 						.getTextRespectUISPr("best.abtermin.neueneingeben"));
 				if (datumNeu != null) {
 
-					DelegateFactory.getInstance().getBestellungDelegate()
+					DelegateFactory
+							.getInstance()
+							.getBestellungDelegate()
 							.updateBestellpositionNurABTermin(
 									getBestellpositionDto().getIId(), datumNeu);
 				}
@@ -207,16 +263,17 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 				DialogFactory
 						.showModalDialog(
 								LPMain.getTextRespectUISPr("lp.error"),
-								LPMain
-										.getTextRespectUISPr("best.abtermin.neueneingeben.fehler"));
+								LPMain.getTextRespectUISPr("best.abtermin.neueneingeben.fehler"));
 
 			}
-			getInternalFrameBestellung().getTabbedPaneBestellung().
-			getPanelLieferrantentermine().eventYouAreSelected(false);
+			getInternalFrameBestellung().getTabbedPaneBestellung()
+					.getPanelLieferrantentermine().eventYouAreSelected(false);
 		} else if (e.getActionCommand().equals(
 				ACTION_SPECIAL_LIEFERTERMIN_BESTAETIGT)) {
 
-			DelegateFactory.getInstance().getBestellungDelegate()
+			DelegateFactory
+					.getInstance()
+					.getBestellungDelegate()
 					.updateBestellpositionNurLieferterminBestaetigt(
 							getBestellpositionDto().getIId());
 			getInternalFrameBestellung().getTabbedPaneBestellung()
@@ -257,37 +314,61 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 	protected void eventActionDelete(ActionEvent e,
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		WareneingangspositionDto wepDtos[] = DelegateFactory.getInstance()
+
+		// PJ19485
+		// Wenn es in einem anderen anderen Mandanten ein Auftrag dazu gibt,
+		// dann kann die Bestellung nicht mehr geaendert werden
+		AuftragDto aDto = DelegateFactory
+				.getInstance()
+				.getAuftragDelegate()
+				.istAuftragBeiAnderemMandantenHinterlegt(
+						getBestellpositionDto().getBestellungIId());
+
+		if (aDto != null) {
+
+			MessageFormat mf = new MessageFormat(
+					LPMain.getTextRespectUISPr("bes.error.auftraginanderemmandanten.hinterlegt"));
+			Object[] pattern = new Object[] { aDto.getCNr(),
+					aDto.getMandantCNr() };
+
+			DialogFactory.showModalDialog(
+					LPMain.getTextRespectUISPr("lp.warning"),
+					mf.format(pattern));
+			return;
+
+		}
+
+		WareneingangspositionDto wepDtos[] = DelegateFactory
+				.getInstance()
 				.getWareneingangDelegate()
 				.wareneingangspositionFindByBestellpositionIId(
 						getBestellpositionDto().getIId());
-		if (tpBestellung.getBesDto().getStatusCNr().equals(
-				BestellungFac.BESTELLSTATUS_GELIEFERT)) {
+		if (tpBestellung.getBesDto().getStatusCNr()
+				.equals(BestellungFac.BESTELLSTATUS_GELIEFERT)) {
 			DialogFactory
 					.showModalDialog(
 							LPMain.getTextRespectUISPr("lp.hint"),
-							LPMain
-									.getTextRespectUISPr("bes.sichtlieferantenterminebereitsgeliefert"));
+							LPMain.getTextRespectUISPr("bes.sichtlieferantenterminebereitsgeliefert"));
 			return;
 		} else if (wepDtos.length > 0
-				&& DelegateFactory.getInstance().getBestellungDelegate()
+				&& DelegateFactory
+						.getInstance()
+						.getBestellungDelegate()
 						.berechneOffeneMengePosition(
-								getBestellpositionDto().getIId()).compareTo(
-								new BigDecimal(0)) == 0) {
+								getBestellpositionDto().getIId())
+						.compareTo(new BigDecimal(0)) == 0) {
 			this.panelOnOrOff();
 			DialogFactory
 					.showModalDialog(
 							LPMain.getTextRespectUISPr("lp.hint"),
-							LPMain
-									.getTextRespectUISPr("bes.sichtlieferantenterminepositionnichtveraenderbar"));
+							LPMain.getTextRespectUISPr("bes.sichtlieferantenterminepositionnichtveraenderbar"));
 			return;
 		} else if (getBestellpositionDto().getTAuftragsbestaetigungstermin() == null) {
 			this.panelOnOrOff();
 			DialogFactory
 					.showModalDialog(
 							LPMain.getTextRespectUISPr("lp.hint"),
-							LPMain
-									.getTextRespectUISPr("bes.sichtlieferantenterminbereitsgeloescht"));
+							LPMain.getTextRespectUISPr("bes.sichtlieferantenterminbereitsgeloescht"));
 			return;
 		} else {
 			DelegateFactory.getInstance().getBestellungDelegate()
@@ -311,6 +392,7 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 	protected void components2Dto() throws Throwable {
 		getBestellpositionDto().setCABKommentar(this.lpeKommentar.getText());
 		getBestellpositionDto().setCABNummer(this.wtfABNummer.getText());
+		getBestellpositionDto().setTAbBelegdatum(this.wdfABBelegdatum.getDate());
 
 		if (getBestellpositionDto().getTAbursprungstermin() == null
 				&& getBestellpositionDto().getTAuftragsbestaetigungstermin() != null
@@ -340,37 +422,50 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 		wtfABNummer.setText(getBestellpositionDto().getCABNummer());
 		wdfABTermin.setDate(getBestellpositionDto()
 				.getTAuftragsbestaetigungstermin());
+		wdfABBelegdatum.setDate(getBestellpositionDto()
+				.getTAbBelegdatum());
 		wdfABUrsprungtermin.setDate(getBestellpositionDto()
 				.getTAbursprungstermin());
 
-		
-		
-		if(getBestellpositionDto().getTLieferterminbestaetigt()!=null){
-			String s=LPMain
-			.getTextRespectUISPr("bes.liefertermin.bestaetigtam")+" "+Helper.formatDatumZeit(getBestellpositionDto().getTLieferterminbestaetigt(), LPMain.getTheClient().getLocUi());
-			if(getBestellpositionDto().getPersonalIIdLieferterminbestaetigt()!=null){
-				
-				PersonalDto personalDto=DelegateFactory.getInstance().getPersonalDelegate().personalFindByPrimaryKey(getBestellpositionDto().getPersonalIIdLieferterminbestaetigt());
-				s+=" ("+personalDto.getCKurzzeichen()+")";
+		if (getBestellpositionDto().getTLieferterminbestaetigt() != null) {
+			String s = LPMain
+					.getTextRespectUISPr("bes.liefertermin.bestaetigtam")
+					+ " "
+					+ Helper.formatDatumZeit(getBestellpositionDto()
+							.getTLieferterminbestaetigt(), LPMain
+							.getTheClient().getLocUi());
+			if (getBestellpositionDto().getPersonalIIdLieferterminbestaetigt() != null) {
+
+				PersonalDto personalDto = DelegateFactory
+						.getInstance()
+						.getPersonalDelegate()
+						.personalFindByPrimaryKey(
+								getBestellpositionDto()
+										.getPersonalIIdLieferterminbestaetigt());
+				s += " (" + personalDto.getCKurzzeichen() + ")";
 			}
 			wlaLieferterminbestaetigt.setText(s);
-			
+
 		}
-		if(getBestellpositionDto().getTUebersteuerterLiefertermin()!=null){
-			String s=LPMain
-			.getTextRespectUISPr("label.liefertermin")+" "+Helper.formatDatum(getBestellpositionDto().getTUebersteuerterLiefertermin(), LPMain.getTheClient().getLocUi());
-			
+		if (getBestellpositionDto().getTUebersteuerterLiefertermin() != null) {
+			String s = LPMain.getTextRespectUISPr("bes.wunschliefertermin")
+					+ " "
+					+ Helper.formatDatum(getBestellpositionDto()
+							.getTUebersteuerterLiefertermin(), LPMain
+							.getTheClient().getLocUi());
+
 			wlaLieferterminausBestellposition.setText(s);
-			
+
 		}
-		
-		String sPositionsart = getBestellpositionDto()
-				.getPositionsartCNr();
+
+		String sPositionsart = getBestellpositionDto().getPositionsartCNr();
 		if (sPositionsart.equals(BestellpositionFac.BESTELLPOSITIONART_IDENT)
 				|| sPositionsart
 						.equals(BestellpositionFac.BESTELLPOSITIONART_HANDEINGABE)) {
-			ArtikelDto artikelDto = DelegateFactory.getInstance()
-					.getArtikelDelegate().artikelFindByPrimaryKey(
+			ArtikelDto artikelDto = DelegateFactory
+					.getInstance()
+					.getArtikelDelegate()
+					.artikelFindByPrimaryKey(
 							getBestellpositionDto().getArtikelIId());
 			wbuArtikelGoto.setOKey(artikelDto.getIId());
 			wtfIdent.setText(artikelDto.getCNr());
@@ -390,25 +485,20 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 			throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
-			
-			
+
 			if (getBestellpositionDto().getTAuftragsbestaetigungstermin() != null) {
 				if (Helper.cutDate(
 						getBestellpositionDto()
-								.getTAuftragsbestaetigungstermin())
-						.before(
-								Helper.cutDate(tpBestellung
-										.getBesDto().getDBelegdatum()))) {
+								.getTAuftragsbestaetigungstermin()).before(
+						Helper.cutDate(tpBestellung.getBesDto()
+								.getDBelegdatum()))) {
 					DialogFactory
 							.showModalDialog(
-									LPMain
-											.getTextRespectUISPr("lp.hinweis"),
-									LPMain
-											.getTextRespectUISPr("best.hint.abterminvorbelegtermin"));
+									LPMain.getTextRespectUISPr("lp.hinweis"),
+									LPMain.getTextRespectUISPr("best.hint.abterminvorbelegtermin"));
 				}
 			}
-			
-			
+
 			wcbUrsprungterminMitaendern.setSelected(false);
 			if (getBestellpositionDto().getCABKommentar() != null
 					&& getBestellpositionDto().getCABKommentar().length() > SystemFac.MAX_LAENGE_EDITORTEXT) {
@@ -416,7 +506,9 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 						"lp.error.editor.laengeueberschritten");
 			} else {
 
-				DelegateFactory.getInstance().getBestellungDelegate()
+				DelegateFactory
+						.getInstance()
+						.getBestellungDelegate()
 						.updateBestellpositionMitABTermin(
 								getBestellpositionDto(), "");
 				super.eventActionSave(e, true);
@@ -449,28 +541,34 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 
 		wlaABTermin = new WrapperLabel();
 		wdfABTermin = new WrapperDateField();
+		
+		wlaABBelegdatum = new WrapperLabel();
+		wdfABBelegdatum = new WrapperDateField();
 
 		wlaABUrsprungtermin = new WrapperLabel();
 		wdfABUrsprungtermin = new WrapperDateField();
 
-		wcbUrsprungterminMitaendern = new WrapperCheckBox(LPMain
-				.getTextRespectUISPr("bes.usprungterminmitaendern"));
+		wcbUrsprungterminMitaendern = new WrapperCheckBox(
+				LPMain.getTextRespectUISPr("bes.usprungterminmitaendern"));
 
 		wlaABNummer = new WrapperLabel();
 		wtfABNummer = new WrapperTextField();
 
 		wbuArtikelGoto = new WrapperGotoButton(
-				WrapperGotoButton.GOTO_ARTIKEL_AUSWAHL);
+				com.lp.util.GotoHelper.GOTO_ARTIKEL_AUSWAHL);
 		wbuArtikelGoto.setText(LPMain
 				.getTextRespectUISPr("artikel.artikelnummer"));
 		wbuArtikelGoto.setActivatable(false);
 		wtfIdent = new WrapperTextField();
 
+		
+		int iLaengenBezeichung = DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
+		
 		wlaBezeichnung = new WrapperLabel();
-		wtfBezeichnung = new WrapperTextField();
+		wtfBezeichnung = new WrapperTextField(iLaengenBezeichung);
 
 		wlaZusatzBezeichnung = new WrapperLabel();
-		wtfZusatzBezeichnung = new WrapperTextField();
+		wtfZusatzBezeichnung = new WrapperTextField(iLaengenBezeichung);
 
 		getInternalFrame().addItemChangedListener(this);
 
@@ -494,8 +592,8 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 					ACTION_DELETE, ACTION_DISCARD };
 		}
 
-		createAndSaveAndShowButton("/com/lp/client/res/data_ok.png", LPMain
-				.getTextRespectUISPr("bes.liefertermin.bestaetigen"),
+		createAndSaveAndShowButton("/com/lp/client/res/data_ok.png",
+				LPMain.getTextRespectUISPr("bes.liefertermin.bestaetigen"),
 				ACTION_SPECIAL_LIEFERTERMIN_BESTAETIGT, null);
 
 		enableToolsPanelButtons(aWhichButtonIUse);
@@ -530,6 +628,9 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 
 		wlaABTermin.setText(LPMain.getTextRespectUISPr("bes.abtermin"));
 		wdfABTermin.setMandatoryField(true);
+		
+		wlaABBelegdatum.setText(LPMain.getTextRespectUISPr("bes.abbelegdatum"));
+		
 
 		wdfABUrsprungtermin.setEnabled(false);
 		wdfABUrsprungtermin.getCalendarButton().setVisible(false);
@@ -541,7 +642,8 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 		wlaKommentar.setText(LPMain.getTextRespectUISPr("bes.abkommentar"));
 		// wtaKommentar.setRows(4);
 		// wtaKommentar.setColumns(19);
-//		lpeKommentar.getTextBlockAttributes(-1).capacity = SystemFac.MAX_LAENGE_EDITORTEXT;
+		// lpeKommentar.getTextBlockAttributes(-1).capacity =
+		// SystemFac.MAX_LAENGE_EDITORTEXT;
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
@@ -567,13 +669,13 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 		jpaWorkingOn.add(this.wtfBezeichnung, new GridBagConstraints(1, iZeile,
 				3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
+
 		jpaWorkingOn.add(wlaLieferterminausBestellposition,
 				new GridBagConstraints(4, iZeile, 2, 1, 0, 0.0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-								2), 250, 0));
-		
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						250, 0));
+
 		iZeile++;
 		jpaWorkingOn.add(this.wlaZusatzBezeichnung, new GridBagConstraints(0,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
@@ -581,13 +683,11 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 		jpaWorkingOn.add(this.wtfZusatzBezeichnung, new GridBagConstraints(1,
 				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
-		jpaWorkingOn.add(wlaLieferterminbestaetigt,
-				new GridBagConstraints(4, iZeile, 2, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-								2), 0, 0));
-		
+
+		jpaWorkingOn.add(wlaLieferterminbestaetigt, new GridBagConstraints(4,
+				iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
 		jpaWorkingOn.add(this.wlaABTermin, new GridBagConstraints(0, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
@@ -600,7 +700,7 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 					new GridBagConstraints(2, iZeile, 1, 1, 0.2, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
+									2), 50, 0));
 			jpaWorkingOn.add(this.wdfABUrsprungtermin,
 					new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
 							GridBagConstraints.CENTER,
@@ -612,14 +712,20 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
 		}
-		
-		
-		
+
 		iZeile++;
-		jpaWorkingOn.add(this.wlaABNummer, new GridBagConstraints(0, iZeile, 1,
+		
+		jpaWorkingOn.add(this.wlaABBelegdatum, new GridBagConstraints(0, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(this.wtfABNummer, new GridBagConstraints(1, iZeile, 5,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(this.wdfABBelegdatum, new GridBagConstraints(1, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(this.wlaABNummer, new GridBagConstraints(2, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 50, 0));
+		jpaWorkingOn.add(this.wtfABNummer, new GridBagConstraints(3, iZeile, 5,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -646,8 +752,8 @@ public class PanelBestellungSichtLieferantenTermine extends PanelBasis {
 		wlaLieferterminausBestellposition.setText(null);
 		if (key != null && !key.equals(LPMain.getLockMeForNew())) {
 			setBestellpositionDto(DelegateFactory.getInstance()
-					.getBestellungDelegate().bestellpositionFindByPrimaryKey(
-							(Integer) key));
+					.getBestellungDelegate()
+					.bestellpositionFindByPrimaryKey((Integer) key));
 			// Update
 			dto2Components();
 			setStatusbar();

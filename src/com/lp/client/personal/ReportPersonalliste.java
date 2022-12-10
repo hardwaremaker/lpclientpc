@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.personal;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -43,6 +42,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
@@ -58,199 +58,216 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
-public class ReportPersonalliste
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+public class ReportPersonalliste extends PanelBasis implements
+		PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  private WrapperDateField wdfStichtag = new WrapperDateField();
-  private WrapperCheckBox wcbBarcodeliste = new WrapperCheckBox();
-  private WrapperCheckBox wcbMitVersteckten = new WrapperCheckBox();
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	private WrapperDateField wdfStichtag = new WrapperDateField();
+	private WrapperCheckBox wcbBarcodeliste = new WrapperCheckBox();
+	private WrapperCheckBox wcbNurSelektierterMitarbeiter = new WrapperCheckBox();
+	private WrapperCheckBox wcbMitVersteckten = new WrapperCheckBox();
 
-  private WrapperCheckBox wcbStichtag = new WrapperCheckBox();
+	private WrapperCheckBox wcbStichtag = new WrapperCheckBox();
 
-  private ButtonGroup buttonGroupPersonalSortierung = new ButtonGroup();
-  private WrapperRadioButton wrbName = new WrapperRadioButton();
-  private WrapperRadioButton wrbAusweis = new WrapperRadioButton();
-  private WrapperRadioButton wrbPersonalnummer = new WrapperRadioButton();
-  private WrapperRadioButton wrbZutrittsklasse = new WrapperRadioButton();
-  private WrapperRadioButton wrbGeburtstag = new WrapperRadioButton();
+	private ButtonGroup buttonGroupPersonalSortierung = new ButtonGroup();
+	private WrapperRadioButton wrbName = new WrapperRadioButton();
+	private WrapperRadioButton wrbAusweis = new WrapperRadioButton();
+	private WrapperRadioButton wrbPersonalnummer = new WrapperRadioButton();
+	private WrapperRadioButton wrbHeimatkostenstelle = new WrapperRadioButton();
+	private WrapperRadioButton wrbZutrittsklasse = new WrapperRadioButton();
+	private WrapperRadioButton wrbGeburtstag = new WrapperRadioButton();
+	InternalFramePersonal internalFrame =null;
 
-  public ReportPersonalliste(InternalFramePersonal internalFrame,
-                             String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    LPMain.getInstance().getTextRespectUISPr("pers.report.personalliste");
-    jbInit();
-    initComponents();
-    wdfStichtag.setDate(new Date(System.currentTimeMillis()));
-  }
+	public ReportPersonalliste(InternalFramePersonal internalFrame,
+			String add2Title) throws Throwable {
+		super(internalFrame, add2Title);
+		this.internalFrame=internalFrame;
+		LPMain.getInstance().getTextRespectUISPr("pers.report.personalliste");
+		jbInit();
+		initComponents();
+		wdfStichtag.setDate(new Date(System.currentTimeMillis()));
+	}
 
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wdfStichtag;
+	}
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wdfStichtag;
-  }
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getSource().equals(wcbStichtag)) {
+			if (wcbStichtag.isSelected()) {
+				wdfStichtag.setEnabled(true);
+			} else {
+				wdfStichtag.setEnabled(false);
+			}
+		}
+		
+		 if (e.getSource().equals(wcbBarcodeliste)){
+			 
+			 if(wcbBarcodeliste.isSelected()){
+				wcbNurSelektierterMitarbeiter.setEnabled(true); 
+			 }else {
+				 wcbNurSelektierterMitarbeiter.setEnabled(false); 
+			 }
+			 
+			 
+		 }
+				 
+		
+	}
 
+	private void jbInit() throws Throwable {
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
 
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-    if (e.getSource().equals(wcbStichtag)) {
-      if (wcbStichtag.isSelected()) {
-        wdfStichtag.setEnabled(true);
-      }
-      else {
-        wdfStichtag.setEnabled(false);
-      }
-    }
-  }
+		wdfStichtag.setMandatoryField(true);
+		wcbBarcodeliste.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.report.barcodeliste"));
 
+		wrbAusweis.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.personal.ausweis"));
+		wrbName.setText(LPMain.getInstance().getTextRespectUISPr("lp.name"));
+		wrbPersonalnummer.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.personal.personalnummer"));
+		wrbZutrittsklasse.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zutritt.zutrittsklasse"));
+		wrbHeimatkostenstelle.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.personal.heimatkostenstelle"));
+		wcbStichtag.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.stichtag"));
+		wcbNurSelektierterMitarbeiter.setText(LPMain.getInstance()
+				.getTextRespectUISPr("pers.barcodeliste.nurselektierter"));
 
-  private void jbInit()
-      throws Throwable {
-    this.setLayout(gridBagLayout1);
-    jpaWorkingOn.setLayout(gridBagLayout2);
+		wrbGeburtstag.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.geburtstag"));
 
-    wdfStichtag.setMandatoryField(true);
-    wcbBarcodeliste.setText(LPMain.getInstance().getTextRespectUISPr(
-        "pers.report.barcodeliste"));
+		wcbStichtag.addActionListener(this);
+		wcbStichtag.setSelected(false);
+		wdfStichtag.setEditable(false);
 
-    wrbAusweis.setText(LPMain.getInstance().getTextRespectUISPr("pers.personal.ausweis"));
-    wrbName.setText(LPMain.getInstance().getTextRespectUISPr("lp.name"));
-    wrbPersonalnummer.setText(LPMain.getInstance().getTextRespectUISPr(
-        "pers.personal.personalnummer"));
-    wrbZutrittsklasse.setText(LPMain.getInstance().getTextRespectUISPr(
-        "pers.zutritt.zutrittsklasse"));
-    wcbStichtag.setText(LPMain.getInstance().getTextRespectUISPr("lp.stichtag"));
-    
-    wrbGeburtstag.setText(LPMain.getInstance().getTextRespectUISPr("lp.geburtstag"));
-    
-    wcbStichtag.addActionListener(this);
-    wcbStichtag.setSelected(false);
-    wdfStichtag.setEditable(false);
+		wcbMitVersteckten.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.versteckte"));
 
-    wcbMitVersteckten.setText(LPMain.getInstance().getTextRespectUISPr("lp.versteckte"));
+		wcbBarcodeliste.addActionListener(this);
+		
+		wcbNurSelektierterMitarbeiter.setEnabled(false); 
+		
+		buttonGroupPersonalSortierung.add(wrbAusweis);
+		buttonGroupPersonalSortierung.add(wrbName);
+		buttonGroupPersonalSortierung.add(wrbPersonalnummer);
+		buttonGroupPersonalSortierung.add(wrbZutrittsklasse);
+		buttonGroupPersonalSortierung.add(wrbGeburtstag);
+		buttonGroupPersonalSortierung.add(wrbHeimatkostenstelle);
 
+		HelperClient.setMinimumAndPreferredSize(wcbNurSelektierterMitarbeiter, HelperClient.getSizeFactoredDimension(190));
+		
+		wrbName.setSelected(true);
 
-    buttonGroupPersonalSortierung.add(wrbAusweis);
-    buttonGroupPersonalSortierung.add(wrbName);
-    buttonGroupPersonalSortierung.add(wrbPersonalnummer);
-    buttonGroupPersonalSortierung.add(wrbZutrittsklasse);
-    buttonGroupPersonalSortierung.add(wrbGeburtstag);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
+						0, 0, 0), 0, 0));
 
-    wrbName.setSelected(true);
+		WrapperLabel wlaSortierung = new WrapperLabel(LPMain.getInstance()
+				.getTextRespectUISPr("label.sortierung"));
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 0, 1, 1,
+				0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-    this.add(jpaWorkingOn,
-             new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
-                                    GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wrbName, new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbAusweis, new GridBagConstraints(1, 1, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbPersonalnummer, new GridBagConstraints(1, 2, 1, 1,
+				0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbGeburtstag, new GridBagConstraints(1, 3, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		
+		
+		jpaWorkingOn.add(wrbHeimatkostenstelle, new GridBagConstraints(1, 4, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
-    WrapperLabel wlaSortierung = new WrapperLabel(LPMain.getInstance().
-                                                  getTextRespectUISPr("label.sortierung"));
-    jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 0, 1, 1, 0.05, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
+		jpaWorkingOn.add(wcbStichtag, new GridBagConstraints(2, 0, 1, 1, 0.05,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		if (DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
+			jpaWorkingOn.add(wcbMitVersteckten,
+					new GridBagConstraints(2, 1, 2, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
+		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(3, 0, 1, 1, 0,
+				0.1, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbBarcodeliste, new GridBagConstraints(4, 0, 1, 1, 0,
+				0.2, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 200, 0));
 
-    jpaWorkingOn.add(wrbName, new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    jpaWorkingOn.add(wrbAusweis, new GridBagConstraints(1, 1, 1, 1, 0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    jpaWorkingOn.add(wrbPersonalnummer, new GridBagConstraints(1, 2, 1, 1, 0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    jpaWorkingOn.add(wrbGeburtstag, new GridBagConstraints(1, 3, 1, 1, 0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
+		jpaWorkingOn.add(wcbNurSelektierterMitarbeiter, new GridBagConstraints(
+				4, 1, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+	}
 
+	public String getModul() {
+		return PersonalFac.REPORT_MODUL;
+	}
 
-    jpaWorkingOn.add(wcbStichtag, new GridBagConstraints(2, 0, 1, 1, 0.05, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.
-          RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
-    jpaWorkingOn.add(wcbMitVersteckten, new GridBagConstraints(2, 1, 2, 1, 0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    }
-    jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(3, 0, 1, 1, 0, 0.1
-      , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-      0, 0));
-  jpaWorkingOn.add(wcbBarcodeliste, new GridBagConstraints(4, 0, 1, 1, 0, 0.2
-      , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-      200, 0));
+	public String getReportname() {
+		return PersonalFac.REPORT_PERSONALLISTE;
+	}
 
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 
+		int iOptionSortierung = -1;
 
+		if (wrbName.isSelected()) {
+			iOptionSortierung = PersonalFac.REPORT_PERSONALLISTE_OPTION_SORTIERUNG_NAME;
+		} else if (wrbAusweis.isSelected()) {
+			iOptionSortierung = PersonalFac.REPORT_PERSONALLISTE_OPTION_SORTIERUNG_AUSWEIS;
+		} else if (wrbPersonalnummer.isSelected()) {
+			iOptionSortierung = PersonalFac.REPORT_PERSONALLISTE_OPTION_SORTIERUNG_PERSONALNUMMER;
+		} else if (wrbGeburtstag.isSelected()) {
+			iOptionSortierung = PersonalFac.REPORT_PERSONALLISTE_OPTION_SORTIERUNG_GEBURTSTAG;
+		} else if (wrbHeimatkostenstelle.isSelected()) {
+			iOptionSortierung = PersonalFac.REPORT_PERSONALLISTE_OPTION_SORTIERUNG_HEIMATKOSTENSTELLE;
+		}
 
+		java.sql.Timestamp datum = wdfStichtag.getTimestamp();
+		if (!wcbStichtag.isSelected()) {
+			datum = null;
+		}
 
+		Integer personalIId=null;
+		if(wcbBarcodeliste.isSelected() && wcbNurSelektierterMitarbeiter.isSelected()){
+			personalIId=internalFrame.getPersonalDto().getIId();
+		}
+		
+		return DelegateFactory
+				.getInstance()
+				.getPersonalDelegate()
+				.printPersonalliste(datum, personalIId, wcbBarcodeliste.isSelected(),
+						wcbMitVersteckten.isSelected(), iOptionSortierung);
 
+	}
 
+	public boolean getBErstelleReportSofort() {
+		return false;
+	}
 
-  }
-
-
-  public String getModul() {
-    return PersonalFac.REPORT_MODUL;
-  }
-
-
-  public String getReportname() {
-    return PersonalFac.REPORT_PERSONALLISTE;
-  }
-
-
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-
-    int iOptionSortierung = -1;
-
-    if (wrbName.isSelected()) {
-      iOptionSortierung = PersonalFac.REPORT_PERSONALLISTE_OPTION_SORTIERUNG_NAME;
-    }
-    else if (wrbAusweis.isSelected()) {
-      iOptionSortierung = PersonalFac.REPORT_PERSONALLISTE_OPTION_SORTIERUNG_AUSWEIS;
-    }
-    else if (wrbPersonalnummer.isSelected()) {
-      iOptionSortierung = PersonalFac.
-          REPORT_PERSONALLISTE_OPTION_SORTIERUNG_PERSONALNUMMER;
-    }
-    else if (wrbGeburtstag.isSelected()) {
-      iOptionSortierung = PersonalFac.
-          REPORT_PERSONALLISTE_OPTION_SORTIERUNG_GEBURTSTAG;
-    }
-
-    java.sql.Timestamp datum=wdfStichtag.getTimestamp();
-    if(!wcbStichtag.isSelected()){
-      datum=null;
-    }
-
-
-    if (wcbBarcodeliste.isSelected()) {
-      return DelegateFactory.getInstance().getPersonalDelegate().printPersonalliste(
-          datum, true,wcbMitVersteckten.isSelected(), iOptionSortierung);
-    }
-    else {
-      return DelegateFactory.getInstance().getPersonalDelegate().printPersonalliste(
-          datum, false,wcbMitVersteckten.isSelected(), iOptionSortierung);
-    }
-  }
-
-
-  public boolean getBErstelleReportSofort() {
-    return false;
-  }
-
-
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien
+				.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

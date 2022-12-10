@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.zeiterfassung;
@@ -76,20 +76,23 @@ import com.lp.server.artikel.service.ArtklaDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.fertigung.service.LosDto;
 import com.lp.server.partner.service.PartnerDto;
+import com.lp.server.personal.service.ArbeitszeitstatistikJournalKriterienDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.personal.service.ZeiterfassungReportFac;
 import com.lp.server.projekt.service.ProjektDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.system.service.MandantFac;
+import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 public class ReportArbeitszeitstatistik extends PanelBasis implements
 		PanelReportIfJRDS {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private WrapperLabel wlaZeitraum = new WrapperLabel();
@@ -107,6 +110,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 	private WrapperRadioButton wrbArtikelklasse = new WrapperRadioButton();
 	private WrapperRadioButton wrbKostenstelle = new WrapperRadioButton();
 	private WrapperRadioButton wrbKundeBelegPersonal = new WrapperRadioButton();
+	private WrapperRadioButton wrbKundeDatumPersonalTaetigkeit = new WrapperRadioButton();
 
 	private WrapperComboBox wcoBeleg = new WrapperComboBox();
 	private WrapperButton wbuBeleg = new WrapperButton();
@@ -115,13 +119,17 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 	private WrapperButton wbuKunde = new WrapperButton();
 	private WrapperTextField wtfKunde = new WrapperTextField();
 	private WrapperTextField wtfPerson = new WrapperTextField();
-	private WrapperTextField wtfBeleg = new WrapperTextField();
+	private WrapperTextField wtfBeleg = new WrapperTextField(
+			Facade.MAX_UNBESCHRAENKT);
 	private WrapperTextField wtfTaetigkeit = new WrapperTextField();
 
 	protected JPanel jpaWorkingOn = new JPanel();
 
 	private ButtonGroup buttonGroupSortierung = new ButtonGroup();
 	private WrapperCheckBox wcbVerdichtet = new WrapperCheckBox();
+
+	private WrapperCheckBox wcbMitErledigtenProjekten = new WrapperCheckBox();
+	private WrapperCheckBox wcbInternErledigtBeruecksichtigen = new WrapperCheckBox();
 
 	private WrapperButton wbuArtikelgruppeFLR = null;
 	private WrapperTextField wtfArtikelgruppe = new WrapperTextField();
@@ -131,6 +139,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 
 	private Integer artikelIId = null;
 	private Integer belegartIId = null;
+	private String belegnummer = null;
 	private Integer personalIId = null;
 	private Integer partnerIId = null;
 	Integer artikelgruppeIId = null;
@@ -191,11 +200,20 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 				.getTextRespectUISPr("pers.arbeitszeitstatistik.sortierung.kundepersonal"));
 		wrbKostenstelle.setText(LPMain
 				.getTextRespectUISPr("label.kostenstelle"));
-		
-		wrbKundeBelegPersonal.setText(LPMain
-				.getTextRespectUISPr("pers.arbeitszeitstatistik.sortierung.kundebelegpersonal"));
-		
 
+		wrbKundeBelegPersonal
+				.setText(LPMain
+						.getTextRespectUISPr("pers.arbeitszeitstatistik.sortierung.kundebelegpersonal"));
+		wrbKundeDatumPersonalTaetigkeit
+				.setText(LPMain
+						.getTextRespectUISPr("pers.arbeitszeitstatistik.sortierung.kundedatumpersonalartikel"));
+
+		wcbMitErledigtenProjekten.setText(LPMain
+				.getTextRespectUISPr("pers.arbeitszeitstatistik.miterledigtenprojekten"));
+		wcbInternErledigtBeruecksichtigen.setText(LPMain
+				.getTextRespectUISPr("pers.arbeitszeitstatistik.internerledigteprojekte"));
+	
+		
 		wbuTaetigkeit.setActionCommand(ACTION_SPECIAL_TAETIGKEIT_FROM_LISTE);
 		wbuTaetigkeit.addActionListener(this);
 		wbuKunde.setActionCommand(ACTION_SPECIAL_KUNDE_FROM_LISTE);
@@ -229,6 +247,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 		buttonGroupSortierung.add(wrbArtikelklasse);
 		buttonGroupSortierung.add(wrbKostenstelle);
 		buttonGroupSortierung.add(wrbKundeBelegPersonal);
+		buttonGroupSortierung.add(wrbKundeDatumPersonalTaetigkeit);
 
 		wtfKunde.setActivatable(false);
 		wtfPerson.setActivatable(false);
@@ -303,7 +322,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wdfVon, new GridBagConstraints(1, iZeile, 1, 1, 0.1,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1, 0.1,
+		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1, 0.15,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wdfBis, new GridBagConstraints(3, iZeile, 1, 1, 0.1,
@@ -347,8 +366,8 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wrbKostenstelle, new GridBagConstraints(2, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbKundeBelegPersonal, new GridBagConstraints(3, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbKundeBelegPersonal, new GridBagConstraints(3,
+				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
@@ -372,6 +391,11 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wtfArtikelgruppe, new GridBagConstraints(1, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbKundeDatumPersonalTaetigkeit,
+				new GridBagConstraints(2, iZeile, 2, 1, 0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
 
 		iZeile++;
 		jpaWorkingOn.add(wbuArtikelklasseFLR, new GridBagConstraints(0, iZeile,
@@ -381,6 +405,19 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+		if(bHatProjektzeiterfassung){
+			jpaWorkingOn.add(wcbMitErledigtenProjekten,
+					new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+							0, 0));
+			jpaWorkingOn.add(wcbInternErledigtBeruecksichtigen,
+					new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+							0, 0));
+		}
+		
 		iZeile++;
 		jpaWorkingOn.add(wcoBeleg, new GridBagConstraints(0, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
@@ -400,6 +437,16 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 		if (e.getSource().equals(wcoBeleg)) {
 			wtfBeleg.setText("");
 			belegartIId = null;
+			belegnummer = null;
+			
+			if(wcoBeleg.getKeyOfSelectedItem()==null || wcoBeleg.getKeyOfSelectedItem().equals(LocaleFac.BELEGART_PROJEKT)){
+				wcbInternErledigtBeruecksichtigen.setVisible(true);
+				wcbMitErledigtenProjekten.setVisible(true);
+			} else {
+				wcbInternErledigtBeruecksichtigen.setVisible(false);
+				wcbMitErledigtenProjekten.setVisible(false);
+			}
+			
 		}
 		if (e.getActionCommand().equals(ACTION_SPECIAL_TAETIGKEIT_FROM_LISTE)) {
 			dialogQueryArtikelFromListe(e);
@@ -499,6 +546,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 				wtfBeleg.setText(losDto.getCNr() + ", " + projBez);
 
 				belegartIId = losDto.getIId();
+				belegnummer = losDto.getCNr();
 
 			} else if (e.getSource() == panelQueryFLRAngebot) {
 				Integer key = (Integer) ((ISourceEvent) e.getSource())
@@ -508,7 +556,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 				angebotDto = DelegateFactory.getInstance().getAngebotDelegate()
 						.angebotFindByPrimaryKey(key);
 				belegartIId = angebotDto.getIId();
-
+				belegnummer = angebotDto.getCNr();
 				String projBez = angebotDto.getCBez();
 				if (projBez == null) {
 					projBez = "";
@@ -523,6 +571,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 				auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
 						.auftragFindByPrimaryKey(key);
 				belegartIId = auftragDto.getIId();
+				belegnummer = auftragDto.getCNr();
 
 				String projBez = ", " + auftragDto.getCBezProjektbezeichnung();
 
@@ -550,13 +599,17 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 				projektDto = DelegateFactory.getInstance().getProjektDelegate()
 						.projektFindByPrimaryKey(key);
 				belegartIId = projektDto.getIId();
-
+				belegnummer = projektDto.getCNr();
 				String projBez = projektDto.getCTitel();
 				if (projBez == null) {
 					projBez = "";
 				}
 
-				wtfBeleg.setText(projektDto.getIId() + ", " + projBez);
+				wtfBeleg.setText(DelegateFactory.getInstance()
+						.getProjektServiceDelegate()
+						.bereichFindByPrimaryKey(projektDto.getBereichIId())
+						.getCBez()
+						+ " " + projektDto.getCNr() + ", " + projBez);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
 			if (e.getSource() == panelQueryFLRArtikel) {
@@ -567,6 +620,7 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 					|| e.getSource() == panelQueryFLRLos
 					|| e.getSource() == panelQueryFLRProjekt) {
 				belegartIId = null;
+				belegnummer = null;
 				wtfBeleg.setText(null);
 			} else if (e.getSource() == panelQueryFLRPersonal) {
 				personalIId = null;
@@ -665,47 +719,69 @@ public class ReportArbeitszeitstatistik extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		JasperPrintLP jasperPrint = null;
+		ArbeitszeitstatistikJournalKriterienDto krit = new ArbeitszeitstatistikJournalKriterienDto();
+		
+		java.sql.Timestamp wdfBisTemp =Helper.addiereTageZuTimestamp(new java.sql.Timestamp(wdfBis
+				.getTimestamp().getTime()),1);
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
-
-		int iOptionsortierung = -1;
+		krit.sortierung = -1;
 
 		if (wrbBeleg.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_AUFTRAG;
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_AUFTRAG;
 		} else if (wrbKunde.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ADRESSE;
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ADRESSE;
 
 		} else if (wrbPersonal.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_PERSONAL;
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_PERSONAL;
 
 		} else if (wrbTaetigkeit.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ARTIKEL;
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ARTIKEL;
 
 		} else if (wrbKostenstelle.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_KOSTENSTELLE;
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_KOSTENSTELLE;
 
 		} else if (wrbArtikelgruppe.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ARTIKELGRUPPE;
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ARTIKELGRUPPE;
 
 		} else if (wrbArtikelklasse.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ARTIKELKLASSE;
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_ARTIKELKLASSE;
 
-		}else if (wrbKundeBelegPersonal.isSelected()) {
-			iOptionsortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_KUNDE_BELEG_PERSONAL;
+		} else if (wrbKundeBelegPersonal.isSelected()) {
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_KUNDE_BELEG_PERSONAL;
 
+		} else if (wrbKundeDatumPersonalTaetigkeit.isSelected()) {
+			krit.sortierung = ZeiterfassungReportFac.REPORT_ARBEITSZEITSTATISTIK_OPTION_SORTIERUNG_KUNDE_DATUM_PERSONAL_ARTIKEL;
 		}
 
-		jasperPrint = DelegateFactory
+		krit.dVon = wdfVon.getDate();
+		krit.dBis = new java.sql.Date(wdfBisTemp.getTime());
+		krit.belegartCnr = (String) wcoBeleg.getKeyOfSelectedItem();
+		krit.belegartIId = belegartIId;
+		krit.belegnummerFuerReport = belegnummer;
+		krit.personalIId = personalIId;
+		krit.artikelIId = artikelIId;
+		krit.partnerIId = partnerIId;
+		krit.artikelgruppeIId = artikelgruppeIId;
+		krit.artikelklasseIId = artikelklasseIId;
+		krit.verdichtet = wcbVerdichtet.isSelected(); // wird nicht verwendet! ghp
+		krit.mitErledigtenProjekten = wcbMitErledigtenProjekten.isSelected();
+		krit.projektInterneErledigungBeruecksichtigen = wcbInternErledigtBeruecksichtigen.isSelected();
+		JasperPrintLP jasperPrint = DelegateFactory.getInstance()
+				.getZeiterfassungReportDelegate()
+				.printArbeitszeitstatistik(krit);
+/*		
+		JasperPrintLP jasperPrint = DelegateFactory
 				.getInstance()
 				.getZeiterfassungReportDelegate()
 				.printArbeitszeitstatistik(wdfVon.getTimestamp(), wdfBisTemp,
 						iOptionsortierung,
 						(String) wcoBeleg.getKeyOfSelectedItem(), belegartIId,
-						personalIId, artikelIId, partnerIId, artikelgruppeIId,
-						artikelklasseIId, wcbVerdichtet.isSelected());
-
+						belegnummer, personalIId, artikelIId, partnerIId,
+						artikelgruppeIId, artikelklasseIId,
+						wcbVerdichtet.isSelected(),
+						wcbMitErledigtenProjekten.isSelected(),
+						wcbInternErledigtBeruecksichtigen.isSelected());
+*/
 		return jasperPrint;
 
 	}

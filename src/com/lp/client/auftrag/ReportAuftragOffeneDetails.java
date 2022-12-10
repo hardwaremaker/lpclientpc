@@ -42,6 +42,7 @@ import java.util.LinkedHashMap;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -68,16 +69,17 @@ import com.lp.server.system.service.ReportJournalKriterienDto;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
-public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
-		implements PanelReportIfJRDS {
+public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf implements PanelReportIfJRDS {
 	private static final long serialVersionUID = 1L;
 	private WrapperCheckBox wcbSortiereNachLiefertermin = null;
+	private WrapperCheckBox wcbSortiereNachFertigungsgruppe = null;
 	private WrapperCheckBox wcbMitAngelegten = null;
 	private WrapperCheckBox wcbLagerstandsdetail = null;
 	private WrapperRadioButton wrbSortiereNachProjekt = null;
 	protected WrapperLabel wlaStichtag = new WrapperLabel();
 	protected WrapperDateField wdfStichtag = new WrapperDateField();
 	private WrapperComboBox wcoArt;
+	private WrapperComboBox wcoArtUnverbindlich;
 
 	private final static String ACTION_SPECIAL_ARTIKELKLASSE = "action_special_artikelklasse";
 	private final static String ACTION_SPECIAL_ARTIKELGRUPPE = "action_special_artikelgruppe";
@@ -107,8 +109,7 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 	private Integer artikelIIdVon = null;
 	private Integer artikelIIdBis = null;
 
-	public ReportAuftragOffeneDetails(InternalFrame internalFrame,
-			String add2Title) throws Throwable {
+	public ReportAuftragOffeneDetails(InternalFrame internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
 		jbInit();
 		initComponents();
@@ -117,39 +118,31 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 	protected void jbInit() throws Exception {
 
 		wcbSortiereNachLiefertermin = new WrapperCheckBox();
-		wcbSortiereNachLiefertermin.setText(LPMain.getInstance()
-				.getTextRespectUISPr("auft.sortierungnachliefertermin"));
+		wcbSortiereNachLiefertermin
+				.setText(LPMain.getInstance().getTextRespectUISPr("auft.sortierungnachliefertermin"));
+
+		wcbSortiereNachFertigungsgruppe = new WrapperCheckBox();
+		wcbSortiereNachFertigungsgruppe
+				.setText(LPMain.getInstance().getTextRespectUISPr("auft.sortierungnachfertigungsgruppe"));
 
 		wcbMitAngelegten = new WrapperCheckBox();
-		wcbMitAngelegten.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.offenedetails.mitangelegten"));
+		wcbMitAngelegten.setText(LPMain.getInstance().getTextRespectUISPr("auft.offenedetails.mitangelegten"));
 
 		wcbLagerstandsdetail = new WrapperCheckBox();
-		wcbLagerstandsdetail.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.offenedetails.lagerstandsdetail"));
+		wcbLagerstandsdetail.setText(LPMain.getInstance().getTextRespectUISPr("auft.offenedetails.lagerstandsdetail"));
 
-		wrbSortierungPartner.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.kunden"));
-		wbuPartner.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.kunde"));
-		wbuPartner.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-				"button.kunde.tooltip"));
+		wrbSortierungPartner.setText(LPMain.getInstance().getTextRespectUISPr("button.kunden"));
+		wbuPartner.setText(LPMain.getInstance().getTextRespectUISPr("button.kunde"));
+		wbuPartner.setToolTipText(LPMain.getInstance().getTextRespectUISPr("button.kunde.tooltip"));
 
-		wrbSortiereNachProjekt = new WrapperRadioButton(
-				LPMain.getTextRespectUISPr("label.projekt"));
+		wrbSortiereNachProjekt = new WrapperRadioButton(LPMain.getTextRespectUISPr("label.projekt"));
 		buttonGroupSortierung.add(wrbSortiereNachProjekt);
-		wbuArtikelklasse = new WrapperButton(
-				LPMain.getTextRespectUISPr("button.artikelklasse"));
-		wbuArtikelklasse.setToolTipText(LPMain
-				.getTextRespectUISPr("button.artikelklasse.tooltip"));
-		wbuArtikelklasse.setMinimumSize(new Dimension(BREITE_BUTTONS, Defaults
-				.getInstance().getControlHeight()));
-		wbuArtikelklasse.setPreferredSize(new Dimension(BREITE_BUTTONS,
-				Defaults.getInstance().getControlHeight()));
-		wbuArtikelgruppe = new WrapperButton(
-				LPMain.getTextRespectUISPr("button.artikelgruppe"));
-		wbuArtikelgruppe.setToolTipText(LPMain
-				.getTextRespectUISPr("button.artikelgruppe.tooltip"));
+		wbuArtikelklasse = new WrapperButton(LPMain.getTextRespectUISPr("button.artikelklasse"));
+		wbuArtikelklasse.setToolTipText(LPMain.getTextRespectUISPr("button.artikelklasse.tooltip"));
+		wbuArtikelklasse.setMinimumSize(HelperClient.getSizeFactoredDimension(BREITE_BUTTONS));
+		wbuArtikelklasse.setPreferredSize(HelperClient.getSizeFactoredDimension(BREITE_BUTTONS));
+		wbuArtikelgruppe = new WrapperButton(LPMain.getTextRespectUISPr("button.artikelgruppe"));
+		wbuArtikelgruppe.setToolTipText(LPMain.getTextRespectUISPr("button.artikelgruppe.tooltip"));
 		wtfArtikelklasse = new WrapperTextField();
 		wtfArtikelgruppe = new WrapperTextField();
 		wtfArtikelklasse.setActivatable(false);
@@ -158,36 +151,31 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 		wbuArtikelgruppe.addActionListener(this);
 		wbuArtikelklasse.setActionCommand(ACTION_SPECIAL_ARTIKELKLASSE);
 		wbuArtikelgruppe.setActionCommand(ACTION_SPECIAL_ARTIKELGRUPPE);
-		wbuArtikelVon = new WrapperButton(LPMain.getTextRespectUISPr("lp.von")
-				+ " " + LPMain.getTextRespectUISPr("button.artikel"));
-		wbuArtikelVon.setToolTipText(LPMain
-				.getTextRespectUISPr("button.artikel.tooltip"));
+		wbuArtikelVon = new WrapperButton(
+				LPMain.getTextRespectUISPr("lp.von") + " " + LPMain.getTextRespectUISPr("button.artikel"));
+		wbuArtikelVon.setToolTipText(LPMain.getTextRespectUISPr("button.artikel.tooltip"));
 		wbuArtikelVon.addActionListener(this);
 		wbuArtikelVon.setActionCommand(ACTION_SPECIAL_ARTIKEL_VON);
-		wbuArtikelBis = new WrapperButton(LPMain.getTextRespectUISPr("lp.bis")
-				+ " " + LPMain.getTextRespectUISPr("button.artikel"));
-		wbuArtikelBis.setToolTipText(LPMain
-				.getTextRespectUISPr("button.artikel.tooltip"));
+		wbuArtikelBis = new WrapperButton(
+				LPMain.getTextRespectUISPr("lp.bis") + " " + LPMain.getTextRespectUISPr("button.artikel"));
+		wbuArtikelBis.setToolTipText(LPMain.getTextRespectUISPr("button.artikel.tooltip"));
 		wbuArtikelBis.addActionListener(this);
 		wbuArtikelBis.setActionCommand(ACTION_SPECIAL_ARTIKEL_BIS);
 		wtfArtikelVon = new WrapperTextField();
 		wtfArtikelBis = new WrapperTextField();
 		wtfArtikelVon.setActivatable(false);
 		wtfArtikelBis.setActivatable(false);
-		wlaProjekt = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.projekt"));
+		wlaProjekt = new WrapperLabel(LPMain.getTextRespectUISPr("label.projekt"));
 		wtfProjekt = new WrapperTextField();
 		wlaStichtag = new WrapperLabel();
 		wdfStichtag = new WrapperDateField();
-		wlaStichtag.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.stichtag"));
+		wlaStichtag.setText(LPMain.getInstance().getTextRespectUISPr("lp.stichtag"));
 		wdfStichtag.setMandatoryField(true);
 		wdfStichtag.setDate(new Date(System.currentTimeMillis()));
 		LinkedHashMap<Integer, String> hm = new LinkedHashMap<Integer, String>();
 		hm.put(0, LPMain.getTextRespectUISPr("auft.menu.ansicht.alle")); // Alle
 																			// Auftraege
-		hm.put(1,
-				LPMain.getTextRespectUISPr("auft.journal.ohnerahmenauftraege")); // ohne
+		hm.put(1, LPMain.getTextRespectUISPr("auft.journal.ohnerahmenauftraege")); // ohne
 																					// Rahmenauftraege,
 																					// d.h.
 																					// Abrufe
@@ -196,76 +184,83 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 																					// Auftraege
 		hm.put(2, LPMain.getTextRespectUISPr("auft.journal.nurrahmenauftraege")); // nur
 																					// Rahmenauftraege
+
+		hm.put(3, LPMain.getTextRespectUISPr("auft.journal.nurwiederholende"));
+
 		wcoArt = new WrapperComboBox();
 		wcoArt.setMandatoryField(true);
 		wcoArt.setKeyOfSelectedItem(0);
 		wcoArt.setMap(hm);
 		wrbSortierungIdentNr.setVisible(true);
 
+		LinkedHashMap<Integer, String> hmUnverbindlich = new LinkedHashMap<Integer, String>();
+		hmUnverbindlich.put(AuftragReportFac.REPORT_AUFTRAG_OFFENE_ARTUNVERBINDLICH_ALLE,
+				LPMain.getTextRespectUISPr("auftrag.report.offene.unverbindliche.option1"));
+		hmUnverbindlich.put(AuftragReportFac.REPORT_AUFTRAG_OFFENE_ARTUNVERBINDLICH_NUR_UNVERBINDLICHE,
+				LPMain.getTextRespectUISPr("auftrag.report.offene.unverbindliche.option2"));
+		hmUnverbindlich.put(AuftragReportFac.REPORT_AUFTRAG_OFFENE_ARTUNVERBINDLICH_OHNE_UNVERBINDLICHE,
+				LPMain.getTextRespectUISPr("auftrag.report.offene.unverbindliche.option3"));
+
+		wcoArtUnverbindlich = new WrapperComboBox();
+		wcoArtUnverbindlich.setMandatoryField(true);
+		wcoArtUnverbindlich.setKeyOfSelectedItem(0);
+		wcoArtUnverbindlich.setMap(hmUnverbindlich);
+
+		jpaWorkingOn.add(wcbSortiereNachFertigungsgruppe,
+				new GridBagConstraints(0, iZeileZwischenKostenstelleUndSortierung, 3, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
-		jpaWorkingOn.add(wrbSortiereNachProjekt, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wrbSortiereNachProjekt, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaProjekt, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaProjekt, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfProjekt, new GridBagConstraints(3, iZeile, 3, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuArtikelklasse, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikelklasse, new GridBagConstraints(3, iZeile, 3,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wcbSortiereNachLiefertermin, new GridBagConstraints(0,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wtfProjekt, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuArtikelgruppe, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikelgruppe, new GridBagConstraints(3, iZeile, 3,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wcbMitAngelegten, new GridBagConstraints(0, iZeile, 2,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuArtikelVon, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikelVon, new GridBagConstraints(3, iZeile, 3, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wbuArtikelBis, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikelBis, new GridBagConstraints(3, iZeile, 3, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcoArt, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbLagerstandsdetail, new GridBagConstraints(2,
-				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuArtikelklasse, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfArtikelklasse, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wcbSortiereNachLiefertermin, new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuArtikelgruppe, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfArtikelgruppe, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wcbMitAngelegten, new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuArtikelVon, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfArtikelVon, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wbuArtikelBis, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfArtikelBis, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcoArt, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
+
+		jpaWorkingOn.add(wcoArtUnverbindlich, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbLagerstandsdetail, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		this.setEinschraenkungDatumBelegnummerSichtbar(false);
-
+		wrbSortierungLieferadresse.setVisible(true);
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
@@ -278,26 +273,19 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					artikelgruppeIId = (Integer) key;
-					ArtgruDto artikelgruppeDto = DelegateFactory.getInstance()
-							.getArtikelDelegate()
+					ArtgruDto artikelgruppeDto = DelegateFactory.getInstance().getArtikelDelegate()
 							.artgruFindByPrimaryKey(artikelgruppeIId);
-					if (artikelgruppeDto.getArtgrusprDto() != null) {
-						wtfArtikelgruppe.setText(artikelgruppeDto
-								.getArtgrusprDto().getCBez());
-					} else {
-						wtfArtikelgruppe.setText(artikelgruppeDto.getCNr());
-					}
+					wtfArtikelgruppe.setText(artikelgruppeDto.getBezeichnung());
+
 				}
 			} else if (e.getSource() == panelQueryFLRArtikelklasse) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					artikelklasseIId = (Integer) key;
-					ArtklaDto artikelklasseDto = DelegateFactory.getInstance()
-							.getArtikelDelegate()
+					ArtklaDto artikelklasseDto = DelegateFactory.getInstance().getArtikelDelegate()
 							.artklaFindByPrimaryKey(artikelklasseIId);
 					if (artikelklasseDto.getArtklasprDto() != null) {
-						wtfArtikelklasse.setText(artikelklasseDto
-								.getArtklasprDto().getCBez());
+						wtfArtikelklasse.setText(artikelklasseDto.getArtklasprDto().getCBez());
 					} else {
 						wtfArtikelklasse.setText(artikelklasseDto.getCNr());
 					}
@@ -308,8 +296,7 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					artikelIIdBis = (Integer) key;
-					ArtikelDto artikelDto = DelegateFactory.getInstance()
-							.getArtikelDelegate()
+					ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 							.artikelFindByPrimaryKey(artikelIIdBis);
 					wtfArtikelBis.setText(artikelDto.getCNr());
 				}
@@ -317,8 +304,7 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					artikelIIdVon = (Integer) key;
-					ArtikelDto artikelDto = DelegateFactory.getInstance()
-							.getArtikelDelegate()
+					ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 							.artikelFindByPrimaryKey(artikelIIdVon);
 					wtfArtikelVon.setText(artikelDto.getCNr());
 				}
@@ -358,28 +344,26 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 	}
 
 	private void dialogQueryArtikelklasse() throws Throwable {
-		panelQueryFLRArtikelklasse = ArtikelFilterFactory.getInstance()
-				.createPanelFLRArtikelklasse(getInternalFrame(),
-						artikelklasseIId);
+		panelQueryFLRArtikelklasse = ArtikelFilterFactory.getInstance().createPanelFLRArtikelklasse(getInternalFrame(),
+				artikelklasseIId);
 		new DialogQuery(panelQueryFLRArtikelklasse);
 	}
 
 	private void dialogQueryArtikelgruppe() throws Throwable {
-		panelQueryFLRArtikelgruppe = ArtikelFilterFactory.getInstance()
-				.createPanelFLRArtikelgruppe(getInternalFrame(),
-						artikelgruppeIId);
+		panelQueryFLRArtikelgruppe = ArtikelFilterFactory.getInstance().createPanelFLRArtikelgruppe(getInternalFrame(),
+				artikelgruppeIId);
 		new DialogQuery(panelQueryFLRArtikelgruppe);
 	}
 
 	private void dialogQueryArtikelVon() throws Throwable {
-		panelQueryFLRArtikelVon = ArtikelFilterFactory.getInstance()
-				.createPanelFLRArtikel(getInternalFrame(), artikelIIdVon, true);
+		panelQueryFLRArtikelVon = ArtikelFilterFactory.getInstance().createPanelFLRArtikel(getInternalFrame(),
+				artikelIIdVon, true);
 		new DialogQuery(panelQueryFLRArtikelVon);
 	}
 
 	private void dialogQueryArtikelBis() throws Throwable {
-		panelQueryFLRArtikelBis = ArtikelFilterFactory.getInstance()
-				.createPanelFLRArtikel(getInternalFrame(), artikelIIdBis, true);
+		panelQueryFLRArtikelBis = ArtikelFilterFactory.getInstance().createPanelFLRArtikel(getInternalFrame(),
+				artikelIIdBis, true);
 		new DialogQuery(panelQueryFLRArtikelBis);
 	}
 
@@ -396,8 +380,7 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 
@@ -413,18 +396,12 @@ public class ReportAuftragOffeneDetails extends PanelReportJournalVerkauf
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getAuftragReportDelegate()
-				.printAuftragOffeneDetail(getKriterien(),
-						wdfStichtag.getDate(),
-						new Boolean(wcbSortiereNachLiefertermin.isSelected()),
-						new Boolean(false), artikelklasseIId, artikelgruppeIId,
-						wtfArtikelVon.getText(), wtfArtikelBis.getText(),
-						wtfProjekt.getText(),
-						(Integer) wcoArt.getKeyOfSelectedItem(),
-						wcbLagerstandsdetail.isSelected(),
-						wcbMitAngelegten.isSelected());
+		return DelegateFactory.getInstance().getAuftragReportDelegate().printAuftragOffeneDetail(getKriterien(),
+				wcbSortiereNachFertigungsgruppe.isSelected(), wdfStichtag.getDate(),
+				new Boolean(wcbSortiereNachLiefertermin.isSelected()), new Boolean(false), artikelklasseIId,
+				artikelgruppeIId, wtfArtikelVon.getText(), wtfArtikelBis.getText(), wtfProjekt.getText(),
+				(Integer) wcoArt.getKeyOfSelectedItem(), (Integer) wcoArtUnverbindlich.getKeyOfSelectedItem(),
+				wcbLagerstandsdetail.isSelected(), wcbMitAngelegten.isSelected());
 
 	}
 }

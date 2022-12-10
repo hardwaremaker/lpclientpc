@@ -36,7 +36,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.image.BufferedImage;
 import java.util.EventObject;
 
 import javax.swing.BorderFactory;
@@ -57,7 +56,6 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.SperrenDto;
-import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class PanelSperren extends PanelBasis {
@@ -87,6 +85,8 @@ public class PanelSperren extends PanelBasis {
 	private WrapperCheckBox wcoGesperrtEinkauf = new WrapperCheckBox();
 	private WrapperCheckBox wcoGesperrtVerkauf = new WrapperCheckBox();
 	private WrapperCheckBox wcoDurchFertigung = new WrapperCheckBox();
+	
+	private WrapperCheckBox wcoDefaultBeiArtikelneuanlage = new WrapperCheckBox();
 
 	public PanelSperren(InternalFrame internalFrame, String add2TitleI,
 			Object pk) throws Throwable {
@@ -149,6 +149,8 @@ public class PanelSperren extends PanelBasis {
 
 		wcoDurchFertigung.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.sperre.durchfertigung"));
+		wcoDefaultBeiArtikelneuanlage.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.sperre.defaultbeiartikelneuanlage"));
 
 		wtfBezeichnung.setMandatoryField(true);
 
@@ -207,6 +209,11 @@ public class PanelSperren extends PanelBasis {
 		jpaWorkingOn.add(wcoGesperrtLos, new GridBagConstraints(1, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wcoDefaultBeiArtikelneuanlage, new GridBagConstraints(2, iZeile,
+				1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
 
 		iZeile++;
 		jpaWorkingOn.add(wmcBild, new GridBagConstraints(0, iZeile, 5, 1, 1, 1,
@@ -241,8 +248,17 @@ public class PanelSperren extends PanelBasis {
 		sperrenDto.setBGesperrtstueckliste(wcoGesperrtStueckliste.getShort());
 		sperrenDto.setBGesperrtverkauf(wcoGesperrtVerkauf.getShort());
 		sperrenDto.setBDurchfertigung(wcoDurchFertigung.getShort());
-		sperrenDto.setOBild(Helper.imageToByteArray((BufferedImage) wmcBild
-				.getImage()));
+		
+		sperrenDto.setBDefaultBeiArtikelneuanlage(wcoDefaultBeiArtikelneuanlage.getShort());
+		
+		sperrenDto.setOBild(wmcBild.getImageOriginalBytes());
+//		if (wmcBild.getImage() != null) {
+//			sperrenDto.setOBild(Helper.imageToByteArray((BufferedImage) wmcBild
+//					.getImage()));
+//		} else {
+//			sperrenDto.setOBild(null);
+//		}
+
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -254,6 +270,7 @@ public class PanelSperren extends PanelBasis {
 		wcoGesperrtVerkauf.setShort(sperrenDto.getBGesperrtverkauf());
 		wcoDurchFertigung.setShort(sperrenDto.getBDurchfertigung());
 		wmcBild.setImage(sperrenDto.getOBild());
+		wcoDefaultBeiArtikelneuanlage.setShort(sperrenDto.getBDefaultBeiArtikelneuanlage());
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)

@@ -240,8 +240,8 @@ public class ReportMitarbeiterreklamation extends PanelBasis implements PanelRep
 			return DelegateFactory
 				.getInstance()
 				.getReklamationReportDelegate()
-				.printMitarbeiterreklamation(wdfDatumVon.getTimestamp(),
-						wdfDatumBis.getTimestamp(), wcbKunde.isSelected(),
+				.printMitarbeiterreklamation(wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), wcbKunde.isSelected(),
 						wcbLieferant.isSelected(), wcbLos.isSelected(),
 						kundeIId, wcbNurBerechtigte.isSelected());
 	}

@@ -38,6 +38,7 @@ import java.util.EventObject;
 import javax.swing.ImageIcon;
 import javax.swing.JTabbedPane;
 
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -74,6 +75,8 @@ public class InternalFrameFinanz extends InternalFrame {
 
 	// Vollversion der Fibu?
 	private boolean bVollversion = false;
+
+	private boolean bChefbuchhalter = false;
 
 	private TabbedPaneKontenSachkonten tabbedPaneSachKonten = null;
 	private TabbedPaneBankverbindung tabbedPaneBankverbindung = null;
@@ -117,14 +120,16 @@ public class InternalFrameFinanz extends InternalFrame {
 
 	private IGeschaeftsjahrViewController geschaeftsjahrViewController = null;
 
-	private TabbedPaneKonten selectedKontoPane ;
-	
-	public InternalFrameFinanz(String title, String belegartCNr,
-			String sRechtModulweitI) throws Throwable {
+	private TabbedPaneKonten selectedKontoPane;
+
+	public InternalFrameFinanz(String title, String belegartCNr, String sRechtModulweitI) throws Throwable {
 		super(title, belegartCNr, sRechtModulweitI);
 		sRechtModulweit = sRechtModulweitI;
-		geschaeftsjahrViewController = new GeschaeftsjahrViewController(this,
-				LPMain.getTheClient());
+		geschaeftsjahrViewController = new GeschaeftsjahrViewController(this, LPMain.getTheClient());
+
+		bChefbuchhalter = DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_FB_CHEFBUCHHALTER);
+
 		jbInit();
 		initComponents();
 	}
@@ -142,94 +147,70 @@ public class InternalFrameFinanz extends InternalFrame {
 	}
 
 	public Integer getIAktuellesGeschaeftsjahr() throws Throwable {
-		return aktuellesGeschaeftsjahr == null ? DelegateFactory.getInstance()
-				.getParameterDelegate().getGeschaeftsjahr() : new Integer(
-				aktuellesGeschaeftsjahr);
+		return aktuellesGeschaeftsjahr == null
+				? DelegateFactory.getInstance().getParameterDelegate().getGeschaeftsjahr()
+				: new Integer(aktuellesGeschaeftsjahr);
 	}
 
 	/**
-	 * Ein Filterkriterium erzeugen welches die FLR_BUCHUNGDETAIL_FLBUCHUNG auf
-	 * das aktuelle Geschaeftsjahr einschr&auml;nkt
+	 * Ein Filterkriterium erzeugen welches die FLR_BUCHUNGDETAIL_FLBUCHUNG auf das
+	 * aktuelle Geschaeftsjahr einschr&auml;nkt
 	 * 
 	 * @return Filterkriterium FLR_BUCHUNG f&uuml;r das aktuelle Geschaeftsjahr
 	 */
-	public FilterKriterium getFKforAktuellesGeschaeftsjahrInDetails() {
-		return new FilterKriterium(FinanzFac.FLR_BUCHUNGDETAIL_FLRBUCHUNG + "."
-				+ FinanzFac.FLR_BUCHUNG_GESCHAEFTSJAHR_I_GESCHAEFTSJAHR, true,
-				"'" + getAktuellesGeschaeftsjahr() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
-	}
-
-	public FilterKriterium getFKforAktuellesGeschaeftsjahr() {
+	public FilterKriterium getFKforAktuellesGeschaeftsjahrInDetails() throws Throwable {
 		return new FilterKriterium(
-				FinanzFac.FLR_BUCHUNG_GESCHAEFTSJAHR_I_GESCHAEFTSJAHR, true,
-				"'" + getAktuellesGeschaeftsjahr() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+				FinanzFac.FLR_BUCHUNGDETAIL_FLRBUCHUNG + "." + FinanzFac.FLR_BUCHUNG_GESCHAEFTSJAHR_I_GESCHAEFTSJAHR,
+				true, "'" + getIAktuellesGeschaeftsjahr() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 	}
 
-	public FilterKriterium getFKforAktuellesGeschaeftsjahrBuchungsjournalDetailliert() {
-		return new FilterKriterium(FinanzFac.FLR_BUCHUNGDETAIL_FLRBUCHUNG + "."
-				+ FinanzFac.FLR_BUCHUNG_GESCHAEFTSJAHR_I_GESCHAEFTSJAHR, true,
-				"'" + getAktuellesGeschaeftsjahr() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+	public FilterKriterium getFKforAktuellesGeschaeftsjahr() throws Throwable {
+		return new FilterKriterium(FinanzFac.FLR_BUCHUNG_GESCHAEFTSJAHR_I_GESCHAEFTSJAHR, true,
+				"'" + getIAktuellesGeschaeftsjahr() + "'", FilterKriterium.OPERATOR_EQUAL, false);
+	}
+
+	public FilterKriterium getFKforAktuellesGeschaeftsjahrBuchungsjournalDetailliert() throws Throwable {
+		return new FilterKriterium(
+				FinanzFac.FLR_BUCHUNGDETAIL_FLRBUCHUNG + "." + FinanzFac.FLR_BUCHUNG_GESCHAEFTSJAHR_I_GESCHAEFTSJAHR,
+				true, "'" + getIAktuellesGeschaeftsjahr() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 	}
 
 	private void jbInit() throws Throwable {
 		// Berechtigung pruefen
-		ModulberechtigungDto[] modulberechtigungDtos = DelegateFactory
-				.getInstance().getMandantDelegate()
+		ModulberechtigungDto[] modulberechtigungDtos = DelegateFactory.getInstance().getMandantDelegate()
 				.modulberechtigungFindByMandantCNr();
 		for (int i = 0; i < modulberechtigungDtos.length; i++) {
-			if (modulberechtigungDtos[i].getBelegartCNr().equals(
-					LocaleFac.BELEGART_FINANZBUCHHALTUNG)) {
+			if (modulberechtigungDtos[i].getBelegartCNr().equals(LocaleFac.BELEGART_FINANZBUCHHALTUNG)) {
 				bVollversion = true;
 			}
 		}
+
 		// Zahlungsvorschlag?
-		final boolean bZahlungsvorschlag = LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZAHLUNGSVORSCHLAG);
-		// Zahlungsvorschlag?
-		final boolean bIntrastat = LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_INTRASTAT);
+		final boolean bZahlungsvorschlag = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZAHLUNGSVORSCHLAG);
+
+		final boolean bIntrastat = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_INTRASTAT);
 
 		int index = 0;
 
 		// 1 tab unten: Konten; lazy loading
 		IDX_TABBED_PANE_SACHKONTEN = index;
-		tabbedPaneRoot
-				.insertTab(
-						LPMain.getTextRespectUISPr("finanz.tab.unten.sachkonten.title"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr("finanz.tab.unten.sachkonten.tooltip"),
-						IDX_TABBED_PANE_SACHKONTEN);
+		tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.sachkonten.title"), null, null,
+				LPMain.getTextRespectUISPr("finanz.tab.unten.sachkonten.tooltip"), IDX_TABBED_PANE_SACHKONTEN);
 		index++;
 		if (bVollversion) {
 			// 5 tab unten: Konten; lazy loading
 			IDX_TABBED_PANE_DEBITORENKONTEN = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.tooltip"),
-							IDX_TABBED_PANE_DEBITORENKONTEN);
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.title"), null, null,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.tooltip"),
+					IDX_TABBED_PANE_DEBITORENKONTEN);
 			index++;
 			// 6 tab unten: Konten; lazy loading
 			IDX_TABBED_PANE_KREDITORENKONTEN = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.tooltip"),
-							IDX_TABBED_PANE_KREDITORENKONTEN);
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title"), null, null,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.tooltip"),
+					IDX_TABBED_PANE_KREDITORENKONTEN);
 			index++;
 
 			// TODO: ghp workaround JTabbedPane.setComponentAt() dynamisch hat
@@ -243,157 +224,113 @@ public class InternalFrameFinanz extends InternalFrame {
 			getTabbedPaneDebitorenKonten();
 			getTabbedPaneKreditorenKonten();
 		}
-		// 2 tab unten: Bankverbindung; lazy loading
-		IDX_TABBED_PANE_BANKVERBINDUNG = index;
-		tabbedPaneRoot
-				.insertTab(
-						LPMain.getTextRespectUISPr("finanz.tab.unten.bankverbindungen.title"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr("finanz.tab.unten.bankverbindungen.tooltip"),
-						IDX_TABBED_PANE_BANKVERBINDUNG);
-		index++;
-		// 3 tab unten: Waehrungen; lazy loading
-		IDX_TABBED_PANE_WAEHRUNG = index;
-		tabbedPaneRoot
-				.insertTab(
-						LPMain.getTextRespectUISPr("finanz.tab.unten.waehrung.title"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr("finanz.tab.unten.waehrung.tooltip"),
-						IDX_TABBED_PANE_WAEHRUNG);
-		index++;
-		// 4 tab unten: Kassenbuecher; lazy loading
-		IDX_TABBED_PANE_KASSENBUCH = index;
-		tabbedPaneRoot
-				.insertTab(
-						LPMain.getTextRespectUISPr("finanz.tab.unten.kassenbuch.title"),
-						null,
-						null,
-						LPMain.getTextRespectUISPr("finanz.tab.unten.kassenbuch.tooltip"),
-						IDX_TABBED_PANE_KASSENBUCH);
-		index++;
-		if (bVollversion) {
-			// 7 tab unten: Buchungsjournal; lazy loading
-			IDX_TABBED_PANE_BUCHUNGSJOURNAL = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.buchungsjournal.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.buchungsjournal.tooltip"),
-							IDX_TABBED_PANE_BUCHUNGSJOURNAL);
+
+		// PJ22333
+		if (isChefbuchhalter()) {
+
+			// 2 tab unten: Bankverbindung; lazy loading
+			IDX_TABBED_PANE_BANKVERBINDUNG = index;
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.bankverbindungen.title"), null, null,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.bankverbindungen.tooltip"),
+					IDX_TABBED_PANE_BANKVERBINDUNG);
 			index++;
-			// 8 tab unten: Mahnwesen ; lazy loading
-			IDX_TABBED_PANE_MAHNWESEN = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.mahnwesen.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.mahnwesen.tooltip"),
-							IDX_TABBED_PANE_MAHNWESEN);
-			index++;
-			// 10 tab unten: Ergebnisgruppen; lazy loading
-			IDX_TABBED_PANE_ERGEBNISGRUPPEN = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.ergebnisgruppen.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.ergebnisgruppen.tooltip"),
-							IDX_TABBED_PANE_ERGEBNISGRUPPEN);
-			index++;
-			// 10 tab unten: Ergebnisgruppen; lazy loading
-			IDX_TABBED_PANE_BILANZGRUPPEN = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.bilanzgruppen.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.bilanzgruppen.tooltip"),
-							IDX_TABBED_PANE_BILANZGRUPPEN);
+			// 3 tab unten: Waehrungen; lazy loading
+			IDX_TABBED_PANE_WAEHRUNG = index;
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.waehrung.title"), null, null,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.waehrung.tooltip"), IDX_TABBED_PANE_WAEHRUNG);
 			index++;
 		}
+		// 4 tab unten: Kassenbuecher; lazy loading
+		IDX_TABBED_PANE_KASSENBUCH = index;
+		tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.kassenbuch.title"), null, null,
+				LPMain.getTextRespectUISPr("finanz.tab.unten.kassenbuch.tooltip"), IDX_TABBED_PANE_KASSENBUCH);
+		index++;
+		if (bVollversion) {
 
-		if (DelegateFactory.getInstance().getTheJudgeDelegate()
-				.hatRecht(RechteFac.RECHT_FB_CHEFBUCHHALTER)) {
+			// PJ22333
+			if (isChefbuchhalter()) {
 
+				// 7 tab unten: Buchungsjournal; lazy loading
+				IDX_TABBED_PANE_BUCHUNGSJOURNAL = index;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.buchungsjournal.title"), null,
+						null, LPMain.getTextRespectUISPr("finanz.tab.unten.buchungsjournal.tooltip"),
+						IDX_TABBED_PANE_BUCHUNGSJOURNAL);
+				index++;
+				// 8 tab unten: Mahnwesen ; lazy loading
+				IDX_TABBED_PANE_MAHNWESEN = index;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.mahnwesen.title"), null, null,
+						LPMain.getTextRespectUISPr("finanz.tab.unten.mahnwesen.tooltip"), IDX_TABBED_PANE_MAHNWESEN);
+				index++;
+				// 10 tab unten: Ergebnisgruppen; lazy loading
+				IDX_TABBED_PANE_ERGEBNISGRUPPEN = index;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.ergebnisgruppen.title"), null,
+						null, LPMain.getTextRespectUISPr("finanz.tab.unten.ergebnisgruppen.tooltip"),
+						IDX_TABBED_PANE_ERGEBNISGRUPPEN);
+				index++;
+				// 10 tab unten: Ergebnisgruppen; lazy loading
+				IDX_TABBED_PANE_BILANZGRUPPEN = index;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.bilanzgruppen.title"), null, null,
+						LPMain.getTextRespectUISPr("finanz.tab.unten.bilanzgruppen.tooltip"),
+						IDX_TABBED_PANE_BILANZGRUPPEN);
+				index++;
+			}
+		}
+
+		if (isChefbuchhalter()) {
 			// 11 tab unten: Finanzaemter; lazy loading
 			IDX_TABBED_PANE_FINANZAMT = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.finanzamt.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.finanzamt.tooltip"),
-							IDX_TABBED_PANE_FINANZAMT);
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.finanzamt.title"), null, null,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.finanzamt.tooltip"), IDX_TABBED_PANE_FINANZAMT);
 			index++;
 		}
 		if (!bVollversion) {
 			// Der Export steht nur in der fibu-losen version zu
 			// 12 tab unten: Export; lazy loading
 			IDX_TABBED_PANE_EXPORT = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.export.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.export.tooltip"),
-							IDX_TABBED_PANE_EXPORT);
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.export.title"), null, null,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.export.tooltip"), IDX_TABBED_PANE_EXPORT);
 			index++;
 		}
 
 		if (bZahlungsvorschlag) {
 			// 13 tab unten: Zahlungsvorschlag
 			IDX_TABBED_PANE_ZAHLUNGSVORSCHLAG = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.zahlungsvorschlag.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.zahlungsvorschlag.tooltip"),
-							IDX_TABBED_PANE_ZAHLUNGSVORSCHLAG);
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.zahlungsvorschlag.title"), null, null,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.zahlungsvorschlag.tooltip"),
+					IDX_TABBED_PANE_ZAHLUNGSVORSCHLAG);
 			index++;
 		}
 
-		if (bIntrastat) {
-			// 13 tab unten: Zahlungsvorschlag
-			IDX_TABBED_PANE_INTRASTAT = index;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("finanz.tab.unten.intrastat.title"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("finanz.tab.unten.intrastat.tooltip"),
-							IDX_TABBED_PANE_INTRASTAT);
-			index++;
-		}
-
-		if (bVollversion) {
-			// 14 tab unten: Grunddaten; lazy loading
-			// nur anzeigen wenn Benutzer Recht dazu hat
-			if (DelegateFactory.getInstance().getTheJudgeDelegate()
-					.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
-				IDX_TABBED_PANE_GRUNDDATEN = index;
-				tabbedPaneRoot
-						.insertTab(
-								LPMain.getTextRespectUISPr("finanz.tab.unten.grunddaten.title"),
-								null,
-								null,
-								LPMain.getTextRespectUISPr("finanz.tab.unten.grunddaten.tooltip"),
-								IDX_TABBED_PANE_GRUNDDATEN);
+		// PJ22333
+		if (isChefbuchhalter()) {
+			if (bIntrastat) {
+				// 13 tab unten: Zahlungsvorschlag
+				IDX_TABBED_PANE_INTRASTAT = index;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.intrastat.title"), null, null,
+						LPMain.getTextRespectUISPr("finanz.tab.unten.intrastat.tooltip"), IDX_TABBED_PANE_INTRASTAT);
+				index++;
 			}
-			index++;
+
+			if (bVollversion) {
+				// 14 tab unten: Grunddaten; lazy loading
+				// nur anzeigen wenn Benutzer Recht dazu hat
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+					IDX_TABBED_PANE_GRUNDDATEN = index;
+					tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("finanz.tab.unten.grunddaten.title"), null,
+							null, LPMain.getTextRespectUISPr("finanz.tab.unten.grunddaten.tooltip"),
+							IDX_TABBED_PANE_GRUNDDATEN);
+				}
+				index++;
+			}
 		}
 		// dem frame das icon setzen
-		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
-				"/com/lp/client/res/books16x16.png"));
+		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource("/com/lp/client/res/books16x16.png"));
 		setFrameIcon(iicon);
 
 		registerChangeListeners();
 		tabbedPaneRoot.setSelectedComponent(getTabbedPaneSachKonten());
-		selectedKontoPane = getTabbedPaneSachKonten() ;
+		selectedKontoPane = getTabbedPaneSachKonten();
 
 		tabbedPaneSachKonten.lPEventObjectChanged(null);
 	}
@@ -401,21 +338,21 @@ public class InternalFrameFinanz extends InternalFrame {
 	public void lPStateChanged(EventObject e) throws Throwable {
 		int selectedCur = tabbedPaneRoot.getSelectedIndex();
 		setRechtModulweit(sRechtModulweit);
-		selectedKontoPane = null ;		
+		selectedKontoPane = null;
 		if (selectedCur == IDX_TABBED_PANE_SACHKONTEN) {
 			// Info an Tabbedpane, bist selektiert worden.
 			getTabbedPaneSachKonten().lPEventObjectChanged(null);
-			selectedKontoPane = getTabbedPaneSachKonten() ;
+			selectedKontoPane = getTabbedPaneSachKonten();
 		}
 		if (selectedCur == IDX_TABBED_PANE_DEBITORENKONTEN) {
 			// Info an Tabbedpane, bist selektiert worden.
 			getTabbedPaneDebitorenKonten().lPEventObjectChanged(null);
-			selectedKontoPane = getTabbedPaneDebitorenKonten() ;
+			selectedKontoPane = getTabbedPaneDebitorenKonten();
 		}
 		if (selectedCur == IDX_TABBED_PANE_KREDITORENKONTEN) {
 			// Info an Tabbedpane, bist selektiert worden.
 			getTabbedPaneKreditorenKonten().lPEventObjectChanged(null);
-			selectedKontoPane = getTabbedPaneKreditorenKonten() ;
+			selectedKontoPane = getTabbedPaneKreditorenKonten();
 		} else if (selectedCur == IDX_TABBED_PANE_KASSENBUCH) {
 			// Info an Tabbedpane, bist selektiert worden.
 			getTabbedPaneKassenbuch().lPEventObjectChanged(null);
@@ -440,10 +377,7 @@ public class InternalFrameFinanz extends InternalFrame {
 		} else if (selectedCur == IDX_TABBED_PANE_FINANZAMT) {
 
 			setRechtModulweit(RechteFac.RECHT_MODULWEIT_READ);
-			boolean hatRecht = DelegateFactory.getInstance()
-					.getTheJudgeDelegate()
-					.hatRecht(RechteFac.RECHT_FB_CHEFBUCHHALTER);
-			if (hatRecht == true) {
+			if (isChefbuchhalter()) {
 				setRechtModulweit(RechteFac.RECHT_MODULWEIT_UPDATE);
 			}
 
@@ -466,45 +400,37 @@ public class InternalFrameFinanz extends InternalFrame {
 		}
 	}
 
+	public boolean isChefbuchhalter() throws Throwable {
+		return bChefbuchhalter;
+	}
+
 	@Override
 	public JTabbedPane getSelectedTabbedPane() {
-		return selectedKontoPane ; 
+		return selectedKontoPane;
 	}
-	
-	private TabbedPaneKontenSachkonten getTabbedPaneSachKonten()
-			throws Throwable {
+
+	private TabbedPaneKontenSachkonten getTabbedPaneSachKonten() throws Throwable {
 		if (tabbedPaneSachKonten == null) {
-			// lazy loading
-			tabbedPaneSachKonten = new TabbedPaneKontenSachkonten(this,
-					geschaeftsjahrViewController);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_SACHKONTEN,
-					tabbedPaneSachKonten);
+			tabbedPaneSachKonten = new TabbedPaneKontenSachkonten(this, geschaeftsjahrViewController);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_SACHKONTEN, tabbedPaneSachKonten);
 			initComponents();
 		}
 		return tabbedPaneSachKonten;
 	}
 
-	private TabbedPaneKontenDebitorenkonten getTabbedPaneDebitorenKonten()
-			throws Throwable {
+	private TabbedPaneKontenDebitorenkonten getTabbedPaneDebitorenKonten() throws Throwable {
 		if (tabbedPaneDebitorenKonten == null) {
-			// lazy loading
-			tabbedPaneDebitorenKonten = new TabbedPaneKontenDebitorenkonten(
-					this, geschaeftsjahrViewController);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_DEBITORENKONTEN,
-					tabbedPaneDebitorenKonten);
+			tabbedPaneDebitorenKonten = new TabbedPaneKontenDebitorenkonten(this, geschaeftsjahrViewController);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_DEBITORENKONTEN, tabbedPaneDebitorenKonten);
 			initComponents();
 		}
 		return tabbedPaneDebitorenKonten;
 	}
 
-	private TabbedPaneKontenKreditorenkonten getTabbedPaneKreditorenKonten()
-			throws Throwable {
+	private TabbedPaneKontenKreditorenkonten getTabbedPaneKreditorenKonten() throws Throwable {
 		if (tabbedPaneKreditorenKonten == null) {
-			// lazy loading
-			tabbedPaneKreditorenKonten = new TabbedPaneKontenKreditorenkonten(
-					this, geschaeftsjahrViewController);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_KREDITORENKONTEN,
-					tabbedPaneKreditorenKonten);
+			tabbedPaneKreditorenKonten = new TabbedPaneKontenKreditorenkonten(this, geschaeftsjahrViewController);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_KREDITORENKONTEN, tabbedPaneKreditorenKonten);
 			initComponents();
 		}
 		return tabbedPaneKreditorenKonten;
@@ -512,63 +438,59 @@ public class InternalFrameFinanz extends InternalFrame {
 
 	private TabbedPaneKassenbuch getTabbedPaneKassenbuch() throws Throwable {
 		if (tabbedPaneKassenbuch == null) {
-			// lazy loading
-			tabbedPaneKassenbuch = new TabbedPaneKassenbuch(this,
-					geschaeftsjahrViewController);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_KASSENBUCH,
-					tabbedPaneKassenbuch);
+			tabbedPaneKassenbuch = new TabbedPaneKassenbuch(this, geschaeftsjahrViewController);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_KASSENBUCH, tabbedPaneKassenbuch);
 			initComponents();
 		}
 		return tabbedPaneKassenbuch;
 	}
 
-	private TabbedPaneBuchungsjournal getTabbedPaneBuchungsjournal()
-			throws Throwable {
+	private TabbedPaneBuchungsjournal getTabbedPaneBuchungsjournal() throws Throwable {
 		if (tabbedPaneBuchungsjournal == null) {
 			// lazy loading
-			tabbedPaneBuchungsjournal = new TabbedPaneBuchungsjournal(this,
-					geschaeftsjahrViewController);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_BUCHUNGSJOURNAL,
-					tabbedPaneBuchungsjournal);
+			tabbedPaneBuchungsjournal = new TabbedPaneBuchungsjournal(this, geschaeftsjahrViewController);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_BUCHUNGSJOURNAL, tabbedPaneBuchungsjournal);
 			initComponents();
 		}
 		return tabbedPaneBuchungsjournal;
 	}
 
-	private TabbedPaneBankverbindung getTabbedPaneBankverbindung()
-			throws Throwable {
+	public TabbedPaneBankverbindung getTabbedPaneBankverbindung() throws Throwable {
 		if (tabbedPaneBankverbindung == null) {
 			// lazy loading
 			tabbedPaneBankverbindung = new TabbedPaneBankverbindung(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_BANKVERBINDUNG,
-					tabbedPaneBankverbindung);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_BANKVERBINDUNG, tabbedPaneBankverbindung);
 			initComponents();
 		}
 		return tabbedPaneBankverbindung;
 	}
 
-	public KostenstelleDto getDefaultKostenstelle() throws Throwable {
-		MandantDto mDto = DelegateFactory.getInstance().getMandantDelegate()
-				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant());
+	public KostenstelleDto getDefaultKostenstelle() {
+		try {
+			MandantDto mDto = DelegateFactory.getInstance().getMandantDelegate()
+					.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant());
+			if (mDto.getKostenstelleIIdFibu() == null) {
+				return null;
+			}
 
-		if (mDto.getKostenstelleIIdFibu() == null) {
-			return null;
-		} else {
-			return DelegateFactory
-					.getInstance()
-					.getSystemDelegate()
+			return DelegateFactory.getInstance().getSystemDelegate()
 					.kostenstelleFindByPrimaryKey(mDto.getKostenstelleIIdFibu());
+		} catch (ExceptionLP e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Throwable e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return null;
 
 	}
 
-	
 	private TabbedPaneExport getTabbedPaneExport() throws Throwable {
 		if (tabbedPaneExport == null) {
 			// lazy loading
 			tabbedPaneExport = new TabbedPaneExport(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_EXPORT,
-					tabbedPaneExport);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_EXPORT, tabbedPaneExport);
 			initComponents();
 		}
 		return tabbedPaneExport;
@@ -578,20 +500,17 @@ public class InternalFrameFinanz extends InternalFrame {
 		if (tabbedPaneIntrastat == null) {
 			// lazy loading
 			tabbedPaneIntrastat = new TabbedPaneIntrastat(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_INTRASTAT,
-					tabbedPaneIntrastat);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_INTRASTAT, tabbedPaneIntrastat);
 			initComponents();
 		}
 		return tabbedPaneIntrastat;
 	}
 
-	private TabbedPaneZahlungsvorschlag getTabbedPaneZahlungsvorschlag()
-			throws Throwable {
+	private TabbedPaneZahlungsvorschlag getTabbedPaneZahlungsvorschlag() throws Throwable {
 		if (tabbedPaneZahlungsvorschlag == null) {
 			// lazy loading
 			tabbedPaneZahlungsvorschlag = new TabbedPaneZahlungsvorschlag(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZAHLUNGSVORSCHLAG,
-					tabbedPaneZahlungsvorschlag);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZAHLUNGSVORSCHLAG, tabbedPaneZahlungsvorschlag);
 			initComponents();
 		}
 		return tabbedPaneZahlungsvorschlag;
@@ -601,50 +520,40 @@ public class InternalFrameFinanz extends InternalFrame {
 		if (tabbedPaneMahnwesen == null) {
 			// lazy loading
 			tabbedPaneMahnwesen = new TabbedPaneMahnwesen(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MAHNWESEN,
-					tabbedPaneMahnwesen);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MAHNWESEN, tabbedPaneMahnwesen);
 			initComponents();
 		}
 		return tabbedPaneMahnwesen;
 	}
 
-	private TabbedPaneErgebnisgruppen getTabbedPaneErgebnisgruppen()
-			throws Throwable {
+	private TabbedPaneErgebnisgruppen getTabbedPaneErgebnisgruppen() throws Throwable {
 		if (tabbedPaneErgebnisgruppen == null) {
 			// lazy loading
 
-			tabbedPaneErgebnisgruppen = new TabbedPaneErgebnisgruppen(
-					this,
-					LPMain.getTextRespectUISPr("finanz.tab.unten.ergebnisgruppen.title"),
-					false);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ERGEBNISGRUPPEN,
-					tabbedPaneErgebnisgruppen);
+			tabbedPaneErgebnisgruppen = new TabbedPaneErgebnisgruppen(this,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.ergebnisgruppen.title"), false);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ERGEBNISGRUPPEN, tabbedPaneErgebnisgruppen);
 			initComponents();
 		}
 		return tabbedPaneErgebnisgruppen;
 	}
 
-	private TabbedPaneErgebnisgruppen getTabbedPaneBilanzgruppen()
-			throws Throwable {
+	private TabbedPaneErgebnisgruppen getTabbedPaneBilanzgruppen() throws Throwable {
 		if (tabbedPaneBilanzgruppen == null) {
 			// lazy loading
-			tabbedPaneBilanzgruppen = new TabbedPaneErgebnisgruppen(
-					this,
-					LPMain.getTextRespectUISPr("finanz.tab.unten.bilanzgruppen.title"),
-					true);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_BILANZGRUPPEN,
-					tabbedPaneBilanzgruppen);
+			tabbedPaneBilanzgruppen = new TabbedPaneErgebnisgruppen(this,
+					LPMain.getTextRespectUISPr("finanz.tab.unten.bilanzgruppen.title"), true);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_BILANZGRUPPEN, tabbedPaneBilanzgruppen);
 			initComponents();
 		}
 		return tabbedPaneBilanzgruppen;
 	}
 
-	private TabbedPaneFinanzamt getTabbedPaneFinanzamt() throws Throwable {
+	public TabbedPaneFinanzamt getTabbedPaneFinanzamt() throws Throwable {
 		if (tabbedPaneFinanzamt == null) {
 			// lazy loading
 			tabbedPaneFinanzamt = new TabbedPaneFinanzamt(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_FINANZAMT,
-					tabbedPaneFinanzamt);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_FINANZAMT, tabbedPaneFinanzamt);
 			initComponents();
 		}
 		return tabbedPaneFinanzamt;
@@ -654,8 +563,7 @@ public class InternalFrameFinanz extends InternalFrame {
 		if (tabbedPaneWaehrung == null) {
 			// lazy loading
 			tabbedPaneWaehrung = new TabbedPaneWaehrung(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_WAEHRUNG,
-					tabbedPaneWaehrung);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_WAEHRUNG, tabbedPaneWaehrung);
 			initComponents();
 
 		}
@@ -666,8 +574,7 @@ public class InternalFrameFinanz extends InternalFrame {
 		if (tabbedPaneGrunddaten == null) {
 			// lazy loading
 			tabbedPaneGrunddaten = new TabbedPaneGrunddaten(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN,
-					tabbedPaneGrunddaten);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN, tabbedPaneGrunddaten);
 			initComponents();
 		}
 		return tabbedPaneGrunddaten;
@@ -699,4 +606,16 @@ public class InternalFrameFinanz extends InternalFrame {
 
 	protected void menuActionPerformed(ActionEvent e) throws Throwable {
 	}
+
+	@Override
+	public void enableAllPanelsExcept(boolean enableI) {
+		super.enableAllPanelsExcept(enableI);
+
+		try {
+			getTabbedPaneBankverbindung().enableTabSepaKontoauszug();
+		} catch (Throwable e) {
+			myLogger.warn(e);
+		}
+	}
+
 }

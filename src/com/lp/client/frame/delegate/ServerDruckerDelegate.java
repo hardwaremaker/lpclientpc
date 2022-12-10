@@ -38,6 +38,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.server.reklamation.service.ReklamationFac;
 import com.lp.server.system.service.ServerDruckerFac;
 
 public class ServerDruckerDelegate extends Delegate {
@@ -48,8 +49,7 @@ public class ServerDruckerDelegate extends Delegate {
 	public ServerDruckerDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			serverdruckerFac = (ServerDruckerFac) context
-					.lookup("lpserver/ServerDruckerFacBean/remote");
+			serverdruckerFac = lookupFac(context, ServerDruckerFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

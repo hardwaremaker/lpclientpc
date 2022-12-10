@@ -33,11 +33,13 @@
 package com.lp.client.partner;
 
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.util.EventObject;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.KeyStroke;
 import javax.swing.event.ChangeEvent;
 
 import com.lp.client.frame.LockStateValue;
@@ -52,7 +54,6 @@ import com.lp.client.frame.component.WrapperMenu;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
-import com.lp.client.stueckliste.PanelDialogStuecklisteKommentar;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.partner.fastlanereader.generated.service.FLRSerienbriefselektionPK;
 import com.lp.server.partner.fastlanereader.generated.service.FLRSerienbriefselektionnegativPK;
@@ -61,18 +62,27 @@ import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.SerienbriefDto;
 import com.lp.server.partner.service.SerienbriefselektionDto;
 import com.lp.server.partner.service.SerienbriefselektionnegativDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
 /**
- * <p> Diese Klasse kuemmert sich den Serienbrief.</p>
+ * <p>
+ * Diese Klasse kuemmert sich den Serienbrief.
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellung: Josef Ornetsmueller; 16.11.05</p>
+ * <p>
+ * Erstellung: Josef Ornetsmueller; 16.11.05
+ * </p>
  *
- * <p>@author $Author: christian $</p>
+ * <p>
+ * @author $Author: christian $
+ * </p>
  *
  * @version not attributable Date $Date: 2012/10/19 09:32:02 $
  */
@@ -88,13 +98,15 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 	private PASelektionDto pASelektionDto = new PASelektionDto();
 
 	private final static int IDX_PANEL_SERIENBRIEF_QP1 = 0;
-	private final static int IDX_PANEL_SERIENBRIEF_KOPFDATEN_D2 = 1;
+	public final static int IDX_PANEL_SERIENBRIEF_KOPFDATEN_D2 = 1;
 	private final static int IDX_PANEL_SERIENBRIEF_SELEKTION_SP3 = 2;
 	private final static int IDX_PANEL_SERIENBRIEF_SELEKTIONNEGATIV_SP3 = 3;
 
 	private final String MENUE_ACTION_EMPFAENGERLISTE = "MENUE_ACTION_EMPFAENGERLISTE";
 
 	private final String MENU_BEARBEITEN_MAILTEXT = "MENU_BEARBEITEN_MAILTEXT";
+	private static final String ACTION_SPECIAL_NEW_EMAIL = "action_special_" + PanelBasis.ALWAYSENABLED
+			+ "new_email_entry";
 
 	private PanelQuery panelSerienbriefQP1 = null;
 
@@ -123,32 +135,20 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 	 */
 	private void jbInit() throws Throwable {
 		// 1 tab oben: QP1 PartnerFLR; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_SERIENBRIEF_QP1);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), IDX_PANEL_SERIENBRIEF_QP1);
 
 		// 2 tab oben: D2 Serienbrief Kopfdaten; lazy loading
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr("anf.panel.kopfdaten"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr("anf.panel.kopfdaten"),
-				IDX_PANEL_SERIENBRIEF_KOPFDATEN_D2);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("anf.panel.kopfdaten"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("anf.panel.kopfdaten"), IDX_PANEL_SERIENBRIEF_KOPFDATEN_D2);
 
 		// 3 tab oben; Splitpane Serienbrief; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.selektion"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.selektion"),
-				IDX_PANEL_SERIENBRIEF_SELEKTION_SP3);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.selektion"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.selektion"), IDX_PANEL_SERIENBRIEF_SELEKTION_SP3);
 
 		// 4 tab oben; Splitpane Serienbriefnegativ; lazy loading
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"part.negative.selektion"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"part.negative.selektion"),
+		insertTab(LPMain.getInstance().getTextRespectUISPr("part.negative.selektion"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("part.negative.selektion"),
 				IDX_PANEL_SERIENBRIEF_SELEKTIONNEGATIV_SP3);
 
 		// defaults
@@ -159,16 +159,12 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 		getPartnerDto().setIId((Integer) panelSerienbriefQP1.getSelectedId());
 
 		if ((Integer) panelSerienbriefQP1.getSelectedId() != null) {
-			setSerienbriefDto(DelegateFactory
-					.getInstance()
-					.getPartnerServicesDelegate()
-					.serienbriefFindByPrimaryKey(
-							(Integer) panelSerienbriefQP1.getSelectedId()));
+			setSerienbriefDto(DelegateFactory.getInstance().getPartnerServicesDelegate()
+					.serienbriefFindByPrimaryKey((Integer) panelSerienbriefQP1.getSelectedId()));
 		}
 
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelSerienbriefQP1,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelSerienbriefQP1, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		addChangeListener(this);
@@ -183,8 +179,8 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 		if (wrapperMenuBar == null) {
 			wrapperMenuBar = new WrapperMenuBar(this);
 
-			JMenuItem menuItemEmpfaenger = new JMenuItem(LPMain.getInstance()
-					.getTextRespectUISPr("partner.report.empfaengerliste"));
+			JMenuItem menuItemEmpfaenger = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("partner.report.empfaengerliste"));
 			menuItemEmpfaenger.addActionListener(this);
 			menuItemEmpfaenger.setActionCommand(MENUE_ACTION_EMPFAENGERLISTE);
 
@@ -193,14 +189,12 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 
 			wrapperMenuBar.addJMenuItem(menuInfo);
 
-			JMenu jmBearbeiten = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
+			JMenu jmBearbeiten = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
 
-			JMenuItem menuItemBearbeitenMailtext = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr("lp.emailtext"));
+			JMenuItem menuItemBearbeitenMailtext = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("lp.emailtext"));
 			menuItemBearbeitenMailtext.addActionListener(this);
-			menuItemBearbeitenMailtext
-					.setActionCommand(MENU_BEARBEITEN_MAILTEXT);
+			menuItemBearbeitenMailtext.setActionCommand(MENU_BEARBEITEN_MAILTEXT);
 			jmBearbeiten.add(menuItemBearbeitenMailtext, 0);
 
 		}
@@ -210,25 +204,21 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 	/**
 	 * Behandle ActionEvent; zB Menue-Klick oben.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void lPActionEvent(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(MENUE_ACTION_EMPFAENGERLISTE)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"partner.report.empfaengerliste");
-			getInternalFrame().showReportKriterien(
-					new ReportEmpfaengerliste(getInternalFrame(),
-							getSerienbriefDto().getIId(), add2Title));
+			if (getSerienbriefDto() != null && getSerienbriefDto().getIId() != null) {
+				String add2Title = LPMain.getInstance().getTextRespectUISPr("partner.report.empfaengerliste");
+				getInternalFrame().showReportKriterien(
+						new ReportEmpfaengerliste(getInternalFrame(), getSerienbriefDto().getIId(), add2Title));
+			}
 		} else if (e.getActionCommand().equals(MENU_BEARBEITEN_MAILTEXT)) {
 
-			if (panelSerienbriefKopfdatenD2 == null
-					|| !panelSerienbriefKopfdatenD2.isLockedDlg()) {
-				getInternalFrame().showPanelDialog(
-						new PanelDialogMailtext(getInternalFrame(), this,
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.emailtext")));
+			if (panelSerienbriefKopfdatenD2 == null || !panelSerienbriefKopfdatenD2.isLockedDlg()) {
+				getInternalFrame().showPanelDialog(new PanelDialogMailtext(getInternalFrame(), this,
+						LPMain.getInstance().getTextRespectUISPr("lp.emailtext")));
 
 			}
 		}
@@ -246,8 +236,7 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 		if (getSerienbriefDto() != null) {
 			sBezeichnung = getSerienbriefDto().getCBez();
 		}
-		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
-				sBezeichnung);
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, sBezeichnung);
 
 	}
 
@@ -269,15 +258,13 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 		}
 
 		else if (selectedIndex == IDX_PANEL_SERIENBRIEF_SELEKTION_SP3) {
-			Integer iId = (Integer) panelSerienbriefQP1.getSelectedId();
-			refreshSerienbriefSelektionSP3(iId);
+			refreshSerienbriefSelektionSP3(getSerienbriefDto().getIId());
 			panelSerienbriefSelektionSP3.eventYouAreSelected(false);
 			panelSerienbriefSelektionTopQP3.updateButtons();
 		}
 
 		else if (selectedIndex == IDX_PANEL_SERIENBRIEF_SELEKTIONNEGATIV_SP3) {
-			Integer iId = (Integer) panelSerienbriefQP1.getSelectedId();
-			refreshSerienbriefSelektionnegativSP3(iId);
+			refreshSerienbriefSelektionnegativSP3(getSerienbriefDto().getIId());
 			panelSerienbriefSelektionnegativSP3.eventYouAreSelected(false);
 			panelSerienbriefSelektionnegativTopQP3.updateButtons();
 		}
@@ -289,73 +276,54 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 	 * refreshSerienbriefSelektionSP2
 	 * 
 	 * @throws Throwable
-	 * @param iIdSerienbriefI
-	 *            Integer
+	 * @param iIdSerienbriefI Integer
 	 */
-	private void refreshSerienbriefSelektionSP3(Integer iIdSerienbriefI)
-			throws Throwable {
+	private void refreshSerienbriefSelektionSP3(Integer iIdSerienbriefI) throws Throwable {
 
 		if (panelSerienbriefSelektionTopQP3 == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
 			QueryType[] querytypes = null;
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKSerienbrief(iIdSerienbriefI);
-			panelSerienbriefSelektionTopQP3 = new PanelQuery(querytypes,
-					filters, QueryParameters.UC_ID_SERIENBRIEFSELEKTION,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"lp.uebersicht.detail"), true);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKSerienbrief(iIdSerienbriefI);
+			panelSerienbriefSelektionTopQP3 = new PanelQuery(querytypes, filters,
+					QueryParameters.UC_ID_SERIENBRIEFSELEKTION, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.uebersicht.detail"), true);
 
-			panelSerienbriefSelektionBottomD3 = new PanelPartnerSerienbriefSelektion(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.selektion"), null, this);
+			panelSerienbriefSelektionBottomD3 = new PanelPartnerSerienbriefSelektion(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.selektion"), null, this);
 
-			panelSerienbriefSelektionSP3 = new PanelSplit(getInternalFrame(),
-					panelSerienbriefSelektionBottomD3,
+			panelSerienbriefSelektionSP3 = new PanelSplit(getInternalFrame(), panelSerienbriefSelektionBottomD3,
 					panelSerienbriefSelektionTopQP3, 200);
-			setComponentAt(IDX_PANEL_SERIENBRIEF_SELEKTION_SP3,
-					panelSerienbriefSelektionSP3);
+			setComponentAt(IDX_PANEL_SERIENBRIEF_SELEKTION_SP3, panelSerienbriefSelektionSP3);
 		} else {
 			// filter refreshen.
 			panelSerienbriefSelektionTopQP3
-					.setDefaultFilter(PartnerFilterFactory.getInstance()
-							.createFKSerienbriefSelektion(iIdSerienbriefI));
+					.setDefaultFilter(PartnerFilterFactory.getInstance().createFKSerienbriefSelektion(iIdSerienbriefI));
 		}
 
 	}
 
-	private void refreshSerienbriefSelektionnegativSP3(Integer iIdSerienbriefI)
-			throws Throwable {
+	private void refreshSerienbriefSelektionnegativSP3(Integer iIdSerienbriefI) throws Throwable {
 
 		if (panelSerienbriefSelektionnegativTopQP3 == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
 			QueryType[] querytypes = null;
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKSerienbrief(iIdSerienbriefI);
-			panelSerienbriefSelektionnegativTopQP3 = new PanelQuery(querytypes,
-					filters, QueryParameters.UC_ID_SERIENBRIEFSELEKTIONNEGATIV,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"lp.uebersicht.detail"), true);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKSerienbrief(iIdSerienbriefI);
+			panelSerienbriefSelektionnegativTopQP3 = new PanelQuery(querytypes, filters,
+					QueryParameters.UC_ID_SERIENBRIEFSELEKTIONNEGATIV, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.uebersicht.detail"), true);
 
-			panelSerienbriefSelektionnegativBottomD3 = new PanelPartnerSerienbriefselektionnegativ(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("part.negative.selektion"),
-					null, this);
+			panelSerienbriefSelektionnegativBottomD3 = new PanelPartnerSerienbriefselektionnegativ(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("part.negative.selektion"), null, this);
 
-			panelSerienbriefSelektionnegativSP3 = new PanelSplit(
-					getInternalFrame(),
-					panelSerienbriefSelektionnegativBottomD3,
-					panelSerienbriefSelektionnegativTopQP3, 200);
-			setComponentAt(IDX_PANEL_SERIENBRIEF_SELEKTIONNEGATIV_SP3,
-					panelSerienbriefSelektionnegativSP3);
+			panelSerienbriefSelektionnegativSP3 = new PanelSplit(getInternalFrame(),
+					panelSerienbriefSelektionnegativBottomD3, panelSerienbriefSelektionnegativTopQP3, 200);
+			setComponentAt(IDX_PANEL_SERIENBRIEF_SELEKTIONNEGATIV_SP3, panelSerienbriefSelektionnegativSP3);
 		} else {
 			// filter refreshen.
 			panelSerienbriefSelektionnegativTopQP3
-					.setDefaultFilter(PartnerFilterFactory.getInstance()
-							.createFKSerienbriefSelektion(iIdSerienbriefI));
+					.setDefaultFilter(PartnerFilterFactory.getInstance().createFKSerienbriefSelektion(iIdSerienbriefI));
 		}
 
 	}
@@ -367,38 +335,30 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 				Object key = ((ISourceEvent) eI.getSource()).getIdSelected();
 
 				if (key != null) {
-					serienbriefDto = DelegateFactory.getInstance()
-							.getPartnerServicesDelegate()
+					serienbriefDto = DelegateFactory.getInstance().getPartnerServicesDelegate()
 							.serienbriefFindByPrimaryKey((Integer) key);
 					getInternalFrame().setKeyWasForLockMe(key + "");
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_SERIENBRIEF_QP1, (key != null));
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_SERIENBRIEF_QP1, (key != null));
 				} else {
 
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_SERIENBRIEF_QP1, false);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_SERIENBRIEF_QP1, false);
 				}
 
 				if (getSerienbriefDto() != null) {
-					getInternalFrame().setLpTitle(
-							InternalFrame.TITLE_IDX_AS_I_LIKE,
-							getSerienbriefDto().getCBez());
+					getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, getSerienbriefDto().getCBez());
 				}
 
 			} else if (eI.getSource() == panelSerienbriefSelektionTopQP3) {
 				FLRSerienbriefselektionPK fLRSerienbriefselektionPK = (FLRSerienbriefselektionPK) panelSerienbriefSelektionTopQP3
 						.getSelectedId();
-				panelSerienbriefSelektionBottomD3
-						.setKeyWhenDetailPanel(fLRSerienbriefselektionPK);
+				panelSerienbriefSelektionBottomD3.setKeyWhenDetailPanel(fLRSerienbriefselektionPK);
 				panelSerienbriefSelektionBottomD3.eventYouAreSelected(false);
 				panelSerienbriefSelektionTopQP3.updateButtons();
 			} else if (eI.getSource() == panelSerienbriefSelektionnegativTopQP3) {
 				FLRSerienbriefselektionnegativPK fLRSerienbriefselektionnegativPK = (FLRSerienbriefselektionnegativPK) panelSerienbriefSelektionnegativTopQP3
 						.getSelectedId();
-				panelSerienbriefSelektionnegativBottomD3
-						.setKeyWhenDetailPanel(fLRSerienbriefselektionnegativPK);
-				panelSerienbriefSelektionnegativBottomD3
-						.eventYouAreSelected(false);
+				panelSerienbriefSelektionnegativBottomD3.setKeyWhenDetailPanel(fLRSerienbriefselektionnegativPK);
+				panelSerienbriefSelektionnegativBottomD3.eventYouAreSelected(false);
 				panelSerienbriefSelektionnegativTopQP3.updateButtons();
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
@@ -407,20 +367,18 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 		} else if (eI.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (eI.getSource() == panelSerienbriefQP1) {
 				refreshSerienbriefKopfdatenD2(null);
+				panelSerienbriefKopfdatenD2.bePlain();
 				panelSerienbriefKopfdatenD2.eventActionNew(eI, true, false);
 				setSelectedComponent(panelSerienbriefKopfdatenD2);
 			} else if (eI.getSource() == panelSerienbriefSelektionTopQP3) {
 				// refreshSerienbriefSelektionSP3();
-				panelSerienbriefSelektionBottomD3.eventActionNew(eI, true,
-						false);
+				panelSerienbriefSelektionBottomD3.eventActionNew(eI, true, false);
 				panelSerienbriefSelektionBottomD3.eventYouAreSelected(false);
 				setSelectedComponent(panelSerienbriefSelektionSP3);
 			} else if (eI.getSource() == panelSerienbriefSelektionnegativTopQP3) {
 				// refreshSerienbriefSelektionSP3();
-				panelSerienbriefSelektionnegativBottomD3.eventActionNew(eI,
-						true, false);
-				panelSerienbriefSelektionnegativBottomD3
-						.eventYouAreSelected(false);
+				panelSerienbriefSelektionnegativBottomD3.eventActionNew(eI, true, false);
+				panelSerienbriefSelektionnegativBottomD3.eventYouAreSelected(false);
 				setSelectedComponent(panelSerienbriefSelektionnegativSP3);
 			}
 		}
@@ -435,10 +393,8 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 		else if (eI.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			if (eI.getSource() == panelSerienbriefKopfdatenD2) {
 				panelSerienbriefQP1.eventYouAreSelected(false);
-				getSerienbriefDto().setIId(
-						(Integer) panelSerienbriefQP1.getSelectedId());
-				getInternalFrame().setKeyWasForLockMe(
-						panelSerienbriefQP1.getSelectedId() + "");
+				getSerienbriefDto().setIId((Integer) panelSerienbriefQP1.getSelectedId());
+				getInternalFrame().setKeyWasForLockMe(panelSerienbriefQP1.getSelectedId() + "");
 				setSelectedComponent(panelSerienbriefQP1);
 			} else if (eI.getSource() == panelSerienbriefSelektionBottomD3) {
 				Integer iId = (Integer) panelSerienbriefQP1.getSelectedId();
@@ -476,75 +432,82 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 		else if (eI.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			// hier kommt man nach upd im D bei einem 1:n hin.
 			if (eI.getSource() == panelSerienbriefSelektionBottomD3) {
-				panelSerienbriefSelektionTopQP3
-						.updateButtons(new LockStateValue(
-								PanelBasis.LOCK_FOR_NEW));
+				panelSerienbriefSelektionTopQP3.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (eI.getSource() == panelSerienbriefSelektionnegativBottomD3) {
-				panelSerienbriefSelektionnegativTopQP3
-						.updateButtons(new LockStateValue(
-								PanelBasis.LOCK_FOR_NEW));
+				panelSerienbriefSelektionnegativTopQP3.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 		}
 
 		else if (eI.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			if (eI.getSource() == panelSerienbriefKopfdatenD2) {
 				panelSerienbriefQP1.eventYouAreSelected(false);
-				getSerienbriefDto().setIId(
-						(Integer) panelSerienbriefQP1.getSelectedId());
-				getInternalFrame().setKeyWasForLockMe(
-						panelSerienbriefQP1.getSelectedId() + "");
+				getSerienbriefDto().setIId((Integer) panelSerienbriefQP1.getSelectedId());
+				getInternalFrame().setKeyWasForLockMe(panelSerienbriefQP1.getSelectedId() + "");
 				setSelectedComponent(panelSerienbriefQP1);
 			} else if (eI.getSource() == panelSerienbriefSelektionTopQP3) {
-				Integer iIdSerienbrief = (Integer) panelSerienbriefQP1
-						.getSelectedId();
+				Integer iIdSerienbrief = (Integer) panelSerienbriefQP1.getSelectedId();
 				refreshSerienbriefSelektionSP3(iIdSerienbrief);
 				getInternalFrame().setKeyWasForLockMe(iIdSerienbrief + "");
 				panelSerienbriefSelektionBottomD3.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelSerienbriefSelektionnegativTopQP3) {
-				Integer iIdSerienbrief = (Integer) panelSerienbriefQP1
-						.getSelectedId();
+				Integer iIdSerienbrief = (Integer) panelSerienbriefQP1.getSelectedId();
 				refreshSerienbriefSelektionnegativSP3(iIdSerienbrief);
 				getInternalFrame().setKeyWasForLockMe(iIdSerienbrief + "");
-				panelSerienbriefSelektionnegativBottomD3
-						.eventYouAreSelected(false);
+				panelSerienbriefSelektionnegativBottomD3.eventYouAreSelected(false);
 			}
 		}
 
 		else if (eI.getID() == ItemChangedEvent.ACTION_SAVE) {
 			if (eI.getSource() == panelSerienbriefKopfdatenD2) {
 				panelSerienbriefQP1.clearDirektFilter();
-				Object oKey = panelSerienbriefKopfdatenD2
-						.getKeyWhenDetailPanel();
+				Object oKey = panelSerienbriefKopfdatenD2.getKeyWhenDetailPanel();
 
 				panelSerienbriefQP1.setSelectedId(oKey);
 			}
 
 			else if (eI.getSource() == panelSerienbriefSelektionBottomD3) {
-				Object oKey = panelSerienbriefSelektionBottomD3
-						.getKeyWhenDetailPanel();
+				Object oKey = panelSerienbriefSelektionBottomD3.getKeyWhenDetailPanel();
 				panelSerienbriefSelektionTopQP3.eventYouAreSelected(false);
 				panelSerienbriefSelektionTopQP3.setSelectedId(oKey);
 				panelSerienbriefSelektionSP3.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelSerienbriefSelektionnegativBottomD3) {
-				Object oKey = panelSerienbriefSelektionnegativBottomD3
-						.getKeyWhenDetailPanel();
-				panelSerienbriefSelektionnegativTopQP3
-						.eventYouAreSelected(false);
+				Object oKey = panelSerienbriefSelektionnegativBottomD3.getKeyWhenDetailPanel();
+				panelSerienbriefSelektionnegativTopQP3.eventYouAreSelected(false);
 				panelSerienbriefSelektionnegativTopQP3.setSelectedId(oKey);
 				panelSerienbriefSelektionnegativSP3.eventYouAreSelected(false);
 			}
+		} else if (eI.getID() == ItemChangedEvent.ACTION_SPECIAL_BUTTON) {
+			if (eI.getSource() == panelSerienbriefQP1) {
+				PanelQuery pq = (PanelQuery) eI.getSource();
+				if (ACTION_SPECIAL_NEW_EMAIL.equals(pq.getAspect())) {
+					refreshSerienbriefKopfdatenD2(null);
+					panelSerienbriefKopfdatenD2.beHtml();
+					panelSerienbriefKopfdatenD2.eventActionNew(eI, true, false);
+					setSelectedComponent(panelSerienbriefKopfdatenD2);
+					panelSerienbriefKopfdatenD2.beEditMode(true);
+				}
+			}
 		}
-
 	}
 
 	private void refreshSerienbriefeQP1() throws Throwable {
 
 		if (panelSerienbriefQP1 == null) {
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
-			panelSerienbriefQP1 = new PanelQuery(null, null,
-					QueryParameters.UC_ID_PARTNERSERIENBRIEF, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.auswahl"), true);
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_EMAIL_CLIENT)) {
+				aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW, ACTION_SPECIAL_NEW_EMAIL };
+			}
+
+//			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
+			panelSerienbriefQP1 = new PanelQuery(null, null, QueryParameters.UC_ID_PARTNERSERIENBRIEF, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), true);
+			if (aWhichButtonIUse.length > 1) {
+				panelSerienbriefQP1.createAndSaveAndShowButton("/com/lp/client/res/documentHtml.png",
+						LPMain.getTextRespectUISPr("lp.newHtml"), ACTION_SPECIAL_NEW_EMAIL,
+						KeyStroke.getKeyStroke('N', InputEvent.CTRL_MASK + InputEvent.SHIFT_MASK), null);
+			}
+
 			setComponentAt(IDX_PANEL_SERIENBRIEF_QP1, panelSerienbriefQP1);
 		}
 	}
@@ -552,12 +515,9 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 	private void refreshSerienbriefKopfdatenD2(Integer key) throws Throwable {
 
 		if (panelSerienbriefKopfdatenD2 == null) {
-			panelSerienbriefKopfdatenD2 = new PanelSerienbriefKopfdaten(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("anf.panel.kopfdaten"), key,
-					this);
-			setComponentAt(IDX_PANEL_SERIENBRIEF_KOPFDATEN_D2,
-					panelSerienbriefKopfdatenD2);
+			panelSerienbriefKopfdatenD2 = new PanelSerienbriefKopfdaten(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("anf.panel.kopfdaten"), key, this);
+			setComponentAt(IDX_PANEL_SERIENBRIEF_KOPFDATEN_D2, panelSerienbriefKopfdatenD2);
 		}
 	}
 
@@ -583,19 +543,16 @@ public class TabbedPaneSerienbrief extends TabbedPane {
 	public SerienbriefselektionDto getSerienbriefselektionDto() {
 		return serienbriefselektionDto;
 	}
-	
 
 	public SerienbriefselektionnegativDto getSerienbriefselektionnegativDto() {
 		return serienbriefselektionnegativDto;
 	}
 
-	public void setSerienbriefselektionnegativDto(
-			SerienbriefselektionnegativDto serienbriefselektionnegativDto) {
+	public void setSerienbriefselektionnegativDto(SerienbriefselektionnegativDto serienbriefselektionnegativDto) {
 		this.serienbriefselektionnegativDto = serienbriefselektionnegativDto;
 	}
 
-	public void setSerienbriefselektionDto(
-			SerienbriefselektionDto serienbriefselektionDto) {
+	public void setSerienbriefselektionDto(SerienbriefselektionDto serienbriefselektionDto) {
 		this.serienbriefselektionDto = serienbriefselektionDto;
 	}
 

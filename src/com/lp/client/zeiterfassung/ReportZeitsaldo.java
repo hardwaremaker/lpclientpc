@@ -34,8 +34,8 @@ package com.lp.client.zeiterfassung;
 
 import java.awt.event.ActionEvent;
 import java.text.DateFormatSymbols;
-import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -156,6 +156,8 @@ public class ReportZeitsaldo extends ReportZeiterfassung implements
 		wcbBisGestern.setText(LPMain
 				.getTextRespectUISPr("pers.monatsabrechnung.nurbisgestern"));
 		wcbBisGestern.addActionListener(this);
+		
+		wcbNurAnwesende.setVisible(false);
 
 		wrbSortPersonalnummer.setSelected(true);
 
@@ -213,9 +215,9 @@ public class ReportZeitsaldo extends ReportZeiterfassung implements
 								(Integer) wcoMonat.getKeyOfSelectedItem(),
 								(Integer) wspJahrBis.getValue(),
 								(Integer) wcoMonatBis.getKeyOfSelectedItem(),
-								getPersonAuswahl(), iSortierung,
+								getPersonAuswahl(), getKostenstelleIIdAbteilung(), iSortierung,
 								mitVersteckten(), false,
-								new java.sql.Date(ts.getTime()), nurAnwesende());
+								new java.sql.Date(ts.getTime()));
 			} else {
 				jasperPrint = DelegateFactory
 						.getInstance()
@@ -225,10 +227,9 @@ public class ReportZeitsaldo extends ReportZeiterfassung implements
 								(Integer) wcoMonat.getKeyOfSelectedItem(),
 								(Integer) wspJahrBis.getValue(),
 								(Integer) wcoMonatBis.getKeyOfSelectedItem(),
-								getPersonAuswahl(), iSortierung,
+								getPersonAuswahl(), getKostenstelleIIdAbteilung(), iSortierung,
 								mitVersteckten(), !wcbBisHeute.isSelected(),
-								new java.sql.Date(System.currentTimeMillis()),
-								nurAnwesende());
+								new java.sql.Date(System.currentTimeMillis()));
 			}
 
 			// if (dtos != null && dtos.length > 0) {
@@ -243,7 +244,7 @@ public class ReportZeitsaldo extends ReportZeiterfassung implements
 		} catch (ExceptionLP ex) {
 
 			if (ex.getICode() == com.lp.util.EJBExceptionLP.FEHLER_PERSONAL_FEHLER_BEI_EINTRITTSDATUM) {
-				ArrayList<?> al = ex.getAlInfoForTheClient();
+				List<?> al = ex.getAlInfoForTheClient();
 				String sZusatz = null;
 				if (al.get(0) instanceof Integer) {
 

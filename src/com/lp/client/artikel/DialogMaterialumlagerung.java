@@ -49,6 +49,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import com.lp.client.fertigung.FertigungFilterFactory;
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
@@ -525,6 +526,8 @@ public class DialogMaterialumlagerung extends JDialog implements
 		wrbLager.setSelected(true);
 
 		wnfMenge.setMandatoryField(true);
+		wnfMenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		
 		wbuLager = new WrapperButton();
 		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr(
 				"button.lager"));

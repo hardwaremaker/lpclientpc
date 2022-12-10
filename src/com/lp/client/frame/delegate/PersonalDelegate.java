@@ -40,7 +40,10 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.personal.service.AbwesenheitsartDto;
+import com.lp.server.personal.service.AnwesenheitsbestaetigungDto;
 import com.lp.server.personal.service.ArtikelzulageDto;
+import com.lp.server.personal.service.ArtikelzuschlagDto;
 import com.lp.server.personal.service.BereitschaftartDto;
 import com.lp.server.personal.service.BereitschafttagDto;
 import com.lp.server.personal.service.BerufDto;
@@ -51,18 +54,22 @@ import com.lp.server.personal.service.FahrzeugkostenDto;
 import com.lp.server.personal.service.FeiertagDto;
 import com.lp.server.personal.service.GleitzeitsaldoDto;
 import com.lp.server.personal.service.KollektivDto;
+import com.lp.server.personal.service.KollektivUestdBVADto;
 import com.lp.server.personal.service.Kollektivuestd50Dto;
 import com.lp.server.personal.service.KollektivuestdDto;
 import com.lp.server.personal.service.LohnartDto;
 import com.lp.server.personal.service.LohnartstundenfaktorDto;
 import com.lp.server.personal.service.LohngruppeDto;
+import com.lp.server.personal.service.PassivereiseDto;
 import com.lp.server.personal.service.PendlerpauschaleDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.personal.service.PersonalFac;
 import com.lp.server.personal.service.PersonalangehoerigeDto;
+import com.lp.server.personal.service.PersonalfahrzeugDto;
 import com.lp.server.personal.service.PersonalgehaltDto;
 import com.lp.server.personal.service.PersonalgruppeDto;
 import com.lp.server.personal.service.PersonalgruppekostenDto;
+import com.lp.server.personal.service.PersonalterminalDto;
 import com.lp.server.personal.service.PersonalverfuegbarkeitDto;
 import com.lp.server.personal.service.PersonalzeitenDto;
 import com.lp.server.personal.service.PersonalzeitmodellDto;
@@ -70,10 +77,13 @@ import com.lp.server.personal.service.ReligionDto;
 import com.lp.server.personal.service.SchichtzeitmodellDto;
 import com.lp.server.personal.service.StundenabrechnungDto;
 import com.lp.server.personal.service.UrlaubsanspruchDto;
+import com.lp.server.personal.service.ZahltagDto;
 import com.lp.server.personal.service.ZeitabschlussDto;
 import com.lp.server.personal.service.ZulageDto;
+import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.TheClientDto;
 import com.lp.server.util.report.JasperPrintLP;
-import com.lp.util.EJBExceptionLP;
+import com.lp.util.Helper;
 import com.lp.util.report.PersonRpt;
 
 @SuppressWarnings("static-access")
@@ -84,25 +94,22 @@ public class PersonalDelegate extends Delegate {
 	public PersonalDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			personalFac = (PersonalFac) context
-					.lookup("lpserver/PersonalFacBean/remote");
+			personalFac = lookupFac(context, PersonalFac.class);
 		} catch (Throwable t) {
-			throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
+			handleThrowable(t);
 		}
 	}
 
 	public Integer createPersonal(PersonalDto personalDto) throws ExceptionLP {
 		try {
-			return personalFac.createPersonal(personalDto, LPMain.getInstance()
-					.getTheClient());
+			return personalFac.createPersonal(personalDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createPersonalgruppe(PersonalgruppeDto personalgruppeDto)
-			throws ExceptionLP {
+	public Integer createPersonalgruppe(PersonalgruppeDto personalgruppeDto) throws ExceptionLP {
 		try {
 			return personalFac.createPersonalgruppe(personalgruppeDto);
 		} catch (Throwable ex) {
@@ -111,19 +118,16 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer createPersonalgruppekosten(
-			PersonalgruppekostenDto personalgruppekostenDto) throws ExceptionLP {
+	public Integer createPersonalgruppekosten(PersonalgruppekostenDto personalgruppekostenDto) throws ExceptionLP {
 		try {
-			return personalFac
-					.createPersonalgruppekosten(personalgruppekostenDto);
+			return personalFac.createPersonalgruppekosten(personalgruppekostenDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public int getAnzahlDerZeitmodelleEinerPerson(Integer personalIId)
-			throws ExceptionLP {
+	public int getAnzahlDerZeitmodelleEinerPerson(Integer personalIId) throws ExceptionLP {
 		try {
 			return personalFac.getAnzahlDerZeitmodelleEinerPerson(personalIId);
 		} catch (Throwable ex) {
@@ -132,17 +136,24 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
+	public int getAnzahlDerNichtVerstecktenPersonenEinesMandanten() throws ExceptionLP {
+		try {
+			return personalFac.getAnzahlDerNichtVerstecktenPersonenEinesMandanten(LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return 0;
+		}
+	}
+
 	public void removePersonal(PersonalDto personalDto) throws ExceptionLP {
 		try {
-			personalFac.removePersonal(personalDto, LPMain.getInstance()
-					.getTheClient());
+			personalFac.removePersonal(personalDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void removePersonalgruppe(PersonalgruppeDto personalgruppeDto)
-			throws ExceptionLP {
+	public void removePersonalgruppe(PersonalgruppeDto personalgruppeDto) throws ExceptionLP {
 		try {
 			personalFac.removePersonalgruppe(personalgruppeDto);
 		} catch (Throwable ex) {
@@ -150,8 +161,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removePersonalgruppekosten(
-			PersonalgruppekostenDto personalgruppekostenDto) throws ExceptionLP {
+	public void removePersonalgruppekosten(PersonalgruppekostenDto personalgruppekostenDto) throws ExceptionLP {
 		try {
 			personalFac.removePersonalgruppekosten(personalgruppekostenDto);
 		} catch (Throwable ex) {
@@ -159,14 +169,22 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public JasperPrintLP printPersonalliste(java.sql.Timestamp tsStichtag,
-			boolean bMitBarcodes, boolean bMitVersteckten, int iOptionSortierung)
-			throws ExceptionLP {
+	public JasperPrintLP printPersonalliste(java.sql.Timestamp tsStichtag, Integer personalIId, boolean bMitBarcodes,
+			boolean bMitVersteckten, int iOptionSortierung) throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
-			print = personalFac.printPersonalliste(tsStichtag, bMitBarcodes,
-					bMitVersteckten, iOptionSortierung, LPMain.getInstance()
-							.getTheClient());
+			print = personalFac.printPersonalliste(tsStichtag, personalIId, bMitBarcodes, bMitVersteckten,
+					iOptionSortierung, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return print;
+	}
+
+	public JasperPrintLP printPersonalstammblatt(Integer personalIId) throws ExceptionLP {
+		JasperPrintLP print = null;
+		try {
+			print = personalFac.printPersonalstammblatt(personalIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -175,16 +193,14 @@ public class PersonalDelegate extends Delegate {
 
 	public PersonRpt getPersonRpt(Integer personalIId) throws ExceptionLP {
 		try {
-			return personalFac.getPersonRpt(personalIId, LPMain.getInstance()
-					.getTheClient());
+			return personalFac.getPersonRpt(personalIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void removePersonalgehalt(PersonalgehaltDto personalgehaltDto)
-			throws ExceptionLP {
+	public void removePersonalgehalt(PersonalgehaltDto personalgehaltDto) throws ExceptionLP {
 		try {
 			personalFac.removePersonalgehalt(personalgehaltDto);
 		} catch (Throwable ex) {
@@ -192,9 +208,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removePersonalverfuegbarkeit(
-			PersonalverfuegbarkeitDto personalverfuegbarkeitDto)
-			throws ExceptionLP {
+	public void removePersonalverfuegbarkeit(PersonalverfuegbarkeitDto personalverfuegbarkeitDto) throws ExceptionLP {
 		try {
 			personalFac.removePersonalverfuegbarkeit(personalverfuegbarkeitDto);
 		} catch (Throwable ex) {
@@ -202,8 +216,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeStundenabrechnung(
-			StundenabrechnungDto stundenabrechnungDto) throws ExceptionLP {
+	public void removeStundenabrechnung(StundenabrechnungDto stundenabrechnungDto) throws ExceptionLP {
 		try {
 			personalFac.removeStundenabrechnung(stundenabrechnungDto);
 		} catch (Throwable ex) {
@@ -211,8 +224,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removePersonalzeiten(PersonalzeitenDto personalzeitenDto)
-			throws ExceptionLP {
+	public void removePersonalzeiten(PersonalzeitenDto personalzeitenDto) throws ExceptionLP {
 		try {
 			personalFac.removePersonalzeiten(personalzeitenDto);
 		} catch (Throwable ex) {
@@ -220,8 +232,24 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removePersonalzeitmodell(
-			PersonalzeitmodellDto personalzeitmodellDto) throws ExceptionLP {
+	public void removeAnwesenheitsbestaetigung(AnwesenheitsbestaetigungDto dto) throws ExceptionLP {
+		try {
+			personalFac.removeAnwesenheitsbestaetigung(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public AnwesenheitsbestaetigungDto anwesenheitsbestaetigungFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.anwesenheitsbestaetigungFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void removePersonalzeitmodell(PersonalzeitmodellDto personalzeitmodellDto) throws ExceptionLP {
 		try {
 			personalFac.removePersonalzeitmodell(personalzeitmodellDto);
 		} catch (Throwable ex) {
@@ -229,8 +257,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeSchichtzeitmodell(
-			SchichtzeitmodellDto schichtzeitmodellDto) throws ExceptionLP {
+	public void removeSchichtzeitmodell(SchichtzeitmodellDto schichtzeitmodellDto) throws ExceptionLP {
 		try {
 			personalFac.removeSchichtzeitmodell(schichtzeitmodellDto);
 		} catch (Throwable ex) {
@@ -240,20 +267,18 @@ public class PersonalDelegate extends Delegate {
 
 	public Map<?, ?> getAllSprPersonalfunktionen() throws ExceptionLP {
 		try {
-			return personalFac.getAllSprPersonalfunktionen(LPMain.getInstance()
-					.getTheClient().getLocUiAsString());
+			return personalFac.getAllSprPersonalfunktionen(LPMain.getInstance().getTheClient().getLocUiAsString());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalDto[] getAllPersonenOhneEintragInEintrittAustritt(
-			boolean bPlusVersteckte, int iOption) throws ExceptionLP {
+	public PersonalDto[] getAllPersonenOhneEintragInEintrittAustritt(boolean bPlusVersteckte, int iOption)
+			throws ExceptionLP {
 		try {
-			return personalFac.getAllPersonenOhneEintragInEintrittAustritt(
-					LPMain.getInstance().getTheClient(), new Boolean(
-							bPlusVersteckte), new Integer(iOption));
+			return personalFac.getAllPersonenOhneEintragInEintrittAustritt(LPMain.getInstance().getTheClient(),
+					new Boolean(bPlusVersteckte), new Integer(iOption));
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -262,8 +287,7 @@ public class PersonalDelegate extends Delegate {
 
 	public Map<?, ?> getAllSprPersonalarten() throws ExceptionLP {
 		try {
-			return personalFac.getAllSprPersonalarten(LPMain.getInstance()
-					.getTheClient().getLocUiAsString());
+			return personalFac.getAllSprPersonalarten(LPMain.getInstance().getTheClient().getLocUiAsString());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -290,8 +314,7 @@ public class PersonalDelegate extends Delegate {
 
 	public Map<?, ?> getAllSprFamilienstaende() throws ExceptionLP {
 		try {
-			return personalFac.getAllSprFamilienstaende(LPMain.getInstance()
-					.getTheClient().getLocUiAsString());
+			return personalFac.getAllSprFamilienstaende(LPMain.getInstance().getTheClient().getLocUiAsString());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -300,8 +323,16 @@ public class PersonalDelegate extends Delegate {
 
 	public Map<?, ?> getAllSprAngehoerigenarten() throws ExceptionLP {
 		try {
-			return personalFac.getAllSprangehoerigenarten(LPMain.getInstance()
-					.getTheClient().getLocUiAsString());
+			return personalFac.getAllSprangehoerigenarten(LPMain.getInstance().getTheClient().getLocUiAsString());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Map<?, ?> getAllSprAbwesenheitsart() throws ExceptionLP {
+		try {
+			return personalFac.getAllSprAbwesenheitsart(LPMain.getInstance().getTheClient().getLocUiAsString());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -310,15 +341,13 @@ public class PersonalDelegate extends Delegate {
 
 	public void updatePersonal(PersonalDto personalDto) throws ExceptionLP {
 		try {
-			personalFac.updatePersonal(personalDto, LPMain.getInstance()
-					.getTheClient());
+			personalFac.updatePersonal(personalDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateBereitschaftart(BereitschaftartDto dto)
-			throws ExceptionLP {
+	public void updateBereitschaftart(BereitschaftartDto dto) throws ExceptionLP {
 		try {
 			personalFac.updateBereitschaftart(dto);
 		} catch (Throwable ex) {
@@ -326,8 +355,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateBereitschafttag(BereitschafttagDto dto)
-			throws ExceptionLP {
+	public void updateBereitschafttag(BereitschafttagDto dto) throws ExceptionLP {
 		try {
 			personalFac.updateBereitschafttag(dto);
 		} catch (Throwable ex) {
@@ -335,8 +363,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updatePersonalgruppe(PersonalgruppeDto personalgruppeDto)
-			throws ExceptionLP {
+	public void updatePersonalgruppe(PersonalgruppeDto personalgruppeDto) throws ExceptionLP {
 		try {
 			personalFac.updatePersonalgruppe(personalgruppeDto);
 		} catch (Throwable ex) {
@@ -344,8 +371,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updatePersonalgruppekosten(
-			PersonalgruppekostenDto personalgruppekostenDto) throws ExceptionLP {
+	public void updatePersonalgruppekosten(PersonalgruppekostenDto personalgruppekostenDto) throws ExceptionLP {
 		try {
 			personalFac.updatePersonalgruppekosten(personalgruppekostenDto);
 		} catch (Throwable ex) {
@@ -353,29 +379,23 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updatePersonalKommentar(PersonalDto personalDto)
-			throws ExceptionLP {
+	public void updatePersonalKommentar(PersonalDto personalDto) throws ExceptionLP {
 		try {
-			personalFac.updatePersonalKommentar(personalDto, LPMain
-					.getInstance().getTheClient());
+			personalFac.updatePersonalKommentar(personalDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updatePersonalgehalt(PersonalgehaltDto personalgehaltDto)
-			throws ExceptionLP {
+	public void updatePersonalgehalt(PersonalgehaltDto personalgehaltDto) throws ExceptionLP {
 		try {
-			personalFac.updatePersonalgehalt(personalgehaltDto, LPMain
-					.getInstance().getTheClient());
+			personalFac.updatePersonalgehalt(personalgehaltDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updatePersonalverfuegbarkeit(
-			PersonalverfuegbarkeitDto personalverfuegbarkeitDto)
-			throws ExceptionLP {
+	public void updatePersonalverfuegbarkeit(PersonalverfuegbarkeitDto personalverfuegbarkeitDto) throws ExceptionLP {
 		try {
 			personalFac.updatePersonalverfuegbarkeit(personalverfuegbarkeitDto);
 		} catch (Throwable ex) {
@@ -383,21 +403,17 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateGleitzeitsaldo(GleitzeitsaldoDto gleitzeitsaldoDto)
-			throws ExceptionLP {
+	public void updateGleitzeitsaldo(GleitzeitsaldoDto gleitzeitsaldoDto) throws ExceptionLP {
 		try {
-			personalFac.updateGleitzeitsaldo(gleitzeitsaldoDto, LPMain
-					.getInstance().getTheClient());
+			personalFac.updateGleitzeitsaldo(gleitzeitsaldoDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateBetriebskalender(BetriebskalenderDto betriebskalenderDto)
-			throws ExceptionLP {
+	public void updateBetriebskalender(BetriebskalenderDto betriebskalenderDto) throws ExceptionLP {
 		try {
-			personalFac.updateBetriebskalender(betriebskalenderDto, LPMain
-					.getInstance().getTheClient());
+			personalFac.updateBetriebskalender(betriebskalenderDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -405,18 +421,15 @@ public class PersonalDelegate extends Delegate {
 
 	public void updateFeiertag(FeiertagDto feiertagDto) throws ExceptionLP {
 		try {
-			personalFac.updateFeiertag(feiertagDto, LPMain.getInstance()
-					.getTheClient());
+			personalFac.updateFeiertag(feiertagDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateZeitabschluss(ZeitabschlussDto zeitabschlussDto)
-			throws ExceptionLP {
+	public void updateZeitabschluss(ZeitabschlussDto zeitabschlussDto) throws ExceptionLP {
 		try {
-			personalFac.updateZeitabschluss(zeitabschlussDto, LPMain
-					.getInstance().getTheClient());
+			personalFac.updateZeitabschluss(zeitabschlussDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -424,8 +437,7 @@ public class PersonalDelegate extends Delegate {
 
 	public void updateFahrzeug(FahrzeugDto dto) throws ExceptionLP {
 		try {
-			personalFac
-					.updateFahrzeug(dto, LPMain.getInstance().getTheClient());
+			personalFac.updateFahrzeug(dto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -441,16 +453,14 @@ public class PersonalDelegate extends Delegate {
 
 	public PersonalDto personalFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return personalFac.personalFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return personalFac.personalFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalgruppeDto personalgruppeFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public PersonalgruppeDto personalgruppeFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.personalgruppeFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -459,8 +469,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PersonalgruppekostenDto personalgruppekostenFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public PersonalgruppekostenDto personalgruppekostenFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.personalgruppekostenFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -471,38 +480,32 @@ public class PersonalDelegate extends Delegate {
 
 	public PersonalDto[] personalFindByMandantCNr() throws ExceptionLP {
 		try {
-			return personalFac.personalFindByMandantCNr(LPMain.getTheClient()
-					.getMandant(), false);
+			return personalFac.personalFindByMandantCNr(LPMain.getTheClient().getMandant(), false);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalDto[] personalFindAllArbeiterEinesMandanten()
-			throws ExceptionLP {
+	public PersonalDto[] personalFindAllArbeiterEinesMandanten() throws ExceptionLP {
 		try {
-			return personalFac.personalFindAllArbeiterEinesMandanten(LPMain
-					.getTheClient().getMandant(), false);
+			return personalFac.personalFindAllArbeiterEinesMandanten(LPMain.getTheClient().getMandant(), false);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalDto[] personalFindAllAngestellteEinesMandanten()
-			throws ExceptionLP {
+	public PersonalDto[] personalFindAllAngestellteEinesMandanten() throws ExceptionLP {
 		try {
-			return personalFac.personalFindAllAngestellteEinesMandanten(LPMain
-					.getTheClient().getMandant(), false);
+			return personalFac.personalFindAllAngestellteEinesMandanten(LPMain.getTheClient().getMandant(), false);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalDto personalFindByCAusweis(String cAusweis)
-			throws ExceptionLP {
+	public PersonalDto personalFindByCAusweis(String cAusweis) throws ExceptionLP {
 		try {
 			return personalFac.personalFindByCAusweis(cAusweis);
 		} catch (Throwable ex) {
@@ -511,8 +514,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PersonalzeitenDto personalzeitenFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public PersonalzeitenDto personalzeitenFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.personalzeitenFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -521,89 +523,76 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PersonalzeitmodellDto personalzeitmodellFindByPrimaryKey(Integer iId)
+	public PersonalzeitmodellDto personalzeitmodellFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.personalzeitmodellFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public SchichtzeitmodellDto schichtzeitmodellFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.schichtzeitmodellFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public PersonalzeitmodellDto personalzeitmodellFindZeitmodellZuDatum(Integer personalIId, java.sql.Timestamp dDatum)
 			throws ExceptionLP {
 		try {
-			return personalFac.personalzeitmodellFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return personalFac.personalzeitmodellFindZeitmodellZuDatum(personalIId, dDatum,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public SchichtzeitmodellDto schichtzeitmodellFindByPrimaryKey(Integer iId)
+	public PersonalDto personalFindByPartnerIIdMandantCNr(Integer partnerIId, String mandantCNr) throws ExceptionLP {
+		try {
+			return personalFac.personalFindByPartnerIIdMandantCNr(partnerIId, mandantCNr);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public PersonalDto personalFindByCPersonalnrMandantCNrOhneExc(String cPersonalnr) throws ExceptionLP {
+		try {
+			return personalFac.personalFindByCPersonalnrMandantCNrOhneExc(cPersonalnr,
+					LPMain.getInstance().getTheClient().getMandant());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public PersonalDto[] personalFindByMandantCNrPersonalfunktionCNr(String mandantCNr, String personalfunktionCNr)
 			throws ExceptionLP {
 		try {
-			return personalFac.schichtzeitmodellFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return personalFac.personalFindByMandantCNrPersonalfunktionCNr(mandantCNr, personalfunktionCNr);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalzeitmodellDto personalzeitmodellFindZeitmodellZuDatum(
-			Integer personalIId, java.sql.Timestamp dDatum) throws ExceptionLP {
+	public Integer createLohngruppe(LohngruppeDto lohngruppeDto) throws ExceptionLP {
 		try {
-			return personalFac.personalzeitmodellFindZeitmodellZuDatum(
-					personalIId, dDatum, LPMain.getInstance().getTheClient());
+			return personalFac.createLohngruppe(lohngruppeDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalDto personalFindByPartnerIIdMandantCNr(Integer partnerIId,
-			String mandantCNr) throws ExceptionLP {
+	public Integer createUrlaubsanspruch(UrlaubsanspruchDto lohngruppeDto) throws ExceptionLP {
 		try {
-			return personalFac.personalFindByPartnerIIdMandantCNr(partnerIId,
-					mandantCNr);
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public PersonalDto personalFindByCPersonalnrMandantCNrOhneExc(
-			String cPersonalnr) throws ExceptionLP {
-		try {
-			return personalFac.personalFindByCPersonalnrMandantCNrOhneExc(
-					cPersonalnr, LPMain.getInstance().getTheClient()
-							.getMandant());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public PersonalDto[] personalFindByMandantCNrPersonalfunktionCNr(
-			String mandantCNr, String personalfunktionCNr) throws ExceptionLP {
-		try {
-			return personalFac.personalFindByMandantCNrPersonalfunktionCNr(
-					mandantCNr, personalfunktionCNr);
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public Integer createLohngruppe(LohngruppeDto lohngruppeDto)
-			throws ExceptionLP {
-		try {
-			return personalFac.createLohngruppe(lohngruppeDto, LPMain
-					.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public Integer createUrlaubsanspruch(UrlaubsanspruchDto lohngruppeDto)
-			throws ExceptionLP {
-		try {
-			return personalFac.createUrlaubsanspruch(lohngruppeDto, LPMain
-					.getInstance().getTheClient());
+			return personalFac.createUrlaubsanspruch(lohngruppeDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -618,8 +607,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateLohngruppe(LohngruppeDto lohngruppeDto)
-			throws ExceptionLP {
+	public void updateLohngruppe(LohngruppeDto lohngruppeDto) throws ExceptionLP {
 		try {
 			personalFac.updateLohngruppe(lohngruppeDto);
 		} catch (Throwable ex) {
@@ -627,8 +615,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public LohngruppeDto lohngruppeFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public LohngruppeDto lohngruppeFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.lohngruppeFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -637,11 +624,9 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public BetriebskalenderDto betriebskalenderFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public BetriebskalenderDto betriebskalenderFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return personalFac.betriebskalenderFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return personalFac.betriebskalenderFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -650,8 +635,7 @@ public class PersonalDelegate extends Delegate {
 
 	public FeiertagDto feiertagFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return personalFac.feiertagFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return personalFac.feiertagFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -667,8 +651,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public FahrzeugkostenDto fahrzeugkostenFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public FahrzeugkostenDto fahrzeugkostenFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.fahrzeugkostenFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -677,23 +660,20 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public BetriebskalenderDto[] betriebskalenderFindByMandantCNrTagesartCNr(
-			String tagesartCNr) throws ExceptionLP {
+	public BetriebskalenderDto[] betriebskalenderFindByMandantCNrTagesartCNr(String tagesartCNr) throws ExceptionLP {
 		try {
-			return personalFac.betriebskalenderFindByMandantCNrTagesartCNr(
-					tagesartCNr, LPMain.getInstance().getTheClient());
+			return personalFac.betriebskalenderFindByMandantCNrTagesartCNr(tagesartCNr,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public BetriebskalenderDto betriebskalenderFindByMandantCNrDDatum(
-			java.sql.Timestamp datum) throws ExceptionLP {
+	public BetriebskalenderDto betriebskalenderFindByMandantCNrDDatum(java.sql.Timestamp datum) throws ExceptionLP {
 		try {
 			return personalFac.betriebskalenderFindByMandantCNrDDatum(datum,
-					LPMain.getInstance().getTheClient().getMandant(), LPMain
-							.getInstance().getTheClient());
+					LPMain.getInstance().getTheClient().getMandant(), LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -702,8 +682,7 @@ public class PersonalDelegate extends Delegate {
 
 	public Integer createReligion(ReligionDto religionDto) throws ExceptionLP {
 		try {
-			return personalFac.createReligion(religionDto, LPMain.getInstance()
-					.getTheClient());
+			return personalFac.createReligion(religionDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -718,8 +697,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeUrlaubsanspruch(UrlaubsanspruchDto dto)
-			throws ExceptionLP {
+	public void removeUrlaubsanspruch(UrlaubsanspruchDto dto) throws ExceptionLP {
 		try {
 			personalFac.removeUrlaubsanspruch(dto);
 		} catch (Throwable ex) {
@@ -729,28 +707,23 @@ public class PersonalDelegate extends Delegate {
 
 	public void updateReligion(ReligionDto religionDto) throws ExceptionLP {
 		try {
-			personalFac.updateReligion(religionDto, LPMain.getInstance()
-					.getTheClient());
+			personalFac.updateReligion(religionDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateStundenabrechnung(
-			StundenabrechnungDto stundenabrechnungDto) throws ExceptionLP {
+	public void updateStundenabrechnung(StundenabrechnungDto stundenabrechnungDto) throws ExceptionLP {
 		try {
-			personalFac.updateStundenabrechnung(stundenabrechnungDto, LPMain
-					.getInstance().getTheClient());
+			personalFac.updateStundenabrechnung(stundenabrechnungDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateUrlaubsanspruch(UrlaubsanspruchDto dto)
-			throws ExceptionLP {
+	public void updateUrlaubsanspruch(UrlaubsanspruchDto dto) throws ExceptionLP {
 		try {
-			personalFac.updateUrlaubsanspruch(dto, LPMain.getInstance()
-					.getTheClient());
+			personalFac.updateUrlaubsanspruch(dto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -758,16 +731,14 @@ public class PersonalDelegate extends Delegate {
 
 	public ReligionDto religionFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return personalFac.religionFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return personalFac.religionFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public PersonalgehaltDto personalgehaltFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public PersonalgehaltDto personalgehaltFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.personalgehaltFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -776,8 +747,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PersonalverfuegbarkeitDto personalverfuegbarkeitFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public PersonalverfuegbarkeitDto personalverfuegbarkeitFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.personalverfuegbarkeitFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -786,20 +756,17 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PersonalgehaltDto personalgehaltFindLetztePersonalgehalt(
-			Integer personalIId, Integer iJahr, Integer iMonat)
+	public PersonalgehaltDto personalgehaltFindLetztePersonalgehalt(Integer personalIId, Integer iJahr, Integer iMonat)
 			throws ExceptionLP {
 		try {
-			return personalFac.personalgehaltFindLetztePersonalgehalt(
-					personalIId, iJahr, iMonat);
+			return personalFac.personalgehaltFindLetztePersonalgehalt(personalIId, iJahr, iMonat);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public UrlaubsanspruchDto urlaubsanspruchFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public UrlaubsanspruchDto urlaubsanspruchFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.urlaubsanspruchFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -808,54 +775,45 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public UrlaubsanspruchDto[] urlaubsanspruchFindByPersonalIIdIJahrKleiner(
-			Integer personalIId, Integer iJahr) throws ExceptionLP {
-		try {
-			return personalFac.urlaubsanspruchFindByPersonalIIdIJahrKleiner(
-					personalIId, iJahr);
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public Integer createPersonalangehoerige(
-			PersonalangehoerigeDto personalangehoerigeDto) throws ExceptionLP {
-		try {
-			return personalFac
-					.createPersonalangehoerige(personalangehoerigeDto, LPMain
-							.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public Integer createPersonalzeiten(PersonalzeitenDto personalzeitenDto)
+	public UrlaubsanspruchDto[] urlaubsanspruchFindByPersonalIIdIJahrKleiner(Integer personalIId, Integer iJahr)
 			throws ExceptionLP {
 		try {
-			return personalFac.createPersonalzeiten(personalzeitenDto, LPMain
-					.getInstance().getTheClient());
+			return personalFac.urlaubsanspruchFindByPersonalIIdIJahrKleiner(personalIId, iJahr);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createPersonalverfuegbarkeit(
-			PersonalverfuegbarkeitDto personalverfuegbarkeitDto)
+	public Integer createPersonalangehoerige(PersonalangehoerigeDto personalangehoerigeDto) throws ExceptionLP {
+		try {
+			return personalFac.createPersonalangehoerige(personalangehoerigeDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createPersonalzeiten(PersonalzeitenDto personalzeitenDto) throws ExceptionLP {
+		try {
+			return personalFac.createPersonalzeiten(personalzeitenDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createPersonalverfuegbarkeit(PersonalverfuegbarkeitDto personalverfuegbarkeitDto)
 			throws ExceptionLP {
 		try {
-			return personalFac
-					.createPersonalverfuegbarkeit(personalverfuegbarkeitDto);
+			return personalFac.createPersonalverfuegbarkeit(personalverfuegbarkeitDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createPersonalzeitmodell(
-			PersonalzeitmodellDto personalzeitmodellDto) throws ExceptionLP {
+	public Integer createPersonalzeitmodell(PersonalzeitmodellDto personalzeitmodellDto) throws ExceptionLP {
 		try {
 			return personalFac.createPersonalzeitmodell(personalzeitmodellDto);
 		} catch (Throwable ex) {
@@ -863,9 +821,15 @@ public class PersonalDelegate extends Delegate {
 			return null;
 		}
 	}
-
-	public Integer createSchichtzeitmodell(
-			SchichtzeitmodellDto schichtzeitmodellDto) throws ExceptionLP {
+	public Integer createPersonalfahrzeug(PersonalfahrzeugDto dto) throws ExceptionLP {
+		try {
+			return personalFac.createPersonalfahrzeug(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	public Integer createSchichtzeitmodell(SchichtzeitmodellDto schichtzeitmodellDto) throws ExceptionLP {
 		try {
 			return personalFac.createSchichtzeitmodell(schichtzeitmodellDto);
 		} catch (Throwable ex) {
@@ -882,8 +846,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updatePersonalangehoerige(
-			PersonalangehoerigeDto personalangehoerigeDto) throws ExceptionLP {
+	public void updatePersonalangehoerige(PersonalangehoerigeDto personalangehoerigeDto) throws ExceptionLP {
 		try {
 			personalFac.updatePersonalangehoerige(personalangehoerigeDto);
 		} catch (Throwable ex) {
@@ -891,8 +854,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updatePersonalzeiten(PersonalzeitenDto personalzeitenDto)
-			throws ExceptionLP {
+	public void updatePersonalzeiten(PersonalzeitenDto personalzeitenDto) throws ExceptionLP {
 		try {
 			personalFac.updatePersonalzeiten(personalzeitenDto);
 		} catch (Throwable ex) {
@@ -900,8 +862,15 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updatePersonalzeitmodell(
-			PersonalzeitmodellDto personalzeitmodellDto) throws ExceptionLP {
+	public void updateAnwesenheitsbestaetigung(AnwesenheitsbestaetigungDto dto) throws ExceptionLP {
+		try {
+			personalFac.updateAnwesenheitsbestaetigung(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updatePersonalzeitmodell(PersonalzeitmodellDto personalzeitmodellDto) throws ExceptionLP {
 		try {
 			personalFac.updatePersonalzeitmodell(personalzeitmodellDto);
 		} catch (Throwable ex) {
@@ -909,8 +878,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateSchichtzeitmodell(
-			SchichtzeitmodellDto schichtzeitmodellDto) throws ExceptionLP {
+	public void updateSchichtzeitmodell(SchichtzeitmodellDto schichtzeitmodellDto) throws ExceptionLP {
 		try {
 			personalFac.updateSchichtzeitmodell(schichtzeitmodellDto);
 		} catch (Throwable ex) {
@@ -918,8 +886,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PersonalangehoerigeDto personalangehoerigeFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public PersonalangehoerigeDto personalangehoerigeFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.personalangehoerigeFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -928,19 +895,16 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer createKollektiv(KollektivDto kollektivDto)
-			throws ExceptionLP {
+	public Integer createKollektiv(KollektivDto kollektivDto) throws ExceptionLP {
 		try {
-			return personalFac.createKollektiv(kollektivDto, LPMain
-					.getInstance().getTheClient());
+			return personalFac.createKollektiv(kollektivDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createKollektivuestd(KollektivuestdDto kollektivuestdDto)
-			throws ExceptionLP {
+	public Integer createKollektivuestd(KollektivuestdDto kollektivuestdDto) throws ExceptionLP {
 		try {
 			return personalFac.createKollektivuestd(kollektivuestdDto);
 		} catch (Throwable ex) {
@@ -948,11 +912,37 @@ public class PersonalDelegate extends Delegate {
 			return null;
 		}
 	}
+	
+	public Integer createPassivereise(PassivereiseDto dto) throws ExceptionLP {
+		try {
+			return personalFac.createPassivereise(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public Integer createPersonalterminal(PersonalterminalDto dto) throws ExceptionLP {
+		try {
+			return personalFac.createPersonalterminal(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-	public Integer createKollektivuestd50(
-			Kollektivuestd50Dto kollektivuestd50Dto) throws ExceptionLP {
+	public Integer createKollektivuestd50(Kollektivuestd50Dto kollektivuestd50Dto) throws ExceptionLP {
 		try {
 			return personalFac.createKollektivuestd50(kollektivuestd50Dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createKollektivuestdBVA(KollektivUestdBVADto kollektivuestdBVADto) throws ExceptionLP {
+		try {
+			return personalFac.createKollektivuestdBVA(kollektivuestdBVADto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -977,21 +967,45 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer createLohnartstundenfaktor(
-			LohnartstundenfaktorDto lohnartstundenfaktorDto) throws ExceptionLP {
+	public Integer createZahltag(ZahltagDto dto) throws ExceptionLP {
 		try {
-			return personalFac
-					.createLohnartstundenfaktor(lohnartstundenfaktorDto);
+			return personalFac.createZahltag(dto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createArtikelzulage(ArtikelzulageDto artikelzulageDto)
-			throws ExceptionLP {
+	public Integer createLohnartstundenfaktor(LohnartstundenfaktorDto lohnartstundenfaktorDto) throws ExceptionLP {
+		try {
+			return personalFac.createLohnartstundenfaktor(lohnartstundenfaktorDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createArtikelzulage(ArtikelzulageDto artikelzulageDto) throws ExceptionLP {
 		try {
 			return personalFac.createArtikelzulage(artikelzulageDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createAnwesenheitsbestaetigung(AnwesenheitsbestaetigungDto dto) throws ExceptionLP {
+		try {
+			return personalFac.createAnwesenheitsbestaetigung(dto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createArtikelzuschlag(ArtikelzuschlagDto dto) throws ExceptionLP {
+		try {
+			return personalFac.createArtikelzuschlag(dto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -1007,8 +1021,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer createFahrzeugkosten(FahrzeugkostenDto dto)
-			throws ExceptionLP {
+	public Integer createFahrzeugkosten(FahrzeugkostenDto dto) throws ExceptionLP {
 		try {
 			return personalFac.createFahrzeugkosten(dto);
 		} catch (Throwable ex) {
@@ -1017,8 +1030,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer createBereitschafttag(BereitschafttagDto dto)
-			throws ExceptionLP {
+	public Integer createBereitschafttag(BereitschafttagDto dto) throws ExceptionLP {
 		try {
 			return personalFac.createBereitschafttag(dto);
 		} catch (Throwable ex) {
@@ -1027,19 +1039,16 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void feiertageAusVorlageFuerJahrEintragen(Integer iJahr)
-			throws ExceptionLP {
+	public void feiertageAusVorlageFuerJahrEintragen(Integer iJahr) throws ExceptionLP {
 		try {
-			personalFac.feiertageAusVorlageFuerJahrEintragen(iJahr, LPMain
-					.getInstance().getTheClient());
+			personalFac.feiertageAusVorlageFuerJahrEintragen(iJahr, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 
 		}
 	}
 
-	public Integer createBereitschaftart(BereitschaftartDto dto)
-			throws ExceptionLP {
+	public Integer createBereitschaftart(BereitschaftartDto dto) throws ExceptionLP {
 		try {
 			return personalFac.createBereitschaftart(dto);
 		} catch (Throwable ex) {
@@ -1048,11 +1057,9 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer createPersonalgehalt(PersonalgehaltDto personalgehaltDto)
-			throws ExceptionLP {
+	public Integer createPersonalgehalt(PersonalgehaltDto personalgehaltDto) throws ExceptionLP {
 		try {
-			return personalFac.createPersonalgehalt(personalgehaltDto, LPMain
-					.getInstance().getTheClient());
+			return personalFac.createPersonalgehalt(personalgehaltDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -1068,8 +1075,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeKollektivuestd(KollektivuestdDto kollektivuestdDto)
-			throws ExceptionLP {
+	public void removeKollektivuestd(KollektivuestdDto kollektivuestdDto) throws ExceptionLP {
 		try {
 			personalFac.removeKollektivuestd(kollektivuestdDto);
 
@@ -1077,11 +1083,34 @@ public class PersonalDelegate extends Delegate {
 			handleThrowable(ex);
 		}
 	}
+	public void removePassivereise(PassivereiseDto dto) throws ExceptionLP {
+		try {
+			personalFac.removePassivereise(dto);
 
-	public void removeKollektivuestd(Kollektivuestd50Dto kollektivuestd50Dto)
-			throws ExceptionLP {
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public void removePersonalterminal(PersonalterminalDto dto) throws ExceptionLP {
+		try {
+			personalFac.removePersonalterminal(dto);
+
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public void removeKollektivuestd(Kollektivuestd50Dto kollektivuestd50Dto) throws ExceptionLP {
 		try {
 			personalFac.removeKollektivuestd50(kollektivuestd50Dto);
+
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeKollektivuestdBVA(KollektivUestdBVADto dto) throws ExceptionLP {
+		try {
+			personalFac.removeKollektivuestdBVA(dto);
 
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -1097,8 +1126,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeBereitschaftart(BereitschaftartDto dto)
-			throws ExceptionLP {
+	public void removeBereitschaftart(BereitschaftartDto dto) throws ExceptionLP {
 		try {
 			personalFac.removeBereitschaftart(dto);
 
@@ -1107,8 +1135,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeBereitschafttag(BereitschafttagDto dto)
-			throws ExceptionLP {
+	public void removeBereitschafttag(BereitschafttagDto dto) throws ExceptionLP {
 		try {
 			personalFac.removeBereitschafttag(dto);
 
@@ -1120,6 +1147,15 @@ public class PersonalDelegate extends Delegate {
 	public void removeLohnart(Integer iId) throws ExceptionLP {
 		try {
 			personalFac.removeLohnart(iId);
+
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeZahltag(Integer iId) throws ExceptionLP {
+		try {
+			personalFac.removeZahltag(iId);
 
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -1144,8 +1180,16 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeGleitzeitsaldo(GleitzeitsaldoDto gleitzeitsaldoDto)
-			throws ExceptionLP {
+	public void removeArtikelzuschlag(ArtikelzuschlagDto dto) throws ExceptionLP {
+		try {
+			personalFac.removeArtikelzuschlag(dto);
+
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeGleitzeitsaldo(GleitzeitsaldoDto gleitzeitsaldoDto) throws ExceptionLP {
 		try {
 			personalFac.removeGleitzeitsaldo(gleitzeitsaldoDto);
 
@@ -1153,7 +1197,14 @@ public class PersonalDelegate extends Delegate {
 			handleThrowable(ex);
 		}
 	}
+	public void removePersonalfahrzeug(PersonalfahrzeugDto dto) throws ExceptionLP {
+		try {
+			personalFac.removePersonalfahrzeug(dto);
 
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 	public void updateKollektiv(KollektivDto kollektivDto) throws ExceptionLP {
 		try {
 			personalFac.updateKollektiv(kollektivDto);
@@ -1162,17 +1213,44 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateKollektivuestd(KollektivuestdDto kollektivuestdDto)
-			throws ExceptionLP {
+	public void updateKollektivuestd(KollektivuestdDto kollektivuestdDto) throws ExceptionLP {
 		try {
 			personalFac.updateKollektivuestd(kollektivuestdDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
+	public void updatePassivereise(PassivereiseDto dto) throws ExceptionLP {
+		try {
+			personalFac.updatePassivereise(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public void updatePersonalterminal(PersonalterminalDto dto) throws ExceptionLP {
+		try {
+			personalFac.updatePersonalterminal(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	
+	public void updatePersonalfahrzeug(PersonalfahrzeugDto dto) throws ExceptionLP {
+		try {
+			personalFac.updatePersonalfahrzeug(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public void updateKollektivUestdBVA(KollektivUestdBVADto dto) throws ExceptionLP {
+		try {
+			personalFac.updateKollektivUestdBVA(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
-	public void updateKollektivuestd50(Kollektivuestd50Dto kollektivuestd50Dto)
-			throws ExceptionLP {
+	public void updateKollektivuestd50(Kollektivuestd50Dto kollektivuestd50Dto) throws ExceptionLP {
 		try {
 			personalFac.updateKollektivuestd50(kollektivuestd50Dto);
 		} catch (Throwable ex) {
@@ -1196,8 +1274,15 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateLohnartstundenfaktor(
-			LohnartstundenfaktorDto lohnartstundenfaktorDto) throws ExceptionLP {
+	public void updateZahltag(ZahltagDto dto) throws ExceptionLP {
+		try {
+			personalFac.updateZahltag(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateLohnartstundenfaktor(LohnartstundenfaktorDto lohnartstundenfaktorDto) throws ExceptionLP {
 		try {
 			personalFac.updateLohnartstundenfaktor(lohnartstundenfaktorDto);
 		} catch (Throwable ex) {
@@ -1205,8 +1290,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateArtikelzulage(ArtikelzulageDto artikelzulageDto)
-			throws ExceptionLP {
+	public void updateArtikelzulage(ArtikelzulageDto artikelzulageDto) throws ExceptionLP {
 		try {
 			personalFac.updateArtikelzulage(artikelzulageDto);
 		} catch (Throwable ex) {
@@ -1214,8 +1298,15 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public KollektivDto kollektivFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public void updateArtikelzuschlag(ArtikelzuschlagDto dto) throws ExceptionLP {
+		try {
+			personalFac.updateArtikelzuschlag(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public KollektivDto kollektivFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.kollektivFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1224,8 +1315,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public KollektivuestdDto kollektivuestdFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public KollektivuestdDto kollektivuestdFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.kollektivuestdFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1233,11 +1323,44 @@ public class PersonalDelegate extends Delegate {
 			return null;
 		}
 	}
-
-	public Kollektivuestd50Dto kollektivuestd50FindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public PassivereiseDto passivereiseFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.passivereiseFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}	
+	public PersonalterminalDto personalterminalFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.personalterminalFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public PersonalfahrzeugDto personalfahrzeugFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.personalfahrzeugFindByPrimaryKey(iId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public Kollektivuestd50Dto kollektivuestd50FindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.kollektivuestd50FindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public KollektivUestdBVADto kollektivUestdBVAFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.kollektivUestdBVAFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -1253,11 +1376,43 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public ZeitabschlussDto zeitabschlussFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public void vertauscheAbwesenheitsart(Integer id1, Integer id2) throws ExceptionLP {
 		try {
-			return personalFac.zeitabschlussFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			personalFac.vertauscheAbwesenheitsart(id1, id2);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeAbwesenheitsart(AbwesenheitsartDto dto) throws ExceptionLP {
+		try {
+			personalFac.removeAbwesenheitsart(dto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateAbwesenheitsart(AbwesenheitsartDto dto) throws ExceptionLP {
+		try {
+			personalFac.updateAbwesenheitsart(dto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public AbwesenheitsartDto abwesenheitsartFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		AbwesenheitsartDto dto = null;
+		try {
+			dto = personalFac.abwesenheitsartFindByPrimaryKey(iId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return dto;
+	}
+
+	public ZeitabschlussDto zeitabschlussFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.zeitabschlussFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -1273,8 +1428,40 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public LohnartstundenfaktorDto lohnartstundenfaktorFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public ZahltagDto zahltagFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.zahltagFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public boolean istPersonalVerstecktOderAusgetreten(Integer personalIId) throws ExceptionLP {
+		try {
+
+			PersonalDto personalDto = personalFindByPrimaryKey(personalIId);
+			if (Helper.short2boolean(personalDto.getBVersteckt())) {
+				return true;
+			}
+
+			// SP6553
+			boolean hatZeiterfassung = LPMain.getInstance().getDesktop()
+					.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_ZEITERFASSUNG);
+
+			if (hatZeiterfassung && personalFac.istPersonalAusgetreten(personalIId,
+					new java.sql.Timestamp(System.currentTimeMillis()), LPMain.getInstance().getTheClient())) {
+				return true;
+			}
+
+			return false;
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return true;
+		}
+	}
+
+	public LohnartstundenfaktorDto lohnartstundenfaktorFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.lohnartstundenfaktorFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1283,8 +1470,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public ArtikelzulageDto artikelzulageFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public ArtikelzulageDto artikelzulageFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.artikelzulageFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1293,8 +1479,16 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public BereitschaftartDto bereitschaftartFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public ArtikelzuschlagDto artikelzuschlagFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return personalFac.artikelzuschlagFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public BereitschaftartDto bereitschaftartFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.bereitschaftartFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1303,8 +1497,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public BereitschafttagDto bereitschafttagFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public BereitschafttagDto bereitschafttagFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.bereitschafttagFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1313,11 +1506,9 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer createPendlerpauschale(
-			PendlerpauschaleDto pendlerpauschaleDto) throws ExceptionLP {
+	public Integer createPendlerpauschale(PendlerpauschaleDto pendlerpauschaleDto) throws ExceptionLP {
 		try {
-			return personalFac.createPendlerpauschale(pendlerpauschaleDto,
-					LPMain.getInstance().getTheClient());
+			return personalFac.createPendlerpauschale(pendlerpauschaleDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -1332,8 +1523,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updatePendlerpauschale(PendlerpauschaleDto pendlerpauschaleDto)
-			throws ExceptionLP {
+	public void updatePendlerpauschale(PendlerpauschaleDto pendlerpauschaleDto) throws ExceptionLP {
 		try {
 			personalFac.updatePendlerpauschale(pendlerpauschaleDto);
 		} catch (Throwable ex) {
@@ -1341,8 +1531,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PendlerpauschaleDto pendlerpauschaleFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public PendlerpauschaleDto pendlerpauschaleFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.pendlerpauschaleFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1353,41 +1542,41 @@ public class PersonalDelegate extends Delegate {
 
 	public Integer createBeruf(BerufDto berufDto) throws ExceptionLP {
 		try {
-			return personalFac.createBeruf(berufDto, LPMain.getInstance()
-					.getTheClient());
+			return personalFac.createBeruf(berufDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	public boolean darfPersonAmTerminalBuchen(Integer personalIId, Integer arbeitsplatzIId) throws ExceptionLP {
+		try {
+			return personalFac.darfPersonAmTerminalBuchen(personalIId, arbeitsplatzIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return false;
+		}
+	}
+	public Integer createStundenabrechnung(StundenabrechnungDto stundenabrechnungDto) throws ExceptionLP {
+		try {
+			return personalFac.createStundenabrechnung(stundenabrechnungDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createStundenabrechnung(
-			StundenabrechnungDto stundenabrechnungDto) throws ExceptionLP {
+	public Integer createGleitzeitsaldo(GleitzeitsaldoDto gleitzeitsaldoDto) throws ExceptionLP {
 		try {
-			return personalFac.createStundenabrechnung(stundenabrechnungDto,
-					LPMain.getInstance().getTheClient());
+			return personalFac.createGleitzeitsaldo(gleitzeitsaldoDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createGleitzeitsaldo(GleitzeitsaldoDto gleitzeitsaldoDto)
-			throws ExceptionLP {
+	public Integer createBetriebskalender(BetriebskalenderDto betriebskalenderDto) throws ExceptionLP {
 		try {
-			return personalFac.createGleitzeitsaldo(gleitzeitsaldoDto, LPMain
-					.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public Integer createBetriebskalender(
-			BetriebskalenderDto betriebskalenderDto) throws ExceptionLP {
-		try {
-			return personalFac.createBetriebskalender(betriebskalenderDto,
-					LPMain.getInstance().getTheClient());
+			return personalFac.createBetriebskalender(betriebskalenderDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -1396,19 +1585,16 @@ public class PersonalDelegate extends Delegate {
 
 	public Integer createFeiertag(FeiertagDto feiertagDto) throws ExceptionLP {
 		try {
-			return personalFac.createFeiertag(feiertagDto, LPMain.getInstance()
-					.getTheClient());
+			return personalFac.createFeiertag(feiertagDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createZeitabschluss(ZeitabschlussDto zeitabschlussDto)
-			throws ExceptionLP {
+	public Integer createZeitabschluss(ZeitabschlussDto zeitabschlussDto) throws ExceptionLP {
 		try {
-			return personalFac.createZeitabschluss(zeitabschlussDto, LPMain
-					.getInstance().getTheClient());
+			return personalFac.createZeitabschluss(zeitabschlussDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -1423,22 +1609,18 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void schichtzeitenVorausplanen(Integer personalIId,
-			Integer zeitmodellIId1, Integer zeitmodellIId2,
-			Integer zeitmodellIId3, Integer zeitmodellIId4, Integer iKwVon,
-			Integer iKwBis, Integer iJahrVon, Integer iJahrBis,
-			String tagCNrSchichtwechsel) throws ExceptionLP {
+	public void schichtzeitenVorausplanen(Integer personalIId, Integer zeitmodellIId1, Integer zeitmodellIId2,
+			Integer zeitmodellIId3, Integer zeitmodellIId4, Integer iKwVon, Integer iKwBis, Integer iJahrVon,
+			Integer iJahrBis, String tagCNrSchichtwechsel) throws ExceptionLP {
 		try {
-			personalFac.schichtzeitenVorausplanen(personalIId, zeitmodellIId1,
-					zeitmodellIId2, zeitmodellIId3, zeitmodellIId4, iKwVon,
-					iKwBis, iJahrVon, iJahrBis, tagCNrSchichtwechsel);
+			personalFac.schichtzeitenVorausplanen(personalIId, zeitmodellIId1, zeitmodellIId2, zeitmodellIId3,
+					zeitmodellIId4, iKwVon, iKwBis, iJahrVon, iJahrBis, tagCNrSchichtwechsel);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void removeBetriebskalender(BetriebskalenderDto betriebskalenderDto)
-			throws ExceptionLP {
+	public void removeBetriebskalender(BetriebskalenderDto betriebskalenderDto) throws ExceptionLP {
 		try {
 			personalFac.removeBetriebskalender(betriebskalenderDto);
 		} catch (Throwable ex) {
@@ -1454,11 +1636,9 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void removeZeitabschluss(ZeitabschlussDto zeitabschlussDto)
-			throws ExceptionLP {
+	public void removeZeitabschluss(ZeitabschlussDto zeitabschlussDto) throws ExceptionLP {
 		try {
-			personalFac.removeZeitabschluss(zeitabschlussDto, LPMain
-					.getInstance().getTheClient());
+			personalFac.removeZeitabschluss(zeitabschlussDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -1497,8 +1677,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public StundenabrechnungDto stundenabrechnungFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public StundenabrechnungDto stundenabrechnungFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.stundenabrechnungFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1507,8 +1686,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public GleitzeitsaldoDto gleitzeitsaldoFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public GleitzeitsaldoDto gleitzeitsaldoFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.gleitzeitsaldoFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1517,23 +1695,19 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public GleitzeitsaldoDto gleitzeitsaldoFindLetztenGleitzeitsaldo(
-			Integer personalIId, Integer iJahr, Integer iMonat)
+	public GleitzeitsaldoDto gleitzeitsaldoFindLetztenGleitzeitsaldo(Integer personalIId, Integer iJahr, Integer iMonat)
 			throws ExceptionLP {
 		try {
-			return personalFac.gleitzeitsaldoFindLetztenGleitzeitsaldo(
-					personalIId, iJahr, iMonat);
+			return personalFac.gleitzeitsaldoFindLetztenGleitzeitsaldo(personalIId, iJahr, iMonat);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createEintrittaustritt(
-			EintrittaustrittDto eintrittaustrittDto) throws ExceptionLP {
+	public Integer createEintrittaustritt(EintrittaustrittDto eintrittaustrittDto) throws ExceptionLP {
 		try {
-			return personalFac.createEintrittaustritt(eintrittaustrittDto,
-					LPMain.getInstance().getTheClient());
+			return personalFac.createEintrittaustritt(eintrittaustrittDto, LPMain.getInstance().getTheClient());
 
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -1551,8 +1725,7 @@ public class PersonalDelegate extends Delegate {
 
 	public String getNextPersonalnummer() throws ExceptionLP {
 		try {
-			return personalFac.getNextPersonalnummer(LPMain.getInstance()
-					.getTheClient());
+			return personalFac.getNextPersonalnummer(LPMain.getInstance().getTheClient());
 
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -1560,8 +1733,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Double getAuslastungEinerPerson(Integer personalIId)
-			throws ExceptionLP {
+	public Double getAuslastungEinerPerson(Integer personalIId) throws ExceptionLP {
 		try {
 			return personalFac.getAuslastungEinerPerson(personalIId);
 
@@ -1571,11 +1743,9 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public Integer getArtikelIIdHoechsterWertPersonalverfuegbarkeit(
-			Integer personalIId) throws ExceptionLP {
+	public Integer getArtikelIIdHoechsterWertPersonalverfuegbarkeit(Integer personalIId) throws ExceptionLP {
 		try {
-			return personalFac
-					.getArtikelIIdHoechsterWertPersonalverfuegbarkeit(personalIId);
+			return personalFac.getArtikelIIdHoechsterWertPersonalverfuegbarkeit(personalIId);
 
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -1583,8 +1753,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateEintrittaustritt(EintrittaustrittDto eintrittaustrittDto)
-			throws ExceptionLP {
+	public void updateEintrittaustritt(EintrittaustrittDto eintrittaustrittDto) throws ExceptionLP {
 		try {
 			personalFac.updateEintrittaustritt(eintrittaustrittDto);
 		} catch (Throwable ex) {
@@ -1592,8 +1761,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public EintrittaustrittDto eintrittaustrittFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public EintrittaustrittDto eintrittaustrittFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return personalFac.eintrittaustrittFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -1602,8 +1770,7 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public String getSignatur(Integer personalIId, String locale)
-			throws ExceptionLP {
+	public String getSignatur(Integer personalIId, String locale) throws ExceptionLP {
 		try {
 			return personalFac.getSignatur(personalIId, locale);
 		} catch (Throwable ex) {
@@ -1612,21 +1779,17 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public void updateSignatur(Integer personalIId, String xSignatur)
-			throws ExceptionLP {
+	public void updateSignatur(Integer personalIId, String xSignatur) throws ExceptionLP {
 		try {
-			personalFac.updateSignatur(personalIId, xSignatur, LPMain
-					.getInstance().getTheClient());
+			personalFac.updateSignatur(personalIId, xSignatur, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public EintrittaustrittDto eintrittaustrittFindLetztenEintrittBisDatum(
-			Integer personalIId) throws ExceptionLP {
+	public EintrittaustrittDto eintrittaustrittFindLetztenEintrittBisDatum(Integer personalIId) throws ExceptionLP {
 		try {
-			return personalFac.eintrittaustrittFindLetztenEintrittBisDatum(
-					personalIId,
+			return personalFac.eintrittaustrittFindLetztenEintrittBisDatum(personalIId,
 					new java.sql.Timestamp(System.currentTimeMillis()));
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -1634,11 +1797,20 @@ public class PersonalDelegate extends Delegate {
 		}
 	}
 
-	public PersonalDto[] personalFindByMandantCNrWithEmail(String mandantCNr,
-			boolean bPlusVersteckte) throws ExceptionLP {
+	public PersonalDto[] personalFindByMandantCNrWithEmail(String mandantCNr, boolean bPlusVersteckte)
+			throws ExceptionLP {
 		try {
-			return personalFac.personalFindByMandantCNrWithEmail(mandantCNr,
-					bPlusVersteckte);
+			return personalFac.personalFindByMandantCNrWithEmail(mandantCNr, bPlusVersteckte);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public Integer istFahrzeugBereitsEinerAnderenPersonZugeordnet(Integer fahrzeugIId, Integer personalIId)
+			throws ExceptionLP {
+		try {
+			return personalFac.istFahrzeugBereitsEinerAnderenPersonZugeordnet(fahrzeugIId, personalIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;

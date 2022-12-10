@@ -38,8 +38,11 @@ import java.awt.Insets;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -47,6 +50,7 @@ import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
 import com.lp.server.reklamation.service.ReklamationReportFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.util.DatumsfilterVonBis;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
@@ -60,6 +64,13 @@ public class ReportOffeneReklamationenEinesArtikels extends PanelBasis
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 	private WrapperLabel wlaArtikel = new WrapperLabel();
+	private WrapperCheckBox wcbNurOffene = new WrapperCheckBox();
+
+	private WrapperLabel wlaZeitraum = new WrapperLabel();
+	private WrapperLabel wlaVon = new WrapperLabel();
+	private WrapperDateField wdfVon = new WrapperDateField();
+	private WrapperLabel wlaBis = new WrapperLabel();
+	private WrapperDateField wdfBis = new WrapperDateField();
 
 	private Integer artikelIId = null;
 
@@ -88,13 +99,44 @@ public class ReportOffeneReklamationenEinesArtikels extends PanelBasis
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 
+		wcbNurOffene.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.offenereklamationen.nuroffene"));
+		wcbNurOffene.setSelected(true);
+		wlaZeitraum.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.zeitraum")
+				+ ":");
+		wlaVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
+		wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
+		wlaArtikel.setHorizontalAlignment(SwingConstants.LEFT);
+
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 2, 1, 1, 0.1,
+		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 2, 3, 1, 0.1,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbNurOffene, new GridBagConstraints(3, 4, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaZeitraum, new GridBagConstraints(0, 4, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaVon, new GridBagConstraints(0, 5, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfVon, new GridBagConstraints(1, 5, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, 5, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfBis, new GridBagConstraints(3, 5, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+
 	}
 
 	public String getModul() {
@@ -106,8 +148,14 @@ public class ReportOffeneReklamationenEinesArtikels extends PanelBasis
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory.getInstance().getReklamationReportDelegate()
-				.printOffeneReklamationenEinesArtikels(artikelIId);
+		return DelegateFactory
+				.getInstance()
+				.getReklamationReportDelegate()
+				.printOffeneReklamationenEinesArtikels(
+						artikelIId,
+						wcbNurOffene.isSelected(),
+						new DatumsfilterVonBis(wdfVon.getTimestamp(), wdfBis
+								.getTimestamp()));
 	}
 
 	public boolean getBErstelleReportSofort() {

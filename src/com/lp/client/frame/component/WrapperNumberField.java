@@ -79,8 +79,7 @@ import com.lp.util.Helper;
  * @author Martin Bluehweis
  * @version $Revision: 1.15 $
  */
-public class WrapperNumberField extends JTextField implements IControl,
-		INumberRenderer, IDirektHilfe, IHvValueHolder {
+public class WrapperNumberField extends JTextField implements IControl, INumberRenderer, IDirektHilfe, IHvValueHolder {
 
 	/**
 	 * 
@@ -114,8 +113,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 	public WrapperNumberField() throws ExceptionLP {
 		HelperClient.setDefaultsToComponent(this);
 		try {
-			decimalFormatSymbols = new DecimalFormatSymbols(Defaults
-					.getInstance().getLocUI());
+			decimalFormatSymbols = new DecimalFormatSymbols(Defaults.getInstance().getLocUI());
 		} catch (Throwable ex) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, ex);
 		}
@@ -128,20 +126,38 @@ public class WrapperNumberField extends JTextField implements IControl,
 		new FocusHighlighter(this);
 	}
 
-	public WrapperNumberField(BigDecimal minimumValue, BigDecimal maximumValue)
-			throws ExceptionLP {
+	public WrapperNumberField(int maximumIntegerDigits) throws ExceptionLP {
+
+		this.maximumIntegerDigits = maximumIntegerDigits;
+
+		HelperClient.setDefaultsToComponent(this);
+		try {
+			decimalFormatSymbols = new DecimalFormatSymbols(Defaults.getInstance().getLocUI());
+		} catch (Throwable ex) {
+			throw new ExceptionLP(EJBExceptionLP.FEHLER, ex);
+		}
+		this.setMask(buildMask());
+		this.setHorizontalAlignment(SwingConstants.RIGHT);
+		this.addFocusListener(new WrapperNumberField_focusAdapter(this));
+		this.addKeyListener(new WrapperNumberField_keyAdapter(this));
+
+		cornerInfoButton = new CornerInfoButton(this);
+		new FocusHighlighter(this);
+	}
+
+	public WrapperNumberField(BigDecimal minimumValue, BigDecimal maximumValue) throws ExceptionLP {
 		this();
 		this.maximumValue = maximumValue;
 		this.minimumValue = minimumValue;
 	}
 
-	public WrapperNumberField(int iMinimumValue, int iMaximumValue)
-			throws ExceptionLP {
+	public WrapperNumberField(int iMinimumValue, int iMaximumValue) throws ExceptionLP {
 		this(new BigDecimal(iMinimumValue), new BigDecimal(iMaximumValue));
 	}
+
 	@Override
 	public boolean hasContent() throws Throwable {
-		return getBigDecimal()!=null;
+		return getBigDecimal() != null;
 	}
 
 	@Override
@@ -150,8 +166,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 	}
 
 	@Override
-	public void setNegativeWerteRoteinfaerben(
-			boolean isNegativeWerteRoteinfaerben) {
+	public void setNegativeWerteRoteinfaerben(boolean isNegativeWerteRoteinfaerben) {
 		this.isNegativeWerteRoteinfaerben = isNegativeWerteRoteinfaerben;
 	}
 
@@ -178,8 +193,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 
 	protected void setMask(String mask) {
 		// Tausenderpunkte zaehlen
-		StringTokenizer st = new StringTokenizer(mask, ""
-				+ decimalFormatSymbols.getGroupingSeparator());
+		StringTokenizer st = new StringTokenizer(mask, "" + decimalFormatSymbols.getGroupingSeparator());
 		int iTausenderpunkte = st.countTokens() - 1;
 
 		this.setColumns(mask.length());
@@ -194,22 +208,18 @@ public class WrapperNumberField extends JTextField implements IControl,
 				decimalFormatSymbols.getDecimalSeparator() + // + Dezimaltrenner
 				"#{1,}"; // + beliebig viele nachkommastellen
 
-		final String regExVorzeichen = "((["
-				+ decimalFormatSymbols.getMinusSign() + "]){0,1})"; // Ein oder
-																	// kein
-																	// Minus
+		final String regExVorzeichen = "(([" + decimalFormatSymbols.getMinusSign() + "]){0,1})"; // Ein oder
+																									// kein
+																									// Minus
 		final String regExSonderfall = regExVorzeichen + "|" + "(\\d{0})"; // leer
-		final String regExInteger = regExVorzeichen + "([\\d"
-				+ decimalFormatSymbols.getGroupingSeparator() + "]{0,"
+		final String regExInteger = regExVorzeichen + "([\\d" + decimalFormatSymbols.getGroupingSeparator() + "]{0,"
 				+ (maximumIntegerDigits + iTausenderpunkte) + "})";
 		if (Pattern.matches(basePatternInteger, mask)
 				&& mask.indexOf(decimalFormatSymbols.getDecimalSeparator()) == -1) {
 			regExp = regExSonderfall + "|" + regExInteger;
 		} else if (Pattern.matches(basePatternDecimal, mask)) {
-			regExp = regExSonderfall + "|" + regExInteger + "|"
-					+ // kann zum zeitpunkt der eingabe auch ein int sein
-					regExInteger + decimalFormatSymbols.getDecimalSeparator()
-					+ "(\\d{0," + fractionDigits + "})";
+			regExp = regExSonderfall + "|" + regExInteger + "|" + // kann zum zeitpunkt der eingabe auch ein int sein
+					regExInteger + decimalFormatSymbols.getDecimalSeparator() + "(\\d{0," + fractionDigits + "})";
 		}
 
 		// if (Pattern.matches("#{1,}", mask)) { // |(\\d{0,0}) hinzugefuegt,
@@ -230,8 +240,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 		// mask.indexOf('.') - 1) +"}){0,1})";
 		// }
 		else {
-			LpLogger.getInstance(this.getClass()).warn(
-					"Mask=\"" + mask + "\" is not correct");
+			LpLogger.getInstance(this.getClass()).warn("Mask=\"" + mask + "\" is not correct");
 			this.regPattern = null;
 			return;
 		}
@@ -258,14 +267,12 @@ public class WrapperNumberField extends JTextField implements IControl,
 
 	public void setMaximumIntegerDigits(int maximumIntegerDigits) {
 		this.maximumIntegerDigits = maximumIntegerDigits;
-		this.setMaximumValue(new BigDecimal("99999999999999999999".substring(0,
-				maximumIntegerDigits)));
+		this.setMaximumValue(new BigDecimal("99999999999999999999".substring(0, maximumIntegerDigits)));
 		this.setMask(buildMask());
 	}
 
 	/**
-	 * @param text
-	 *            String
+	 * @param text String
 	 */
 	public void setText(String text) {
 		// Ignorieren des vom Designer generierten Codes
@@ -289,12 +296,10 @@ public class WrapperNumberField extends JTextField implements IControl,
 
 	public void setBigDecimal(BigDecimal bdI) throws ExceptionLP {
 		if (bdI != null) {
-			BigDecimal bd = bdI.setScale(fractionDigits,
-					BigDecimal.ROUND_HALF_EVEN);
+			BigDecimal bd = bdI.setScale(fractionDigits, BigDecimal.ROUND_HALF_EVEN);
 			if (bdI.compareTo(bd) != 0) {
-				LpLogger.getInstance(this.getClass()).info(
-						"Wert " + bdI + " wird auf " + fractionDigits
-								+ " Nachkommastellen gerundet");
+				LpLogger.getInstance(this.getClass())
+						.info("Wert " + bdI + " wird auf " + fractionDigits + " Nachkommastellen gerundet");
 			}
 			try {
 				Locale loc = Defaults.getInstance().getLocUI();
@@ -313,18 +318,14 @@ public class WrapperNumberField extends JTextField implements IControl,
 
 	public BigDecimal getBigDecimal() throws ExceptionLP {
 		BigDecimal bdValue;
-		if (this.getText() != null && !this.getText().equals("")
-				&& !this.getText().equals("-")) {
+		if (this.getText() != null && !this.getText().equals("") && !this.getText().equals("-") && !this.getText().equals(",")) {
 			String number = null;
 			try {
-				number = NumberFormat
-						.getNumberInstance(Defaults.getInstance().getLocUI())
-						.parse(getText()).toString();
+				number = NumberFormat.getNumberInstance(Defaults.getInstance().getLocUI()).parse(getText()).toString();
 			} catch (Throwable ex) {
 				throw new ExceptionLP(EJBExceptionLP.FEHLER, ex);
 			}
-			bdValue = new BigDecimal(number).setScale(fractionDigits,
-					BigDecimal.ROUND_HALF_EVEN);
+			bdValue = new BigDecimal(number).setScale(fractionDigits, BigDecimal.ROUND_HALF_EVEN);
 			// vorher den wert pruefen
 			// checkMinimumMaximum();
 		} else {
@@ -343,6 +344,16 @@ public class WrapperNumberField extends JTextField implements IControl,
 
 	public void setInteger(Integer i) {
 		setSuperText(i == null ? "" : i.toString());
+
+		if (i != null) {
+			try {
+				Locale loc = Defaults.getInstance().getLocUI();
+				String s = Helper.formatZahl(new BigDecimal(i), fractionDigits, loc);
+				super.setText(s);
+			} catch (Throwable ex) {
+			}
+		}
+
 	}
 
 	public void setInteger(int i) {
@@ -408,8 +419,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 	public void setMaximumValue(BigDecimal maximumValue) {
 		if (maximumValue != null) {
 			if (maximumValue.compareTo(this.getMinimumValue()) >= 0) {
-				this.maximumValue = Helper.rundeKaufmaennisch(maximumValue,
-						this.fractionDigits);
+				this.maximumValue = Helper.rundeKaufmaennisch(maximumValue, this.fractionDigits);
 			}
 		} else {
 			setMaximumValue(new BigDecimal(9999999999.9999));
@@ -423,8 +433,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 	public void setMinimumValue(BigDecimal minimumValue) {
 		if (minimumValue != null) {
 			if (minimumValue.compareTo(this.getMaximumValue()) <= 0) {
-				this.minimumValue = Helper.rundeKaufmaennisch(minimumValue,
-						this.fractionDigits);
+				this.minimumValue = Helper.rundeKaufmaennisch(minimumValue, this.fractionDigits);
 			}
 		} else {
 			setMinimumValue(new BigDecimal(-9999999999.9999));
@@ -457,15 +466,13 @@ public class WrapperNumberField extends JTextField implements IControl,
 		if (this.getBigDecimal() != null) {
 			// Formatierung waehrend der Eingabe ohne Tausenderpunkte.
 			StringBuffer sPattern = new StringBuffer();
-			sPattern.append(hashs.substring(0, maximumIntegerDigits - 1))
-					.append("0");
+			sPattern.append(hashs.substring(0, maximumIntegerDigits - 1)).append("0");
 			// nachkommastellen
 			if (fractionDigits > 0) {
 				sPattern.append(".");
 				sPattern.append("0000000000".substring(0, fractionDigits));
 			}
-			DecimalFormat f = new DecimalFormat(sPattern.toString(),
-					decimalFormatSymbols);
+			DecimalFormat f = new DecimalFormat(sPattern.toString(), decimalFormatSymbols);
 			this.setText(f.format(this.getBigDecimal().doubleValue()));
 		}
 
@@ -483,27 +490,21 @@ public class WrapperNumberField extends JTextField implements IControl,
 	public void checkMinimumMaximum() throws ExceptionLP {
 		if (this.getBigDecimal() != null) {
 
-			int iBigger = this.getBigDecimal()
-					.compareTo(this.getMaximumValue());
+			int iBigger = this.getBigDecimal().compareTo(this.getMaximumValue());
 			if (iBigger > 0) {
 				this.setBigDecimal(this.getMaximumValue());
 //				throw new ExceptionLP(
 //						EJBExceptionLP.FEHLER_UNGUELTIGE_ZAHLENEINGABE,
 //						new Exception());
-				DialogFactory
-				.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.error"),
-						LPMain.getMessageTextRespectUISPr("lp.error.ungueltigezahleneingabe.max", this.getMaximumValue()));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain
+						.getMessageTextRespectUISPr("lp.error.ungueltigezahleneingabe.max", this.getMaximumValue()));
 			}
 
-			int iSmaller = this.getBigDecimal().compareTo(
-					this.getMinimumValue());
+			int iSmaller = this.getBigDecimal().compareTo(this.getMinimumValue());
 			if (iSmaller < 0) {
 				this.setBigDecimal(this.getMinimumValue());
-				DialogFactory
-				.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.error"),
-						LPMain.getMessageTextRespectUISPr("lp.error.ungueltigezahleneingabe.min", this.getMinimumValue()));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain
+						.getMessageTextRespectUISPr("lp.error.ungueltigezahleneingabe.min", this.getMinimumValue()));
 			}
 		}
 	}
@@ -599,8 +600,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 	/**
 	 * setMandatoryField
 	 * 
-	 * @param isMandatoryField
-	 *            boolean
+	 * @param isMandatoryField boolean
 	 */
 	public void setMandatoryField(boolean isMandatoryField) {
 		if (!isMandatoryFieldDB || isMandatoryField) {
@@ -623,12 +623,11 @@ public class WrapperNumberField extends JTextField implements IControl,
 	/**
 	 * setActivatable
 	 * 
-	 * @param isActivatable
-	 *            boolean
+	 * @param isActivatable boolean
 	 */
 	public void setActivatable(boolean isActivatable) {
 		this.isActivatable = isActivatable;
-		if(!isActivatable) {
+		if (!isActivatable) {
 			setEditable(false);
 		}
 	}
@@ -660,8 +659,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 
 	/**
 	 * @deprecated use setActivatable
-	 * @param bEnabled
-	 *            boolean
+	 * @param bEnabled boolean
 	 */
 	public void setEnabled(boolean bEnabled) {
 		super.setEnabled(bEnabled);
@@ -670,15 +668,14 @@ public class WrapperNumberField extends JTextField implements IControl,
 	protected class NumberDocument extends PlainDocument {
 
 		/**
-	 * 
-	 */
+		* 
+		*/
 		private static final long serialVersionUID = 1L;
 
 		public void remove(int offs, int len) throws BadLocationException {
 			if (regPattern != null) {
 				String text = WrapperNumberField.this.getText();
-				StringBuffer stringBuffer = new StringBuffer(
-						(text == null) ? "" : text);
+				StringBuffer stringBuffer = new StringBuffer((text == null) ? "" : text);
 
 				stringBuffer.delete(offs, offs + len);
 				if (!regPattern.matcher(stringBuffer).matches()) {
@@ -689,17 +686,19 @@ public class WrapperNumberField extends JTextField implements IControl,
 			super.remove(offs, len);
 		}
 
-		public void insertString(int offs, String str, AttributeSet a)
-				throws BadLocationException {
+		public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
 			// plus ignorieren
 			// siehe keyAdapter
 			if (str == null || str.equals("+")) {
 				return;
 			}
+			if (str != null && str.endsWith("\n")) {
+				str = str.replace("\n", "");
+			}
+
 			// Ein Minus allein darf sein
 			if (str.equals("-")) {
-				if (WrapperNumberField.this.getText() != null
-						&& !WrapperNumberField.this.getText().equals("")) {
+				if (WrapperNumberField.this.getText() != null && !WrapperNumberField.this.getText().equals("")) {
 					return;
 				}
 			}
@@ -718,8 +717,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 				if (regPattern != null) {
 					StringBuffer stringBuffer = new StringBuffer("");
 					if (WrapperNumberField.this.getText() != null) {
-						stringBuffer = new StringBuffer(
-								WrapperNumberField.this.getText());
+						stringBuffer = new StringBuffer(WrapperNumberField.this.getText());
 					}
 					stringBuffer.insert(offs, strInsert.toString());
 					if (!regPattern.matcher(stringBuffer).matches()) {
@@ -733,18 +731,15 @@ public class WrapperNumberField extends JTextField implements IControl,
 	}
 
 	public void setMinimumSize(Dimension d) {
-		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setMaximumSize(Dimension d) {
-		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setPreferredSize(Dimension d) {
-		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	@Override
@@ -761,6 +756,7 @@ public class WrapperNumberField extends JTextField implements IControl,
 	public void removeCib() {
 		cornerInfoButton = null;
 	}
+
 	@Override
 	public String getToken() {
 		return cornerInfoButton.getToolTipToken();
@@ -789,10 +785,8 @@ class WrapperNumberField_focusAdapter implements java.awt.event.FocusListener {
 			adaptee.focusLost();
 		} catch (ExceptionLP ex) {
 			if (ex.getICode() == EJBExceptionLP.FEHLER_UNGUELTIGE_ZAHLENEINGABE) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.error"),
-								LPMain.getTextRespectUISPr("lp.error.ungueltigezahleneingabe"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("lp.error.ungueltigezahleneingabe"));
 			} else {
 				LPMain.getInstance().exitFrame(null);
 			}
@@ -822,15 +816,15 @@ class WrapperNumberField_keyAdapter implements java.awt.event.KeyListener {
 			if (adaptee.isActivatable) {
 				if (e.getKeyChar() == '+') {
 					adaptee.makePositive();
+					e.consume();
 				} else if (e.getKeyChar() == KeyEvent.VK_MINUS) {
 					adaptee.makeNegative();
 				} else if (e.getKeyChar() == ',' || e.getKeyChar() == '.') {
 					if (adaptee.wholeTextIsSelected()) {
-						adaptee.setText("0"
-								+ adaptee.decimalFormatSymbols
-										.getDecimalSeparator());
+						adaptee.setText("0" + adaptee.decimalFormatSymbols.getDecimalSeparator());
 					}
 				}
+
 			}
 		} catch (ExceptionLP ex) {
 			/**

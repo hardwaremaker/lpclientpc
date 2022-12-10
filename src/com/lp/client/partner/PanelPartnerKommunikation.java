@@ -208,7 +208,7 @@ public class PanelPartnerKommunikation extends PanelBasis {
 
 			getInternalFrame().setLpTitle(
 					InternalFrame.TITLE_IDX_AS_I_LIKE,
-					getTabbedPanePartner().getPartnerDto()
+					getTabbedPanePartner().getServicePartnerDto()
 							.formatFixTitelName1Name2());
 		} else {
 			// Update.
@@ -223,7 +223,7 @@ public class PanelPartnerKommunikation extends PanelBasis {
 			getInternalFrame()
 					.setLpTitle(
 							InternalFrame.TITLE_IDX_AS_I_LIKE,
-							getTabbedPanePartner().getPartnerDto()
+							getTabbedPanePartner().getServicePartnerDto()
 									.formatFixTitelName1Name2()
 									+ " | "
 									+ getTabbedPanePartner()
@@ -376,7 +376,7 @@ public class PanelPartnerKommunikation extends PanelBasis {
 	 */
 	private void setDefaults() throws Throwable {
 		getTabbedPanePartner().getPartnerkommunikationsDto().setPartnerIId(
-				getTabbedPanePartner().getPartnerDto().getIId());
+				getTabbedPanePartner().getServicePartnerDto().getIId());
 		getTabbedPanePartner().getPartnerkommunikationsDto().setCNrMandant(
 				LPMain.getInstance().getTheClient().getMandant());
 	}

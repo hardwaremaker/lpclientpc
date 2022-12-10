@@ -69,6 +69,7 @@ import com.lp.client.personal.InternalFramePersonal;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.KurzbriefDto;
 import com.lp.server.partner.service.PartnerDto;
+import com.lp.server.partner.service.PartnerReportFac;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MailtextDto;
@@ -118,14 +119,13 @@ public class PanelPartnerKurzbrief extends PanelBasis {
 
 	static final private String ACTION_SPECIAL_FLR_ANSPRECHPARTNER = "action_special_flr_ansprechpartner";
 	public static final String ACTION_SPECIAL_WEITERLEITEN = "action_special_weiterleiten";
-	private static final String ACTION_SPECIAL_EMAIL = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_email";
+	private static final String ACTION_SPECIAL_EMAIL = "action_special_reportkriterien_email";
 
 	public PanelPartnerKurzbrief(InternalFrame internalFrame,
-			String add2TitleI, Object keyI) throws Throwable {
+			String add2TitleI, Object keyI, String belegartCNr) throws Throwable {
 
 		super(internalFrame, add2TitleI, keyI);
-
+		this.belegartCNr=belegartCNr;
 		jbInit();
 		initComponents();
 	}
@@ -166,19 +166,15 @@ public class PanelPartnerKurzbrief extends PanelBasis {
 	private PartnerDto getPartnerDto() {
 
 		if (getInternalFrame() instanceof InternalFramePartner) {
-			belegartCNr = LocaleFac.BELEGART_PARTNER;
 			return ((InternalFramePartner) getInternalFrame()).getTpPartner()
-					.getPartnerDto();
+					.getServicePartnerDto();
 		} else if (getInternalFrame() instanceof InternalFrameKunde) {
-			belegartCNr = LocaleFac.BELEGART_KUNDE;
 			return ((InternalFrameKunde) getInternalFrame()).getKundeDto()
 					.getPartnerDto();
 		} else if (getInternalFrame() instanceof InternalFrameLieferant) {
-			belegartCNr = LocaleFac.BELEGART_LIEFERANT;
 			return ((InternalFrameLieferant) getInternalFrame())
 					.getLieferantDto().getPartnerDto();
 		} else if (getInternalFrame() instanceof InternalFramePersonal) {
-			belegartCNr = LocaleFac.BELEGART_PERSONAL;
 			return ((InternalFramePersonal) getInternalFrame())
 					.getPersonalDto().getPartnerDto();
 		}
@@ -391,7 +387,8 @@ public class PanelPartnerKurzbrief extends PanelBasis {
 		PersonalDto mailBearbeiterDto = DelegateFactory.getInstance().getPersonalDelegate()
 				.personalFindByPrimaryKey(kurzbriefDto.getPersonalIIdAnlegen()) ;
 		mailtextDto.setMailVertreter(mailBearbeiterDto);
-		
+		mailtextDto.setParamXslFile(PartnerReportFac.REPORT_PART_KURZBRIEF);
+		mailtextDto.setParamModul(PartnerReportFac.REPORT_MODUL);
 		
 		ReportKurzbrief reportKurzbrief = new ReportKurzbrief(getInternalFrame(), 
 				kurzbriefDto, kurzbriefDto.getCBetreff(), getPartnerDto().getIId());
@@ -409,6 +406,7 @@ public class PanelPartnerKurzbrief extends PanelBasis {
 	
 	protected void components2Dto() throws Throwable {
 		kurzbriefDto.setBelegartCNr(belegartCNr);
+		kurzbriefDto.setMandantCNr(LPMain.getTheClient().getMandant());
 		if (wtfBetreff.getText() != null) {
 			kurzbriefDto.setCBetreff(wtfBetreff.getText());
 		} else {
@@ -469,10 +467,12 @@ public class PanelPartnerKurzbrief extends PanelBasis {
 						.getIdSelected();
 				if (iId != null) {
 					kurzbriefDto.setAnsprechpartnerIId(iId);
-					wtfAnsprechpartner.setText(DelegateFactory.getInstance()
+					PartnerDto partnerDto = DelegateFactory.getInstance()
 							.getAnsprechpartnerDelegate()
 							.ansprechpartnerFindByPrimaryKey(iId)
-							.getPartnerDto().formatTitelAnrede());
+							.getPartnerDto();
+					wtfAnsprechpartner.setText(partnerDto.formatTitelAnrede());
+					wefText.setRechtschreibpruefungLocale(Helper.string2Locale(partnerDto.getLocaleCNrKommunikation()));
 				}
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
@@ -526,6 +526,8 @@ public class PanelPartnerKurzbrief extends PanelBasis {
 			String sTitel = "";
 			if (key == null
 					|| (key != null && key.equals(LPMain.getLockMeForNew()))) {
+				kurzbriefDto = new KurzbriefDto();
+
 				leereAlleFelder(this);
 				setDefaults();
 				clearStatusbar();
@@ -572,6 +574,7 @@ public class PanelPartnerKurzbrief extends PanelBasis {
 							kurzbriefDto.getAnsprechpartnerIId());
 			wtfAnsprechpartner.setText(anspDto.getPartnerDto()
 					.formatTitelAnrede());
+			wefText.setRechtschreibpruefungLocale(Helper.string2Locale(anspDto.getPartnerDto().getLocaleCNrKommunikation()));
 		} else {
 			wtfAnsprechpartner.setText(null);
 		}

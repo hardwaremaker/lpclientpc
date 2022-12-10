@@ -33,6 +33,8 @@
 package com.lp.client.reklamation;
 
 import java.awt.event.ActionEvent;
+import java.math.BigDecimal;
+import java.util.Calendar;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -40,8 +42,12 @@ import javax.swing.JSeparator;
 import javax.swing.event.ChangeEvent;
 
 import com.lp.client.anfrage.AnfrageFilterFactory;
+import com.lp.client.angebot.AngebotFilterFactory;
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.artikel.PanelKatalogseite;
+import com.lp.client.auftrag.AuftragFilterFactory;
+import com.lp.client.eingangsrechnung.PanelEingangsrechnungKopfdaten;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
@@ -55,18 +61,34 @@ import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.component.WrapperMenuItem;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.delegate.WareneingangDelegate;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.report.PanelReportKriterien;
+import com.lp.client.frame.report.PanelReportKriterienReklamation;
 import com.lp.client.pc.LPMain;
 import com.lp.client.personal.PanelPersonal;
 import com.lp.client.system.SystemFilterFactory;
+import com.lp.server.auftrag.service.AuftragDto;
+import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.bestellung.service.BestellpositionDto;
+import com.lp.server.bestellung.service.BestellungDto;
+import com.lp.server.bestellung.service.EinstandspreiseEinesWareneingangsDto;
+import com.lp.server.bestellung.service.WareneingangDto;
+import com.lp.server.bestellung.service.WareneingangspositionDto;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungDto;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungFac;
+import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.reklamation.service.ReklamationDto;
 import com.lp.server.reklamation.service.ReklamationFac;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.MwstsatzDto;
+import com.lp.server.system.service.WechselkursDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class TabbedPaneReklamation extends TabbedPane {
@@ -75,7 +97,7 @@ public class TabbedPaneReklamation extends TabbedPane {
 	 */
 	private static final long serialVersionUID = 1L;
 	private PanelQuery panelQueryReklamation = null;
-	private PanelBasis panelDetailReklamationErfassung = null;
+	private PanelReklamation panelDetailReklamationErfassung = null;
 	private PanelBasis panelDetailReklamationAnalyse = null;
 	private PanelBasis panelDetailReklamationMassnahmen = null;
 
@@ -85,9 +107,11 @@ public class TabbedPaneReklamation extends TabbedPane {
 
 	private PanelDialogReklamationKommentar pdReklamationKommentar = null;
 
+	private PanelQueryFLR panelQueryFLRReklamation = null;
+
 	private static final String MENU_BEARBEITEN_KOMMENTAR = "MENU_BEARBEITEN_KOMMENTAR";
 
-	private int IDX_PANEL_AUSWAHL = -1;
+	public static int IDX_PANEL_AUSWAHL = -1;
 	private int IDX_PANEL_DETAIL = -1;
 	private int IDX_PANEL_DATEN = -1;
 	private int IDX_PANEL_MASSNAHMEN = -1;
@@ -104,13 +128,14 @@ public class TabbedPaneReklamation extends TabbedPane {
 
 	private final String MENU_ACTION_DATEI_DRUCKEN = "MENU_ACTION_DATEI_DRUCKEN";
 
+	private String MY_OWN_NEW_NEU_AUS_REKLAMATION = PanelBasis.ACTION_MY_OWN_NEW + "neu_aus_reklamation";
+
 	private PanelQueryFLR panelBeurteilung = null;
 
 	private WrapperMenuBar wrapperMenuBar = null;
 
 	public TabbedPaneReklamation(InternalFrame internalFrameI) throws Throwable {
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"rekla.modulname"));
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr("rekla.modulname"));
 
 		jbInit();
 		initComponents();
@@ -125,94 +150,106 @@ public class TabbedPaneReklamation extends TabbedPane {
 		if (panelQueryBild == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
-			FilterKriterium[] filters = ReklamationFilterFactory.getInstance()
-					.createFKReklamation(reklamationIId);
+			FilterKriterium[] filters = ReklamationFilterFactory.getInstance().createFKReklamation(reklamationIId);
 
-			panelQueryBild = new PanelQuery(null, filters,
-					QueryParameters.UC_ID_REKLAMATIONBILD,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr("lp.bilder"),
+			panelQueryBild = new PanelQuery(null, filters, QueryParameters.UC_ID_REKLAMATIONBILD,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("lp.bilder"),
 					true);
 
-			panelDetailBild = new PanelReklamationbild(
-					getInternalFrameReklamation(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.bilder"), null);
+			panelDetailBild = new PanelReklamationbild(getInternalFrameReklamation(),
+					LPMain.getInstance().getTextRespectUISPr("lp.bilder"), null);
 
-			panelSplitBild = new PanelSplit(getInternalFrame(),
-					panelDetailBild, panelQueryBild, 250);
+			panelSplitBild = new PanelSplit(getInternalFrame(), panelDetailBild, panelQueryBild, 250);
 			setComponentAt(IDX_PANEL_BILDER, panelSplitBild);
 		} else {
 			// filter refreshen.
-			panelQueryBild.setDefaultFilter(ReklamationFilterFactory
-					.getInstance().createFKReklamation(reklamationIId));
+			panelQueryBild.setDefaultFilter(ReklamationFilterFactory.getInstance().createFKReklamation(reklamationIId));
 		}
+	}
+
+	public void erstelleReklamationAusProjekt(Integer projektIId) throws Throwable {
+
+		ItemChangedEvent e = new ItemChangedEvent(this, -99);
+
+		panelQueryReklamation.eventActionNew(e, true, false);
+		panelDetailReklamationErfassung.eventYouAreSelected(false);
+
+		panelDetailReklamationErfassung.setDefaultsAusProjekt(projektIId);
 	}
 
 	private void createAuswahl() throws Throwable {
 		if (panelQueryReklamation == null) {
 			// MB 08.06.06 IMS 2173
-			String[] aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			panelQueryReklamation = new PanelQuery(ReklamationFilterFactory
-					.getInstance().createQTReklamationauswahl(),
-					SystemFilterFactory.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_REKLAMATION, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("auft.title.panel.auswahl"),
-					true);
+			panelQueryReklamation = new PanelQuery(ReklamationFilterFactory.getInstance().createQTReklamationauswahl(),
+					SystemFilterFactory.getInstance().createFKMandantCNr(), QueryParameters.UC_ID_REKLAMATION,
+					aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("auft.title.panel.auswahl"), true);
 
 			panelQueryReklamation.befuellePanelFilterkriterienDirekt(
-					ReklamationFilterFactory.getInstance()
-							.createFKDReklamationsnummer(),
-					ReklamationFilterFactory.getInstance()
-							.createFKDReklamationArtikelnummer());
-			panelQueryReklamation.addDirektFilter(ReklamationFilterFactory
-					.getInstance().createFKDReklamationKdReklaNr());
-			panelQueryReklamation.addDirektFilter(ReklamationFilterFactory
-					.getInstance().createFKDMaschinengruppe());
-
-			panelQueryReklamation.eventYouAreSelected(false);
+					ReklamationFilterFactory.getInstance().createFKDReklamationsnummer(),
+					ReklamationFilterFactory.getInstance().createFKDReklamationKundeLieferant());
 
 			panelQueryReklamation
-					.befuelleFilterkriteriumSchnellansicht(ReklamationFilterFactory
-							.getInstance().createFKReklamationSchnellansicht());
+					.addDirektFilter(ReklamationFilterFactory.getInstance().createFKDReklamationArtikelnummer());
+
+			panelQueryReklamation
+					.addDirektFilter(ReklamationFilterFactory.getInstance().createFKDReklamationKdReklaNr());
+			panelQueryReklamation.addDirektFilter(ReklamationFilterFactory.getInstance().createFKDMaschinengruppe());
+
+			panelQueryReklamation.addDirektFilter(ReklamationFilterFactory.getInstance().createFKDGrund());
+			panelQueryReklamation.addDirektFilter(ReklamationFilterFactory.getInstance().createFKDGrundKommentar());
+
+			panelQueryReklamation.addDirektFilter(ReklamationFilterFactory.getInstance().createFKDProjekt());
+
+			panelQueryReklamation.befuelleFilterkriteriumSchnellansicht(
+					ReklamationFilterFactory.getInstance().createFKReklamationSchnellansicht());
+
+			panelQueryReklamation.createAndSaveAndShowButton("/com/lp/client/res/exchange16x16.png",
+					LPMain.getTextRespectUISPr("rekla.tooltip.datenausbestehenderrekla"),
+					MY_OWN_NEW_NEU_AUS_REKLAMATION, RechteFac.RECHT_REKLA_REKLAMATION_CUD);
 
 			setComponentAt(IDX_PANEL_AUSWAHL, panelQueryReklamation);
 			/*
 			 * try { panelQueryReklamation.setSelectedId(LPMain.getInstance()
-			 * .getTheClient().getIDPersonal()); } catch (Throwable ex) { //
-			 * nothing here }
+			 * .getTheClient().getIDPersonal()); } catch (Throwable ex) { // nothing here }
 			 */
 		}
 	}
 
 	private void createDetail(Integer key) throws Throwable {
 		if (panelDetailReklamationErfassung == null) {
-			panelDetailReklamationErfassung = new PanelReklamation(
-					getInternalFrameReklamation(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.detail"), key);
+			panelDetailReklamationErfassung = new PanelReklamation(getInternalFrameReklamation(),
+					LPMain.getInstance().getTextRespectUISPr("lp.detail"), key);
 			setComponentAt(IDX_PANEL_DETAIL, panelDetailReklamationErfassung);
 		}
 	}
 
 	private void createAnalyse(Integer key) throws Throwable {
 		if (panelDetailReklamationAnalyse == null) {
-			panelDetailReklamationAnalyse = new PanelReklamationAnalyse(
-					getInternalFrameReklamation(), LPMain.getInstance()
-							.getTextRespectUISPr("rekla.analyse"), key);
+			panelDetailReklamationAnalyse = new PanelReklamationAnalyse(getInternalFrameReklamation(),
+					LPMain.getInstance().getTextRespectUISPr("rekla.analyse"), key);
 			setComponentAt(IDX_PANEL_DATEN, panelDetailReklamationAnalyse);
 		}
 	}
 
 	private void createMassnahmen(Integer key) throws Throwable {
 		if (panelDetailReklamationMassnahmen == null) {
-			panelDetailReklamationMassnahmen = new PanelReklamationMassnahmen(
-					getInternalFrameReklamation(), LPMain.getInstance()
-							.getTextRespectUISPr("rekla.massnahme"), key);
-			setComponentAt(IDX_PANEL_MASSNAHMEN,
-					panelDetailReklamationMassnahmen);
+			panelDetailReklamationMassnahmen = new PanelReklamationMassnahmen(getInternalFrameReklamation(),
+					LPMain.getInstance().getTextRespectUISPr("rekla.massnahme"), key);
+			setComponentAt(IDX_PANEL_MASSNAHMEN, panelDetailReklamationMassnahmen);
 		}
+	}
+
+	public void erstelleReklamationausWEP(Integer bestellpositionIId, Integer wareneingangIId)
+			throws ExceptionLP, Throwable {
+
+		createDetail(null);
+		panelDetailReklamationErfassung.eventActionNew(null, true, false);
+		this.setSelectedComponent(panelDetailReklamationErfassung);
+		panelDetailReklamationErfassung.reklamationAusWEPVorbesetzten(bestellpositionIId, wareneingangIId);
+
 	}
 
 	/**
@@ -222,47 +259,26 @@ public class TabbedPaneReklamation extends TabbedPane {
 	 */
 	private void jbInit() throws Throwable {
 
-		int tabIndex = 0;
-		IDX_PANEL_AUSWAHL = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_AUSWAHL);
+		IDX_PANEL_AUSWAHL = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.auswahl"));
 
-		tabIndex++;
-		IDX_PANEL_DETAIL = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.detail"),
-				IDX_PANEL_DETAIL);
+		IDX_PANEL_DETAIL = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.detail"));
 
-		tabIndex++;
-		IDX_PANEL_DATEN = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("rekla.analyse"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("rekla.analyse"),
-				IDX_PANEL_DATEN);
-		tabIndex++;
-		IDX_PANEL_MASSNAHMEN = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("rekla.massnahme"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("rekla.massnahme"),
-				IDX_PANEL_MASSNAHMEN);
+		IDX_PANEL_DATEN = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("rekla.analyse"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("rekla.analyse"));
 
-		tabIndex++;
-		IDX_PANEL_BILDER = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.bilder"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.bilder"),
-				IDX_PANEL_BILDER);
+		IDX_PANEL_MASSNAHMEN = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("rekla.massnahme"), null,
+				null, LPMain.getInstance().getTextRespectUISPr("rekla.massnahme"));
+
+		IDX_PANEL_BILDER = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.bilder"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.bilder"));
 
 		createAuswahl();
 
 		if ((Integer) panelQueryReklamation.getSelectedId() != null) {
-			getInternalFrameReklamation().setReklamationDto(
-					DelegateFactory
-							.getInstance()
-							.getReklamationDelegate()
-							.reklamationFindByPrimaryKey(
-									(Integer) panelQueryReklamation
-											.getSelectedId()));
+			getInternalFrameReklamation().setReklamationDto(DelegateFactory.getInstance().getReklamationDelegate()
+					.reklamationFindByPrimaryKey((Integer) panelQueryReklamation.getSelectedId()));
 		}
 
 		// wenn es fuer das tabbed pane noch keinen eintrag gibt, die
@@ -272,8 +288,7 @@ public class TabbedPaneReklamation extends TabbedPane {
 		}
 
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelQueryReklamation,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelQueryReklamation, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		this.addChangeListener(this);
@@ -300,13 +315,10 @@ public class TabbedPaneReklamation extends TabbedPane {
 		if (getInternalFrameReklamation().getReklamationDto() != null) {
 
 			if (getInternalFrameReklamation().getReklamationDto().getCNr() != null) {
-				getInternalFrame().setLpTitle(
-						InternalFrame.TITLE_IDX_AS_I_LIKE,
-						getInternalFrameReklamation().getReklamationDto()
-								.getCNr());
+				getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+						getInternalFrameReklamation().getReklamationDto().getCNr());
 			} else {
-				getInternalFrame().setLpTitle(
-						InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+				getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
 			}
 		}
 	}
@@ -326,84 +338,48 @@ public class TabbedPaneReklamation extends TabbedPane {
 
 				}
 			}
-		} else if (e.getActionCommand().equals(
-				MENUE_JOURNAL_ACTION_REKLAMATIONSJOURNAL)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"rekla.reklamationsjournal");
-			getInternalFrame()
-					.showReportKriterien(
-							new ReportReklamationsjournal(getInternalFrame(),
-									add2Title));
+		} else if (e.getActionCommand().equals(MENUE_JOURNAL_ACTION_REKLAMATIONSJOURNAL)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("rekla.reklamationsjournal");
+			getInternalFrame().showReportKriterien(new ReportReklamationsjournal(getInternalFrame(), add2Title));
 
-		} else if (e.getActionCommand().equals(
-				MENUE_JOURNAL_ACTION_LIEFERANTENTERMINTREUE)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"rekla.lieferantentermintreue");
-			getInternalFrame().showReportKriterien(
-					new ReportLieferantentermintreue(getInternalFrame(),
-							add2Title));
+		} else if (e.getActionCommand().equals(MENUE_JOURNAL_ACTION_LIEFERANTENTERMINTREUE)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("rekla.lieferantentermintreue");
+			getInternalFrame().showReportKriterien(new ReportLieferantentermintreue(getInternalFrame(), add2Title));
 
-		} else if (e.getActionCommand().equals(
-				MENUE_JOURNAL_ACTION_LIEFERANTENBEURTEILUNG)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"rekla.lieferantenbeurteilung");
-			getInternalFrame().showReportKriterien(
-					new ReportLieferantenbeurteilung(getInternalFrame(),
-							add2Title));
+		} else if (e.getActionCommand().equals(MENUE_JOURNAL_ACTION_LIEFERANTENBEURTEILUNG)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("rekla.lieferantenbeurteilung");
+			getInternalFrame().showReportKriterien(new ReportLieferantenbeurteilung(getInternalFrame(), add2Title));
 
-		} else if (e.getActionCommand()
-				.equals(MENUE_JOURNAL_ACTION_FEHLERARTEN)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"rekla.journal.fehlerarten");
-			getInternalFrame().showReportKriterien(
-					new ReportFehlerart(getInternalFrame(), add2Title));
+		} else if (e.getActionCommand().equals(MENUE_JOURNAL_ACTION_FEHLERARTEN)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("rekla.journal.fehlerarten");
+			getInternalFrame().showReportKriterien(new ReportFehlerart(getInternalFrame(), add2Title));
 
-		} else if (e.getActionCommand().equals(
-				MENUE_JOURNAL_ACTION_MITARBEITERREKLAMATION)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"rekla.journal.mitarbeiterreklamation");
-			getInternalFrame().showReportKriterien(
-					new ReportMitarbeiterreklamation(getInternalFrame(),
-							add2Title));
+		} else if (e.getActionCommand().equals(MENUE_JOURNAL_ACTION_MITARBEITERREKLAMATION)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("rekla.journal.mitarbeiterreklamation");
+			getInternalFrame().showReportKriterien(new ReportMitarbeiterreklamation(getInternalFrame(), add2Title));
 
-		} else if (e.getActionCommand().equals(
-				MENUE_JOURNAL_ACTION_MASCHINENREKLAMATION)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"rekla.journal.maschinenreklamation");
-			getInternalFrame().showReportKriterien(
-					new ReportMaschinenreklamation(getInternalFrame(),
-							add2Title));
+		} else if (e.getActionCommand().equals(MENUE_JOURNAL_ACTION_MASCHINENREKLAMATION)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("rekla.journal.maschinenreklamation");
+			getInternalFrame().showReportKriterien(new ReportMaschinenreklamation(getInternalFrame(), add2Title));
 
-		} else if (e.getActionCommand().equals(
-				MENU_BEARBEITEN_MANUELL_ERLEDIGEN)) {
+		} else if (e.getActionCommand().equals(MENU_BEARBEITEN_MANUELL_ERLEDIGEN)) {
 			if (getInternalFrameReklamation().getReklamationDto() != null) {
 
-				if (getInternalFrameReklamation().getReklamationDto()
-						.getTErledigt() == null) {
-					if (DialogFactory
-							.showModalJaNeinDialog(
-									getInternalFrame(),
-									LPMain.getTextRespectUISPr("fert.status.auferledigtsetzen"))) {
+				if (getInternalFrameReklamation().getReklamationDto().getTErledigt() == null) {
+					if (DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							LPMain.getTextRespectUISPr("fert.status.auferledigtsetzen"))) {
 
 						// Beurteilung angeben
-						panelBeurteilung = ReklamationFilterFactory
-								.getInstance().createPanelFLRBehandlung(
-										getInternalFrame(), null, false);
+						panelBeurteilung = ReklamationFilterFactory.getInstance()
+								.createPanelFLRBehandlung(getInternalFrame(), null, false);
 						new DialogQuery(panelBeurteilung);
 
 					}
 				} else {
-					if (DialogFactory
-							.showModalJaNeinDialog(
-									getInternalFrame(),
-									LPMain.getTextRespectUISPr("rekla.erledigtaufheben"))) {
-						DelegateFactory
-								.getInstance()
-								.getReklamationDelegate()
-								.reklamationErledigenOderAufheben(
-										getInternalFrameReklamation()
-												.getReklamationDto().getIId(),
-										null);
+					if (DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							LPMain.getTextRespectUISPr("rekla.erledigtaufheben"))) {
+						DelegateFactory.getInstance().getReklamationDelegate().reklamationErledigenOderAufheben(
+								getInternalFrameReklamation().getReklamationDto().getIId(), null);
 						panelQueryReklamation.eventYouAreSelected(false);
 					}
 
@@ -415,75 +391,60 @@ public class TabbedPaneReklamation extends TabbedPane {
 	}
 
 	public void printReklamation() throws Throwable {
-		if (getInternalFrameReklamation().getReklamationDto() != null) {
+		if (getInternalFrameReklamation().getReklamationDto() != null
+				&& getInternalFrameReklamation().getReklamationDto().getIId() != null) {
 
-			if (getInternalFrameReklamation().getReklamationDto()
-					.getReklamationartCNr()
+			if (getInternalFrameReklamation().getReklamationDto().getReklamationartCNr()
 					.equals(ReklamationFac.REKLAMATIONART_KUNDE)
-					&& getInternalFrameReklamation().getReklamationDto()
-							.getIKundeunterart() != null
-					&& getInternalFrameReklamation()
-							.getReklamationDto()
-							.getIKundeunterart()
+					&& getInternalFrameReklamation().getReklamationDto().getIKundeunterart() != null
+					&& getInternalFrameReklamation().getReklamationDto().getIKundeunterart()
 							.equals(ReklamationFac.REKLAMATION_KUNDEUNTERART_LIEFERANT)) {
-				getInternalFrame()
-						.showReportKriterien(
-								new ReportReklamationUnterartKundeLieferant(
-										getInternalFrameReklamation(), "",
-										getInternalFrameReklamation()
-												.getReklamationDto().getIId()),
-								DelegateFactory
-										.getInstance()
-										.getKundeDelegate()
-										.kundeFindByPrimaryKey(
-												getInternalFrameReklamation()
-														.getReklamationDto()
-														.getKundeIId())
-										.getPartnerDto(),
-								getInternalFrameReklamation()
-										.getReklamationDto()
-										.getAnsprechpartnerIId());
+
+				PanelReportKriterienReklamation panelDialog = new PanelReportKriterienReklamation(getInternalFrame(),
+						new ReportReklamationUnterartKundeLieferant(getInternalFrameReklamation(), "",
+								getInternalFrameReklamation().getReklamationDto().getIId()),
+						"",
+						DelegateFactory.getInstance().getLieferantDelegate()
+								.lieferantFindByPrimaryKey(
+										getInternalFrameReklamation().getReklamationDto().getLieferantIId())
+								.getPartnerDto(),
+						getInternalFrameReklamation().getReklamationDto().getAnsprechpartnerIIdLieferant(), false, true,
+						false);
+
+				getInternalFrame().showPanelDialog(panelDialog);
+
+				panelDialog.setzeEmpfaengerAnhandSelektiertemRadioButton();
+
 			} else {
 
 				PartnerDto partnerDtoEmpfaenger = null;
 				Integer ansprechprtnerIId = null;
 
-				if (getInternalFrameReklamation().getReklamationDto()
-						.getReklamationartCNr()
+				if (getInternalFrameReklamation().getReklamationDto().getReklamationartCNr()
 						.equals(ReklamationFac.REKLAMATIONART_KUNDE)) {
 
-					partnerDtoEmpfaenger = DelegateFactory
-							.getInstance()
-							.getKundeDelegate()
-							.kundeFindByPrimaryKey(
-									getInternalFrameReklamation()
-											.getReklamationDto().getKundeIId())
+					partnerDtoEmpfaenger = DelegateFactory.getInstance().getKundeDelegate()
+							.kundeFindByPrimaryKey(getInternalFrameReklamation().getReklamationDto().getKundeIId())
 							.getPartnerDto();
 
-					ansprechprtnerIId = getInternalFrameReklamation()
-							.getReklamationDto().getAnsprechpartnerIId();
+					ansprechprtnerIId = getInternalFrameReklamation().getReklamationDto().getAnsprechpartnerIId();
 
-				} else if (getInternalFrameReklamation().getReklamationDto()
-						.getReklamationartCNr()
+				} else if (getInternalFrameReklamation().getReklamationDto().getReklamationartCNr()
 						.equals(ReklamationFac.REKLAMATIONART_LIEFERANT)) {
-					partnerDtoEmpfaenger = DelegateFactory
-							.getInstance()
-							.getLieferantDelegate()
+					partnerDtoEmpfaenger = DelegateFactory.getInstance().getLieferantDelegate()
 							.lieferantFindByPrimaryKey(
-									getInternalFrameReklamation()
-											.getReklamationDto()
-											.getLieferantIId()).getPartnerDto();
+									getInternalFrameReklamation().getReklamationDto().getLieferantIId())
+							.getPartnerDto();
 
-					ansprechprtnerIId = getInternalFrameReklamation()
-							.getReklamationDto()
+					ansprechprtnerIId = getInternalFrameReklamation().getReklamationDto()
 							.getAnsprechpartnerIIdLieferant();
 
 				}
 
 				getInternalFrame().showReportKriterien(
-						new ReportReklamation(getInternalFrameReklamation(),
-								"", getInternalFrameReklamation()
-										.getReklamationDto().getIId()),
+						new ReportReklamation(getInternalFrameReklamation(), "",
+								getInternalFrameReklamation().getReklamationDto().getIId(),
+								getInternalFrameReklamation().getReklamationDto().getKostenstelleIId()),
 						partnerDtoEmpfaenger, ansprechprtnerIId);
 			}
 		}
@@ -492,9 +453,8 @@ public class TabbedPaneReklamation extends TabbedPane {
 	private void refreshPdKommentar() throws Throwable {
 		// das Panel immer neu anlegen, sonst funktioniert das Locken des
 		// Angebots nicht richtig
-		pdReklamationKommentar = new PanelDialogReklamationKommentar(
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"lp.kommentar"), true);
+		pdReklamationKommentar = new PanelDialogReklamationKommentar(getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("lp.kommentar"), true);
 	}
 
 	private PanelBasis getReklamationDetail() throws Throwable {
@@ -504,13 +464,11 @@ public class TabbedPaneReklamation extends TabbedPane {
 
 			// Die Angebot hat einen Key vom Typ Integer
 			if (getInternalFrame().getKeyWasForLockMe() != null) {
-				iIdPersonal = new Integer(Integer.parseInt(getInternalFrame()
-						.getKeyWasForLockMe()));
+				iIdPersonal = new Integer(Integer.parseInt(getInternalFrame().getKeyWasForLockMe()));
 			}
 
-			panelDetailReklamationErfassung = new PanelPersonal(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.detail"), iIdPersonal); // empty
+			panelDetailReklamationErfassung = new PanelReklamation(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.detail"), iIdPersonal); // empty
 			// bei
 			// leerer
 			// angebotsliste
@@ -527,9 +485,8 @@ public class TabbedPaneReklamation extends TabbedPane {
 		if (getInternalFrameReklamation().getReklamationDto() == null
 				|| getInternalFrameReklamation().getReklamationDto().getIId() == null) {
 			bIstGueltig = false;
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.warning"), LPMain.getInstance()
-					.getTextRespectUISPr("pers.warning.keinereklamation"));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+					LPMain.getInstance().getTextRespectUISPr("pers.warning.keinereklamation"));
 		}
 
 		return bIstGueltig;
@@ -541,32 +498,55 @@ public class TabbedPaneReklamation extends TabbedPane {
 			if (e.getSource() == panelQueryReklamation) {
 				Integer iId = (Integer) panelQueryReklamation.getSelectedId();
 				if (iId != null) {
+					createDetail((Integer) panelQueryReklamation.getSelectedId());
 					setSelectedComponent(panelDetailReklamationErfassung);
+
 					panelDetailReklamationErfassung.eventYouAreSelected(false);
 				}
 			} else if (e.getSource() == panelBeurteilung) {
 				Integer iId = (Integer) panelBeurteilung.getSelectedId();
 				if (iId != null) {
 
-					DelegateFactory
-							.getInstance()
-							.getReklamationDelegate()
-							.reklamationErledigenOderAufheben(
-									getInternalFrameReklamation()
-											.getReklamationDto().getIId(), iId);
-					
-					getInternalFrameReklamation()
-					.setReklamationDto(DelegateFactory.getInstance().getReklamationDelegate().reklamationFindByPrimaryKey(getInternalFrameReklamation()
-							.getReklamationDto().getIId()));
-					
+					DelegateFactory.getInstance().getReklamationDelegate().reklamationErledigenOderAufheben(
+							getInternalFrameReklamation().getReklamationDto().getIId(), iId);
 
+					getInternalFrameReklamation().setReklamationDto(
+							DelegateFactory.getInstance().getReklamationDelegate().reklamationFindByPrimaryKey(
+									getInternalFrameReklamation().getReklamationDto().getIId()));
+
+				}
+			} else if (e.getSource() == panelQueryFLRReklamation) {
+				Integer iIdReklamationBasis = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+
+				if (iIdReklamationBasis != null) {
+
+					ReklamationDto reklamationDtoBasis = DelegateFactory.getInstance().getReklamationDelegate()
+							.reklamationFindByPrimaryKey(iIdReklamationBasis);
+
+					Integer reklamationIId = DelegateFactory.getInstance().getReklamationDelegate()
+							.erzeugeReklamationAusReklamation(reklamationDtoBasis, getInternalFrame());
+
+					// Kunden
+					getInternalFrame().setKeyWasForLockMe(reklamationIId + "");
+					panelQueryReklamation.setSelectedId(reklamationIId);
+
+					getInternalFrameReklamation().setReklamationDto(DelegateFactory.getInstance()
+							.getReklamationDelegate().reklamationFindByPrimaryKey(reklamationIId));
+
+					// wenn es bisher keine Reklamation gegeben hat
+					if (panelQueryReklamation.getSelectedId() == null) {
+						getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
+					}
+
+					setSelectedComponent(panelDetailReklamationErfassung);
+					refreshTitle();
+					panelDetailReklamationErfassung.eventYouAreSelected(false);
 				}
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
 			if (e.getSource() == panelDetailReklamationErfassung) {
 				panelQueryReklamation.clearDirektFilter();
-				Object oKey = panelDetailReklamationErfassung
-						.getKeyWhenDetailPanel();
+				Object oKey = panelDetailReklamationErfassung.getKeyWhenDetailPanel();
 
 				panelQueryReklamation.setSelectedId(oKey);
 			} else if (e.getSource() == panelDetailBild) {
@@ -579,38 +559,23 @@ public class TabbedPaneReklamation extends TabbedPane {
 		} else if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
 			if (e.getSource() == panelQueryReklamation) {
 				if (panelQueryReklamation.getSelectedId() != null) {
-					getInternalFrameReklamation().setKeyWasForLockMe(
-							panelQueryReklamation.getSelectedId() + "");
-					createDetail((Integer) panelQueryReklamation
-							.getSelectedId());
-					panelDetailReklamationErfassung
-							.setKeyWhenDetailPanel(panelQueryReklamation
-									.getSelectedId());
+					getInternalFrameReklamation().setKeyWasForLockMe(panelQueryReklamation.getSelectedId() + "");
+					createDetail((Integer) panelQueryReklamation.getSelectedId());
+					panelDetailReklamationErfassung.setKeyWhenDetailPanel(panelQueryReklamation.getSelectedId());
 
-					getInternalFrameReklamation().setReklamationDto(
-							DelegateFactory
-									.getInstance()
-									.getReklamationDelegate()
-									.reklamationFindByPrimaryKey(
-											(Integer) panelQueryReklamation
-													.getSelectedId()));
+					getInternalFrameReklamation()
+							.setReklamationDto(DelegateFactory.getInstance().getReklamationDelegate()
+									.reklamationFindByPrimaryKey((Integer) panelQueryReklamation.getSelectedId()));
 
 					if (getInternalFrameReklamation().getReklamationDto() != null) {
-						getInternalFrame().setLpTitle(
-								InternalFrame.TITLE_IDX_AS_I_LIKE,
-								getInternalFrameReklamation()
-										.getReklamationDto().getCNr());
+						getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+								getInternalFrameReklamation().getReklamationDto().getCNr());
 					}
 
-					getInternalFrame()
-							.enableAllOberePanelsExceptMe(
-									this,
-									IDX_PANEL_AUSWAHL,
-									((ISourceEvent) e.getSource())
-											.getIdSelected() != null);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL,
+							((ISourceEvent) e.getSource()).getIdSelected() != null);
 				} else {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, false);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 				}
 
 			} else if (e.getSource() == panelQueryBild) {
@@ -622,23 +587,20 @@ public class TabbedPaneReklamation extends TabbedPane {
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			if (e.getSource() == panelDetailBild) {
-				panelQueryBild.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryBild.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			// aktiviere ein QP ...
 			if (e.getSource() == panelDetailReklamationErfassung) {
 				panelQueryReklamation.eventYouAreSelected(false);
-				getInternalFrameReklamation().getReklamationDto().setIId(
-						(Integer) panelQueryReklamation.getSelectedId());
-				getInternalFrame().setKeyWasForLockMe(
-						panelQueryReklamation.getSelectedId() + "");
+				getInternalFrameReklamation().getReklamationDto()
+						.setIId((Integer) panelQueryReklamation.getSelectedId());
+				getInternalFrame().setKeyWasForLockMe(panelQueryReklamation.getSelectedId() + "");
 				this.setSelectedComponent(panelQueryReklamation);
 			} else if (e.getSource() == panelDetailBild) {
 				setKeyWasForLockMe();
 				if (panelDetailBild.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryBild
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryBild.getId2SelectAfterDelete();
 					panelQueryBild.setSelectedId(oNaechster);
 				}
 				panelSplitBild.eventYouAreSelected(false);
@@ -646,8 +608,7 @@ public class TabbedPaneReklamation extends TabbedPane {
 		} else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
 			refreshTitle();
 			super.lPEventItemChanged(e);
-		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD
-				|| e.getID() == ItemChangedEvent.ACTION_DELETE) {
+		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD || e.getID() == ItemChangedEvent.ACTION_DELETE) {
 			if (e.getSource() == panelDetailBild) {
 				panelSplitBild.eventYouAreSelected(false);
 			}
@@ -663,21 +624,31 @@ public class TabbedPaneReklamation extends TabbedPane {
 				panelDetailBild.eventYouAreSelected(false);
 				this.setSelectedComponent(panelSplitBild);
 			}
-		}
+		} else if (e.getID() == ItemChangedEvent.ACTION_MY_OWN_NEW) {
+			String sAspectInfo = ((ISourceEvent) e.getSource()).getAspect();
 
+			if (sAspectInfo.equals(MY_OWN_NEW_NEU_AUS_REKLAMATION)) {
+				if (e.getSource() == panelQueryReklamation) {
+					dialogQueryReklamationFromListe();
+				}
+			}
+		}
+	}
+
+	public void dialogQueryReklamationFromListe() throws Throwable {
+		panelQueryFLRReklamation = ReklamationFilterFactory.getInstance().createPanelFLRReklamation(getInternalFrame(),
+				null);
+
+		new DialogQuery(panelQueryFLRReklamation);
 	}
 
 	public boolean pruefeObReklamationAenderbar() {
 		if (getInternalFrameReklamation().getReklamationDto() != null
-				&& getInternalFrameReklamation().getReklamationDto()
-						.getStatusCNr() != null
-				&& getInternalFrameReklamation().getReklamationDto()
-						.getStatusCNr().equals(LocaleFac.STATUS_ERLEDIGT)) {
+				&& getInternalFrameReklamation().getReklamationDto().getStatusCNr() != null
+				&& getInternalFrameReklamation().getReklamationDto().getStatusCNr().equals(LocaleFac.STATUS_ERLEDIGT)) {
 
-			DialogFactory.showModalDialog(
-					LPMain.getInstance().getTextRespectUISPr("lp.warning"),
-					LPMain.getInstance().getTextRespectUISPr(
-							"rekla.warning.reklakannnichtgeaendertwerden"));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+					LPMain.getInstance().getTextRespectUISPr("rekla.warning.reklakannnichtgeaendertwerden"));
 
 			return false;
 		} else {
@@ -688,8 +659,7 @@ public class TabbedPaneReklamation extends TabbedPane {
 	/**
 	 * Behandle ChangeEvent; zB Tabwechsel oben.
 	 * 
-	 * @param e
-	 *            ChangeEvent
+	 * @param e ChangeEvent
 	 * @throws Throwable
 	 */
 	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
@@ -705,16 +675,13 @@ public class TabbedPaneReklamation extends TabbedPane {
 			createDetail((Integer) panelQueryReklamation.getSelectedId());
 			panelDetailReklamationErfassung.eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_PANEL_DATEN) {
-			createAnalyse(getInternalFrameReklamation().getReklamationDto()
-					.getIId());
+			createAnalyse(getInternalFrameReklamation().getReklamationDto().getIId());
 			panelDetailReklamationAnalyse.eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_PANEL_MASSNAHMEN) {
-			createMassnahmen(getInternalFrameReklamation().getReklamationDto()
-					.getIId());
+			createMassnahmen(getInternalFrameReklamation().getReklamationDto().getIId());
 			panelDetailReklamationMassnahmen.eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_PANEL_BILDER) {
-			createReklamationbild(getInternalFrameReklamation()
-					.getReklamationDto().getIId());
+			createReklamationbild(getInternalFrameReklamation().getReklamationDto().getIId());
 			panelSplitBild.eventYouAreSelected(false);
 			panelQueryBild.updateButtons();
 		}
@@ -726,93 +693,69 @@ public class TabbedPaneReklamation extends TabbedPane {
 		if (wrapperMenuBar == null) {
 			wrapperMenuBar = new WrapperMenuBar(this);
 
-			JMenu jmModul = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_MODUL);
-			JMenuItem menuItemDateiDrucken = new JMenuItem(LPMain.getInstance()
-					.getTextRespectUISPr("lp.menu.drucken"));
+			JMenu jmModul = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_MODUL);
+			JMenuItem menuItemDateiDrucken = new JMenuItem(LPMain.getInstance().getTextRespectUISPr("lp.menu.drucken"));
 			menuItemDateiDrucken.addActionListener(this);
 			menuItemDateiDrucken.setActionCommand(MENU_ACTION_DATEI_DRUCKEN);
 			jmModul.add(new JSeparator(), 0);
 			jmModul.add(menuItemDateiDrucken, 0);
 			// Menue Bearbeiten
-			JMenu jmBearbeiten = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
+			JMenu jmBearbeiten = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
 
 			JMenuItem menuItemBearbeitenExternerKommentar = new JMenuItem(
 					LPMain.getInstance().getTextRespectUISPr("lp.kommentar"));
 			menuItemBearbeitenExternerKommentar.addActionListener(this);
-			menuItemBearbeitenExternerKommentar
-					.setActionCommand(MENU_BEARBEITEN_KOMMENTAR);
+			menuItemBearbeitenExternerKommentar.setActionCommand(MENU_BEARBEITEN_KOMMENTAR);
 			jmBearbeiten.add(menuItemBearbeitenExternerKommentar);
 			jmBearbeiten.add(new JSeparator());
 
 			WrapperMenuItem menuItemBearbeitenManuellErledigen = new WrapperMenuItem(
-					LPMain.getTextRespectUISPr("lp.menu.menuellerledigen"),
-					RechteFac.RECHT_REKLA_REKLAMATION_CUD);
+					LPMain.getTextRespectUISPr("lp.menu.menuellerledigen"), RechteFac.RECHT_REKLA_REKLAMATION_CUD);
 			menuItemBearbeitenManuellErledigen.addActionListener(this);
-			menuItemBearbeitenManuellErledigen
-					.setActionCommand(MENU_BEARBEITEN_MANUELL_ERLEDIGEN);
+			menuItemBearbeitenManuellErledigen.setActionCommand(MENU_BEARBEITEN_MANUELL_ERLEDIGEN);
 			jmBearbeiten.add(menuItemBearbeitenManuellErledigen);
 
-			JMenu journal = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_JOURNAL);
-			JMenuItem menuItemReklamationsjournal = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"rekla.reklamationsjournal"));
+			JMenu journal = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_JOURNAL);
+			JMenuItem menuItemReklamationsjournal = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("rekla.reklamationsjournal"));
 			menuItemReklamationsjournal.addActionListener(this);
-			menuItemReklamationsjournal
-					.setActionCommand(MENUE_JOURNAL_ACTION_REKLAMATIONSJOURNAL);
+			menuItemReklamationsjournal.setActionCommand(MENUE_JOURNAL_ACTION_REKLAMATIONSJOURNAL);
 			journal.add(menuItemReklamationsjournal);
 
-			JMenuItem menuItemLieferantentermintreue = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"rekla.lieferantentermintreue"));
+			JMenuItem menuItemLieferantentermintreue = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("rekla.lieferantentermintreue"));
 			menuItemLieferantentermintreue.addActionListener(this);
-			menuItemLieferantentermintreue
-					.setActionCommand(MENUE_JOURNAL_ACTION_LIEFERANTENTERMINTREUE);
+			menuItemLieferantentermintreue.setActionCommand(MENUE_JOURNAL_ACTION_LIEFERANTENTERMINTREUE);
 			journal.add(menuItemLieferantentermintreue);
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_LIEFERANTENBEURTEILUNG)) {
-				if (DelegateFactory
-						.getInstance()
-						.getTheJudgeDelegate()
-						.hatRecht(
-								com.lp.server.benutzer.service.RechteFac.RECHT_REKLA_QUALITAETSSICHERUNG_CUD)) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_LIEFERANTENBEURTEILUNG)) {
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(com.lp.server.benutzer.service.RechteFac.RECHT_REKLA_QUALITAETSSICHERUNG_CUD)) {
 					JMenuItem menuItemLieferantenbeurteilung = new JMenuItem(
-							LPMain.getInstance().getTextRespectUISPr(
-									"rekla.lieferantenbeurteilung"));
+							LPMain.getInstance().getTextRespectUISPr("rekla.lieferantenbeurteilung"));
 					menuItemLieferantenbeurteilung.addActionListener(this);
-					menuItemLieferantenbeurteilung
-							.setActionCommand(MENUE_JOURNAL_ACTION_LIEFERANTENBEURTEILUNG);
+					menuItemLieferantenbeurteilung.setActionCommand(MENUE_JOURNAL_ACTION_LIEFERANTENBEURTEILUNG);
 					journal.add(menuItemLieferantenbeurteilung);
 				}
 			}
 
-			JMenuItem menuItemFehlerarten = new JMenuItem(LPMain.getInstance()
-					.getTextRespectUISPr("rekla.journal.fehlerarten"));
+			JMenuItem menuItemFehlerarten = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("rekla.journal.fehlerarten"));
 			menuItemFehlerarten.addActionListener(this);
-			menuItemFehlerarten
-					.setActionCommand(MENUE_JOURNAL_ACTION_FEHLERARTEN);
+			menuItemFehlerarten.setActionCommand(MENUE_JOURNAL_ACTION_FEHLERARTEN);
 			journal.add(menuItemFehlerarten);
 
-			JMenuItem menuItemMitarbeitereklamation = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"rekla.journal.mitarbeiterreklamation"));
+			JMenuItem menuItemMitarbeitereklamation = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("rekla.journal.mitarbeiterreklamation"));
 			menuItemMitarbeitereklamation.addActionListener(this);
-			menuItemMitarbeitereklamation
-					.setActionCommand(MENUE_JOURNAL_ACTION_MITARBEITERREKLAMATION);
+			menuItemMitarbeitereklamation.setActionCommand(MENUE_JOURNAL_ACTION_MITARBEITERREKLAMATION);
 			journal.add(menuItemMitarbeitereklamation);
 
-			JMenuItem menuItemMaschinenreklamation = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"rekla.journal.maschinenreklamation"));
+			JMenuItem menuItemMaschinenreklamation = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("rekla.journal.maschinenreklamation"));
 			menuItemMaschinenreklamation.addActionListener(this);
-			menuItemMaschinenreklamation
-					.setActionCommand(MENUE_JOURNAL_ACTION_MASCHINENREKLAMATION);
+			menuItemMaschinenreklamation.setActionCommand(MENUE_JOURNAL_ACTION_MASCHINENREKLAMATION);
 			journal.add(menuItemMaschinenreklamation);
 
 		}

@@ -92,6 +92,7 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 	private WrapperRadioButton wrbLagerortLager = null;
 	private WrapperRadioButton wrbIdent = null;
 	private WrapperRadioButton wrbArtikelbezeichnung = null;
+	private WrapperRadioButton wrbWieErfasst = null;
 	private JPanel jpaWorkingOn = null;
 	private ButtonGroup bgSortierung = null;
 	private WrapperCheckBox wcoVerdichtetNachIdent = null;
@@ -111,6 +112,7 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 	private String ACTION_SORTIERUNG_MONTAGEART = "ACTION_SORTIERUNG_MONTAGEART";
 	private String ACTION_SORTIERUNG_IDENT = "ACTION_SORTIERUNG_MONTAGEART";
 	private String ACTION_SORTIERUNG_ARTIKELBEZEICHNUNG = "ACTION_SORTIERUNG_ARTIKELBEZEICHNUNG";
+	private String ACTION_SORTIERUNG_WIE_ERFASST = "ACTION_SORTIERUNG_WIE_ERFASST";
 	static final public String ACTION_SPECIAL_LOS_FROM_LISTE = "action_auftrag_los_liste";
 	private PanelQueryFLR panelQueryFLRLos = null;
 
@@ -178,11 +180,14 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 
 		else if (e.getActionCommand().equals(ACTION_SORTIERUNG_ARTIKELKASSE)) {
 			wcoMaterial.setEnabled(true);
+		}else if (e.getActionCommand().equals(ACTION_SORTIERUNG_WIE_ERFASST)) {
+			wcoVerdichtetNachIdent.setSelected(false);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LEEREN)) {
 			wtfLos.setText(null);
 			losIId = new ArrayList<Integer>();
 		} else {
 			wcoMaterial.setEnabled(false);
+			
 		}
 
 	}
@@ -202,6 +207,11 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 					LosDto losDto = DelegateFactory.getInstance()
 							.getFertigungDelegate()
 							.losFindByPrimaryKey((Integer) o[i]);
+					
+					if(lose.length()>0 && !lose.trim().endsWith(",")) {
+						lose+=", ";
+					}
+					
 					lose += losDto.getCNr() + ", ";
 
 					losIId.add(losDto.getIId());
@@ -223,6 +233,7 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 		wrbLagerortLager = new WrapperRadioButton();
 		wrbIdent = new WrapperRadioButton();
 		wrbArtikelbezeichnung = new WrapperRadioButton();
+		wrbWieErfasst = new WrapperRadioButton();
 
 		JButton jbuSetNull = new JButton();
 		jbuSetNull.setActionCommand(ACTION_SPECIAL_LEEREN);
@@ -244,12 +255,14 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 		wrbLagerLagerort.setActionCommand(ACTION_SORTIERUNG_LAGERORT);
 		wrbMontageartSchale.setActionCommand(ACTION_SORTIERUNG_MONTAGEART);
 		wrbLagerortLager.setActionCommand(ACTION_SORTIERUNG_LAGERORT_LAGER);
+		wrbWieErfasst.setActionCommand(ACTION_SORTIERUNG_WIE_ERFASST);
 
 		wrbArtikelklasse.addActionListener(this);
 		wrbIdent.addActionListener(this);
 		wrbArtikelbezeichnung.addActionListener(this);
 		wrbLagerLagerort.addActionListener(this);
 		wrbMontageartSchale.addActionListener(this);
+		wrbWieErfasst.addActionListener(this);
 
 		bgSortierung = new ButtonGroup();
 		wcoVerdichtetNachIdent = new WrapperCheckBox();
@@ -261,17 +274,20 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 		bgSortierung.add(wrbLagerortLager);
 		bgSortierung.add(wrbIdent);
 		bgSortierung.add(wrbArtikelbezeichnung);
+		bgSortierung.add(wrbWieErfasst);
 
 		wlaSortierung.setText(LPMain.getInstance().getTextRespectUISPr(
 				"label.sortierung"));
 		wrbMontageartSchale.setText(LPMain.getInstance().getTextRespectUISPr(
-				"fert.montageartschale"));
+				"stkl.montageart"));
 		wrbArtikelklasse.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.artikelklasse"));
 		wrbLagerLagerort.setText(LPMain.getInstance().getTextRespectUISPr(
 				"fert.lagerlagerort"));
 		wrbLagerortLager.setText(LPMain.getInstance().getTextRespectUISPr(
 				"fert.lagerortlager"));
+		wrbWieErfasst.setText(LPMain.getInstance().getTextRespectUISPr(
+				"stk.sortierung.report.wieerfasst"));
 		wrbIdent.setText(LPMain.getInstance()
 				.getTextRespectUISPr("label.ident"));
 		wrbArtikelbezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -316,20 +332,27 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 		iZeile++;
 		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, iZeile, 1, 1,
 				0.4, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+				new Insets(2, 2, 2, 2), 100, 0));
 		jpaWorkingOn.add(wrbMontageartSchale, new GridBagConstraints(1, iZeile,
 				1, 1, 1.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wrbIdent, new GridBagConstraints(2, iZeile, 1, 1, 1.0,
+				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+
 		jpaWorkingOn.add(wcoVorrangigNachFarbcodeSortiert,
-				new GridBagConstraints(2, iZeile, 2, 1, 0, 0.0,
+				new GridBagConstraints(3, iZeile, 2, 1, 0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+						new Insets(2, 2, 2, 2), 200, 0));
 		iZeile++;
 		jpaWorkingOn.add(wrbArtikelklasse, new GridBagConstraints(1, iZeile, 1,
 				1, 1.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wcoMaterial, new GridBagConstraints(2, iZeile, 1, 1,
+		jpaWorkingOn.add(wrbArtikelbezeichnung, new GridBagConstraints(2,
+				iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoMaterial, new GridBagConstraints(3, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 
@@ -337,21 +360,18 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 		jpaWorkingOn.add(wrbLagerLagerort, new GridBagConstraints(1, iZeile, 1,
 				1, 1.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbWieErfasst, new GridBagConstraints(2, iZeile, 1, 1,
+				1.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
 		jpaWorkingOn.add(wrbLagerortLager, new GridBagConstraints(1, iZeile, 1,
 				1, 1.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wrbIdent, new GridBagConstraints(1, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcoVerdichtetNachIdent, new GridBagConstraints(2,
+		jpaWorkingOn.add(wcoVerdichtetNachIdent, new GridBagConstraints(3,
 				iZeile, 1, 1, 1.5, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wrbArtikelbezeichnung, new GridBagConstraints(1,
-				iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
@@ -397,6 +417,8 @@ public class ReportAusgabeliste extends PanelBasis implements PanelReportIfJRDS 
 		} else if (wrbMontageartSchale.isSelected()) {
 			iSortierung = new Integer(
 					Helper.SORTIERUNG_NACH_MONTAGEART_UND_SCHALE);
+		} else if (wrbWieErfasst.isSelected()) {
+			iSortierung = new Integer(Helper.SORTIERUNG_NACH_WIE_ERFASST);
 		}
 
 		String alternativerReport = null;

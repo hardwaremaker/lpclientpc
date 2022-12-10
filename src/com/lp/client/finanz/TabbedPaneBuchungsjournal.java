@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.finanz;
 
+import javax.swing.JDialog;
 import javax.swing.JMenu;
 import javax.swing.event.ChangeEvent;
 
@@ -40,6 +41,7 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.TabbedPane;
+import com.lp.client.frame.component.WrapperMenu;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.component.WrapperMenuItem;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -78,10 +80,12 @@ public class TabbedPaneBuchungsjournal extends TabbedPane {
 	private static final int IDX_BUCHUNGENDETAILLIERT = 2;
 	
 	private static final String MENU_ACTION_EXPORT = "MENU_ACTION_EXPORT";
+	private static final String MENU_ACTION_EXPORTKONTEN_DEBITOREN = "MENU_ACTION_EXPORTKONTEN_DEBITOREN";
+	private static final String MENU_ACTION_EXPORTKONTEN_KREDITOREN = "MENU_ACTION_EXPORTKONTEN_KREDITOREN";
+	private static final String MENU_ACTION_EXPORTKONTEN_SACHKONTEN = "MENU_ACTION_EXPORTKONTEN_SACHKONTEN";
 	// private static final String MENU_ACTION_GESCHAEFTSJAHR_AENDERUNG =
 	// "MENU_ACTION_GESCHAEFTSJAHR_AENDERUNG";
 
-	private WrapperMenuBar mainMenuBar = null;
 	private IGeschaeftsjahrViewController geschaeftsJahrViewController = null;
 
 	public TabbedPaneBuchungsjournal(InternalFrame internalFrameI,
@@ -237,12 +241,21 @@ public class TabbedPaneBuchungsjournal extends TabbedPane {
 	 */
 
 	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
-		if(e.getActionCommand().equals(MENU_ACTION_EXPORT)) {
+		if(MENU_ACTION_EXPORT.equals(e.getActionCommand())) {
 			DialogBuchungsjournalExport dialog = new DialogBuchungsjournalExport(null) ;
 			LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(dialog);
 			dialog.setVisible(true);
 //			new DialogBuchungsjournalExport(LPMain.getInstance().getDesktop()).setVisible(true);
+		} else if (MENU_ACTION_EXPORTKONTEN_SACHKONTEN.equals(e.getActionCommand())) {
+			exportiereKonten(new KontoExporterSachkonten());
+		} else if (MENU_ACTION_EXPORTKONTEN_DEBITOREN.equals(e.getActionCommand())) {
+			JDialog dialog = new DialogKontoExport(new KontoExporterDebitoren(), getInternalFrame());
+			dialog.setVisible(true);
+		} else if (MENU_ACTION_EXPORTKONTEN_KREDITOREN.equals(e.getActionCommand())) {
+			JDialog dialog = new DialogKontoExport(new KontoExporterKreditoren(), getInternalFrame());
+			dialog.setVisible(true);
 		} else {
+		
 			String selectedGJ = geschaeftsJahrViewController
 					.getSelectedGeschaeftsjahr(e.getActionCommand());
 			if (null != selectedGJ) {
@@ -262,6 +275,10 @@ public class TabbedPaneBuchungsjournal extends TabbedPane {
 				}
 			}
 		}
+	}
+
+	private void exportiereKonten(KontoExporter kontoExporter) throws Throwable {
+		kontoExporter.exportAndSaveKonten(getInternalFrame(), false);
 	}
 
 	private void initPanelTop3QueryBuchungen() throws Throwable {
@@ -436,10 +453,8 @@ public class TabbedPaneBuchungsjournal extends TabbedPane {
 	}
 
 	protected javax.swing.JMenuBar getJMenuBar() throws Throwable {
-		if (null != mainMenuBar)
-			return mainMenuBar;
-
-		mainMenuBar = new WrapperMenuBar(this);
+		long startNano = System.nanoTime();
+		WrapperMenuBar mainMenuBar = new WrapperMenuBar(this);
 		JMenu jmBearbeiten = (JMenu) mainMenuBar
 				.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
 
@@ -449,15 +464,40 @@ public class TabbedPaneBuchungsjournal extends TabbedPane {
 		
 		JMenu jmModul = (JMenu) mainMenuBar
 				.getComponent(WrapperMenuBar.MENU_MODUL);
+
+		JMenu jmExportKonten = new WrapperMenu("fb.buchungsjournal.exportkonten", this);
+		
+		WrapperMenuItem menuItemKreditoren = new WrapperMenuItem(
+				LPMain.getTextRespectUISPr("fb.buchungsjournal.exportkonten.kreditoren"),
+				RechteFac.RECHT_FB_FINANZ_CUD);
+		menuItemKreditoren.addActionListener(this);
+		menuItemKreditoren.setActionCommand(MENU_ACTION_EXPORTKONTEN_KREDITOREN);
+		jmExportKonten.add(menuItemKreditoren, 0);
+		WrapperMenuItem menuItemDebitoren = new WrapperMenuItem(
+				LPMain.getTextRespectUISPr("fb.buchungsjournal.exportkonten.debitoren"),
+				RechteFac.RECHT_FB_FINANZ_CUD);
+		menuItemDebitoren.addActionListener(this);
+		menuItemDebitoren.setActionCommand(MENU_ACTION_EXPORTKONTEN_DEBITOREN);
+		jmExportKonten.add(menuItemDebitoren, 0);
+		WrapperMenuItem menuItemSachkonten = new WrapperMenuItem(
+				LPMain.getTextRespectUISPr("fb.buchungsjournal.exportkonten.sachkonten"),
+				RechteFac.RECHT_FB_FINANZ_CUD);
+		menuItemSachkonten.addActionListener(this);
+		menuItemSachkonten.setActionCommand(MENU_ACTION_EXPORTKONTEN_SACHKONTEN);
+		jmExportKonten.add(menuItemSachkonten, 0);
+		
+		jmModul.add(jmExportKonten, 0);
+
 		WrapperMenuItem menueItemExport = new WrapperMenuItem(
 				LPMain.getTextRespectUISPr("fb.buchungsjournal.export"),
 				RechteFac.RECHT_FB_FINANZ_CUD);
-		
 		menueItemExport.addActionListener(this);
-		menueItemExport
-				.setActionCommand(MENU_ACTION_EXPORT);
+		menueItemExport.setActionCommand(MENU_ACTION_EXPORT);
 		jmModul.add(menueItemExport, 0);
 
+		long endNano = System.nanoTime();
+		long nanoDiff = endNano - startNano;
+		System.out.println(nanoDiff);
 		return mainMenuBar;
 	}
 

@@ -35,16 +35,19 @@ package com.lp.client.frame.delegate;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
+import com.lp.client.frame.DialogError;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.InventurDto;
 import com.lp.server.artikel.service.InventurFac;
 import com.lp.server.artikel.service.InventurlisteDto;
+import com.lp.server.artikel.service.InventurlisteImportResult;
 import com.lp.server.artikel.service.InventurprotokollDto;
 import com.lp.server.artikel.service.InventurstandDto;
 import com.lp.server.artikel.service.InvenurlisteImportDto;
@@ -59,14 +62,12 @@ public class InventurDelegate extends Delegate {
 
 	public InventurDelegate() throws Exception {
 		context = new InitialContext();
-		inventurFac = (InventurFac) context
-				.lookup("lpserver/InventurFacBean/remote");
+		inventurFac = lookupFac(context, InventurFac.class);
 	}
 
 	public Integer createInventur(InventurDto inventurDto) throws ExceptionLP {
 		try {
-			return inventurFac.createInventur(inventurDto, LPMain.getInstance()
-					.getTheClient());
+			return inventurFac.createInventur(inventurDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -74,34 +75,28 @@ public class InventurDelegate extends Delegate {
 
 	}
 
-	public Integer createInventurliste(InventurlisteDto inventurlisteDto)
-			throws ExceptionLP {
+	public Integer createInventurliste(InventurlisteDto inventurlisteDto) throws ExceptionLP {
 		try {
 
-			return inventurFac.createInventurliste(inventurlisteDto, true,
-					LPMain.getInstance().getTheClient());
+			return inventurFac.createInventurliste(inventurlisteDto, true, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			if (ex instanceof EJBExceptionLP) {
 				if (((EJBExceptionLP) ex).getCode() == EJBExceptionLP.FEHLER_INVENTUR_MENGE_ZU_GROSS) {
-					ArrayList al = ((EJBExceptionLP) ex)
-							.getAlInfoForTheClient();
+					List<?> al = ((EJBExceptionLP) ex).getAlInfoForTheClient();
 
 					String meldung = "Die Inventurmenge weicht um mehr als ";
 
 					if (al != null && al.size() > 0) {
-						meldung += al.get(0)
-								+ " St\u00FCck vom Lagerstand ab. ";
+						meldung += al.get(0) + " St\u00FCck vom Lagerstand ab. ";
 					}
 					meldung += "Trotzdem buchen?";
 
-					boolean b = DialogFactory.showModalJaNeinDialog(null,
-							meldung);
+					boolean b = DialogFactory.showModalJaNeinDialog(null, meldung);
 
 					if (b == true) {
 						try {
-							return inventurFac.createInventurliste(
-									inventurlisteDto, false, LPMain
-											.getInstance().getTheClient());
+							return inventurFac.createInventurliste(inventurlisteDto, false,
+									LPMain.getInstance().getTheClient());
 						} catch (Throwable ex2) {
 							handleThrowable(ex2);
 							return null;
@@ -120,41 +115,37 @@ public class InventurDelegate extends Delegate {
 
 	}
 
-	public void inventurlisteErfassenMitScanner(
-			InventurlisteDto inventurlisteDto, boolean bKorrekturbuchung)
+	public void inventurlisteErfassenMitScanner(InventurlisteDto inventurlisteDto, boolean bKorrekturbuchung)
 			throws ExceptionLP {
 
 		try {
 
-			inventurFac.inventurlisteErfassenMitScanner(inventurlisteDto,
-					bKorrekturbuchung, true, LPMain.getInstance()
-							.getTheClient());
+			inventurFac.inventurlisteErfassenMitScanner(inventurlisteDto, bKorrekturbuchung, true,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			if (ex instanceof EJBExceptionLP) {
 				if (((EJBExceptionLP) ex).getCode() == EJBExceptionLP.FEHLER_INVENTUR_MENGE_ZU_GROSS) {
-					ArrayList al = ((EJBExceptionLP) ex)
-							.getAlInfoForTheClient();
+					List<?> al = ((EJBExceptionLP) ex).getAlInfoForTheClient();
 
 					String meldung = "Die Inventurmenge weicht um mehr als ";
 
 					if (al != null && al.size() > 0) {
-						meldung += al.get(0)
-								+ " St\u00FCck vom Lagerstand ab. ";
+						meldung += al.get(0) + " St\u00FCck vom Lagerstand ab. ";
 					}
 					meldung += "Trotzdem buchen?";
 
-					boolean b = DialogFactory.showModalJaNeinDialog(null,
-							meldung);
+					boolean b = DialogFactory.showModalJaNeinDialog(null, meldung);
 
 					if (b == true) {
 						try {
-							inventurFac.inventurlisteErfassenMitScanner(
-									inventurlisteDto, bKorrekturbuchung, false,
+							inventurFac.inventurlisteErfassenMitScanner(inventurlisteDto, bKorrekturbuchung, false,
 									LPMain.getInstance().getTheClient());
 						} catch (Throwable ex2) {
 							handleThrowable(ex2);
 						}
 					}
+				}else {
+					handleThrowable(ex);
 				}
 			} else {
 				handleThrowable(ex);
@@ -172,86 +163,81 @@ public class InventurDelegate extends Delegate {
 		}
 	}
 
-	public void removeInventurliste(InventurlisteDto inventurlisteDto)
+	public void removeInventurliste(InventurlisteDto inventurlisteDto) throws ExceptionLP {
+		try {
+			inventurFac.removeInventurliste(inventurlisteDto, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeInventurlisteUndNimmProtokolleintraegeZurueckInventurliste(InventurlisteDto inventurlisteDto)
 			throws ExceptionLP {
 		try {
-			inventurFac.removeInventurliste(inventurlisteDto, LPMain
-					.getInstance().getTheClient());
+			inventurFac.removeInventurlisteUndNimmProtokolleintraegeZurueck(inventurlisteDto,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void inventurDurchfuehren(Integer inventurIId,
-			boolean bNichtInventierteArtikelAufNullSetzen) throws ExceptionLP {
+	public void inventurDurchfuehren(Integer inventurIId) throws ExceptionLP {
 		try {
-			inventurFac.inventurDurchfuehren(inventurIId,
-					bNichtInventierteArtikelAufNullSetzen, LPMain.getInstance()
-							.getTheClient());
+			inventurFac.inventurDurchfuehren(inventurIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void preiseAbwerten(Integer inventurIId, boolean bMitStuecklisten)
+	public void preiseAbwerten(Integer inventurIId, boolean bMitStuecklisten) throws ExceptionLP {
+		try {
+			inventurFac.preiseAbwerten(inventurIId, bMitStuecklisten, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void inventurDurchfuehrungZuruecknehmen(Integer inventurIId) throws ExceptionLP {
+		try {
+			inventurFac.inventurDurchfuehrungZuruecknehmen(inventurIId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void invturprotokollZumStichtagZuruecknehmen(Integer inventurIId, java.sql.Date tAbStichtag)
 			throws ExceptionLP {
 		try {
-			inventurFac.preiseAbwerten(inventurIId, bMitStuecklisten, LPMain
-					.getInstance().getTheClient());
+			inventurFac.invturprotokollZumStichtagZuruecknehmen(inventurIId, tAbStichtag,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void inventurDurchfuehrungZuruecknehmen(Integer inventurIId)
+	public void inventurpreiseAktualisieren(Integer inventurIId, boolean bAufGestpreisZumInventurdatumAktualisieren)
 			throws ExceptionLP {
 		try {
-			inventurFac.inventurDurchfuehrungZuruecknehmen(inventurIId, LPMain
-					.getInstance().getTheClient());
+			inventurFac.inventurpreiseAktualisieren(inventurIId, bAufGestpreisZumInventurdatumAktualisieren,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void invturprotokollZumStichtagZuruecknehmen(Integer inventurIId,
-			java.sql.Date tAbStichtag) throws ExceptionLP {
+	public void inventurpreiseAufEkPreisSetzen(Integer inventurIId) throws ExceptionLP {
 		try {
-			inventurFac.invturprotokollZumStichtagZuruecknehmen(inventurIId,
-					tAbStichtag, LPMain.getInstance().getTheClient());
+			inventurFac.inventurpreiseAufEkPreisSetzen(inventurIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void inventurpreiseAktualisieren(Integer inventurIId,
-			boolean bAufGestpreisZumInventurdatumAktualisieren)
-			throws ExceptionLP {
+	public void inventurlisteFuerSerienChargennummerAbschliessen(Integer inventurIId, Integer artikelIId,
+			Integer lagerIId) throws ExceptionLP {
 		try {
-			inventurFac.inventurpreiseAktualisieren(inventurIId,
-					bAufGestpreisZumInventurdatumAktualisieren, LPMain
-							.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
-	}
-
-	public void inventurpreiseAufEkPreisSetzen(Integer inventurIId)
-			throws ExceptionLP {
-		try {
-			inventurFac.inventurpreiseAufEkPreisSetzen(inventurIId, LPMain
-					.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
-	}
-
-	public void inventurlisteFuerSerienChargennummerAbschliessen(
-			Integer inventurIId, Integer artikelIId, Integer lagerIId)
-			throws ExceptionLP {
-		try {
-			inventurFac.inventurlisteFuerSerienChargennummerAbschliessen(
-					inventurIId, artikelIId, lagerIId, LPMain.getInstance()
-							.getTheClient());
+			inventurFac.inventurlisteFuerSerienChargennummerAbschliessen(inventurIId, artikelIId, lagerIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -259,43 +245,36 @@ public class InventurDelegate extends Delegate {
 
 	public void updateInventur(InventurDto inventurDto) throws ExceptionLP {
 		try {
-			inventurFac.updateInventur(inventurDto, LPMain.getInstance()
-					.getTheClient());
+			inventurFac.updateInventur(inventurDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 
 	}
 
-	public Integer updateInventurliste(InventurlisteDto inventurlisteDto)
-			throws ExceptionLP {
+	public Integer updateInventurliste(InventurlisteDto inventurlisteDto) throws ExceptionLP {
 
 		try {
 
-			return inventurFac.updateInventurliste(inventurlisteDto, true,
-					LPMain.getInstance().getTheClient());
+			return inventurFac.updateInventurliste(inventurlisteDto, true, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			if (ex instanceof EJBExceptionLP) {
 				if (((EJBExceptionLP) ex).getCode() == EJBExceptionLP.FEHLER_INVENTUR_MENGE_ZU_GROSS) {
-					ArrayList al = ((EJBExceptionLP) ex)
-							.getAlInfoForTheClient();
+					List<?> al = ((EJBExceptionLP) ex).getAlInfoForTheClient();
 
 					String meldung = "Die Inventurmenge weicht um mehr als ";
 
 					if (al != null && al.size() > 0) {
-						meldung += al.get(0)
-								+ " St\u00FCck vom Lagerstand ab. ";
+						meldung += al.get(0) + " St\u00FCck vom Lagerstand ab. ";
 					}
 					meldung += "Trotzdem buchen?";
 
-					boolean b = DialogFactory.showModalJaNeinDialog(null,
-							meldung);
+					boolean b = DialogFactory.showModalJaNeinDialog(null, meldung);
 
 					if (b == true) {
 						try {
-							return inventurFac.updateInventurliste(
-									inventurlisteDto, false, LPMain
-											.getInstance().getTheClient());
+							return inventurFac.updateInventurliste(inventurlisteDto, false,
+									LPMain.getInstance().getTheClient());
 						} catch (Throwable ex2) {
 							handleThrowable(ex2);
 							return null;
@@ -314,8 +293,7 @@ public class InventurDelegate extends Delegate {
 
 	}
 
-	public void updateInventurstand(InventurstandDto inventurstandDto)
-			throws ExceptionLP {
+	public void updateInventurstand(InventurstandDto inventurstandDto) throws ExceptionLP {
 		try {
 			inventurFac.updateInventurstand(inventurstandDto);
 		} catch (Throwable ex) {
@@ -326,16 +304,14 @@ public class InventurDelegate extends Delegate {
 
 	public InventurDto inventurFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return inventurFac.inventurFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return inventurFac.inventurFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public InventurstandDto inventurstandFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public InventurstandDto inventurstandFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return inventurFac.inventurstandFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -344,102 +320,41 @@ public class InventurDelegate extends Delegate {
 		}
 	}
 
-	public InventurlisteDto inventurlisteFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public InventurlisteDto inventurlisteFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return inventurFac.inventurlisteFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			return inventurFac.inventurlisteFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public InventurlisteDto inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennr(
-			Integer inventurIId, Integer artikelIId, Integer lagerIId,
-			String cSerienchargennr) throws ExceptionLP {
+	public InventurlisteDto inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennr(Integer inventurIId,
+			Integer artikelIId, Integer lagerIId, String cSerienchargennr) throws ExceptionLP {
 		try {
-			return inventurFac
-					.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennr(
-							inventurIId, artikelIId, lagerIId,
-							cSerienchargennr, LPMain.getInstance()
-									.getTheClient());
+			return inventurFac.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennr(inventurIId,
+					artikelIId, lagerIId, cSerienchargennr, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public InventurlisteDto[] inventurlisteFindByInventurIIdLagerIIdArtikelIId(
-			Integer inventurIId, Integer artikelIId, Integer lagerIId)
-			throws ExceptionLP {
+	public InventurlisteDto[] inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennrOhneExc(
+			Integer inventurIId, Integer artikelIId, Integer lagerIId, String cSerienchargennr) throws ExceptionLP {
 		try {
-			return inventurFac
-					.inventurlisteFindByInventurIIdLagerIIdArtikelIId(
-							inventurIId, lagerIId, artikelIId, LPMain
-									.getInstance().getTheClient());
+			return inventurFac.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennrOhneExc(inventurIId,
+					artikelIId, lagerIId, cSerienchargennr, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printInventurliste(Integer inventurIId,
-			Integer lagerIId, boolean bInventurpreis, int iSortierung,Timestamp dVon, Timestamp dBis)
-			throws Throwable {
+	public InventurlisteDto[] inventurlisteFindByInventurIIdLagerIIdArtikelIId(Integer inventurIId, Integer artikelIId,
+			Integer lagerIId) throws ExceptionLP {
 		try {
-			return inventurFac.printInventurliste(inventurIId, lagerIId,
-					bInventurpreis, iSortierung,dVon,dBis, LPMain.getInstance()
-							.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printInventurstand(Integer inventurIId,
-			Integer lagerIId, int iSortierung) throws Throwable {
-		try {
-			return inventurFac.printInventurstand(inventurIId, lagerIId,
-					iSortierung, LPMain.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printNichterfassteartikel(Integer inventurIId,
-			Integer lagerIId, boolean bNurArtikelMitLagerstand,
-			boolean bSortiertNachLagerplatz, String lagerplatzVon,
-			String lagerplatzBis,boolean bMitVersteckten) throws Throwable {
-		try {
-			return inventurFac.printNichterfassteartikel(inventurIId, lagerIId,
-					bNurArtikelMitLagerstand, bSortiertNachLagerplatz,
-					lagerplatzVon, lagerplatzBis, bMitVersteckten, LPMain.getInstance()
-							.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public BigDecimal getInventurstand(Integer artikelIId, Integer lagerIId,
-			Integer inventurIId, java.sql.Timestamp tDatum) throws Throwable {
-		try {
-			return inventurFac.getInventurstand(artikelIId, lagerIId,
-					inventurIId, tDatum, LPMain.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printInventurprotokoll(Integer inventurIId,
-			Integer lagerIId, boolean bSortiertNachLagerplatz,
-			String lagerplatzVon, String lagerplatzBis) throws Throwable {
-		try {
-			return inventurFac.printInventurprotokoll(inventurIId, lagerIId,
-					bSortiertNachLagerplatz, lagerplatzVon, lagerplatzBis,
+			return inventurFac.inventurlisteFindByInventurIIdLagerIIdArtikelIId(inventurIId, lagerIId, artikelIId,
 					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -447,48 +362,127 @@ public class InventurDelegate extends Delegate {
 		}
 	}
 
-	public String importiereInventurliste(Integer inventurIId,
+	public JasperPrintLP printInventurliste(Integer inventurIId, Integer lagerIId, boolean bInventurpreis,
+			int iSortierung, Timestamp dVon, Timestamp dBis) throws Throwable {
+		try {
+			return inventurFac.printInventurliste(inventurIId, lagerIId, bInventurpreis, iSortierung, dVon, dBis,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printInventurstand(Integer inventurIId, Integer lagerIId, int iSortierung) throws Throwable {
+		try {
+			return inventurFac.printInventurstand(inventurIId, lagerIId, iSortierung,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printNichterfassteartikel(Integer inventurIId, Integer lagerIId,
+			boolean bNurArtikelMitLagerstand, int iSortierung, String lagerplatzVon, String lagerplatzBis,
+			boolean bMitVersteckten, boolean nurInInventurlisteEnthalteneArtikel) throws Throwable {
+		try {
+			return inventurFac.printNichterfassteartikel(inventurIId, lagerIId, bNurArtikelMitLagerstand, iSortierung,
+					lagerplatzVon, lagerplatzBis, bMitVersteckten, nurInInventurlisteEnthalteneArtikel, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public BigDecimal getInventurstand(Integer artikelIId, Integer lagerIId, Integer inventurIId,
+			java.sql.Timestamp tDatum) throws Throwable {
+		try {
+			return inventurFac.getInventurstand(artikelIId, lagerIId, inventurIId, tDatum,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printInventurprotokoll(Integer inventurIId, Integer lagerIId, int iSortierung,
+			String lagerplatzVon, String lagerplatzBis) throws Throwable {
+		try {
+			return inventurFac.printInventurprotokoll(inventurIId, lagerIId, iSortierung, lagerplatzVon, lagerplatzBis,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public InventurlisteImportResult importiereInventurliste(Integer inventurIId,
 			ArrayList<InvenurlisteImportDto> alImportdaten) throws Throwable {
 		try {
-			return inventurFac.importiereInventurliste(inventurIId,
-					alImportdaten, LPMain.getInstance().getTheClient());
+			InventurlisteImportResult result = inventurFac.importiereInventurliste(inventurIId, alImportdaten,
+					LPMain.getInstance().getTheClient());
+			if (result.hasEjbExceptionLP()) {
+				showEJBErrorDialog(result.getEjbExceptionLP());
+			}
+			return result;
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public InventurprotokollDto inventurprotokollFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
-		try {
-			return inventurFac.inventurprotokollFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public InventurDto inventurFindByTInventurdatum(Timestamp tInventurdatum)
+	public void eintandspreisEinerInventurbuchungAendern(Integer inventurlisteIId, BigDecimal nEinstandpreisNeu)
 			throws Throwable {
+
+		try {
+			inventurFac.eintandspreisEinerInventurbuchungAendern(inventurlisteIId, nEinstandpreisNeu,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
+
+	private void showEJBErrorDialog(EJBExceptionLP ejbExc) {
+		new DialogError(LPMain.getInstance().getDesktop(), transformEJBExceptionLP(ejbExc),
+				DialogError.TYPE_INFORMATION);
+	}
+
+	private ExceptionLP transformEJBExceptionLP(EJBExceptionLP ejbExc) {
+		try {
+			handleThrowable(ejbExc);
+		} catch (ExceptionLP e) {
+			return e;
+		}
+		return null;
+	}
+
+	public InventurprotokollDto inventurprotokollFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return inventurFac.inventurprotokollFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public InventurDto inventurFindByTInventurdatum(Timestamp tInventurdatum) throws Throwable {
 		return inventurFac.findByTInventurdatumMandantCNr(tInventurdatum,
 				LPMain.getInstance().getTheClient().getMandant());
 	}
 
-	public ArrayList<String> sindSeriennumernBereitsInventiert(
-			InventurlisteDto inventurlisteDto, String[] snrs) throws Throwable {
-		return inventurFac.sindSeriennumernBereitsInventiert(inventurlisteDto,
-				snrs, LPMain.getInstance().getTheClient());
-	}
-
-	public void mehrereSeriennumernInventieren(
-			InventurlisteDto inventurlisteDto, String[] snrs) throws Throwable {
-		inventurFac.mehrereSeriennumernInventieren(inventurlisteDto, snrs,
+	public ArrayList<String> sindSeriennumernBereitsInventiert(InventurlisteDto inventurlisteDto, String[] snrs)
+			throws Throwable {
+		return inventurFac.sindSeriennumernBereitsInventiert(inventurlisteDto, snrs,
 				LPMain.getInstance().getTheClient());
 	}
 
-	public InventurDto[] inventurFindInventurenNachDatum(
-			Timestamp tInventurdatum) throws Throwable {
+	public void mehrereSeriennumernInventieren(InventurlisteDto inventurlisteDto, String[] snrs) throws Throwable {
+		inventurFac.mehrereSeriennumernInventieren(inventurlisteDto, snrs, LPMain.getInstance().getTheClient());
+	}
+
+	public InventurDto[] inventurFindInventurenNachDatum(Timestamp tInventurdatum) throws Throwable {
 		return inventurFac.inventurFindInventurenNachDatum(tInventurdatum,
 				LPMain.getInstance().getTheClient().getMandant());
 	}

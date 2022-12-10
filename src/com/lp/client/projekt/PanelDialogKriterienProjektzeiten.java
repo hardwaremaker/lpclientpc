@@ -47,6 +47,7 @@ import com.lp.client.frame.component.PanelDialogKriterien;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.pc.LPMain;
+import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.projekt.service.ProjektFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 
@@ -59,154 +60,167 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
  * @author Uli Walch
  * @version $Revision: 1.3 $
  */
-public class PanelDialogKriterienProjektzeiten
-    extends PanelDialogKriterien {
+public class PanelDialogKriterienProjektzeiten extends PanelDialogKriterien {
 
-  /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private WrapperLabel wlaNach = null;
-  private ButtonGroup jbgNach = null;
-  private WrapperLabel wlaEmptyLabel1 = null;
-  private WrapperRadioButton wrbNachPersonal = null;
-  private WrapperRadioButton wrbNachIdent = null;
-  private TabbedPaneProjekt tabbedPaneProjekt=null;
+	private WrapperLabel wlaNach = null;
+	private ButtonGroup jbgNach = null;
+	private WrapperLabel wlaEmptyLabel1 = null;
+	private WrapperRadioButton wrbNachPersonal = null;
+	private WrapperRadioButton wrbNachIdent = null;
+	private WrapperRadioButton wrbNachDatumUndPersonal = null;
+	private TabbedPaneProjekt tabbedPaneProjekt = null;
 
-  public PanelDialogKriterienProjektzeiten(InternalFrame internalFrame, TabbedPaneProjekt tabbedPaneProjekt, String title) throws
-      Throwable {
-    super(internalFrame, title);
-    this.tabbedPaneProjekt=tabbedPaneProjekt;
-    jbInit();
-    setDefaults();
-    initComponents();
-  }
+	public PanelDialogKriterienProjektzeiten(InternalFrame internalFrame,
+			TabbedPaneProjekt tabbedPaneProjekt, String title) throws Throwable {
+		super(internalFrame, title);
+		this.tabbedPaneProjekt = tabbedPaneProjekt;
+		jbInit();
+		setDefaults();
+		initComponents();
+	}
 
-  /**
-   * Dialog initialisieren
-   * @throws Throwable
-   */
-  private void jbInit() throws Throwable {
-    // die Gruppe mit nach Datum
-    wlaNach = new WrapperLabel(LPMain.getTextRespectUISPr("label.auswertung"));
-    wlaNach.setMaximumSize(new Dimension(150, Defaults.getInstance().getControlHeight()));
-    wlaNach.setMinimumSize(new Dimension(150, Defaults.getInstance().getControlHeight()));
-    wlaNach.setPreferredSize(new Dimension(150, Defaults.getInstance().getControlHeight()));
-    wlaNach.setHorizontalAlignment(SwingConstants.LEADING);
+	/**
+	 * Dialog initialisieren
+	 * 
+	 * @throws Throwable
+	 */
+	private void jbInit() throws Throwable {
+		// die Gruppe mit nach Datum
+		wlaNach = new WrapperLabel(
+				LPMain.getTextRespectUISPr("label.auswertung"));
+		wlaNach.setMaximumSize(new Dimension(150, Defaults.getInstance()
+				.getControlHeight()));
+		wlaNach.setMinimumSize(new Dimension(150, Defaults.getInstance()
+				.getControlHeight()));
+		wlaNach.setPreferredSize(new Dimension(150, Defaults.getInstance()
+				.getControlHeight()));
+		wlaNach.setHorizontalAlignment(SwingConstants.LEADING);
 
-    wlaEmptyLabel1 = new WrapperLabel();
-    wlaEmptyLabel1.setMaximumSize(new Dimension(10, Defaults.getInstance().getControlHeight()));
-    wlaEmptyLabel1.setMinimumSize(new Dimension(10, Defaults.getInstance().getControlHeight()));
-    wlaEmptyLabel1.setPreferredSize(new Dimension(10, Defaults.getInstance().getControlHeight()));
+		wlaEmptyLabel1 = new WrapperLabel();
+		wlaEmptyLabel1.setMaximumSize(new Dimension(10, Defaults.getInstance()
+				.getControlHeight()));
+		wlaEmptyLabel1.setMinimumSize(new Dimension(10, Defaults.getInstance()
+				.getControlHeight()));
+		wlaEmptyLabel1.setPreferredSize(new Dimension(10, Defaults
+				.getInstance().getControlHeight()));
 
-    jbgNach = new ButtonGroup();
+		jbgNach = new ButtonGroup();
 
-    wrbNachPersonal = new WrapperRadioButton();
-    wrbNachPersonal.setText(
-        LPMain.getInstance().getTextRespectUISPr("menueentry.personal"));
+		wrbNachPersonal = new WrapperRadioButton();
+		wrbNachPersonal.setText(LPMain.getInstance().getTextRespectUISPr(
+				"menueentry.personal"));
 
-    wrbNachIdent = new WrapperRadioButton();
-    wrbNachIdent.setText(
-        LPMain.getInstance().getTextRespectUISPr("label.identnummer"));
+		wrbNachIdent = new WrapperRadioButton();
+		wrbNachIdent.setText(LPMain.getInstance().getTextRespectUISPr(
+				"label.identnummer"));
 
-    jbgNach.add(wrbNachPersonal);
-    jbgNach.add(wrbNachIdent);
+		wrbNachDatumUndPersonal = new WrapperRadioButton();
+		wrbNachDatumUndPersonal.setText(LPMain.getInstance()
+				.getTextRespectUISPr("lp.zeitdaten.datumpersonal"));
 
-    // Zeile
-    jpaWorkingOn.add(wlaNach,
-                        new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(2, 2, 2, 2), 0, 0));
+		jbgNach.add(wrbNachPersonal);
+		jbgNach.add(wrbNachIdent);
+		jbgNach.add(wrbNachDatumUndPersonal);
 
-    // Zeile
-    iZeile++;
-    jpaWorkingOn.add(wlaEmptyLabel1,
-                        new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wrbNachPersonal,
-                        new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(0, 0, 0, 0), 90, 0));
+		// Zeile
+		jpaWorkingOn.add(wlaNach, new GridBagConstraints(0, iZeile, 2, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
 
-      // Zeile
-    iZeile++;
-    jpaWorkingOn.add(wrbNachIdent,
-                        new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(0, 0, 0, 0), 0, 0));
-  }
+		// Zeile
+		iZeile++;
+		jpaWorkingOn.add(wlaEmptyLabel1, new GridBagConstraints(0, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbNachPersonal, new GridBagConstraints(1, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 90, 0));
 
-  private void setDefaults() throws Throwable {
-    wrbNachPersonal.setSelected(true);
-  }
+		// Zeile
+		iZeile++;
+		jpaWorkingOn.add(wrbNachIdent, new GridBagConstraints(1, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wrbNachDatumUndPersonal, new GridBagConstraints(1,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+	}
 
-  /**
-   * Die gewaehlten Kriterien zusammenbauen.
-   * <br>Es gilt fuer Auftragzeiten:
-   * <br>Krit1 : Auswertung (Personal oder Ident) = true
-   * @return FilterKriterium[] die Kriterien
-   * @throws java.lang.Throwable Ausnahme
-   */
-  public FilterKriterium[] buildFilterKriterien() throws Throwable {
-    aAlleKriterien = new FilterKriterium[ProjektFac.ANZAHL_KRITERIEN_PROJEKTZEITEN];
+	private void setDefaults() throws Throwable {
+		wrbNachPersonal.setSelected(true);
+	}
 
-    FilterKriterium fkAuswertung = null;
+	/**
+	 * Die gewaehlten Kriterien zusammenbauen. <br>
+	 * Es gilt fuer Auftragzeiten: <br>
+	 * Krit1 : Auswertung (Personal oder Ident) = true
+	 * 
+	 * @return FilterKriterium[] die Kriterien
+	 * @throws java.lang.Throwable
+	 *             Ausnahme
+	 */
+	public FilterKriterium[] buildFilterKriterien() throws Throwable {
+		aAlleKriterien = new FilterKriterium[ProjektFac.ANZAHL_KRITERIEN_PROJEKTZEITEN];
 
-    if (wrbNachPersonal.isSelected()) {
-      // Auswertung nach Personal
-      fkAuswertung = new FilterKriterium(
-          ProjektFac.KRIT_PERSONAL,
-          wrbNachPersonal.isSelected(),
-          "true",
-          FilterKriterium.OPERATOR_EQUAL, false);
-    }
-    else
-    if (wrbNachIdent.isSelected()) {
-      // Auswertung nach Liefertermin
-      fkAuswertung = new FilterKriterium(
-          ProjektFac.KRIT_IDENT,
-          wrbNachIdent.isSelected(),
-          "true",
-          FilterKriterium.OPERATOR_EQUAL, false);
-    }
+		FilterKriterium fkAuswertung = null;
 
-    FilterKriterium fkAuftrag = new FilterKriterium(
-          ProjektFac.KRIT_PROJEKT_I_ID,
-          true,
-          tabbedPaneProjekt.getProjektDto().getIId().toString(),
-          FilterKriterium.OPERATOR_EQUAL, false);
+		if (wrbNachPersonal.isSelected()) {
+			// Auswertung nach Personal
+			fkAuswertung = new FilterKriterium(
+					ProjektFac.KRIT_PROJEKTZEITEN_SORTIERUNG,
+					wrbNachPersonal.isSelected(),
+					ZeiterfassungFac.SORTIERUNG_ZEITDATEN_PERSONAL + "",
+					FilterKriterium.OPERATOR_EQUAL, false);
+		} else if (wrbNachIdent.isSelected()) {
+			// Auswertung nach Liefertermin
+			fkAuswertung = new FilterKriterium(
+					ProjektFac.KRIT_PROJEKTZEITEN_SORTIERUNG,
+					wrbNachIdent.isSelected(),
+					ZeiterfassungFac.SORTIERUNG_ZEITDATEN_ARTIKEL + "",
+					FilterKriterium.OPERATOR_EQUAL, false);
+		} else if (wrbNachDatumUndPersonal.isSelected()) {
+			// Auswertung nach Liefertermin
+			fkAuswertung = new FilterKriterium(
+					ProjektFac.KRIT_PROJEKTZEITEN_SORTIERUNG,
+					wrbNachIdent.isSelected(),
+					ZeiterfassungFac.SORTIERUNG_ZEITDATEN_ZEITPUNKT_PERSONAL
+							+ "", FilterKriterium.OPERATOR_EQUAL, false);
+		}
 
-    aAlleKriterien[ProjektFac.IDX_KRIT_AUSWERTUNG] = fkAuswertung;
-    aAlleKriterien[ProjektFac.IDX_KRIT_LOS] = fkAuftrag;
+		FilterKriterium fkAuftrag = new FilterKriterium(
+				ProjektFac.KRIT_PROJEKT_I_ID, true, tabbedPaneProjekt
+						.getProjektDto().getIId().toString(),
+				FilterKriterium.OPERATOR_EQUAL, false);
 
-    return aAlleKriterien;
-  }
+		aAlleKriterien[ProjektFac.IDX_KRIT_AUSWERTUNG] = fkAuswertung;
+		aAlleKriterien[ProjektFac.IDX_KRIT_LOS] = fkAuftrag;
 
-  protected void eventActionSpecial(ActionEvent e) throws Throwable {
-    if (e.getActionCommand().equals(ACTION_SPECIAL_OK)) {
-      buildFilterKriterien();
-    }
+		return aAlleKriterien;
+	}
 
-    // den Dialog verlassen
-    super.eventActionSpecial(e);
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_OK)) {
+			buildFilterKriterien();
+		}
 
-    if (e.getActionCommand().equals(ACTION_SPECIAL_CLOSE_PANELDIALOG)) {
-      tabbedPaneProjekt.gotoAuswahl();
-    }
-  }
+		// den Dialog verlassen
+		super.eventActionSpecial(e);
 
-  public FilterKriterium[] getAlleFilterKriterien() throws Throwable {
-    return buildFilterKriterien();
-  }
+		if (e.getActionCommand().equals(ACTION_SPECIAL_CLOSE_PANELDIALOG)) {
+			tabbedPaneProjekt.gotoAuswahl();
+		}
+	}
 
+	public FilterKriterium[] getAlleFilterKriterien() throws Throwable {
+		return buildFilterKriterien();
+	}
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wrbNachPersonal;
-  }
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wrbNachPersonal;
+	}
 }

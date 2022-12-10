@@ -34,43 +34,30 @@ package com.lp.client.frame.component;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 
-import com.lp.client.anfrage.InternalFrameAnfrage;
-import com.lp.client.angebot.InternalFrameAngebot;
-import com.lp.client.artikel.InternalFrameArtikel;
-import com.lp.client.auftrag.InternalFrameAuftrag;
-import com.lp.client.bestellung.InternalFrameBestellung;
-import com.lp.client.eingangsrechnung.InternalFrameEingangsrechnung;
+import com.lp.client.angebotstkl.TabbedPaneEinkaufsangebot;
 import com.lp.client.eingangsrechnung.TabbedPaneEingangsrechnung;
-import com.lp.client.fertigung.InternalFrameFertigung;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.DialogError;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.dialog.DialogFactory;
-import com.lp.client.partner.InternalFrameKunde;
-import com.lp.client.partner.InternalFrameLieferant;
-import com.lp.client.partner.InternalFramePartner;
 import com.lp.client.pc.LPMain;
-import com.lp.client.projekt.InternalFrameProjekt;
-import com.lp.client.reklamation.InternalFrameReklamation;
-import com.lp.client.stueckliste.InternalFrameStueckliste;
 import com.lp.client.system.DialogExtraliste;
 import com.lp.client.system.ReportExtraliste;
+import com.lp.client.util.DokumentenlinkController;
 import com.lp.client.util.logger.LpLogger;
 import com.lp.server.system.service.DokumentenlinkDto;
 import com.lp.server.system.service.ExtralisteDto;
 import com.lp.server.system.service.LocaleFac;
-import com.lp.util.Helper;
 
 public class WrapperMenuBar extends JMenuBar implements ActionListener {
+	protected final LpLogger myLogger = (LpLogger) com.lp.client.util.logger.LpLogger
+			.getInstance(this.getClass());
 
 	/**
 	 * 
@@ -85,6 +72,7 @@ public class WrapperMenuBar extends JMenuBar implements ActionListener {
 	private String EXTRALISTE_ACTION = "EXTRALISTE_ACTION";
 
 	public static final String ACTION_BEENDEN = "action_beenden";
+	private DokumentenlinkController doklinkCtrl;
 
 	public WrapperMenuBar(TabbedPane tabbedPane) throws Throwable {
 		// 03.09.07 MB: das Menue erhaelt immer den Namen des Tabs
@@ -110,87 +98,8 @@ public class WrapperMenuBar extends JMenuBar implements ActionListener {
 
 		add(menuModul);
 
-		if (tabbedPane.getInternalFrame().getTabbedPaneRoot()
-				.getSelectedIndex() == 0) {
+		addDokumentenlinks(menuModul);
 
-			String belegartCNr = tabbedPane.getInternalFrame().getBelegartCNr();
-
-			if (tp instanceof TabbedPaneEingangsrechnung) {
-				boolean bZusatzkosten = ((TabbedPaneEingangsrechnung) tp)
-						.isBZusatzkosten();
-				if (bZusatzkosten == true) {
-					belegartCNr = LocaleFac.BELEGART_ZUSATZKOSTEN;
-				}
-			}
-
-			// Dokumentenlinks
-			DokumentenlinkDto[] dokumentenlinkDtos = DelegateFactory
-					.getInstance()
-					.getMandantDelegate()
-					.dokumentenlinkFindByBelegartCNrMandantCNrBPfadabsolut(
-							belegartCNr, false);
-
-			if (dokumentenlinkDtos.length > 0) {
-				JMenu menueDokumentenlink = new JMenu(
-						LPMain.getTextRespectUISPr("system.dokumentenlink"));
-				menueDokumentenlink.setToolTipText(LPMain
-						.getTextRespectUISPr("system.dokumentenlink"));
-				menuModul.add(menueDokumentenlink, 0);
-
-				for (int i = 0; i < dokumentenlinkDtos.length; i++) {
-					JMenuItem menueItemLink = new JMenuItem(
-							dokumentenlinkDtos[i].getCMenuetext());
-					menueItemLink.setActionCommand(DOKUMENTENLINK_ACTION
-							+ dokumentenlinkDtos[i].getIId());
-					menueItemLink.setToolTipText(dokumentenlinkDtos[i]
-							.getCMenuetext());
-					menueItemLink.addActionListener(this);
-					menueDokumentenlink.add(menueItemLink, i);
-				}
-
-			}
-		}
-		//PJ18822
-		if (tabbedPane.getInternalFrame().getTabbedPaneRoot()
-				.getSelectedIndex() == 1) {
-
-			if (tp instanceof TabbedPaneEingangsrechnung) {
-				boolean bZusatzkosten = ((TabbedPaneEingangsrechnung) tp)
-						.isBZusatzkosten();
-				if (bZusatzkosten == true) {
-					// Dokumentenlinks
-					DokumentenlinkDto[] dokumentenlinkDtos = DelegateFactory
-							.getInstance()
-							.getMandantDelegate()
-							.dokumentenlinkFindByBelegartCNrMandantCNrBPfadabsolut(
-									LocaleFac.BELEGART_ZUSATZKOSTEN, false);
-
-					if (dokumentenlinkDtos.length > 0) {
-						JMenu menueDokumentenlink = new JMenu(
-								LPMain.getTextRespectUISPr("system.dokumentenlink"));
-						menueDokumentenlink.setToolTipText(LPMain
-								.getTextRespectUISPr("system.dokumentenlink"));
-						menuModul.add(menueDokumentenlink, 0);
-
-						for (int i = 0; i < dokumentenlinkDtos.length; i++) {
-							JMenuItem menueItemLink = new JMenuItem(
-									dokumentenlinkDtos[i].getCMenuetext());
-							menueItemLink
-									.setActionCommand(DOKUMENTENLINK_ACTION
-											+ dokumentenlinkDtos[i].getIId());
-							menueItemLink.setToolTipText(dokumentenlinkDtos[i]
-									.getCMenuetext());
-							menueItemLink.addActionListener(this);
-							menueDokumentenlink.add(menueItemLink, i);
-						}
-
-					}
-
-				}
-
-			}
-
-		}
 		add(menuBearbeiten);
 		add(menuJournal);
 
@@ -231,181 +140,51 @@ public class WrapperMenuBar extends JMenuBar implements ActionListener {
 		}
 	}
 
+	private void addDokumentenlinks(JMenu menuModul) throws ExceptionLP, Throwable {
+		if (!getDokumentenlinkCtrl().hasDokumentenlinks()) {
+			return;
+		}
+		
+		String textDoklink = LPMain.getTextRespectUISPr("system.dokumentenlink");
+		JMenu menuDokumentenlink = new JMenu(textDoklink);
+		menuDokumentenlink.setToolTipText(textDoklink);
+		menuModul.add(menuDokumentenlink, 0);
+		
+		for (DokumentenlinkDto dokLink : getDokumentenlinkCtrl().getDokumentenlinkDtos()) {
+			JMenuItem menuItemLink = new JMenuItem(dokLink.getCMenuetext());
+			menuItemLink.setActionCommand(
+					DOKUMENTENLINK_ACTION + dokLink.getIId());
+			menuItemLink.setToolTipText(dokLink.getCMenuetext());
+			menuItemLink.addActionListener(this);
+			menuDokumentenlink.add(menuItemLink);
+		}
+	}
+	
+	private DokumentenlinkController getDokumentenlinkCtrl() {
+		if (doklinkCtrl == null) {
+			String belegartCnr = getBelegartCnr();
+			doklinkCtrl = new DokumentenlinkController(tp, belegartCnr);
+		}
+		return doklinkCtrl;
+	}
+	
+	private String getBelegartCnr() {
+		if (tp instanceof TabbedPaneEingangsrechnung) {
+			return ((TabbedPaneEingangsrechnung)tp).isBZusatzkosten() 
+					? LocaleFac.BELEGART_ZUSATZKOSTEN 
+					: tp.getInternalFrame().getBelegartCNr();
+		} else if (tp instanceof TabbedPaneEinkaufsangebot) {
+			return LocaleFac.BELEGART_EINKAUFSANGEBOT;
+		}
+		
+		return tp.getInternalFrame().getBelegartCNr();
+	}
+	
 	public void actionPerformed(ActionEvent e) {
 		try {
 			if (e.getActionCommand().startsWith(DOKUMENTENLINK_ACTION)) {
-				String modulPlatzhalter = null;
-				if (tp.getInternalFrame() instanceof InternalFrameArtikel) {
-					modulPlatzhalter = ((InternalFrameArtikel) tp
-							.getInternalFrame()).getArtikelDto().getCNr();
-				}
-
-				if (tp.getInternalFrame() instanceof InternalFrameStueckliste) {
-					modulPlatzhalter = ((InternalFrameStueckliste) tp
-							.getInternalFrame()).getStuecklisteDto()
-							.getArtikelDto().getCNr();
-				}
-
-				if (tp.getInternalFrame() instanceof InternalFrameAuftrag) {
-					modulPlatzhalter = ((InternalFrameAuftrag) tp
-							.getInternalFrame()).getTabbedPaneAuftrag()
-							.getAuftragDto().getCNr();
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameEingangsrechnung) {
-
-					if (tp instanceof TabbedPaneEingangsrechnung) {
-
-						modulPlatzhalter = ((TabbedPaneEingangsrechnung) tp)
-								.getEingangsrechnungDto().getCNr();
-					}
-				}
-
-				if (tp.getInternalFrame() instanceof InternalFrameAngebot) {
-					modulPlatzhalter = ((InternalFrameAngebot) tp
-							.getInternalFrame()).getTabbedPaneAngebot()
-							.getAngebotDto().getCNr();
-				}
-
-				if (tp.getInternalFrame() instanceof InternalFrameAnfrage) {
-					modulPlatzhalter = ((InternalFrameAnfrage) tp
-							.getInternalFrame()).getTabbedPaneAnfrage()
-							.getAnfrageDto().getCNr();
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameFertigung) {
-					modulPlatzhalter = ((InternalFrameFertigung) tp
-							.getInternalFrame()).getTabbedPaneLos().getLosDto()
-							.getCNr();
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameReklamation) {
-					modulPlatzhalter = ((InternalFrameReklamation) tp
-							.getInternalFrame()).getReklamationDto().getCNr();
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameKunde) {
-					modulPlatzhalter = ((InternalFrameKunde) tp
-							.getInternalFrame()).getKundeDto().getPartnerDto()
-							.getCKbez();
-				}
-				if (tp.getInternalFrame() instanceof InternalFramePartner) {
-					modulPlatzhalter = ((InternalFramePartner) tp
-							.getInternalFrame()).getTpPartner().getPartnerDto()
-							.getCKbez();
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameLieferant) {
-					modulPlatzhalter = ((InternalFrameLieferant) tp
-							.getInternalFrame()).getLieferantDto()
-							.getPartnerDto().getCKbez();
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameProjekt) {
-					if (((InternalFrameProjekt) tp.getInternalFrame())
-							.getTabbedPaneProjekt() != null) {
-						modulPlatzhalter = ((InternalFrameProjekt) tp
-								.getInternalFrame()).getTabbedPaneProjekt()
-								.getProjektDto().getCNr();
-					}
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameReklamation) {
-					modulPlatzhalter = ((InternalFrameReklamation) tp
-							.getInternalFrame()).getReklamationDto().getCNr();
-				}
-				if (tp.getInternalFrame() instanceof InternalFrameBestellung) {
-					modulPlatzhalter = ((InternalFrameBestellung) tp
-							.getInternalFrame()).getTabbedPaneBestellung().getBesDto().getCNr();
-				}
-
-				if (modulPlatzhalter != null) {
-					String[] charFrom = new String[] { "\u00E4", "\u00C4",
-							"\u00F6", "\u00D6", "\u00FC", "\u00DC", "\u00DF" };
-					String[] charTo = new String[] { "ae", "Ae", "oe", "Oe",
-							"ue", "Ue", "ss" };
-
-					for (int i = 0; i < charFrom.length; i++)
-						modulPlatzhalter = modulPlatzhalter.replaceAll(
-								charFrom[i], charTo[i]);
-
-					modulPlatzhalter = modulPlatzhalter.replaceAll(
-							"[^a-zA-Z0-9-.]", "_");
-
-					Integer dokumentenlinkIId = new Integer(e
-							.getActionCommand().replaceAll(
-									DOKUMENTENLINK_ACTION, ""));
-					DokumentenlinkDto dokumentenlinkDto = DelegateFactory
-							.getInstance().getMandantDelegate()
-							.dokumentenlinkFindByPrimaryKey(dokumentenlinkIId);
-					String pfad = dokumentenlinkDto.getCBasispfad();
-
-					// SP2648 Bereich des PJ hinzufuegen
-					if (tp.getInternalFrame() instanceof InternalFrameProjekt) {
-						if (((InternalFrameProjekt) tp.getInternalFrame())
-								.getTabbedPaneProjekt() != null) {
-
-							Integer bereichIId = ((InternalFrameProjekt) tp
-									.getInternalFrame()).getTabbedPaneProjekt()
-									.getProjektDto().getBereichIId();
-
-							pfad += DelegateFactory.getInstance()
-									.getProjektServiceDelegate()
-									.bereichFindByPrimaryKey(bereichIId)
-									.getCBez()
-									.replaceAll("[^a-zA-Z0-9-.]", "_");
-
-							// SP2838
-							if (Helper.short2boolean(dokumentenlinkDto
-									.getBUrl())) {
-								pfad += "_";
-							} else {
-								pfad += System.getProperty("file.separator");
-							}
-
-						}
-					}
-
-					pfad += modulPlatzhalter;
-
-					if (dokumentenlinkDto.getCOrdner() != null) {
-						pfad += dokumentenlinkDto.getCOrdner();
-					}
-
-					if (Helper.short2boolean(dokumentenlinkDto.getBUrl())) {
-						try {
-							int i = pfad.indexOf("://");
-							URI uri = new URI((i < 0 ? "http://" : "")
-									+ pfad.trim());
-							java.awt.Desktop.getDesktop().browse(uri);
-						} catch (URISyntaxException ex1) {
-							DialogFactory
-									.showModalDialog(
-											LPMain.getTextRespectUISPr("lp.error"),
-											LPMain.getTextRespectUISPr("lp.fehlerhafteurl")
-													+ ": " + pfad);
-						} catch (IOException ex1) {
-							DialogFactory.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.error"),
-									ex1.getMessage());
-						}
-					} else {
-						try {
-							java.io.File f = new File(pfad);
-							if (!f.exists()) {
-								new File(pfad).mkdirs();
-								f = new File(pfad);
-							}
-
-							try {
-								java.awt.Desktop.getDesktop().open(f);
-							} catch (Exception e1) {
-								String message = "Dokumentenpfad: "
-										+ f.toString();
-								LpLogger.getInstance(this.getClass()).warn(
-										message, e1);
-							}
-						} catch (java.lang.IllegalArgumentException e1) {
-							DialogFactory.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.error"),
-									e1.getMessage());
-						}
-					}
-
-				}
+				actionDokumentenlink(e.getActionCommand().substring(DOKUMENTENLINK_ACTION.length()));
+				
 			} else if (e.getActionCommand().startsWith(EXTRALISTE_ACTION)) {
 				Integer extralisteIId = new Integer(e.getActionCommand()
 						.replaceAll(EXTRALISTE_ACTION, ""));
@@ -424,6 +203,18 @@ public class WrapperMenuBar extends JMenuBar implements ActionListener {
 			ex.printStackTrace();
 			String message = "DOKUMENTENLINK_ACTION";
 			LpLogger.getInstance(this.getClass()).warn(message, ex);
+		}
+	}
+
+	private void actionDokumentenlink(String doklinkIdString) {
+		try {
+			Integer doklinkId = new Integer(doklinkIdString);
+			getDokumentenlinkCtrl().actionDokumentenlink(doklinkId);
+		} catch (NumberFormatException ex) {
+			myLogger.error("NumberFormatException: String '" + doklinkIdString 
+					+ "' aus " + DOKUMENTENLINK_ACTION + " Command ist keine Zahl.", ex);
+		} catch (Throwable e) {
+			new DialogError(LPMain.getInstance().getDesktop(), e, DialogError.TYPE_ERROR);
 		}
 	}
 

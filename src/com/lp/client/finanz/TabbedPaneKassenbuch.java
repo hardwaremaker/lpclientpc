@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.finanz;
@@ -52,7 +52,6 @@ import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.finanz.service.FinanzServiceFac;
 import com.lp.server.finanz.service.KassenbuchDto;
-import com.lp.server.finanz.service.KontoDto;
 import com.lp.server.finanz.service.PrintKontoblaetterModel;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
@@ -70,7 +69,7 @@ import com.lp.util.Helper;
 public class TabbedPaneKassenbuch extends TabbedPane {
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private PanelQuery panelQueryKassenbuch = null;
@@ -85,7 +84,6 @@ public class TabbedPaneKassenbuch extends TabbedPane {
 
 	private KassenbuchDto kassenbuchDto = null;
 	private IGeschaeftsjahrViewController geschaeftsjahrViewController = null;
-	private WrapperMenuBar mainMenuBar = null;
 
 	public TabbedPaneKassenbuch(InternalFrame internalFrameI,
 			IGeschaeftsjahrViewController viewController) throws Throwable {
@@ -162,7 +160,12 @@ public class TabbedPaneKassenbuch extends TabbedPane {
 	private PanelQuery getPanelQueryKassenbuch(boolean bNeedInstantiationIfNull)
 			throws Throwable {
 		if (panelQueryKassenbuch == null && bNeedInstantiationIfNull) {
-			String[] aWhichButtonIUseKassenbuch = { PanelBasis.ACTION_NEW };
+			String[] aWhichButtonIUseKassenbuch = null;
+			if (getInternalFrameFinanz().isChefbuchhalter()) {
+				aWhichButtonIUseKassenbuch = new String[] { PanelBasis.ACTION_NEW };
+			}
+			
+			
 			QueryType[] qtKassenbuch = null;
 			FilterKriterium[] filtersKassenbuch = SystemFilterFactory
 					.getInstance().createFKMandantCNr();
@@ -189,8 +192,13 @@ public class TabbedPaneKassenbuch extends TabbedPane {
 				holeKassenbuchDto(key);
 				// nur wechseln wenns auch einen gibt
 				if (key != null) {
-					setSelectedComponent(getPanelSplitBuchungen(true));
-					getPanelSplitBuchungen(true).eventYouAreSelected(false);
+					if (getInternalFrameFinanz().getBVollversion()) {
+						setSelectedComponent(getPanelSplitBuchungen(true));
+						getPanelSplitBuchungen(true).eventYouAreSelected(false);
+					} else {
+						setSelectedComponent(getPanelDetailKassenbuchKopfdaten(true));
+						getPanelDetailKassenbuchKopfdaten(true).eventYouAreSelected(false);
+					}
 				}
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD
@@ -202,13 +210,8 @@ public class TabbedPaneKassenbuch extends TabbedPane {
 			if (e.getSource() == getPanelQueryKassenbuch(false)) {
 				Object key = getPanelQueryKassenbuch(true).getSelectedId();
 				holeKassenbuchDto(key);
-				if (key == null) {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_KASSENBUECHER, false);
-				} else {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_KASSENBUECHER, true);
-				}
+				getInternalFrame().enableAllOberePanelsExceptMe(this,
+						IDX_KASSENBUECHER, key != null);
 				getPanelQueryKassenbuch(true).updateButtons();
 			} else if (e.getSource() == panelQueryBuchungen) {
 				Integer iId = (Integer) panelQueryBuchungen.getSelectedId();
@@ -354,6 +357,10 @@ public class TabbedPaneKassenbuch extends TabbedPane {
 					aWhichButtonIUseBuchungen, getInternalFrame(), LPMain
 							.getInstance().getTextRespectUISPr(
 									"finanz.buchungen"), true);
+
+			panelQueryBuchungen.befuellePanelFilterkriterienDirekt(
+					FinanzFilterFactory.getInstance()
+							.createFKDKassenbuchTextBeleg(), null);
 		}
 		return panelQueryBuchungen;
 	}
@@ -365,25 +372,15 @@ public class TabbedPaneKassenbuch extends TabbedPane {
 	 */
 	protected void printKontoblatt() throws Throwable {
 		if (getKassenbuchDto() != null) {
-			// PrintKontoblaetterModel model = new PrintKontoblaetterModel(
-			// null,
-			// null,
-			// getInternalFrameFinanz().getAktuellesGeschaeftsjahr()) ;
-			// model.setKontoIId(getKassenbuchDto().getKontoIId()) ;
-			// model.setSortOrder(PrintKontoblaetterModel.EnumSortOrder.SORT_NACH_DATUM)
-			// ;
-			// model.setKontotypCNr(FinanzServiceFac.KONTOTYP_SACHKONTO) ;
-			// model.setEnableSaldo(true) ;
-			// DelegateFactory.getInstance().getFinanzReportDelegate().printKontoblaetter(model)
-			// ;
-
-			KontoDto kontoDto = getFinanzDelegate().kontoFindByPrimaryKey(
-					getKassenbuchDto().getKontoIId());
+//			KontoDto kontoDto = getFinanzDelegate().kontoFindByPrimaryKey(
+//					getKassenbuchDto().getKontoIId());
 			String sTitle = LPMain.getInstance().getTextRespectUISPr(
 					"finanz.buchungen");
 
 			PrintKontoblaetterModel model = new PrintKontoblaetterModel(null,
-					null, getInternalFrameFinanz().getAktuellesGeschaeftsjahr());
+					null, ""
+							+ getInternalFrameFinanz()
+									.getIAktuellesGeschaeftsjahr());
 			model.setKontoIId(getKassenbuchDto().getKontoIId());
 			model.setSortOrder(PrintKontoblaetterModel.EnumSortOrder.SORT_NACH_DATUM);
 			model.setKontotypCNr(FinanzServiceFac.KONTOTYP_SACHKONTO);
@@ -458,18 +455,16 @@ public class TabbedPaneKassenbuch extends TabbedPane {
 
 			refreshSelectedPanel();
 		}
+
+		
 	}
 
 	protected javax.swing.JMenuBar getJMenuBar() throws Throwable {
-		// return new WrapperMenuBar(this);
-
-		if (null != mainMenuBar)
-			return mainMenuBar;
-
-		mainMenuBar = new WrapperMenuBar(this);
+		WrapperMenuBar mainMenuBar = new WrapperMenuBar(this);
 		JMenu jmBearbeiten = (JMenu) mainMenuBar
 				.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
 
+		
 		JMenu menuePeriode = geschaeftsjahrViewController
 				.getGeschaeftsJahreMenue(this, this);
 		jmBearbeiten.add(menuePeriode);

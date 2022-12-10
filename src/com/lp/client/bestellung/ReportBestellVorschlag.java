@@ -40,6 +40,8 @@ import javax.swing.JComponent;
 import com.lp.client.anfrage.InternalFrameAnfrage;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportJournalEinkauf;
@@ -47,6 +49,8 @@ import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
 import com.lp.server.bestellung.service.BestellungReportFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.ReportJournalKriterienDto;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -59,23 +63,48 @@ public class ReportBestellVorschlag extends PanelReportJournalEinkauf implements
 	private static final long serialVersionUID = 1L;
 	private WrapperCheckBox wcbSortiereNachLiefertermin = new WrapperCheckBox();
 
+	private WrapperLabel wlaStandort = new WrapperLabel();
+	private WrapperComboBox wcbStandort = new WrapperComboBox();
+
 	public ReportBestellVorschlag(InternalFrame internalFrame, String add2Title)
 			throws Throwable {
 		super(internalFrame, add2Title);
 		jbInit();
 	}
 
-	private void jbInit() throws Exception {
+	private void jbInit() throws Throwable {
+		wlaStandort = new WrapperLabel(
+				LPMain.getTextRespectUISPr("system.standort"));
+		wcbStandort.setMap(DelegateFactory.getInstance().getLagerDelegate()
+				.getAlleStandorte());
+
 		wcbSortiereNachLiefertermin.setText(LPMain.getInstance()
 				.getTextRespectUISPr("auft.sortierungnachliefertermin"));
 		wrbSortierungIdentNr.setVisible(true);
 		iZeile++;
 		jpaWorkingOn.add(wcbSortiereNachLiefertermin, new GridBagConstraints(0,
-				iZeile, 6, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				iZeile, 8, 1, 1, 1.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
+		ParametermandantDto parameter = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_ARTIKEL,
+						ParameterFac.PARAMETER_LAGERMIN_JE_LAGER);
+		boolean lagerminJeLager = ((Boolean) parameter.getCWertAsObject());
+
+		if (lagerminJeLager) {
+			jpaWorkingOn.add(wlaStandort, new GridBagConstraints(2, iZeile, 1,
+					1, 1.0, 1.0, GridBagConstraints.WEST,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wcbStandort, new GridBagConstraints(3, iZeile, 2,
+					1, 1.0, 1.0, GridBagConstraints.WEST,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
+
 		this.setEinschraenkungDatumBelegnummerSichtbar(false);
-		// this.setEinschraenkungKostenstelleSichtbar(false);
+		 this.setEinschraenkungKostenstelleSichtbar(false);
 		wrbBereichNummer.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.belegarten"));
 
@@ -120,7 +149,8 @@ public class ReportBestellVorschlag extends PanelReportJournalEinkauf implements
 				.getBestellungDelegate()
 				.printBestellVorschlag(getKriterien(),
 						wcbSortiereNachLiefertermin.isSelected(),
-						bAnfragevorschlag);
+						bAnfragevorschlag,
+						(Integer) wcbStandort.getKeyOfSelectedItem());
 
 	}
 

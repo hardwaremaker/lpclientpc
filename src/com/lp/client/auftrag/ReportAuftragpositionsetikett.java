@@ -72,7 +72,7 @@ public class ReportAuftragpositionsetikett extends ReportEtikett implements
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 
 		return DelegateFactory.getInstance().getAuftragReportDelegate()
-				.printAuftragspositionsetikett(auftragpositionIId);
+				.printAuftragspositionsetikett(auftragpositionIId,getAnzahlExemplare());
 	}
 
 	public boolean getBErstelleReportSofort() {

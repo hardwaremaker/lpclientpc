@@ -32,12 +32,15 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.sql.Date;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.angebot.service.AngebotReportFac;
+import com.lp.server.angebot.service.AngebotpositionFac;
 import com.lp.server.angebot.service.ReportAngebotJournalKriterienDto;
 import com.lp.server.angebot.service.ReportAngebotsstatistikKriterienDto;
 import com.lp.server.util.report.JasperPrintLP;
@@ -63,8 +66,7 @@ public class AngebotReportDelegate extends Delegate {
 	public AngebotReportDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			angebotReportFac = (AngebotReportFac) context
-					.lookup("lpserver/AngebotReportFacBean/remote");
+			angebotReportFac = lookupFac(context, AngebotReportFac.class);	
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -180,17 +182,17 @@ public class AngebotReportDelegate extends Delegate {
 	/**
 	 * Die Vorkalkulation eines Angebots drucken.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK des Angebots
+	 * @param iIdAngebotI  PK des Angebots
+	 * @param preisGueltig Wenn != null, werden Preise verwendet, die zu diesem
+	 *                     Datum g&uuml;ltig sind, kann auch in der Zukunft sein
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printAngebotVorkalkulation(Integer iIdAngebotI)
+	public JasperPrintLP printAngebotVorkalkulation(Integer iIdAngebotI, Date preisGueltig)
 			throws ExceptionLP {
 		JasperPrintLP oPrint = null;
 		try {
-			oPrint = angebotReportFac.printAngebotVorkalkulation(iIdAngebotI,
+			oPrint = angebotReportFac.printAngebotVorkalkulation(iIdAngebotI, preisGueltig,
 					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);

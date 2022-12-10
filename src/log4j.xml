@@ -50,13 +50,13 @@
 
 
 <!-- A time/date based rolling appender -->
-   <appender name="LP_CLIENT_LOG_LOCAL" class="org.jboss.logging.appender.DailyRollingFileAppender">
-      <errorHandler class="org.jboss.logging.util.OnlyOnceErrorHandler"/>
+   <appender name="LP_CLIENT_LOG_LOCAL" class="org.apache.log4j.DailyRollingFileAppender">
+      <errorHandler class="org.apache.log4j.helpers.OnlyOnceErrorHandler"/>
       <param name="File" value="${user.home}/.heliumv/Default/log/lpclient_"/>
       <param name="Append" value="true"/>
 
       <!-- Rollover at midnight each day -->
-      <param name="DatePattern" value="yyyyMMdd'.log'"/>
+      <param name="DatePattern" value="MMdd'.log'"/>
 
       <!-- Rollover at the top of each hour
       <param name="DatePattern" value="'.'yyyy-MM-dd-HH"/>
@@ -77,7 +77,7 @@
    <!-- ============================== -->
 
    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
-      <errorHandler class="org.jboss.logging.util.OnlyOnceErrorHandler"/>
+      <errorHandler class="org.apache.log4j.helpers.OnlyOnceErrorHandler"/>
      <!-- <param name="Target" value="System.out"/>-->
      <!-- <param name="Threshold" value="ALL"/>-->
 
@@ -88,7 +88,7 @@
    </appender>
 
    <appender name="CONSOLE_WITHOUT_LINK" class="org.apache.log4j.ConsoleAppender">
-      <errorHandler class="org.jboss.logging.util.OnlyOnceErrorHandler"/>
+      <errorHandler class="org.apache.log4j.helpers.OnlyOnceErrorHandler"/>
       <param name="Target" value="System.out"/>
       <param name="Threshold" value="ALL"/>
 
@@ -100,7 +100,7 @@
 
 
    <appender name="JSR77" class="org.apache.log4j.FileAppender">
-      <errorHandler class="org.jboss.logging.util.OnlyOnceErrorHandler"/>
+      <errorHandler class="org.apache.log4j.helpers.OnlyOnceErrorHandler"/>
       <param name="Append" value="false"/>
       <param name="File" value="${jboss.server.home.dir}/log/jsr77.log"/>
       <layout class="org.apache.log4j.PatternLayout">
@@ -182,7 +182,7 @@
 
    <!-- Limit the org.apache.commons category to INFO as its DEBUG is verbose -->
    <logger name="com.lp">
-      <level value="DEBUG"/>
+      <level value="WARN"/>
       <appender-ref ref="LP_CLIENT_LOG_LOCAL"/>
    </logger>
 
@@ -262,7 +262,9 @@
    <!-- ======================= -->
 
    <root>
+      <priority value="WARN"/>
       <appender-ref ref="CONSOLE"/>
+      <appender-ref ref="LP_CLIENT_LOG_LOCAL"/>
    </root>
 
    <!-- Clustering logging -->

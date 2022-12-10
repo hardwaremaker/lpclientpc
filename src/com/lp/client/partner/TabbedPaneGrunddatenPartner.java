@@ -81,7 +81,8 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 	private final static int IDX_KOMMUNIKATIONSART = 5;
 	private final static int IDX_SELEKTION = 6;
 	private final static int IDX_KOMMENTARART = 7;
-	private final static int IDX_KONTAKTART = 8;
+	private final static int IDX_NEWSLETTERGRUND = 8;
+	private final static int IDX_KONTAKTART = 9;
 
 	private PanelQuery panelAnsprechpartnerfktQP1 = null;
 	private PanelStammdatenCRUD panelAnsprechpartnerfktBottomD1 = null;
@@ -105,6 +106,10 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 	private PanelQuery panelSelektionQP7 = null;
 	private PanelStammdatenCRUD panelSelektionBottomD7 = null;
 	private PanelSplit panelSelektionSP7 = null;
+
+	private PanelQuery panelNewslettergrundQP8 = null;
+	private PanelStammdatenCRUD panelNewslettergrundBottomD8 = null;
+	private PanelSplit panelNewslettergrundSP8 = null;
 
 	private PanelQuery panelQueryKontaktart = null;
 	private PanelBasis panelDetailKontaktart = null;
@@ -175,6 +180,12 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 				LPMain.getInstance().getTextRespectUISPr("part.kommentarart"),
 				IDX_KOMMENTARART);
 
+		insertTab(
+				LPMain.getInstance().getTextRespectUISPr("part.newslettergrund"),
+				null, null,
+				LPMain.getInstance().getTextRespectUISPr("part.newslettergrund"),
+				IDX_NEWSLETTERGRUND);
+		
 		if (LPMain
 				.getInstance()
 				.getDesktop()
@@ -267,6 +278,12 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 				panelSelektionBottomD7.setKeyWhenDetailPanel(iId);
 				panelSelektionBottomD7.eventYouAreSelected(false);
 				panelSelektionQP7.updateButtons();
+			} else if (e.getSource() == panelNewslettergrundQP8) {
+				Integer iId = (Integer) panelNewslettergrundQP8.getSelectedId();
+				getInternalFrame().setKeyWasForLockMe(iId + "");
+				panelNewslettergrundBottomD8.setKeyWhenDetailPanel(iId);
+				panelNewslettergrundBottomD8.eventYouAreSelected(false);
+				panelNewslettergrundQP8.updateButtons();
 			} else if (e.getSource() == panelQueryKontaktart) {
 				Integer iId = (Integer) panelQueryKontaktart.getSelectedId();
 				getInternalFrame().setKeyWasForLockMe(iId + "");
@@ -337,6 +354,11 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 				panelSelektionQP7.updateButtons(new LockStateValue(
 						PanelBasis.LOCK_FOR_NEW));
 				;
+			} else if (eI.getSource() == panelNewslettergrundBottomD8) {
+				// im QP die Buttons in den Zustand neu setzen.
+				panelNewslettergrundQP8.updateButtons(new LockStateValue(
+						PanelBasis.LOCK_FOR_NEW));
+				;
 			} else if (eI.getSource() == panelDetailKontaktart) {
 				// im QP die Buttons in den Zustand neu setzen.
 				panelQueryKontaktart.updateButtons(new LockStateValue(
@@ -388,6 +410,12 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 				panelSelektionQP7.eventYouAreSelected(false);
 				panelSelektionQP7.setSelectedId(oKey);
 				panelSelektionSP7.eventYouAreSelected(false);
+			} else if (e.getSource() == panelNewslettergrundBottomD8) {
+				Object oKey = panelNewslettergrundBottomD8
+						.getKeyWhenDetailPanel();
+				panelNewslettergrundQP8.eventYouAreSelected(false);
+				panelNewslettergrundQP8.setSelectedId(oKey);
+				panelNewslettergrundSP8.eventYouAreSelected(false);
 			} else if (e.getSource() == panelDetailKontaktart) {
 				Object oKey = panelDetailKontaktart.getKeyWhenDetailPanel();
 				panelQueryKontaktart.eventYouAreSelected(false);
@@ -464,6 +492,16 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 				panelSelektionSP7.eventYouAreSelected(false); // refresh auf das
 																// gesamte 1:n
 																// panel
+			} else if (eI.getSource() == panelNewslettergrundBottomD8) {
+				if (panelNewslettergrundBottomD8.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelNewslettergrundQP8
+							.getId2SelectAfterDelete();
+					panelNewslettergrundQP8.setSelectedId(oNaechster);
+				}
+				panelNewslettergrundSP8.eventYouAreSelected(false); // refresh
+																	// auf das
+				// gesamte 1:n
+				// panel
 			}
 		}
 
@@ -514,6 +552,13 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 				panelSelektionBottomD7.eventActionNew(eI, true, false);
 				panelSelektionBottomD7.eventYouAreSelected(false);
 				setSelectedComponent(panelSelektionSP7);
+			} else if (eI.getSource() == panelNewslettergrundQP8) {
+				if (panelNewslettergrundQP8.getSelectedId() == null) {
+					getInternalFrame().enableAllPanelsExcept(true);
+				}
+				panelNewslettergrundBottomD8.eventActionNew(eI, true, false);
+				panelNewslettergrundBottomD8.eventYouAreSelected(false);
+				setSelectedComponent(panelNewslettergrundSP8);
 			} else if (eI.getSource() == panelQueryKontaktart) {
 				if (panelQueryKontaktart.getSelectedId() == null) {
 					getInternalFrame().enableAllPanelsExcept(true);
@@ -596,6 +641,12 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 			refreshSelektion();
 			panelSelektionSP7.eventYouAreSelected(false);
 			panelSelektionQP7.updateButtons();
+			break;
+		}
+		case IDX_NEWSLETTERGRUND: {
+			refreshNewslettergrund();
+			panelNewslettergrundSP8.eventYouAreSelected(false);
+			panelNewslettergrundQP8.updateButtons();
 			break;
 		}
 		case IDX_KONTAKTART: {
@@ -861,6 +912,39 @@ public class TabbedPaneGrunddatenPartner extends TabbedPane {
 
 			// liste soll sofort angezeigt werden
 			panelSelektionQP7.eventYouAreSelected(true);
+		}
+	}
+
+	private void refreshNewslettergrund() throws Throwable {
+
+		if (panelNewslettergrundSP8 == null) {
+			// Buttons.
+			String[] aButton = { PanelBasis.ACTION_NEW };
+			FilterKriterium[] f = null;
+
+			panelNewslettergrundQP8 = new PanelQuery(null, f,
+					QueryParameters.UC_ID_NEWSLETTERGRUND, aButton,
+					getInternalFrame(), LPMain.getInstance()
+							.getTextRespectUISPr("part.newslettergrund"), true); // liste
+																			// refresh
+																			// wenn
+																			// lasche
+																			// geklickt
+																			// wurde
+
+			panelNewslettergrundBottomD8 = new PanelStammdatenCRUD(
+					getInternalFrame(), LPMain.getInstance()
+							.getTextRespectUISPr("part.newslettergrund"), null,
+					HelperClient.SCRUD_NEWSLETTERGRUND_FILE,
+					(InternalFramePartner) getInternalFrame(),
+					HelperClient.LOCKME_NEWSLETTERGRUND);
+
+			panelNewslettergrundSP8 = new PanelSplit(getInternalFrame(),
+					panelNewslettergrundBottomD8, panelNewslettergrundQP8, 200);
+			setComponentAt(IDX_NEWSLETTERGRUND, panelNewslettergrundSP8);
+
+			// liste soll sofort angezeigt werden
+			panelNewslettergrundQP8.eventYouAreSelected(true);
 		}
 	}
 

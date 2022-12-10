@@ -52,7 +52,6 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
-import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -66,7 +65,6 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-@SuppressWarnings("static-access")
 public class PanelSteuerkategorie extends PanelBasis {
 
 	/**
@@ -87,8 +85,6 @@ public class PanelSteuerkategorie extends PanelBasis {
 	
 	private WrapperLabel wlaKennung = new WrapperLabel();
 	private WrapperTextField wtfKennung = new WrapperTextField();
-
-	private WrapperCheckBox wcoReversecharge = new WrapperCheckBox();
 
 	private WrapperButton wbuKontoForderungen = new WrapperButton();
 	private WrapperTextField wtfKontoForderungen = new WrapperTextField(80);
@@ -152,7 +148,7 @@ public class PanelSteuerkategorie extends PanelBasis {
 			FilterKriterium[] filters = FinanzFilterFactory.getInstance().createFKSachkontenInklMitlaufende();
 			panelQueryKontoF = new PanelQueryFLR(qt, filters,
 					QueryParameters.UC_ID_FINANZKONTEN, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
+					getInternalFrame(), LPMain.getTextRespectUISPr(
 							"finanz.liste.sachkonten"));
 			FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance().createFKDKontonummer();
 			FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance().createFKDKontobezeichnung();
@@ -166,7 +162,7 @@ public class PanelSteuerkategorie extends PanelBasis {
 				FilterKriterium[] filters = FinanzFilterFactory.getInstance().createFKSachkontenInklMitlaufende();
 				panelQueryKontoV = new PanelQueryFLR(qt, filters,
 						QueryParameters.UC_ID_FINANZKONTEN, aWhichButtonIUse,
-						getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
+						getInternalFrame(), LPMain.getTextRespectUISPr(
 								"finanz.liste.sachkonten"));
 				FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance().createFKDKontonummer();
 				FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance().createFKDKontobezeichnung();
@@ -180,7 +176,7 @@ public class PanelSteuerkategorie extends PanelBasis {
 			FilterKriterium[] filters = FinanzFilterFactory.getInstance().createFKSachkonten();
 			panelQueryKontoKg = new PanelQueryFLR(qt, filters,
 					QueryParameters.UC_ID_FINANZKONTEN, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
+					getInternalFrame(), LPMain.getTextRespectUISPr(
 							"finanz.liste.sachkonten"));
 			FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance().createFKDKontonummer();
 			FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance().createFKDKontobezeichnung();
@@ -194,7 +190,7 @@ public class PanelSteuerkategorie extends PanelBasis {
 			FilterKriterium[] filters = FinanzFilterFactory.getInstance().createFKSachkonten();
 			panelQueryKontoKv = new PanelQueryFLR(qt, filters,
 					QueryParameters.UC_ID_FINANZKONTEN, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
+					getInternalFrame(), LPMain.getTextRespectUISPr(
 							"finanz.liste.sachkonten"));
 			FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance().createFKDKontonummer();
 			FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance().createFKDKontobezeichnung();
@@ -233,7 +229,10 @@ public class PanelSteuerkategorie extends PanelBasis {
 			LockStateValue lockstateValue = getLockedstateDetailMainKey();
 			lockstateValue.setIState(LOCK_IS_LOCKED_BY_ME);
 			updateButtons(lockstateValue);
-			setFirstFocusableComponent();
+			// AxD: Falls hier wieder super.eventActionUpdate aufgerufen wird, diesen call
+			// zu normalem setFirstFocusableComponent aendern, sonst stimmt der alte Fokus
+			// nicht mehr!
+			setFirstFocusableComponentSaveOld();
 		} else {
 			DialogFactory.showModalDialog(
 					LPMain.getTextRespectUISPr("lp.hint"),
@@ -322,34 +321,32 @@ public class PanelSteuerkategorie extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wcoReversecharge.setText(LPMain.getInstance().getTextRespectUISPr("lp.reversecharge"));
-		wcoReversecharge.setToken("reversecharge");
 		wtfBezeichnung.setMandatoryField(true);
 		wtfBezeichnung.setColumnsMax(FinanzServiceFac.MAX_STEUERKATEGORIE_BEZEICHNUNG);
 		wtfBezeichnung.setToken("bezeichnung");
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
+		wlaBezeichnung.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
 
-		wlaKennung.setText(LPMain.getInstance().getTextRespectUISPr("label.kennung"));
+		wlaKennung.setText(LPMain.getTextRespectUISPr("label.kennung"));
 		wtfKennung.setColumnsMax(15);
 		wtfKennung.setToken("kennung");
 		wtfKennung.setEditable(false);
 
-		wbuKontoForderungen.setText(LPMain.getInstance().getTextRespectUISPr("fb.kontoforderung"));
+		wbuKontoForderungen.setText(LPMain.getTextRespectUISPr("fb.kontoforderung"));
 		wbuKontoForderungen.setActionCommand(ACTION_SPECIAL_KONTO_FORDERUNG);
 		wbuKontoForderungen.addActionListener(this);
 		wtfKontoForderungen.setToken("kontoforderung");
 
-		wbuKontoVerbindlichkeiten.setText(LPMain.getInstance().getTextRespectUISPr("fb.kontoverbindlich"));
+		wbuKontoVerbindlichkeiten.setText(LPMain.getTextRespectUISPr("fb.kontoverbindlich"));
 		wbuKontoVerbindlichkeiten.setActionCommand(ACTION_SPECIAL_KONTO_VERBINDLICH);
 		wbuKontoVerbindlichkeiten.addActionListener(this);
 		wtfKontoVerbindlichkeiten.setToken("kontoverbindlich");
 
-		wbuKontoKursverlust.setText(LPMain.getInstance().getTextRespectUISPr("fb.kontokursverlust"));
+		wbuKontoKursverlust.setText(LPMain.getTextRespectUISPr("fb.kontokursverlust"));
 		wbuKontoKursverlust.setActionCommand(ACTION_SPECIAL_KONTO_KURSVERLUST);
 		wbuKontoKursverlust.addActionListener(this);
 		wtfKontoKursverlust.setToken("kontokursverlust");
 
-		wbuKontoKursgewinn.setText(LPMain.getInstance().getTextRespectUISPr("fb.kontokursgewinn"));
+		wbuKontoKursgewinn.setText(LPMain.getTextRespectUISPr("fb.kontokursgewinn"));
 		wbuKontoKursgewinn.setActionCommand(ACTION_SPECIAL_KONTO_KURSGEWINN);
 		wbuKontoKursgewinn.addActionListener(this);
 		wtfKontoKursgewinn.setToken("kontokursgewinn");
@@ -367,11 +364,6 @@ public class PanelSteuerkategorie extends PanelBasis {
 				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
 
-// Es gibt keine Modifikationsdaten im Datensatz
-//		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-//				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-//				new Insets(0, 0, 0, 0), 0, 0));
-
 		iZeile++;
 		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, iZeile, 1,
 				1, 1, 0.0, GridBagConstraints.CENTER,
@@ -384,10 +376,6 @@ public class PanelSteuerkategorie extends PanelBasis {
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcoReversecharge, new GridBagConstraints(1, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -419,11 +407,9 @@ public class PanelSteuerkategorie extends PanelBasis {
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				 ACTION_DISCARD, };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD};
 
 		enableToolsPanelButtons(aWhichButtonIUse);
-
 	}
 
 	protected String getLockMeWer() throws Exception {
@@ -441,41 +427,55 @@ public class PanelSteuerkategorie extends PanelBasis {
 
 	protected void components2Dto() throws Throwable{
 		steuerkategorieDto.setCBez(wtfBezeichnung.getText());
-		steuerkategorieDto.setBReversecharge(wcoReversecharge.getShort());
 		steuerkategorieDto.setCNr(wtfKennung.getText());
 		steuerkategorieDto.setMandantCNr(LPMain.getTheClient().getMandant());
 		setKeyWhenDetailPanel(steuerkategorieDto.getIId());
 	}
 
+	private void setWtfKonto(WrapperTextField wtfKonto, KontoDtoSmall kontoDto) {
+		wtfKonto.setText(kontoDto == null ? null : kontoDto.formatKtoNrBezForUI()) ;
+	}
+	
 	protected void dto2Components() throws Throwable {
-		KontoDtoSmall kontoDto = null;
 		wtfBezeichnung.setText(steuerkategorieDto.getCBez());
-		wcoReversecharge.setShort(steuerkategorieDto.getBReversecharge());
 		wtfKennung.setText(steuerkategorieDto.getCNr());
-		if (steuerkategorieDto.getKontoIIdForderungen() == null)
-			wtfKontoForderungen.setText(null);
-		else {
-			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdForderungen());
-			wtfKontoForderungen.setText(kontoDto.formatKtoNrBezForUI());
-		}
-		if (steuerkategorieDto.getKontoIIdVerbindlichkeiten() == null)
-			wtfKontoVerbindlichkeiten.setText(null);
-		else {
-			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdVerbindlichkeiten());
-			wtfKontoVerbindlichkeiten.setText(kontoDto.formatKtoNrBezForUI());
-		}
-		if (steuerkategorieDto.getKontoIIdKursgewinn() == null)
-			wtfKontoKursgewinn.setText(null);
-		else {
-			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdKursgewinn());
-			wtfKontoKursgewinn.setText(kontoDto.formatKtoNrBezForUI());
-		}
-		if (steuerkategorieDto.getKontoIIdKursverlust() == null)
-			wtfKontoKursverlust.setText(null);
-		else {
-			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdKursverlust());
-			wtfKontoKursverlust.setText(kontoDto.formatKtoNrBezForUI());
-		}
+		
+		Integer kontoIds[] = {
+			steuerkategorieDto.getKontoIIdForderungen(),
+			steuerkategorieDto.getKontoIIdVerbindlichkeiten(),
+			steuerkategorieDto.getKontoIIdKursgewinn(),
+			steuerkategorieDto.getKontoIIdKursverlust()			
+		} ;
+		KontoDtoSmall[] kontoDtos = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(kontoIds) ;
+		setWtfKonto(wtfKontoForderungen, kontoDtos[0]);
+		setWtfKonto(wtfKontoVerbindlichkeiten, kontoDtos[1]) ;
+		setWtfKonto(wtfKontoKursgewinn, kontoDtos[2]) ;
+		setWtfKonto(wtfKontoKursverlust, kontoDtos[3]) ;
+				
+//		if (steuerkategorieDto.getKontoIIdForderungen() == null)
+//			wtfKontoForderungen.setText(null);
+//		else {
+//			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdForderungen());
+//			wtfKontoForderungen.setText(kontoDto.formatKtoNrBezForUI());
+//		}
+//		if (steuerkategorieDto.getKontoIIdVerbindlichkeiten() == null)
+//			wtfKontoVerbindlichkeiten.setText(null);
+//		else {
+//			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdVerbindlichkeiten());
+//			wtfKontoVerbindlichkeiten.setText(kontoDto.formatKtoNrBezForUI());
+//		}
+//		if (steuerkategorieDto.getKontoIIdKursgewinn() == null)
+//			wtfKontoKursgewinn.setText(null);
+//		else {
+//			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdKursgewinn());
+//			wtfKontoKursgewinn.setText(kontoDto.formatKtoNrBezForUI());
+//		}
+//		if (steuerkategorieDto.getKontoIIdKursverlust() == null)
+//			wtfKontoKursverlust.setText(null);
+//		else {
+//			kontoDto = DelegateFactory.getInstance().getFinanzDelegate().kontoFindByPrimaryKeySmall(steuerkategorieDto.getKontoIIdKursverlust());
+//			wtfKontoKursverlust.setText(kontoDto.formatKtoNrBezForUI());
+//		}
 		setKeyWhenDetailPanel(steuerkategorieDto.getIId());
 	}
 
@@ -484,12 +484,13 @@ public class PanelSteuerkategorie extends PanelBasis {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (steuerkategorieDto.getIId() == null) {
-				steuerkategorieDto.setIId(DelegateFactory.getInstance()
-						.getFinanzServiceDelegate().createSteuerkategorie(steuerkategorieDto));
+				Integer newId = getFinanzController().createSteuerkategorie(steuerkategorieDto) ;
+				steuerkategorieDto.setIId(newId) ; 
+				getFinanzController().setSteuerkategorieIId(newId);
 				setKeyWhenDetailPanel(steuerkategorieDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getFinanzServiceDelegate()
-						.updateSteuerkategorie(steuerkategorieDto);
+				getFinanzController().updateSteuerkategorie(steuerkategorieDto);
+				getFinanzController().setSteuerkategorieIId(steuerkategorieDto.getIId());
 			}
 			super.eventActionSave(e, true);
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
@@ -504,6 +505,10 @@ public class PanelSteuerkategorie extends PanelBasis {
 		return tabbedPaneFinanzamt;
 	}
 	
+	private IFinanzamtController getFinanzController() {
+		return getTabbedPaneFinanzamt().getFinanzController() ;
+	}
+	
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
 			throws Throwable {
 
@@ -513,14 +518,15 @@ public class PanelSteuerkategorie extends PanelBasis {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {
-			steuerkategorieDto = DelegateFactory.getInstance().getFinanzServiceDelegate()
-					.steuerkategorieFindByPrimaryKey((Integer) key);
+			steuerkategorieDto = getFinanzController().getSteuerkategorieDto() ;
+//			steuerkategorieDto = DelegateFactory.getInstance().getFinanzServiceDelegate()
+//					.steuerkategorieFindByPrimaryKey((Integer) key);
 			dto2Components();
 			setKeyWhenDetailPanel(steuerkategorieDto.getIId());
 		}
 		getInternalFrame().setLpTitle(
 				InternalFrame.TITLE_IDX_AS_I_LIKE,
-				getTabbedPaneFinanzamt().getFinanzamtDto().getPartnerDto()
-						.getCName1nachnamefirmazeile1());	
+				getTabbedPaneFinanzamt().getFinanzamtTitle()
+				+ " | " + getFinanzController().getReversechargeartDto().getCNr());	
 	}
 }

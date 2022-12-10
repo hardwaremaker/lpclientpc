@@ -115,6 +115,7 @@ private WrapperLabel wlaNachfasstermin = null;
     wnfAuftragswahrscheinlichkeit.setMaximumValue(100);
     HelperClient.setDefaultsToComponent(wnfAuftragswahrscheinlichkeit, 100);
     wnfAuftragswahrscheinlichkeit.setMandatoryField(true);
+    HelperClient.setMinimumAndPreferredSize(wlaAuftragswahrscheinlichkeit, HelperClient.getSizeFactoredDimension(160));
 
   }
 

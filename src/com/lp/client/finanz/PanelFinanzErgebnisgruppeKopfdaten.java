@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.finanz;
 
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -44,7 +43,6 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
-import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
@@ -61,7 +59,6 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
-import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.finanz.service.ErgebnisgruppeDto;
 import com.lp.server.finanz.service.FinanzFac;
@@ -100,12 +97,14 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 	private WrapperCheckBox wcbSummeNegativ = null;
 	private WrapperCheckBox wcbProzentbasis = null;
 	private WrapperComboBox wcoArt = null;
+	private WrapperCheckBox wcbJahresgewinn;
+	
 	boolean bBilanzgruppe = false;
 
-	public PanelFinanzErgebnisgruppeKopfdaten(InternalFrame internalFrame,
-			String add2TitleI,
-			TabbedPaneErgebnisgruppen tabbedPaneErgebnisgruppen)
-			throws Throwable {
+	protected boolean bFuegeNeuePositionVorDerSelektiertenEin = false;
+
+	public PanelFinanzErgebnisgruppeKopfdaten(InternalFrame internalFrame, String add2TitleI,
+			TabbedPaneErgebnisgruppen tabbedPaneErgebnisgruppen) throws Throwable {
 		super(internalFrame, add2TitleI);
 		this.tabbedPaneErgebnisgruppen = tabbedPaneErgebnisgruppen;
 		bBilanzgruppe = tabbedPaneErgebnisgruppen.bBilanzgruppe;
@@ -118,36 +117,25 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 		LinkedHashMap<Integer, String> mapArten = new LinkedHashMap<Integer, String>();
 
 		if (bBilanzgruppe) {
-			mapArten.put(new Integer(
-					FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE), LPMain
-					.getInstance().getTextRespectUISPr("fb.egart.bilanzgruppe"));
+			mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE),
+					LPMain.getInstance().getTextRespectUISPr("fb.egart.bilanzgruppe"));
 		} else {
-			mapArten.put(
-					new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE),
-					LPMain.getInstance().getTextRespectUISPr(
-							"fb.egart.ergebnisgruppe"));
+			mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE),
+					LPMain.getInstance().getTextRespectUISPr("fb.egart.ergebnisgruppe"));
 		}
 
 		mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_LEEREZEILE),
 				LPMain.getInstance().getTextRespectUISPr("fb.egart.leerzeile"));
-		mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_LINIE), LPMain
-				.getInstance().getTextRespectUISPr("fb.egart.linie"));
-		mapArten.put(
-				new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_SEITENUMBRUCH),
-				LPMain.getInstance().getTextRespectUISPr(
-						"fb.egart.seitenumbruch"));
+		mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_LINIE),
+				LPMain.getInstance().getTextRespectUISPr("fb.egart.linie"));
+		mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_SEITENUMBRUCH),
+				LPMain.getInstance().getTextRespectUISPr("fb.egart.seitenumbruch"));
 
 		if (bBilanzgruppe) {
-			mapArten.put(
-					new Integer(
-							FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_POSITIV),
-					LPMain.getInstance().getTextRespectUISPr(
-							"fb.egart.bilanzgruppepositiv"));
-			mapArten.put(
-					new Integer(
-							FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_NEGATIV),
-					LPMain.getInstance().getTextRespectUISPr(
-							"fb.egart.bilanzgruppenegativ"));
+			mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_POSITIV),
+					LPMain.getInstance().getTextRespectUISPr("fb.egart.bilanzgruppepositiv"));
+			mapArten.put(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_NEGATIV),
+					LPMain.getInstance().getTextRespectUISPr("fb.egart.bilanzgruppenegativ"));
 		}
 
 		wcoArt.setMap(mapArten);
@@ -163,8 +151,7 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 	 * @throws Throwable
 	 */
 	private void jbInit() throws Throwable {
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD };
 		this.enableToolsPanelButtons(aWhichButtonIUse);
 		JPanel panelButtonAction = getToolsPanel();
 		// wegen Dialogauswahl auf FLR events hoeren
@@ -182,67 +169,54 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 		wcoArt = new WrapperComboBox();
 		wcoArt.addActionListener(this);
 		wtfBezeichnung.setMandatoryFieldDB(true);
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
-		wbuErgebnisgruppe.setText(LPMain.getInstance().getTextRespectUISPr(
-				"finanz.summengruppe"));
-		wcbInvertiert.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.invertiert"));
-		wcbSummeNegativ.setText(LPMain.getInstance().getTextRespectUISPr(
-				"finanz.summenegativ"));
-		wcbProzentbasis.setText(LPMain.getInstance().getTextRespectUISPr(
-				"fb.prozentbasis"));
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
+		wbuErgebnisgruppe.setText(LPMain.getInstance().getTextRespectUISPr("finanz.summengruppe"));
+		wcbInvertiert.setText(LPMain.getInstance().getTextRespectUISPr("lp.invertiert"));
+		wcbSummeNegativ.setText(LPMain.getInstance().getTextRespectUISPr("finanz.summenegativ"));
+		wcbProzentbasis.setText(LPMain.getInstance().getTextRespectUISPr("fb.prozentbasis"));
 		wcoArt.setMandatoryFieldDB(true);
 
-		wlaBezeichnung.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaBezeichnung.setPreferredSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
+		wcbJahresgewinn = new WrapperCheckBox();
+		wcbJahresgewinn.setText(LPMain.getInstance().getTextRespectUISPr("finanz.jahresgewinn"));
+		HelperClient.setMinimumAndPreferredSize(wlaBezeichnung, HelperClient.getSizeFactoredDimension(100));
 
 		jpaWorkingOn.setLayout(new GridBagLayout());
 		jpaWorkingOn.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		wtfErgebnisgruppe.setActivatable(false);
 		wbuErgebnisgruppe.setActionCommand(ACTION_SPECIAL_ERGEBNISGRUPPE);
 		wbuErgebnisgruppe.addActionListener(this);
-		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wcoArt, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.SOUTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1,
-				1, 1.0, 0.0, GridBagConstraints.CENTER,
+		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wcoArt, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wbuErgebnisgruppe, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.SOUTH,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfErgebnisgruppe, new GridBagConstraints(1, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wcbSummeNegativ, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuErgebnisgruppe, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfErgebnisgruppe, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wcbInvertiert, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wcbProzentbasis, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbSummeNegativ, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbInvertiert, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbProzentbasis, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		if (!bBilanzgruppe) {
+			iZeile++;
+			jpaWorkingOn.add(wcbJahresgewinn, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
 	}
 
 	public String getLockMeWer() {
@@ -252,48 +226,44 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 	/**
 	 * Neu.
 	 * 
-	 * @param eventObject
-	 *            ActionEvent
-	 * @param bLockMeI
-	 *            boolean
-	 * @param bNeedNoNewI
-	 *            boolean
+	 * @param eventObject ActionEvent
+	 * @param bLockMeI    boolean
+	 * @param bNeedNoNewI boolean
 	 * @throws Throwable
 	 */
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
+		bFuegeNeuePositionVorDerSelektiertenEin = false;
+		if (eventObject!=null && ((ItemChangedEvent) eventObject).getID() == ItemChangedEvent.ACTION_POSITION_VORPOSITIONEINFUEGEN) {
+			// Dieses Flag gibt an, ob die neue Position vor der aktuellen
+			// eingefuegt werden soll
+			bFuegeNeuePositionVorDerSelektiertenEin = true;
+		}
+
 		getTabbedPaneErgebnisgruppen().setErgebnisgruppeDto(null);
 		this.ergebnisgruppeDtoSumme = null;
 		this.leereAlleFelder(this);
-		wcoArt.setKeyOfSelectedItem(new Integer(
-				FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE));
+		wcoArt.setKeyOfSelectedItem(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE));
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		if (!bNeedNoYouAreSelectedI) {
-			ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen()
-					.getErgebnisgruppeDto();
+			ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto();
 			if (ergebnisgruppeDto != null) {
 				Object key = ergebnisgruppeDto.getIId();
-				getTabbedPaneErgebnisgruppen().setErgebnisgruppeDto(
-						DelegateFactory.getInstance().getFinanzDelegate()
-								.ergebnisgruppeFindByPrimaryKey((Integer) key));
+				getTabbedPaneErgebnisgruppen().setErgebnisgruppeDto(DelegateFactory.getInstance().getFinanzDelegate()
+						.ergebnisgruppeFindByPrimaryKey((Integer) key));
 				dto2Components();
 			}
 		}
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen()
-				.getErgebnisgruppeDto();
+		ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto();
 		if (ergebnisgruppeDto != null) {
-			DelegateFactory.getInstance().getFinanzDelegate()
-					.removeErgebnisgruppe(ergebnisgruppeDto);
+			DelegateFactory.getInstance().getFinanzDelegate().removeErgebnisgruppe(ergebnisgruppeDto);
 			super.eventActionDelete(e, true, true);
 		}
 	}
@@ -301,35 +271,54 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 	/**
 	 * Speichere Ergebnisgruppe.
 	 * 
-	 * @param e
-	 *            ActionEvent
-	 * @param bNeedNoSaveI
-	 *            boolean
+	 * @param e            ActionEvent
+	 * @param bNeedNoSaveI boolean
 	 * @throws Throwable
 	 */
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
-			ErgebnisgruppeDto ergebnisgruppeDto = DelegateFactory
-					.getInstance()
-					.getFinanzDelegate()
-					.updateErgebnisgruppe(
-							getTabbedPaneErgebnisgruppen()
-									.getErgebnisgruppeDto());
+
+			if (bFuegeNeuePositionVorDerSelektiertenEin) {
+				Integer iIdAktuellePosition = (Integer) getTabbedPaneErgebnisgruppen()
+						.getPanelQueryErgebnisgruppen(true).getSelectedId();
+
+				// erstepos: 0 die erste Position steht an der
+				// Stelle 1
+				Integer iSortAktuellePosition = new Integer(1);
+
+				// erstepos: 1 die erste Position steht an der
+				// Stelle 1
+				if (iIdAktuellePosition != null) {
+					iSortAktuellePosition = DelegateFactory.getInstance().getFinanzDelegate()
+							.ergebnisgruppeFindByPrimaryKey(iIdAktuellePosition).getIReihung();
+
+					// Die bestehenden Positionen muessen Platz fuer
+					// die neue schaffen
+					DelegateFactory.getInstance().getFinanzDelegate()
+							.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(iSortAktuellePosition.intValue(),
+									bBilanzgruppe);
+				}
+
+				getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto().setIReihung(iSortAktuellePosition);
+				bFuegeNeuePositionVorDerSelektiertenEin = false;
+
+			}
+
+			ErgebnisgruppeDto ergebnisgruppeDto = DelegateFactory.getInstance().getFinanzDelegate()
+					.updateErgebnisgruppe(getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto());
 			this.setKeyWhenDetailPanel(ergebnisgruppeDto.getIId());
-			getTabbedPaneErgebnisgruppen().setErgebnisgruppeDto(
-					ergebnisgruppeDto);
+			getTabbedPaneErgebnisgruppen().setErgebnisgruppeDto(ergebnisgruppeDto);
 			super.eventActionSave(e, true);
 			eventYouAreSelected(false);
+
 		}
 	}
 
 	/**
 	 * eventActionSpecial
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -343,10 +332,11 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 		}
 
 		if (e.getSource().equals(wcoArt)) {
-			if (wcoArt.getKeyOfSelectedItem().equals(
-					new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE))||wcoArt.getKeyOfSelectedItem().equals(
-							new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_NEGATIV))||wcoArt.getKeyOfSelectedItem().equals(
-									new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_POSITIV))) {
+			if (wcoArt.getKeyOfSelectedItem().equals(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE))
+					|| wcoArt.getKeyOfSelectedItem()
+							.equals(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_NEGATIV))
+					|| wcoArt.getKeyOfSelectedItem()
+							.equals(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_BILANZGRUPPE_POSITIV))) {
 				wbuErgebnisgruppe.setVisible(true);
 				wtfErgebnisgruppe.setVisible(true);
 
@@ -358,19 +348,15 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 				dto2ComponentsErgebnisgruppe();
 			}
 
-			if (wcoArt.getKeyOfSelectedItem().equals(
-					new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_LEEREZEILE))) {
+			if (wcoArt.getKeyOfSelectedItem().equals(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_LEEREZEILE))) {
 				wtfBezeichnung.setActivatable(false);
 				wtfBezeichnung.setText("leer    leer    leer");
 			}
-			if (wcoArt.getKeyOfSelectedItem().equals(
-					new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_LINIE))) {
+			if (wcoArt.getKeyOfSelectedItem().equals(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_LINIE))) {
 				wtfBezeichnung.setActivatable(false);
-				wtfBezeichnung
-						.setText("----------------------------------------");
+				wtfBezeichnung.setText("----------------------------------------");
 			}
-			if (wcoArt.getKeyOfSelectedItem().equals(
-					new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_SEITENUMBRUCH))) {
+			if (wcoArt.getKeyOfSelectedItem().equals(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_SEITENUMBRUCH))) {
 				wtfBezeichnung.setActivatable(false);
 				wtfBezeichnung.setText("*** Seitenumbruch ***");
 			}
@@ -380,8 +366,7 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 	}
 
 	private void dialogQueryErgebnisgruppe(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 		QueryType[] qt = null;
 		// nur Sachkonten dieses Mandanten
 
@@ -394,32 +379,26 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 
 		if (getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto() != null) {
 			filters = FinanzFilterFactory.getInstance().createFKSummengruppe(
-					getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto()
-							.getIId(), bBilanzgruppe);
+					getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto().getIId(), bBilanzgruppe);
 		} else {
-			filters = FinanzFilterFactory.getInstance().createFKSummengruppe(
-					null, bBilanzgruppe);
+			filters = FinanzFilterFactory.getInstance().createFKSummengruppe(null, bBilanzgruppe);
 		}
 		String title = null;
 		if (bBilanzgruppe == true) {
-			title = LPMain.getInstance().getTextRespectUISPr(
-					"finanz.liste.bilanzgruppen");
+			title = LPMain.getInstance().getTextRespectUISPr("finanz.liste.bilanzgruppen");
 		} else {
-			title = LPMain.getInstance().getTextRespectUISPr(
-					"finanz.liste.ergebnisgruppen");
+			title = LPMain.getInstance().getTextRespectUISPr("finanz.liste.ergebnisgruppen");
 		}
 
-		panelQueryFLRErgebnisgruppe = new PanelQueryFLR(qt, filters,
-				QueryParameters.UC_ID_ERGEBNISGRUPPE, aWhichButtonIUse,
-				getInternalFrame(), title, ergebnisgruppeIIdSumme);
+		panelQueryFLRErgebnisgruppe = new PanelQueryFLR(qt, filters, QueryParameters.UC_ID_ERGEBNISGRUPPE,
+				aWhichButtonIUse, getInternalFrame(), title, ergebnisgruppeIIdSumme);
 		new DialogQuery(panelQueryFLRErgebnisgruppe);
 	}
 
 	/**
 	 * eventItemchanged.
 	 * 
-	 * @param eI
-	 *            EventObject
+	 * @param eI EventObject
 	 * @throws ExceptionLP
 	 */
 	protected void eventItemchanged(EventObject eI) throws ExceptionLP {
@@ -428,23 +407,15 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 			if (e.getSource() == panelQueryFLRErgebnisgruppe) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
-					ergebnisgruppeDtoSumme = DelegateFactory.getInstance()
-							.getFinanzDelegate()
+					ergebnisgruppeDtoSumme = DelegateFactory.getInstance().getFinanzDelegate()
 							.ergebnisgruppeFindByPrimaryKey((Integer) key);
 
-					if (!ergebnisgruppeDtoSumme
-							.getITyp()
-							.equals(new Integer(
-									FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE))) {
+					if (!ergebnisgruppeDtoSumme.getITyp()
+							.equals(new Integer(FinanzFac.ERGEBNISGRUPPE_TYP_ERGEBNISGRUPPE))) {
 						ergebnisgruppeDtoSumme = null;
 
-						DialogFactory
-								.showModalDialog(
-										LPMain.getInstance()
-												.getTextRespectUISPr("lp.info"),
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"fb.ergebnisgruppe.summengruppe.error"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.info"),
+								LPMain.getInstance().getTextRespectUISPr("fb.ergebnisgruppe.summengruppe.error"));
 					}
 
 					this.dto2ComponentsErgebnisgruppe();
@@ -471,57 +442,44 @@ public class PanelFinanzErgebnisgruppeKopfdaten extends PanelBasis {
 	}
 
 	private void dto2Components() throws Throwable {
-		ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen()
-				.getErgebnisgruppeDto();
+		ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto();
 		if (ergebnisgruppeDto.getErgebnisgruppeIIdSumme() != null) {
-			ergebnisgruppeDtoSumme = DelegateFactory
-					.getInstance()
-					.getFinanzDelegate()
-					.ergebnisgruppeFindByPrimaryKey(
-							ergebnisgruppeDto.getErgebnisgruppeIIdSumme());
+			ergebnisgruppeDtoSumme = DelegateFactory.getInstance().getFinanzDelegate()
+					.ergebnisgruppeFindByPrimaryKey(ergebnisgruppeDto.getErgebnisgruppeIIdSumme());
 		} else {
 			ergebnisgruppeDtoSumme = null;
 		}
 		dto2ComponentsErgebnisgruppe();
 		wtfBezeichnung.setText(ergebnisgruppeDto.getCBez());
 		wcoArt.setKeyOfSelectedItem(ergebnisgruppeDto.getITyp());
-		wcbInvertiert.setSelected(Helper.short2boolean(ergebnisgruppeDto
-				.getBInvertiert()));
-		wcbSummeNegativ.setSelected(Helper.short2boolean(ergebnisgruppeDto
-				.getBSummeNegativ()));
-		wcbProzentbasis.setSelected(Helper.short2boolean(ergebnisgruppeDto
-				.getBProzentbasis()));
-		this.setStatusbarPersonalIIdAnlegen(ergebnisgruppeDto
-				.getPersonalIIdAnlegen());
+		wcbInvertiert.setSelected(Helper.short2boolean(ergebnisgruppeDto.getBInvertiert()));
+		wcbSummeNegativ.setSelected(Helper.short2boolean(ergebnisgruppeDto.getBSummeNegativ()));
+		wcbProzentbasis.setSelected(Helper.short2boolean(ergebnisgruppeDto.getBProzentbasis()));
+		wcbJahresgewinn.setSelected(Helper.short2boolean(ergebnisgruppeDto.getBJahresgewinn()));
+		
+		this.setStatusbarPersonalIIdAnlegen(ergebnisgruppeDto.getPersonalIIdAnlegen());
 		this.setStatusbarTAnlegen(ergebnisgruppeDto.getTAnlegen());
-		this.setStatusbarPersonalIIdAendern(ergebnisgruppeDto
-				.getPersonalIIdAendern());
+		this.setStatusbarPersonalIIdAendern(ergebnisgruppeDto.getPersonalIIdAendern());
 		this.setStatusbarTAendern(ergebnisgruppeDto.getTAendern());
 	}
 
 	private void components2Dto() throws Throwable {
-		ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen()
-				.getErgebnisgruppeDto();
+		ErgebnisgruppeDto ergebnisgruppeDto = getTabbedPaneErgebnisgruppen().getErgebnisgruppeDto();
 		if (ergebnisgruppeDto == null) {
 			ergebnisgruppeDto = new ErgebnisgruppeDto();
-			ergebnisgruppeDto.setMandantCNr(LPMain.getInstance().getTheClient()
-					.getMandant());
-			ergebnisgruppeDto.setBBilanzgruppe(Helper
-					.boolean2Short(bBilanzgruppe));
+			ergebnisgruppeDto.setMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+			ergebnisgruppeDto.setBBilanzgruppe(Helper.boolean2Short(bBilanzgruppe));
 		}
 		ergebnisgruppeDto.setCBez(wtfBezeichnung.getText());
 		if (ergebnisgruppeDtoSumme != null) {
-			ergebnisgruppeDto.setErgebnisgruppeIIdSumme(ergebnisgruppeDtoSumme
-					.getIId());
+			ergebnisgruppeDto.setErgebnisgruppeIIdSumme(ergebnisgruppeDtoSumme.getIId());
 		} else {
 			ergebnisgruppeDto.setErgebnisgruppeIIdSumme(null);
 		}
-		ergebnisgruppeDto.setBInvertiert(Helper.boolean2Short(wcbInvertiert
-				.isSelected()));
-		ergebnisgruppeDto.setBSummeNegativ(Helper.boolean2Short(wcbSummeNegativ
-				.isSelected()));
-		ergebnisgruppeDto.setBProzentbasis(Helper.boolean2Short(wcbProzentbasis
-				.isSelected()));
+		ergebnisgruppeDto.setBInvertiert(Helper.boolean2Short(wcbInvertiert.isSelected()));
+		ergebnisgruppeDto.setBSummeNegativ(Helper.boolean2Short(wcbSummeNegativ.isSelected()));
+		ergebnisgruppeDto.setBProzentbasis(Helper.boolean2Short(wcbProzentbasis.isSelected()));
+		ergebnisgruppeDto.setBJahresgewinn(Helper.boolean2Short(wcbJahresgewinn.isSelected()));
 		ergebnisgruppeDto.setITyp((Integer) wcoArt.getKeyOfSelectedItem());
 		getTabbedPaneErgebnisgruppen().setErgebnisgruppeDto(ergebnisgruppeDto);
 	}

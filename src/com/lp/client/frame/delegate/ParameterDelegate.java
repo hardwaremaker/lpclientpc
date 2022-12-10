@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame.delegate;
@@ -42,14 +42,16 @@ import com.lp.server.system.ejb.ParametermandantPK;
 import com.lp.server.system.ejb.ParametermandantgueltigabPK;
 import com.lp.server.system.service.ArbeitsplatzDto;
 import com.lp.server.system.service.ArbeitsplatzparameterDto;
+import com.lp.server.system.service.HttpProxyConfig;
+import com.lp.server.system.service.MailServiceParameterSource;
 import com.lp.server.system.service.ParameterDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParameteranwenderDto;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.ParametermandantgueltigabDto;
+import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 public class ParameterDelegate extends Delegate {
 	private Context context;
 	private ParameterFac parameterFac;
@@ -59,10 +61,8 @@ public class ParameterDelegate extends Delegate {
 
 	public ParameterDelegate() throws Exception {
 		context = new InitialContext();
-		// mandantFac = (MandantFac) context
-		// .lookup("lpserver/MandantFacBean/remote");
-		parameterFac = (ParameterFac) context
-				.lookup("lpserver/ParameterFacBean/remote");
+		parameterFac = lookupFac(context, ParameterFac.class);	
+
 	}
 
 	/**
@@ -87,7 +87,7 @@ public class ParameterDelegate extends Delegate {
 
 		try {
 			pkParameteranwender = parameterFac.createParameteranwender(
-					parameteranwenderDtoI, LPMain.getInstance().getTheClient());
+					parameteranwenderDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -131,8 +131,8 @@ public class ParameterDelegate extends Delegate {
 	public void updateParameteranwender(
 			ParameteranwenderDto parameteranwenderDtoI) throws ExceptionLP {
 		try {
-			parameterFac.updateParameteranwender(parameteranwenderDtoI, LPMain
-					.getInstance().getTheClient());
+			parameterFac.updateParameteranwender(parameteranwenderDtoI,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -276,13 +276,15 @@ public class ParameterDelegate extends Delegate {
 			return null;
 
 		String pc = pcName;
-		if (pc.length() > 20) {
-			// Die Parameter werden von der UI auf 20 Stellen (17 Stellen +
-			// "...") gekuerzt gespeichert
-			pc = pc.substring(0, 17) + "...";
-			// System.out.println("Shortend Arbeitsplatzname is now <" + pc +
-			// "> with a length of " + pc.length() + " chars.") ;
-		}
+// SP7296 Die UI kuerzt anscheinend nicht mehr mit "...". Zudem ist die 
+// maximale Laenge seit SP4903 auf 40 erhoeht worden.
+//		if (pc.length() > 40) {
+//			// Die Parameter werden von der UI auf 20 Stellen (17 Stellen +
+//			// "...") gekuerzt gespeichert
+//			pc = pc.substring(0, 40) + "...";
+//			// System.out.println("Shortend Arbeitsplatzname is now <" + pc +
+//			// "> with a length of " + pc.length() + " chars.") ;
+//		}
 
 		return parameterFac.holeArbeitsplatzparameter(pc, parameterCNr);
 	}
@@ -293,7 +295,7 @@ public class ParameterDelegate extends Delegate {
 
 		try {
 			pkParametermandant = parameterFac.createParametermandant(
-					parametermandantDtoI, LPMain.getInstance().getTheClient());
+					parametermandantDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -330,6 +332,15 @@ public class ParameterDelegate extends Delegate {
 		}
 	}
 
+	public void leereMandantenparameterCache()
+			throws ExceptionLP {
+		try {
+			parameterFac.leereMandantenparameterCache();
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
 	public void removeArbeitsplatzparameter(
 			ArbeitsplatzparameterDto arbeitsplatzparameterDto)
 			throws ExceptionLP {
@@ -343,8 +354,8 @@ public class ParameterDelegate extends Delegate {
 	public void updateParametermandant(ParametermandantDto parametermandantDtoI)
 			throws ExceptionLP {
 		try {
-			parameterFac.updateParametermandant(parametermandantDtoI, LPMain
-					.getInstance().getTheClient());
+			parameterFac.updateParametermandant(parametermandantDtoI,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -355,8 +366,8 @@ public class ParameterDelegate extends Delegate {
 		ParametermandantDto parametermandantDto = null;
 
 		try {
-			pkParametermandantI.setMandantCNr(LPMain.getInstance()
-					.getTheClient().getMandant());
+			pkParametermandantI.setMandantCNr(LPMain.getTheClient()
+					.getMandant());
 
 			parametermandantDto = parameterFac
 					.parametermandantFindByPrimaryKey(pkParametermandantI);
@@ -373,8 +384,8 @@ public class ParameterDelegate extends Delegate {
 		ParametermandantgueltigabDto parametermandantgueltigabDto = null;
 
 		try {
-			pkParametermandantgueltigabI.setMandantCNr(LPMain.getInstance()
-					.getTheClient().getMandant());
+			pkParametermandantgueltigabI.setMandantCNr(LPMain.getTheClient()
+					.getMandant());
 
 			parametermandantgueltigabDto = parameterFac
 					.parametermandantgueltigabFindByPrimaryKey(pkParametermandantgueltigabI);
@@ -444,7 +455,7 @@ public class ParameterDelegate extends Delegate {
 	public void createFixverdrahteteParametermandant() throws ExceptionLP {
 		try {
 			parameterFac.createFixverdrahteteParametermandant(LPMain
-					.getInstance().getTheClient());
+					.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -455,11 +466,145 @@ public class ParameterDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			parameterFac.updateParametermandantgueltigab(
-					parametermandantgueltigabDto, LPMain.getInstance()
-							.getTheClient());
+					parametermandantgueltigabDto, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
+	public Integer getAnzahlDefaultKopienLieferschein(String mandantCNr)
+			throws EJBExceptionLP {
+		try {
+			return parameterFac.getAnzahlDefaultKopienLieferschein(mandantCNr);
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
+	public Integer getAnzahlDefaultKopienRechnung(String mandantCNr)
+			throws EJBExceptionLP {
+		try {
+			return parameterFac.getAnzahlDefaultKopienRechnung(mandantCNr);
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
+	public String getFindChipsApiKey() {
+		try {
+			return parameterFac.getFindChipsApiKey(LPMain.getTheClient()
+					.getMandant());
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
+	public HttpProxyConfig getHttpProxy() {
+		try {
+			return parameterFac
+					.getHttpProxy(LPMain.getTheClient().getMandant());
+		} catch (Throwable t) {
+			return new HttpProxyConfig();
+		}
+	}
+
+	public Boolean getKundenPositionskontierung() {
+		try {
+			return parameterFac.getKundenPositionskontierung(LPMain
+					.getTheClient().getMandant());
+		} catch (Throwable t) {
+			return false;
+		}
+	}
+	
+	public Boolean getPersoenlicherBestellvorschlag() {
+		try {
+			return parameterFac.getPersoenlicherBestellvorschlag(LPMain
+					.getTheClient().getMandant());
+		} catch (Throwable t) {
+			return false;
+		}
+	}
+
+	public Integer getMaximaleDokumentengroesse() {
+		try {
+			return parameterFac.getMaximaleDokumentengroesse(LPMain
+					.getTheClient().getMandant());
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
+	public String getGS1BasisnummerGTIN() {
+		try {
+			return parameterFac.getGS1BasisnummerGTIN(LPMain.getTheClient()
+					.getMandant());
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
+	public Boolean getEingangsrechnungKundendatenVorbesetzen() {
+		try {
+			return parameterFac
+					.getEingangsrechnungKundendatenVorbesetzen(LPMain
+							.getTheClient().getMandant());
+		} catch (Throwable t) {
+			return false;
+		}
+	}
+
+	public String getKartenUrl() {
+		try {
+			return parameterFac
+					.getKartenUrl(LPMain.getTheClient().getMandant());
+		} catch (Throwable e) {
+			return null;
+		}
+	}
+
+	public String getGoogleApiKey() {
+		try {
+			return parameterFac.getGoogleApiKey(LPMain.getTheClient()
+					.getMandant());
+		} catch (Throwable e) {
+			return null;
+		}
+	}
+
+	public Boolean getAusfuehrlicherMahnungsdruckAr() {
+		try {
+			return parameterFac.getAusfuehrlicherMahnungsdruckAr(LPMain
+					.getTheClient().getMandant());
+		} catch (Throwable e) {
+			return null;
+		}
+	}
+	
+	public Boolean getLogoImmerDrucken() {
+		try {
+			return parameterFac.getLogoImmerDrucken(LPMain
+					.getTheClient().getMandant());
+		} catch (Throwable e) {
+			return null;
+		}
+	}
+	
+	public MailServiceParameterSource getMailServiceParameter() {
+		try {
+			return parameterFac.getMailServiceParameter(LPMain
+					.getTheClient().getMandant());
+		} catch (Throwable e) {
+			return null;
+		}
+	}
+	
+	public Integer getGeschaeftsjahrbeginnmonat() {
+		try {
+			return parameterFac.getGeschaeftsjahrbeginnmonat(LPMain
+					.getTheClient().getMandant());
+		} catch (Throwable e) {
+			return null;
+		}
+	}
 }

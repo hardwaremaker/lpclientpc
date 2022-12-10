@@ -36,6 +36,10 @@ package com.lp.client.partner;
 import java.awt.event.ActionEvent;
 
 import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.pc.LPMain;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 
 
@@ -66,6 +70,18 @@ public PanelDialogKriterienUmsatzKD(InternalFrame oInternalFrameI,
       throws Throwable {
 
     super(oInternalFrameI, title, fkKDLFI);
+    
+    wrbGeschaeftsjahr.setVisible(true);
+    
+    ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate().getParametermandant(
+			ParameterFac.PARAMETER_UMSATZUEBERSICHT_GESCHAEFTSJAHR, ParameterFac.KATEGORIE_ALLGEMEIN,
+			LPMain.getTheClient().getMandant());
+	boolean bGF = ((Boolean) parameter.getCWertAsObject());
+	if(bGF==true) {
+		wrbGeschaeftsjahr.setSelected(true);
+	}
+    
+    
   }
 
 

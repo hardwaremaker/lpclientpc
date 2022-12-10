@@ -34,9 +34,11 @@ package com.lp.client.personal;
 
 import java.awt.event.ActionEvent;
 
+import javax.swing.KeyStroke;
 import javax.swing.event.ChangeEvent;
 
 import com.lp.client.frame.LockStateValue;
+import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
@@ -45,6 +47,7 @@ import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.personal.service.ZeiterfassungFac;
@@ -74,6 +77,16 @@ public class TabbedPaneZeitmodell extends TabbedPane {
 	private final static int IDX_PANEL_DETAIL = 1;
 	private final static int IDX_PANEL_TAGE = 2;
 	private final static int IDX_PANEL_PAUSEN = 3;
+
+	private final String MENUE_ACTION_NEXT_TAGESART = PanelBasis.ACTION_MY_OWN_NEW
+			+ "MENUE_ACTION_NEXT_TAGESART";
+	private final String MENUE_ACTION_PREVIOUS_TAGESART = PanelBasis.ACTION_MY_OWN_NEW
+			+ "MENUE_ACTION_PREVIOUS_TAGESART";
+
+	private static final String ACTION_SPECIAL_ZEITMODELLTAG_KOPIEREN = "ACTION_SPECIAL_ZEITMODELLTAG_KOPIEREN";
+
+	private final String BUTTON_ZEITMODELLTAG_KOPIEREN = PanelBasis.ACTION_MY_OWN_NEW
+			+ ACTION_SPECIAL_ZEITMODELLTAG_KOPIEREN;
 
 	private WrapperMenuBar wrapperMenuBar = null;
 
@@ -139,6 +152,15 @@ public class TabbedPaneZeitmodell extends TabbedPane {
 				QueryParameters.UC_ID_ZEITMODELLTAG, aWhichButtonIUse,
 				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
 						"pers.title.tab.zeitmodelltag"), true);
+		
+		
+		
+		panelQueryZeitmodelltage.createAndSaveAndShowButton(
+				"/com/lp/client/res/goto.png",
+				LPMain.getInstance().getTextRespectUISPr(
+						"pers.zeitmodelltag.zeitmodelltagkopieren"),
+				BUTTON_ZEITMODELLTAG_KOPIEREN, null);
+		
 		panelBottomZeitmodelltage = new PanelZeitmodelltag(getInternalFrame(),
 				LPMain.getInstance().getTextRespectUISPr(
 						"pers.title.tab.zeitmodelltag"), null);
@@ -148,15 +170,30 @@ public class TabbedPaneZeitmodell extends TabbedPane {
 		addTab(LPMain.getInstance().getTextRespectUISPr(
 				"pers.title.tab.zeitmodelltag"), panelSplitZeitmodelltage);
 		// Zeitmodelltagpausen
+
+		String[] aWhichButtonIUsePause = { PanelBasis.ACTION_NEW };
+
 		panelQueryZeitmodelltagpause = new PanelQuery(null,
 				PersonalFilterFactory.getInstance().createFKZeitmodelltagpause(
 						(Integer) panelQueryZeitmodelltage.getSelectedId()),
-				QueryParameters.UC_ID_ZEITMODELLTAGPAUSE, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"pers.title.tab.zeitmodelltagpause"), true);
+				QueryParameters.UC_ID_ZEITMODELLTAGPAUSE,
+				aWhichButtonIUsePause, getInternalFrame(), LPMain.getInstance()
+						.getTextRespectUISPr(
+								"pers.title.tab.zeitmodelltagpause"), true);
 		panelBottomZeitmodelltagpause = new PanelZeitmodelltagpause(
 				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
 						"pers.title.tab.zeitmodelltagpause"), null);
+
+		panelQueryZeitmodelltagpause.createAndSaveAndShowButton(
+				"/com/lp/client/res/navigate_left.png", LPMain
+						.getTextRespectUISPr("lp.vorherigerdatensatz"),
+				MENUE_ACTION_PREVIOUS_TAGESART, KeyStroke.getKeyStroke('K',
+						java.awt.event.InputEvent.CTRL_MASK), null);
+		panelQueryZeitmodelltagpause.createAndSaveAndShowButton(
+				"/com/lp/client/res/navigate_right.png", LPMain
+						.getTextRespectUISPr("lp.naechsterdatensatz"),
+				MENUE_ACTION_NEXT_TAGESART, KeyStroke.getKeyStroke('L',
+						java.awt.event.InputEvent.CTRL_MASK), null);
 
 		if (panelQueryZeitmodelltage.getSelectedId() != null) {
 
@@ -423,6 +460,55 @@ public class TabbedPaneZeitmodell extends TabbedPane {
 				panelBottomZeitmodelltagpause.eventYouAreSelected(false);
 				this.setSelectedComponent(panelSplitZeitmodelltagpause);
 			}
+		} else if (e.getID() == ItemChangedEvent.ACTION_MY_OWN_NEW) {
+			String sAspectInfo = ((ISourceEvent) e.getSource()).getAspect();
+			if (e.getSource() == panelQueryZeitmodelltagpause) {
+
+				Object o = null;
+
+				if (sAspectInfo.endsWith(MENUE_ACTION_NEXT_TAGESART)) {
+					o = panelQueryZeitmodelltage.holeKeyNaechsteZeile();
+				} else {
+					o = panelQueryZeitmodelltage.holeKeyVorherigeZeile();
+				}
+
+				if (o != null) {
+					panelQueryZeitmodelltage.setSelectedId(o);
+					lPEventItemChanged(new ItemChangedEvent(
+							panelQueryZeitmodelltage,
+							ItemChangedEvent.ITEM_CHANGED));
+					panelBottomZeitmodelltage.eventYouAreSelected(false);
+
+					if (getSelectedComponent() instanceof PanelSplit) {
+						lPEventObjectChanged(null);
+					}
+
+				}
+
+			} else if (sAspectInfo
+					.endsWith(ACTION_SPECIAL_ZEITMODELLTAG_KOPIEREN)) {
+				if (panelQueryZeitmodelltage.getSelectedId() != null) {
+					Integer zeitmodelltagIIdNeu=DelegateFactory
+							.getInstance()
+							.getZeiterfassungDelegate()
+							.kopiereZeitmodelltag(
+									(Integer) panelQueryZeitmodelltage
+											.getSelectedId());
+					
+					if(zeitmodelltagIIdNeu==null){
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr(
+								"lp.error"), LPMain.getInstance().getTextRespectUISPr(
+										"pers.zeitmodelltag.zeitmodelltagkopieren.keinfreiertag"));
+					} else {
+						panelQueryZeitmodelltage.eventYouAreSelected(false);
+						panelQueryZeitmodelltage.setSelectedId(zeitmodelltagIIdNeu);
+						panelSplitZeitmodelltage.eventYouAreSelected(false);
+					}
+					
+				
+				}
+			}
+
 		}
 
 	}

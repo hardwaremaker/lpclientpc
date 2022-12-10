@@ -36,12 +36,12 @@ import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-
-import javax.swing.ImageIcon;
+import java.util.Locale;
 
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.IconFactory;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 
 /*
@@ -58,18 +58,13 @@ import com.lp.server.partner.service.AnsprechpartnerDto;
  * @version not attributable Date $Date: 2012/10/16 07:12:06 $
  */
 public class WrapperEmailField extends WrapperTextFieldWithIconButton {
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 6546632209234418813L;
 
 	private AnsprechpartnerDto ansprechpartnerDto = null;
+	private Locale mailLocale = null;
 
 	public WrapperEmailField() throws Throwable {
-		super(new ImageIcon(WrapperEmailField.class
-				.getResource("/com/lp/client/res/mail.png")),
-				"lp.emailversenden");
+		super(IconFactory.getMail(), "lp.emailversenden");
 		wtfText.setColumnsMax(80);
 	}
 
@@ -79,40 +74,49 @@ public class WrapperEmailField extends WrapperTextFieldWithIconButton {
 		wtfText.setText(adresse);
 	}
 
+	public void setMailLocale(Locale mailLocale) {
+		this.mailLocale = mailLocale;
+	}
+
 	public void setColumnsMax(int columnsMax) {
 		wtfText.setColumnsMax(columnsMax);
 	}
 
 	@Override
+	public String getText() {
+		String text = super.getText();
+		return text == null ? null : text.trim();
+	}
+
+	@Override
 	protected void actionEventImpl(ActionEvent e) {
 		if (wtfText.getText() != null && wtfText.getText().length() > 0) {
-			String body = "";
-			if (ansprechpartnerDto != null) {
-				try {
-					body = DelegateFactory.getInstance()
-							.getPartnerServicesDelegate()
-							.getBriefanredeFuerBeleg(
-									ansprechpartnerDto.getIId(),
-									ansprechpartnerDto.getPartnerIId());
-				} catch (Throwable ex) {
-					ex.printStackTrace();
-				}
-			} else {
-				body = LPMain
-						.getTextRespectUISPr("lp.anrede.sehrgeehrtedamenundherren");
-			}
 			try {
-				java.awt.Desktop.getDesktop().mail(
-						new URI("mailto", wtfText.getText().trim() + "?BODY="
-								+ body, null));
+				java.awt.Desktop.getDesktop()
+						.mail(new URI("mailto", wtfText.getText().trim() + "?BODY=" + getBodyText(), null));
 			} catch (IOException e1) {
-				DialogFactory.showModalDialog(LPMain
-						.getTextRespectUISPr("lp.error"), e1.getMessage());
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), e1.getMessage());
 			} catch (URISyntaxException e1) {
-				DialogFactory.showModalDialog(LPMain
-						.getTextRespectUISPr("lp.error"), e1.getMessage());
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), e1.getMessage());
 			}
 
 		}
+	}
+
+	private String getBodyText() {
+		try {
+			if (ansprechpartnerDto != null) {
+				return DelegateFactory.getInstance().getPartnerServicesDelegate().getBriefanredeFuerBeleg(
+						ansprechpartnerDto.getIId(), ansprechpartnerDto.getPartnerIId(), mailLocale);
+			}
+
+			if (mailLocale == null)
+				return LPMain.getTextRespectUISPr("lp.anrede.sehrgeehrtedamenundherren");
+
+			return LPMain.getTextRespectSpezifischesLocale("lp.anrede.sehrgeehrtedamenundherren", mailLocale);
+		} catch (Throwable ex) {
+			ex.printStackTrace();
+		}
+		return "";
 	}
 }

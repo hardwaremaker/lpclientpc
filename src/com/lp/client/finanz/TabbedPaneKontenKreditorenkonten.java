@@ -37,7 +37,6 @@ import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.pc.LPMain;
 import com.lp.server.finanz.service.FinanzServiceFac;
 
-@SuppressWarnings("static-access") 
 public class TabbedPaneKontenKreditorenkonten
     extends TabbedPaneKonten
 {
@@ -49,7 +48,6 @@ public class TabbedPaneKontenKreditorenkonten
 public TabbedPaneKontenKreditorenkonten(InternalFrame internalFrame, IGeschaeftsjahrViewController viewController)
       throws Throwable {
     super(internalFrame, FinanzServiceFac.KONTOTYP_KREDITOR,
-          LPMain.getInstance().
-          getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title"), viewController);
+          LPMain.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title"), viewController);
   }
 }

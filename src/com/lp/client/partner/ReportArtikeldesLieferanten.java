@@ -58,11 +58,10 @@ import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
-public class ReportArtikeldesLieferanten extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportArtikeldesLieferanten extends PanelBasis implements PanelReportIfJRDS {
 	/**
-  	 * 
-  	 */
+	 * 
+	 */
 	private static final long serialVersionUID = 1L;
 	protected JPanel jpaWorkingOn = new JPanel();
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
@@ -79,12 +78,11 @@ public class ReportArtikeldesLieferanten extends PanelBasis implements
 	private WrapperCheckBox wcbVersteckte = null;
 	private WrapperCheckBox wcbSortiertNachLieferant = null;
 	private WrapperCheckBox wcbNurLagerbewirtschaftete = null;
+	private WrapperCheckBox wcbMitStaffelpreisen = null;
 
-	public ReportArtikeldesLieferanten(InternalFrameLieferant internalFrame,
-			String add2Title) throws Throwable {
+	public ReportArtikeldesLieferanten(InternalFrameLieferant internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
-		LPMain.getInstance().getTextRespectUISPr(
-				"lieferant.report.artikeldeslieferanten");
+		LPMain.getInstance().getTextRespectUISPr("lieferant.report.artikeldeslieferanten");
 		jbInit();
 		initComponents();
 
@@ -101,23 +99,21 @@ public class ReportArtikeldesLieferanten extends PanelBasis implements
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 
-		wsfLieferant = new WrapperSelectField(WrapperSelectField.LIEFERANT,
-				getInternalFrame(), true);
+		wsfLieferant = new WrapperSelectField(WrapperSelectField.LIEFERANT, getInternalFrame(), true);
 
 		wrbSortArtikelnr.setSelected(true);
-		wrbSortArtikelnr.setText(LPMain
-				.getTextRespectUISPr("artikel.artikelnummer"));
+		wrbSortArtikelnr.setText(LPMain.getTextRespectUISPr("artikel.artikelnummer"));
 
-		wrbSortBezeichnung
-				.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
+		wrbSortBezeichnung.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
 
 		wlaStichtag.setText(LPMain.getTextRespectUISPr("lp.stichtag"));
 
-		wcbVersteckte = new WrapperCheckBox(
-				LPMain.getTextRespectUISPr("lp.versteckte"));
+		wcbVersteckte = new WrapperCheckBox(LPMain.getTextRespectUISPr("lp.versteckte"));
+		wcbMitStaffelpreisen = new WrapperCheckBox(LPMain.getTextRespectUISPr("part.artikeldeslieferanten.mitstaffeln"));
 
-		wcbSortiertNachLieferant = new WrapperCheckBox(
-				LPMain.getTextRespectUISPr("part.report.sortiertnachlieferant"));
+		
+		
+		wcbSortiertNachLieferant = new WrapperCheckBox(LPMain.getTextRespectUISPr("part.report.sortiertnachlieferant"));
 		wcbNurLagerbewirtschaftete = new WrapperCheckBox(
 				LPMain.getTextRespectUISPr("part.report.artikeldeslieferante.nurlagerbewirtschaftete"));
 
@@ -127,49 +123,36 @@ public class ReportArtikeldesLieferanten extends PanelBasis implements
 
 		wlaSortierung.setText(LPMain.getTextRespectUISPr("label.sortierung"));
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(wsfLieferant.getWrapperTextField(),
-				new GridBagConstraints(2, 2, 3, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wsfLieferant.getWrapperButton(),
-				new GridBagConstraints(0, 2, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(2, 3, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, 3, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbSortiertNachLieferant, new GridBagConstraints(3, 3,
-				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wsfLieferant.getWrapperTextField(), new GridBagConstraints(2, 2, 3, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfLieferant.getWrapperButton(), new GridBagConstraints(0, 2, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(2, 3, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 4, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortArtikelnr, new GridBagConstraints(2, 4, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, 3, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(3, 4, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortBezeichnung, new GridBagConstraints(2, 5, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbSortiertNachLieferant, new GridBagConstraints(3, 3, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbNurLagerbewirtschaftete, new GridBagConstraints(3,
-				5, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbSortArtikelnr, new GridBagConstraints(2, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(3, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortBezeichnung, new GridBagConstraints(2, 5, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbNurLagerbewirtschaftete, new GridBagConstraints(3, 5, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbMitStaffelpreisen, new GridBagConstraints(3, 6, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
 	public String getModul() {
-		return ArtikelReportFac.REPORT_MODUL;
+		return LieferantReportFac.REPORT_MODUL;
 	}
 
 	public String getReportname() {
@@ -177,15 +160,9 @@ public class ReportArtikeldesLieferanten extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getLieferantDelegate()
-				.printArtikeldesLieferanten(wsfLieferant.getIKey(),
-						wrbSortBezeichnung.isSelected(),
-						wcbVersteckte.isSelected(),
-						wcbSortiertNachLieferant.isSelected(),
-						wcbNurLagerbewirtschaftete.isSelected(),
-						wdfStichtag.getTimestamp());
+		return DelegateFactory.getInstance().getLieferantDelegate().printArtikeldesLieferanten(wsfLieferant.getIKey(),
+				wrbSortBezeichnung.isSelected(), wcbVersteckte.isSelected(), wcbSortiertNachLieferant.isSelected(),
+				wcbNurLagerbewirtschaftete.isSelected(), wdfStichtag.getTimestamp(), wcbMitStaffelpreisen.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -193,8 +170,7 @@ public class ReportArtikeldesLieferanten extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

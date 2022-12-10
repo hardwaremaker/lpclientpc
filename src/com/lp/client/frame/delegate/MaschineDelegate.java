@@ -39,9 +39,11 @@ import javax.naming.InitialContext;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.MaschineFac;
+import com.lp.server.personal.service.MaschineleistungsfaktorDto;
 import com.lp.server.personal.service.MaschinemaschinenzmDto;
 import com.lp.server.personal.service.MaschinenzmDto;
 import com.lp.server.personal.service.MaschinenzmtagesartDto;
+import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.TheClientDto;
 import com.lp.util.EJBExceptionLP;
 
@@ -53,8 +55,7 @@ public class MaschineDelegate extends Delegate {
 	public MaschineDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			maschineFac = (MaschineFac) context
-					.lookup("lpserver/MaschineFacBean/remote");
+			maschineFac = lookupFac(context, MaschineFac.class);	
 		} catch (Throwable t) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
 		}
@@ -167,6 +168,42 @@ public class MaschineDelegate extends Delegate {
 			return null;
 		}
 	}
+	
+	
+	
+	public MaschineleistungsfaktorDto maschineleistungsfaktorFindByPrimaryKey(
+			Integer iId) throws ExceptionLP {
+		try {
+			return maschineFac.maschineleistungsfaktorFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	public void removeMaschineleistungsfaktor(MaschineleistungsfaktorDto dto) throws ExceptionLP {
+		try {
+			maschineFac.removeMaschineleistungsfaktor(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public Integer createMaschineleistungsfaktor(MaschineleistungsfaktorDto dto) throws ExceptionLP {
+		try {
+			return maschineFac.createMaschineleistungsfaktor(dto,LPMain.getInstance()
+					.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	public void updateMaschineleistungsfaktor(MaschineleistungsfaktorDto dto)  throws ExceptionLP {
+		try {
+			maschineFac.updateMaschineleistungsfaktor(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	
 	
 	
 }

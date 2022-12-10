@@ -56,6 +56,8 @@ public class SondertaetigkeitenController implements
 		mapUnbezahlteTaetigkeiten.put(ZeiterfassungFac.TAETIGKEIT_KRANK, "") ;
 		mapUnbezahlteTaetigkeiten.put(ZeiterfassungFac.TAETIGKEIT_KINDKRANK, "") ;
 		mapUnbezahlteTaetigkeiten.put(ZeiterfassungFac.TAETIGKEIT_URLAUBSANTRAG, "") ;
+		mapUnbezahlteTaetigkeiten.put(ZeiterfassungFac.TAETIGKEIT_ZAANTRAG, "") ;
+		mapUnbezahlteTaetigkeiten.put(ZeiterfassungFac.TAETIGKEIT_KRANKANTRAG, "") ;
 		mapUnbezahlteTaetigkeiten.put(ZeiterfassungFac.TAETIGKEIT_URLAUB, "") ;
 		mapUnbezahlteTaetigkeiten.put(ZeiterfassungFac.TAETIGKEIT_UNTER, "") ;
 	} ;

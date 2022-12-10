@@ -79,20 +79,21 @@ public class PanelLagerplatzFuerPanelQueryFLR extends PanelBasis {
 	private WrapperTextField wtfLagerplatz = new WrapperTextField();
 	private JDialog owner = null;
 
-	  private Integer lagerIId = null;
+	private Integer lagerIId = null;
+	Integer vorhandene_LagerplatzIId = null;
 
-	
 	private LagerplatzDto lagerplatzDto = null;
 	private WrapperButton wbuLager = new WrapperButton();
 	private WrapperTextField wtfLager = new WrapperTextField();
 	private PanelQueryFLR panelQueryFLRLager = null;
 	static final public String ACTION_SPECIAL_LAGER_FROM_LISTE = "action_lager_from_liste";
 
-	public PanelLagerplatzFuerPanelQueryFLR(InternalFrame internalFrame,
-			String add2TitleI, JDialog owner) throws Throwable {
+	public PanelLagerplatzFuerPanelQueryFLR(InternalFrame internalFrame, String add2TitleI, JDialog owner,
+			Integer vorhandene_LagerplatzIId) throws Throwable {
 		super(internalFrame, add2TitleI, null);
 		this.internalFrame = internalFrame;
 		this.owner = owner;
+		this.vorhandene_LagerplatzIId = vorhandene_LagerplatzIId;
 		jbInit();
 		setDefaults();
 		initComponents();
@@ -113,8 +114,7 @@ public class PanelLagerplatzFuerPanelQueryFLR extends PanelBasis {
 		return wtfLagerplatz;
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		leereAlleFelder(this);
 		lagerplatzDto = new LagerplatzDto();
@@ -134,7 +134,7 @@ public class PanelLagerplatzFuerPanelQueryFLR extends PanelBasis {
 		if (lagerplatzDto == null) {
 			lagerplatzDto = new LagerplatzDto();
 		}
-		
+
 		lagerplatzDto.setCLagerplatz(wtfLagerplatz.getText());
 		lagerplatzDto.setLagerIId(lagerIId);
 
@@ -145,11 +145,10 @@ public class PanelLagerplatzFuerPanelQueryFLR extends PanelBasis {
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryFLRLager) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LagerDto lagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerFindByPrimaryKey((Integer) key);
 				wtfLager.setText(lagerDto.getCNr());
-				lagerIId=lagerDto.getIId();
+				lagerIId = lagerDto.getIId();
 			}
 
 		}
@@ -167,47 +166,38 @@ public class PanelLagerplatzFuerPanelQueryFLR extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.lagerplatz"));
+		wlaLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr("lp.lagerplatz"));
 
 		wtfLagerplatz.setColumnsMax(ArtikelFac.MAX_LAGERPLATZ_NAME);
 		wtfLagerplatz.setMandatoryField(true);
 		getInternalFrame().addItemChangedListener(this);
 
-		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.lager"));
+		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr("button.lager"));
 		wbuLager.setActionCommand(ACTION_SPECIAL_LAGER_FROM_LISTE);
 		wbuLager.addActionListener(this);
 
 		wtfLager.setColumnsMax(ArtikelFac.MAX_LAGER_NAME);
 		wtfLager.setMandatoryField(true);
 		wtfLager.setActivatable(false);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wlaLagerplatz, new GridBagConstraints(0, 0, 1, 1,
-				0.05, 0.0, GridBagConstraints.CENTER,
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaLagerplatz, new GridBagConstraints(0, 0, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfLagerplatz, new GridBagConstraints(1, 0, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 1, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 1, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfLagerplatz, new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 1, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 1, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		String[] aWhichButtonIUse = { ACTION_SAVE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
@@ -218,60 +208,57 @@ public class PanelLagerplatzFuerPanelQueryFLR extends PanelBasis {
 		return HelperClient.LOCKME_LAGERPLATZ;
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		DelegateFactory.getInstance().getLagerDelegate().removeLagerplatz(
-				lagerplatzDto);
+		DelegateFactory.getInstance().getLagerDelegate().removeLagerplatz(lagerplatzDto);
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
 	}
 
 	void dialogQueryLagerFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRLager = ArtikelFilterFactory.getInstance()
-				.createPanelFLRLager(getInternalFrame(),
-						null);
+		panelQueryFLRLager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(), null);
 
 		new DialogQuery(panelQueryFLRLager);
 	}
 
-	
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_LAGER_FROM_LISTE)) {
 			dialogQueryLagerFromListe(e);
 		}
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
 			leereAlleFelder(this);
 			clearStatusbar();
-			
-			//Hauptlager vorbesetzen
-			LagerDto lagerDto=DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten();
+
+			// Hauptlager vorbesetzen
+			LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten();
 			wtfLager.setText(lagerDto.getCNr());
-			lagerIId=lagerDto.getIId();
-			
-			
+			lagerIId = lagerDto.getIId();
+
 		} else {
-			lagerplatzDto = DelegateFactory.getInstance().getLagerDelegate()
-					.lagerplatzFindByPrimaryKey((Integer) key);
+			lagerplatzDto = DelegateFactory.getInstance().getLagerDelegate().lagerplatzFindByPrimaryKey((Integer) key);
+
+			lagerIId = lagerplatzDto.getLagerIId();
+
 			dto2Components();
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
-			lagerplatzDto.setIId(DelegateFactory.getInstance()
-					.getLagerDelegate().createLagerplatz(lagerplatzDto));
-			setKeyWhenDetailPanel(lagerplatzDto.getIId());
+			if (lagerplatzDto.getIId() == null) {
+				lagerplatzDto.setIId(DelegateFactory.getInstance().getLagerDelegate().createLagerplatz(lagerplatzDto));
 
+			} else {
+				DelegateFactory.getInstance().getLagerDelegate().updateLagerplatz(lagerplatzDto);
+			}
+			setKeyWhenDetailPanel(lagerplatzDto.getIId());
 			owner.setVisible(false);
 		}
 	}

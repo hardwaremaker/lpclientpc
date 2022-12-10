@@ -41,26 +41,20 @@ import java.util.EventObject;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 
-import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelDialog;
-import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
-import com.lp.server.fertigung.service.LossollmaterialDto;
 import com.lp.server.kueche.service.Kdc100logDto;
-import com.lp.server.kueche.service.SpeiseplanDto;
 import com.lp.server.system.service.ArbeitsplatzDto;
 import com.lp.server.system.service.ArbeitsplatzparameterDto;
 import com.lp.server.system.service.ParameterFac;
-import com.lp.util.EJBExceptionLP;
 
-@SuppressWarnings("static-access")
 /*
  * <p><I>Dialog zur Nachtraeglichen Entnahme von Material auf ein Los</I> </p>
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p> <p>Erstellungsdatum

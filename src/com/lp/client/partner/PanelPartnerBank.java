@@ -44,14 +44,20 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
+import com.lp.client.fertigung.InternalFrameFertigung;
+import com.lp.client.fertigung.ReportMaterialliste;
+import com.lp.client.finanz.FinanzFilterFactory;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.DialogQuery;
+import com.lp.client.frame.component.HvActionEvent;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperIBANField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
@@ -64,24 +70,30 @@ import com.lp.server.partner.service.BankDto;
 import com.lp.server.partner.service.BankFac;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.PartnerbankDto;
-import com.lp.server.system.jcr.service.JCRDocFac;
-import com.lp.server.system.service.LocaleFac;
 import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
 /**
- * <p> Diese Klasse kuemmert sich um Partner und deren Banken.</p>
+ * <p>
+ * Diese Klasse kuemmert sich um Partner und deren Banken.
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellung: Josef Ornetsmueller; 24.03.05</p>
+ * <p>
+ * Erstellung: Josef Ornetsmueller; 24.03.05
+ * </p>
  *
- * <p>@author $Author: christian $</p>
+ * <p>
+ * 
+ * @author $Author: christian $
+ *         </p>
  *
- * @version $Revision: 1.8 $
- * Date $Date: 2012/08/09 08:02:26 $
+ * @version $Revision: 1.8 $ Date $Date: 2012/08/09 08:02:26 $
  */
 abstract public class PanelPartnerBank extends PanelBasis {
 	/**
@@ -93,7 +105,7 @@ abstract public class PanelPartnerBank extends PanelBasis {
 	private PanelQueryFLR panelQueryFLRBanken = null;
 	private JPanel jpaWorkingOn = null;
 	private GridBagLayout gridBagLayout = null;
-	private WrapperButton wbuBanken = null;
+	private WrapperGotoButton wbuGotoBanken = null;
 	private WrapperTextField wtfBank = null;
 	private WrapperLabel wlaIBAN = null;
 	private WrapperIBANField wtfIBAN = null;
@@ -104,14 +116,27 @@ abstract public class PanelPartnerBank extends PanelBasis {
 	private WrapperLabel wlaSort = null;
 	private WrapperLabel wlaLandplzort = new WrapperLabel("");
 
+	private WrapperLabel wlaSepaMandatnr = new WrapperLabel();
+	private WrapperTextField wtfSepaMandatnr = new WrapperTextField();
+
+	private WrapperLabel wlaSepaErteilt = new WrapperLabel("");
+	private WrapperDateField wdfSepaErteilt = new WrapperDateField();
+
 	private PartnerbankDto partnerbankDto = null;
 
 	protected WrapperTextNumberField wtfSort = null;
 
+	private WrapperButton wbuWaehrung = new WrapperButton();
+	private WrapperTextField wtfWaehrung = new WrapperTextField();
+	public final static String ACTION_SPECIAL_WAEHRUNG = "action_special_er_waehrung";
+	private PanelQueryFLR panelQueryFLRWaehrung = null;
+
+	private WrapperLabel wlaESR = null;
+	private WrapperTextField wtfESR = null;
+
 	static final public String ACTION_SPECIAL_FLR_BANKEN = "action_special_flr_banken";
 
-	public PanelPartnerBank(InternalFrame internalFrame, String add2TitleI,
-			Object keyI) throws Throwable {
+	public PanelPartnerBank(InternalFrame internalFrame, String add2TitleI, Object keyI) throws Throwable {
 		super(internalFrame, add2TitleI, keyI);
 		jbInit();
 		initComponents();
@@ -123,8 +148,8 @@ abstract public class PanelPartnerBank extends PanelBasis {
 		getInternalFrame().addItemChangedListener(this);
 
 		// Buttons.
-		String[] aButton = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
-				PanelBasis.ACTION_DELETE, PanelBasis.ACTION_DISCARD };
+		String[] aButton = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DELETE,
+				PanelBasis.ACTION_DISCARD, PanelBasis.ACTION_PRINT };
 		enableToolsPanelButtons(aButton);
 
 		border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
@@ -135,47 +160,49 @@ abstract public class PanelPartnerBank extends PanelBasis {
 		setLayout(gridBagLayoutAll);
 
 		// Actionpanel von Oberklasse holen und einhaengen.
-		add(getToolsPanel(), new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(getToolsPanel(), new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		jpaWorkingOn = new JPanel();
 		gridBagLayout = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayout);
-		add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Statusbar an den unteren Rand des Panels haengen.
-		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		wbuBanken = new WrapperButton();
-		wbuBanken.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.bank"));
-		wbuBanken.setActionCommand(ACTION_SPECIAL_FLR_BANKEN);
-		wbuBanken.addActionListener(this);
+		wbuGotoBanken = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_PARTNER_BANK_AUSWAHL);
+		wbuGotoBanken.setText(LPMain.getTextRespectUISPr("button.bank"));
+		wbuGotoBanken.setActionCommand(ACTION_SPECIAL_FLR_BANKEN);
+		wbuGotoBanken.addActionListener(this);
 
 		wtfBank = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
 		wtfBank.setActivatable(false);
 		wtfBank.setMandatoryFieldDB(true);
 
 		wtfIBAN = new WrapperIBANField();
-		wlaIBAN = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"lp.iban"));
+		wlaIBAN = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.iban"));
+
+		wtfESR = new WrapperTextField(9);
+
+		wlaESR = new WrapperLabel("ESR-ID");
 
 		wtfBIC = new WrapperTextField(BankFac.MAX_IBAN);
 		wtfBIC.setActivatable(false);
-		wlaBIC = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bic"));
+		wlaBIC = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.bic"));
+
+		wbuWaehrung.setText(LPMain.getTextRespectUISPr("label.waehrung"));
+		wbuWaehrung.setActionCommand(ACTION_SPECIAL_WAEHRUNG);
+		wbuWaehrung.addActionListener(this);
+
+		wtfWaehrung.setActivatable(false);
 
 		wtfKtonr = new WrapperTextField(BankFac.MAX_KTONR);
-		wlaKtonr = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"lp.kontonr"));
+		wlaKtonr = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.kontonr"));
 		wlaSort = new WrapperLabel();
-		wlaSort = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"label.sortierung"));
+		wlaSort = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.sortierung"));
 		wtfSort = new WrapperTextNumberField();
 		wtfSort.setMandatoryFieldDB(true);
 		wtfSort.setMinimumValue(new Integer(0));
@@ -184,52 +211,67 @@ abstract public class PanelPartnerBank extends PanelBasis {
 
 		wlaLandplzort.setHorizontalAlignment(SwingConstants.LEFT);
 
+		wlaSepaMandatnr.setText(LPMain.getInstance().getTextRespectUISPr("lp.sepa.mandatsnummer"));
+		wlaSepaErteilt.setText(LPMain.getInstance().getTextRespectUISPr("lp.sepa.mandatsnummererteilt"));
+
 		// Ab hier einhaengen.
 		// Zeile
-		jpaWorkingOn.add(wbuBanken, new GridBagConstraints(0, iZeile, 1, 1,
-				0.2, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBank, new GridBagConstraints(1, iZeile, 1, 1, 0.4,
-				0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuGotoBanken, new GridBagConstraints(0, iZeile, 1, 1, 0.2, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBank, new GridBagConstraints(1, iZeile, 1, 1, 0.4, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wbuWaehrung, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfWaehrung, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jpaWorkingOn.add(wlaKtonr, new GridBagConstraints(0, iZeile, 1, 1, 0,
-				0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKtonr, new GridBagConstraints(1, iZeile, 1, 1, 0,
-				0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaKtonr, new GridBagConstraints(0, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfKtonr, new GridBagConstraints(1, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		// Zeile; ich bestimme die Breiten.
 		iZeile++;
-		jpaWorkingOn.add(wlaIBAN, new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfIBAN, new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaIBAN, new GridBagConstraints(0, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfIBAN, new GridBagConstraints(1, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaESR, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wtfESR, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
-		jpaWorkingOn.add(wlaBIC, new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBIC, new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaBIC, new GridBagConstraints(0, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBIC, new GridBagConstraints(1, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// Zeile
 		iZeile++;
-		jpaWorkingOn.add(wlaSort, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfSort, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaSort, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSort, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		// Zeile
 		iZeile++;
-		jpaWorkingOn.add(wlaLandplzort, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaLandplzort, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		// Zeile
+		iZeile++;
+		jpaWorkingOn.add(wlaSepaMandatnr, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSepaMandatnr, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaSepaErteilt, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wdfSepaErteilt, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
@@ -241,37 +283,43 @@ abstract public class PanelPartnerBank extends PanelBasis {
 			QueryType[] querytypes = null;
 			FilterKriterium[] filter = null;
 
-			panelQueryFLRBanken = new PanelQueryFLR(querytypes, filter,
-					QueryParameters.UC_ID_BANK, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("part.kund.banken"));
+			panelQueryFLRBanken = new PanelQueryFLR(querytypes, filter, QueryParameters.UC_ID_BANK, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("part.kund.banken"));
 
 			panelQueryFLRBanken.befuellePanelFilterkriterienDirekt(
 					PartnerFilterFactory.getInstance().createFKDBankName(),
 					PartnerFilterFactory.getInstance().createFKDBankBLZ());
 
-			DialogQuery dialogQueryAnsprechpartner = new DialogQuery(
-					panelQueryFLRBanken);
+			DialogQuery dialogQueryAnsprechpartner = new DialogQuery(panelQueryFLRBanken);
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_WAEHRUNG)) {
+			dialogQueryWaehrung(e);
 		}
 	}
 
-	protected void eventItemchanged(EventObject eI) throws ExceptionLP,
-			Throwable {
+	protected void eventItemchanged(EventObject eI) throws ExceptionLP, Throwable {
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryFLRBanken) {
-				Integer iId = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer iId = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (iId != null) {
 					partnerbankDto.setBankPartnerIId(iId);
-					BankDto bankDto = DelegateFactory.getInstance()
-							.getPartnerbankDelegate().bankFindByPrimaryKey(iId);
+					BankDto bankDto = DelegateFactory.getInstance().getPartnerbankDelegate().bankFindByPrimaryKey(iId);
 					wtfBank.setText(bankDto.getPartnerDto().formatAnrede());
 					wtfBIC.setText(bankDto.getCBic());
 				}
+			} else if (e.getSource() == panelQueryFLRWaehrung) {
+				String cNrWaehrung = (String) ((ISourceEvent) e.getSource()).getIdSelected();
+				wtfWaehrung.setText(cNrWaehrung);
 			}
 		}
+
+		if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
+			if (e.getSource() == panelQueryFLRWaehrung) {
+				wtfWaehrung.setText(null);
+			}
+		}
+
 	}
 
 	protected void setDefaults() throws Throwable {
@@ -279,8 +327,7 @@ abstract public class PanelPartnerBank extends PanelBasis {
 		partnerbankDto.setPartnerIId(getPartnerDto().getIId());
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 
 		super.eventActionNew(eventObject, true, false);
 		wlaLandplzort.setText("");
@@ -293,8 +340,14 @@ abstract public class PanelPartnerBank extends PanelBasis {
 		wtfIBAN.pruefeIBAN();
 		wtfKtonr.setText(partnerbankDto.getCKtonr());
 
-		BankDto bankDto = DelegateFactory.getInstance()
-				.getPartnerbankDelegate()
+		wtfWaehrung.setText(partnerbankDto.getWaehrungCNr());
+
+		wtfESR.setText(partnerbankDto.getCEsr());
+
+		wtfSepaMandatnr.setText(partnerbankDto.getCSepamandatsnummer());
+		wdfSepaErteilt.setTimestamp(partnerbankDto.getTSepaerteilt());
+
+		BankDto bankDto = DelegateFactory.getInstance().getPartnerbankDelegate()
 				.bankFindByPrimaryKey(partnerbankDto.getBankPartnerIId());
 		wtfBank.setText(bankDto.getPartnerDto().formatAnrede());
 		wtfBIC.setText(bankDto.getCBic());
@@ -302,8 +355,7 @@ abstract public class PanelPartnerBank extends PanelBasis {
 
 		if (bankDto.getPartnerDto() != null) {
 			if (bankDto.getPartnerDto().getLandplzortDto() != null) {
-				wlaLandplzort.setText(bankDto.getPartnerDto()
-						.getLandplzortDto().formatLandPlzOrt());
+				wlaLandplzort.setText(bankDto.getPartnerDto().getLandplzortDto().formatLandPlzOrt());
 			} else {
 				wlaLandplzort.setText("");
 			}
@@ -311,43 +363,52 @@ abstract public class PanelPartnerBank extends PanelBasis {
 			wlaLandplzort.setText("");
 		}
 
+		wbuGotoBanken.setOKey(partnerbankDto.getBankPartnerIId());
+
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 
 		Object iId = getKeyWhenDetailPanel();
-		if (iId == null
-				|| (iId != null && iId.equals(LPMain.getLockMeForNew()))) {
+		if (iId == null || (iId != null && iId.equals(LPMain.getLockMeForNew()))) {
 			// Neu.
 			leereAlleFelder(this);
 			clearStatusbar();
 			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
 					getPartnerDto().formatFixTitelName1Name2());
 
-			Integer iSort = DelegateFactory.getInstance()
-					.getPartnerbankDelegate()
+			Integer iSort = DelegateFactory.getInstance().getPartnerbankDelegate()
 					.getMaxISort(getPartnerDto().getIId());
 			iSort = new Integer(iSort + 1);
 			wtfSort.setInteger(iSort);
 		} else {
 			// Update.
-			partnerbankDto = DelegateFactory.getInstance()
-					.getPartnerbankDelegate()
+			partnerbankDto = DelegateFactory.getInstance().getPartnerbankDelegate()
 					.partnerbankFindByPrimaryKey((Integer) iId);
 
-			BankDto bankDto = DelegateFactory.getInstance()
-					.getPartnerbankDelegate()
+			BankDto bankDto = DelegateFactory.getInstance().getPartnerbankDelegate()
 					.bankFindByPrimaryKey(partnerbankDto.getBankPartnerIId());
 			dto2Components();
 
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_AS_I_LIKE,
-					getPartnerDto().formatFixTitelName1Name2() + " | "
-							+ bankDto.getPartnerDto().formatAnrede());
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+					getPartnerDto().formatFixTitelName1Name2() + " | " + bankDto.getPartnerDto().formatAnrede());
 		}
+	}
+
+	private void dialogQueryWaehrung(ActionEvent e) throws Throwable {
+
+		panelQueryFLRWaehrung = FinanzFilterFactory.getInstance().createPanelFLRWaehrung(getInternalFrame(),
+				partnerbankDto.getWaehrungCNr(), true);
+		new DialogQuery(panelQueryFLRWaehrung);
+	}
+
+	protected void eventActionPrint(HvActionEvent e) throws Throwable {
+		String add2Title = LPMain.getTextRespectUISPr("part.lastschriftmandat");
+		getInternalFrame()
+				.showReportKriterien(new ReportLastschrift(getInternalFrame(), add2Title, partnerbankDto.getIId()));
+
 	}
 
 	protected void components2Dto() throws Throwable {
@@ -355,63 +416,60 @@ abstract public class PanelPartnerBank extends PanelBasis {
 		partnerbankDto.setCIban(wtfIBAN.getIban());
 		partnerbankDto.setCKtonr(wtfKtonr.getText());
 		partnerbankDto.setISort(wtfSort.getInteger());
+
+		partnerbankDto.setCSepamandatsnummer(wtfSepaMandatnr.getText());
+		partnerbankDto.setTSepaerteilt(wdfSepaErteilt.getTimestamp());
+
+		partnerbankDto.setCEsr(wtfESR.getText());
+		partnerbankDto.setWaehrungCNr(wtfWaehrung.getText());
+
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
-			BankDto bankDto = DelegateFactory.getInstance()
-					.getPartnerbankDelegate()
+			BankDto bankDto = DelegateFactory.getInstance().getPartnerbankDelegate()
 					.bankFindByPrimaryKey(partnerbankDto.getBankPartnerIId());
 
-			if (wtfIBAN.getFormattedText() != null
-					&& wtfIBAN.pruefeIBAN() == false) {
+			if (wtfIBAN.getFormattedText() != null && wtfIBAN.pruefeIBAN() == false) {
 
 				return;
 			}
 
 			if (bankDto.getCBlz() == null && partnerbankDto.getCIban() == null) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-						.getTextRespectUISPr("part.blznichtangegeben.error"));
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						LPMain.getInstance().getTextRespectUISPr("part.blznichtangegeben.error"));
 				wtfKtonr.setText(null);
 				return;
 			}
 
-			if (partnerbankDto.getCKtonr() == null
-					&& partnerbankDto.getCIban() == null) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-						.getTextRespectUISPr("part.ktoiban.error"));
+			if (partnerbankDto.getCKtonr() == null && partnerbankDto.getCIban() == null) {
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						LPMain.getInstance().getTextRespectUISPr("part.ktoiban.error"));
 				return;
 
 			}
 
 			Integer iId = null;
 			if (partnerbankDto.getIId() == null) {
-				iId = DelegateFactory.getInstance().getPartnerbankDelegate()
-						.createPartnerbank(partnerbankDto);
+				iId = DelegateFactory.getInstance().getPartnerbankDelegate().createPartnerbank(partnerbankDto);
 				;
 				partnerbankDto.setIId(iId);
 				setKeyWhenDetailPanel(iId);
 			} else {
-				DelegateFactory.getInstance().getPartnerbankDelegate()
-						.updatePartnerbank(partnerbankDto);
+				DelegateFactory.getInstance().getPartnerbankDelegate().updatePartnerbank(partnerbankDto);
 			}
 			super.eventActionSave(e, false);
 			eventYouAreSelected(false);
 		}
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
 		if (!isLockedDlg()) {
-			DelegateFactory.getInstance().getPartnerbankDelegate()
-					.removePartnerbank(partnerbankDto);
+			DelegateFactory.getInstance().getPartnerbankDelegate().removePartnerbank(partnerbankDto);
 
 			partnerbankDto = new PartnerbankDto();
 			this.setKeyWhenDetailPanel(null);
@@ -421,6 +479,6 @@ abstract public class PanelPartnerBank extends PanelBasis {
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
-		return wbuBanken;
+		return wbuGotoBanken;
 	}
 }

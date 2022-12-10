@@ -35,7 +35,7 @@
   ident="Angeboterledigungsgrund"
   key="CNr"
   delegate="AngebotServiceDelegate"
-  buttons="action_update,action_save,action_discard">
+  buttons="action_update,action_save,action_delete,action_discard">
 
   <control klasse="com.lp.client.frame.component.WrapperTextField"
     colname="CNr" dtyp="java.lang.String" labelbez="label.kennung">

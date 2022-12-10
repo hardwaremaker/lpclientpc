@@ -169,7 +169,7 @@ public class TabbedPaneVersandauftrag extends TabbedPane {
 		if (panelQueryGesendet == null && bNeedInstantiationIfNull) {
 			String[] aWhichButtonIUseQPTheJudge = { PanelBasis.ACTION_REFRESH };
 			FilterKriterium[] filters = SystemFilterFactory.getInstance()
-					.createFKVersandauftrag(VersandFac.STATUS_ERLEDIGT);
+					.createFKVersandauftrag1(new String[] {VersandFac.STATUS_ERLEDIGT, VersandFac.STATUS_TEILERLEDIGT});
 			panelQueryGesendet = new PanelQuery(null, filters,
 					QueryParameters.UC_ID_VERSANDAUFTRAG,
 					aWhichButtonIUseQPTheJudge, getInternalFrame(),

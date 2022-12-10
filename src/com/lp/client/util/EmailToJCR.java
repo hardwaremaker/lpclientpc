@@ -55,11 +55,12 @@ import com.lp.server.system.jcr.service.JCRDocDto;
 import com.lp.server.system.jcr.service.docnode.DocNodeFile;
 import com.lp.server.system.jcr.service.docnode.DocNodeMail;
 import com.lp.server.system.jcr.service.docnode.DocPath;
+import com.lp.server.system.service.MediaFac;
 import com.lp.util.Helper;
 
 public class EmailToJCR extends FileToJCR {
 
-	public static final String MIME = ".eml";
+	public static final String MIME = MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822;
 
 	@Override
 	protected List<JCRDocDto> createJCRImpl(File file, JCRDocDto jcr)

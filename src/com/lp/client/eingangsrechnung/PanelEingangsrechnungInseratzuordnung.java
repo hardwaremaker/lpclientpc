@@ -105,7 +105,7 @@ public class PanelEingangsrechnungInseratzuordnung extends PanelBasis {
 	private WrapperTextField wtfAuftragNummer = new WrapperTextField();
 	private WrapperTextField wtfAuftragBezeichnung = new WrapperTextField();
 	private WrapperGotoButton wbuInserat = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_INSERAT_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_INSERAT_AUSWAHL);
 	private WrapperNumberField wnfBetrag = new WrapperNumberField();
 	private WrapperNumberField wnfBetragOffen = new WrapperNumberField();
 	private JPanel jpaWorkingOn = new JPanel();

@@ -40,21 +40,15 @@ import java.math.BigDecimal;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 
-import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
-import com.lp.client.frame.component.PanelKonditionen;
-import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperEditorFieldTextmodul;
 import com.lp.client.frame.component.WrapperLabel;
-import com.lp.client.frame.component.WrapperNumberField;
-import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -62,7 +56,6 @@ import com.lp.server.anfrage.service.AnfrageServiceFac;
 import com.lp.server.anfrage.service.AnfragetextDto;
 import com.lp.server.system.service.MediaFac;
 import com.lp.util.EJBExceptionLP;
-import com.lp.util.Helper;
 
 /**
  * <p>
@@ -330,7 +323,6 @@ public class PanelAnfrageKonditionen extends PanelBasis {
 
 		tpAnfrage.getAnfrageKonditionen().updateButtons(
 				getLockedstateDetailMainKey());
-		tpAnfrage.enableLieferdaten();
 	}
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
@@ -356,9 +348,9 @@ public class PanelAnfrageKonditionen extends PanelBasis {
 
 		switch (code) {
 		case EJBExceptionLP.FEHLER_FORMAT_NUMBER:
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-					.getTextRespectUISPr("lp.error.belegwerte"));
+			DialogFactory.showModalDialog(
+					LPMain.getTextRespectUISPr("lp.error"), 
+					LPMain.getTextRespectUISPr("lp.error.belegwerte"));
 			break;
 
 		default:

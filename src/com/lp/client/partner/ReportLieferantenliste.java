@@ -42,6 +42,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.ItemChangedEvent;
@@ -177,6 +178,9 @@ public class ReportLieferantenliste extends PanelBasis implements
 
 		wtfPartnerklasse = new WrapperTextField(PartnerFac.MAX_BRANCHE);
 		wtfPartnerklasse.setActivatable(false);
+		
+		HelperClient.setMinimumAndPreferredSize(wcbMitMoeglichenLieferanten, HelperClient.getSizeFactoredDimension(100));
+		HelperClient.setMinimumAndPreferredSize(wcbMitAnsprechpartner, HelperClient.getSizeFactoredDimension(140));
 
 		getInternalFrame().addItemChangedListener(this);
 		int iZeile = 0;
@@ -186,7 +190,7 @@ public class ReportLieferantenliste extends PanelBasis implements
 
 		jpaWorkingOn.add(wcbMitMoeglichenLieferanten, new GridBagConstraints(1,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
 			jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(0, iZeile,
@@ -196,7 +200,7 @@ public class ReportLieferantenliste extends PanelBasis implements
 
 		jpaWorkingOn.add(wcbMitAnsprechpartner, new GridBagConstraints(2,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 120, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcbNurSelektierterLieferant, new GridBagConstraints(3,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 120, 0));

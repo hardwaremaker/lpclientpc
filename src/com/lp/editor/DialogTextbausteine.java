@@ -43,8 +43,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.math.BigDecimal;
-import java.util.List;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
@@ -54,9 +52,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableColumn;
 
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
@@ -66,7 +63,7 @@ import com.lp.server.system.service.MediastandardDto;
 
 @SuppressWarnings("static-access")
 public class DialogTextbausteine extends JDialog implements ActionListener,
-		KeyListener,MouseListener {
+		KeyListener, MouseListener {
 
 	private static final long serialVersionUID = 1L;
 
@@ -89,7 +86,7 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 
 		setTitle("Auswahl Textbausteine");
 
-		colNames = new String[] { "Bezeichnung", "Datenformat" };
+		colNames = new String[] { "Id", "Bezeichnung", "Datenformat" };
 
 		mDtos = DelegateFactory
 				.getInstance()
@@ -103,25 +100,33 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 			ex.printStackTrace();
 		}
 		this.setSize(500, 500);
-		
-		Object[][] data = null;
-		
-		if (mDtos != null) {
-			data = new Object[mDtos.length][2];
-			for (int i = 0; i < mDtos.length; i++) {
 
-				data[i][0] = mDtos[i].getCNr();
-				data[i][1] = mDtos[i].getDatenformatCNr();
+		Object[][] data = null;
+
+		if (mDtos != null) {
+			data = new Object[mDtos.length][3];
+			for (int i = 0; i < mDtos.length; i++) {
+				data[i][0] = mDtos[i].getIId();
+				data[i][1] = mDtos[i].getCNr();
+				data[i][2] = mDtos[i].getDatenformatCNr();
 
 			}
 		} else {
-			data = new Object[0][2];
+			data = new Object[0][3];
 		}
 		jTableSnrChnrs = new JTable(new MyTableModel1(colNames, data));
 
 		jTableSnrChnrs.addKeyListener(this);
 		jTableSnrChnrs.addMouseListener(this);
-		
+
+		TableColumn tc = jTableSnrChnrs.getColumnModel().getColumn(0);
+		tc.setMinWidth(0);
+		tc.setPreferredWidth(0);
+
+		tc.setMaxWidth(0);
+		tc.setResizable(false);
+
+		jTableSnrChnrs.setAutoCreateRowSorter(true);
 
 		jTableSnrChnrs.setRowSelectionAllowed(true);
 
@@ -129,6 +134,9 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 
 		jScrollPane.getViewport().add(jTableSnrChnrs);
 
+		
+		jTableSnrChnrs.getRowSorter().toggleSortOrder(1);
+		
 		if (jTableSnrChnrs.getModel().getRowCount() > 0) {
 			jTableSnrChnrs.changeSelection(0, 0, false, false);
 		}
@@ -142,12 +150,9 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 		jButtonUebernehmen.grabFocus();
 	}
 
-
-
 	public void actionPerformed(ActionEvent e) {
 
 	}
-
 
 	private void jbInit() throws Exception {
 		panel1.setLayout(gridBagLayout1);
@@ -179,6 +184,7 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 			}
 		}
 	}
+
 	@Override
 	public void mousePressed(MouseEvent e) {
 		// TODO Auto-generated method stub
@@ -202,6 +208,7 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 		// TODO Auto-generated method stub
 
 	}
+
 	public void keyPressed(KeyEvent e) {
 
 		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
@@ -210,7 +217,6 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 			}
 		}
 
-	
 	}
 
 	public void keyReleased(KeyEvent e) {
@@ -221,7 +227,9 @@ public class DialogTextbausteine extends JDialog implements ActionListener,
 
 	public void jButtonUebernehmen_actionPerformed(ActionEvent e) {
 		if (jTableSnrChnrs.getSelectedRow() > -1) {
-			mediastandardIId = mDtos[jTableSnrChnrs.getSelectedRow()].getIId();
+
+			mediastandardIId = (Integer)jTableSnrChnrs.getValueAt(
+					jTableSnrChnrs.getSelectedRow(), 0);
 		}
 		setVisible(false);
 	}
@@ -304,7 +312,7 @@ class MyTableModel1 extends AbstractTableModel {
 	public boolean isCellEditable(int row, int col) {
 		// Note that the data/cell address is constant,
 		// no matter where the cell appears onscreen.
-		if (col < 2) {
+		if (col < 3) {
 			return false;
 		} else {
 			return true;

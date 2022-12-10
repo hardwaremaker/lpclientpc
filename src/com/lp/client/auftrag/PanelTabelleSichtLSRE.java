@@ -32,47 +32,20 @@
  ******************************************************************************/
 package com.lp.client.auftrag;
 
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.math.BigDecimal;
-import java.util.ArrayList;
 
 import javax.swing.KeyStroke;
-import javax.swing.SwingConstants;
 
-import com.lp.client.frame.Defaults;
-import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.InternalFrame;
-import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelTabelle;
 import com.lp.client.frame.component.WrapperGotoButton;
-import com.lp.client.frame.component.WrapperKeyValueField;
-import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
-import com.lp.client.projekt.ReportProjektstatistik;
-import com.lp.server.anfrage.service.AnfrageDto;
-import com.lp.server.angebot.service.AngebotDto;
-import com.lp.server.angebotstkl.service.AgstklDto;
-import com.lp.server.auftrag.service.AuftragDto;
-import com.lp.server.auftrag.service.AuftragFac;
-import com.lp.server.bestellung.service.BestellungDto;
-import com.lp.server.eingangsrechnung.service.EingangsrechnungAuftragszuordnungDto;
-import com.lp.server.fertigung.service.LosDto;
 import com.lp.server.lieferschein.service.LieferscheinDto;
-import com.lp.server.personal.service.PersonalDto;
-import com.lp.server.projekt.service.ProjektVerlaufHelperDto;
 import com.lp.server.rechnung.service.RechnungDto;
 import com.lp.server.rechnung.service.RechnungFac;
-import com.lp.server.system.service.SystemFac;
-import com.lp.util.EJBExceptionLP;
-import com.lp.util.Helper;
+import com.lp.server.rechnung.service.RechnungartDto;
 
-@SuppressWarnings("static-access")
 /**
  * @author Martin Bluehweis
  */
@@ -86,7 +59,7 @@ public class PanelTabelleSichtLSRE extends PanelTabelle {
 	static final public String GOTO_BELEG = LEAVEALONE + "GOTO_BELEG";
 
 	WrapperGotoButton wbuGoto = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_LIEFERSCHEIN_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_LIEFERSCHEIN_AUSWAHL);
 
 	public PanelTabelleSichtLSRE(int iUsecaseIdI, String sTitelTabbedPaneI,
 			InternalFrame oInternalFrameI) throws Throwable {
@@ -151,12 +124,25 @@ public class PanelTabelleSichtLSRE extends PanelTabelle {
 
 			Integer iKey = null;
 			if (key instanceof RechnungDto) {
-				iKey = ((RechnungDto) key).getIId();
-				wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_RECHNUNG_AUSWAHL);
+				
+				RechnungDto rDto=(RechnungDto)key;
+				
+				iKey = rDto.getIId();
+				
+				RechnungartDto raDto=DelegateFactory.getInstance().getRechnungServiceDelegate().rechnungartFindByPrimaryKey(rDto.getRechnungartCNr());
+				
+				if(raDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
+					wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_GUTSCHRIFT_AUSWAHL);
+				} else {
+					wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_RECHNUNG_AUSWAHL);
+				}
+				
+				
+			
 			}
 			if (key instanceof LieferscheinDto) {
 				iKey = ((LieferscheinDto) key).getIId();
-				wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_LIEFERSCHEIN_AUSWAHL);
+				wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_LIEFERSCHEIN_AUSWAHL);
 			}
 
 			if (iKey != null) {

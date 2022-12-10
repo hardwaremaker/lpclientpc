@@ -2,36 +2,37 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.finanz;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -44,6 +45,7 @@ import java.util.EventObject;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
@@ -70,7 +72,7 @@ import com.lp.server.rechnung.service.RechnungFac;
 public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private TabbedPaneMahnwesen tpMahnwesen = null;
@@ -98,12 +100,12 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 	private WrapperLabel wlaWaehrung2 = null;
 	private WrapperNumberField wnfOffenKunde = null;
 	private WrapperLabel wlaKunde = null;
+	private WrapperLabel wlaGesamtOffen = null;
 
 	private final static String ACTION_SPECIAL_MAHNUNG_ZURUECKNEHMEN = "action_special_mahnung_zuruecknehmen";
 
-	public PanelFinanzMahnungKopfdaten(InternalFrame internalFrame,
-			String add2TitleI, Object key, TabbedPaneMahnwesen tpMahnwesen)
-			throws Throwable {
+	public PanelFinanzMahnungKopfdaten(InternalFrame internalFrame, String add2TitleI, Object key,
+			TabbedPaneMahnwesen tpMahnwesen) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 		this.tpMahnwesen = tpMahnwesen;
 		jbInit();
@@ -113,21 +115,18 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 
 	/**
 	 * initPanel
-	 * 
+	 *
 	 * @throws Throwable
 	 */
 	private void initPanel() throws Throwable {
-		wcoMahnstufe.setMap(DelegateFactory.getInstance()
-				.getMahnwesenDelegate().getAllMahnstufe());
-		wlaWaehrung.setText(LPMain.getInstance().getTheClient()
-				.getSMandantenwaehrung());
-		wlaWaehrung2.setText(LPMain.getInstance().getTheClient()
-				.getSMandantenwaehrung());
+		wcoMahnstufe.setMap(DelegateFactory.getInstance().getMahnwesenDelegate().getAllMahnstufe());
+		wlaWaehrung.setText(LPMain.getInstance().getTheClient().getSMandantenwaehrung());
+		wlaWaehrung2.setText(LPMain.getInstance().getTheClient().getSMandantenwaehrung());
 	}
 
 	/**
 	 * jbInit
-	 * 
+	 *
 	 * @throws Throwable
 	 */
 	private void jbInit() throws Throwable {
@@ -153,16 +152,15 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 		wlaKunde = new WrapperLabel();
 		wdfReDatum = new WrapperDateField();
 		wlaReDatum = new WrapperLabel();
+		wlaGesamtOffen = new WrapperLabel();
 
 		this.setLayout(gridBagLayout1);
 		this.setBorder(BorderFactory.createEtchedBorder());
 		JPanel panelButtonAction = getToolsPanel();
-		createAndSaveAndShowButton("/com/lp/client/res/leeren.png", LPMain
-				.getTextRespectUISPr("finanz.tooltip.mahnungzuruecknehmen"),
-				ACTION_SPECIAL_MAHNUNG_ZURUECKNEHMEN,
+		createAndSaveAndShowButton("/com/lp/client/res/leeren.png",
+				LPMain.getTextRespectUISPr("finanz.tooltip.mahnungzuruecknehmen"), ACTION_SPECIAL_MAHNUNG_ZURUECKNEHMEN,
 				RechteFac.RECHT_FB_FINANZ_CUD);
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD,
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD,
 				ACTION_SPECIAL_MAHNUNG_ZURUECKNEHMEN };
 		enableToolsPanelButtons(aWhichButtonIUse);
 		// ... bis hier ist's immer gleich
@@ -172,34 +170,23 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 		jPanelWorkingOn.setBorder(border1);
 		jPanelWorkingOn.setOpaque(true);
 		jPanelWorkingOn.setLayout(gridBagLayout3);
-		wlaMahnDatum.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaMahnDatum.setPreferredSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaLetztesMahndatum.setMinimumSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
-		wlaLetztesMahndatum.setPreferredSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
-		wlaWaehrung.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wlaWaehrung.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
+		wlaMahnDatum.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaMahnDatum.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaLetztesMahndatum.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaLetztesMahndatum.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+
+		HelperClient.setMinimumAndPreferredSize(wlaWaehrung, HelperClient.getSizeFactoredDimension(30));
 
 		wlaWaehrung.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaWaehrung2.setHorizontalAlignment(SwingConstants.LEFT);
-		wlaOffen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"rech.mahnung.bruttooffen"));
-		wlaZieldatum.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.faelligam"));
+		wlaOffen.setText(LPMain.getInstance().getTextRespectUISPr("rech.mahnung.bruttooffen"));
+		wlaZieldatum.setText(LPMain.getInstance().getTextRespectUISPr("label.faelligam"));
 
 		wlaMahnDatum.setText(LPMain.getInstance().getTextRespectUISPr("fb.mahnung.mahndatum"));
 		wlaReDatum.setText(LPMain.getInstance().getTextRespectUISPr("fb.mahnung.redatum"));
-		wlaLetztesMahndatum.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.letztesmahndatum"));
-		wlaMahnstufe.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.mahnstufe"));
-		wlaLetzteMahnstufe.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.letztemahnstufe"));
+		wlaLetztesMahndatum.setText(LPMain.getInstance().getTextRespectUISPr("lp.letztesmahndatum"));
+		wlaMahnstufe.setText(LPMain.getInstance().getTextRespectUISPr("lp.mahnstufe"));
+		wlaLetzteMahnstufe.setText(LPMain.getInstance().getTextRespectUISPr("lp.letztemahnstufe"));
 		wcoMahnstufe.setMandatoryFieldDB(true);
 		wdfMahnDatum.setMandatoryFieldDB(true);
 		wnfLetzteMahnstufe.setActivatable(false);
@@ -210,72 +197,62 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 		wdfZieldatum.setActivatable(false);
 		wdfReDatum.setActivatable(false);
 
-		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelWorkingOn.add(wlaReDatum, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wdfReDatum, new GridBagConstraints(3,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		wlaKunde.setHorizontalAlignment(SwingConstants.CENTER);
+
+		HelperClient.setMinimumAndPreferredSize(wlaReDatum, HelperClient.getSizeFactoredDimension(120));
+
+		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelWorkingOn.add(wlaKunde, new GridBagConstraints(0, iZeile, 5, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jPanelWorkingOn.add(wlaMahnDatum, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelWorkingOn.add(wdfMahnDatum, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaLetztesMahndatum, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(new JSeparator(JSeparator.HORIZONTAL), new GridBagConstraints(0, iZeile, 5, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+
+		jPanelWorkingOn.add(wlaReDatum, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wdfLetztesMahndatum, new GridBagConstraints(3,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wdfReDatum, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jPanelWorkingOn.add(wlaMahnstufe, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaMahnDatum, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelWorkingOn.add(wdfMahnDatum, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaLetztesMahndatum, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wdfLetztesMahndatum, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jPanelWorkingOn.add(wlaMahnstufe, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wcoMahnstufe, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wcoMahnstufe, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaLetzteMahnstufe, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaLetzteMahnstufe, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfLetzteMahnstufe, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jPanelWorkingOn.add(wlaZieldatum, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfLetzteMahnstufe, new GridBagConstraints(3,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wdfZieldatum, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaOffen, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfOffen, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaWaehrung, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jPanelWorkingOn.add(wlaZieldatum, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaGesamtOffen, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wdfZieldatum, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wnfOffenKunde, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaOffen, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfOffen, new GridBagConstraints(3, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaWaehrung, new GridBagConstraints(4, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jPanelWorkingOn.add(wlaKunde, new GridBagConstraints(0, iZeile, 3, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 400, 0));
-		jPanelWorkingOn.add(wnfOffenKunde, new GridBagConstraints(3, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaWaehrung2, new GridBagConstraints(4, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaWaehrung2, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 	}
 
@@ -287,121 +264,97 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 		if (mahnungDto != null) {
 			wdfMahnDatum.setDate(mahnungDto.getTMahndatum());
 			wcoMahnstufe.setKeyOfSelectedItem(mahnungDto.getMahnstufeIId());
-			RechnungDto rechnungDto = DelegateFactory.getInstance()
-					.getRechnungDelegate().rechnungFindByPrimaryKey(
-							mahnungDto.getRechnungIId());
+			RechnungDto rechnungDto = DelegateFactory.getInstance().getRechnungDelegate()
+					.rechnungFindByPrimaryKey(mahnungDto.getRechnungIId());
 			wdfLetztesMahndatum.setDate(mahnungDto.getTLetztesmahndatum());
 			wdfReDatum.setTimestamp(rechnungDto.getTBelegdatum());
-			wnfLetzteMahnstufe.setInteger(mahnungDto
-					.getMahnstufeIIdLetztemahnstufe());
+			wnfLetzteMahnstufe.setInteger(mahnungDto.getMahnstufeIIdLetztemahnstufe());
 
 			wdfZieldatum.setDate(null);
 			if (rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_OFFEN)
-					|| rechnungDto.getStatusCNr().equals(
-							RechnungFac.STATUS_VERBUCHT)
-					|| rechnungDto.getStatusCNr().equals(
-							RechnungFac.STATUS_TEILBEZAHLT)) {
+					|| rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_VERBUCHT)
+					|| rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_TEILBEZAHLT)) {
 
-				BigDecimal bdOffenFw = rechnungDto
-						.getNWertfw()
-						.add(rechnungDto.getNWertustfw())
-						.subtract(
-								DelegateFactory
-										.getInstance()
-										.getRechnungDelegate()
-										.getBereitsBezahltWertVonRechnungFw(
-												rechnungDto.getIId(), null)
-										.add(
-												DelegateFactory
-														.getInstance()
-														.getRechnungDelegate()
-														.getBereitsBezahltWertVonRechnungUstFw(
-																rechnungDto
-																		.getIId(),
-																null)));
+				BigDecimal bdOffenFw = rechnungDto.getNWertfw().add(rechnungDto.getNWertustfw())
+						.subtract(DelegateFactory.getInstance().getRechnungDelegate()
+								.getBereitsBezahltWertVonRechnungFw(rechnungDto.getIId(), null)
+								.add(DelegateFactory.getInstance().getRechnungDelegate()
+										.getBereitsBezahltWertVonRechnungUstFw(rechnungDto.getIId(), null)));
 
-				BigDecimal bdOffen = DelegateFactory.getInstance()
-						.getLocaleDelegate().rechneUmInAndereWaehrung(
-								bdOffenFw,
-								rechnungDto.getWaehrungCNr(),
-								LPMain.getInstance().getTheClient()
-										.getSMandantenwaehrung());
+				BigDecimal bdOffen = DelegateFactory.getInstance().getLocaleDelegate().rechneUmInAndereWaehrung(
+						bdOffenFw, rechnungDto.getWaehrungCNr(),
+						LPMain.getInstance().getTheClient().getSMandantenwaehrung());
 				wnfOffen.setBigDecimal(bdOffen);
-			} else {
-				if (rechnungDto.getStatusCNr().equals(
-						RechnungFac.STATUS_STORNIERT)) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.hint"),
-									LPMain
-											.getTextRespectUISPr("rechnung.zahlung.rechnungiststorniert1"));
-				} else if (rechnungDto.getStatusCNr().equals(
-						RechnungFac.STATUS_ANGELEGT)) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.hint"),
-									LPMain
-											.getTextRespectUISPr("rechnung.zahlung.rechnungistnochnichtaktiviert1"));
-				} else if (rechnungDto.getStatusCNr().equals(
-						RechnungFac.STATUS_BEZAHLT)) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.hint"),
-									LPMain
-											.getTextRespectUISPr("rechnung.zahlung.rechnungistbereitsbezahlt1"));
-				}
 			}
+//			else {
+//				if (rechnungDto.getStatusCNr().equals(
+//						RechnungFac.STATUS_STORNIERT)) {
+//					DialogFactory
+//							.showModalDialog(
+//									LPMain.getTextRespectUISPr("lp.hint"),
+//									LPMain
+//											.getTextRespectUISPr("rechnung.zahlung.rechnungiststorniert1"));
+//				} else if (rechnungDto.getStatusCNr().equals(
+//						RechnungFac.STATUS_ANGELEGT)) {
+//					DialogFactory
+//							.showModalDialog(
+//									LPMain.getTextRespectUISPr("lp.hint"),
+//									LPMain
+//											.getTextRespectUISPr("rechnung.zahlung.rechnungistnochnichtaktiviert1"));
+//				} else if (rechnungDto.getStatusCNr().equals(
+//						RechnungFac.STATUS_BEZAHLT)) {
+//					DialogFactory
+//							.showModalDialog(
+//									LPMain.getTextRespectUISPr("lp.hint"),
+//									LPMain
+//											.getTextRespectUISPr("rechnung.zahlung.rechnungistbereitsbezahlt1"));
+//				}
+//			}
 			Date dZieldatum = null;
 			if (rechnungDto.getZahlungszielIId() != null) {
-				dZieldatum = DelegateFactory.getInstance().getMandantDelegate()
-						.berechneZielDatumFuerBelegdatum(
-								new java.sql.Date(rechnungDto.getTBelegdatum()
-										.getTime()),
-								rechnungDto.getZahlungszielIId());
+				dZieldatum = DelegateFactory.getInstance().getMandantDelegate().berechneZielDatumFuerBelegdatum(
+						new java.sql.Date(rechnungDto.getTBelegdatum().getTime()), rechnungDto.getZahlungszielIId());
 			}
 			wdfZieldatum.setDate(dZieldatum);
 			// Kunde und dessen summe
-			KundeDto kundeDto = DelegateFactory.getInstance()
-					.getKundeDelegate().kundeFindByPrimaryKey(
-							rechnungDto.getKundeIId());
-			wlaKunde.setText(LPMain.getInstance().getTextRespectUISPr(
-					"label.kunde")
-					+ ": "
-					+ kundeDto.getPartnerDto().formatFixTitelName1Name2()
-					+ ": "
-					+ LPMain.getInstance().getTextRespectUISPr(
-							"rech.mahnung.kundegesamtoffen"));
-			wnfOffenKunde.setBigDecimal(DelegateFactory.getInstance()
-					.getMahnwesenDelegate().getSummeEinesKundenImMahnlauf(
-							mahnungDto.getMahnlaufIId(), kundeDto.getIId()));
+			KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(rechnungDto.getKundeIId());
+			wlaKunde.setText(LPMain.getInstance().getTextRespectUISPr("label.kunde") + ": "
+					+ kundeDto.getPartnerDto().formatFixTitelName1Name2());
+			wlaGesamtOffen.setText(LPMain.getInstance().getTextRespectUISPr("rech.mahnung.kundegesamtoffen"));
+
+			BigDecimal bdGesamtOffen = DelegateFactory.getInstance().getMahnwesenDelegate()
+					.getSummeEinesKundenImMahnlauf(mahnungDto.getMahnlaufIId(), kundeDto.getIId());
+
+			wnfOffenKunde.setBigDecimal(bdGesamtOffen);
+			if (bdGesamtOffen != null && bdGesamtOffen.doubleValue() < 0) {
+				wnfOffenKunde.setForeground(Color.RED);
+			}
+
 		} else {
 			wdfMahnDatum.setDate(null);
 			wdfZieldatum.setDate(null);
 			wnfOffen.setBigDecimal(null);
 			wnfOffenKunde.setBigDecimal(null);
 			wlaKunde.setText("");
+			wnfOffenKunde.setForeground(Color.BLACK);
 		}
 	}
 
 	private void components2Dto() {
 		mahnungDto.setTMahndatum(wdfMahnDatum.getDate());
-		mahnungDto.setMahnstufeIId((Integer) wcoMahnstufe
-				.getKeyOfSelectedItem());
+		mahnungDto.setMahnstufeIId((Integer) wcoMahnstufe.getKeyOfSelectedItem());
 	}
 
 	/**
 	 * Loeschen einer Zahlung
-	 * 
-	 * @param e
-	 *            ActionEvent
-	 * @param bAdministrateLockKeyI
-	 *            boolean
-	 * @param bNeedNoDeleteI
-	 *            boolean
+	 *
+	 * @param e                     ActionEvent
+	 * @param bAdministrateLockKeyI boolean
+	 * @param bNeedNoDeleteI        boolean
 	 * @throws Throwable
 	 */
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
 		Object[] o = tpMahnwesen.getPanelQueryMahnung().getSelectedIds();
@@ -409,27 +362,23 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 		if (o != null) {
 
 			for (int i = 0; i < o.length; i++) {
-				MahnungDto mDto = DelegateFactory.getInstance()
-						.getMahnwesenDelegate().mahnungFindByPrimaryKey(
-								(Integer) o[i]);
+				MahnungDto mDto = DelegateFactory.getInstance().getMahnwesenDelegate()
+						.mahnungFindByPrimaryKey((Integer) o[i]);
 
 				if (!isLockedDlg()) {
 
 					if (mDto.getTGedruckt() != null) {
-						boolean b=DelegateFactory.getInstance().getRechnungDelegate()
+						boolean b = DelegateFactory.getInstance().getRechnungDelegate()
 								.setzeMahnstufeZurueck(mDto.getRechnungIId());
-						
-						if(b==false){
-							DelegateFactory.getInstance().getMahnwesenDelegate()
-							.removeMahnung(mDto);
-							DialogFactory.showModalDialog(LPMain
-									.getTextRespectUISPr("lp.hint"), LPMain
-									.getTextRespectUISPr("fb.mahnung.error.zuruecksetzen"));
+
+						if (b == false) {
+							DelegateFactory.getInstance().getMahnwesenDelegate().removeMahnung(mDto);
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+									LPMain.getTextRespectUISPr("fb.mahnung.error.zuruecksetzen"));
 						}
-						
+
 					} else {
-						DelegateFactory.getInstance().getMahnwesenDelegate()
-								.removeMahnung(mDto);
+						DelegateFactory.getInstance().getMahnwesenDelegate().removeMahnung(mDto);
 
 					}
 
@@ -442,8 +391,7 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 		super.eventActionDelete(e, false, false);
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
@@ -453,33 +401,27 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 			dto2Components();
 			clearStatusbar();
 		} else {
-			this.setMahnungDto((DelegateFactory.getInstance()
-					.getMahnwesenDelegate()
-					.mahnungFindByPrimaryKey((Integer) key)));
+			this.setMahnungDto(
+					(DelegateFactory.getInstance().getMahnwesenDelegate().mahnungFindByPrimaryKey((Integer) key)));
 			dto2Components();
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (mahnungDto != null) {
 				if (mahnungDto.getMahnstufeIIdLetztemahnstufe() != null
-						&& mahnungDto.getMahnstufeIIdLetztemahnstufe() >= mahnungDto
-								.getMahnstufeIId()) {
-					DialogFactory.showModalDialog(LPMain
-							.getTextRespectUISPr("lp.hint"),
+						&& mahnungDto.getMahnstufeIIdLetztemahnstufe() >= mahnungDto.getMahnstufeIId()) {
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
 							"R\u00FCcksetzen der Mahnstufe nicht erlaubt");
 				} else {
-					MahnungDto savedDto = DelegateFactory.getInstance()
-							.getMahnwesenDelegate().updateMahnung(mahnungDto);
+					MahnungDto savedDto = DelegateFactory.getInstance().getMahnwesenDelegate()
+							.updateMahnung(mahnungDto);
 					setMahnungDto(savedDto);
 					super.eventActionSave(e, true);
 					if (getInternalFrame().getKeyWasForLockMe() == null) {
-						getInternalFrame().setKeyWasForLockMe(
-								tpMahnwesen.getMahnlaufDto().getIId()
-										.toString());
+						getInternalFrame().setKeyWasForLockMe(tpMahnwesen.getMahnlaufDto().getIId().toString());
 					}
 					eventYouAreSelected(false);
 				}
@@ -508,17 +450,14 @@ public class PanelFinanzMahnungKopfdaten extends PanelBasis {
 			Object[] o = tpMahnwesen.getPanelQueryMahnung().getSelectedIds();
 			if (o.length > 1) {
 				for (int i = 0; i < o.length; i++) {
-					DelegateFactory.getInstance().getMahnwesenDelegate()
-							.mahneMahnungRueckgaengig((Integer) o[i]);
+					DelegateFactory.getInstance().getMahnwesenDelegate().mahneMahnungRueckgaengig((Integer) o[i]);
 				}
 			} else {
-				DelegateFactory.getInstance().getMahnwesenDelegate()
-						.mahneMahnungRueckgaengig(mahnungDto.getIId());
+				DelegateFactory.getInstance().getMahnwesenDelegate().mahneMahnungRueckgaengig(mahnungDto.getIId());
 			}
 
 			// wirkt fuer diesen Filter wie Loeschen -> QP informieren
-			ItemChangedEvent it = new ItemChangedEvent(this,
-					ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP);
+			ItemChangedEvent it = new ItemChangedEvent(this, ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP);
 			this.tpMahnwesen.lPEventItemChanged(it);
 		}
 	}

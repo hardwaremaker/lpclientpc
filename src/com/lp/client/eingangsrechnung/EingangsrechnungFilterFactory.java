@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.PanelQueryFLRGoto;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
@@ -117,7 +118,7 @@ public class EingangsrechnungFilterFactory {
 	protected FilterKriteriumDirekt createFKDEingangsrechnungnummer()
 			throws Throwable {
 		return new FilterKriteriumDirekt(EingangsrechnungFac.FLR_ER_C_NR, "",
-				FilterKriterium.OPERATOR_LIKE, "ER-Nummer",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.ernummer"),
 				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
 				true, // wrapWithSingleQuotes
 				false, Facade.MAX_UNBESCHRAENKT);
@@ -338,7 +339,7 @@ public class EingangsrechnungFilterFactory {
 		panelQueryFLREingangsrechnung
 				.befuellePanelFilterkriterienDirektUndVersteckte(
 						createFKDEingangsrechnungnummer(),
-						createFKDLieferantname(),
+						lieferantIId == null ? createFKDLieferantname() : null,
 						createFKEingangsrechnungStatus(EingangsrechnungFac.STATUS_ANGELEGT)[0],
 						LPMain.getTextRespectUISPr("lp.alle"));
 		panelQueryFLREingangsrechnung.addDirektFilter(createFKDTextSuchen());
@@ -381,4 +382,36 @@ public class EingangsrechnungFilterFactory {
 		panelQueryFLREingangsrechnung.addDirektFilter(createFKDTextSuchen());
 		return panelQueryFLREingangsrechnung;
 	}
+	
+	
+	public PanelQueryFLR createPanelFLREingangsrechnungOffene(
+			InternalFrame internalFrameI, Integer eingangsrechnungIIdI,boolean bShowFilterButton,
+			boolean bShowLeerenButton) throws Throwable {
+		bShowFilterButton = false; 
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
+				.createButtonArray(bShowFilterButton, bShowLeerenButton);
+
+
+		List<FilterKriterium> kritList = new ArrayList<FilterKriterium>();
+		kritList.addAll(Arrays.asList(createFKEingangsrechnungAuswahl(false)));
+		
+		kritList.add(createFKEingangsrechnungStatus(EingangsrechnungFac.STATUS_ANGELEGT, EingangsrechnungFac.STATUS_TEILBEZAHLT)[0]);
+
+		PanelQueryFLR panelQueryFLREingangsrechnung = new PanelQueryFLR(
+				null,
+				kritList.toArray(new FilterKriterium[0]),
+				QueryParameters.UC_ID_EINGANGSRECHNUNG,
+				aWhichButtonIUse,
+				internalFrameI,
+				LPMain.getTextRespectUISPr("title.eingangsrechnungenauswahlliste"),
+				eingangsrechnungIIdI);
+		
+		panelQueryFLREingangsrechnung
+				.befuellePanelFilterkriterienDirekt(
+						createFKDEingangsrechnungnummer(),
+						createFKDLieferantname());
+		panelQueryFLREingangsrechnung.addDirektFilter(createFKDTextSuchen());
+		return panelQueryFLREingangsrechnung;
+	}
+	
 }

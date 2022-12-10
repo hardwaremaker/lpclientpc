@@ -212,22 +212,24 @@ public class PanelInventurstand extends PanelBasis {
 		wnfInventurmenge.setMinimumValue(0);
 		wnfInventurpreis.setMandatoryField(true);
 		wnfInventurpreis.setMinimumValue(0);
-		wnfInventurpreis.setActivatable(false);
 
 		wnfBasispreis.setMandatoryField(true);
 		// wnfAbwertungUm.setMandatoryField(true);
-		wnfAbwertungUm.setMinimumValue(0);
-		wnfAbwertungUm.setMaximumValue(100);
+		// wnfAbwertungUm.setMinimumValue(0);
+		// wnfAbwertungUm.setMaximumValue(100);
 
 		wnfBasispreis
 				.addFocusListener(new PanelInventurstand_wnfBasispreis_focusAdapter(
+						this));
+		wnfInventurpreis
+				.addFocusListener(new PanelInventurstand_wnfInventurpreis_focusAdapter(
 						this));
 		wnfAbwertungUm
 				.addFocusListener(new PanelInventurstand_wnfAbwertungUm_focusAdapter(
 						this));
 
 		int iNachkommastellen = Defaults.getInstance()
-				.getIUINachkommastellenPreiseAllgemein();
+				.getIUINachkommastellenPreiseEK();
 		wnfInventurpreis.setFractionDigits(iNachkommastellen);
 		wnfBasispreis.setFractionDigits(iNachkommastellen);
 
@@ -374,7 +376,7 @@ public class PanelInventurstand extends PanelBasis {
 
 	}
 
-	public void berechnePreis(FocusEvent e) {
+	public void berechnePreis() {
 		try {
 
 			if (wnfAbwertungUm.getDouble() == null) {
@@ -402,6 +404,27 @@ public class PanelInventurstand extends PanelBasis {
 
 	}
 
+	public void berechneRabatt() {
+		try {
+
+			if (wnfBasispreis.getBigDecimal() != null
+					&& wnfInventurpreis.getBigDecimal() != null) {
+
+				BigDecimal aufschlagBetrag = wnfBasispreis.getBigDecimal()
+						.subtract(wnfInventurpreis.getBigDecimal());
+
+				double satz = (aufschlagBetrag.doubleValue() / (wnfBasispreis
+						.getBigDecimal().doubleValue())) * 100;
+
+				wnfAbwertungUm.setDouble(satz);
+			}
+
+		} catch (Throwable ex) {
+			// nix
+		}
+
+	}
+
 	class PanelInventurstand_wnfBasispreis_focusAdapter extends FocusAdapter {
 		private PanelInventurstand adaptee;
 
@@ -410,7 +433,20 @@ public class PanelInventurstand extends PanelBasis {
 		}
 
 		public void focusLost(FocusEvent e) {
-			adaptee.berechnePreis(e);
+			adaptee.berechnePreis();
+		}
+	}
+
+	class PanelInventurstand_wnfInventurpreis_focusAdapter extends FocusAdapter {
+		private PanelInventurstand adaptee;
+
+		PanelInventurstand_wnfInventurpreis_focusAdapter(
+				PanelInventurstand adaptee) {
+			this.adaptee = adaptee;
+		}
+
+		public void focusLost(FocusEvent e) {
+			adaptee.berechneRabatt();
 		}
 	}
 
@@ -423,7 +459,7 @@ public class PanelInventurstand extends PanelBasis {
 		}
 
 		public void focusLost(FocusEvent e) {
-			adaptee.berechnePreis(e);
+			adaptee.berechnePreis();
 		}
 	}
 

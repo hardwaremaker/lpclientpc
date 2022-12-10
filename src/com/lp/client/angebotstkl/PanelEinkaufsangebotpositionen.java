@@ -32,18 +32,20 @@
  ******************************************************************************/
 package com.lp.client.angebotstkl;
 
-import gnu.trove.TPrimitiveHash;
-
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
+import java.math.BigDecimal;
 import java.util.EventObject;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
@@ -54,25 +56,33 @@ import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
+import com.lp.client.frame.component.ButtonAbstractAction;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperIdentField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.component.WrapperURLField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.editor.PanelEditorPlainText;
 import com.lp.client.pc.LPMain;
-import com.lp.server.angebotstkl.service.AgstklpositionDto;
 import com.lp.server.angebotstkl.service.AngebotstklFac;
 import com.lp.server.angebotstkl.service.EinkaufsangebotDto;
 import com.lp.server.angebotstkl.service.EinkaufsangebotpositionDto;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.stueckliste.service.MontageartDto;
+import com.lp.server.stueckliste.service.StuecklisteFac;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.Helper;
@@ -90,6 +100,7 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 	private InternalFrameAngebotstkl internalFrameStueckliste = null;
 	private WrapperTextField wtfHandartikel = new WrapperTextField();
 	private WrapperTextField wtfHandartikel2 = new WrapperTextField();
+	private WrapperTextField wtfHandartikel3 = new WrapperTextField();
 	private WrapperLabel wlaMenge = new WrapperLabel();
 	private WrapperNumberField wnfMenge = new WrapperNumberField();
 	private WrapperLabel wlaBemerkung = new WrapperLabel();
@@ -108,6 +119,11 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 	private WrapperNumberField wnfPreis4 = new WrapperNumberField();
 	private WrapperLabel wlaPreis5 = new WrapperLabel();
 	private WrapperNumberField wnfPreis5 = new WrapperNumberField();
+
+	private WrapperLabel wlaLfdNummer = new WrapperLabel();
+	private WrapperNumberField wnfLfdNummer = new WrapperNumberField();
+
+	private WrapperLabel wlaVerfuegbar = new WrapperLabel(" ");
 
 	private WrapperCheckBox wcbMitdrucken = new WrapperCheckBox();
 
@@ -134,6 +150,22 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 
 	private WrapperLabel wlaPosition = new WrapperLabel();
 	private WrapperTextField wtfPosition = new WrapperTextField();
+	private WrapperButton wbuPositionEdit = new WrapperButton();
+
+	private WrapperLabel wlaHerstellerNr = new WrapperLabel();
+	private WrapperTextField wtfHerstellerNr = new WrapperTextField();
+
+	private WrapperLabel wlaHerstellerBez = new WrapperLabel();
+	private WrapperTextField wtfHerstellerBez = new WrapperTextField();
+
+	private WrapperSelectField wsfHersteller = null;
+	private WrapperSelectField wsfLieferant = null;
+
+	private WrapperLabel wlaLetzteWebabfrage = new WrapperLabel();
+	private WrapperDateField wdfLetzteWebabfrage = new WrapperDateField();
+
+	private WrapperLabel wlaBuyersurl = new WrapperLabel();
+	private WrapperURLField wtfBuyersurl = new WrapperURLField();
 
 	private WrapperIdentField wifArtikel = null;
 
@@ -147,8 +179,7 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 
 	public MontageartDto defaultMontageartDto = null;
 
-	public PanelEinkaufsangebotpositionen(InternalFrame internalFrame,
-			String add2TitleI, Object pk) throws Throwable {
+	public PanelEinkaufsangebotpositionen(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameStueckliste = (InternalFrameAngebotstkl) internalFrame;
 		jbInit();
@@ -162,17 +193,14 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 	}
 
 	private void setDefaults() throws Throwable {
-		wcbEinheit.setMap(DelegateFactory.getInstance().getSystemDelegate()
-				.getAllEinheiten());
+		wcbEinheit.setMap(DelegateFactory.getInstance().getSystemDelegate().getAllEinheiten());
 
 		Map<String, String> m = new LinkedHashMap<String, String>();
 		m.put(LocaleFac.POSITIONSART_IDENT, LocaleFac.POSITIONSART_IDENT);
-		m.put(LocaleFac.POSITIONSART_HANDEINGABE,
-				LocaleFac.POSITIONSART_HANDEINGABE);
+		m.put(LocaleFac.POSITIONSART_HANDEINGABE, LocaleFac.POSITIONSART_HANDEINGABE);
 		wcbPositionsart.setMap(m);
 
-		MontageartDto[] dtos = DelegateFactory.getInstance()
-				.getStuecklisteDelegate().montageartFindByMandantCNr();
+		MontageartDto[] dtos = DelegateFactory.getInstance().getStuecklisteDelegate().montageartFindByMandantCNr();
 
 		if (dtos != null && dtos.length > 0) {
 			defaultMontageartDto = dtos[0];
@@ -180,8 +208,7 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		letzterArtikel = wifArtikel.getArtikelDto();
 		super.eventActionNew(eventObject, true, false);
 		einkaufsangebotpositionDto = new EinkaufsangebotpositionDto();
@@ -202,19 +229,16 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		
+
 		Object[] o = internalFrameStueckliste.getTabbedPaneEinkaufsangebot().getPanelQueryEinkaufsangebotpositionen()
 				.getSelectedIds();
 		if (o != null) {
 			for (int i = 0; i < o.length; i++) {
-				EinkaufsangebotpositionDto toRemove = DelegateFactory.getInstance()
-						.getAngebotstklDelegate()
+				EinkaufsangebotpositionDto toRemove = DelegateFactory.getInstance().getAngebotstklDelegate()
 						.einkaufsangebotpositionFindByPrimaryKey((Integer) o[i]);
-				DelegateFactory.getInstance().getAngebotstklDelegate()
-						.removeEinkaufsangebotposition(toRemove);
+				DelegateFactory.getInstance().getAngebotstklDelegate().removeEinkaufsangebotposition(toRemove);
 
 			}
 		}
@@ -225,13 +249,10 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 
 	protected void components2Dto() throws ExceptionLP {
 
-		einkaufsangebotpositionDto.setPositionsartCNr((String) wcbPositionsart
-				.getKeyOfSelectedItem());
-		einkaufsangebotpositionDto.setBelegIId(internalFrameStueckliste
-				.getEinkaufsangebotDto().getIId());
+		einkaufsangebotpositionDto.setPositionsartCNr((String) wcbPositionsart.getKeyOfSelectedItem());
+		einkaufsangebotpositionDto.setBelegIId(internalFrameStueckliste.getEinkaufsangebotDto().getIId());
 		einkaufsangebotpositionDto.setCBemerkung(wtfBemerkung.getText());
-		einkaufsangebotpositionDto.setCInternebemerkung(wtfInterneBemerkung
-				.getText());
+		einkaufsangebotpositionDto.setCInternebemerkung(wtfInterneBemerkung.getText());
 		einkaufsangebotpositionDto.setNMenge(wnfMenge.getBigDecimal());
 		einkaufsangebotpositionDto.setNPreis1(wnfPreis1.getBigDecimal());
 		einkaufsangebotpositionDto.setNPreis2(wnfPreis2.getBigDecimal());
@@ -239,128 +260,81 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		einkaufsangebotpositionDto.setNPreis4(wnfPreis4.getBigDecimal());
 		einkaufsangebotpositionDto.setNPreis5(wnfPreis5.getBigDecimal());
 
+		einkaufsangebotpositionDto.setHerstellerIId(wsfHersteller.getIKey());
+		einkaufsangebotpositionDto.setLieferantIId(wsfLieferant.getIKey());
+		einkaufsangebotpositionDto.setCBuyerurl(wtfBuyersurl.getText());
+		einkaufsangebotpositionDto.setCArtikelnrhersteller(wtfHerstellerNr.getText());
+
+		einkaufsangebotpositionDto.setCArtikelbezhersteller(wtfHerstellerBez.getText());
+
 		einkaufsangebotpositionDto.setBMitdrucken(wcbMitdrucken.getShort());
 
 		einkaufsangebotpositionDto.setCPosition(wtfPosition.getText());
 
-		einkaufsangebotpositionDto.setEinheitCNr((String) wcbEinheit
-				.getKeyOfSelectedItem());
+		einkaufsangebotpositionDto.setEinheitCNr((String) wcbEinheit.getKeyOfSelectedItem());
 
-		einkaufsangebotpositionDto.setBArtikelbezeichnunguebersteuert(Helper
-				.boolean2Short(false));
+		einkaufsangebotpositionDto.setBArtikelbezeichnunguebersteuert(Helper.boolean2Short(false));
 
-		einkaufsangebotpositionDto.setIVerpackungseinheit(wnfVerpackungseinheit
-				.getInteger());
-		einkaufsangebotpositionDto
-				.setIWiederbeschaffungszeit(wnfWiederbeschaffungszeit
-						.getInteger());
-		einkaufsangebotpositionDto
-				.setFMindestbestellmenge(wnfMindestbestellmenge.getDouble());
+		einkaufsangebotpositionDto.setIVerpackungseinheit(wnfVerpackungseinheit.getInteger());
+		einkaufsangebotpositionDto.setIWiederbeschaffungszeit(wnfWiederbeschaffungszeit.getInteger());
+		einkaufsangebotpositionDto.setFMindestbestellmenge(wnfMindestbestellmenge.getDouble());
 
-		if (((String) wcbPositionsart.getKeyOfSelectedItem())
-				.equals(LocaleFac.POSITIONSART_IDENT)) {
-			einkaufsangebotpositionDto.setArtikelIId(wifArtikel.getArtikelDto()
-					.getIId());
-			einkaufsangebotpositionDto
-					.setPositionsartCNr(AngebotstklFac.POSITIONSART_AGSTKL_IDENT);
+		if (((String) wcbPositionsart.getKeyOfSelectedItem()).equals(LocaleFac.POSITIONSART_IDENT)) {
+			einkaufsangebotpositionDto.setArtikelIId(wifArtikel.getArtikelDto().getIId());
+			einkaufsangebotpositionDto.setPositionsartCNr(AngebotstklFac.POSITIONSART_AGSTKL_IDENT);
 		} else {
 			einkaufsangebotpositionDto.setArtikelIId(null);
 			einkaufsangebotpositionDto.setCBez(wtfHandartikel.getText());
 			einkaufsangebotpositionDto.setCZusatzbez(wtfHandartikel2.getText());
+			einkaufsangebotpositionDto.setCZbez2(wtfHandartikel3.getText());
 
-			einkaufsangebotpositionDto
-					.setPositionsartCNr(AngebotstklFac.POSITIONSART_AGSTKL_HANDEINGABE);
+			einkaufsangebotpositionDto.setPositionsartCNr(AngebotstklFac.POSITIONSART_AGSTKL_HANDEINGABE);
 		}
+
+		einkaufsangebotpositionDto.setILfdnummer(wnfLfdNummer.getInteger());
 
 	}
 
 	protected void dto2Components() throws Throwable {
 
-		EinkaufsangebotDto einkaufsangebotDto = DelegateFactory.getInstance()
-				.getAngebotstklDelegate().einkaufsangebotFindByPrimaryKey(
-						einkaufsangebotpositionDto.getBelegIId());
+		EinkaufsangebotDto einkaufsangebotDto = DelegateFactory.getInstance().getAngebotstklDelegate()
+				.einkaufsangebotFindByPrimaryKey(einkaufsangebotpositionDto.getBelegIId());
 
-		internalFrameStueckliste.getTabbedPaneEinkaufsangebot()
-				.getPanelQueryEinkaufsangebotpositionen()
-				.uebersteuereSpaltenUeberschrift(
-						4,
-						LPMain.getTextRespectUISPr("lp.preis")
-								+ " "
-								+ Helper.rundeKaufmaennisch(einkaufsangebotDto
-										.getNMenge1(), 0));
-		internalFrameStueckliste.getTabbedPaneEinkaufsangebot()
-				.getPanelQueryEinkaufsangebotpositionen()
-				.uebersteuereSpaltenUeberschrift(
-						5,
-						LPMain.getTextRespectUISPr("lp.preis")
-								+ " "
-								+ Helper.rundeKaufmaennisch(einkaufsangebotDto
-										.getNMenge2(), 0));
-		internalFrameStueckliste.getTabbedPaneEinkaufsangebot()
-				.getPanelQueryEinkaufsangebotpositionen()
-				.uebersteuereSpaltenUeberschrift(
-						6,
-						LPMain.getTextRespectUISPr("lp.preis")
-								+ " "
-								+ Helper.rundeKaufmaennisch(einkaufsangebotDto
-										.getNMenge3(), 0));
-		internalFrameStueckliste.getTabbedPaneEinkaufsangebot()
-				.getPanelQueryEinkaufsangebotpositionen()
-				.uebersteuereSpaltenUeberschrift(
-						7,
-						LPMain.getTextRespectUISPr("lp.preis")
-								+ " "
-								+ Helper.rundeKaufmaennisch(einkaufsangebotDto
-										.getNMenge4(), 0));
-		internalFrameStueckliste.getTabbedPaneEinkaufsangebot()
-				.getPanelQueryEinkaufsangebotpositionen()
-				.uebersteuereSpaltenUeberschrift(
-						8,
-						LPMain.getTextRespectUISPr("lp.preis")
-								+ " "
-								+ Helper.rundeKaufmaennisch(einkaufsangebotDto
-										.getNMenge5(), 0));
+		internalFrameStueckliste.getTabbedPaneEinkaufsangebot().getPanelQueryEinkaufsangebotpositionen()
+				.uebersteuereSpaltenUeberschrift(7, LPMain.getTextRespectUISPr("lp.preis") + " "
+						+ Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge1(), 0));
+		internalFrameStueckliste.getTabbedPaneEinkaufsangebot().getPanelQueryEinkaufsangebotpositionen()
+				.uebersteuereSpaltenUeberschrift(8, LPMain.getTextRespectUISPr("lp.preis") + " "
+						+ Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge2(), 0));
+		internalFrameStueckliste.getTabbedPaneEinkaufsangebot().getPanelQueryEinkaufsangebotpositionen()
+				.uebersteuereSpaltenUeberschrift(9, LPMain.getTextRespectUISPr("lp.preis") + " "
+						+ Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge3(), 0));
+		internalFrameStueckliste.getTabbedPaneEinkaufsangebot().getPanelQueryEinkaufsangebotpositionen()
+				.uebersteuereSpaltenUeberschrift(10, LPMain.getTextRespectUISPr("lp.preis") + " "
+						+ Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge4(), 0));
+		internalFrameStueckliste.getTabbedPaneEinkaufsangebot().getPanelQueryEinkaufsangebotpositionen()
+				.uebersteuereSpaltenUeberschrift(11, LPMain.getTextRespectUISPr("lp.preis") + " "
+						+ Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge5(), 0));
 
-		wlaPreis1.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto
-				.getNMenge1(), 0)
-				+ "");
-		wlaPreis2.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto
-				.getNMenge2(), 0)
-				+ "");
-		wlaPreis3.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto
-				.getNMenge3(), 0)
-				+ "");
-		wlaPreis4.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto
-				.getNMenge4(), 0)
-				+ "");
-		wlaPreis5.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto
-				.getNMenge5(), 0)
-				+ "");
+		wlaPreis1.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge1(), 0) + "");
+		wlaPreis2.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge2(), 0) + "");
+		wlaPreis3.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge3(), 0) + "");
+		wlaPreis4.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge4(), 0) + "");
+		wlaPreis5.setText(Helper.rundeKaufmaennisch(einkaufsangebotDto.getNMenge5(), 0) + "");
 
 		wlaVolumen1.setText(Helper.rundeKaufmaennisch(
-				einkaufsangebotpositionDto.getNMenge().multiply(
-						einkaufsangebotDto.getNMenge1()), 2)
-				+ "");
+				einkaufsangebotpositionDto.getNMenge().multiply(einkaufsangebotDto.getNMenge1()), 2) + "");
 		wlaVolumen2.setText(Helper.rundeKaufmaennisch(
-				einkaufsangebotpositionDto.getNMenge().multiply(
-						einkaufsangebotDto.getNMenge2()), 2)
-				+ "");
+				einkaufsangebotpositionDto.getNMenge().multiply(einkaufsangebotDto.getNMenge2()), 2) + "");
 		wlaVolumen3.setText(Helper.rundeKaufmaennisch(
-				einkaufsangebotpositionDto.getNMenge().multiply(
-						einkaufsangebotDto.getNMenge3()), 2)
-				+ "");
+				einkaufsangebotpositionDto.getNMenge().multiply(einkaufsangebotDto.getNMenge3()), 2) + "");
 		wlaVolumen4.setText(Helper.rundeKaufmaennisch(
-				einkaufsangebotpositionDto.getNMenge().multiply(
-						einkaufsangebotDto.getNMenge4()), 2)
-				+ "");
+				einkaufsangebotpositionDto.getNMenge().multiply(einkaufsangebotDto.getNMenge4()), 2) + "");
 		wlaVolumen5.setText(Helper.rundeKaufmaennisch(
-				einkaufsangebotpositionDto.getNMenge().multiply(
-						einkaufsangebotDto.getNMenge5()), 2)
-				+ "");
+				einkaufsangebotpositionDto.getNMenge().multiply(einkaufsangebotDto.getNMenge5()), 2) + "");
 
 		try {
-			wcbEinheit.setKeyOfSelectedItem(einkaufsangebotpositionDto
-					.getEinheitCNr());
+			wcbEinheit.setKeyOfSelectedItem(einkaufsangebotpositionDto.getEinheitCNr());
 		} catch (Throwable ex) {
 			handleException(ex, false);
 		}
@@ -368,16 +342,12 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		wcbMitdrucken.setShort(einkaufsangebotpositionDto.getBMitdrucken());
 
 		wtfBemerkung.setText(einkaufsangebotpositionDto.getCBemerkung());
-		wtfInterneBemerkung.setText(einkaufsangebotpositionDto
-				.getCInternebemerkung());
+		wtfInterneBemerkung.setText(einkaufsangebotpositionDto.getCInternebemerkung());
 		wnfMenge.setBigDecimal(einkaufsangebotpositionDto.getNMenge());
 
-		wnfMindestbestellmenge.setDouble(einkaufsangebotpositionDto
-				.getFMindestbestellmenge());
-		wnfVerpackungseinheit.setInteger(einkaufsangebotpositionDto
-				.getIVerpackungseinheit());
-		wnfWiederbeschaffungszeit.setInteger(einkaufsangebotpositionDto
-				.getIWiederbeschaffungszeit());
+		wnfMindestbestellmenge.setDouble(einkaufsangebotpositionDto.getFMindestbestellmenge());
+		wnfVerpackungseinheit.setInteger(einkaufsangebotpositionDto.getIVerpackungseinheit());
+		wnfWiederbeschaffungszeit.setInteger(einkaufsangebotpositionDto.getIWiederbeschaffungszeit());
 
 		wnfPreis1.setBigDecimal(einkaufsangebotpositionDto.getNPreis1());
 		wnfPreis2.setBigDecimal(einkaufsangebotpositionDto.getNPreis2());
@@ -385,28 +355,66 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		wnfPreis4.setBigDecimal(einkaufsangebotpositionDto.getNPreis4());
 		wnfPreis5.setBigDecimal(einkaufsangebotpositionDto.getNPreis5());
 
+		wsfHersteller.setKey(einkaufsangebotpositionDto.getHerstellerIId());
+		wsfLieferant.setKey(einkaufsangebotpositionDto.getLieferantIId());
+		wtfBuyersurl.setText(einkaufsangebotpositionDto.getCBuyerurl());
+		wtfHerstellerNr.setText(einkaufsangebotpositionDto.getCArtikelnrhersteller());
+		wtfHerstellerBez.setText(einkaufsangebotpositionDto.getCArtikelbezhersteller());
+
+		wdfLetzteWebabfrage.setTimestamp(einkaufsangebotpositionDto.getTLetztewebabfrage());
+
 		wtfPosition.setText(einkaufsangebotpositionDto.getCPosition());
 
-		if (einkaufsangebotpositionDto.getPositionsartCNr().equals(
-				AngebotstklFac.POSITIONSART_AGSTKL_HANDEINGABE)) {
-			wcbPositionsart
-					.setKeyOfSelectedItem(LocaleFac.POSITIONSART_HANDEINGABE);
+		wnfLfdNummer.setInteger(einkaufsangebotpositionDto.getILfdnummer());
+
+		if (einkaufsangebotpositionDto.getPositionsartCNr().equals(AngebotstklFac.POSITIONSART_AGSTKL_HANDEINGABE)) {
+			wcbPositionsart.setKeyOfSelectedItem(LocaleFac.POSITIONSART_HANDEINGABE);
 			wtfHandartikel.setText(einkaufsangebotpositionDto.getCBez());
 			wtfHandartikel2.setText(einkaufsangebotpositionDto.getCZusatzbez());
+			wtfHandartikel3.setText(einkaufsangebotpositionDto.getCZbez2());
 			wifArtikel.setArtikelDto(null);
 		} else {
 			wcbPositionsart.setKeyOfSelectedItem(LocaleFac.POSITIONSART_IDENT);
 
-			ArtikelDto artikelDto = DelegateFactory.getInstance()
-					.getArtikelDelegate().artikelFindByPrimaryKey(
-							einkaufsangebotpositionDto.getArtikelIId());
+			ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(einkaufsangebotpositionDto.getArtikelIId());
 
 			wifArtikel.setArtikelDto(artikelDto);
 			wtfHandartikel.setText(null);
 			wtfHandartikel2.setText(null);
+			wtfHandartikel3.setText(null);
+
+			wtfHerstellerNr.setText(artikelDto.getCArtikelnrhersteller());
+			wtfHerstellerBez.setText(artikelDto.getCArtikelbezhersteller());
+			wsfHersteller.setKey(artikelDto.getHerstellerIId());
+
+			verfuegbarAnzeigen(artikelDto);
 
 		}
 
+	}
+
+	private void verfuegbarAnzeigen(ArtikelDto artikelDto) throws Throwable {
+
+		BigDecimal[] lv = DelegateFactory.getInstance().getLagerDelegate()
+				.getVerfuegbarkeitUndGestehungspreis(artikelDto.getIId());
+
+		if (lv[0].doubleValue() < 0) {
+			wlaVerfuegbar.setForeground(Color.RED);
+		} else {
+			wlaVerfuegbar.setForeground(Color.BLACK);
+		}
+
+		wlaVerfuegbar.setText(LPMain.getMessageTextRespectUISPr("agstkl.ekag.positionen.verfuegbarkeit",
+				Helper.formatZahl(lv[0], 2, LPMain.getTheClient().getLocUi()) + " " + artikelDto.getEinheitCNr().trim(),
+				Helper.formatZahl(lv[1], Defaults.getInstance().getIUINachkommastellenPreiseEK(),
+						LPMain.getTheClient().getLocUi()) + " " + LPMain.getTheClient().getSMandantenwaehrung()));
+	}
+
+	@Override
+	protected void eventActionPrint(ActionEvent e) throws Throwable {
+		internalFrameStueckliste.getTabbedPaneEinkaufsangebot().printEinkaufsangebot();
+		eventYouAreSelected(false);
 	}
 
 	protected void eventActionDiscard(ActionEvent e) throws Throwable {
@@ -417,8 +425,26 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		bFuegeNeuePositionVorDerSelektiertenEin = false;
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	protected void eventActionText(ActionEvent e) throws Throwable {
+
+		getInternalFrame().showPanelEditorPlainText(wtfPosition, this.getAdd2Title(), wtfPosition.getText(),
+				getLockedstateDetailMainKey().getIState());
+
+	}
+
+	private void herstellerZurueckpflegen() throws Throwable {
+		if (einkaufsangebotpositionDto.getPositionsartCNr().equals(LocaleFac.POSITIONSART_IDENT)
+				&& einkaufsangebotpositionDto.getArtikelIId() != null) {
+			ArtikelDto aDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(einkaufsangebotpositionDto.getArtikelIId());
+			aDto.setHerstellerIId(wsfHersteller.getIKey());
+			aDto.setCArtikelnrhersteller(wtfHerstellerNr.getText());
+			aDto.setCArtikelbezhersteller(wtfHerstellerBez.getText());
+			DelegateFactory.getInstance().getArtikelDelegate().updateArtikel(aDto);
+		}
+	}
+
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		try {
 			wifArtikel.validate();
 			if (allMandatoryFieldsSetDlg()) {
@@ -426,8 +452,7 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 				if (einkaufsangebotpositionDto.getIId() == null) {
 
 					if (bFuegeNeuePositionVorDerSelektiertenEin) {
-						Integer iIdAktuellePosition = (Integer) internalFrameStueckliste
-								.getTabbedPaneEinkaufsangebot()
+						Integer iIdAktuellePosition = (Integer) internalFrameStueckliste.getTabbedPaneEinkaufsangebot()
 								.getAngebotstklPositionenTop().getSelectedId();
 
 						// erstepos: 0 die erste Position steht an der Stelle 1
@@ -435,49 +460,37 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 
 						// erstepos: 1 die erste Position steht an der Stelle 1
 						if (iIdAktuellePosition != null) {
-							iSortAktuellePosition = DelegateFactory
-									.getInstance().getAngebotstklDelegate()
-									.einkaufsangebotpositionFindByPrimaryKey(
-											iIdAktuellePosition).getISort();
+							iSortAktuellePosition = DelegateFactory.getInstance().getAngebotstklDelegate()
+									.einkaufsangebotpositionFindByPrimaryKey(iIdAktuellePosition).getISort();
 
 							// Die bestehenden Positionen muessen Platz fuer die
 							// neue schaffen
-							DelegateFactory
-									.getInstance()
-									.getAngebotstklpositionDelegate()
+							DelegateFactory.getInstance().getAngebotstklpositionDelegate()
 									.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-											iSortAktuellePosition.intValue(),
-											einkaufsangebotpositionDto
-													.getBelegIId());
+											iSortAktuellePosition.intValue(), einkaufsangebotpositionDto.getBelegIId());
 						}
 
 						// Die neue Position wird an frei gemachte Position
 						// gesetzt
-						einkaufsangebotpositionDto
-								.setISort(iSortAktuellePosition);
+						einkaufsangebotpositionDto.setISort(iSortAktuellePosition);
 					}
 
-					einkaufsangebotpositionDto.setIId(DelegateFactory
-							.getInstance().getAngebotstklDelegate()
-							.createEinkaufsangebotposition(
-									einkaufsangebotpositionDto));
+					einkaufsangebotpositionDto.setIId(DelegateFactory.getInstance().getAngebotstklDelegate()
+							.createEinkaufsangebotposition(einkaufsangebotpositionDto));
 					setKeyWhenDetailPanel(einkaufsangebotpositionDto.getIId());
-					einkaufsangebotpositionDto = DelegateFactory.getInstance()
-							.getAngebotstklDelegate()
-							.einkaufsangebotpositionFindByPrimaryKey(
-									einkaufsangebotpositionDto.getIId());
+					einkaufsangebotpositionDto = DelegateFactory.getInstance().getAngebotstklDelegate()
+							.einkaufsangebotpositionFindByPrimaryKey(einkaufsangebotpositionDto.getIId());
 				} else {
 					DelegateFactory.getInstance().getAngebotstklDelegate()
-							.updateEinkaufsangebotposition(
-									einkaufsangebotpositionDto);
+							.updateEinkaufsangebotposition(einkaufsangebotpositionDto);
 				}
+				herstellerZurueckpflegen();
+
 				super.eventActionSave(e, true);
 
 				if (getInternalFrame().getKeyWasForLockMe() == null) {
-					getInternalFrame().setKeyWasForLockMe(
-							internalFrameStueckliste.getEinkaufsangebotDto()
-									.getIId()
-									+ "");
+					getInternalFrame()
+							.setKeyWasForLockMe(internalFrameStueckliste.getEinkaufsangebotDto().getIId() + "");
 				}
 				eventYouAreSelected(false);
 			}
@@ -494,8 +507,13 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 
 			if (e.getSource() == wifArtikel) {
-				wcbEinheit.setKeyOfSelectedItem(wifArtikel.getArtikelDto()
-						.getEinheitCNr());
+				wcbEinheit.setKeyOfSelectedItem(wifArtikel.getArtikelDto().getEinheitCNr());
+				wtfHerstellerNr.setText(wifArtikel.getArtikelDto().getCArtikelnrhersteller());
+				wtfHerstellerBez.setText(wifArtikel.getArtikelDto().getCArtikelbezhersteller());
+				wsfHersteller.setKey(wifArtikel.getArtikelDto().getHerstellerIId());
+
+				verfuegbarAnzeigen(wifArtikel.getArtikelDto());
+
 			}
 
 		}
@@ -512,49 +530,58 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		this.setActionMap(null);
 		wtfHandartikel.setMandatoryField(true);
 
-		wcbMitdrucken.setText(LPMain
-				.getTextRespectUISPr("stkl.positionen.mitdrucken"));
+		wcbMitdrucken.setText(LPMain.getTextRespectUISPr("stkl.positionen.mitdrucken"));
 		wcbMitdrucken.setMnemonic('A');
 
 		wifArtikel = new WrapperIdentField(getInternalFrame(), this);
 
 		wlaPreis.setText(LPMain.getTextRespectUISPr("lp.preis"));
 
-		wlaVolumen.setText(LPMain.getTextRespectUISPr(
-				"lp.volumen"));
+		wlaVolumen.setText(LPMain.getTextRespectUISPr("lp.volumen"));
 
+		wlaHerstellerNr.setText(LPMain.getTextRespectUISPr("artikel.herstellernr"));
+
+		wlaHerstellerBez.setText(LPMain.getTextRespectUISPr("artikel.herstellerbez"));
+
+		wsfHersteller = new WrapperSelectField(WrapperSelectField.HERSTELLER, getInternalFrame(), true);
+		wsfLieferant = new WrapperSelectField(WrapperSelectField.LIEFERANT, getInternalFrame(), true);
+
+		wlaLetzteWebabfrage.setText(LPMain.getTextRespectUISPr("agstkl.einkaufsangebotposition.letztewebabfrage"));
+		wdfLetzteWebabfrage.setActivatable(false);
+
+		wlaBuyersurl.setText(LPMain.getTextRespectUISPr("agstkl.einkaufsangebotposition.buyerurl"));
+		wtfBuyersurl.setColumnsMax(300);
 		wlaMindestbestellmenge.setText(LPMain.getTextRespectUISPr("artikel.mindestbestellmenge"));
-		wlaWiederbeschaffungszeit.setText(LPMain.getTextRespectUISPr(
-						"artikel.artikellieferant.wiederbeschaffungszeit"));
+		wlaWiederbeschaffungszeit
+				.setText(LPMain.getTextRespectUISPr("artikel.artikellieferant.wiederbeschaffungszeit"));
 
-		wlaWiederbeschaffungszeitEinheit
-				.setHorizontalAlignment(SwingConstants.LEFT);
-		wlaWiederbeschaffungszeitEinheit.setText(LPMain
-				.getTextRespectUISPr("lp.kw"));
-		wlaVerpackungseinheit.setText(LPMain.getTextRespectUISPr(
-				"artikel.verpackungseinheit"));
+		wbuPositionEdit.setMinimumSize(new Dimension(23, 23));
+		wbuPositionEdit.setPreferredSize(new Dimension(23, 23));
+		wbuPositionEdit.setActionCommand(ACTION_TEXT);
+		wbuPositionEdit.setToolTipText(LPMain.getTextRespectUISPr("text.bearbeiten"));
+		wbuPositionEdit.setIcon(new ImageIcon(getClass().getResource("/com/lp/client/res/notebook.png")));
+		wbuPositionEdit.addActionListener(this);
+		wbuPositionEdit.getActionMap().put(ACTION_TEXT, new ButtonAbstractAction(this, ACTION_TEXT));
+
+		wlaWiederbeschaffungszeitEinheit.setHorizontalAlignment(SwingConstants.LEFT);
+		wlaWiederbeschaffungszeitEinheit.setText(LPMain.getTextRespectUISPr("lp.kw"));
+		wlaVerpackungseinheit.setText(LPMain.getTextRespectUISPr("artikel.verpackungseinheit"));
 		// Mandantenwaehrung
 		String whg = DelegateFactory.getInstance().getMandantDelegate()
-				.mandantFindByPrimaryKey(
-						LPMain.getTheClient().getMandant())
-				.getWaehrungCNr();
+				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getWaehrungCNr();
 
 		wlaEinheitKalkpreis.setText(whg.trim());
 
 		wcbEinheit.setMandatoryField(true);
 
-		wlaBezeichnung.setText(LPMain.getTextRespectUISPr(
-				"lp.bezeichnung"));
+		wlaBezeichnung.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
 
-		wlaBemerkung.setText(LPMain.getTextRespectUISPr(
-				"lp.referenzbemerkung"));
+		wlaBemerkung.setText(LPMain.getTextRespectUISPr("lp.referenzbemerkung"));
 
-		wlaInterneBemerkung.setText(LPMain.getTextRespectUISPr(
-				"lp.internebemerkung"));
+		wlaInterneBemerkung.setText(LPMain.getTextRespectUISPr("lp.internebemerkung"));
 
 		wlaMenge.setText(LPMain.getTextRespectUISPr("lp.menge"));
-		wlaPositionsart.setText(LPMain.getTextRespectUISPr(
-				"lp.positionsart"));
+		wlaPositionsart.setText(LPMain.getTextRespectUISPr("lp.positionsart"));
 
 		wnfWiederbeschaffungszeit.setFractionDigits(0);
 		wnfWiederbeschaffungszeit.setMinimumValue(0);
@@ -564,15 +591,15 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 
 		wnfMenge.setMandatoryField(true);
 
-		int iNachkommastellenMenge = Defaults.getInstance()
-				.getIUINachkommastellenMenge();
+		int iNachkommastellenMenge = Defaults.getInstance().getIUINachkommastellenMenge();
 
 		wlaPosition.setText(LPMain.getTextRespectUISPr("lp.position"));
 
+		wtfPosition.setColumnsMax(StuecklisteFac.MAX_POSITION);
+
 		wnfMenge.setFractionDigits(iNachkommastellenMenge);
 
-		int iNachkommastellenPreis = Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK();
+		int iNachkommastellenPreis = Defaults.getInstance().getIUINachkommastellenPreiseEK();
 
 		wnfPreis1.setFractionDigits(iNachkommastellenPreis);
 		wnfPreis2.setFractionDigits(iNachkommastellenPreis);
@@ -583,52 +610,92 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		wtfBemerkung.setColumnsMax(300);
 		wtfInterneBemerkung.setColumnsMax(300);
 
-		wtfHandartikel.setColumnsMax(ArtikelFac.MAX_ARTIKEL_ARTIKELBEZEICHNUNG);
-		wtfHandartikel2
-				.setColumnsMax(ArtikelFac.MAX_ARTIKEL_ARTIKELBEZEICHNUNG);
+		int iLaengenBezeichung = DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
+
+		wtfHandartikel.setColumnsMax(iLaengenBezeichung);
+		wtfHandartikel2.setColumnsMax(iLaengenBezeichung);
+		wtfHandartikel3.setColumnsMax(iLaengenBezeichung);
+
+		wtfHerstellerBez.setColumnsMax(iLaengenBezeichung);
+
 		getInternalFrame().addItemChangedListener(this);
-		wcbPositionsart
-				.addActionListener(new PanelEinkaufsangebotpositionen_wcbPositionsart_actionAdapter(
-						this));
+		wcbPositionsart.addActionListener(new PanelEinkaufsangebotpositionen_wcbPositionsart_actionAdapter(this));
 		wcbPositionsart.setMandatoryField(true);
 
-		wifArtikel.getWtfIdent().addFocusListener(
-				new PanelEinkaufsangebotpositionen_wtfIdent_focusAdapter(this));
+		wifArtikel.getWtfIdent().addFocusListener(new PanelEinkaufsangebotpositionen_wtfIdent_focusAdapter(this));
 
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		wlaLfdNummer.setText(LPMain.getTextRespectUISPr("stkl.positionen.lfdnummer"));
+		wnfLfdNummer.setFractionDigits(0);
+
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
-		jpaWorkingOn = new JPanel(new MigLayout("wrap 7, hidemode 3", "[fill, 20%][fill, 15%][fill, 15%][fill, 15%][fill, 15%][fill, 15%][fill, 5%]"));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		
+		jpaWorkingOn = new JPanel(new MigLayout("wrap 7, hidemode 3",
+				"[fill, 20%][fill, 15%][fill, 15%][fill, 15%][fill, 15%][fill, 15%][fill, 5%]"));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
 		wifArtikel.getWtfIdent().setUppercaseField(true);
 		wlaEinheitKalkpreis.setHorizontalAlignment(SwingConstants.LEFT);
-		
-		jpaWorkingOn.add(wlaPositionsart);
-		jpaWorkingOn.add(wcbPositionsart, "span 2, wrap");
 
-		jpaWorkingOn.add(wlaBezeichnung);
-		jpaWorkingOn.add(wtfHandartikel, "span 5, wrap");
-		jpaWorkingOn.add(wtfHandartikel2, "skip, span 5, wrap");
-		
-		jpaWorkingOn.add(wifArtikel.getKundenidentnummerButton(), "growx 10, split 2");
-		jpaWorkingOn.add(wifArtikel.getWbuArtikel(), "growx 90");
-		jpaWorkingOn.add(wifArtikel.getWtfIdent());
-		jpaWorkingOn.add(wifArtikel.getWtfBezeichnung(), "span 2, wrap");
+		boolean bBauteilWebAbfrage = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_WEB_BAUTEIL_ANFRAGE);
 
-		jpaWorkingOn.add(wifArtikel.getWtfZusatzBezeichnung(), "skip 2, span 2, wrap");
-		
+		JPanel panelArtikelHandeingabe = new JPanel(
+				new MigLayout("wrap 3, hidemode 3, insets 0 0 0 0", "[fill, 25%][fill, 25%][fill, 25%][fill, 30%]"));
+
+		panelArtikelHandeingabe.add(wlaPositionsart);
+		panelArtikelHandeingabe.add(wcbPositionsart, "span 2, wrap");
+
+		panelArtikelHandeingabe.add(wcbPositionsart, "span 2, wrap");
+		panelArtikelHandeingabe.add(wlaBezeichnung);
+		panelArtikelHandeingabe.add(wtfHandartikel, "span 3, wrap");
+		panelArtikelHandeingabe.add(wtfHandartikel2, "skip, span 3, wrap");
+		panelArtikelHandeingabe.add(wtfHandartikel3, "skip, span 3, wrap");
+
+		panelArtikelHandeingabe.add(wifArtikel.getKundenidentnummerButton(), "growx 10, split 2");
+		panelArtikelHandeingabe.add(wifArtikel.getWbuArtikel(), "growx 90");
+		panelArtikelHandeingabe.add(wifArtikel.getWtfIdent());
+		panelArtikelHandeingabe.add(wifArtikel.getWtfBezeichnung(), "span 2, wrap");
+
+		panelArtikelHandeingabe.add(wifArtikel.getWtfZusatzBezeichnung(), "skip 2, span 2, wrap");
+		panelArtikelHandeingabe.add(wlaVerfuegbar, "span");
+
+		JPanel panelWeblieferant = new JPanel(
+				new MigLayout("wrap 2, hidemode 3, insets 0 0 0 0", "[fill, 40%][fill, 60%]"));
+
+		panelWeblieferant.add(wsfHersteller.getWrapperButton());
+		panelWeblieferant.add(wsfHersteller.getWrapperTextField());
+
+		panelWeblieferant.add(wlaHerstellerNr);
+		panelWeblieferant.add(wtfHerstellerNr);
+
+		panelWeblieferant.add(wlaHerstellerBez);
+		panelWeblieferant.add(wtfHerstellerBez);
+
+		panelWeblieferant.add(wsfLieferant.getWrapperGotoButton());
+		panelWeblieferant.add(wsfLieferant.getWrapperTextField());
+
+		jpaWorkingOn.add(panelArtikelHandeingabe, "span 4");
+		jpaWorkingOn.add(panelWeblieferant, "span 4,wrap");
+//		if (bBauteilWebAbfrage) {
+//			jpaWorkingOn.add(panelArtikelHandeingabe, "span 4");
+//			jpaWorkingOn.add(panelWeblieferant, "span 3,wrap");
+//		} else {
+//			jpaWorkingOn.add(panelArtikelHandeingabe, "span 5,wrap");
+//		}
+
 		jpaWorkingOn.add(wlaMenge);
 		jpaWorkingOn.add(wnfMenge);
-		jpaWorkingOn.add(wcbEinheit, "wrap");
-		
+
+		jpaWorkingOn.add(wcbEinheit);
+
+		jpaWorkingOn.add(wlaLfdNummer, "skip");
+		jpaWorkingOn.add(wnfLfdNummer, "wrap");
+
 		jpaWorkingOn.add(wlaPreis);
 		jpaWorkingOn.add(wlaPreis1);
 		jpaWorkingOn.add(wlaPreis2);
@@ -642,34 +709,44 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		jpaWorkingOn.add(wlaVolumen3);
 		jpaWorkingOn.add(wlaVolumen4);
 		jpaWorkingOn.add(wlaVolumen5, "wrap");
-		
+
 		jpaWorkingOn.add(wnfPreis1, "skip");
 		jpaWorkingOn.add(wnfPreis2);
 		jpaWorkingOn.add(wnfPreis3);
 		jpaWorkingOn.add(wnfPreis4);
 		jpaWorkingOn.add(wnfPreis5);
 		jpaWorkingOn.add(wlaEinheitKalkpreis, "wrap");
-		
+
 		jpaWorkingOn.add(wlaVerpackungseinheit);
 		jpaWorkingOn.add(wnfVerpackungseinheit);
 		jpaWorkingOn.add(wlaWiederbeschaffungszeit, "skip, span 2");
 		jpaWorkingOn.add(wnfWiederbeschaffungszeit);
 		jpaWorkingOn.add(wlaWiederbeschaffungszeitEinheit, "wrap");
-		
+
 		jpaWorkingOn.add(wlaMindestbestellmenge);
 		jpaWorkingOn.add(wnfMindestbestellmenge);
 		jpaWorkingOn.add(wlaPosition, "skip, span 2");
-		jpaWorkingOn.add(wtfPosition, "wrap");
-		
+		jpaWorkingOn.add(wtfPosition);
+
+		jpaWorkingOn.add(wbuPositionEdit, "wrap");
+
 		jpaWorkingOn.add(wlaBemerkung);
 		jpaWorkingOn.add(wtfBemerkung, "span 5, wrap");
-		
+
 		jpaWorkingOn.add(wlaInterneBemerkung);
 		jpaWorkingOn.add(wtfInterneBemerkung, "span 5, wrap");
 
-		jpaWorkingOn.add(wcbMitdrucken, "skip, span 5");
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		if (bBauteilWebAbfrage) {
+			jpaWorkingOn.add(wcbMitdrucken, "skip, span 3");
+			jpaWorkingOn.add(wlaLetzteWebabfrage);
+			jpaWorkingOn.add(wdfLetzteWebabfrage, "span 2, wrap");
+			jpaWorkingOn.add(wlaBuyersurl);
+			jpaWorkingOn.add(wtfBuyersurl, "span 5");
+		} else {
+			jpaWorkingOn.add(wcbMitdrucken, "skip, span 5");
+		}
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, ACTION_PRINT };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -679,46 +756,47 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 		return HelperClient.LOCKME_EINKAUFSANGEBOT;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 
-		if (key == null
-				|| (key != null && key.equals(LPMain.getLockMeForNew()))) {
+		if (key == null || (key != null && key.equals(LPMain.getLockMeForNew()))) {
 
 			leereAlleFelder(this);
 			clearStatusbar();
 
-			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-					.getInstance().getParameterDelegate().getParametermandant(
-							ParameterFac.PARAMETER_DEFAULT_ARTIKEL_EINHEIT,
-							ParameterFac.KATEGORIE_ARTIKEL,
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_DEFAULT_ARTIKEL_EINHEIT, ParameterFac.KATEGORIE_ARTIKEL,
 							LPMain.getTheClient().getMandant());
-			wcbEinheit.setKeyOfSelectedItem(Helper.fitString2Length(parameter
-					.getCWert(), 15, ' '));
+			wcbEinheit.setKeyOfSelectedItem(Helper.fitString2Length(parameter.getCWert(), 15, ' '));
 
 			if (key != null && key.equals(LPMain.getLockMeForNew())) {
+
+				wlaVerfuegbar.setText(" ");
 
 				wnfMenge.setBigDecimal(new java.math.BigDecimal(1));
 
 				if (letzterArtikel != null) {
 					wifArtikel.getWtfIdent().setText(letzterArtikel.getCNr());
-					wcbEinheit.setKeyOfSelectedItem(letzterArtikel
-							.getEinheitCNr());
+					wcbEinheit.setKeyOfSelectedItem(letzterArtikel.getEinheitCNr());
+					wtfHerstellerNr.setText(letzterArtikel.getCArtikelnrhersteller());
+					wtfHerstellerBez.setText(letzterArtikel.getCArtikelbezhersteller());
+					wsfHersteller.setKey(letzterArtikel.getHerstellerIId());
 				}
-
-				wcbMitdrucken.setSelected(true);
+				// lt. SP4044 auskommentiert
+				// wcbMitdrucken.setSelected(true);
 
 			}
 		} else {
-			einkaufsangebotpositionDto = DelegateFactory.getInstance()
-					.getAngebotstklDelegate()
+			einkaufsangebotpositionDto = DelegateFactory.getInstance().getAngebotstklDelegate()
 					.einkaufsangebotpositionFindByPrimaryKey((Integer) key);
 
 			dto2Components();
 		}
+
+		wbuPositionEdit.setEnabled(true);
+
 	}
 
 	public void wcbPositionsart_actionPerformed(ActionEvent e) {
@@ -728,10 +806,14 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 			wlaBezeichnung.setVisible(false);
 			wtfHandartikel.setVisible(false);
 			wtfHandartikel2.setVisible(false);
+			wtfHandartikel3.setVisible(false);
+
+			wlaVerfuegbar.setVisible(true);
 			wtfHandartikel.setMandatoryField(false);
 
 			wtfHandartikel.setEditable(true);
 			wtfHandartikel2.setEditable(true);
+			wtfHandartikel3.setEditable(true);
 
 			try {
 				LockStateValue v = getLockedstateDetailMainKey();
@@ -745,7 +827,7 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 			}
 			wifArtikel.getKundenidentnummerButton().setVisible(true);
 			wifArtikel.getWbuArtikel().setVisible(true);
-									
+
 			wifArtikel.getWtfIdent().setVisible(true);
 			wifArtikel.getWtfIdent().setMandatoryField(true);
 			wifArtikel.getWtfBezeichnung().setVisible(true);
@@ -755,15 +837,18 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 			wifArtikel.getWtfIdent().setText(null);
 			wtfHandartikel.setActivatable(true);
 			wtfHandartikel2.setActivatable(true);
+			wtfHandartikel3.setActivatable(true);
 
 			try {
 				if (getLockedstateDetailMainKey().getIState() == LOCK_IS_LOCKED_BY_ME
 						|| getLockedstateDetailMainKey().getIState() == LOCK_FOR_NEW) {
 					wtfHandartikel.setEditable(true);
 					wtfHandartikel2.setEditable(true);
+					wtfHandartikel3.setEditable(true);
 				} else {
 					wtfHandartikel.setEditable(false);
 					wtfHandartikel2.setEditable(false);
+					wtfHandartikel3.setEditable(false);
 				}
 			} catch (Throwable e2) {
 				handleException(e2, true);
@@ -778,32 +863,31 @@ public class PanelEinkaufsangebotpositionen extends PanelBasis {
 			wifArtikel.getWtfIdent().setMandatoryField(false);
 			wifArtikel.getWtfBezeichnung().setVisible(false);
 			wifArtikel.getWtfZusatzBezeichnung().setVisible(false);
-			
+
+			wlaVerfuegbar.setVisible(false);
+
 			wlaBezeichnung.setVisible(true);
 			wtfHandartikel.setVisible(true);
 			wtfHandartikel.setMandatoryField(true);
 			wtfHandartikel2.setVisible(true);
+			wtfHandartikel3.setVisible(true);
 			jpaWorkingOn.repaint();
 		}
 
 	}
 
 	void wtfIdent_focusLost(FocusEvent e) {
-		if (wifArtikel.getArtikelDto() != null
-				&& einkaufsangebotpositionDto.getIId() == null) {
-			wcbEinheit.setKeyOfSelectedItem(wifArtikel.getArtikelDto()
-					.getEinheitCNr());
+		if (wifArtikel.getArtikelDto() != null && einkaufsangebotpositionDto.getIId() == null) {
+			wcbEinheit.setKeyOfSelectedItem(wifArtikel.getArtikelDto().getEinheitCNr());
 		}
 	}
 
 }
 
-class PanelEinkaufsangebotpositionen_wcbPositionsart_actionAdapter implements
-		ActionListener {
+class PanelEinkaufsangebotpositionen_wcbPositionsart_actionAdapter implements ActionListener {
 	private PanelEinkaufsangebotpositionen adaptee;
 
-	PanelEinkaufsangebotpositionen_wcbPositionsart_actionAdapter(
-			PanelEinkaufsangebotpositionen adaptee) {
+	PanelEinkaufsangebotpositionen_wcbPositionsart_actionAdapter(PanelEinkaufsangebotpositionen adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -812,12 +896,10 @@ class PanelEinkaufsangebotpositionen_wcbPositionsart_actionAdapter implements
 	}
 }
 
-class PanelEinkaufsangebotpositionen_wtfIdent_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelEinkaufsangebotpositionen_wtfIdent_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelEinkaufsangebotpositionen adaptee;
 
-	PanelEinkaufsangebotpositionen_wtfIdent_focusAdapter(
-			PanelEinkaufsangebotpositionen adaptee) {
+	PanelEinkaufsangebotpositionen_wtfIdent_focusAdapter(PanelEinkaufsangebotpositionen adaptee) {
 		this.adaptee = adaptee;
 	}
 

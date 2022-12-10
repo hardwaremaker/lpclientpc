@@ -32,6 +32,8 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.event.ChangeEvent;
 
 import com.lp.client.frame.LockStateValue;
@@ -42,8 +44,10 @@ import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.component.WrapperMenuBar;
+import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.LagerFac;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
@@ -70,11 +74,11 @@ public class TabbedPaneHandlagerbewegung extends TabbedPane {
 
 	private WrapperMenuBar wrapperManuBar = null;
 
-	public TabbedPaneHandlagerbewegung(InternalFrame internalFrameI)
-			throws Throwable {
+	private final String MENUE_JOURNAL_ACTION_HANDLAGERBEWEUNGEN = "MENUE_JOURNAL_ACTION_HANDLAGERBEWEUNGEN";
 
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"artikel.title.panel.handlagerbewegungen"));
+	public TabbedPaneHandlagerbewegung(InternalFrame internalFrameI) throws Throwable {
+
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr("artikel.title.panel.handlagerbewegungen"));
 
 		jbInit();
 		initComponents();
@@ -83,62 +87,51 @@ public class TabbedPaneHandlagerbewegung extends TabbedPane {
 	private void jbInit() throws Throwable {
 
 		// 1 Handlagerbewegungen
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-				PanelBasis.ACTION_FILTER };
+		String[] aWhichButtonIUse = null;
+
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_WW_HANDLAGERBEWEGUNG_CUD)
+				|| DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_WW_HANDLAGERBEWEGUNG_UMB)) {
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
+		} else {
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER };
+		}
+
 		FilterKriterium[] filtersHandlager = null;
-		String mandant = "'" + LPMain.getInstance().getTheClient().getMandant()
-				+ "'";
-		if (!LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
-				|| (LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM) && LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER))) {
+		String mandant = "'" + LPMain.getInstance().getTheClient().getMandant() + "'";
+		if (!LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
+				|| (LPMain.getInstance().getDesktop()
+						.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
+						&& LPMain.getInstance().getDesktop()
+								.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER))) {
 
 			filtersHandlager = new FilterKriterium[1];
 			FilterKriterium krit1 = new FilterKriterium(
-					"handlagerbewegung."
-							+ LagerFac.FLR_HANDLAGERBEWEGUNG_FLRLAGER
-							+ ".mandant_c_nr", true, mandant,
+					"handlagerbewegung." + LagerFac.FLR_HANDLAGERBEWEGUNG_FLRLAGER + ".mandant_c_nr", true, mandant,
 					FilterKriterium.OPERATOR_EQUAL, false);
 			filtersHandlager[0] = krit1;
 		}
 
-		panelQueryTopHandlagerbewegung = new PanelQuery(ArtikelFilterFactory
-				.getInstance().createQTHandlagerbewegung(), filtersHandlager,
-				QueryParameters.UC_ID_HANDLAGERBEWEGUNG, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"artikel.title.panel.handlagerbewegungen"), true);
-		panelDetailBottomHandlagerbewegung = new PanelHandlagerbewegung(
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"artikel.title.panel.handlagerbewegungen"), null);
+		panelQueryTopHandlagerbewegung = new PanelQuery(ArtikelFilterFactory.getInstance().createQTHandlagerbewegung(),
+				filtersHandlager, QueryParameters.UC_ID_HANDLAGERBEWEGUNG, aWhichButtonIUse, getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("artikel.title.panel.handlagerbewegungen"), true);
+		panelDetailBottomHandlagerbewegung = new PanelHandlagerbewegung(getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("artikel.title.panel.handlagerbewegungen"), null);
 
 		panelQueryTopHandlagerbewegung.befuellePanelFilterkriterienDirekt(
-				new FilterKriteriumDirekt("handlagerbewegung.flrartikel.c_nr",
-						"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-								.getTextRespectUISPr("artikel.artikelnummer"),
-						FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-						Facade.MAX_UNBESCHRAENKT)
+				new FilterKriteriumDirekt("handlagerbewegung.flrartikel.c_nr", "", FilterKriterium.OPERATOR_LIKE,
+						LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer"),
+						FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT)
 
-				, new FilterKriteriumDirekt("aspr.c_bez", "",
-						FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-								.getTextRespectUISPr("lp.bezeichnung"),
-						FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-						Facade.MAX_UNBESCHRAENKT));
+				,
+				new FilterKriteriumDirekt("aspr.c_bez", "", FilterKriterium.OPERATOR_LIKE,
+						LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"),
+						FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT));
 
-		panelSplit = new PanelSplit(getInternalFrame(),
-				panelDetailBottomHandlagerbewegung,
-				panelQueryTopHandlagerbewegung, 245);
-		addTab(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.title.panel.handlagerbewegungen"), panelSplit);
+		panelSplit = new PanelSplit(getInternalFrame(), panelDetailBottomHandlagerbewegung,
+				panelQueryTopHandlagerbewegung, 230);
+		addTab(LPMain.getInstance().getTextRespectUISPr("artikel.title.panel.handlagerbewegungen"), panelSplit);
 
 		refreshTitle();
 		addChangeListener(this);
@@ -152,8 +145,7 @@ public class TabbedPaneHandlagerbewegung extends TabbedPane {
 		if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
 			if (e.getSource() == panelQueryTopHandlagerbewegung) {
 				panelDetailBottomHandlagerbewegung
-						.setKeyWhenDetailPanel(panelQueryTopHandlagerbewegung
-								.getSelectedId());
+						.setKeyWhenDetailPanel(panelQueryTopHandlagerbewegung.getSelectedId());
 				panelDetailBottomHandlagerbewegung.eventYouAreSelected(false);
 				panelQueryTopHandlagerbewegung.updateButtons();
 			}
@@ -162,29 +154,24 @@ public class TabbedPaneHandlagerbewegung extends TabbedPane {
 			panelSplit.eventYouAreSelected(false);
 		} else if (e.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (e.getSource() == panelQueryTopHandlagerbewegung) {
-				panelDetailBottomHandlagerbewegung.eventActionNew(e, true,
-						false);
+				panelDetailBottomHandlagerbewegung.eventActionNew(e, true, false);
 				panelDetailBottomHandlagerbewegung.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
 			if (e.getSource() == panelDetailBottomHandlagerbewegung) {
-				Object oKey = panelDetailBottomHandlagerbewegung
-						.getKeyWhenDetailPanel();
+				Object oKey = panelDetailBottomHandlagerbewegung.getKeyWhenDetailPanel();
 				panelQueryTopHandlagerbewegung.eventYouAreSelected(false);
 				panelQueryTopHandlagerbewegung.setSelectedId(oKey);
 				panelSplit.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			if (e.getSource() == panelDetailBottomHandlagerbewegung) {
-				panelQueryTopHandlagerbewegung
-						.updateButtons(new LockStateValue(
-								PanelBasis.LOCK_FOR_NEW));
+				panelQueryTopHandlagerbewegung.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			}
 		}
 
-		else if (e.getID() == ItemChangedEvent.ACTION_DISCARD
-				|| e.getID() == ItemChangedEvent.ACTION_DELETE) {
+		else if (e.getID() == ItemChangedEvent.ACTION_DISCARD || e.getID() == ItemChangedEvent.ACTION_DELETE) {
 			if (e.getSource() == panelDetailBottomHandlagerbewegung) {
 
 				panelSplit.eventYouAreSelected(false);
@@ -197,10 +184,8 @@ public class TabbedPaneHandlagerbewegung extends TabbedPane {
 	}
 
 	private void refreshTitle() {
-		getInternalFrame().setLpTitle(
-				InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.title.panel.handlagerbewegungen"));
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
+				LPMain.getInstance().getTextRespectUISPr("artikel.title.panel.handlagerbewegungen"));
 		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
 				((PanelBasis) this.getSelectedComponent()).getAdd2Title());
 		getInternalFrame().setLpTitle(3, "");
@@ -213,12 +198,33 @@ public class TabbedPaneHandlagerbewegung extends TabbedPane {
 		panelQueryTopHandlagerbewegung.updateButtons();
 	}
 
-	protected void lPActionEvent(java.awt.event.ActionEvent e) {
+	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
+
+		if (e.getActionCommand().equals(MENUE_JOURNAL_ACTION_HANDLAGERBEWEUNGEN)) {
+			String add2Title = LPMain.getInstance()
+					.getTextRespectUISPr("artikel.handlagerbewegung.journal.handlagerbewegungen");
+			getInternalFrame().showReportKriterien(new ReportHandlagerbewegungen(getInternalFrame(), add2Title));
+		}
 	}
 
 	public javax.swing.JMenuBar getJMenuBar() throws Throwable {
 		if (wrapperManuBar == null) {
 			wrapperManuBar = new WrapperMenuBar(this);
+
+			if (getInternalFrame().bRechtDarfPreiseSehenEinkauf == true
+					&& getInternalFrame().bRechtDarfPreiseSehenVerkauf == true) {
+
+				// usemenubar 8: Wenn man in ein bestehendes System-Menue einen
+				// Eintrag hinzufuegen
+				// will, muss man diese Methode verwenden:
+				JMenu journal = (JMenu) wrapperManuBar.getComponent(WrapperMenuBar.MENU_JOURNAL);
+				JMenuItem menuItemHandlagerbewegungen = new JMenuItem(LPMain.getInstance()
+						.getTextRespectUISPr("artikel.handlagerbewegung.journal.handlagerbewegungen"));
+				menuItemHandlagerbewegungen.addActionListener(this);
+				menuItemHandlagerbewegungen.setActionCommand(MENUE_JOURNAL_ACTION_HANDLAGERBEWEUNGEN);
+				journal.add(menuItemHandlagerbewegungen);
+			}
+
 		}
 		return wrapperManuBar;
 	}

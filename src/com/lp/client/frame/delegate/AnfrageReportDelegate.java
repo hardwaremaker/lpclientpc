@@ -32,108 +32,113 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
-
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.anfrage.service.AnfrageReportFac;
+import com.lp.server.anfrage.service.AnfragepositionFac;
 import com.lp.server.anfrage.service.ReportAnfragelieferdatenuebersichtKriterienDto;
 import com.lp.server.anfrage.service.ReportAnfragestatistikKriterienDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-
 /**
- * <p><I>Diese Klasse kuemmert sich um die Anfrage Reports.</I> </p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>15.06.05</I></p>
+ * <p>
+ * <I>Diese Klasse kuemmert sich um die Anfrage Reports.</I>
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>15.06.05</I>
+ * </p>
+ * 
  * @author $Author: heidi $
  * @version $Revision: 1.6 $
  */
-public class AnfrageReportDelegate
-    extends Delegate
-{
-  private Context context;
-  private AnfrageReportFac anfrageReportFac;
+public class AnfrageReportDelegate extends Delegate {
+	private Context context;
+	private AnfrageReportFac anfrageReportFac;
 
-  public AnfrageReportDelegate()
-      throws Exception {
-    context = new InitialContext();
-    anfrageReportFac = (AnfrageReportFac) context.lookup("lpserver/AnfrageReportFacBean/remote");
-  }
+	public AnfrageReportDelegate() throws Exception {
+		context = new InitialContext();
+		anfrageReportFac = lookupFac(context, AnfrageReportFac.class);
 
+	}
 
-  /**
-   * Eine Anfrage drucken.
-   *
-   * @param iIdAnfrageI PK der Anfrage
-   * @param iAnzahlKopienI wieviele Kopien zusaetzlich zum Original?
-   * @param bMitLogo Boolean
-   * @return JasperPrint[] der Druck und seine Kopien
-   * @throws ExceptionLP Ausnahme
-   */
-  public JasperPrintLP[] printAnfrage(Integer iIdAnfrageI, Integer iAnzahlKopienI, Boolean bMitLogo)
-      throws ExceptionLP {
-    JasperPrintLP[] aJasperPrint = null;
+	public JasperPrintLP printBieteruebersicht(Integer anfrageIId) throws ExceptionLP {
+		JasperPrintLP aJasperPrint = null;
 
-    try {
-      aJasperPrint = anfrageReportFac.printAnfrage(
-          iIdAnfrageI,
-          iAnzahlKopienI,
-          bMitLogo,
-          LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+		try {
+			aJasperPrint = anfrageReportFac.printBieteruebersicht(anfrageIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-    return aJasperPrint;
-  }
+		return aJasperPrint;
+	}
 
-  /**
-   * Die Anfragestatistik fuer einen bestimmten Artikel ausdrucken.
-   * @param reportAnfragestatistikKriterienDtoI die Kriterien
-   * @return JasperPrint der Druck
-   * @throws ExceptionLP Ausnahme
-   */
-  public JasperPrintLP printAnfragestatistik(ReportAnfragestatistikKriterienDto
-                                           reportAnfragestatistikKriterienDtoI)
-      throws ExceptionLP {
-    JasperPrintLP oPrint = null;
+	/**
+	 * Eine Anfrage drucken.
+	 *
+	 * @param iIdAnfrageI    PK der Anfrage
+	 * @param iAnzahlKopienI wieviele Kopien zusaetzlich zum Original?
+	 * @param bMitLogo       Boolean
+	 * @return JasperPrint[] der Druck und seine Kopien
+	 * @throws ExceptionLP Ausnahme
+	 */
+	public JasperPrintLP[] printAnfrage(Integer iIdAnfrageI, Integer iAnzahlKopienI, Boolean bMitLogo)
+			throws ExceptionLP {
+		JasperPrintLP[] aJasperPrint = null;
 
-    try {
-      oPrint = anfrageReportFac.printAnfragestatistik(
-          reportAnfragestatistikKriterienDtoI,
-          LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+		try {
+			aJasperPrint = anfrageReportFac.printAnfrage(iIdAnfrageI, iAnzahlKopienI, bMitLogo, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-    return oPrint;
-  }
+		return aJasperPrint;
+	}
 
+	/**
+	 * Die Anfragestatistik fuer einen bestimmten Artikel ausdrucken.
+	 * 
+	 * @param reportAnfragestatistikKriterienDtoI die Kriterien
+	 * @return JasperPrint der Druck
+	 * @throws ExceptionLP Ausnahme
+	 */
+	public JasperPrintLP printAnfragestatistik(ReportAnfragestatistikKriterienDto reportAnfragestatistikKriterienDtoI)
+			throws ExceptionLP {
+		JasperPrintLP oPrint = null;
 
-  /**
-   * Die Lieferdatenuebersicht fuer alle Anfragen nach bestimmten Kriterien drucken.
-   * @param kritDtoI die Kriterien des Benutzers
-   * @return JasperPrint der Druck
-   * @throws ExceptionLP Ausnahme
-   */
-  public JasperPrintLP printLieferdatenuebersicht(
-      ReportAnfragelieferdatenuebersichtKriterienDto kritDtoI)
-      throws ExceptionLP {
-    JasperPrintLP oPrint = null;
+		try {
+			oPrint = anfrageReportFac.printAnfragestatistik(reportAnfragestatistikKriterienDtoI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-    try {
-      oPrint = anfrageReportFac.printLieferdatenuebersicht(
-          kritDtoI, LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+		return oPrint;
+	}
 
-    return oPrint;
-  }
+	/**
+	 * Die Lieferdatenuebersicht fuer alle Anfragen nach bestimmten Kriterien
+	 * drucken.
+	 * 
+	 * @param kritDtoI die Kriterien des Benutzers
+	 * @return JasperPrint der Druck
+	 * @throws ExceptionLP Ausnahme
+	 */
+	public JasperPrintLP printLieferdatenuebersicht(ReportAnfragelieferdatenuebersichtKriterienDto kritDtoI)
+			throws ExceptionLP {
+		JasperPrintLP oPrint = null;
+
+		try {
+			oPrint = anfrageReportFac.printLieferdatenuebersicht(kritDtoI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return oPrint;
+	}
 }

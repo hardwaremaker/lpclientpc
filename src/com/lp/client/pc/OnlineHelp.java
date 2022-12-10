@@ -45,45 +45,51 @@ import javax.swing.JPanel;
 
 import com.lp.client.frame.delegate.DelegateFactory;
 
-
 /**
- * <p> Diese Klasse kuemmert sich um
- * Anzeige der Helium Benutzerdokumentation als Onlinehilfe</p>
+ * <p>
+ * Diese Klasse kuemmert sich um Anzeige der Helium Benutzerdokumentation als
+ * Onlinehilfe
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellung: Markus Rabenberger 22.01.07</p>
+ * <p>
+ * Erstellung: Markus Rabenberger 22.01.07
+ * </p>
  *
- * <p>@author $Author: valentin $</p>
+ * <p>
+ * @author $Author: valentin $
+ * </p>
  *
  */
-public class OnlineHelp extends JPanel{
+public class OnlineHelp extends JPanel {
 
-    /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	static final String HELPCONTEXTROOT = "/heliumhelp/heliumhelp/";
-    static final String HELPPORT = "8080";
+	static final String HELPPORT = "8080";
 
-    static final String helpsetName = "HeliumOnlineHelp.hs";
-    static final String helpsetLabel = "Helium Online Hilfe";
-    static final String startTarget = "index_htm_0.7192443030612613";
+	static final String helpsetName = "HeliumOnlineHelp.hs";
+	static final String helpsetLabel = "Helium Online Hilfe";
+	static final String startTarget = "index_htm_0.7192443030612613";
 
 //    private static JFrame frame;
 
-   // The initial width and height of the frame
-   public static int WIDTH = 800;
-   public static int HEIGHT =600;
+	// The initial width and height of the frame
+	public static int WIDTH = 800;
+	public static int HEIGHT = 600;
 
+	// Main HelpSet & Broker
+	HelpSet hs = null;
+	HelpBroker hb = null;
+	private static JHelp jh = null;
+	SwingHelpUtilities swingHelpUtilities;
 
-    // Main HelpSet & Broker
-    HelpSet hs = null;
-    HelpBroker hb = null;
-    private static JHelp jh = null;
-    SwingHelpUtilities swingHelpUtilities;
-
-  public OnlineHelp() {
+	public OnlineHelp() {
 		try {
 			createNetworkedHelpSet();
 			if (hs != null) {
@@ -105,48 +111,45 @@ public class OnlineHelp extends JPanel{
 			}
 
 		} catch (Exception ee) {
-			System.out.println("Help Set " + helpsetName + " not found."
-					+ ee.getMessage());
+			System.out.println("Help Set " + helpsetName + " not found." + ee.getMessage());
 			return;
 		} catch (ExceptionInInitializerError ex) {
 			System.err.println("initialization error:");
 			ex.getException().printStackTrace();
-		} catch(Throwable t) {
-			System.out.println("Help Set " + helpsetName + " not found." + t.getMessage()) ;
+		} catch (Throwable t) {
+			System.out.println("Help Set " + helpsetName + " not found." + t.getMessage());
 		}
-  }
+	}
 
-  private void createNetworkedHelpSet() throws Throwable {
-          ClassLoader loader = null;
-          URL helpsetURL = null;
-          URL helpsetURLFull = null;
-          try {
+	private void createNetworkedHelpSet() throws Throwable {
+		ClassLoader loader = null;
+		URL helpsetURL = null;
+		URL helpsetURLFull = null;
+		try {
 
-            String sHelpsetURL = createOnlineHelpURL();
-            helpsetURL = new URL(sHelpsetURL);
-            helpsetURLFull = new URL(helpsetURL+"/"+helpsetName);
-            System.out.println("HelpSetUrl: " +helpsetURLFull);
-            
-            ClassLoader myClassLoader = LPMain.class.getClassLoader() ;
+			String sHelpsetURL = createOnlineHelpURL();
+			helpsetURL = new URL(sHelpsetURL);
+			helpsetURLFull = new URL(helpsetURL + "/" + helpsetName);
+			System.out.println("HelpSetUrl: " + helpsetURLFull);
+
+			ClassLoader myClassLoader = LPMain.class.getClassLoader();
 //            loader = new URLClassLoader(new URL[]{helpsetURL,helpsetURLFull});
-            loader = new URLClassLoader(new URL[]{helpsetURL,helpsetURLFull}, myClassLoader);
+			loader = new URLClassLoader(new URL[] { helpsetURL, helpsetURLFull }, myClassLoader);
 
-              URL url = null;
-              url = HelpSet.findHelpSet(loader, helpsetName);
-              System.out.println("findHelpSet url=" + url);
-              hs = new HelpSet(loader, url);
-          } catch (MalformedURLException ex) {
-            System.out.println("MalformedURLException:");
-            ex.printStackTrace();
-          } catch (Exception ee) {
-              System.out.println ("Trouble in createHelpSet;");
-              System.out.println( "HelpSet " + ee.getMessage());
-              ee.printStackTrace();
-              return;
-          }
-      }
-
-
+			URL url = null;
+			url = HelpSet.findHelpSet(loader, helpsetName);
+			System.out.println("findHelpSet url=" + url);
+			hs = new HelpSet(loader, url);
+		} catch (MalformedURLException ex) {
+			System.out.println("MalformedURLException:");
+			ex.printStackTrace();
+		} catch (Exception ee) {
+			System.out.println("Trouble in createHelpSet;");
+			System.out.println("HelpSet " + ee.getMessage());
+			ee.printStackTrace();
+			return;
+		}
+	}
 
 //  private void createHelpSet() {
 //          ClassLoader loader = this.getClass().getClassLoader();
@@ -173,11 +176,10 @@ public class OnlineHelp extends JPanel{
 	 * @return String
 	 */
 	private String createOnlineHelpURL() throws Throwable {
-		String serverPort = DelegateFactory.getInstance().getSystemDelegate()
-				.getServerWebPort();
+		String serverPort = DelegateFactory.getInstance().getSystemDelegate().getServerWebPort();
 
 		StringBuffer sOnlineHelpURL = new StringBuffer();
-		sOnlineHelpURL.append("http://");
+		sOnlineHelpURL.append(getProtokoll());
 		String sServerName = getServerName();
 		sOnlineHelpURL.append(sServerName);
 		// sOnlineHelpURL.append(":"+HELPPORT);
@@ -204,4 +206,17 @@ public class OnlineHelp extends JPanel{
 		}
 		return server;
 	}
+
+	//SP20926
+	private String getProtokoll() {
+		String server = System.getProperty("java.naming.provider.url");
+
+		if (server != null && server.contains("https:")) {
+			return "https://";
+		} else {
+			return "http://";
+		}
+
+	}
+
 }

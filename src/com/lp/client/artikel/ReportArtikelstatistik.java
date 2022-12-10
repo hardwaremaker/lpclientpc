@@ -58,6 +58,8 @@ import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.ArtikelReportFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
@@ -84,8 +86,10 @@ public class ReportArtikelstatistik extends PanelBasis implements
 	private WrapperCheckBox wcbMonatsstatistik = new WrapperCheckBox();
 	private WrapperCheckBox wcbEingeschraenkt = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitHistory = new WrapperCheckBox();
+	private WrapperCheckBox wcbMitVorgaengern = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitHandlagerbewegungen = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitBewegungsvorschau = new WrapperCheckBox();
+	private WrapperCheckBox wcbMitNichtFreigegebenenAuftraegen = new WrapperCheckBox();
 
 	private WrapperLabel wlaBelegarten = new WrapperLabel();
 
@@ -95,7 +99,8 @@ public class ReportArtikelstatistik extends PanelBasis implements
 	private WrapperRadioButton wrbOptionVK = new WrapperRadioButton();
 	private WrapperRadioButton wrbOptionFertigung = new WrapperRadioButton();
 
-	public ReportArtikelstatistik(InternalFrame internalFrame,Integer artikelIId,boolean bMonatsstatistik, String add2Title)
+	public ReportArtikelstatistik(InternalFrame internalFrame,
+			Integer artikelIId, boolean bMonatsstatistik, String add2Title)
 			throws Throwable {
 		super(internalFrame, add2Title);
 		LPMain.getInstance().getTextRespectUISPr(
@@ -107,12 +112,11 @@ public class ReportArtikelstatistik extends PanelBasis implements
 					.getArtikelDelegate().artikelFindByPrimaryKey(artikelIId);
 
 			wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
-			wtfArtikel.setText(artikelDto
-					.formatArtikelbezeichnung());
+			wtfArtikel.setText(artikelDto.formatArtikelbezeichnung());
 			this.artikelIId = artikelDto.getIId();
 		}
-		
-		if(bMonatsstatistik){
+
+		if (bMonatsstatistik) {
 			wcbMonatsstatistik.setSelected(true);
 			wcbEingeschraenkt.setSelected(false);
 			wcbMitBewegungsvorschau.setSelected(false);
@@ -123,7 +127,7 @@ public class ReportArtikelstatistik extends PanelBasis implements
 		return wdfVon;
 	}
 
-	private void jbInit() throws Exception {
+	private void jbInit() throws Throwable {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 		wlaZeitraum.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -146,15 +150,28 @@ public class ReportArtikelstatistik extends PanelBasis implements
 
 		wcbMonatsstatistik.addActionListener(this);
 
-		
-		
+		wrbOptionAlle.addActionListener(this);
+		wrbOptionEK.addActionListener(this);
+		wrbOptionFertigung.addActionListener(this);
+		wrbOptionVK.addActionListener(this);
+
 		wcbMitHistory.setText(LPMain.getInstance().getTextRespectUISPr(
-		"artikel.report.artikelstatistik.mitdetails"));
+				"artikel.report.artikelstatistik.mitdetails"));
 		wcbEingeschraenkt.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.eingeschraenkt"));
 
 		wcbMitBewegungsvorschau.setText(LPMain.getInstance()
 				.getTextRespectUISPr("artikel.statistik.mitbewegungsvorschau"));
+
+		wcbMitBewegungsvorschau.addActionListener(this);
+
+		wcbMitNichtFreigegebenenAuftraegen.setText(LPMain.getInstance()
+				.getTextRespectUISPr(
+						"artikel.statistik.mitnichtfreigegebenenauftraegen"));
+		wcbMitNichtFreigegebenenAuftraegen.setEnabled(false);
+
+		wcbMitVorgaengern.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.report.artikelstatistik.mitvorgaengern"));
 
 		wcbEingeschraenkt.setSelected(true);
 		wtfArtikel.setActivatable(false);
@@ -169,9 +186,9 @@ public class ReportArtikelstatistik extends PanelBasis implements
 		c.set(Calendar.DAY_OF_MONTH, 1);
 
 		wdfVon.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(c
-				.getTimeInMillis())));
-		wdfBis.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(System
-				.currentTimeMillis() + 24 * 3600000)));
+				.getTimeInMillis())));;
+		wdfBis.setTimestamp(Helper.cutTimestamp(Helper.addiereTageZuTimestamp(  new java.sql.Timestamp(System
+				.currentTimeMillis()),1)));
 
 		buttonGroupOption.add(wrbOptionAlle);
 		buttonGroupOption.add(wrbOptionEK);
@@ -250,18 +267,57 @@ public class ReportArtikelstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wcbMitBewegungsvorschau, new GridBagConstraints(4, 7,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbMitHistory, new GridBagConstraints(5, 7, 1, 1,
+
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_AUFTRAGSFREIGABE,
+						ParameterFac.KATEGORIE_AUFTRAG,
+						LPMain.getTheClient().getMandant());
+
+		if ((Boolean) parameter.getCWertAsObject()) {
+
+			jpaWorkingOn.add(wcbMitNichtFreigegebenenAuftraegen,
+					new GridBagConstraints(4, 8, 2, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
+
+		jpaWorkingOn.add(wcbMitHistory, new GridBagConstraints(5, 7, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbMitVorgaengern, new GridBagConstraints(2, 8, 2, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
 
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+
+		wcbMitHandlagerbewegungen.setEnabled(true);
+
+		if (e.getSource().equals(wrbOptionEK)
+				|| e.getSource().equals(wrbOptionVK)
+				|| e.getSource().equals(wrbOptionFertigung)) {
+			wcbMitHandlagerbewegungen.setSelected(false);
+			wcbMitHandlagerbewegungen.setEnabled(false);
+		}
+
 		if (e.getSource().equals(wcbMonatsstatistik)) {
 			if (wcbMonatsstatistik.isSelected()) {
 				wcbEingeschraenkt.setSelected(false);
 				wcbMitBewegungsvorschau.setSelected(false);
+			}
+		}
+
+		if (e.getSource().equals(wcbMitBewegungsvorschau)) {
+			if (wcbMitBewegungsvorschau.isSelected()) {
+				wcbMitNichtFreigegebenenAuftraegen.setEnabled(true);
+
+			} else {
+				wcbMitNichtFreigegebenenAuftraegen.setEnabled(false);
 			}
 		}
 	}
@@ -299,7 +355,10 @@ public class ReportArtikelstatistik extends PanelBasis implements
 						wcbMonatsstatistik.isSelected(),
 						wcbEingeschraenkt.isSelected(),
 						wcbMitHandlagerbewegungen.isSelected(),
-						wcbMitBewegungsvorschau.isSelected(),wcbMitHistory.isSelected());
+						wcbMitBewegungsvorschau.isSelected(),
+						wcbMitNichtFreigegebenenAuftraegen.isSelected(),
+						wcbMitHistory.isSelected(),
+						wcbMitVorgaengern.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

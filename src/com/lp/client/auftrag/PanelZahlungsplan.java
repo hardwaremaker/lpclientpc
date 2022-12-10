@@ -39,15 +39,20 @@ import java.awt.event.ActionEvent;
 import java.util.EventObject;
 
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
+import com.lp.client.frame.component.DialogQuery;
+import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperLabel;
@@ -55,12 +60,18 @@ import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.SystemFilterFactory;
+import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.auftrag.service.AuftragServiceFac;
+import com.lp.server.auftrag.service.MeilensteinDto;
 import com.lp.server.auftrag.service.ZahlungsplanDto;
-import com.lp.server.auftrag.service.ZeitplanDto;
+import com.lp.server.auftrag.service.ZahlungsplanmeilensteinDto;
+import com.lp.server.personal.service.PersonalDto;
+import com.lp.server.util.Facade;
+import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
+import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 /**
  * <p>In diesem Fenster werden Auftragteilnehmer erfasst.
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -95,6 +106,43 @@ public class PanelZahlungsplan extends PanelBasis {
 	WrapperLabel wlaBetragUrsprung = new WrapperLabel();
 	WrapperNumberField wnfBetragUrsprung = new WrapperNumberField();
 	WrapperLabel wlaWaehrungBetrag = new WrapperLabel();
+
+	static final public String ACTION_SPECIAL_MEILENSTEIN = "action_special_meilenstein";
+
+	static final public String ACTION_SPECIAL_TOGGLE_ERLEDIGT = "action_special_toggle_erledigt";
+
+	WrapperButton wbuMeilenstein = new WrapperButton();
+	WrapperTextField wtfMeilenstein = new WrapperTextField();
+
+	WrapperLabel wlaKommentar = new WrapperLabel();
+	WrapperTextField wtfKommentar = new WrapperTextField();
+
+	WrapperLabel wlaErledigt = new WrapperLabel();
+
+	WrapperLabel wlaKommentarLang = new WrapperLabel();
+	WrapperEditorField wefKommentarLang = new WrapperEditorField(
+			getInternalFrame(), "");
+
+	private PanelQueryFLR panelQueryFLRMeilenstein = null;
+
+	void dialogQueryMeilenstein(ActionEvent e) throws Throwable {
+		QueryType[] qt = null;
+		FilterKriterium[] fk = SystemFilterFactory.getInstance()
+				.createFKMandantCNr();
+
+		Integer meilensteinIId = null;
+		if (zahlungsplanDto.getZahlungsplanmeilensteinDto() != null) {
+			meilensteinIId = zahlungsplanDto.getZahlungsplanmeilensteinDto()
+					.getMeilensteinId();
+		}
+
+		panelQueryFLRMeilenstein = new PanelQueryFLR(qt, fk,
+				QueryParameters.UC_ID_MEILENSTEIN, null, intFrame, 
+				LPMain.getTextRespectUISPr("auft.meilenstein"),
+				meilensteinIId);
+
+		new DialogQuery(panelQueryFLRMeilenstein);
+	}
 
 	public PanelZahlungsplan(InternalFrame internalFrame, String add2TitleI,
 			Object key) throws Throwable {
@@ -144,19 +192,38 @@ public class PanelZahlungsplan extends PanelBasis {
 		// wegen Dialogauswahl auf FLR events hoeren
 		getInternalFrame().addItemChangedListener(this);
 
-		wlaTermin.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zahlungsplan.termin"));
-		wlaBetrag.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zahlungsplan.betrag"));
+		wbuMeilenstein.setText(LPMain.getTextRespectUISPr("auft.meilenstein"));
+		wlaKommentar.setText(LPMain.getTextRespectUISPr("auft.zeitplan.kommentar"));
 
-		wlaBetragUrsprung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zahlungsplan.betrag.ursprung"));
+		wlaKommentarLang.setText(LPMain.getTextRespectUISPr(
+				"auft.zeitplan.kommentar"));
+
+		wlaErledigt.setHorizontalAlignment(SwingConstants.LEFT);
+
+		wtfKommentar.setColumnsMax(300);
+
+		wtfMeilenstein.setMandatoryField(true);
+		wtfMeilenstein.setActivatable(false);
+		wtfMeilenstein.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
+
+		wbuMeilenstein.addActionListener(this);
+		wbuMeilenstein.setActionCommand(ACTION_SPECIAL_MEILENSTEIN);
+
+		wlaTermin.setText(LPMain.getTextRespectUISPr("auft.zahlungsplan.termin"));
+		wlaBetrag.setText(LPMain.getTextRespectUISPr("auft.zahlungsplan.betrag"));
+
+		wlaBetragUrsprung.setText(LPMain.getTextRespectUISPr("auft.zahlungsplan.betrag.ursprung"));
 
 		wdfTermin.setMandatoryField(true);
-		
-		wnfBetrag.setMandatoryField(true);
 
-		wnfBetragUrsprung.setActivatable(false);
+		wnfBetrag.setMandatoryField(true);
+		if (!DelegateFactory
+				.getInstance()
+				.getTheJudgeDelegate()
+				.hatRecht(
+						com.lp.server.benutzer.service.RechteFac.RECHT_AUFT_DARF_AUFTRAG_ERLEDIGEN)) {
+			wnfBetragUrsprung.setActivatable(false);
+		}
 
 		wlaWaehrungBetrag.setHorizontalAlignment(SwingConstants.LEFT);
 
@@ -164,7 +231,7 @@ public class PanelZahlungsplan extends PanelBasis {
 
 		jPanelWorkingOn.add(wlaTermin, new GridBagConstraints(0, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 100, 0));
+				new Insets(2, 2, 2, 2), 150, 0));
 		jPanelWorkingOn.add(wdfTermin, new GridBagConstraints(1, iZeile, 4, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -188,22 +255,76 @@ public class PanelZahlungsplan extends PanelBasis {
 				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
+		iZeile++;
+		jPanelWorkingOn.add(wbuMeilenstein, new GridBagConstraints(0, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfMeilenstein, new GridBagConstraints(1, iZeile,
+				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jPanelWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 1,
+				1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jPanelWorkingOn.add(wlaKommentarLang, new GridBagConstraints(0, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wefKommentarLang, new GridBagConstraints(1, iZeile,
+				1, 1, 0.1, 0.1, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jPanelWorkingOn.add(wlaErledigt, new GridBagConstraints(1, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		createAndSaveAndShowButton(
+				"/com/lp/client/res/document_check16x16.png",
+				LPMain.getTextRespectUISPr("auft.zahlungsplanmeilenstein.toggleerledigt"),
+				ACTION_SPECIAL_TOGGLE_ERLEDIGT, null);
+
 	}
 
 	private void setDefaults() throws Throwable {
 		leereAlleFelder(this);
 
-		wdfTermin.setMaximumValue(tpAuftrag.getAuftragDto().getDLiefertermin());
-		wlaWaehrungBetrag.setText(tpAuftrag.getAuftragDto()
-				.getCAuftragswaehrung());
+		wdfTermin.setMaximumValue(tpAuftrag.getAuftragDto().getDFinaltermin());
+		wlaWaehrungBetrag.setText(LPMain.getTheClient().getSMandantenwaehrung());
+		wlaErledigt.setText("");
 
 	}
 
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wdfTermin.getDateEditor().getUiComponent();
+	}
+	
 	protected void eventItemchanged(EventObject eI) throws Throwable {
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
+			if (e.getSource() == panelQueryFLRMeilenstein) {
+				Integer meilensteinIId = (Integer) ((ISourceEvent) e
+						.getSource()).getIdSelected();
 
+				MeilensteinDto meilensteinDto = DelegateFactory.getInstance()
+						.getAuftragServiceDelegate()
+						.meilensteinFindByPrimaryKey(meilensteinIId);
+
+				wtfMeilenstein.setText(meilensteinDto.getBezeichnung());
+
+				if (zahlungsplanDto.getZahlungsplanmeilensteinDto() == null) {
+					zahlungsplanDto
+							.setZahlungsplanmeilensteinDto(new ZahlungsplanmeilensteinDto());
+				}
+
+				zahlungsplanDto.getZahlungsplanmeilensteinDto()
+						.setMeilensteinId(meilensteinIId);
+			}
 		}
 	}
 
@@ -238,57 +359,147 @@ public class PanelZahlungsplan extends PanelBasis {
 
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
 			boolean bNeedNoNewI) throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
 
-			super.eventActionNew(eventObject, true, false);
+		super.eventActionNew(eventObject, true, false);
 
-			this.resetPanel();
+		this.resetPanel();
 
-		} else {
-			tpAuftrag.getAuftragTeilnehmerTop().updateButtons(
-					tpAuftrag.getAuftragTeilnehmerBottom()
-							.getLockedstateDetailMainKey());
-		}
 	}
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
-			super.eventActionUpdate(aE, false);
-		}
+
+		super.eventActionUpdate(aE, false);
+
 	}
 
 	protected void eventActionDelete(ActionEvent e,
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
-			DelegateFactory.getInstance().getAuftragServiceDelegate()
-					.removeZahlungsplan(zahlungsplanDto);
-			this.setKeyWhenDetailPanel(null);
-			super.eventActionDelete(e, false, false);
-		}
+
+		DelegateFactory.getInstance().getAuftragServiceDelegate()
+				.removeZahlungsplan(zahlungsplanDto);
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false);
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_MEILENSTEIN)) {
+			dialogQueryMeilenstein(e);
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_TOGGLE_ERLEDIGT)) {
+			if (zahlungsplanDto.getZahlungsplanmeilensteinDto() != null
+					&& zahlungsplanDto.getZahlungsplanmeilensteinDto().getIId() != null)
+				DelegateFactory
+						.getInstance()
+						.getAuftragServiceDelegate()
+						.toggleZahlungplanmeilensteinErledigt(
+								zahlungsplanDto.getZahlungsplanmeilensteinDto()
+										.getIId());
+
+			tpAuftrag.getAuftragZahlungsplanTop().eventYouAreSelected(false);
+
+			eventYouAreSelected(false);
+		}
+	}
+
+	private void erledigenDeaktivierenWennNoetig() throws Throwable {
+
+		boolean bEnable = false;
+		if (zahlungsplanDto != null && zahlungsplanDto.getIId() != null) {
+			ZahlungsplanmeilensteinDto[] dtos = DelegateFactory
+					.getInstance()
+					.getAuftragServiceDelegate()
+					.zahlungsplanmeilensteinFindByZahlungplanIIdOrderByTErledigt(
+							zahlungsplanDto.getIId());
+
+			if (dtos.length == 1) {
+				bEnable = true;
+			}
+
+		}
+
+		if (this.getHmOfButtons().get(ACTION_SPECIAL_TOGGLE_ERLEDIGT) != null) {
+
+			if (bEnable == true) {
+				this.getHmOfButtons().get(ACTION_SPECIAL_TOGGLE_ERLEDIGT)
+						.getButton().setEnabled(true);
+			} else {
+				this.getHmOfButtons().get(ACTION_SPECIAL_TOGGLE_ERLEDIGT)
+						.getButton().setEnabled(false);
+			}
+		}
 
 	}
 
 	private void resetPanel() throws Throwable {
 		zahlungsplanDto = new ZahlungsplanDto();
+		zahlungsplanDto
+				.setZahlungsplanmeilensteinDto(new ZahlungsplanmeilensteinDto());
 
 		leereAlleFelder(this);
 		setDefaults();
 	}
 
 	private void dto2Components() throws Throwable {
-
+		wlaErledigt.setText("");
 		wnfBetrag.setBigDecimal(zahlungsplanDto.getNBetrag());
 		wnfBetragUrsprung.setBigDecimal(zahlungsplanDto.getNBetragUrsprung());
 
 		wdfTermin
-				.setDate(Helper.addiereTageZuDatum(tpAuftrag.getAuftragDto()
-						.getDLiefertermin(), -zahlungsplanDto
-						.getITageVorLiefertermin()));
+				.setDate(zahlungsplanDto
+						.getTTermin());
+
+		if (zahlungsplanDto.getZahlungsplanmeilensteinDto() != null
+				&& zahlungsplanDto.getZahlungsplanmeilensteinDto()
+						.getMeilensteinId() != null) {
+
+			MeilensteinDto meilensteinDto = DelegateFactory
+					.getInstance()
+					.getAuftragServiceDelegate()
+					.meilensteinFindByPrimaryKey(
+							zahlungsplanDto.getZahlungsplanmeilensteinDto()
+									.getMeilensteinId());
+
+			wtfMeilenstein.setText(meilensteinDto.getBezeichnung());
+
+			wtfKommentar.setText(zahlungsplanDto
+					.getZahlungsplanmeilensteinDto().getCKommentar());
+			wefKommentarLang.setText(zahlungsplanDto
+					.getZahlungsplanmeilensteinDto().getXText());
+
+			ZahlungsplanmeilensteinDto[] dtos = DelegateFactory
+					.getInstance()
+					.getAuftragServiceDelegate()
+					.zahlungsplanmeilensteinFindByZahlungplanIIdOrderByTErledigt(
+							zahlungsplanDto.getIId());
+
+			if (dtos.length > 0) {
+
+				for (int i = 0; i < dtos.length; i++) {
+					if (dtos[i].getTErledigt() != null
+							&& dtos[i].getPersonalIIdErledigt() != null) {
+						PersonalDto personalDtoVerrechnen = DelegateFactory
+								.getInstance()
+								.getPersonalDelegate()
+								.personalFindByPrimaryKey(
+										dtos[i].getPersonalIIdErledigt());
+
+						wlaErledigt
+								.setText(LPMain
+										.getTextRespectUISPr("auft.zahlungsplanmeilenstein.erledigtam")
+										+ " "
+										+ Helper.formatTimestamp(dtos[i]
+												.getTErledigt(), LPMain
+												.getTheClient().getLocUi())
+										+ ", "
+										+ personalDtoVerrechnen.formatAnrede());
+						break;
+					}
+				}
+
+			}
+		}
 
 	}
 
@@ -298,13 +509,22 @@ public class PanelZahlungsplan extends PanelBasis {
 
 		}
 
-		int i = Helper.ermittleTageEinesZeitraumes(wdfTermin.getDate(),
-				new java.sql.Date(tpAuftrag.getAuftragDto().getDLiefertermin()
-						.getTime()));
-
-		zahlungsplanDto.setITageVorLiefertermin(i);
+		zahlungsplanDto.setTTermin(wdfTermin.getTimestamp());
 
 		zahlungsplanDto.setNBetrag(wnfBetrag.getBigDecimal());
+		zahlungsplanDto.setNBetragUrsprung(wnfBetragUrsprung.getBigDecimal());
+
+		if (zahlungsplanDto.getZahlungsplanmeilensteinDto() == null) {
+			zahlungsplanDto
+					.setZahlungsplanmeilensteinDto(new ZahlungsplanmeilensteinDto());
+		}
+
+		zahlungsplanDto.getZahlungsplanmeilensteinDto().setZahlungsplaniId(
+				zahlungsplanDto.getIId());
+		zahlungsplanDto.getZahlungsplanmeilensteinDto().setCKommentar(
+				wtfKommentar.getText());
+		zahlungsplanDto.getZahlungsplanmeilensteinDto().setXText(
+				wefKommentarLang.getText());
 
 	}
 
@@ -326,12 +546,12 @@ public class PanelZahlungsplan extends PanelBasis {
 
 		}
 
-		tpAuftrag.setTitleAuftrag(LPMain.getInstance().getTextRespectUISPr(
-				"auft.title.panel.teilnehmer"));
-
-		tpAuftrag.enablePanelsNachBitmuster();
+		tpAuftrag.setTitleAuftrag(LPMain.getTextRespectUISPr("auft.title.panel.teilnehmer"));
 
 		aktualisiereStatusbar();
+
+		erledigenDeaktivierenWennNoetig();
+
 	}
 
 	private void aktualisiereStatusbar() throws Throwable {
@@ -344,30 +564,8 @@ public class PanelZahlungsplan extends PanelBasis {
 		setStatusbarStatusCNr(tpAuftrag.getAuftragStatus());
 	}
 
-	/**
-	 * Verwerfen der aktuelle Usereingabe und zurueckgehen auf den bestehenden
-	 * Datensatz, wenn einer existiert.
-	 * 
-	 * @param e
-	 *            Ereignis
-	 * @throws Throwable
-	 *             Ausnahme
-	 */
-	protected void eventActionDiscard(ActionEvent e) throws Throwable {
-		super.eventActionDiscard(e);
-
-		tpAuftrag.enablePanelsNachBitmuster();
-	}
-
 	protected String getLockMeWer() throws Exception {
 		return HelperClient.LOCKME_AUFTRAG;
-	}
-
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
-		super.eventActionRefresh(e, bNeedNoRefreshI);
-
-		tpAuftrag.enablePanelsNachBitmuster();
 	}
 
 	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
@@ -377,10 +575,6 @@ public class PanelZahlungsplan extends PanelBasis {
 		if (tpAuftrag.getAuftragDto().getIId() != null) {
 			if (tpAuftrag.getAuftragDto().getStatusCNr()
 					.equals(AuftragServiceFac.AUFTRAGSTATUS_STORNIERT)
-					|| tpAuftrag
-							.getAuftragDto()
-							.getStatusCNr()
-							.equals(AuftragServiceFac.AUFTRAGSTATUS_TEILERLEDIGT)
 					|| tpAuftrag.getAuftragDto().getStatusCNr()
 							.equals(AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
 				lsv = new LockStateValue(

@@ -32,8 +32,11 @@
  *******************************************************************************/
 package com.lp.client.rechnung;
 
+import java.awt.event.ActionEvent;
+
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.pc.LPMain;
+import com.lp.server.rechnung.service.RechnungFac;
 
 public class PanelGutschriftZahlung extends PanelRechnungZahlung {
 	private static final long serialVersionUID = -4409180344072598789L;
@@ -50,5 +53,15 @@ public class PanelGutschriftZahlung extends PanelRechnungZahlung {
 	@Override
 	protected boolean isGutschriftErlaubt() {
 		return false ;
+	}
+	
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
+		super.eventActionRefresh(e, bNeedNoRefreshI);
+	
+		if (tabbedPane instanceof TabbedPaneGutschrift
+				&& getRechnungzahlungDto().getZahlungsartCNr().equals(
+						RechnungFac.ZAHLUNGSART_GUTSCHRIFT)) {	
+			disableDetailModifyButtons();
+		}
 	}
 }

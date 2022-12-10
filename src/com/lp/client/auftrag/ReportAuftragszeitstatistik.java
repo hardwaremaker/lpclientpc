@@ -142,8 +142,8 @@ public class ReportAuftragszeitstatistik extends PanelBasis implements
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		JasperPrintLP jasperPrint = null;
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp = Helper.addiereTageZuTimestamp(wdfBis
+				.getTimestamp(), 1) ;
 
 		jasperPrint = DelegateFactory.getInstance()
 				.getZeiterfassungReportDelegate()

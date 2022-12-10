@@ -50,7 +50,9 @@ import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dynamisch.PanelDynamisch;
 import com.lp.client.pc.LPMain;
+import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
+import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
@@ -324,7 +326,7 @@ private PanelQuery panelQueryAuswahl
       String key)
       throws Throwable {
 
-    if (panelQueryBeschreibung == null) {
+   // if (panelQueryBeschreibung == null) {
       String[] aWhichButtonIUse = {
           PanelBasis.ACTION_NEW,PanelBasis.ACTION_POSITION_VORPOSITIONEINFUEGEN,};
 
@@ -339,7 +341,13 @@ private PanelQuery panelQueryAuswahl
           getInternalFrame(),
           LPMain.getInstance().getTextRespectUISPr(
               "lp.beschreibung"), true);
-
+      panelQueryBeschreibung.addDirektFilter(
+       new FilterKriteriumDirekt("c_name", "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
+						.getTextRespectUISPr("lp.feldname"),
+				FilterKriteriumDirekt.PROZENT_TRAILING, // 
+				true, true, Facade.MAX_UNBESCHRAENKT)); 
+      
       panelBottomBeschreibung = new PanelPanelbeschreibung(
           getInternalFrame(),
           LPMain.getInstance().getTextRespectUISPr(
@@ -349,15 +357,15 @@ private PanelQuery panelQueryAuswahl
           getInternalFrame(),
           panelBottomBeschreibung,
           panelQueryBeschreibung,
-          180);
+          150);
 
       setComponentAt(IDX_PANEL_BESCHREIBUNG, panelSplitBeschreibung);
-    }
+   /* }
     else {
       //filter refreshen.
       panelQueryBeschreibung.setDefaultFilter(
           SystemFilterFactory.getInstance().createFKPanelbeschreibung(key));
-    }
+    }*/
   }
 
 

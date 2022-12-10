@@ -108,7 +108,7 @@ public class ReportAuftragAlle extends PanelReportJournalVerkauf implements
 
 		if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_EINER)) {
 			// wenn noch keiner gewaehlt ist, dann geht der Dialog auf
-			if (vertreterDto.getIId() == null) {
+			if (vertreterDto.getIId() == null && isInitialized()) {
 				wbuVertreter.doClick();
 			}
 
@@ -237,11 +237,14 @@ public class ReportAuftragAlle extends PanelReportJournalVerkauf implements
 				4, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
+		addProvisionsempfaenger();
+		
 		this.setEinschraenkungDatumBelegnummerSichtbar(true);
 		wlaVon2.setVisible(false);
 		wlaBis2.setVisible(false);
 		wtfVon.setVisible(false);
 		wtfBis.setVisible(false);
+		wrbSortierungLieferadresse.setVisible(true);
 		
 		
 		wrbSortierungVertreter.setSelected(true);

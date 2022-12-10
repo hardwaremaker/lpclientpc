@@ -83,6 +83,7 @@ public class ReportProjektzeiten extends PanelBasis implements
 	private WrapperRadioButton wrbSortPersonBelegartBeleg = new WrapperRadioButton();
 	private WrapperRadioButton wrbSortBelegartBelegPerson = new WrapperRadioButton();
 	private WrapperRadioButton wrbSortTaetigkeitDatumPerson = new WrapperRadioButton();
+	private WrapperRadioButton wrbSortDatumAbsteigendPerson = new WrapperRadioButton();
 
 	private ButtonGroup buttonGroupSortierung = new ButtonGroup();
 
@@ -105,6 +106,7 @@ public class ReportProjektzeiten extends PanelBasis implements
 		buttonGroupSortierung.add(wrbSortPersonBelegartBeleg);
 		buttonGroupSortierung.add(wrbSortBelegartBelegPerson);
 		buttonGroupSortierung.add(wrbSortTaetigkeitDatumPerson);
+		buttonGroupSortierung.add(wrbSortDatumAbsteigendPerson);
 
 		wrbSortPersonBelegartBeleg.setSelected(true);
 
@@ -117,7 +119,13 @@ public class ReportProjektzeiten extends PanelBasis implements
 		wrbSortTaetigkeitDatumPerson
 				.setText(LPMain
 						.getTextRespectUISPr("proj.report.projektzeiten.sortierungtaetigkeit"));
+		wrbSortDatumAbsteigendPerson
+		.setText(LPMain
+				.getTextRespectUISPr("proj.report.projektzeiten.sortierung.datum"));
 
+		
+		
+		
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
@@ -139,6 +147,10 @@ public class ReportProjektzeiten extends PanelBasis implements
 		jpaWorkingOn.add(wrbSortTaetigkeitDatumPerson, new GridBagConstraints(1,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wrbSortDatumAbsteigendPerson, new GridBagConstraints(1,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
@@ -152,6 +164,8 @@ public class ReportProjektzeiten extends PanelBasis implements
 			iSort = ProjektReportFac.SORTIERUNG_PROJEKTZEITEN_PERSON_BELEGART_BELEG;
 		} else if (wrbSortTaetigkeitDatumPerson.isSelected()) {
 			iSort = ProjektReportFac.SORTIERUNG_PROJEKTZEITEN_TAETIEKGKEIT_DATUM_PERSON;
+		} else if (wrbSortDatumAbsteigendPerson.isSelected()) {
+			iSort = ProjektReportFac.SORTIERUNG_PROJEKTZEITEN_DATUM_ABSTEIGEND_PERSON;
 		}
 
 		return DelegateFactory.getInstance().getProjektDelegate()

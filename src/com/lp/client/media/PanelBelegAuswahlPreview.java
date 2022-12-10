@@ -90,10 +90,10 @@ public class PanelBelegAuswahlPreview extends PanelBasis implements ListSelectio
 	
 	private static Map<String, Integer> belegartWhereToGoMap = new HashMap<String, Integer>() ;
 	static {
-		belegartWhereToGoMap.put(LocaleFac.BELEGART_PROJEKT, WrapperGotoButton.GOTO_PROJEKT_HISTORY) ;
-		belegartWhereToGoMap.put(LocaleFac.BELEGART_PARTNER, WrapperGotoButton.GOTO_PARTNER_KURZBRIEF) ;
-		belegartWhereToGoMap.put(LocaleFac.BELEGART_LIEFERANT, WrapperGotoButton.GOTO_LIEFERANT_KURZBRIEF) ;
-		belegartWhereToGoMap.put(LocaleFac.BELEGART_KUNDE, WrapperGotoButton.GOTO_KUNDE_KURZBRIEF) ;
+		belegartWhereToGoMap.put(LocaleFac.BELEGART_PROJEKT, com.lp.util.GotoHelper.GOTO_PROJEKT_HISTORY) ;
+		belegartWhereToGoMap.put(LocaleFac.BELEGART_PARTNER, com.lp.util.GotoHelper.GOTO_PARTNER_KURZBRIEF) ;
+		belegartWhereToGoMap.put(LocaleFac.BELEGART_LIEFERANT, com.lp.util.GotoHelper.GOTO_LIEFERANT_KURZBRIEF) ;
+		belegartWhereToGoMap.put(LocaleFac.BELEGART_KUNDE, com.lp.util.GotoHelper.GOTO_KUNDE_KURZBRIEF) ;
 	} ;
 	
 	public PanelBelegAuswahlPreview(InternalFrame internalFrame, 

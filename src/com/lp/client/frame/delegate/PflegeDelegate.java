@@ -32,6 +32,7 @@
  *******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.ArrayList;
 import java.util.Set;
 
 import javax.naming.Context;
@@ -39,10 +40,13 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.partner.service.PartnerServicesFac;
+import com.lp.server.system.service.GeaenderteChargennummernDto;
 import com.lp.server.system.service.PflegeFac;
 import com.lp.server.system.service.SystemFac;
 import com.lp.server.system.service.SystemMultilanguageFac;
 import com.lp.server.system.service.SystemServicesFac;
+import com.lp.server.util.DatumsfilterVonBis;
 
 public class PflegeDelegate extends Delegate {
 	private Context context;
@@ -52,8 +56,8 @@ public class PflegeDelegate extends Delegate {
 	public PflegeDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext(); // getInitialContext();
-			pflegeFac = (PflegeFac) context
-					.lookup("lpserver/PflegeFacBean/remote");
+			pflegeFac = lookupFac(context, PflegeFac.class);
+
 
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -63,6 +67,19 @@ public class PflegeDelegate extends Delegate {
 	public String sp2486(Set<Integer> artikelId) throws ExceptionLP {
 		try {
 			return pflegeFac.sp2486(artikelId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public ArrayList<GeaenderteChargennummernDto> automatischeChargennummernAusWEPsNachtragen(
+			String artikelNummerVon, String artikelnummerBis,
+			DatumsfilterVonBis dVonBis) throws ExceptionLP {
+		try {
+			return pflegeFac.automatischeChargennummernAusWEPsNachtragen(
+					artikelNummerVon, artikelnummerBis, dVonBis,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -84,6 +101,68 @@ public class PflegeDelegate extends Delegate {
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 
+		}
+	}
+
+	public void pj19519() throws ExceptionLP {
+		try {
+			pflegeFac.pj19519(LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+
+		}
+	}
+
+	public ArrayList<String> loseMitErledigtenAuftraegenErledigen()
+			throws ExceptionLP {
+		try {
+			return pflegeFac.loseMitErledigtenAuftraegenErledigen(LPMain
+					.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public ArrayList<String> sp9000(boolean bFalscheAnsprechpartnerLeeren)
+			throws ExceptionLP {
+		try {
+			return pflegeFac.sp9000(bFalscheAnsprechpartnerLeeren, LPMain
+					.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	public void telefonnummerntabelleSynchronisieren()
+			throws ExceptionLP {
+		try {
+			 pflegeFac.telefonnummerntabelleSynchronisieren(LPMain
+					.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		
+		}
+	}
+	public void textAusPdfInXKommentarAktualisieren()
+			throws ExceptionLP {
+		try {
+			 pflegeFac.textAusPdfInXKommentarAktualisieren(LPMain
+					.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		
+		}
+	}
+	public int migriereChargeneigenschaftenUndChargenDokumenteWgSP4129()
+			throws ExceptionLP {
+		try {
+			return pflegeFac
+					.migriereChargeneigenschaftenUndChargenDokumenteWgSP4129(LPMain
+							.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return 0;
 		}
 	}
 }

@@ -48,6 +48,7 @@ import net.miginfocom.swing.MigLayout;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperDateRangeController;
 import com.lp.client.frame.component.WrapperLabel;
@@ -78,6 +79,7 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 	private JRadioButton wrbAlleangestellte = new JRadioButton();
 	private JRadioButton wrbAllepersonen = new JRadioButton();
 	private JRadioButton wrbMeineAbteilung = new JRadioButton();
+	private WrapperComboBox wcbAbteilungen = new WrapperComboBox();
 	private PersonalDto personalDto = null;
 
 	protected ButtonGroup buttonGroupSortierung = new ButtonGroup();
@@ -96,7 +98,7 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 	protected WrapperDateRangeController wdrBereich = null;
 
 	private WrapperCheckBox wcbPlusVersteckte = new WrapperCheckBox();
-	private WrapperCheckBox wcbNurAnwesende = new WrapperCheckBox();
+	protected WrapperCheckBox wcbNurAnwesende = new WrapperCheckBox();
 
 	public ReportZeiterfassung(InternalFrame internalFrame,
 			Integer personalIId, String add2Title) throws Throwable {
@@ -130,6 +132,16 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 		return wcbNurAnwesende.isSelected();
 	}
 
+	public Integer getKostenstelleIIdAbteilung() {
+		
+		if(wrbMeineAbteilung.isSelected()) {
+			return (Integer)wcbAbteilungen.getKeyOfSelectedItem();
+		}else {
+			return null;
+		}
+		
+	}
+	
 	public Integer getPersonAuswahl() {
 		int iReturn = -1;
 		if (wrbSelektierteperson.isSelected()) {
@@ -144,7 +156,7 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 			iReturn = ZeiterfassungFac.REPORT_SONDERZEITENLISTE_OPTION_ALLE_ARBEITER;
 
 		} else if (wrbMeineAbteilung.isSelected()) {
-			iReturn = ZeiterfassungFac.REPORT_SONDERZEITENLISTE_OPTION_MEINE_ABTEILUNG;
+			iReturn = ZeiterfassungFac.REPORT_SONDERZEITENLISTE_OPTION_EINE_ABTEILUNG;
 		}
 		return iReturn;
 	}
@@ -174,9 +186,18 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 		wcbPlusVersteckte.setText(LPMain.getTextRespectUISPr("lp.versteckte"));
 		wcbNurAnwesende.setText(LPMain
 				.getTextRespectUISPr("pers.zeiterfassung.report.nuranwesende"));
-		wrbMeineAbteilung.setText(LPMain
-				.getTextRespectUISPr("zeiterfassung.report.meineabteilung"));
+		wrbMeineAbteilung.setToolTipText(LPMain
+				.getTextRespectUISPr("lp.abteilung"));
+		wcbAbteilungen.setToolTipText(LPMain
+				.getTextRespectUISPr("lp.abteilung"));
 
+		
+		wrbSelektierteperson.addActionListener(this);
+		wrbAllearbeiter.addActionListener(this);
+		wrbAlleangestellte.addActionListener(this);
+		wrbAllepersonen.addActionListener(this);
+		wrbMeineAbteilung.addActionListener(this);
+		
 		buttonGroupAuswertung.add(wrbSelektierteperson);
 		buttonGroupAuswertung.add(wrbAllepersonen);
 		buttonGroupAuswertung.add(wrbAllearbeiter);
@@ -220,7 +241,7 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 				.hatRecht(RechteFac.RECHT_PERS_SICHTBARKEIT_ALLE);
 
 		jpaWorkingOn = new JPanel(new MigLayout("wrap 4, hidemode 2",
-				"[25%,fill|25%,fill|20%,fill]5%[30%,fill]"));
+				"[20%,fill|20%,fill|30%,fill]5%[40%,fill]"));
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
@@ -230,15 +251,36 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 		jpaWorkingOn.add(wlaSortierung);
 
 		jpaWorkingOn.add(wrbSelektierteperson, "newline, skip");
+		
+		jpaWorkingOn.add(wrbMeineAbteilung,"split 2");
+		jpaWorkingOn.add(wcbAbteilungen,"pushx, growx");
+		wcbAbteilungen.setMandatoryField(true);
 		if (sichtbarkeitAlle
 				|| DelegateFactory.getInstance().getTheJudgeDelegate()
 						.hatRecht(RechteFac.RECHT_PERS_SICHTBARKEIT_ABTEILUNG)) {
-			jpaWorkingOn.add(wrbMeineAbteilung);
-			if (personalDto == null
-					|| personalDto.getKostenstelleIIdAbteilung() == null) {
-				wrbMeineAbteilung.setEnabled(false);
+			
+			
+			//ComboBox befuellen
+			wcbAbteilungen.setMap(DelegateFactory.getInstance().getSystemDelegate().getAllKostenstelle(),false);
+			
+			PersonalDto personalDtoUser= DelegateFactory.getInstance().getPersonalDelegate()
+				.personalFindByPrimaryKey(LPMain.getTheClient().getIDPersonal());
+			
+			if(personalDtoUser.getKostenstelleIIdAbteilung()!=null) {
+				wcbAbteilungen.setKeyOfSelectedItem(personalDtoUser.getKostenstelleIIdAbteilung());
 			}
+			
+			
+		}else {
+			wrbMeineAbteilung.setEnabled(false);
+			
 		}
+		
+		wcbAbteilungen.setEnabled(false);
+		wcbAbteilungen.setMandatoryField(false);
+
+		
+		
 		jpaWorkingOn.add(wrbSortPersonalnummer, "cell 3 1");
 
 		if (sichtbarkeitAlle)
@@ -254,7 +296,7 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
 			jpaWorkingOn.add(wcbPlusVersteckte, "newline, skip");
-			jpaWorkingOn.add(wcbNurAnwesende);
+			jpaWorkingOn.add(wcbNurAnwesende, "w 280!");
 			
 			wcbNurAnwesende.addActionListener(this);
 
@@ -274,6 +316,14 @@ public abstract class ReportZeiterfassung extends PanelBasis implements
 		} else {
 			wcbPlusVersteckte.setEnabled(true);
 		}
+		
+		
+		if(wrbMeineAbteilung.isSelected()){
+			wcbAbteilungen.setEnabled(true);
+		}else {
+			wcbAbteilungen.setEnabled(false);
+		}
+		
 	}
 	
 	protected void addZeitraumAuswahl() {

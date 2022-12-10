@@ -41,14 +41,17 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 import javax.swing.ButtonGroup;
+import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelDialogKriterien;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperRadioButton;
+import com.lp.client.frame.component.WrapperSpinner;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.angebot.service.AngebotFac;
@@ -94,6 +97,9 @@ public class PanelDialogKriterienAuftragUebersicht
 	private WrapperRadioButton wrbGeschaeftsjahr = null;
 	private WrapperLabel wlaPeriode = null;
 
+	
+	private WrapperSpinner wspPlusJahre = new WrapperSpinner(0, 0,
+			999);
 
   public PanelDialogKriterienAuftragUebersicht(InternalFrame oInternalFrameI,
                                                String title) throws
@@ -156,6 +162,7 @@ public class PanelDialogKriterienAuftragUebersicht
 
     wlaGeschaeftsjahresbeginn = new WrapperLabel(LPMain.getTextRespectUISPr("lp.geschaeftsjahresbeginn"));
     wlaGeschaeftsjahresbeginn.setHorizontalAlignment(SwingConstants.LEADING);
+    HelperClient.setMinimumAndPreferredSize(wlaGeschaeftsjahresbeginn, HelperClient.getSizeFactoredDimension(120));
     wlaEmptyLabel4 = new WrapperLabel();
     wlaDatum = new WrapperLabel();
     wlaDatum.setHorizontalAlignment(SwingConstants.LEADING);
@@ -251,6 +258,24 @@ public class PanelDialogKriterienAuftragUebersicht
                                                , GridBagConstraints.CENTER,
                                                GridBagConstraints.BOTH,
                                                new Insets(2, 2, 2, 2), 0, 0));
+    
+    jpaWorkingOn.add(new JLabel("+"),
+            new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0
+                                   , GridBagConstraints.CENTER,
+                                   GridBagConstraints.BOTH,
+                                   new Insets(2, 2, 2, 2), 0, 0));
+    jpaWorkingOn.add(wspPlusJahre,
+            new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0
+                                   , GridBagConstraints.CENTER,
+                                   GridBagConstraints.BOTH,
+                                   new Insets(2, 2, 2, 2), 25, 0));
+    jpaWorkingOn.add(new JLabel(LPMain.getTextRespectUISPr("auft.umsatzuebersicht.jahre")),
+            new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0
+                                   , GridBagConstraints.CENTER,
+                                   GridBagConstraints.BOTH,
+                                   new Insets(2, 2, 2, 2), 0, 0));
+    
+    
 
      // Zeile
      iZeile++;
@@ -366,6 +391,15 @@ public class PanelDialogKriterienAuftragUebersicht
     }
 
     aAlleKriterien[AuftragFac.UMSATZUEBERSICHT_IDX_KRIT_AUSWERTUNG] = fkAuswertung;
+    
+    FilterKriterium fkPlusjahre = new FilterKriterium(
+   		 AuftragFac.KRIT_UEBERSICHT_PLUS_JAHRE,
+         true,
+         wspPlusJahre.getInteger().toString(),
+         FilterKriterium.OPERATOR_EQUAL,
+         false);
+    
+    aAlleKriterien[AuftragFac.UMSATZUEBERSICHT_IDX_KRIT_PLUS_JAHRE] = fkPlusjahre;
 
     return aAlleKriterien;
   }

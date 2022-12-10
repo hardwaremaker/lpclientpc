@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.jms;
 
-
 import java.io.IOException;
 
 import javax.jms.InvalidClientIDException;
@@ -60,83 +59,93 @@ import com.lp.server.system.jms.service.LPInfoTopicBean;
  *
  * @version not attributable Date $Date: 2011/12/14 16:42:17 $
  */
-public class InfoTopic extends LPTopic
-implements ILPTopic
-{
-	
+public class InfoTopic extends LPTopic implements ILPTopic {
+
 	private final String TOPIC_FILTER_RECEIVER = "topic_receiver";
 	private final String TOPIC_FILTER_ALL_USER = "topic_filter_all_user";
 
-//	private TopicSubscriber subscrib = null;
-	
+	// private TopicSubscriber subscrib = null;
+
 	public InfoTopic(Desktop desktopI) throws NamingException, ExceptionLP {
 		super.desktop = desktopI;
 		super.ctx = new InitialContext();
 		try {
-			super.subscribe(LPInfoTopicBean.DESTINATION_INFOTOPIC_NAME, false, this);
+			super.subscribe(LPInfoTopicBean.DESTINATION_INFOTOPIC_NAME, false,
+					this);
 		} catch (JMSException e) {
 			if (e instanceof InvalidClientIDException) {
 				// erster Client bereits registriert
 			} else {
-				throw new ExceptionLP(0,e.getMessage(),e);
+				throw new ExceptionLP(0, e.getMessage(), e);
 			}
 		} catch (InterruptedException e) {
-			throw new ExceptionLP(0,e.getMessage(),e);
+			throw new ExceptionLP(0, e.getMessage(), e);
 		}
 	}
 
-	public void send2AllUser(String sMessageI)
-	throws NamingException, JMSException {
+	public void send2AllUser(String sMessageI) throws NamingException,
+			JMSException {
 		super.send(sMessageI);
-/*		Topic topic = null;
-		TopicConnectionFactory fact = (TopicConnectionFactory) ctx.lookup(
-				"ConnectionFactory");
-		topic = (Topic) ctx.lookup(LPInfoTopicBean.DESTINATION_INFOTOPIC_NAME);
-
-		connect = fact.createTopicConnection();
-		session = connect.createTopicSession(false, Session.AUTO_ACKNOWLEDGE);
-		TopicPublisher sender = session.createPublisher(topic);
-
-		connect.start();
-
-		TextMessage tm = session.createTextMessage(sMessageI);
-		tm.setJMSPriority(ILPTopic.LP_JMS_PRIORITY_LOW);
-		tm.setStringProperty(TOPIC_FILTER_RECEIVER, TOPIC_FILTER_ALL_USER);
-		sender.publish(tm); */
+		/*
+		 * Topic topic = null; TopicConnectionFactory fact =
+		 * (TopicConnectionFactory) ctx.lookup( "ConnectionFactory"); topic =
+		 * (Topic) ctx.lookup(LPInfoTopicBean.DESTINATION_INFOTOPIC_NAME);
+		 * 
+		 * connect = fact.createTopicConnection(); session =
+		 * connect.createTopicSession(false, Session.AUTO_ACKNOWLEDGE);
+		 * TopicPublisher sender = session.createPublisher(topic);
+		 * 
+		 * connect.start();
+		 * 
+		 * TextMessage tm = session.createTextMessage(sMessageI);
+		 * tm.setJMSPriority(ILPTopic.LP_JMS_PRIORITY_LOW);
+		 * tm.setStringProperty(TOPIC_FILTER_RECEIVER, TOPIC_FILTER_ALL_USER);
+		 * sender.publish(tm);
+		 */
 	}
 
 	public void onMessage(Message message) {
-		//super.onMessage(message);
+		// super.onMessage(message);
 		try {
 			TextMessage msg = (TextMessage) message;
-			LPMain.getInstance().getInfoTopicBuffer().add2InfoTopicBuffer(msg.getText());
-			
-			String msgtoshow;
-			if (LPMain.getInstance().isLPAdmin()) {
-				msgtoshow = message.toString();
+
+			if (msg != null && msg.getText() !=null 
+					&& msg.getText().equals(LPInfoTopicBean.NACHRICHTEN_AKTUALISIEREN)) {
+				LPMain.getInstance().getDesktop().getDesktopStatusBar()
+						.showPopupWennNeueNachrichtenVerfuegbar(false);
 			} else {
-				msgtoshow = msg.getText();
+
+				LPMain.getInstance().getInfoTopicBuffer()
+						.add2InfoTopicBuffer(msg.getText());
+
+				String msgtoshow;
+				// if
+				// (LPMain.getInstance().getBenutzernameRaw().startsWith("LPAdmin"))
+				// {
+				if (LPMain.getInstance().isLPAdmin()) {
+					msgtoshow = message.toString();
+				} else {
+					msgtoshow = msg.getText();
+				}
+				JOptionPane.showMessageDialog(getDesktop(), msgtoshow,
+						LPMain.getTextRespectUISPr("jms.info.titel"),
+						JOptionPane.INFORMATION_MESSAGE);
 			}
-			JOptionPane.showMessageDialog(getDesktop(), msgtoshow, 
-					LPMain.getTextRespectUISPr("jms.info.titel"),
-					JOptionPane.INFORMATION_MESSAGE);
-		}
-		catch (JMSException ex) {
+		} catch (JMSException ex) {
 			System.out.println(ex.getMessage());
-		}
-		catch (IOException ex) {
+		} catch (IOException ex) {
 			System.out.println(ex.getMessage());
 		}
 	}
-	
+
 	public void finalize() throws Throwable {
-//		try {
-//			if (null != subscrib) {
-//				subscrib.close();
-//			}
-//		}
-//		catch (Exception ex) {}
+		// try {
+		// if (null != subscrib) {
+		// subscrib.close();
+		// }
+		// }
+		// catch (Exception ex) {}
 		super.finalize();
 	}
-	
+
 }

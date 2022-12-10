@@ -82,7 +82,7 @@ public class PanelPartnerKontakt extends PanelKontakt {
 
 		if (getKontaktDto() != null) {
 			getKontaktDto().setPartnerIId(
-					getInternalFramePartner().getTpPartner().getPartnerDto()
+					getInternalFramePartner().getTpPartner().getServicePartnerDto()
 							.getIId());
 		}
 
@@ -100,7 +100,7 @@ public class PanelPartnerKontakt extends PanelKontakt {
 	
 
 	protected PartnerDto getPartnerDto() {
-		return getInternalFramePartner().getTpPartner().getPartnerDto();
+		return getInternalFramePartner().getTpPartner().getServicePartnerDto();
 	}
 
 	protected void eventActionDelete(ActionEvent e,

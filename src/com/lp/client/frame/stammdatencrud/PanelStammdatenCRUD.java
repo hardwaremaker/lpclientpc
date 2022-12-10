@@ -55,6 +55,7 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.util.EJBExceptionLP;
@@ -1086,6 +1087,14 @@ private GridBagLayout gridBagLayoutAll = null;
           dWeighty = 1.0;
           iFill = GridBagConstraints.BOTH;
         }
+        
+        
+        if(handler.getControl(i).getComponent() instanceof WrapperNumberField) {
+        	if(handler.getControl(i).getDTyp().equals("java.lang.Integer")) {
+        		((WrapperNumberField)handler.getControl(i).getComponent()).setFractionDigits(0);
+        	}
+        }
+        
         jPanelWorkingOn.add(handler.getControl(i).getComponent(),
                             new GridBagConstraints(1, i, 1, 1, 0.1, dWeighty,
             GridBagConstraints.CENTER,

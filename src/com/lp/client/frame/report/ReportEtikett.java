@@ -91,7 +91,7 @@ public abstract class ReportEtikett
     wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
     wnfExemplare.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
     wnfExemplare.setFractionDigits(0);
-    wnfExemplare.setMaximumIntegerDigits(3);
+    wnfExemplare.setMaximumIntegerDigits(5);
 
     this.setLayout(new GridBagLayout());
     this.add(jpaWorkingOn,

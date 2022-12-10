@@ -33,15 +33,19 @@
 package com.lp.client.pc;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -51,6 +55,10 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 import javax.swing.FocusManager;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
@@ -70,17 +78,23 @@ import com.lp.client.jms.TopicFert;
 import com.lp.client.jms.TopicGf;
 import com.lp.client.jms.TopicManage;
 import com.lp.client.jms.TopicQs;
+import com.lp.client.remote.CTIServer;
 import com.lp.client.util.ClientConfiguration;
+import com.lp.client.util.IconFactory;
+import com.lp.client.util.feature.FeatureContext;
+import com.lp.client.util.feature.FeatureState;
+import com.lp.client.util.feature.HvFeatures;
 import com.lp.client.zeiterfassung.f630.ZETimer;
 import com.lp.server.benutzer.service.BenutzerDto;
 import com.lp.server.benutzer.service.BenutzermandantsystemrolleDto;
 import com.lp.server.benutzer.service.LogonFac;
+import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.TheClientDto;
+import com.lp.server.util.HvOptional;
 import com.lp.util.Helper;
-import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 
-//@SuppressWarnings("static-access")
 /*
  * <P> <b>frame</b>.<BR> Hauptprogramm der Lp-Anwendung, welches ein
  * Anmeldefenster anzeigt. <BR> Singelton. <BR> Fungiert als TheApp. <BR> </P>
@@ -93,7 +107,7 @@ import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 public class LPMain implements ICommand {
 	// private static LPQueueListener lpqueue = null;
 
-//	protected LpLogger myLogger = null;
+	// protected LpLogger myLogger = null;
 	protected Logger myLogger = null;
 
 	// kommt von den Resourcebundels
@@ -102,7 +116,7 @@ public class LPMain implements ICommand {
 	private Locale locUISprache = null;
 
 	private ResourceBundle messagesBundel = null;
-//	private ResourceBundle lpBundel = null;
+	// private ResourceBundle lpBundel = null;
 	private Desktop desktop = null;
 	private String cNrUser = null;
 	private TheClientDto theClientDto = null;
@@ -114,16 +128,15 @@ public class LPMain implements ICommand {
 
 	// nur hier stehen fuer den ganzen lpclientpc die Pfade, Dateiname, ...
 	static final private String FS = File.separator;
-	static final private String DIR_RESOURCE = "." + FS + "classes" + FS
-			+ "com" + FS + "lp" + FS + "client" + FS + "res";
+	static final private String DIR_RESOURCE = "." + FS + "classes" + FS + "com" + FS + "lp" + FS + "client" + FS
+			+ "res";
 	static final private String FILE_NAME_RESOURCE = "messages";
 	static final public String RESOURCE_BUNDEL_ALLG = "com.lp.client.res.messages";
 
 	static final public String RESOURCE_BUNDEL_ZESTIFTE = "com.lp.client.zeiterfassung.f630.zestifte";
 
-//	static final private String RESOURCE_BUNDEL_LP = "com.lp.client.res.lp";
-	static private String XMLFILEPATH = "com" + FS + "lp" + FS + "client" + FS
-			+ "frame" + FS + "stammdatencrud";
+	// static final private String RESOURCE_BUNDEL_LP = "com.lp.client.res.lp";
+	static private String XMLFILEPATH = "com" + FS + "lp" + FS + "client" + FS + "frame" + FS + "stammdatencrud";
 
 	static private Date S_VERSION_HV_EXPIRES = null;
 	static private String S_VERSION_HV_MODULNR = null;
@@ -151,13 +164,13 @@ public class LPMain implements ICommand {
 
 	private Boolean lpadmin;
 
-	private LPMessages errorMessageHandler = null ;
-	
-	private static Logger Log = Logger.getLogger(LPMain.class) ;
-	
-	
-	private IDesktopController desktopController ;
-	
+
+	private LPMessages errorMessageHandler = null;
+
+	private static Logger Log = Logger.getLogger(LPMain.class);
+
+	private IDesktopController desktopController;
+
 	public String getLastImportDirectory() {
 		return lastImportDirectory;
 	}
@@ -174,8 +187,7 @@ public class LPMain implements ICommand {
 	}
 
 	/**
-	 * @param pAgilpro
-	 *            the aGILPRO to set
+	 * @param pAgilpro the aGILPRO to set
 	 */
 	public void setAGILPRO(boolean pAgilpro) {
 		AGILPRO = pAgilpro;
@@ -187,10 +199,11 @@ public class LPMain implements ICommand {
 
 	private LPMain() {
 		// Singelton
-//		myLogger = (LpLogger) com.lp.client.util.logger.LpLogger.getInstance(this.getClass());
-		myLogger = Logger.getLogger(this.getClass()) ;
-		desktopController = new DesktopController() ;
-		
+		// myLogger = (LpLogger)
+		// com.lp.client.util.logger.LpLogger.getInstance(this.getClass());
+		myLogger = Logger.getLogger(this.getClass());
+		desktopController = new DesktopController();
+
 		try {
 			getUILocales();
 		} catch (Throwable ex) {
@@ -199,13 +212,13 @@ public class LPMain implements ICommand {
 	}
 
 	public void setDesktopController(IDesktopController desktopController) {
-		this.desktopController = desktopController ;
+		this.desktopController = desktopController;
 	}
 
 	public IDesktopController getDesktopController() {
-		return desktopController ;
+		return desktopController;
 	}
-	
+
 	/**
 	 * Hole das Singelton LPMain.
 	 * 
@@ -219,49 +232,170 @@ public class LPMain implements ICommand {
 	}
 
 	private static void setSystemPropertyFromJnlp(String argumentString) {
-		int index = argumentString.indexOf("=") ;
-		String key = argumentString.substring(0, index) ;
-		String value = argumentString.substring(index + 1) ;
+		int index = argumentString.indexOf("=");
+		String key = argumentString.substring(0, index);
+		String value = argumentString.substring(index + 1);
 
-		Log.debug("Setting SystemProperty '" + key + "' to value '" + value + "'") ;
-		System.setProperty(key, value) ;
+		Log.debug("Setting SystemProperty '" + key + "' to value '" + value + "'");
+		System.setProperty(key, value);
 	}
-	
+
 	private static void setSystemProperties() {
 		setSystemPropertyImpl("jnlp.java.naming.provider.url");
 		setSystemPropertyImpl("jnlp.java.naming.factory.initial");
 	}
 
 	private static void setSystemPropertyImpl(String key) {
-		String value = System.getProperty(key) ;
-		Log.debug("Getting property'" + key + "' with value '" + value + "'") ;		
-		if(value != null) {
+		String value = System.getProperty(key);
+		Log.debug("Getting property'" + key + "' with value '" + value + "'");
+		if (value != null) {
 			setSystemPropertyFromJnlp(key.substring(5) + "=" + value);
 		}
 	}
+
+	/**
+	 * Die DialogFactory.showModalDialog(...) Methoden setzen bereits
+	 * bei einer funktionierenden Server-Kommunikation auf. Da auch nicht
+	 * sichergestellt ist, dass sich diese Methoden nicht aendern - 
+	 * wie mit PJ21575 passiert - hier bewusst ein Duplikat.
+	 * 
+	 * @param title
+	 * @param message
+	 */
+	private static void baseModalDialog(JFrame parentFrame, String title, String message) {
+		JOptionPane pane = InternalFrame.getNarrowOptionPane(100);
+		String s = message.replace("\\n", "\r\n").replace("\\r", "");
+		pane.setMessage(s);
+		pane.setMessageType(JOptionPane.INFORMATION_MESSAGE);
+
+		JDialog dialog = pane.createDialog(parentFrame, title);
+		dialog.setIconImage(IconFactory.getHeliumv().getImage());
+//		try {
+//			dialog.setIconImage(ImageIO.read(pane.getClass()
+//					.getResource("/com/lp/client/res/heliumv.png")));
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+		dialog.setVisible(true);
+	}
+
+	private static void setupDefaultsFromProperties(HvOptional<String> context) {
+		// TODO Das bringt Stacktrace in Log wenn Property-Datei nicht existiert
+		try {
+			PropertyParams params = PropertyParams.load();
+			params.apply(context.orElse(PropertyParams.defaultContext));
+		} catch (FileNotFoundException e) {
+		} catch (IOException e) {
+		}
+	}
 	
+	private static void verifyMandatoryProperties(HvOptional<String> context) {
+		if(SystemProperties.providerUrl().isPresent() && 
+				SystemProperties.factoryClass().isPresent()) return; 
+
+		JFrame frame = new JFrame();
+		DialogServerParameter serverParam = new DialogServerParameter(frame);
+		serverParam.pack();
+		serverParam.setLocationRelativeTo(frame);
+		serverParam.setVisible(true);
+		
+		HvOptional<String> newUrl = serverParam.serverUrl();
+		HvOptional<Boolean> serverType = serverParam.serverType();
+		if(newUrl.isPresent() && serverType.isPresent()) {
+			String prefix = context.orElse(PropertyParams.defaultContext);
+			try {
+				PropertyParams params = PropertyParams.loadOrEmpty();
+				params.setProviderUrl(prefix, newUrl.get());
+				params.setFactoryClass(prefix, serverType.get());
+				params.apply(prefix);
+				params.store();
+			} catch (FileNotFoundException e) {
+				Log.error("Couldn't open parameterproperties", e);
+				baseModalDialog(frame, 	
+						"Speichern der Parameterdatei fehlgeschlagen",
+						"Parameterdatei kann nicht ge\u00f6ffnet werden");
+//				DialogFactory.showModalDialog(
+//						"Speichern der Parameterdatei fehlgeschlagen",
+//						"Parameterdatei kann nicht ge\u00f6ffnet werden");
+			} catch (IOException e) {
+				Log.error("Couldn't write parameterproperties", e);
+				baseModalDialog(frame,
+						"Speichern der Parameterdatei fehlgeschlagen",
+						"Parameterdatei kann nicht geschrieben werden");
+//				DialogFactory.showModalDialog(
+//						"Speichern der Parameterdatei fehlgeschlagen",
+//						"Parameterdatei kann nicht geschrieben werden");
+			}
+		} else {
+			JOptionPane.showConfirmDialog(frame,
+					"Die Server-Parameter fehlen, eine Verbindung kann nicht hergestellt werden.\nDas Programm wird beendet.",
+					"Konfigurationsproblem", JOptionPane.DEFAULT_OPTION, JOptionPane.ERROR_MESSAGE);
+			System.exit(1);
+		}
+	}
 	
 	/**
 	 * The App: ClientPC. Pleased to meet you.
 	 * 
-	 * @param args
-	 *            String[]
-	 * @throws UnknownHostException 
+	 * @param args String[]
+	 * @throws UnknownHostException
 	 */
 	public static void main(String[] args) throws UnknownHostException {
 
-		Log.debug("Starting main with '" + args.length + "' parameters ...") ;
+		Log.info("Starting main with '" + args.length + "' parameters ...");
+
+		// Wenn WILDFLY
+		RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+		List<String> arguments = runtimeMxBean.getInputArguments();
+
 		
+		
+		HvOptional<String> context = SystemProperties.featureContextParam();
+		if(context.isPresent()) { // -Dhv.feature.contextparam=value
+			FeatureState fs = new FeatureState(HvFeatures.ContextParam, true);
+			FeatureContext.getManager().setFeatureState(fs);
+
+			Defaults.getInstance()
+				.setParameterContext(context);
+			setupDefaultsFromProperties(context);		
+		} else {
+			if(HvFeatures.ContextParam.isActive()) { // feature.properties
+				context = HvOptional
+						.ofNullable(System.getenv("HV_CONTEXT"));
+				Defaults.getInstance()
+					.setParameterContext(context);
+				setupDefaultsFromProperties(context);
+			}			
+		}
+		
+//		boolean osxFileDialog = HvFeatures.OSXFileDialog.isActive();
+
 		// read application parameters
 		if (args != null && args.length > 0) {
 			for (int i = 0; i < args.length; i++) {
-				Log.debug("Param " + i + " [" + args[i] + "]") ;
+				Log.debug("Param " + i + " [" + args[i] + "]");
 
+				if("--feature=ContextParam".equals(args[i])) {
+					FeatureState fs = new FeatureState(HvFeatures.ContextParam, true);
+					FeatureContext.getManager().setFeatureState(fs);
+				}
+				
+				if (args[i].startsWith("--context=")) {
+					String s = args[i];
+					s = s.substring(s.indexOf("=") + 1);
+
+					context = HvOptional.ofNullable(s);
+					Defaults.getInstance().setParameterContext(context);
+					if(HvFeatures.ContextParam.isActive()) {
+						setupDefaultsFromProperties(context);
+					}
+				}
+				
 				// neue Komponenten-Benennung?
 				if (args[i].startsWith("--enable-component-naming")) {
 					String s = args[i];
 					boolean enabled = true;
-					if(s.indexOf("=") > -1) {
+					if (s.indexOf("=") > -1) {
 						s = s.substring(s.indexOf("=") + 1);
 						enabled = !s.equals("0");
 					}
@@ -273,28 +407,24 @@ public class LPMain implements ICommand {
 					Defaults.getInstance().setVerbose(true);
 				}
 
-				else if(args[i].startsWith("--jnlp.")) {
-					setSystemPropertyFromJnlp(args[i].substring(7)) ;
+				else if (args[i].startsWith("--jnlp.")) {
+					setSystemPropertyFromJnlp(args[i].substring(7));
 				}
-				
+
 				// System - Look and feel
 				else if (args[i].equalsIgnoreCase("--laf-system")) {
-					Defaults.getInstance().setDefaultLookAndFeel(
-							javax.swing.UIManager
-									.getSystemLookAndFeelClassName());
+					Defaults.getInstance().setDefaultLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
 				}
 
 				// Cross-platform LookAndFeel
 				else if (args[i].equalsIgnoreCase("--laf-java")) {
-					Defaults.getInstance().setDefaultLookAndFeel(
-							javax.swing.UIManager
-									.getCrossPlatformLookAndFeelClassName());
+					Defaults.getInstance()
+							.setDefaultLookAndFeel(javax.swing.UIManager.getCrossPlatformLookAndFeelClassName());
 				}
 
 				// Kunststoff LookAndFeel
 				else if (args[i].equalsIgnoreCase("--laf-kunststoff")) {
-					Defaults.getInstance().setDefaultLookAndFeel(
-							Desktop.LAF_CLASS_NAME_KUNSTSTOFF);
+					Defaults.getInstance().setDefaultLookAndFeel(Desktop.LAF_CLASS_NAME_KUNSTSTOFF);
 				}
 				// Hintergrundbild deaktivieren
 				else if (args[i].equalsIgnoreCase("--disable-background")) {
@@ -327,56 +457,70 @@ public class LPMain implements ICommand {
 				} else if (args[i].equalsIgnoreCase("--maximized")) {
 					Defaults.getInstance().setMaximized(true);
 				} else if (args[i].startsWith("--enabledirekthilfe")) {
-//					String s = args[i];
-//					s = s.substring(s.indexOf("=") + 1);
-//					boolean enabled = !s.equals("0");
-//					Defaults.getInstance().setDirekthilfeEnabled(enabled);
-					Defaults.getInstance().setDirekthilfeEnabled(
-							getBooleanFromArgs(args[i], true));
+					// String s = args[i];
+					// s = s.substring(s.indexOf("=") + 1);
+					// boolean enabled = !s.equals("0");
+					// Defaults.getInstance().setDirekthilfeEnabled(enabled);
+					Defaults.getInstance().setDirekthilfeEnabled(getBooleanFromArgs(args[i], true));
 				} else if (args[i].startsWith("--showiids")) {
 					Defaults.getInstance().setShowIIdColumn(true);
 				} else if (args[i].startsWith("--debuggui")) {
 					Defaults.getInstance().setbDebugGUI(true);
-				} else  if(args[i].startsWith("--refreshtitle")) {
-					Defaults.getInstance().setRefreshTitle(
-							getBooleanFromArgs(args[i], true)) ;					
-				} else if(args[i].startsWith("--usewaitcursor")) {
-					Defaults.getInstance().setUseWaitCursor(
-							getBooleanFromArgs(args[i], true)) ;					
+				} else if (args[i].startsWith("--refreshtitle")) {
+					Defaults.getInstance().setRefreshTitle(getBooleanFromArgs(args[i], true));
+				} else if (args[i].startsWith("--usewaitcursor")) {
+					Defaults.getInstance().setUseWaitCursor(getBooleanFromArgs(args[i], true));
+				} else if (args[i].startsWith("--checkresolution")) {
+					Defaults.getInstance().setCheckResolution(getBooleanFromArgs(args[i], true));
+				} else if (args[i].startsWith("--enablerechtschreibpruefung")) {
+					Defaults.getInstance().setRechtschreibpruefungEnabled(getBooleanFromArgs(args[i], false));
+				} else if (args[i].startsWith("--features=")) {
+					String s = args[i];
+					s = s.substring(s.indexOf("=") + 1);
+					String[] features = s.split(",");
+					for (String string : features) {
+						try {
+							HvFeatures f = HvFeatures.fromString(string);
+							if (! FeatureContext.getManager().isActive(f)) {
+								FeatureContext.getManager()
+									.setFeatureState(new FeatureState(f, true));
+							}
+						} catch(IllegalArgumentException e) {
+							// ignored, wrong value
+						}
+					}
 				}
 			}
 		}
 
-		setSystemProperties() ;
-		
+		setSystemProperties();
+
 		try {
-			
+
 			boolean bLafSet = false;
 
-			
 			if (Defaults.getInstance().getDefaultLookAndFeel() != null) {
 				try {
-					javax.swing.UIManager.setLookAndFeel(Defaults.getInstance()
-							.getDefaultLookAndFeel());
+					UIManager.setLookAndFeel(Defaults.getInstance().getDefaultLookAndFeel());
 					bLafSet = true;
 				} catch (Exception ex) {
-					System.out.println("LookAndFeel "
-							+ Defaults.getInstance().getDefaultLookAndFeel()
+					System.out.println("LookAndFeel " + Defaults.getInstance().getDefaultLookAndFeel()
 							+ "konnte nicht gesetzt werden.");
 				}
 			}
 
 			if (!bLafSet) {
-				javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager
-						.getSystemLookAndFeelClassName());
+				UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
 			}
-			if(UIManager.getLookAndFeel() instanceof WindowsLookAndFeel) {
-				((WindowsLookAndFeel)UIManager.getLookAndFeel()).setMnemonicHidden(false); 
-			}
+
+			//Zeige Mnemonics immer an
+			//Auf Windows werden sie sonst nur mit druecken von Alt angezeigt
+			UIManager.getDefaults().put("Button.showMnemonics", Boolean.TRUE);
+
 			// lp.version.client = HELIUM V 5
 			setSVersionHV(ClientConfiguration.getVersion());
 			// lp.version.client.modul = 09
-			setVersionHVModulnr(ClientConfiguration.getModul()) ;
+			setVersionHVModulnr(ClientConfiguration.getModul());
 			// lp.version.client.bugfix = 004
 			setVersionHVBugfixnr(ClientConfiguration.getBugfixNr());
 			try {
@@ -385,30 +529,29 @@ public class LPMain implements ICommand {
 			} catch (NumberFormatException ex2) {
 				// nothing here
 			}
-			S_VERSION_HV_ALLTOGETHER = getSVersionHV() + " "
-					+ getVersionHVModulnr() + " " + getVersionHVBugfixnr()
+			S_VERSION_HV_ALLTOGETHER = getSVersionHV() + " " + getVersionHVModulnr() + " " + getVersionHVBugfixnr()
 					+ " " + getVersionHVBuildnr();
 
 			getInstance().getUISprLocaleFromResource();
 
 			installAutoLogOffHandler();
 
+			if(HvFeatures.ContextParam.isActive()) {
+				verifyMandatoryProperties(Defaults
+						.getInstance().getParameterContext());
+			}
+			
 			// wennzestifte.properties vorhanden, dann wird Client im
 			// ZE-Stift-Import-Modus gestartet
 			try {
-				ResourceBundle zestiftresource = ResourceBundle
-						.getBundle(RESOURCE_BUNDEL_ZESTIFTE);
+				ResourceBundle zestiftresource = ResourceBundle.getBundle(RESOURCE_BUNDEL_ZESTIFTE);
 
 				String benutzer = zestiftresource.getString("zestift.username");
 				String password = zestiftresource.getString("zestift.password");
-				TheClientDto theClientDto = DelegateFactory
-						.getInstance()
-						.getLogonDelegate()
-						.logon(benutzer + LogonFac.USERNAMEDELIMITER
-								+ Helper.getPCName(),
-								/* Helper.getMD5Hash((benutzer + */password
-										.toCharArray()/* ).toCharArray()) */,
-								LPMain.getInstance().getUISprLocale(), null);
+				TheClientDto theClientDto = DelegateFactory.getInstance().getLogonDelegate().logon(
+						benutzer + LogonFac.USERNAMEDELIMITER + Helper.getPCName(),
+						/* Helper.getMD5Hash((benutzer + */password.toCharArray()/* ).toCharArray()) */,
+						LPMain.getInstance().getUISprLocale(), null);
 
 				LPMain.getInstance().setIdUser(theClientDto.getIDUser());
 				LPMain.getInstance().setTheClient(theClientDto);
@@ -422,8 +565,7 @@ public class LPMain implements ICommand {
 				 * 
 				 * @author Lukas Lisowski
 				 */
-				if (args != null && args.length > 0
-						&& args[0].compareToIgnoreCase("agilpro") == 0) {
+				if (args != null && args.length > 0 && args[0].compareToIgnoreCase("agilpro") == 0) {
 					LPMain.getInstance().setAGILPRO(true);
 					Desktop frame = new com.lp.client.pc.Desktop(true);
 					LPMain.getInstance().setDesktop(frame);
@@ -438,34 +580,49 @@ public class LPMain implements ICommand {
 
 								frame.setVisible(true);
 							} catch (Throwable ex) {
-								System.out.println("Got Exception "
-										+ ex.getMessage());
+								// Unter Wildfly geht die JMS Initialisierung nicht?
+								System.out.println("Got Exception " + ex.getMessage());
+								ex.printStackTrace();
 							}
+							
+							try {
+//								new CTIServer().start(LPMain.getTheClient());										
+								if(LPMain.getInstance().getDesktopController().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_COCKPIT) &&
+										DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_CP_COCKPIT_R)) {
+									new CTIServer().start(LPMain.getTheClient());										
+								}								
+							} catch(Throwable ex) {
+								System.out.println("Got Exception " + ex.getMessage());
+								ex.printStackTrace();							
+							}
+							
 						}
 					};
 					SwingUtilities.invokeAndWait(showModalDialog);
+					
+					LPMain.getInstance().getDesktop().aktualisiereAnzahlJMSMessages(true);
+					
+					
 				}
-				
+
 				FocusManager.getCurrentManager().setDefaultFocusTraversalPolicy(new HvLayoutFocusTraversalPolicy());
-				
+
 				/*
-				 * // damit werden die queues aktiviert! // InfoTopic immer
-				 * abonnieren LPMain.getInstance().getInfoTopic();
+				 * // damit werden die queues aktiviert! // InfoTopic immer abonnieren
+				 * LPMain.getInstance().getInfoTopic();
 				 * 
-				 * // andere Topics abh&auml;ngig von Rolle String[] themen; try {
-				 * themen = DelegateFactory.getInstance().getBenutzerDelegate().
-				 * getThemenDesAngemeldetenBenutzers(); if (themen != null) {
-				 * for (int i=0; i<themen.length; i++) { if
+				 * // andere Topics abh&auml;ngig von Rolle String[] themen; try { themen =
+				 * DelegateFactory.getInstance().getBenutzerDelegate().
+				 * getThemenDesAngemeldetenBenutzers(); if (themen != null) { for (int i=0;
+				 * i<themen.length; i++) { if
 				 * (themen[i].trim().equals(LPTopicQsBean.TOPIC_NAME_QS))
 				 * LPMain.getInstance().getTopicQs(); if
 				 * (themen[i].trim().equals(LPTopicFertBean.TOPIC_NAME_FERT))
-				 * LPMain.getInstance().getTopicFert(); if
-				 * (themen[i].trim().equals
-				 * (LPTopicManageBean.TOPIC_NAME_MANAGE))
-				 * LPMain.getInstance().getTopicManage(); if
-				 * (themen[i].trim().equals(LPTopicGfBean.TOPIC_NAME_GF))
-				 * LPMain.getInstance().getTopicGf(); } } } catch (Exception e)
-				 * { e.printStackTrace(); } lpqueue = new LPQueueListener();
+				 * LPMain.getInstance().getTopicFert(); if (themen[i].trim().equals
+				 * (LPTopicManageBean.TOPIC_NAME_MANAGE)) LPMain.getInstance().getTopicManage();
+				 * if (themen[i].trim().equals(LPTopicGfBean.TOPIC_NAME_GF))
+				 * LPMain.getInstance().getTopicGf(); } } } catch (Exception e) {
+				 * e.printStackTrace(); } lpqueue = new LPQueueListener();
 				 */
 				/**
 				 * AGILPRO CHANGES END
@@ -475,30 +632,26 @@ public class LPMain implements ICommand {
 		} catch (Throwable t) {
 			LPMain.getInstance().exitClientNowErrorDlg(t);
 		}
+		
+		
 	}
 
 	public static boolean getBooleanFromArgs(String argument, boolean defaultValue) {
-		int index = argument.indexOf("=") ;
-		if(index == -1) return defaultValue ;
-		
+		int index = argument.indexOf("=");
+		if (index == -1)
+			return defaultValue;
+
 		String s = argument.substring(index + 1);
-		boolean enabled = !s.equals("0");		
-		return enabled ;
+		boolean enabled = !s.equals("0");
+		return enabled;
 	}
-	
-	public Vector<String> getMandanten(String cBenutzerI, String cKennwortI)
-			throws Throwable {
+
+	public Vector<String> getMandanten(String cBenutzerI, String cKennwortI) throws Throwable {
 		vecOfMandanten = new Vector<String>();
-		BenutzerDto benutzerDto = DelegateFactory
-				.getInstance()
-				.getBenutzerDelegate()
-				.benutzerFindByCBenutzerkennung(cBenutzerI,
-						Helper.getMD5Hash(cBenutzerI + cKennwortI).toString());
-		BenutzermandantsystemrolleDto[] bds = DelegateFactory
-				.getInstance()
-				.getBenutzerDelegate()
-				.benutzermandantsystemrolleFindByBenutzerIId(
-						benutzerDto.getIId());
+		BenutzerDto benutzerDto = DelegateFactory.getInstance().getBenutzerDelegate()
+				.benutzerFindByCBenutzerkennung(cBenutzerI, Helper.getMD5Hash(cBenutzerI + cKennwortI).toString());
+		BenutzermandantsystemrolleDto[] bds = DelegateFactory.getInstance().getBenutzerDelegate()
+				.benutzermandantsystemrolleFindByBenutzerIId(benutzerDto.getIId());
 		for (int i = 0; i < bds.length; i++) {
 			MandantDto m = DelegateFactory.getInstance().getMandantDelegate()
 					.mandantFindByPrimaryKey(bds[i].getMandantCNr());
@@ -543,10 +696,8 @@ public class LPMain implements ICommand {
 					// ist locale: deDE
 					// 012345678901234567890
 					// hat zB. noch messages_pl_PL.properties ist locale: plPL
-					String ssLanguage = fileNamen[i].substring(iM + 9,
-							iM + 9 + 2);
-					String ssCountry = fileNamen[i].substring(iM + 12,
-							iM + 12 + 2);
+					String ssLanguage = fileNamen[i].substring(iM + 9, iM + 9 + 2);
+					String ssCountry = fileNamen[i].substring(iM + 12, iM + 12 + 2);
 					loc = new Locale(ssLanguage, ssCountry);
 					myLogger.debug("UI-Locale found: " + loc.getDisplayName());
 					if (!vecOfLocUI.contains(loc)) {
@@ -558,8 +709,7 @@ public class LPMain implements ICommand {
 		return vecOfLocUI;
 	}
 
-	private String[] getResourcebundelnameOutOfJar() throws ZipException,
-			IOException, Exception {
+	private String[] getResourcebundelnameOutOfJar() throws ZipException, IOException, Exception {
 
 		// --beim kunden: in einem lpclientpc.jar lesen.
 		File pathName = new File("." + FS + "lpclientpc.jar");
@@ -572,8 +722,7 @@ public class LPMain implements ICommand {
 		ArrayList<String> fn = new ArrayList<String>();
 		while (e.hasMoreElements()) {
 			ZipEntry ze = (ZipEntry) e.nextElement();
-			if (ze.getName().indexOf("messages_") > 0
-					&& ze.getName().endsWith("properties")) {
+			if (ze.getName().indexOf("messages_") > 0 && ze.getName().endsWith("properties")) {
 
 				fn.add(ze.getName());
 
@@ -587,10 +736,8 @@ public class LPMain implements ICommand {
 	/**
 	 * Loesche jInternalFrameMe vom Desktop und logge dies.
 	 * 
-	 * @param internalFrameMe
-	 *            JInternalFrameModul
-	 * @param t
-	 *            ExceptionForLPClients
+	 * @param internalFrameMe JInternalFrameModul
+	 * @param t               ExceptionForLPClients
 	 */
 	public void exitFrame(InternalFrame internalFrameMe, Throwable t) {
 		if (desktop != null) {
@@ -604,13 +751,11 @@ public class LPMain implements ICommand {
 	/**
 	 * Loesche eine InternalFrame (LP-Modul) vom Desktop.
 	 * 
-	 * @param internalFrameMe
-	 *            JInternalFrameModul
+	 * @param internalFrameMe JInternalFrameModul
 	 */
 	public void exitFrame(InternalFrame internalFrameMe) {
 		if (desktop != null) {
-			desktop.exitFrameDlg(internalFrameMe, null,
-					getTextRespectUISPr("lp.modul.beenden"));
+			desktop.exitFrameDlg(internalFrameMe, null, getTextRespectUISPr("lp.modul.beenden"));
 		}
 	}
 
@@ -629,8 +774,7 @@ public class LPMain implements ICommand {
 	/**
 	 * Beende den Client und logge dies.
 	 * 
-	 * @param t
-	 *            ExceptionForLPClients
+	 * @param t ExceptionForLPClients
 	 */
 	public void exitClientNowErrorDlg(Throwable t) {
 
@@ -646,15 +790,12 @@ public class LPMain implements ICommand {
 	 * Einen Text mit Parametern formatieren. Beispiel: Im Token ist hinterlegt:
 	 * "Sie haben {0} St&uuml;ck erhalten"
 	 * 
-	 * @param token
-	 *            ist der Name des zu verwendenden Tokens. Beispiel:
-	 *            fb.konten.result
-	 * @param values
-	 *            nimmt die einzusetzenden Werte auf
+	 * @param token  ist der Name des zu verwendenden Tokens. Beispiel:
+	 *               fb.konten.result
+	 * @param values nimmt die einzusetzenden Werte auf
 	 * @return den formatierten String
 	 */
-	public static String getMessageTextRespectUISPr(String token,
-			Object... values) {
+	public static String getMessageTextRespectUISPr(String token, Object... values) {
 		String msg = getTextRespectUISPr(token);
 		return MessageFormat.format(msg, values);
 	}
@@ -662,8 +803,7 @@ public class LPMain implements ICommand {
 	/**
 	 * clientres: 1 hole fuer einen token je nach sparche den text.
 	 * 
-	 * @param token
-	 *            String
+	 * @param token String
 	 * @return String
 	 */
 	public static String getTextRespectUISPr(String token) {
@@ -682,8 +822,8 @@ public class LPMain implements ICommand {
 		// wenn noch keiner gefunden wurde, dann aus den properties
 		if (sText == null) {
 			if (getInstance().messagesBundel == null) {
-				getInstance().messagesBundel = ResourceBundle.getBundle(
-						RESOURCE_BUNDEL_ALLG, getInstance().getUISprLocale());
+				getInstance().messagesBundel = ResourceBundle.getBundle(RESOURCE_BUNDEL_ALLG,
+						getInstance().getUISprLocale());
 			}
 			try {
 				if (getInstance().messagesBundel.containsKey(token))
@@ -695,14 +835,12 @@ public class LPMain implements ICommand {
 		return sText;
 	}
 
-	public static String getTextRespectSpezifischesLocale(String token,
-			Locale locale) {
+	public static String getTextRespectSpezifischesLocale(String token, Locale locale) {
 		String sText = null;
 
 		// wenn noch keiner gefunden wurde, dann aus den properties
 
-		ResourceBundle r = ResourceBundle.getBundle(RESOURCE_BUNDEL_ALLG,
-				locale);
+		ResourceBundle r = ResourceBundle.getBundle(RESOURCE_BUNDEL_ALLG, locale);
 
 		try {
 			sText = r.getString(token);
@@ -717,16 +855,15 @@ public class LPMain implements ICommand {
 	/**
 	 * Hole einen Klientparameter.
 	 * 
-	 * @param lPparameter
-	 *            String; steht im lp.properties
+	 * @param lPparameter String; steht im lp.properties
 	 * @return String
 	 */
-//	public String getLPParameter(String lPparameter) {
-//		if (lpBundel == null) {
-//			lpBundel = ResourceBundle.getBundle(RESOURCE_BUNDEL_LP);
-//		}
-//		return lpBundel.getString(lPparameter);
-//	}
+	// public String getLPParameter(String lPparameter) {
+	// if (lpBundel == null) {
+	// lpBundel = ResourceBundle.getBundle(RESOURCE_BUNDEL_LP);
+	// }
+	// return lpBundel.getString(lPparameter);
+	// }
 
 	/**
 	 * Hole den Desktop.
@@ -740,8 +877,7 @@ public class LPMain implements ICommand {
 	/**
 	 * Setze den Desktop.
 	 * 
-	 * @param desktop
-	 *            Desktop
+	 * @param desktop Desktop
 	 */
 	public void setDesktop(com.lp.client.pc.Desktop desktop) {
 		this.desktop = desktop;
@@ -754,7 +890,7 @@ public class LPMain implements ICommand {
 	 * @throws Exception
 	 */
 	private Locale getUISprLocaleFromResource() throws Exception {
-		String lo = ClientConfiguration.getUiSprLocale() ;
+		String lo = ClientConfiguration.getUiSprLocale();
 		if (lo.length() != 4) {
 			throw new Exception("lo.length() != 4");
 		}
@@ -767,8 +903,7 @@ public class LPMain implements ICommand {
 	/**
 	 * Setze das UI-Sprachenlocale.
 	 * 
-	 * @param uISprLocale
-	 *            Locale
+	 * @param uISprLocale Locale
 	 */
 	public void setUISprLocale(Locale uISprLocale) {
 		this.locUISprache = uISprLocale;
@@ -777,10 +912,8 @@ public class LPMain implements ICommand {
 
 	public static TheClientDto getTheClient() throws Throwable {
 		// lazy initialization
-		if (getInstance().theClientDto == null
-				&& getInstance().getCNrUser() != null) {
-			getInstance().theClientDto = DelegateFactory.getInstance()
-					.getTheClientDelegate()
+		if (getInstance().theClientDto == null && getInstance().getCNrUser() != null) {
+			getInstance().theClientDto = DelegateFactory.getInstance().getTheClientDelegate()
 					.theClientFindByPrimaryKey(getInstance().getCNrUser());
 		}
 		return getInstance().theClientDto;
@@ -803,8 +936,7 @@ public class LPMain implements ICommand {
 	/**
 	 * Setze die User-ID.
 	 * 
-	 * @param idUser
-	 *            String
+	 * @param idUser String
 	 */
 	public void setIdUser(String idUser) {
 		this.cNrUser = idUser;
@@ -824,17 +956,14 @@ public class LPMain implements ICommand {
 	/**
 	 * Setze den eingegebenen (rohen) Benutzernamen. Internal use only.
 	 * 
-	 * @param benutzernameRaw
-	 *            String
+	 * @param benutzernameRaw String
 	 */
 	public void setBenutzernameRaw(String benutzernameRaw) {
 		this.benutzernameRaw = benutzernameRaw;
 	}
 
 	static public String getLockMeForNew() throws Throwable {
-		return "new" + "|"
-				+ LPMain.getTheClient().getBenutzername() + "|"
-				+ LPMain.getInstance().getCNrUser();
+		return "new" + "|" + LPMain.getTheClient().getBenutzername() + "|" + LPMain.getInstance().getCNrUser();
 	}
 
 	/**
@@ -947,8 +1076,7 @@ public class LPMain implements ICommand {
 	/**
 	 * Setze das eingegeben (rohe) Kennwort.
 	 * 
-	 * @param kennwortRaw
-	 *            char[]
+	 * @param kennwortRaw char[]
 	 */
 	public void setKennwortRaw(char[] kennwortRaw) {
 		this.kennwortRaw = kennwortRaw;
@@ -964,8 +1092,7 @@ public class LPMain implements ICommand {
 
 	class ResourcebundelFilter implements FilenameFilter {
 		public boolean accept(File dir, String name) {
-			return (name.startsWith("messages_") && name
-					.endsWith(".properties"));
+			return (name.startsWith("messages_") && name.endsWith(".properties"));
 		}
 	}
 
@@ -985,25 +1112,22 @@ public class LPMain implements ICommand {
 
 	public File getXMLFileByName(String fileNameI) {
 		// ausgepackt, bei uns
-		return new File("." + FS + "classes" + FS + XMLFILEPATH + FS
-				+ fileNameI);
+		return new File("." + FS + "classes" + FS + XMLFILEPATH + FS + fileNameI);
 	}
 
-	public InputStream getXMLFileFromJar(String fileNameI) throws ZipException,
-			IOException, Exception {
-		InputStream is = getClass( ).getResourceAsStream("/com/lp/client/frame/stammdatencrud/"
-				+ fileNameI);
-		return is ;
-		
+	public InputStream getXMLFileFromJar(String fileNameI) throws ZipException, IOException, Exception {
+		InputStream is = getClass().getResourceAsStream("/com/lp/client/frame/stammdatencrud/" + fileNameI);
+		return is;
+
 		// --beim kunden: in einem lpclientpc.jar lesen.
-//		File f = new File("lpclientpc.jar");
-//		if (f.exists()) {
-//			ZipFile zf = new ZipFile(f);
-//			ZipEntry entry = zf.getEntry("com/lp/client/frame/stammdatencrud/"
-//					+ fileNameI);
-//			return zf.getInputStream(entry);
-//		}
-//		return null;
+		// File f = new File("lpclientpc.jar");
+		// if (f.exists()) {
+		// ZipFile zf = new ZipFile(f);
+		// ZipEntry entry = zf.getEntry("com/lp/client/frame/stammdatencrud/"
+		// + fileNameI);
+		// return zf.getInputStream(entry);
+		// }
+		// return null;
 	}
 
 	public boolean isLPAdmin() {
@@ -1016,8 +1140,7 @@ public class LPMain implements ICommand {
 			if (benutzername == null)
 				return false;
 
-			benutzername = benutzername.trim().substring(0,
-					benutzername.indexOf("|"));
+			benutzername = benutzername.trim().substring(0, benutzername.indexOf("|"));
 			lpadmin = benutzername.equalsIgnoreCase(ClientConfiguration.getAdminUsername());
 			return lpadmin.booleanValue();
 		} catch (ExceptionLP e) {
@@ -1027,17 +1150,22 @@ public class LPMain implements ICommand {
 		return false;
 	}
 
-
-		
-	public String getMsg(ExceptionLP ec) {
-		if(errorMessageHandler == null) {
-			errorMessageHandler = new LPMessages() ;
+	private LPMessages getErrorMessageHandler() {
+		if (errorMessageHandler == null) {
+			errorMessageHandler = new LPMessages();
 		}
-		
-		return errorMessageHandler.getMsg(ec) ;
+
+		return errorMessageHandler;
 	}
-	
-	
+
+	public String getMsg(ExceptionLP ec) {
+		return getErrorMessageHandler().getMsg(ec);
+	}
+
+	public boolean shouldExeptioncDialogBeShown(JDialog dialog, JPanel onPanel, ExceptionLP ec) {
+		return getErrorMessageHandler().shouldExceptionDialogBeShown(dialog, onPanel, ec);
+	}
+
 	static public void setVersionHVModulnr(String iVersionHVModulnrI) {
 		S_VERSION_HV_MODULNR = iVersionHVModulnrI;
 	}
@@ -1077,25 +1205,20 @@ public class LPMain implements ICommand {
 	/**
 	 * Schreiben einer Datei.
 	 * 
-	 * @param internalFrame
-	 *            InternalFrame
-	 * @param sFilename
-	 *            String
-	 * @param content
-	 *            byte[]
-	 * @param bASCII 
+	 * @param internalFrame InternalFrame
+	 * @param sFilename     String
+	 * @param content       byte[]
+	 * @param bASCII
 	 * @return boolean wurde geschrieben?
 	 */
-	public boolean saveFile(InternalFrame internalFrame, String sFilename,
-			byte[] content, boolean bASCII) {
+	public boolean saveFile(InternalFrame internalFrame, String sFilename, byte[] content, boolean bASCII) {
 		boolean bSchreiben = true;
 		boolean bGeschrieben = false;
 		File file = new File(sFilename);
 		if (file.exists()) {
-			boolean bUeberschreiben = DialogFactory.showModalJaNeinDialog(
-					internalFrame,
-					getTextRespectUISPr("lp.frage.dateiueberschreiben") + "\n"
-							+ sFilename, getTextRespectUISPr("lp.frage"));
+			boolean bUeberschreiben = DialogFactory.showModalJaNeinDialog(internalFrame,
+					getTextRespectUISPr("lp.frage.dateiueberschreiben") + "\n" + sFilename,
+					getTextRespectUISPr("lp.frage"));
 			if (!bUeberschreiben) {
 				bSchreiben = false;
 			}
@@ -1104,7 +1227,7 @@ public class LPMain implements ICommand {
 		// wurde
 		while (bSchreiben && !bGeschrieben) {
 			try {
-				if(file.getParent() != null)
+				if (file.getParent() != null)
 					file.getParentFile().mkdirs();
 				file.createNewFile();
 				FileOutputStream out = new FileOutputStream(file);
@@ -1138,23 +1261,23 @@ public class LPMain implements ICommand {
 				bGeschrieben = true;
 				// Dialog anzeigen
 				DialogFactory.showModalDialog(getTextRespectUISPr("lp.hint"),
-						getTextRespectUISPr("lp.hint.dateiwurdegespeichert")
-								+ "\n" + sFilename);
+						getTextRespectUISPr("lp.hint.dateiwurdegespeichert") + "\n" + sFilename);
 			} catch (IOException ex) {
-				bSchreiben = DialogFactory
-						.showModalJaNeinDialog(
-								internalFrame,
-								getTextRespectUISPr("lp.error.dateikannnichterzeugtwerden")
-										+ "\n"
-										+ sFilename
-										+ "\n"
-										+ "\n"
-										+ getTextRespectUISPr("lp.frage.erneutversuchen"),
-								getTextRespectUISPr("lp.error"));
+				bSchreiben = DialogFactory.showModalJaNeinDialog(
+						internalFrame, getTextRespectUISPr("lp.error.dateikannnichterzeugtwerden") + "\n" + sFilename
+								+ "\n" + "\n" + getTextRespectUISPr("lp.frage.erneutversuchen"),
+						getTextRespectUISPr("lp.error"));
 			}
 		}
 		return bGeschrieben;
 	}
+
+	public boolean simpleMode=false;
+	
+	public boolean isSimpleMode() {
+		return simpleMode;
+	}
+
 
 	static final public PasteBuffer getPasteBuffer() throws IOException {
 
@@ -1191,10 +1314,10 @@ public class LPMain implements ICommand {
 				return;
 
 			try {
-				if(null == lPMain.theClientDto) return ;
+				if (null == lPMain.theClientDto)
+					return;
 
-				LogonDelegate delegate = DelegateFactory.getInstance()
-						.getLogonDelegate();
+				LogonDelegate delegate = DelegateFactory.getInstance().getLogonDelegate();
 				if (null == delegate)
 					return;
 				delegate.logout(lPMain.theClientDto);

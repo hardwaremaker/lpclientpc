@@ -48,6 +48,8 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.naming.Context;
@@ -59,18 +61,27 @@ import com.lp.server.eingangsrechnung.service.EingangsrechnungAuftragszuordnungD
 import com.lp.server.eingangsrechnung.service.EingangsrechnungDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungFac;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungKontierungDto;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungOffeneKriterienDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungReportFac;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungServiceFac;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungartDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungartsprDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungstatusDto;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungtextDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungzahlungDto;
+import com.lp.server.eingangsrechnung.service.ErZahlungsempfaenger;
+import com.lp.server.eingangsrechnung.service.VendidataImporterResult;
 import com.lp.server.eingangsrechnung.service.ZahlungsvorschlagDto;
+import com.lp.server.eingangsrechnung.service.ZahlungsvorschlagExportResult;
 import com.lp.server.eingangsrechnung.service.ZahlungsvorschlagFac;
 import com.lp.server.eingangsrechnung.service.ZahlungsvorschlagkriterienDto;
 import com.lp.server.eingangsrechnung.service.ZahlungsvorschlaglaufDto;
+import com.lp.server.eingangsrechnung.service.ZusatzkostenAnlegenResult;
 import com.lp.server.finanz.service.BankverbindungDto;
+import com.lp.server.rechnung.service.CoinRoundingResult;
+import com.lp.server.system.service.JxlImportErgebnis;
 import com.lp.server.system.service.ReportJournalKriterienDto;
+import com.lp.server.util.EingangsrechnungId;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
@@ -86,34 +97,32 @@ public class EingangsrechnungDelegate extends Delegate {
 		// delegateexc: 2 auch der konstruktor
 		try {
 			context = new InitialContext();
-			eingangsrechnungFac = (EingangsrechnungFac) context
-					.lookup("lpserver/EingangsrechnungFacBean/remote");
-			eingangsrechnungReportFac = (EingangsrechnungReportFac) context
-					.lookup("lpserver/EingangsrechnungReportFacBean/remote");
-			eingangsrechnungServiceFac = (EingangsrechnungServiceFac) context
-					.lookup("lpserver/EingangsrechnungServiceFacBean/remote");
-			zahlungsvorschlagFac = (ZahlungsvorschlagFac) context
-					.lookup("lpserver/ZahlungsvorschlagFacBean/remote");
+
+			eingangsrechnungFac = lookupFac(context, EingangsrechnungFac.class);
+
+			eingangsrechnungReportFac = lookupFac(context, EingangsrechnungReportFac.class);
+
+			eingangsrechnungServiceFac = lookupFac(context, EingangsrechnungServiceFac.class);
+
+			zahlungsvorschlagFac = lookupFac(context, ZahlungsvorschlagFac.class);
+
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void storniereEingangsrechnung(Integer eingangsrechnungIId)
-			throws ExceptionLP {
+	public void storniereEingangsrechnung(Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.storniereEingangsrechnung(eingangsrechnungIId,
-					LPMain.getInstance().getTheClient());
+			eingangsrechnungFac.storniereEingangsrechnung(eingangsrechnungIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void storniereEingangsrechnungRueckgaengig(
-			Integer eingangsrechnungIId) throws ExceptionLP {
+	public void storniereEingangsrechnungRueckgaengig(Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.storniereEingangsrechnungRueckgaengig(
-					eingangsrechnungIId, LPMain.getInstance().getTheClient());
+			eingangsrechnungFac.storniereEingangsrechnungRueckgaengig(eingangsrechnungIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -128,17 +137,14 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public EingangsrechnungDto updateEingangsrechnung(
-			EingangsrechnungDto eingangsrechnungDto) throws ExceptionLP {
+	public EingangsrechnungDto updateEingangsrechnung(EingangsrechnungDto eingangsrechnungDto) throws ExceptionLP {
 		try {
 			if (eingangsrechnungDto.getIId() == null) {
-				return eingangsrechnungFac.createEingangsrechnung(
-						eingangsrechnungDto, LPMain.getInstance()
-								.getTheClient());
+				return eingangsrechnungFac.createEingangsrechnung(eingangsrechnungDto,
+						LPMain.getInstance().getTheClient());
 			} else {
-				return eingangsrechnungFac.updateEingangsrechnung(
-						eingangsrechnungDto, LPMain.getInstance()
-								.getTheClient());
+				return eingangsrechnungFac.updateEingangsrechnung(eingangsrechnungDto,
+						LPMain.getInstance().getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -146,12 +152,11 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public void updateEingangsrechnungMahndaten(
-			Integer eingangsrechnungrechnungIId, Integer mahnstufeIId,
-			Timestamp tMahndatum) throws ExceptionLP {
+	public void updateEingangsrechnungFreigabedatum(Integer eingangsrechnungIId, java.sql.Date dFreigabedatum)
+			throws ExceptionLP {
 		try {
-			eingangsrechnungFac.updateEingangsrechnungMahndaten(
-					eingangsrechnungrechnungIId, mahnstufeIId, tMahndatum);
+			eingangsrechnungFac.updateEingangsrechnungFreigabedatum(eingangsrechnungIId, dFreigabedatum,
+					LPMain.getInstance().getTheClient());
 
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -159,12 +164,33 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public void updateEingangsrechnungGedruckt(Integer eingangsrechnungIId)
+	public void updateEingangsrechnungMahndaten(Integer eingangsrechnungrechnungIId, Integer mahnstufeIId,
+			Timestamp tMahndatum) throws ExceptionLP {
+		try {
+			eingangsrechnungFac.updateEingangsrechnungMahndaten(eingangsrechnungrechnungIId, mahnstufeIId, tMahndatum);
+
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+
+		}
+	}
+
+	public void updateKopfFusstextUebersteuert(Integer eingangsrechnungIId, String cKopftext, String cFusstext)
 			throws ExceptionLP {
 		try {
+			eingangsrechnungFac.updateKopfFusstextUebersteuert(eingangsrechnungIId, cKopftext, cFusstext,
+					LPMain.getInstance().getTheClient());
 
-			eingangsrechnungFac.updateEingangsrechnungGedruckt(LPMain
-					.getInstance().getTheClient(), eingangsrechnungIId,
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+
+		}
+	}
+
+	public void updateEingangsrechnungGedruckt(Integer eingangsrechnungIId) throws ExceptionLP {
+		try {
+
+			eingangsrechnungFac.updateEingangsrechnungGedruckt(LPMain.getInstance().getTheClient(), eingangsrechnungIId,
 					new java.sql.Timestamp(System.currentTimeMillis()));
 
 		} catch (Throwable ex) {
@@ -172,8 +198,7 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public EingangsrechnungDto eingangsrechnungFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public EingangsrechnungDto eingangsrechnungFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return eingangsrechnungFac.eingangsrechnungFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -182,31 +207,46 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public EingangsrechnungartDto eingangsrechnungartFindByPrimaryKey(String cNr)
+	public EingangsrechnungDto eingangsrechnungFindByCNrMandantCNr(String cNr, boolean bZusatzkosten)
 			throws ExceptionLP {
 		try {
-			return eingangsrechnungServiceFac
-					.eingangsrechnungartFindByPrimaryKey(cNr, LPMain
-							.getInstance().getTheClient());
+			return eingangsrechnungFac.eingangsrechnungFindByCNrMandantCNr(cNr,
+					LPMain.getInstance().getTheClient().getMandant(), bZusatzkosten);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void updateEingangsrechnungart(
-			EingangsrechnungartDto eingangsrechnungartDto) throws ExceptionLP {
+	public EingangsrechnungDto[] eingangsrechnungFindByBestellungIId(Integer bestellungIId) throws ExceptionLP {
 		try {
-			eingangsrechnungServiceFac
-					.updateEingangsrechnungart(eingangsrechnungartDto, LPMain
-							.getInstance().getTheClient());
+			return eingangsrechnungFac.eingangsrechnungFindByBestellungIId(bestellungIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public EingangsrechnungartDto eingangsrechnungartFindByPrimaryKey(String cNr) throws ExceptionLP {
+		try {
+			return eingangsrechnungServiceFac.eingangsrechnungartFindByPrimaryKey(cNr,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void updateEingangsrechnungart(EingangsrechnungartDto eingangsrechnungartDto) throws ExceptionLP {
+		try {
+			eingangsrechnungServiceFac.updateEingangsrechnungart(eingangsrechnungartDto,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public EingangsrechnungartDto[] eingangsrechnungartFindAll()
-			throws ExceptionLP {
+	public EingangsrechnungartDto[] eingangsrechnungartFindAll() throws ExceptionLP {
 		try {
 			return eingangsrechnungServiceFac.eingangsrechnungartFindAll();
 		} catch (Throwable ex) {
@@ -215,12 +255,10 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public EingangsrechnungartsprDto eingangsrechnungartsprFindByPrimaryKey(
-			String eingangsrechnungartCNr, String localeCNr) throws ExceptionLP {
+	public EingangsrechnungartsprDto eingangsrechnungartsprFindByPrimaryKey(String eingangsrechnungartCNr,
+			String localeCNr) throws ExceptionLP {
 		try {
-			return eingangsrechnungServiceFac
-					.eingangsrechnungartsprFindByPrimaryKey(
-							eingangsrechnungartCNr, localeCNr);
+			return eingangsrechnungServiceFac.eingangsrechnungartsprFindByPrimaryKey(eingangsrechnungartCNr, localeCNr);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -230,21 +268,17 @@ public class EingangsrechnungDelegate extends Delegate {
 	public Map<?, ?> getAllSprEingangsrechnungarten() throws ExceptionLP {
 		try {
 			return eingangsrechnungServiceFac
-					.getAllSprEingangsrechnungarten(Helper.locale2String(LPMain
-							.getInstance().getUISprLocale()));
+					.getAllSprEingangsrechnungarten(Helper.locale2String(LPMain.getInstance().getUISprLocale()));
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Map<?, ?> getSprEingangsrechnungartNurZusatzkosten()
-			throws ExceptionLP {
+	public Map<?, ?> getSprEingangsrechnungartNurZusatzkosten() throws ExceptionLP {
 		try {
-			return eingangsrechnungServiceFac
-					.getSprEingangsrechnungartNurZusatzkosten(Helper
-							.locale2String(LPMain.getInstance()
-									.getUISprLocale()));
+			return eingangsrechnungServiceFac.getSprEingangsrechnungartNurZusatzkosten(
+					Helper.locale2String(LPMain.getInstance().getUISprLocale()));
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -252,31 +286,24 @@ public class EingangsrechnungDelegate extends Delegate {
 	}
 
 	public void removeEingangsrechnungAuftragszuordnung(
-			EingangsrechnungAuftragszuordnungDto eingangsrechnungAuftragszuordnungDto)
-			throws ExceptionLP {
+			EingangsrechnungAuftragszuordnungDto eingangsrechnungAuftragszuordnungDto) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.removeEingangsrechnungAuftragszuordnung(
-					eingangsrechnungAuftragszuordnungDto, LPMain.getInstance()
-							.getTheClient());
+			eingangsrechnungFac.removeEingangsrechnungAuftragszuordnung(eingangsrechnungAuftragszuordnungDto,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
 	public EingangsrechnungAuftragszuordnungDto updateEingangsrechnungAuftragszuordnung(
-			EingangsrechnungAuftragszuordnungDto eingangsrechnungAuftragszuordnungDto)
-			throws ExceptionLP {
+			EingangsrechnungAuftragszuordnungDto eingangsrechnungAuftragszuordnungDto) throws ExceptionLP {
 		try {
 			if (eingangsrechnungAuftragszuordnungDto.getIId() != null) {
-				return eingangsrechnungFac
-						.updateEingangsrechnungAuftragszuordnung(
-								eingangsrechnungAuftragszuordnungDto, LPMain
-										.getInstance().getTheClient());
+				return eingangsrechnungFac.updateEingangsrechnungAuftragszuordnung(eingangsrechnungAuftragszuordnungDto,
+						LPMain.getInstance().getTheClient());
 			} else {
-				return eingangsrechnungFac
-						.createEingangsrechnungAuftragszuordnung(
-								eingangsrechnungAuftragszuordnungDto, LPMain
-										.getInstance().getTheClient());
+				return eingangsrechnungFac.createEingangsrechnungAuftragszuordnung(eingangsrechnungAuftragszuordnungDto,
+						LPMain.getInstance().getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -284,11 +311,10 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public EingangsrechnungAuftragszuordnungDto eingangsrechnungAuftragszuordnungFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public EingangsrechnungAuftragszuordnungDto eingangsrechnungAuftragszuordnungFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungAuftragszuordnungFindByPrimaryKey(iId);
+			return eingangsrechnungFac.eingangsrechnungAuftragszuordnungFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -298,83 +324,77 @@ public class EingangsrechnungDelegate extends Delegate {
 	public EingangsrechnungAuftragszuordnungDto[] eingangsrechnungAuftragszuordnungFindByEingangsrechnungIId(
 			Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungAuftragszuordnungFindByEingangsrechnungIId(eingangsrechnungIId);
+			return eingangsrechnungFac.eingangsrechnungAuftragszuordnungFindByEingangsrechnungIId(eingangsrechnungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public BigDecimal getWertNochNichtZuAuftraegenZugeordnet(
-			Integer eingangsrechnungIId) throws ExceptionLP {
+	public BigDecimal getWertNochNichtZuAuftraegenZugeordnet(Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.getWertNochNichtZuAuftraegenZugeordnet(eingangsrechnungIId);
+			return eingangsrechnungFac.getWertNochNichtZuAuftraegenZugeordnet(eingangsrechnungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public BigDecimal getWertNochNichtKontiert(Integer eingangsrechnungIId)
-			throws ExceptionLP {
+	public BigDecimal getWertNochNichtKontiert(Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.getWertNochNichtKontiert(eingangsrechnungIId);
+			return eingangsrechnungFac.getWertNochNichtKontiert(eingangsrechnungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void toggleWiederholdendErledigt(Integer eingangsrechnungIId)
-			throws ExceptionLP {
+	public void toggleWiederholdendErledigt(Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.toggleWiederholendErledigt(eingangsrechnungIId,
-					LPMain.getTheClient());
+			eingangsrechnungFac.toggleWiederholendErledigt(eingangsrechnungIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	public void toggleEingangsrechnungGeprueft(Integer eingangsrechnungIId) throws ExceptionLP {
+		try {
+			eingangsrechnungFac.toggleEingangsrechnungGeprueft(eingangsrechnungIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void toggleZollimportpapiereErhalten(Integer eingangsrechnungIId,
-			String cZollimportpapier, Integer eingangsrechnungIId_Zollimport)
-			throws ExceptionLP {
+	public void toggleZollimportpapiereErhalten(Integer eingangsrechnungIId, String cZollimportpapier,
+			Integer eingangsrechnungIId_Zollimport) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.toggleZollimportpapiereErhalten(
-					eingangsrechnungIId, cZollimportpapier,
+			eingangsrechnungFac.toggleZollimportpapiereErhalten(eingangsrechnungIId, cZollimportpapier,
 					eingangsrechnungIId_Zollimport, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void removeEingangsrechnungKontierung(
-			EingangsrechnungKontierungDto eingangsrechnungKontierungDto)
+	public void removeEingangsrechnungKontierung(EingangsrechnungKontierungDto eingangsrechnungKontierungDto)
 			throws ExceptionLP {
 		try {
-			eingangsrechnungFac.removeEingangsrechnungKontierung(
-					eingangsrechnungKontierungDto, LPMain.getInstance()
-							.getTheClient());
+			eingangsrechnungFac.removeEingangsrechnungKontierung(eingangsrechnungKontierungDto,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
 	public EingangsrechnungKontierungDto updateEingangsrechnungKontierung(
-			EingangsrechnungKontierungDto eingangsrechnungKontierungDto)
-			throws ExceptionLP {
+			EingangsrechnungKontierungDto eingangsrechnungKontierungDto) throws ExceptionLP {
 		EingangsrechnungKontierungDto dto = null;
 		try {
 			if (eingangsrechnungKontierungDto.getIId() == null) {
-				dto = eingangsrechnungFac.createEingangsrechnungKontierung(
-						eingangsrechnungKontierungDto, LPMain.getInstance()
-								.getTheClient());
+				dto = eingangsrechnungFac.createEingangsrechnungKontierung(eingangsrechnungKontierungDto,
+						LPMain.getInstance().getTheClient());
 			} else {
-				dto = eingangsrechnungFac.updateEingangsrechnungKontierung(
-						eingangsrechnungKontierungDto, LPMain.getInstance()
-								.getTheClient());
+				dto = eingangsrechnungFac.updateEingangsrechnungKontierung(eingangsrechnungKontierungDto,
+						LPMain.getInstance().getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -382,35 +402,31 @@ public class EingangsrechnungDelegate extends Delegate {
 		return dto;
 	}
 
-	public EingangsrechnungKontierungDto eingangsrechnungKontierungFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public EingangsrechnungKontierungDto eingangsrechnungKontierungFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungKontierungFindByPrimaryKey(iId);
+			return eingangsrechnungFac.eingangsrechnungKontierungFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public int wiederholendeZusatzkostenAnlegen() throws ExceptionLP {
-		int iAngelegt = 0;
+	public ZusatzkostenAnlegenResult wiederholendeZusatzkostenAnlegen() throws ExceptionLP {
+		ZusatzkostenAnlegenResult result = new ZusatzkostenAnlegenResult();
+
 		try {
-			iAngelegt = eingangsrechnungFac
-					.wiederholendeZusatzkostenAnlegen(LPMain.getInstance()
-							.getTheClient());
+			result = eingangsrechnungFac.wiederholendeZusatzkostenAnlegen(LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
-		return iAngelegt;
+		return result;
 	}
 
 	public EingangsrechnungKontierungDto[] eingangsrechnungKontierungFindByEingangsrechnungIId(
 			Integer eingangsrechnungIId) throws ExceptionLP {
 		EingangsrechnungKontierungDto[] dtos = null;
 		try {
-			dtos = eingangsrechnungFac
-					.eingangsrechnungKontierungFindByEingangsrechnungIId(eingangsrechnungIId);
+			dtos = eingangsrechnungFac.eingangsrechnungKontierungFindByEingangsrechnungIId(eingangsrechnungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -418,18 +434,15 @@ public class EingangsrechnungDelegate extends Delegate {
 	}
 
 	public EingangsrechnungzahlungDto updateEingangsrechnungzahlung(
-			EingangsrechnungzahlungDto eingangsrechnungzahlungDto,
-			boolean bErledigt) throws ExceptionLP {
+			EingangsrechnungzahlungDto eingangsrechnungzahlungDto, boolean bErledigt) throws ExceptionLP {
 		EingangsrechnungzahlungDto erzDto = null;
 		try {
 			if (eingangsrechnungzahlungDto.getIId() == null) {
-				erzDto = eingangsrechnungFac.createEingangsrechnungzahlung(
-						eingangsrechnungzahlungDto, bErledigt, LPMain
-								.getInstance().getTheClient());
+				erzDto = eingangsrechnungFac.createEingangsrechnungzahlung(eingangsrechnungzahlungDto, bErledigt,
+						LPMain.getInstance().getTheClient());
 			} else {
-				erzDto = eingangsrechnungFac.updateEingangsrechnungzahlung(
-						eingangsrechnungzahlungDto, bErledigt, LPMain
-								.getInstance().getTheClient());
+				erzDto = eingangsrechnungFac.updateEingangsrechnungzahlung(eingangsrechnungzahlungDto, bErledigt,
+						LPMain.getInstance().getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -437,34 +450,29 @@ public class EingangsrechnungDelegate extends Delegate {
 		return erzDto;
 	}
 
-	public void removeEingangsrechnungzahlung(
-			EingangsrechnungzahlungDto eingangsrechnungzahlungDto)
+	public void removeEingangsrechnungzahlung(EingangsrechnungzahlungDto eingangsrechnungzahlungDto)
 			throws ExceptionLP {
 		try {
-			eingangsrechnungFac.removeEingangsrechnungzahlung(
-					eingangsrechnungzahlungDto, LPMain.getInstance()
-							.getTheClient());
+			eingangsrechnungFac.removeEingangsrechnungzahlung(eingangsrechnungzahlungDto,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public EingangsrechnungzahlungDto eingangsrechnungzahlungFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public EingangsrechnungzahlungDto eingangsrechnungzahlungFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungzahlungFindByPrimaryKey(iId);
+			return eingangsrechnungFac.eingangsrechnungzahlungFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public EingangsrechnungzahlungDto eingangsrechnungzahlungFindByRechnungzahlungIId(
-			Integer rechnungzahlungIId) throws ExceptionLP {
+	public EingangsrechnungzahlungDto eingangsrechnungzahlungFindByRechnungzahlungIId(Integer rechnungzahlungIId)
+			throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungzahlungFindByRechnungzahlungIId(rechnungzahlungIId);
+			return eingangsrechnungFac.eingangsrechnungzahlungFindByRechnungzahlungIId(rechnungzahlungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -474,8 +482,7 @@ public class EingangsrechnungDelegate extends Delegate {
 	public EingangsrechnungzahlungDto[] eingangsrechnungzahlungFindByEingangsrechnungzahlungIId(
 			Integer rechnungzahlungIId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungzahlungFindByEingangsrechnungIId(rechnungzahlungIId);
+			return eingangsrechnungFac.eingangsrechnungzahlungFindByEingangsrechnungIId(rechnungzahlungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -485,29 +492,23 @@ public class EingangsrechnungDelegate extends Delegate {
 	/**
 	 * Die summe aller Zahlungen auf eine Eingangsrechnung holen.
 	 * 
-	 * @param erIId
-	 *            Integer
-	 * @param zahlungIIdAusgenommen
-	 *            Integer
+	 * @param erIId                 Integer
+	 * @param zahlungIIdAusgenommen Integer
 	 * @throws ExceptionLP
 	 * @return BigDecimal
 	 */
-	public BigDecimal getBezahltBetragFw(Integer erIId,
-			Integer zahlungIIdAusgenommen) throws ExceptionLP {
+	public BigDecimal getBezahltBetragFw(Integer erIId, Integer zahlungIIdAusgenommen) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac.getBezahltBetragFw(erIId,
-					zahlungIIdAusgenommen);
+			return eingangsrechnungFac.getBezahltBetragFw(erIId, zahlungIIdAusgenommen);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public BigDecimal getBezahltBetrag(Integer erIId,
-			Integer zahlungIIdAusgenommen) throws ExceptionLP {
+	public BigDecimal getBezahltBetrag(Integer erIId, Integer zahlungIIdAusgenommen) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac.getBezahltBetrag(erIId,
-					zahlungIIdAusgenommen);
+			return eingangsrechnungFac.getBezahltBetrag(erIId, zahlungIIdAusgenommen);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -517,94 +518,101 @@ public class EingangsrechnungDelegate extends Delegate {
 	/**
 	 * Die summe aller Zahlungen auf eine Eingangsrechnung holen.
 	 * 
-	 * @param erIId
-	 *            Integer
-	 * @param zahlungIIdAusgenommen
-	 *            Integer
+	 * @param erIId                 Integer
+	 * @param zahlungIIdAusgenommen Integer
 	 * @throws ExceptionLP
 	 * @return BigDecimal
 	 */
-	public BigDecimal getBezahltBetragUstFw(Integer erIId,
-			Integer zahlungIIdAusgenommen) throws ExceptionLP {
+	public BigDecimal getBezahltBetragUstFw(Integer erIId, Integer zahlungIIdAusgenommen) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac.getBezahltBetragUstFw(erIId,
-					zahlungIIdAusgenommen);
+			return eingangsrechnungFac.getBezahltBetragUstFw(erIId, zahlungIIdAusgenommen);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printZahlungsjournal(int iSortierung, Date dVon,
-			Date dBis, boolean bZusatzkosten) throws ExceptionLP {
-		JasperPrintLP print = null;
-		try {
-			print = eingangsrechnungReportFac.printZahlungsjournal(LPMain
-					.getInstance().getTheClient(), iSortierung, dVon, dBis,
-					bZusatzkosten);
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
-		return print;
-	}
-
-	public JasperPrintLP printOffene(int iSort, Integer lieferantIId,
-			Date dStichtag, boolean bStichtagIstFreigabeDatum,
-			boolean bZusatzkosten, boolean mitNichtZugeordnetenBelegen)
+	public JasperPrintLP printZahlungsjournal(int iSortierung, Date dVon, Date dBis, boolean bZusatzkosten)
 			throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
-			print = eingangsrechnungReportFac.printOffene(LPMain.getInstance()
-					.getTheClient(), iSort, lieferantIId, dStichtag,
-					bStichtagIstFreigabeDatum, bZusatzkosten,
-					mitNichtZugeordnetenBelegen);
+			print = eingangsrechnungReportFac.printZahlungsjournal(LPMain.getInstance().getTheClient(), iSortierung,
+					dVon, dBis, bZusatzkosten);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return print;
 	}
+
+	public JasperPrintLP printOffene(EingangsrechnungOffeneKriterienDto krit) throws ExceptionLP {
+		try {
+			return eingangsrechnungReportFac.printOffene(krit, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		
+		return null;
+	}
+	
+//	public JasperPrintLP printOffene(int iSort, Integer lieferantIId, Date dStichtag, boolean bStichtagIstFreigabeDatum,
+//			boolean bZusatzkosten, boolean mitNichtZugeordnetenBelegen) throws ExceptionLP {
+//		JasperPrintLP print = null;
+//		try {
+//			print = eingangsrechnungReportFac.printOffene(LPMain.getInstance().getTheClient(), iSort, lieferantIId,
+//					dStichtag, bStichtagIstFreigabeDatum, bZusatzkosten, mitNichtZugeordnetenBelegen);
+//		} catch (Throwable ex) {
+//			handleThrowable(ex);
+//		}
+//		return print;
+//	}
 
 	public JasperPrintLP printFehlendeZollpapiere() throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
-			print = eingangsrechnungReportFac.printFehlendeZollpapiere(LPMain
-					.getInstance().getTheClient());
+			print = eingangsrechnungReportFac.printFehlendeZollpapiere(LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return print;
 	}
+
+	public JasperPrintLP printNichtabgerechneteAnzahlungen(java.sql.Date dStichtag) throws ExceptionLP {
+		JasperPrintLP print = null;
+		try {
+			print = eingangsrechnungReportFac.printNichtabgerechneteAnzahlungen(dStichtag,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return print;
+	}
+
 	public JasperPrintLP printErfassteZollpapiere(Date dVon, Date dBis) throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
-			print = eingangsrechnungReportFac.printErfassteZollpapiere(dVon, dBis, LPMain
-					.getInstance().getTheClient());
+			print = eingangsrechnungReportFac.printErfassteZollpapiere(dVon, dBis, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return print;
 	}
 
-	public JasperPrintLP printKontierungsjournal(int iFilterER,
-			Integer kostenstelleIId, int iKritDatum, Date dVon, Date dBis,
-			boolean bZusatzkosten) throws ExceptionLP {
+	public JasperPrintLP printKontierungsjournal(int iFilterER, Integer kostenstelleIId, int iKritDatum, Date dVon,
+			Date dBis, boolean bZusatzkosten) throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
-			print = eingangsrechnungReportFac.printKontierungsjournal(LPMain
-					.getInstance().getTheClient(), iFilterER, kostenstelleIId,
-					iKritDatum, dVon, dBis, bZusatzkosten);
+			print = eingangsrechnungReportFac.printKontierungsjournal(LPMain.getInstance().getTheClient(), iFilterER,
+					kostenstelleIId, iKritDatum, dVon, dBis, bZusatzkosten);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return print;
 	}
 
-	public BankverbindungDto getZuletztVerwendeteBankverbindung(
-			Integer eingangsrechnungIId) throws ExceptionLP {
+	public BankverbindungDto getZuletztVerwendeteBankverbindung(Integer eingangsrechnungIId) throws ExceptionLP {
 		BankverbindungDto print = null;
 		try {
-			print = eingangsrechnungFac
-					.getZuletztVerwendeteBankverbindung(eingangsrechnungIId);
+			print = eingangsrechnungFac.getZuletztVerwendeteBankverbindung(eingangsrechnungIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -613,11 +621,9 @@ public class EingangsrechnungDelegate extends Delegate {
 
 	// *** Eingangsrechnungsstatus
 	// **************************************************
-	public EingangsrechnungstatusDto eingangsrechnungsstatusFindByPrimaryKey(
-			String cNrI) throws ExceptionLP {
+	public EingangsrechnungstatusDto eingangsrechnungsstatusFindByPrimaryKey(String cNrI) throws ExceptionLP {
 		try {
-			return eingangsrechnungServiceFac
-					.eingangsrechnungstatusFindByPrimaryKey(cNrI);
+			return eingangsrechnungServiceFac.eingangsrechnungstatusFindByPrimaryKey(cNrI);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -627,28 +633,22 @@ public class EingangsrechnungDelegate extends Delegate {
 	/**
 	 * Eine Rechnung manuell auf 'Erledigt' setzen.
 	 * 
-	 * @param iIdEingangsrechnungI
-	 *            PK der Rechnung
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdEingangsrechnungI PK der Rechnung
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void manuellErledigen(Integer iIdEingangsrechnungI)
-			throws ExceptionLP {
+	public void manuellErledigen(Integer iIdEingangsrechnungI) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.manuellErledigen(iIdEingangsrechnungI,
-					LPMain.getTheClient());
+			eingangsrechnungFac.manuellErledigen(iIdEingangsrechnungI, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public JasperPrintLP printAlle(ReportJournalKriterienDto krit,
-			boolean bZusatzkosten, boolean bDatumIstFreigabedatum)
-			throws ExceptionLP {
+	public JasperPrintLP printAlle(ReportJournalKriterienDto krit, boolean bZusatzkosten,
+			boolean bDatumIstFreigabedatum) throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
-			print = eingangsrechnungReportFac.printAlle(krit, LPMain
-					.getInstance().getTheClient(), bZusatzkosten,
+			print = eingangsrechnungReportFac.printAlle(krit, LPMain.getInstance().getTheClient(), bZusatzkosten,
 					bDatumIstFreigabedatum);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -661,79 +661,83 @@ public class EingangsrechnungDelegate extends Delegate {
 	 * Diese Aktion ist nur moeglich, wenn der 'Erledigt' Status manuell gesetzt
 	 * wurde.
 	 * 
-	 * @param eingangsrechnungIId
-	 *            PK der ER
+	 * @param eingangsrechnungIId PK der ER
 	 * @throws ExceptionLP
 	 */
-	public void erledigungAufheben(Integer eingangsrechnungIId)
-			throws ExceptionLP {
+	public void erledigungAufheben(Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.erledigungAufheben(eingangsrechnungIId,
-					LPMain.getTheClient());
+			eingangsrechnungFac.erledigungAufheben(eingangsrechnungIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
 	public EingangsrechnungDto[] eingangsrechnungFindByLieferantIIdLieferantenrechnungsnummerOhneExc(
-			Integer lieferantIId, String sLieferantenrechnungsnummer)
-			throws ExceptionLP {
+			Integer lieferantIId, String sLieferantenrechnungsnummer) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungFindByLieferantIIdLieferantenrechnungsnummerOhneExc(
-							lieferantIId, sLieferantenrechnungsnummer);
+			return eingangsrechnungFac.eingangsrechnungFindByLieferantIIdLieferantenrechnungsnummerOhneExc(lieferantIId,
+					sLieferantenrechnungsnummer);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ArrayList<EingangsrechnungDto> eingangsrechnungFindOffeneByLieferantIId(
-			Integer lieferantIId) throws ExceptionLP {
+	public ArrayList<EingangsrechnungDto> eingangsrechnungFindOffeneByLieferantIId(Integer lieferantIId)
+			throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungFindOffeneByLieferantIId(lieferantIId);
+			return eingangsrechnungFac.eingangsrechnungFindOffeneByLieferantIId(lieferantIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createZahlungsvorschlag(ZahlungsvorschlagkriterienDto krit)
-			throws ExceptionLP {
+	public Integer createZahlungsvorschlag(ZahlungsvorschlagkriterienDto krit) throws ExceptionLP {
 		try {
-			return zahlungsvorschlagFac.createZahlungsvorschlag(krit, LPMain
-					.getInstance().getTheClient());
+			return zahlungsvorschlagFac.createZahlungsvorschlag(krit, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void removeZahlungsvorschlaglauf(Integer zahlungsvorschlaglaufIId)
-			throws ExceptionLP {
+	public void removeZahlungsvorschlaglauf(Integer zahlungsvorschlaglaufIId) throws ExceptionLP {
 		try {
-			zahlungsvorschlagFac.removeZahlungsvorschlaglauf(
-					zahlungsvorschlaglaufIId, LPMain.getInstance()
-							.getTheClient());
+			zahlungsvorschlagFac.removeZahlungsvorschlaglauf(zahlungsvorschlaglaufIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public ZahlungsvorschlaglaufDto zahlungsvorschlaglaufFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public void eingangsrechnungAufAngelegtZuruecksetzen(Integer eingangangsrechnungIId) throws ExceptionLP {
 		try {
-			return zahlungsvorschlagFac
-					.zahlungsvorschlaglaufFindByPrimaryKey(iId);
+			eingangsrechnungFac.eingangsrechnungAufAngelegtZuruecksetzen(eingangangsrechnungIId,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void aktiviereBeleg(Integer eingangangsrechnungIId) throws ExceptionLP {
+		try {
+			eingangsrechnungFac.aktiviereBeleg(eingangangsrechnungIId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public ZahlungsvorschlaglaufDto zahlungsvorschlaglaufFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return zahlungsvorschlagFac.zahlungsvorschlaglaufFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ZahlungsvorschlagDto zahlungsvorschlagFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public ZahlungsvorschlagDto zahlungsvorschlagFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return zahlungsvorschlagFac.zahlungsvorschlagFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -742,78 +746,121 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public ZahlungsvorschlagDto[] zahlungsvorschlagFindByZahlungsvorschlaglaufIId(
-			Integer zahlungsvorschlaglaufIId) throws ExceptionLP {
-		try {
-			return zahlungsvorschlagFac
-					.zahlungsvorschlagFindByZahlungsvorschlaglaufIId(zahlungsvorschlaglaufIId);
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public void toggleZahlungsvorschlagBBezahlen(Integer zahlungsvorschlagIId)
+	public ZahlungsvorschlagDto[] zahlungsvorschlagFindByZahlungsvorschlaglaufIId(Integer zahlungsvorschlaglaufIId)
 			throws ExceptionLP {
 		try {
-			zahlungsvorschlagFac.toggleZahlungsvorschlagBBezahlen(
-					zahlungsvorschlagIId, LPMain.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
-	}
-
-	public BigDecimal getGesamtwertEinesZahlungsvorschlaglaufsInMandantenwaehrung(
-			Integer zahlungsvorschlaglaufIId) throws ExceptionLP {
-		try {
-			return zahlungsvorschlagFac
-					.getGesamtwertEinesZahlungsvorschlaglaufsInMandantenwaehrung(
-							zahlungsvorschlaglaufIId, LPMain.getInstance()
-									.getTheClient());
+			return zahlungsvorschlagFac.zahlungsvorschlagFindByZahlungsvorschlaglaufIId(zahlungsvorschlaglaufIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public String exportiereZahlungsvorschlaglauf(
-			Integer zahlungsvorschlaglaufIId) throws ExceptionLP {
+	public boolean sindNegativeZuExportierendeZahlungenVorhanden(Integer zahlungsvorschlagleufIId) throws ExceptionLP {
 		try {
-			return zahlungsvorschlagFac.exportiereZahlungsvorschlaglauf(
-					zahlungsvorschlaglaufIId, LPMain.getInstance()
-							.getTheClient());
+			return zahlungsvorschlagFac.sindNegativeZuExportierendeZahlungenVorhanden(zahlungsvorschlagleufIId,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return false;
+		}
+	}
+
+	public void updateZahlungsvorschlagBBezahlenMultiSelect(List<Integer> zahlungsvorschlagIId) throws ExceptionLP {
+		try {
+			zahlungsvorschlagFac.updateZahlungsvorschlagBBezahlenMultiSelect(zahlungsvorschlagIId,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public BigDecimal getGesamtwertEinesZahlungsvorschlaglaufsInMandantenwaehrung(Integer zahlungsvorschlaglaufIId)
+			throws ExceptionLP {
+		try {
+			return zahlungsvorschlagFac.getGesamtwertEinesZahlungsvorschlaglaufsInMandantenwaehrung(
+					zahlungsvorschlaglaufIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ZahlungsvorschlagDto updateZahlungsvorschlag(
-			ZahlungsvorschlagDto zahlungsvorschlagDto) throws ExceptionLP {
+	public ZahlungsvorschlagExportResult exportiereZahlungsvorschlaglauf(Integer zahlungsvorschlaglaufIId,
+			Integer iExportArt) throws ExceptionLP {
 		try {
-			return zahlungsvorschlagFac.updateZahlungsvorschlag(
-					zahlungsvorschlagDto, LPMain.getInstance().getTheClient());
+			return zahlungsvorschlagFac.exportiereZahlungsvorschlaglauf(zahlungsvorschlaglaufIId, iExportArt,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void pruefePreise() throws ExceptionLP {
+	public ZahlungsvorschlagDto updateZahlungsvorschlag(ZahlungsvorschlagDto zahlungsvorschlagDto) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.pruefePreise(LPMain.getInstance()
-					.getTheClient());
+			return zahlungsvorschlagFac.updateZahlungsvorschlag(zahlungsvorschlagDto,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public String getZahlungsvorschlagSepaExportFilename(Integer bankverbindungIId) throws ExceptionLP {
+		try {
+			return zahlungsvorschlagFac.getZahlungsvorschlagSepaExportFilename(bankverbindungIId,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void archiviereSepaZahlungsvorschlag(Integer zahlungsvorschlaglaufIId, String xmlZahlungsvorschlag)
+			throws ExceptionLP {
+		try {
+			zahlungsvorschlagFac.archiviereSepaZahlungsvorschlag(xmlZahlungsvorschlag, zahlungsvorschlaglaufIId,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void eingangsrechnungAuftragszuordnungAnteilsmaessigKopieren(
+			EingangsrechnungAuftragszuordnungDto[] eingangsrechnungAuftragszuordnungDto, Integer eingangangsrechnungIId)
+			throws ExceptionLP {
+		try {
+			eingangsrechnungFac.eingangsrechnungAuftragszuordnungAnteilsmaessigKopieren(
+					eingangsrechnungAuftragszuordnungDto, eingangangsrechnungIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public JasperPrintLP[] printEingangsrechnung(Integer iEingangsrechnungIId,
-			String sReportName, Integer iKopien, BigDecimal bdBetrag,
-			String sZusatztext, Integer schecknummer) throws ExceptionLP {
+	public void eingangsrechnungAuftragszuordnungExaktKopieren(
+			EingangsrechnungAuftragszuordnungDto[] eingangsrechnungAuftragszuordnungDto, Integer eingangangsrechnungIId)
+			throws ExceptionLP {
 		try {
-			return eingangsrechnungReportFac.printEingangsrechnung(
-					iEingangsrechnungIId, sReportName, iKopien, bdBetrag,
+			eingangsrechnungFac.eingangsrechnungAuftragszuordnungExaktKopieren(eingangsrechnungAuftragszuordnungDto,
+					eingangangsrechnungIId, LPMain.getInstance().getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void pruefePreise() throws ExceptionLP {
+		try {
+			eingangsrechnungFac.pruefePreise(LPMain.getInstance().getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public JasperPrintLP[] printEingangsrechnung(Integer iEingangsrechnungIId, String sReportName, Integer iKopien,
+			BigDecimal bdBetrag, String sZusatztext, Integer schecknummer) throws ExceptionLP {
+		try {
+			return eingangsrechnungReportFac.printEingangsrechnung(iEingangsrechnungIId, sReportName, iKopien, bdBetrag,
 					sZusatztext, schecknummer, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
@@ -821,18 +868,35 @@ public class EingangsrechnungDelegate extends Delegate {
 		return null;
 	}
 
-	public void verbucheEingangsrechnungNeu(Integer iRechnungIId)
-			throws ExceptionLP {
+	public JasperPrintLP printDokumente(Integer eingangsrechnungIId) throws ExceptionLP {
 		try {
-			eingangsrechnungFac.verbucheEingangsrechnungNeu(iRechnungIId,
-					LPMain.getTheClient());
+			return eingangsrechnungReportFac.printDokumente(eingangsrechnungIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public JasperPrintLP[] printEingangsrechnungMitPositionen(Integer iEingangsrechnungIId, Locale druckLocale,
+			boolean bMitLogo, Integer iAnzahlKopien) throws ExceptionLP {
+		try {
+			return eingangsrechnungReportFac.printEingangsrechnungMitPositionen(iEingangsrechnungIId, druckLocale,
+					bMitLogo, iAnzahlKopien, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public void verbucheEingangsrechnungNeu(Integer iRechnungIId) throws ExceptionLP {
+		try {
+			eingangsrechnungFac.verbucheEingangsrechnungNeu(iRechnungIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public BigDecimal getAnzahlungenZuSchlussrechnungFw(Integer erIId)
-			throws ExceptionLP {
+	public BigDecimal getAnzahlungenZuSchlussrechnungFw(Integer erIId) throws ExceptionLP {
 		try {
 			return eingangsrechnungFac.getAnzahlungenGestelltZuSchlussrechnungFw(erIId);
 		} catch (Throwable ex) {
@@ -841,8 +905,7 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public BigDecimal getAnzahlungenBezahltZuSchlussrechnungFw(Integer erIId)
-			throws ExceptionLP {
+	public BigDecimal getAnzahlungenBezahltZuSchlussrechnungFw(Integer erIId) throws ExceptionLP {
 		try {
 			return eingangsrechnungFac.getAnzahlungenBezahltZuSchlussrechnungFw(erIId);
 		} catch (Throwable ex) {
@@ -851,26 +914,145 @@ public class EingangsrechnungDelegate extends Delegate {
 		}
 	}
 
-	public BigDecimal getAnzahlungenZuSchlussrechnungUstFw(Integer erIId)
-			throws ExceptionLP {
+	public BigDecimal getAnzahlungenZuSchlussrechnungUstFw(Integer erIId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.getAnzahlungenGestelltZuSchlussrechnungUstFw(erIId);
+			return eingangsrechnungFac.getAnzahlungenGestelltZuSchlussrechnungUstFw(erIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public EingangsrechnungDto[] findByBestellungIId(Integer bsIId)
-			throws ExceptionLP {
+	public EingangsrechnungDto[] findByBestellungIId(Integer bsIId) throws ExceptionLP {
 		try {
-			return eingangsrechnungFac
-					.eingangsrechnungFindByBestellungIId(bsIId);
+			return eingangsrechnungFac.eingangsrechnungFindByBestellungIId(bsIId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
+	public void updateEingangsrechnungtext(EingangsrechnungtextDto textDto) throws ExceptionLP {
+		try {
+			eingangsrechnungServiceFac.updateEingangsrechnungtext(textDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public Integer createEingangsrechnungtext(EingangsrechnungtextDto textDto) throws ExceptionLP {
+		try {
+			textDto.setMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+			textDto.setLocaleCNr(LPMain.getInstance().getTheClient().getLocUiAsString());
+			return eingangsrechnungServiceFac.createEingangsrechnungtext(textDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public EingangsrechnungtextDto createDefaultEingangsrechnungtext(String sMediaartI, String sTextinhaltI,
+			String localeCNr) throws ExceptionLP {
+		EingangsrechnungtextDto textDto = null;
+
+		try {
+			textDto = eingangsrechnungServiceFac.createDefaultEingangsRechnungtext(sMediaartI, sTextinhaltI, localeCNr,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return textDto;
+	}
+
+	public void removeEingangsrechnungtext(EingangsrechnungtextDto eingangsrechnungtextDto) throws ExceptionLP {
+		try {
+			eingangsrechnungServiceFac.removeEingangsrechnungtext(eingangsrechnungtextDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public EingangsrechnungtextDto eingangsrechnungtextFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return eingangsrechnungServiceFac.eingangsrechnungtextFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public EingangsrechnungtextDto eingangsrechnungtextFindByMandantLocaleCNr(String pSprache, String pText)
+			throws ExceptionLP {
+		try {
+			return eingangsrechnungServiceFac.eingangsrechnungtextFindByMandantLocaleCNr(
+					LPMain.getInstance().getTheClient().getMandant(), pSprache, pText);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public VendidataImporterResult importXml(String xmlContent, boolean checkOnly) throws ExceptionLP {
+		try {
+			return eingangsrechnungFac.importXML(xmlContent, checkOnly, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JxlImportErgebnis importiereEingangsrechnungXLS(byte[] xlsFile) throws ExceptionLP {
+		try {
+			return eingangsrechnungFac.importiereEingangsrechnungXLS(xlsFile, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public boolean darfNeuerZahlungsvorschlaglaufErstelltWerden() throws ExceptionLP {
+		try {
+			return zahlungsvorschlagFac.darfNeuerZahlungsvorschlaglaufErstelltWerden(LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return false;
+		}
+	}
+
+	public CoinRoundingResult calcMwstBetragFromBrutto(EingangsrechnungDto erDto) throws ExceptionLP {
+		try {
+			return eingangsrechnungFac.calcMwstBetragFromBrutto(erDto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public CoinRoundingResult calcMwstBetragFromNetto(EingangsrechnungDto erDto) throws ExceptionLP {
+		try {
+			return eingangsrechnungFac.calcMwstBetragFromNetto(erDto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public List<EingangsrechnungDto> eingangsrechnungFindByBelegdatumVonBis(Date von, Date bis) throws ExceptionLP {
+		try {
+			return eingangsrechnungFac.eingangsrechnungFindByBelegdatumVonBis(von, bis, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public ErZahlungsempfaenger getEingangsrechnungBankverbindung(EingangsrechnungId eingangsrechnungId) throws ExceptionLP {
+		try {
+			return eingangsrechnungFac.getErZahlungsempfaenger(eingangsrechnungId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
 }

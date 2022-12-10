@@ -40,6 +40,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.partner.service.KundeFac;
 import com.lp.server.partner.service.KundesokoDto;
 import com.lp.server.partner.service.KundesokoFac;
 import com.lp.server.partner.service.KundesokomengenstaffelDto;
@@ -74,8 +75,7 @@ public class KundensokoDelegate extends Delegate {
 
 		try {
 			context = new InitialContext();
-			kundesokoFac = (KundesokoFac) context
-					.lookup("lpserver/KundesokoFacBean/remote");
+			kundesokoFac = lookupFac(context, KundesokoFac.class);
 		} catch (Throwable t) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
 		}

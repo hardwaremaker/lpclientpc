@@ -41,9 +41,11 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.SwingConstants;
+import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.util.IconFactory;
 
 /**
  * <p>
@@ -57,7 +59,7 @@ import com.lp.client.frame.HelperClient;
  * @author Martin Bluehweis
  * @version $Revision: 1.6 $
  */
-public class WrapperButton extends JButton implements IControl, IDirektHilfe {
+public class WrapperButton extends BorderButton implements IControl, IDirektHilfe {
 	/**
 	 * 
 	 */
@@ -67,10 +69,8 @@ public class WrapperButton extends JButton implements IControl, IDirektHilfe {
 	private boolean heavyOperation = false;
 	private boolean isNeuAusButton = false;
 	private CornerInfoButton cib = null;
-
-	private ImageIcon imageIconHeavyOperation = null;
-	private ImageIcon imageIconNeuAus = null;
-
+	private Border  defaultBorder = null;
+	
 	public WrapperButton() {
 		setDefaults();
 	}
@@ -122,22 +122,17 @@ public class WrapperButton extends JButton implements IControl, IDirektHilfe {
 		setVerticalAlignment(SwingConstants.CENTER);
 		Insets s = getMargin();
 		setMargin(new Insets(s.top, 1, s.bottom, 1));
+		defaultBorder = getBorder();
+		HelperClient.setButtonBackgroundBorderColor(this, Defaults.getInstance().getButtonBackgroundColor(), Defaults.getInstance().getButtonBorderColor());
+		setDefaultBorder(getBorder());
 	}
 
 	private ImageIcon getImageIconHeavyOperation() {
-		if (imageIconHeavyOperation == null) {
-			imageIconHeavyOperation = new ImageIcon(getClass().getResource(
-					"/com/lp/client/res/heavy_operation.png"));
-		}
-		return imageIconHeavyOperation;
+		return IconFactory.getHeavyOperation();
 	}
 
 	private ImageIcon getImageIconNeuAus() {
-		if (imageIconNeuAus == null) {
-			imageIconNeuAus = new ImageIcon(getClass().getResource(
-					"/com/lp/client/res/document.png"));
-		}
-		return imageIconNeuAus;
+		return IconFactory.getNew();
 	}
 
 	public boolean isHeavyOperation() {
@@ -180,7 +175,14 @@ public class WrapperButton extends JButton implements IControl, IDirektHilfe {
 		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance()
 				.getControlHeight()));
 	}
+	
+	public void setMinimumSizeImpl(Dimension d){
+		super.setMinimumSize(d);
+	}
 
+	public void setPreferredSizeImpl(Dimension d){
+		super.setPreferredSize(d);
+	}
 	public void setEnabled(boolean bEnabled) {
 		super.setEnabled(bEnabled);
 	}
@@ -202,9 +204,8 @@ public class WrapperButton extends JButton implements IControl, IDirektHilfe {
 	@Override
 	public void removeCib() {
 		cib = null;
-		
 	}
-
+	
 	@Override
 	public String getToken() {
 		return cib.getToolTipToken();
@@ -213,5 +214,11 @@ public class WrapperButton extends JButton implements IControl, IDirektHilfe {
 	@Override
 	public boolean hasContent() throws Throwable {
 		return true;
+	}
+	
+	public void setPrintPropertiesSaved(boolean saved) {
+		setBorder(saved
+				? Defaults.getInstance().getPrinterPropertiesSavedBorder()
+				: defaultBorder);
 	}
 }

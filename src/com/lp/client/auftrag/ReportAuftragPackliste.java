@@ -45,6 +45,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperComboBox;
@@ -145,18 +146,12 @@ public class ReportAuftragPackliste extends PanelBasis implements
 		wcbDruckformular.setMap(map);
 		wcbDruckformular
 				.setKeyOfSelectedItem(AuftragReportFac.REPORT_AUFTRAG_PACKLISTE);
-		wcbDruckformular.setMinimumSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
-		wcbDruckformular.setPreferredSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wcbDruckformular, HelperClient.getSizeFactoredDimension(80));
 		jpaWorkingOn.add(wcbDruckformular, new GridBagConstraints(1, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.EAST,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		wlaDruckformular.setMinimumSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
-		wlaDruckformular.setPreferredSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wlaDruckformular, HelperClient.getSizeFactoredDimension(80));
 
 		jpaWorkingOn.add(wlaDruckformular, new GridBagConstraints(0, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.WEST,

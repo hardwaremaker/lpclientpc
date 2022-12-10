@@ -61,9 +61,11 @@ import com.lp.client.pc.LPMain;
 import com.lp.client.personal.PersonalFilterFactory;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.personal.service.PersonalDto;
+import com.lp.server.reklamation.service.BehandlungDto;
 import com.lp.server.reklamation.service.FehlerDto;
 import com.lp.server.reklamation.service.ReklamationDto;
 import com.lp.server.reklamation.service.SchwereDto;
+import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
@@ -103,6 +105,9 @@ public class PanelReklamationAnalyse extends PanelBasis {
 	private WrapperButton wbuFehler = new WrapperButton();
 
 	private WrapperTextField wtfFehler = new WrapperTextField();
+
+	private WrapperLabel wlaBehandlung = new WrapperLabel();
+	private WrapperTextField wtfBehandlung = new WrapperTextField();
 
 	private InternalFrameReklamation internalFrameReklamation = null;
 
@@ -176,11 +181,19 @@ public class PanelReklamationAnalyse extends PanelBasis {
 		wbuFehler.setText(LPMain.getInstance().getTextRespectUISPr(
 				"rekla.fehler")
 				+ "...");
+		
+		wlaBehandlung.setText(LPMain.getInstance().getTextRespectUISPr(
+				"rekla.behandlung"));
+		
+		
 		wbuFehler.setActionCommand(ACTION_SPECIAL_FEHLER_FROM_LISTE);
 		wbuFehler.addActionListener(this);
 		wtfFehler.setActivatable(false);
 
 		wtfRueckspracheMit.setColumnsMax(80);
+
+		wtfBehandlung.setActivatable(false);
+		wtfBehandlung.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 
 		wbuPersonalRueckspreche.setText(LPMain.getInstance()
 				.getTextRespectUISPr("rekla.ruecksprachedurch"));
@@ -206,6 +219,9 @@ public class PanelReklamationAnalyse extends PanelBasis {
 		wlaRueckspracheMit.setText(LPMain.getInstance().getTextRespectUISPr(
 				"rekla.ruecksprachemit"));
 
+		HelperClient.setMinimumAndPreferredSize(wbuPersonalRueckspreche,
+				HelperClient.getSizeFactoredDimension(130));
+
 		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
 						0, 0, 0), 0, 0));
@@ -217,8 +233,8 @@ public class PanelReklamationAnalyse extends PanelBasis {
 				new Insets(0, 0, 0, 0), 0, 0));
 
 		jpaWorkingOn.add(wefBemerkung, new GridBagConstraints(0, iZeile, 4, 1,
-				0, 1, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 180));
+				0, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(10, 2, 2, 2), 0, 180));
 		iZeile++;
 		jpaWorkingOn.add(wbuSchwere, new GridBagConstraints(0, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
@@ -279,6 +295,12 @@ public class PanelReklamationAnalyse extends PanelBasis {
 				iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
+		jpaWorkingOn.add(wlaBehandlung, new GridBagConstraints(0, iZeile, 1, 1,
+				0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 10, 2), 0, 0));
+		jpaWorkingOn.add(wtfBehandlung, new GridBagConstraints(1, iZeile, 3, 1,
+				0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 10, 2), 0, 0));
 
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DISCARD, };
@@ -339,7 +361,7 @@ public class PanelReklamationAnalyse extends PanelBasis {
 				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
 						"rekla.schwere"));
 		panelQueryFLRSchwere.befuellePanelFilterkriterienDirekt(
-				SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+				ReklamationFilterFactory.getInstance().createFKDSchwereKennung(), null);
 		panelQueryFLRSchwere.setSelectedId(reklamationDto.getSchwereIId());
 
 		new DialogQuery(panelQueryFLRSchwere);
@@ -384,6 +406,16 @@ public class PanelReklamationAnalyse extends PanelBasis {
 		} else {
 			wtfFehler.setText(null);
 		}
+		
+		if (reklamationDto.getBehandlungIId() != null) {
+			BehandlungDto behandlungDto = DelegateFactory.getInstance()
+					.getReklamationDelegate()
+					.behandlungFindByPrimaryKey(reklamationDto.getBehandlungIId());
+			wtfBehandlung.setText(behandlungDto.formatBezeichnung());
+		} else {
+			wtfBehandlung.setText(null);
+		}
+		
 
 		this.setStatusbarPersonalIIdAendern(reklamationDto
 				.getPersonalIIdAendern());

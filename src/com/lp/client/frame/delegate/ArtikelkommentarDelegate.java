@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -45,15 +46,21 @@ import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.Desktop;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.ArtgruDto;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelkommentarDto;
 import com.lp.server.artikel.service.ArtikelkommentarFac;
 import com.lp.server.artikel.service.ArtikelkommentarartDto;
 import com.lp.server.artikel.service.ArtikelkommentardruckDto;
+import com.lp.server.artikel.service.ArtikelkommentarsprDto;
 import com.lp.server.artikel.service.ArtikelsperrenDto;
+import com.lp.server.artikel.service.RahmenbedarfeFac;
 import com.lp.server.artikel.service.SperrenDto;
 import com.lp.server.reklamation.service.ReklamationDto;
+import com.lp.server.system.service.KeyvalueDto;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.TheClientDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
@@ -66,62 +73,53 @@ public class ArtikelkommentarDelegate extends Delegate {
 	public ArtikelkommentarDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			artikelkommentarFac = (ArtikelkommentarFac) context
-					.lookup("lpserver/ArtikelkommentarFacBean/remote");
+			artikelkommentarFac = lookupFac(context, ArtikelkommentarFac.class);
+
 		} catch (Throwable t) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
 		}
 
 	}
 
-	public Integer createArtikelkommentar(
-			ArtikelkommentarDto artikelkommentarDto) throws ExceptionLP {
+	public Integer createArtikelkommentar(ArtikelkommentarDto artikelkommentarDto) throws ExceptionLP {
 		try {
-			return artikelkommentarFac.createArtikelkommentar(
-					artikelkommentarDto, LPMain.getInstance().getTheClient());
+			return artikelkommentarFac.createArtikelkommentar(artikelkommentarDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public boolean gibtEsKommentareInAnderenSprachen(Integer artikelkommentarIId)
-			throws ExceptionLP {
+	public boolean gibtEsKommentareInAnderenSprachen(Integer artikelkommentarIId) throws ExceptionLP {
 		try {
-			return artikelkommentarFac.gibtEsKommentareInAnderenSprachen(
-					artikelkommentarIId, LPMain.getInstance().getTheClient());
+			return artikelkommentarFac.gibtEsKommentareInAnderenSprachen(artikelkommentarIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return true;
 		}
 	}
 
-	public Integer createArtikelkommentardruck(
-			ArtikelkommentardruckDto artikelkommentardruckDto)
-			throws ExceptionLP {
+	public Integer createArtikelkommentardruck(ArtikelkommentardruckDto artikelkommentardruckDto) throws ExceptionLP {
 		try {
-			return artikelkommentarFac
-					.createArtikelkommentardruck(artikelkommentardruckDto);
+			return artikelkommentarFac.createArtikelkommentardruck(artikelkommentardruckDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createArtikelkommentarart(
-			ArtikelkommentarartDto artikelkommentarartDto) throws ExceptionLP {
+	public Integer createArtikelkommentarart(ArtikelkommentarartDto artikelkommentarartDto) throws ExceptionLP {
 		try {
-			return artikelkommentarFac
-					.createArtikelkommentarart(artikelkommentarartDto, LPMain
-							.getInstance().getTheClient());
+			return artikelkommentarFac.createArtikelkommentarart(artikelkommentarartDto,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void removeArtikelkommentar(ArtikelkommentarDto dto)
-			throws ExceptionLP {
+	public void removeArtikelkommentar(ArtikelkommentarDto dto) throws ExceptionLP {
 		try {
 			artikelkommentarFac.removeArtikelkommentar(dto);
 		} catch (Throwable ex) {
@@ -129,8 +127,18 @@ public class ArtikelkommentarDelegate extends Delegate {
 		}
 	}
 
-	public void removeArtikelkommentardruck(ArtikelkommentardruckDto dto)
+	public boolean kopiereArtikelkommentar(Integer artikelIId_alt, Integer artikelIId_neu, boolean bNurClientLocale)
 			throws ExceptionLP {
+		try {
+			return artikelkommentarFac.kopiereArtikelkommentar(artikelIId_alt, artikelIId_neu, bNurClientLocale,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return true;
+		}
+	}
+
+	public void removeArtikelkommentardruck(ArtikelkommentardruckDto dto) throws ExceptionLP {
 		try {
 			artikelkommentarFac.removeArtikelkommentardruck(dto);
 		} catch (Throwable ex) {
@@ -138,8 +146,7 @@ public class ArtikelkommentarDelegate extends Delegate {
 		}
 	}
 
-	public void removeArtikelkommentarart(ArtikelkommentarartDto dto)
-			throws ExceptionLP {
+	public void removeArtikelkommentarart(ArtikelkommentarartDto dto) throws ExceptionLP {
 		try {
 			artikelkommentarFac.removeArtikelkommentarart(dto);
 		} catch (Throwable ex) {
@@ -147,40 +154,31 @@ public class ArtikelkommentarDelegate extends Delegate {
 		}
 	}
 
-	public void updateArtikelkommentar(ArtikelkommentarDto artikelkommentarDto)
-			throws ExceptionLP {
+	public void updateArtikelkommentar(ArtikelkommentarDto artikelkommentarDto) throws ExceptionLP {
 		try {
-			artikelkommentarFac.updateArtikelkommentar(artikelkommentarDto,
-					LPMain.getInstance().getTheClient());
+			artikelkommentarFac.updateArtikelkommentar(artikelkommentarDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateArtikelkommentardruck(
-			ArtikelkommentardruckDto artikelkommentardruckDto)
-			throws ExceptionLP {
+	public void updateArtikelkommentardruck(ArtikelkommentardruckDto artikelkommentardruckDto) throws ExceptionLP {
 		try {
-			artikelkommentarFac
-					.updateArtikelkommentardruck(artikelkommentardruckDto);
+			artikelkommentarFac.updateArtikelkommentardruck(artikelkommentardruckDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateArtikelkommentarart(
-			ArtikelkommentarartDto artikelkommentarartDto) throws ExceptionLP {
+	public void updateArtikelkommentarart(ArtikelkommentarartDto artikelkommentarartDto) throws ExceptionLP {
 		try {
-			artikelkommentarFac
-					.updateArtikelkommentarart(artikelkommentarartDto, LPMain
-							.getInstance().getTheClient());
+			artikelkommentarFac.updateArtikelkommentarart(artikelkommentarartDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void vertauscheArtikelkommentar(Integer iiD1, Integer iId2)
-			throws ExceptionLP {
+	public void vertauscheArtikelkommentar(Integer iiD1, Integer iId2) throws ExceptionLP {
 		try {
 			artikelkommentarFac.vertauscheArtikelkommentar(iiD1, iId2);
 		} catch (Throwable ex) {
@@ -189,10 +187,18 @@ public class ArtikelkommentarDelegate extends Delegate {
 		}
 	}
 
-	public ArtikelkommentarDto artikelkommentarFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public ArtikelkommentarDto artikelkommentarFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return artikelkommentarFac.artikelkommentarFindByPrimaryKey(iId,
+			return artikelkommentarFac.artikelkommentarFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public ArtikelkommentarDto[] artikelkommentarFindByArtikelIId(Integer artikelIId) throws ExceptionLP {
+		try {
+			return artikelkommentarFac.artikelkommentarFindByArtikelIId(artikelIId,
 					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -200,98 +206,95 @@ public class ArtikelkommentarDelegate extends Delegate {
 		}
 	}
 
-	public ArtikelkommentardruckDto artikelkommentardruckFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public ArtikelkommentardruckDto artikelkommentardruckFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return artikelkommentarFac
-					.artikelkommentardruckFindByPrimaryKey(iId);
+			return artikelkommentarFac.artikelkommentardruckFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ArtikelkommentarDto[] artikelkommentardruckFindByArtikelIIdBelegartCNr(
-			Integer artikelIId, String localeCNr, String belegartCNr)
-			throws ExceptionLP {
+	public ArtikelkommentarDto[] artikelkommentardruckFindByArtikelIIdBelegartCNr(Integer artikelIId, String localeCNr,
+			String belegartCNr) throws ExceptionLP {
 		try {
-			return artikelkommentarFac
-					.artikelkommentardruckFindByArtikelIIdBelegartCNr(
-							artikelIId, belegartCNr, localeCNr, LPMain
-									.getInstance().getTheClient());
+			return artikelkommentarFac.artikelkommentardruckFindByArtikelIIdBelegartCNr(artikelIId, belegartCNr,
+					localeCNr, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
-	
-	public ArrayList<byte[]> getArtikelbilderFindByArtikelIIdBelegartCNr(
-			Integer artikelIId, String belegartCNr, String localeCNr)
-			throws ExceptionLP {
-		try {
-			return artikelkommentarFac
-					.getArtikelbilderFindByArtikelIIdBelegartCNr(
-							artikelIId, belegartCNr, localeCNr, LPMain
-									.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-	
 
-	public ArtikelkommentarDto artikelkommentarFindByPrimaryKeyUndLocale(
-			Integer iId, String localeCNr, TheClientDto theClientDto)
+	public ArrayList<byte[]> getArtikelbilderFindByArtikelIIdBelegartCNr(Integer artikelIId, String belegartCNr,
+			String localeCNr) throws ExceptionLP {
+		try {
+			return artikelkommentarFac.getArtikelbilderFindByArtikelIIdBelegartCNr(artikelIId, belegartCNr, localeCNr,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public ArtikelkommentarDto artikelkommentarFindByPrimaryKeyUndLocale(Integer iId, String localeCNr)
 			throws ExceptionLP {
 
 		try {
-			return artikelkommentarFac
-					.artikelkommentarFindByPrimaryKeyUndLocale(iId, localeCNr,
-							theClientDto);
+			return artikelkommentarFac.artikelkommentarFindByPrimaryKeyUndLocale(iId, localeCNr,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ArtikelDto pruefeArtikel(ArtikelDto artikelDto, String belegartCNr,
-			InternalFrame internalFrame) throws ExceptionLP {
+	public ArtikelkommentarsprDto artikelkommentarsprFindByPrimaryKeyOhneExc(Integer iId, String localeCNr)
+			throws ExceptionLP {
+
+		try {
+			return artikelkommentarFac.artikelkommentarsprFindByPrimaryKeyOhneExc(iId, localeCNr,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public ArtikelDto pruefeArtikel(ArtikelDto artikelDto, String belegartCNr, InternalFrame internalFrame)
+			throws ExceptionLP {
 
 		try {
 
-			// Artikelhinweise anzeigen
-			String[] hinweise = artikelkommentarFac.getArtikelhinweise(
-					artikelDto.getIId(), belegartCNr, LPMain.getInstance()
-							.getTheClient());
-			for (int i = 0; i < hinweise.length; i++) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.hinweis"), Helper
-						.strippHTML(hinweise[i]));
-			}
+			zeigeHinweiseUndBilder(artikelDto, belegartCNr, internalFrame, false);
 
-			ArtikelsperrenDto[] artikelsperrenDtos = DelegateFactory
-					.getInstance().getArtikelDelegate()
+			ArtikelsperrenDto[] artikelsperrenDtos = DelegateFactory.getInstance().getArtikelDelegate()
 					.artikelsperrenFindByArtikelIId(artikelDto.getIId());
 
 			boolean bGesperrtAllgemein = false;
 			boolean bGesperrtFuerBelgart = false;
 			String grund = "";
 
-			// PJ 16944 Hinweis, wenn offene Reklamationen
-			ReklamationDto[] rDtos = DelegateFactory
-					.getInstance()
-					.getReklamationDelegate()
-					.reklamationfindOffeneReklamationenEinesArtikels(
-							artikelDto.getIId());
-			if (rDtos != null && rDtos.length > 0) {
-				String reklas = LPMain.getInstance().getTextRespectUISPr(
-						"artikel.offenereklamationen.hinweis")
-						+ "\n";
-				for (int i = 0; i < rDtos.length; i++) {
-					reklas += rDtos[i].getCNr() + "\n";
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_REKLAMATIONSWARNUNG_NUR_BEI_SNR_CHNR,
+							ParameterFac.KATEGORIE_ARTIKEL, LPMain.getTheClient().getMandant());
+
+			boolean reklamationswarnungNurBeiSNrchnr = (Boolean) parameter.getCWertAsObject();
+
+			if (reklamationswarnungNurBeiSNrchnr == false
+					|| (reklamationswarnungNurBeiSNrchnr == true && artikelDto.istArtikelSnrOderchargentragend())) {
+
+				// PJ 16944 Hinweis, wenn offene Reklamationen
+				ReklamationDto[] rDtos = DelegateFactory.getInstance().getReklamationDelegate()
+						.reklamationfindOffeneReklamationenEinesArtikels(artikelDto.getIId());
+				if (rDtos != null && rDtos.length > 0) {
+					String reklas = LPMain.getInstance().getTextRespectUISPr("artikel.offenereklamationen.hinweis")
+							+ "\n";
+					for (int i = 0; i < rDtos.length; i++) {
+						reklas += rDtos[i].getCNr() + "\n";
+					}
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hinweis"), reklas);
 				}
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.hinweis"), reklas);
 			}
 
 			// PJ17927 Hinweis, wenn Artikel gewartet werden muss
@@ -299,36 +302,20 @@ public class ArtikelkommentarDelegate extends Delegate {
 
 				if (artikelDto.getTLetztewartung() == null) {
 
-					DialogFactory.showModalDialog(
-							LPMain.getInstance().getTextRespectUISPr(
-									"lp.hinweis"),
-							LPMain.getInstance().getTextRespectUISPr(
-									"artikel.hinweis.letztewartung"));
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hinweis"),
+							LPMain.getInstance().getTextRespectUISPr("artikel.hinweis.letztewartung"));
 
 				} else {
 					Calendar cWartungFaellig = Calendar.getInstance();
-					cWartungFaellig.setTimeInMillis(artikelDto
-							.getTLetztewartung().getTime());
-					cWartungFaellig.add(Calendar.MONTH,
-							artikelDto.getIWartungsintervall());
+					cWartungFaellig.setTimeInMillis(artikelDto.getTLetztewartung().getTime());
+					cWartungFaellig.add(Calendar.MONTH, artikelDto.getIWartungsintervall());
 
-					if (cWartungFaellig.getTimeInMillis() < System
-							.currentTimeMillis()) {
+					if (cWartungFaellig.getTimeInMillis() < System.currentTimeMillis()) {
 
-						DialogFactory
-								.showModalDialog(
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"lp.hinweis"),
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"artikel.hinweis.letztewartung.faellig")
-												+ " "
-												+ Helper.formatDatum(
-														cWartungFaellig
-																.getTime(),
-														LPMain.getTheClient()
-																.getLocUi()));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hinweis"),
+								LPMain.getInstance().getTextRespectUISPr("artikel.hinweis.letztewartung.faellig") + " "
+										+ Helper.formatDatum(cWartungFaellig.getTime(),
+												LPMain.getTheClient().getLocUi()));
 
 					}
 				}
@@ -338,11 +325,8 @@ public class ArtikelkommentarDelegate extends Delegate {
 
 				for (int i = 0; i < artikelsperrenDtos.length; i++) {
 
-					SperrenDto sperrenDto = DelegateFactory
-							.getInstance()
-							.getArtikelDelegate()
-							.sperrenFindByPrimaryKey(
-									artikelsperrenDtos[i].getSperrenIId());
+					SperrenDto sperrenDto = DelegateFactory.getInstance().getArtikelDelegate()
+							.sperrenFindByPrimaryKey(artikelsperrenDtos[i].getSperrenIId());
 
 					if (Helper.short2boolean(sperrenDto.getBGesperrt())) {
 						bGesperrtAllgemein = true;
@@ -353,62 +337,47 @@ public class ArtikelkommentarDelegate extends Delegate {
 						if (LocaleFac.BELEGART_ANFRAGE.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
 
-						} else if (LocaleFac.BELEGART_BESTELLUNG
-								.equals(belegartCNr)) {
+						} else if (LocaleFac.BELEGART_BESTELLUNG.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
-						} else if (LocaleFac.BELEGART_EINGANGSRECHNUNG
-								.equals(belegartCNr)) {
+						} else if (LocaleFac.BELEGART_EINGANGSRECHNUNG.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
 						}
 					}
 
 					if (Helper.short2boolean(sperrenDto.getBGesperrtverkauf())) {
-						if (LocaleFac.BELEGART_AGSTUECKLISTE
-								.equals(belegartCNr)) {
+						if (LocaleFac.BELEGART_AGSTUECKLISTE.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
-						} else if (LocaleFac.BELEGART_ANGEBOT
-								.equals(belegartCNr)) {
+						} else if (LocaleFac.BELEGART_ANGEBOT.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
-						} else if (LocaleFac.BELEGART_AUFTRAG
-								.equals(belegartCNr)) {
+						} else if (LocaleFac.BELEGART_AUFTRAG.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
-						} else if (LocaleFac.BELEGART_LIEFERSCHEIN
-								.equals(belegartCNr)) {
+						} else if (LocaleFac.BELEGART_LIEFERSCHEIN.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
-						} else if (LocaleFac.BELEGART_RECHNUNG
-								.equals(belegartCNr)) {
+						} else if (LocaleFac.BELEGART_RECHNUNG.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
 						}
 					}
@@ -417,19 +386,16 @@ public class ArtikelkommentarDelegate extends Delegate {
 						if (LocaleFac.BELEGART_LOS.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
 						}
 					}
 
-					if (Helper.short2boolean(sperrenDto
-							.getBGesperrtstueckliste())) {
+					if (Helper.short2boolean(sperrenDto.getBGesperrtstueckliste())) {
 						if (LocaleFac.BELEGART_STUECKLISTE.equals(belegartCNr)) {
 							bGesperrtFuerBelgart = true;
 							if (bGesperrtAllgemein == false) {
-								grund += artikelsperrenDtos[i].getCGrund()
-										+ ", ";
+								grund += artikelsperrenDtos[i].getCGrund() + ", ";
 							}
 
 						}
@@ -440,28 +406,21 @@ public class ArtikelkommentarDelegate extends Delegate {
 			if (bGesperrtAllgemein == true) {
 
 				if (artikelDto.getArtikelIIdErsatz() != null) {
-					ArtikelDto ersatz_artikelDto = DelegateFactory
-							.getInstance().getArtikelDelegate()
+					ArtikelDto ersatz_artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 							.getErsatzartikel(artikelDto.getIId());
 					// Dialog Ersatzartikel verwenden
 
-					final String sErsatz = LPMain
-							.getTextRespectUISPr("artikel.option.ersatz");
-					final String sAlten = LPMain
-							.getTextRespectUISPr("artikel.option.alten");
+					final String sErsatz = LPMain.getTextRespectUISPr("artikel.option.ersatz");
+					final String sAlten = LPMain.getTextRespectUISPr("artikel.option.alten");
 					Object[] options = { sErsatz, sAlten, };
-					JOptionPane pane = InternalFrame
-							.getNarrowOptionPane(Desktop.MAX_CHARACTERS_UNTIL_WORDWRAP);
-					pane.setMessage(LPMain.getInstance().getTextRespectUISPr(
-							"artikel.error.gesperrt.ersatz")
-							+ " ("
-							+ ersatz_artikelDto.formatArtikelbezeichnung()
-							+ ")");
+					JOptionPane pane = InternalFrame.getNarrowOptionPane(Desktop.MAX_CHARACTERS_UNTIL_WORDWRAP);
+					pane.setMessage(LPMain.getInstance().getTextRespectUISPr("artikel.error.gesperrt.ersatz") + " ("
+							+ ersatz_artikelDto.formatArtikelbezeichnung() + ")");
 					pane.setMessageType(JOptionPane.QUESTION_MESSAGE);
 					pane.setOptions(options);
 					pane.setInitialValue(sErsatz);
-					JDialog dialog = pane.createDialog(internalFrame, LPMain
-							.getInstance().getTextRespectUISPr("lp.frage"));
+					JDialog dialog = pane.createDialog(internalFrame,
+							LPMain.getInstance().getTextRespectUISPr("lp.frage"));
 					pane.selectInitialValue();
 					dialog.setVisible(true);
 
@@ -479,15 +438,10 @@ public class ArtikelkommentarDelegate extends Delegate {
 					}
 				} else {
 					// Dialog Hinweis gesperrt / Trotzdem verwenden JA/NEIN
-					boolean bAnswer = DialogFactory.showModalJaNeinDialog(
-							internalFrame,
-							LPMain.getInstance().getTextRespectUISPr(
-									"artikel.error.gesperrt")
-									+ "\n"
-									+ LPMain.getInstance().getTextRespectUISPr(
-											"lp.grund") + ": " + grund,
-							LPMain.getInstance().getTextRespectUISPr(
-									"lp.hinweis"));
+					boolean bAnswer = DialogFactory.showModalJaNeinDialog(internalFrame,
+							LPMain.getInstance().getTextRespectUISPr("artikel.error.gesperrt") + "\n"
+									+ LPMain.getInstance().getTextRespectUISPr("lp.grund") + ": " + grund,
+							LPMain.getInstance().getTextRespectUISPr("lp.hinweis"));
 					if (bAnswer) {
 						return artikelDto;
 					} else {
@@ -496,17 +450,13 @@ public class ArtikelkommentarDelegate extends Delegate {
 				}
 			} else {
 				if (bGesperrtFuerBelgart == true) {
-					// Dialog Hinweis gesperrt fuer belegart / Trotzdem verwenden
+					// Dialog Hinweis gesperrt fuer belegart / Trotzdem
+					// verwenden
 					// JA/NEIN
-					boolean bAnswer = DialogFactory.showModalJaNeinDialog(
-							internalFrame,
-							LPMain.getInstance().getTextRespectUISPr(
-									"artikel.error.gesperrt")
-									+ "\n"
-									+ LPMain.getInstance().getTextRespectUISPr(
-											"lp.grund") + ": " + grund,
-							LPMain.getInstance().getTextRespectUISPr(
-									"lp.hinweis"));
+					boolean bAnswer = DialogFactory.showModalJaNeinDialog(internalFrame,
+							LPMain.getInstance().getTextRespectUISPr("artikel.error.gesperrt") + "\n"
+									+ LPMain.getInstance().getTextRespectUISPr("lp.grund") + ": " + grund,
+							LPMain.getInstance().getTextRespectUISPr("lp.hinweis"));
 
 					if (bAnswer) {
 						return artikelDto;
@@ -524,12 +474,60 @@ public class ArtikelkommentarDelegate extends Delegate {
 		return artikelDto;
 	}
 
-	public String[] getArtikelhinweise(Integer artikelIId, String belegartCNr)
-			throws ExceptionLP {
+	public boolean zeigeHinweiseUndBilder(ArtikelDto artikelDto, String belegartCNr, InternalFrame internalFrame,
+			boolean bMitGelesenCheckBox) throws RemoteException, Throwable, ExceptionLP {
+		return zeigeHinweiseUndBilder(artikelDto, belegartCNr, internalFrame, true, bMitGelesenCheckBox);
+	}
+
+	private boolean zeigeHinweiseUndBilder(ArtikelDto artikelDto, String belegartCNr, InternalFrame internalFrame,
+			boolean bWeiterAufloesen, boolean bMitGelesenCheckBox) throws RemoteException, Throwable, ExceptionLP {
+
+		boolean bAlleGelesen = true;
+
+		String artikelBez = artikelDto.formatArtikelbezeichnung();
+
+		// Artikelhinweise anzeigen
+		ArrayList<KeyvalueDto> hinweise = artikelkommentarFac.getArtikelhinweise(artikelDto.getIId(), belegartCNr,
+				LPMain.getInstance().getTheClient());
+		for (int i = 0; i < hinweise.size(); i++) {
+			boolean bGelesen=DialogFactory.showModalDialog(
+					LPMain.getInstance().getTextRespectUISPr("lp.hinweis") + ": " + hinweise.get(i).getCKey(),
+					"<html><b>" + artikelBez + "</b> :<br>" + Helper.strippHTML(hinweise.get(i).getCValue()),bMitGelesenCheckBox);
+			if(bGelesen==false) {
+				bAlleGelesen=false;
+			}
+		}
+
+		// SP3115 Artikelhinweis-Bilder anzeigen
+
+		ArrayList<byte[]> bilder = DelegateFactory.getInstance().getArtikelkommentarDelegate()
+				.getArtikelhinweiseBild(artikelDto.getIId(), belegartCNr);
+
+		if (bilder != null && bilder.size() > 0) {
+			DialogFactory.showArtikelHinweisBild(bilder, artikelBez, internalFrame);
+		}
+
+		if (bWeiterAufloesen) {
+			// PJ21525 Aus fuer Kommentarartikel aus Artikelgruppe anzeigen
+			if (artikelDto.getArtgruIId() != null) {
+				ArtgruDto artgruDto = DelegateFactory.getInstance().getArtikelDelegate()
+						.artgruFindByPrimaryKey(artikelDto.getArtgruIId());
+				if (artgruDto.getArtikelIIdKommentar() != null) {
+					boolean bGelesen= zeigeHinweiseUndBilder(DelegateFactory.getInstance().getArtikelDelegate().artikelFindByPrimaryKey(
+							artgruDto.getArtikelIIdKommentar()), belegartCNr, internalFrame, false,bMitGelesenCheckBox);
+					if(bGelesen==false) {
+						bAlleGelesen=false;
+					}
+				}
+			}
+		}
+		return bAlleGelesen;
+	}
+
+	public ArrayList<KeyvalueDto> getArtikelhinweise(Integer artikelIId, String belegartCNr) throws ExceptionLP {
 
 		try {
-			return artikelkommentarFac.getArtikelhinweise(artikelIId,
-					belegartCNr, LPMain.getInstance().getTheClient());
+			return artikelkommentarFac.getArtikelhinweise(artikelIId, belegartCNr, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -537,12 +535,11 @@ public class ArtikelkommentarDelegate extends Delegate {
 
 	}
 
-	public ArrayList<byte[]> getArtikelhinweiseBild(Integer artikelIId,
-			String belegartCNr) throws ExceptionLP {
+	public ArrayList<byte[]> getArtikelhinweiseBild(Integer artikelIId, String belegartCNr) throws ExceptionLP {
 
 		try {
-			return artikelkommentarFac.getArtikelhinweiseBild(artikelIId,
-					belegartCNr, LPMain.getInstance().getTheClient());
+			return artikelkommentarFac.getArtikelhinweiseBild(artikelIId, belegartCNr,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -552,46 +549,47 @@ public class ArtikelkommentarDelegate extends Delegate {
 
 	public byte[] getArtikeldefaultBild(Integer artikelIId) throws ExceptionLP {
 		try {
-			return artikelkommentarFac.getArtikeldefaultBild(artikelIId, LPMain
-					.getInstance().getTheClient());
+			return artikelkommentarFac.getArtikeldefaultBild(artikelIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ArrayList<byte[]> getArtikelBilder(Integer artikelIId)
-			throws ExceptionLP {
+	public ArrayList<byte[]> getArtikelBilder(Integer artikelIId) throws ExceptionLP {
 		try {
-			return artikelkommentarFac.getArtikelBilder(artikelIId, LPMain
-					.getInstance().getTheClient());
+			return artikelkommentarFac.getArtikelBilder(artikelIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ArtikelkommentarartDto artikelkommentarartFindByPrimaryKey(
-			Integer iId) throws ExceptionLP {
+	public String getArtikelkommentarFuerDetail(Integer artikelIId) throws ExceptionLP {
 		try {
-			return artikelkommentarFac.artikelkommentarartFindByPrimaryKey(iId,
-					LPMain.getInstance().getTheClient());
+			return artikelkommentarFac.getArtikelkommentarFuerDetail(artikelIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
-	public boolean sindTexteOderPDFsVorhanden(
-			Integer artikelIId) throws ExceptionLP {
+
+	public ArtikelkommentarartDto artikelkommentarartFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return artikelkommentarFac.sindTexteOderPDFsVorhanden(artikelIId,
-					LPMain.getInstance().getTheClient());
+			return artikelkommentarFac.artikelkommentarartFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public boolean sindTexteOderPDFsVorhanden(Integer artikelIId) throws ExceptionLP {
+		try {
+			return artikelkommentarFac.sindTexteOderPDFsVorhanden(artikelIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return false;
 		}
 	}
-	
-	
-	
+
 }

@@ -91,6 +91,7 @@ public class ReportHalbfertigfabrikatsinventur extends PanelBasis implements
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 	private WrapperCheckBox wcbVerdichtet = new WrapperCheckBox();
 	private WrapperCheckBox wcbSortiertFertigungsgruppe = new WrapperCheckBox();
+	private WrapperCheckBox wcbReferenznummerStattArtikelnummer = new WrapperCheckBox();
 	private WrapperLabel wlaSortierung = new WrapperLabel();
 	private WrapperButton wbuFertigungsort = new WrapperButton();
 	private WrapperTextField wtfFertigungsort = new WrapperTextField();
@@ -101,6 +102,8 @@ public class ReportHalbfertigfabrikatsinventur extends PanelBasis implements
 	private WrapperRadioButton wrbOptionArtikelnummer = new WrapperRadioButton();
 	private WrapperRadioButton wrbOptionAuftragsnummer = new WrapperRadioButton();
 	private Integer partnerIId_Fertigungsort = null;
+
+	private WrapperCheckBox wcbNurMaterialwerte = new WrapperCheckBox();
 
 	public ReportHalbfertigfabrikatsinventur(InternalFrame internalFrame,
 			String sAdd2Title) throws Throwable {
@@ -115,23 +118,22 @@ public class ReportHalbfertigfabrikatsinventur extends PanelBasis implements
 		if (e.getActionCommand().equals(ACTION_SPECIAL_FERTIGUNGSORT)) {
 			dialogQueryFertigungsort(e);
 		}
-		
-		if(e.getSource() instanceof WrapperRadioButton){
-			if(wrbOptionArtikelnummer.isSelected()){
+
+		if (e.getSource() instanceof WrapperRadioButton) {
+			if (wrbOptionArtikelnummer.isSelected()) {
 				wcbVerdichtet.setEnabled(true);
-			}
-			else if(wrbOptionAuftragsnummer.isSelected()){
+			} else if (wrbOptionAuftragsnummer.isSelected()) {
 				wcbVerdichtet.setEnabled(false);
 				wcbVerdichtet.setSelected(false);
-			}
-			else if(wrbOptionLosnummer.isSelected()){
+			} else if (wrbOptionLosnummer.isSelected()) {
 				wcbVerdichtet.setEnabled(true);
 			}
 		}
 	}
 
 	private void dialogQueryFertigungsort(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH , PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
+				PanelBasis.ACTION_LEEREN };
 
 		panelQueryFLRFertigungsort = new PanelQueryFLR(null, null,
 				QueryParameters.UC_ID_MANDANT, aWhichButtonIUse,
@@ -150,21 +152,22 @@ public class ReportHalbfertigfabrikatsinventur extends PanelBasis implements
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					MandantDto mandantDto = DelegateFactory.getInstance()
-							.getMandantDelegate().mandantFindByPrimaryKey(
-									(String) key);
+							.getMandantDelegate()
+							.mandantFindByPrimaryKey((String) key);
 
-					PartnerDto partnerDto = DelegateFactory.getInstance()
-							.getPartnerDelegate().partnerFindByPrimaryKey(
-									mandantDto.getPartnerIId());
+					PartnerDto partnerDto = DelegateFactory
+							.getInstance()
+							.getPartnerDelegate()
+							.partnerFindByPrimaryKey(mandantDto.getPartnerIId());
 					wtfFertigungsort.setText(partnerDto.formatTitelAnrede());
-					partnerIId_Fertigungsort=mandantDto.getPartnerIId();
+					partnerIId_Fertigungsort = mandantDto.getPartnerIId();
 				}
 			}
-		}else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
-			 if (e.getSource() == panelQueryFLRFertigungsort) {
-				 wtfFertigungsort.setText(null);
-				 partnerIId_Fertigungsort=null;
-			 }
+		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
+			if (e.getSource() == panelQueryFLRFertigungsort) {
+				wtfFertigungsort.setText(null);
+				partnerIId_Fertigungsort = null;
+			}
 		}
 
 	}
@@ -182,27 +185,41 @@ public class ReportHalbfertigfabrikatsinventur extends PanelBasis implements
 		wbuFertigungsort.setActionCommand(ACTION_SPECIAL_FERTIGUNGSORT);
 		wtfFertigungsort.setActivatable(false);
 
-		  wbuFertigungsort.setText(LPMain.getInstance().getTextRespectUISPr(
-	        "button.fertigungsort"));
-		
+		wbuFertigungsort.setText(LPMain.getInstance().getTextRespectUISPr(
+				"button.fertigungsort"));
+
 		wcbVerdichtet.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.verdichtet"));
-		wcbSortiertFertigungsgruppe.setText(LPMain.getInstance().getTextRespectUISPr(
-				"fert.halbfertigfabrikatsinventur.sortfertigungsgruppe"));
+
+		wcbNurMaterialwerte.setText(LPMain.getInstance().getTextRespectUISPr(
+				"fert.hfinventur.nurmaterialwerte"));
+
+		wcbReferenznummerStattArtikelnummer.setText(LPMain.getInstance().getTextRespectUISPr(
+				"fert.hfinventur.referenznummerstattartikelnummer"));
+		
+		wcbSortiertFertigungsgruppe
+				.setText(LPMain
+						.getInstance()
+						.getTextRespectUISPr(
+								"fert.halbfertigfabrikatsinventur.sortfertigungsgruppe"));
 		wlaSortierung.setText(LPMain.getInstance().getTextRespectUISPr(
 				"label.sortierung"));
 		wrbOptionArtikelnummer.setText(LPMain.getInstance()
-				.getTextRespectUISPr("fert.halbfertigfabrikatsinventur.sort.artikellos"));
+				.getTextRespectUISPr(
+						"fert.halbfertigfabrikatsinventur.sort.artikellos"));
 		wrbOptionLosnummer.setText(LPMain.getInstance().getTextRespectUISPr(
 				"fert.halbfertigfabrikatsinventur.sort.losartikel"));
-		
-		wrbOptionAuftragsnummer.setText(LPMain.getInstance()
-				.getTextRespectUISPr("fert.halbfertigfabrikatsinventur.sort.auftraglosartikel"));
-		
+
+		wrbOptionAuftragsnummer
+				.setText(LPMain
+						.getInstance()
+						.getTextRespectUISPr(
+								"fert.halbfertigfabrikatsinventur.sort.auftraglosartikel"));
+
 		wrbOptionArtikelnummer.addActionListener(this);
 		wrbOptionLosnummer.addActionListener(this);
 		wrbOptionAuftragsnummer.addActionListener(this);
-		
+
 		buttonGroupOption.add(wrbOptionArtikelnummer);
 		buttonGroupOption.add(wrbOptionLosnummer);
 		buttonGroupOption.add(wrbOptionAuftragsnummer);
@@ -220,36 +237,43 @@ public class ReportHalbfertigfabrikatsinventur extends PanelBasis implements
 		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(1, iZeile, 1, 1,
 				1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbSortiertFertigungsgruppe, new GridBagConstraints(3, iZeile, 1, 1,
-				1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbSortiertFertigungsgruppe, new GridBagConstraints(3,
+				iZeile, 2, 1, 1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(2, iZeile, 1, 1,
-				1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbOptionArtikelnummer, new GridBagConstraints(3,
-				iZeile, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcbVerdichtet, new GridBagConstraints(1, iZeile, 1, 1,
 				1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
-		iZeile++;
-		jpaWorkingOn.add(wbuFertigungsort, new GridBagConstraints(0, iZeile, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(2, iZeile, 1, 1,
+				1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		jpaWorkingOn.add(wrbOptionArtikelnummer, new GridBagConstraints(3,
+				iZeile, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfFertigungsort, new GridBagConstraints(1, iZeile, 1, 1,
+		jpaWorkingOn.add(wcbReferenznummerStattArtikelnummer, new GridBagConstraints(4,
+				iZeile, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+		
+
+		iZeile++;
+		jpaWorkingOn.add(wcbNurMaterialwerte, new GridBagConstraints(1, iZeile, 1, 1,
 				1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wrbOptionLosnummer, new GridBagConstraints(3, iZeile,
 				1, 1, 1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
+
 		iZeile++;
-		jpaWorkingOn.add(wrbOptionAuftragsnummer, new GridBagConstraints(3, iZeile,
-				1, 1, 1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuFertigungsort, new GridBagConstraints(0, iZeile, 1,
+				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
+		jpaWorkingOn.add(wtfFertigungsort, new GridBagConstraints(1, iZeile, 1,
+				1, 1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbOptionAuftragsnummer, new GridBagConstraints(3,
+				iZeile, 2, 1, 1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 	}
 
 	public String getModul() {
@@ -268,23 +292,24 @@ public class ReportHalbfertigfabrikatsinventur extends PanelBasis implements
 
 		int iSortierung = -1;
 
-		boolean bVerdichtet=wcbVerdichtet.isSelected();
-		
+		boolean bVerdichtet = wcbVerdichtet.isSelected();
+
 		if (wrbOptionArtikelnummer.isSelected()) {
 			iSortierung = FertigungReportFac.HF_OPTION_SORTIERUNG_ARTIKELNR;
 		} else if (wrbOptionLosnummer.isSelected()) {
 			iSortierung = FertigungReportFac.HF_OPTION_SORTIERUNG_LOSNR;
-		}else if (wrbOptionAuftragsnummer.isSelected()) {
+		} else if (wrbOptionAuftragsnummer.isSelected()) {
 			iSortierung = FertigungReportFac.HF_OPTION_SORTIERUNG_AUFTRAGNR;
-			bVerdichtet=false;
+			bVerdichtet = false;
 		}
-		
-		
-		
 
-		return DelegateFactory.getInstance().getFertigungDelegate()
+		return DelegateFactory
+				.getInstance()
+				.getFertigungDelegate()
 				.printHalbfertigfabrikatsinventur(wdfStichtag.getTimestamp(),
-						iSortierung, bVerdichtet, partnerIId_Fertigungsort, wcbSortiertFertigungsgruppe.isSelected());
+						iSortierung, bVerdichtet, partnerIId_Fertigungsort,
+						wcbSortiertFertigungsgruppe.isSelected(),
+						wcbNurMaterialwerte.isSelected(),wcbReferenznummerStattArtikelnummer.isSelected());
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {

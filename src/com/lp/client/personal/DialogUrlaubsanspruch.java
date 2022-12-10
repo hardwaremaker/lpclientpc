@@ -54,6 +54,7 @@ import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.fertigung.service.LosDto;
 import com.lp.server.fertigung.service.LoszusatzstatusDto;
+import com.lp.server.personal.service.EintrittaustrittDto;
 import com.lp.server.personal.service.UrlaubsabrechnungDto;
 import com.lp.util.EJBExceptionLP;
 
@@ -100,15 +101,15 @@ public class DialogUrlaubsanspruch extends JDialog implements KeyListener {
 
 	GridBagLayout gridBagLayout2 = new GridBagLayout();
 
-	public DialogUrlaubsanspruch() {
+	private boolean bUrlaubsabrechnungZumEintritt = false;
+	private Integer personalIId = null;
 
-	}
-
-	public DialogUrlaubsanspruch(UrlaubsabrechnungDto urlaubsabrechnungDto)
-			throws Exception {
-		super(LPMain.getInstance().getDesktop(), LPMain.getInstance()
-				.getTextRespectUISPr("pers.urlaubsanspruch.urlaubsabrechnung"),
-				true);
+	public DialogUrlaubsanspruch(UrlaubsabrechnungDto urlaubsabrechnungDto, Integer personalIId,
+			boolean bUrlaubsabrechnungZumEintritt) throws Throwable {
+		super(LPMain.getInstance().getDesktop(),
+				LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.urlaubsabrechnung"), true);
+		this.bUrlaubsabrechnungZumEintritt = bUrlaubsabrechnungZumEintritt;
+		this.personalIId = personalIId;
 
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		jbInit();
@@ -118,62 +119,39 @@ public class DialogUrlaubsanspruch extends JDialog implements KeyListener {
 		c.setTime(urlaubsabrechnungDto.getDAbrechnungszeitpunkt());
 		c.set(Calendar.DATE, c.get(Calendar.DATE) - 1);
 
-		wlaTitel.setText(wlaTitel.getText()
-				+ " "
-				+ com.lp.util.Helper.formatDatum(c.getTime(), LPMain
-						.getInstance().getUISprLocale()) + " inkl.:");
+		wlaTitel.setText(wlaTitel.getText() + " "
+				+ com.lp.util.Helper.formatDatum(c.getTime(), LPMain.getInstance().getUISprLocale()) + " inkl.:");
 
-		wnfAnspruchAktuellStunden.setBigDecimal(urlaubsabrechnungDto
-				.getNAktuellerUrlaubsanspruchStunden());
-		wnfAnspruchAktuellTage.setBigDecimal(urlaubsabrechnungDto
-				.getNAktuellerUrlaubsanspruchTage());
-		wnfAnspruchAktuellVerbrauchtStunden.setBigDecimal(urlaubsabrechnungDto
-				.getNAktuellerUrlaubVerbrauchtStunden());
-		wnfAnspruchAktuellVerbrauchtTage.setBigDecimal(urlaubsabrechnungDto
-				.getNAktuellerUrlaubVerbrauchtTage());
-		wnfAnspruchAltStunden.setBigDecimal(urlaubsabrechnungDto
-				.getNAlterUrlaubsanspruchStunden());
-		wnfAnspruchAltTage.setBigDecimal(urlaubsabrechnungDto
-				.getNAlterUrlaubsanspruchTage());
-		wnfUrlaubGeplantStunden.setBigDecimal(urlaubsabrechnungDto
-				.getNGeplanterUrlaubStunden());
-		wnfUrlaubGeplantTage.setBigDecimal(urlaubsabrechnungDto
-				.getNGeplanterUrlaubTage());
-		wnfUrlaubVerfuegbarStunden.setBigDecimal(urlaubsabrechnungDto
-				.getNVerfuegbarerUrlaubStunden());
-		wnfUrlaubVerfuegbarTage.setBigDecimal(urlaubsabrechnungDto
-				.getNVerfuegbarerUrlaubTage());
-		wnfAnspruchAktuellAliquotTage.setBigDecimal(urlaubsabrechnungDto
-				.getNAliquoterAnspruchTage());
-		wnfAnspruchAktuellAliquotStunden.setBigDecimal(urlaubsabrechnungDto
-				.getNAliquoterAnspruchStunden());
+		wnfAnspruchAktuellStunden.setBigDecimal(urlaubsabrechnungDto.getNAktuellerUrlaubsanspruchStunden());
+		wnfAnspruchAktuellTage.setBigDecimal(urlaubsabrechnungDto.getNAktuellerUrlaubsanspruchTage());
+		wnfAnspruchAktuellVerbrauchtStunden.setBigDecimal(urlaubsabrechnungDto.getNAktuellerUrlaubVerbrauchtStunden());
+		wnfAnspruchAktuellVerbrauchtTage.setBigDecimal(urlaubsabrechnungDto.getNAktuellerUrlaubVerbrauchtTage());
+		wnfAnspruchAltStunden.setBigDecimal(urlaubsabrechnungDto.getNAlterUrlaubsanspruchStunden());
+		wnfAnspruchAltTage.setBigDecimal(urlaubsabrechnungDto.getNAlterUrlaubsanspruchTage());
+		wnfUrlaubGeplantStunden.setBigDecimal(urlaubsabrechnungDto.getNGeplanterUrlaubStunden());
+		wnfUrlaubGeplantTage.setBigDecimal(urlaubsabrechnungDto.getNGeplanterUrlaubTage());
+		wnfUrlaubVerfuegbarStunden.setBigDecimal(urlaubsabrechnungDto.getNVerfuegbarerUrlaubStunden());
+		wnfUrlaubVerfuegbarTage.setBigDecimal(urlaubsabrechnungDto.getNVerfuegbarerUrlaubTage());
+		wnfAnspruchAktuellAliquotTage.setBigDecimal(urlaubsabrechnungDto.getNAliquoterAnspruchTage());
+		wnfAnspruchAktuellAliquotStunden.setBigDecimal(urlaubsabrechnungDto.getNAliquoterAnspruchStunden());
 
 		wnfAnspruchAktuellVerbrauchtZusStunden
-				.setBigDecimal(urlaubsabrechnungDto
-						.getNAktuellerUrlaubVerbrauchtStunden());
-		wnfAnspruchAktuellVerbrauchtZusTage.setBigDecimal(urlaubsabrechnungDto
-				.getNAktuellerUrlaubVerbrauchtTage());
+				.setBigDecimal(urlaubsabrechnungDto.getNAktuellerUrlaubVerbrauchtStunden());
+		wnfAnspruchAktuellVerbrauchtZusTage.setBigDecimal(urlaubsabrechnungDto.getNAktuellerUrlaubVerbrauchtTage());
 
-		wnfFreierUrlaubTage.setBigDecimal(urlaubsabrechnungDto
-				.getNAlterUrlaubsanspruchTage()
+		wnfFreierUrlaubTage.setBigDecimal(urlaubsabrechnungDto.getNAlterUrlaubsanspruchTage()
 				.add(urlaubsabrechnungDto.getNAktuellerUrlaubsanspruchTage())
 				.subtract(urlaubsabrechnungDto.getNGeplanterUrlaubTage())
-				.subtract(
-						urlaubsabrechnungDto
-								.getNAktuellerUrlaubVerbrauchtTage()));
+				.subtract(urlaubsabrechnungDto.getNAktuellerUrlaubVerbrauchtTage()));
 
-		wnfFreierUrlaubStunden.setBigDecimal(urlaubsabrechnungDto
-				.getNAlterUrlaubsanspruchStunden().add(
-						urlaubsabrechnungDto
-								.getNAktuellerUrlaubsanspruchStunden())
+		wnfFreierUrlaubStunden.setBigDecimal(urlaubsabrechnungDto.getNAlterUrlaubsanspruchStunden()
+				.add(urlaubsabrechnungDto.getNAktuellerUrlaubsanspruchStunden())
 				.subtract(urlaubsabrechnungDto.getNGeplanterUrlaubStunden())
-				.subtract(
-						urlaubsabrechnungDto
-								.getNAktuellerUrlaubVerbrauchtStunden()));
+				.subtract(urlaubsabrechnungDto.getNAktuellerUrlaubVerbrauchtStunden()));
 
 	}
 
-	private void jbInit() throws Exception {
+	private void jbInit() throws Throwable {
 
 		wnfAnspruchAltTage = new WrapperNumberField();
 		wnfAnspruchAktuellTage = new WrapperNumberField();
@@ -194,63 +172,55 @@ public class DialogUrlaubsanspruch extends JDialog implements KeyListener {
 		wnfFreierUrlaubStunden = new WrapperNumberField();
 
 		panelUrlaubsanspruch.setLayout(gridBagLayout1);
-		wrapperLabel1.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.urlaubsanspruch.anspruchalt")
-				+ ":");
-		wrapperLabel3.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.urlaubsanspruch.anspruchaktuell")
-				+ ":");
-		wrapperLabel4
-				.setText("- "
-						+ LPMain
-								.getInstance()
-								.getTextRespectUISPr(
-										"pers.urlaubsanspruch.anspruchaktuellverbraucht")
-						+ ":");
-		wrapperLabel5.setText("- "
-				+ LPMain.getInstance().getTextRespectUISPr(
-						"pers.urlaubsanspruch.urlaubgeplant") + ":");
-		wrapperLabel6.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.urlaubsanspruch.urlaubverfuegbar")
-				+ ":");
-		wrapperLabel7.setText("+ "
-				+ LPMain.getInstance().getTextRespectUISPr(
-						"pers.urlaubsanspruch.anspruchaliquot") + ":");
-		wlaAnspruch.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.urlaubsanspruch.betrachtungsart")
-				+ ":");
-		wrapperLabel8
-				.setText("----------------------------------------------------------------------------------------------");
-		wrapperLabel9
-				.setText("----------------------------------------------------------------------------------------------");
+		wrapperLabel1.setText(LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.anspruchalt") + ":");
+		wrapperLabel3.setText(LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.anspruchaktuell") + ":");
+		wrapperLabel4.setText("- "
+				+ LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.anspruchaktuellverbraucht") + ":");
+		wrapperLabel5
+				.setText("- " + LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.urlaubgeplant") + ":");
+		wrapperLabel6.setText(LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.urlaubverfuegbar") + ":");
+		wrapperLabel7
+				.setText("+ " + LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.anspruchaliquot") + ":");
+		wlaAnspruch.setText(LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.betrachtungsart") + ":");
+		wrapperLabel8.setText(
+				"----------------------------------------------------------------------------------------------");
+		wrapperLabel9.setText(
+				"----------------------------------------------------------------------------------------------");
 		wrapperLabel11.setHorizontalAlignment(SwingConstants.CENTER);
-		wrapperLabel11.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.tage"));
+		wrapperLabel11.setText(LPMain.getInstance().getTextRespectUISPr("lp.tage"));
 		wrapperLabel12.setHorizontalAlignment(SwingConstants.CENTER);
-		wrapperLabel12.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.stunden"));
+		wrapperLabel12.setText(LPMain.getInstance().getTextRespectUISPr("lp.stunden"));
 		wlaTitel.setFont(new java.awt.Font("Dialog", Font.BOLD, 11));
 		wlaTitel.setHorizontalAlignment(SwingConstants.CENTER);
-		wlaTitel.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.urlaubsanspruch.anspruchzum"));
+		wlaTitel.setText(LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.anspruchzum"));
 
-		wlaAnspruchAktuellVerbrauchtZus
-				.setText("- "
-						+ LPMain
-								.getInstance()
-								.getTextRespectUISPr(
-										"pers.urlaubsanspruch.anspruchaktuellverbraucht")
-						+ ":");
+		wlaAnspruchAktuellVerbrauchtZus.setText("- "
+				+ LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.anspruchaktuellverbraucht") + ":");
 
 		Calendar c = Calendar.getInstance();
 		c.set(Calendar.DATE, 31);
 		c.set(Calendar.MONTH, Calendar.DECEMBER);
 
-		wlaFreierUrlaub.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.urlaubsanspruch.freierurlaub")
-				+ " "
-				+ com.lp.util.Helper.formatDatum(c.getTime(), LPMain
-						.getInstance().getUISprLocale()) + ":");
+		wlaFreierUrlaub.setText(LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.freierurlaub") + " "
+				+ com.lp.util.Helper.formatDatum(c.getTime(), LPMain.getInstance().getUISprLocale()) + ":");
+		
+		if (bUrlaubsabrechnungZumEintritt) {
+			EintrittaustrittDto eaDto = DelegateFactory.getInstance().getPersonalDelegate()
+					.eintrittaustrittFindLetztenEintrittBisDatum(personalIId);
+			if (eaDto != null && eaDto.getTEintritt()!=null) {
+
+				c = Calendar.getInstance();
+				c.setTimeInMillis(eaDto.getTEintritt().getTime());
+				c.add(Calendar.DATE, -1);
+				while(c.before(Calendar.getInstance())) {
+					c.add(Calendar.YEAR, 1);
+				}
+				wlaFreierUrlaub.setText(LPMain.getInstance().getTextRespectUISPr("pers.urlaubsanspruch.freierurlaub") + " "
+						+ com.lp.util.Helper.formatDatum(c.getTime(), LPMain.getInstance().getUISprLocale()) + ":");
+			}
+		}
+
+		
 
 		wnfAnspruchAltStunden.setEditable(false);
 		wnfAnspruchAktuellStunden.setEditable(false);
@@ -272,122 +242,74 @@ public class DialogUrlaubsanspruch extends JDialog implements KeyListener {
 		wnfFreierUrlaubStunden.setEditable(false);
 
 		this.getContentPane().setLayout(gridBagLayout2);
-		this.getContentPane().add(
-				panelUrlaubsanspruch,
-				new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(0, 0, 0, 0), 200, 150));
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtTage,
-				new GridBagConstraints(1, 6, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfUrlaubVerfuegbarTage,
-				new GridBagConstraints(1, 8, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAltStunden, new GridBagConstraints(
-				2, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtStunden,
-				new GridBagConstraints(2, 6, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfUrlaubVerfuegbarStunden,
-				new GridBagConstraints(2, 8, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel6, new GridBagConstraints(0, 8, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		this.getContentPane().add(panelUrlaubsanspruch, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 200, 150));
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtTage, new GridBagConstraints(1, 6, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfUrlaubVerfuegbarTage, new GridBagConstraints(1, 8, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfAnspruchAltStunden, new GridBagConstraints(2, 2, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtStunden, new GridBagConstraints(2, 6, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfUrlaubVerfuegbarStunden, new GridBagConstraints(2, 8, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wrapperLabel6, new GridBagConstraints(0, 8, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel9, new GridBagConstraints(0, 7, 3,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wrapperLabel9, new GridBagConstraints(0, 7, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel4, new GridBagConstraints(0, 6, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wrapperLabel4, new GridBagConstraints(0, 6, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel11, new GridBagConstraints(1, 1,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wrapperLabel11, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel12, new GridBagConstraints(2, 1,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wrapperLabel12, new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAltTage, new GridBagConstraints(1,
-				2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wlaAnspruch, new GridBagConstraints(0, 1, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wnfAnspruchAltTage, new GridBagConstraints(1, 2, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wlaAnspruch, new GridBagConstraints(0, 1, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wlaTitel, new GridBagConstraints(0, 0, 3, 1,
-				0.0, 0.0, GridBagConstraints.SOUTH,
+		panelUrlaubsanspruch.add(wlaTitel, new GridBagConstraints(0, 0, 3, 1, 0.0, 0.0, GridBagConstraints.SOUTH,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel1, new GridBagConstraints(0, 2, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wrapperLabel1, new GridBagConstraints(0, 2, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellAliquotTage,
-				new GridBagConstraints(1, 5, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel7, new GridBagConstraints(0, 5, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellAliquotTage, new GridBagConstraints(1, 5, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wrapperLabel7, new GridBagConstraints(0, 5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellAliquotStunden,
-				new GridBagConstraints(2, 5, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel5, new GridBagConstraints(0, 11,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellAliquotStunden, new GridBagConstraints(2, 5, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wrapperLabel5, new GridBagConstraints(0, 11, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelUrlaubsanspruch.add(wrapperLabel3, new GridBagConstraints(0, 10,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wrapperLabel3, new GridBagConstraints(0, 10, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellTage,
-				new GridBagConstraints(1, 10, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellStunden,
-				new GridBagConstraints(2, 10, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfUrlaubGeplantTage, new GridBagConstraints(
-				1, 11, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfUrlaubGeplantStunden,
-				new GridBagConstraints(2, 11, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wlaAnspruchAktuellVerbrauchtZus,
-				new GridBagConstraints(0, 12, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellTage, new GridBagConstraints(1, 10, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellStunden, new GridBagConstraints(2, 10, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfUrlaubGeplantTage, new GridBagConstraints(1, 11, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfUrlaubGeplantStunden, new GridBagConstraints(2, 11, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wlaAnspruchAktuellVerbrauchtZus, new GridBagConstraints(0, 12, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtZusTage,
-				new GridBagConstraints(1, 12, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtZusStunden,
-				new GridBagConstraints(2, 12, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wrapperLabel8, new GridBagConstraints(0, 13,
-				3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtZusTage, new GridBagConstraints(1, 12, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfAnspruchAktuellVerbrauchtZusStunden, new GridBagConstraints(2, 12, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wrapperLabel8, new GridBagConstraints(0, 13, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(new WrapperLabel(), new GridBagConstraints(0,
-				9, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(new WrapperLabel(), new GridBagConstraints(0, 9, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelUrlaubsanspruch.add(wlaFreierUrlaub, new GridBagConstraints(0, 14,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wlaFreierUrlaub, new GridBagConstraints(0, 14, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelUrlaubsanspruch.add(wnfFreierUrlaubTage, new GridBagConstraints(1,
-				14, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfFreierUrlaubStunden,
-				new GridBagConstraints(2, 14, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfFreierUrlaubTage, new GridBagConstraints(1, 14, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wnfFreierUrlaubStunden, new GridBagConstraints(2, 14, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		Component[] comps = panelUrlaubsanspruch.getComponents();
 

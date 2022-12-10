@@ -45,6 +45,7 @@ import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
@@ -53,6 +54,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.TaetigkeitDto;
 import com.lp.server.personal.service.TaetigkeitsprDto;
 import com.lp.server.personal.service.ZeiterfassungFac;
+import com.lp.server.system.service.MandantFac;
 
 public class PanelSondertaetigkeiten extends PanelBasis {
 
@@ -78,8 +80,13 @@ public class PanelSondertaetigkeiten extends PanelBasis {
 	private WrapperCheckBox wcbBdebuchbar = new WrapperCheckBox();
 	private WrapperCheckBox wcbVersteckt = new WrapperCheckBox();
 	private WrapperCheckBox wcbUnterbrichtWarnmeldungen = new WrapperCheckBox();
+	private WrapperCheckBox wcbDarfSelberBuchen = new WrapperCheckBox();
 	private WrapperLabel wlaImportkennzeichen = new WrapperLabel();
 	private WrapperTextField wtfImportkennzeichen = new WrapperTextField();
+	
+	private WrapperLabel wlaAbwesenheitsart = new WrapperLabel();
+	private WrapperComboBox wcoAbwesenheitsart = new WrapperComboBox();
+	
 
 	// TODO: Controller ueber den Constructor uebergeben
 	private ISondertaetigkeitenController stc = new SondertaetigkeitenController();
@@ -170,13 +177,17 @@ public class PanelSondertaetigkeiten extends PanelBasis {
 		taetigkeitenDto.getTaetigkeitsprDto().setCBez(wtfBezeichnung.getText());
 		taetigkeitenDto.setFBezahlt(wnfBezahlt.getDouble());
 		taetigkeitenDto.setBTagbuchbar(wcbTagbuchbar.getShort());
+		taetigkeitenDto.setBTagbuchbar(wcbTagbuchbar.getShort());
 		taetigkeitenDto.setBBdebuchbar(wcbBdebuchbar.getShort());
 		taetigkeitenDto.setBVersteckt(wcbVersteckt.getShort());
-		taetigkeitenDto.setBUnterbrichtwarnmeldung(wcbUnterbrichtWarnmeldungen.getShort());
+		taetigkeitenDto.setBDarfSelberBuchen(wcbDarfSelberBuchen.getShort());
+		taetigkeitenDto.setBUnterbrichtwarnmeldung(wcbUnterbrichtWarnmeldungen
+				.getShort());
 		taetigkeitenDto
 				.setTaetigkeitartCNr(ZeiterfassungFac.TAETIGKEITART_SONDERTAETIGKEIT);
 		taetigkeitenDto.setIWarnmeldunginkalendertagen(wnfWarnmeldung
 				.getInteger());
+		taetigkeitenDto.setAbwesenheitsartIId((Integer)wcoAbwesenheitsart.getKeyOfSelectedItem());
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -192,9 +203,12 @@ public class PanelSondertaetigkeiten extends PanelBasis {
 		wcbBdebuchbar.setShort(taetigkeitenDto.getBBdebuchbar());
 		wcbVersteckt.setShort(taetigkeitenDto.getBVersteckt());
 		wcbTagbuchbar.setShort(taetigkeitenDto.getBTagbuchbar());
-		wcbUnterbrichtWarnmeldungen.setShort(taetigkeitenDto.getBUnterbrichtwarnmeldung());
+		wcbDarfSelberBuchen.setShort(taetigkeitenDto.getBDarfSelberBuchen());
+		wcbUnterbrichtWarnmeldungen.setShort(taetigkeitenDto
+				.getBUnterbrichtwarnmeldung());
 		wnfWarnmeldung.setInteger(taetigkeitenDto
 				.getIWarnmeldunginkalendertagen());
+		wcoAbwesenheitsart.setKeyOfSelectedItem(taetigkeitenDto.getAbwesenheitsartIId());
 
 		handleTaetigkeitForComponents(taetigkeitenDto.getCNr());
 
@@ -250,6 +264,13 @@ public class PanelSondertaetigkeiten extends PanelBasis {
 		wtfBezeichnung.setColumns(ZeiterfassungFac.MAX_TAETIGKEIT_BEZEICHNUNG);
 		getInternalFrame().addItemChangedListener(this);
 
+		
+		wlaAbwesenheitsart
+		.setText(LPMain
+				.getTextRespectUISPr("pers.dsgvo.abwesenheitsart"));
+		
+		wcoAbwesenheitsart.setMap(DelegateFactory.getInstance().getPersonalDelegate().getAllSprAbwesenheitsart(), false);
+		
 		wlaBezahlt
 				.setText(LPMain
 						.getTextRespectUISPr("zeiterfassung.sondertaetigkeiten.bezahlt"));
@@ -262,17 +283,22 @@ public class PanelSondertaetigkeiten extends PanelBasis {
 
 		wcbTagbuchbar.setText(LPMain
 				.getTextRespectUISPr("zeiterfassung.taetigkeiten.tageweise"));
+
+		wcbDarfSelberBuchen
+				.setText(LPMain
+						.getTextRespectUISPr("zeiterfassung.taetigkeiten.darfselberbuchen"));
+
 		wcbBdebuchbar.setText(LPMain
 				.getTextRespectUISPr("zeiterfassung.taetigkeiten.bdebuchbar"));
-		wcbVersteckt.setText(LPMain
-				.getTextRespectUISPr("lp.versteckt"));
+		wcbVersteckt.setText(LPMain.getTextRespectUISPr("lp.versteckt"));
 
-		
-		wcbUnterbrichtWarnmeldungen.setText(LPMain
-				.getTextRespectUISPr("zeiterfassung.taetigkeiten.unterbrichtwarnmeldung"));
-		wlaImportkennzeichen.setText(LPMain.getTextRespectUISPr("pers.sondertaetigkeit.importkennzeichen"));
-		
-		
+		wcbUnterbrichtWarnmeldungen
+				.setText(LPMain
+						.getTextRespectUISPr("zeiterfassung.taetigkeiten.unterbrichtwarnmeldung"));
+		wlaImportkennzeichen
+				.setText(LPMain
+						.getTextRespectUISPr("pers.sondertaetigkeit.importkennzeichen"));
+
 		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
 						0, 0, 0), 0, 0));
@@ -281,7 +307,7 @@ public class PanelSondertaetigkeiten extends PanelBasis {
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		
+
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
 				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
@@ -289,30 +315,81 @@ public class PanelSondertaetigkeiten extends PanelBasis {
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
 		int iZeile = 0;
+
+		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, iZeile, 1, 1,
+				0.25, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, iZeile, 3, 1,
+				0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 3,
+				1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaBezahlt, new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wnfBezahlt, new GridBagConstraints(1, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
+				new Insets(2, 2, 2, 2), 50, 0));
+		jpaWorkingOn.add(wlaAbwesenheitsart, new GridBagConstraints(2, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
+				new Insets(2, 2, 2, 2), 100, 0));
 		
-		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, iZeile, 1, 1, 0.25, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 2, 1, 0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaBezahlt, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfBezahlt, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 20, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaWarnmeldung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfWarnmeldung, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 20, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcbTagbuchbar, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcbBdebuchbar, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcbUnterbrichtWarnmeldungen, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcbVersteckt, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaImportkennzeichen, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfImportkennzeichen, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wcoAbwesenheitsart, new GridBagConstraints(3, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 150, 0));
 		
+		if (!LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_DSGVO)) {
+			wlaAbwesenheitsart.setVisible(false);
+			wcoAbwesenheitsart.setVisible(false);
+		}
+		
+		
+		iZeile++;
+		jpaWorkingOn.add(wlaWarnmeldung, new GridBagConstraints(0, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfWarnmeldung, new GridBagConstraints(1, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
+				new Insets(2, 2, 2, 2), 20, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbTagbuchbar, new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbDarfSelberBuchen, new GridBagConstraints(1, iZeile,
+				2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wcbBdebuchbar, new GridBagConstraints(0, iZeile, 3, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbUnterbrichtWarnmeldungen, new GridBagConstraints(0,
+				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbVersteckt, new GridBagConstraints(0, iZeile, 3, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaImportkennzeichen, new GridBagConstraints(0,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfImportkennzeichen, new GridBagConstraints(1,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
+
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
 

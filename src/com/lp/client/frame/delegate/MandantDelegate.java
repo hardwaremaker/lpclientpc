@@ -32,7 +32,11 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.naming.Context;
@@ -40,17 +44,21 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.HelperTimestamp;
+import com.lp.client.util.MwstsatzChangedInfo;
 import com.lp.server.system.service.DokumentenlinkDto;
 import com.lp.server.system.service.DokumentenlinkbelegDto;
 import com.lp.server.system.service.KostentraegerDto;
 import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ModulberechtigungDto;
+import com.lp.server.system.service.MwstsatzCodeDto;
 import com.lp.server.system.service.MwstsatzDto;
 import com.lp.server.system.service.MwstsatzbezDto;
 import com.lp.server.system.service.SpediteurDto;
 import com.lp.server.system.service.ZahlungszielDto;
 import com.lp.server.system.service.ZusatzfunktionberechtigungDto;
+import com.lp.server.util.MwstsatzId;
 import com.lp.service.BelegpositionVerkaufDto;
 import com.lp.util.EJBExceptionLP;
 
@@ -68,7 +76,6 @@ import com.lp.util.EJBExceptionLP;
  */
 public class MandantDelegate extends Delegate {
 	private Context context;
-
 	private MandantFac mandantFac;
 
 	/**
@@ -76,10 +83,9 @@ public class MandantDelegate extends Delegate {
 	 */
 	private Map<?, ?> hmMWSTSaetze = null;
 
-	public MandantDelegate() throws Throwable {
+	public MandantDelegate() throws Exception {
 		context = new InitialContext();
-		mandantFac = (MandantFac) context
-				.lookup("lpserver/MandantFacBean/remote");
+		mandantFac = lookupFac(context, MandantFac.class);
 	}
 
 	public Integer createMwstsatz(MwstsatzDto mwstsatzDto) throws ExceptionLP {
@@ -90,8 +96,7 @@ public class MandantDelegate extends Delegate {
 			 * mwstsatzDto.getMwstsatzbezDto().setMandantCNr(
 			 * LPMain.getInstance().getTheClient().getMandant());
 			 */
-			iId = mandantFac.createMwstsatz(mwstsatzDto, LPMain.getInstance()
-					.getTheClient());
+			iId = mandantFac.createMwstsatz(mwstsatzDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			// mwstsatzDto.getMwstsatzbezDto().setMandantCNr(null);
 			handleThrowable(ex);
@@ -101,14 +106,11 @@ public class MandantDelegate extends Delegate {
 		return iId;
 	}
 
-	public Integer createMwstsatzbez(MwstsatzbezDto mwstsatzbezDto)
-			throws ExceptionLP {
+	public Integer createMwstsatzbez(MwstsatzbezDto mwstsatzbezDto) throws ExceptionLP {
 		Integer iId = null;
 		try {
-			mwstsatzbezDto.setMandantCNr(LPMain.getInstance().getTheClient()
-					.getMandant());
-			iId = mandantFac.createMwstsatzbez(mwstsatzbezDto, LPMain
-					.getInstance().getTheClient());
+			mwstsatzbezDto.setMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+			iId = mandantFac.createMwstsatzbez(mwstsatzbezDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -117,8 +119,7 @@ public class MandantDelegate extends Delegate {
 
 	public void removeMwstsatz(MwstsatzDto mwstsatzDto) throws ExceptionLP {
 		try {
-			mandantFac.removeMwstsatz(mwstsatzDto, LPMain.getInstance()
-					.getTheClient());
+			mandantFac.removeMwstsatz(mwstsatzDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -126,8 +127,7 @@ public class MandantDelegate extends Delegate {
 		reloadMwstMap();
 	}
 
-	public void removeDokumentenlink(DokumentenlinkDto dokumentenlinkDto)
-			throws ExceptionLP {
+	public void removeDokumentenlink(DokumentenlinkDto dokumentenlinkDto) throws ExceptionLP {
 		try {
 			mandantFac.removeDokumentenlink(dokumentenlinkDto);
 		} catch (Throwable ex) {
@@ -143,8 +143,7 @@ public class MandantDelegate extends Delegate {
 		}
 	}
 
-	public void removeMwstsatzbez(MwstsatzbezDto mwstsatzbezDto)
-			throws ExceptionLP {
+	public void removeMwstsatzbez(MwstsatzbezDto mwstsatzbezDto) throws ExceptionLP {
 		try {
 			mandantFac.removeMwstsatzbez(mwstsatzbezDto);
 		} catch (Throwable ex) {
@@ -154,8 +153,7 @@ public class MandantDelegate extends Delegate {
 
 	public void updateMwstsatz(MwstsatzDto mwstsatzDto) throws ExceptionLP {
 		try {
-			mandantFac.updateMwstsatz(mwstsatzDto, LPMain.getInstance()
-					.getTheClient());
+			mandantFac.updateMwstsatz(mwstsatzDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -163,11 +161,9 @@ public class MandantDelegate extends Delegate {
 		reloadMwstMap();
 	}
 
-	public void updateMwstsatzbez(MwstsatzbezDto mwstsatzbezDto)
-			throws ExceptionLP {
+	public void updateMwstsatzbez(MwstsatzbezDto mwstsatzbezDto) throws ExceptionLP {
 		try {
-			mandantFac.updateMwstsatzbez(mwstsatzbezDto, LPMain.getInstance()
-					.getTheClient());
+			mandantFac.updateMwstsatzbez(mwstsatzbezDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -180,8 +176,7 @@ public class MandantDelegate extends Delegate {
 	 * Serverzugriff aus, da die MWST-Saetze aus Performancegruenden am Client
 	 * gecacht werden.
 	 * 
-	 * @param iId
-	 *            Integer
+	 * @param iId Integer
 	 * @return MwstsatzDto
 	 * @throws ExceptionLP
 	 */
@@ -202,21 +197,38 @@ public class MandantDelegate extends Delegate {
 		return mwstsatzDto;
 	}
 
-	public boolean pruefeObMwstsatzNochAktuell(BelegpositionVerkaufDto vkDto,
-			Timestamp tDatum) throws ExceptionLP {
+	public MwstsatzChangedInfo pruefeObMwstsatzNochAktuell(
+			BelegpositionVerkaufDto vkDto,
+			Timestamp belegDatum) throws Throwable {
+		if(vkDto == null || vkDto.getMwstsatzIId() == null) return new MwstsatzChangedInfo();
+	
+		if(belegDatum == null) {
+			belegDatum = HelperTimestamp.cut();
+		}
+	
+		MwstsatzDto satzDto = mandantFac.mwstsatzZuDatumEvaluate(
+				new MwstsatzId(vkDto.getMwstsatzIId()), belegDatum, LPMain.getTheClient());
+		return new MwstsatzChangedInfo(vkDto.getMwstsatzIId(), satzDto);
+	}
+	
+	public boolean pruefeObMwstsatzNochAktuell0(BelegpositionVerkaufDto vkDto, Timestamp tDatum) throws ExceptionLP {
 
 		if (vkDto != null && vkDto.getMwstsatzIId() != null) {
 			Integer satzVorgher = vkDto.getMwstsatzIId();
-			MwstsatzDto satzDto = mwstsatzFindByPrimaryKey(vkDto
-					.getMwstsatzIId());
+			MwstsatzDto satzDto = mwstsatzFindByPrimaryKey(vkDto.getMwstsatzIId());
+			if(tDatum == null) {
+				tDatum = HelperTimestamp.cut();
+			}
+			MwstsatzDto satzAktuell = mandantFac
+					.mwstsatzFindZuDatum(satzDto.getIIMwstsatzbezId(), tDatum);
+/*
 			MwstsatzDto satzAktuell = null;
 			if (tDatum == null) {
-				satzAktuell = mwstsatzFindByMwstsatzbezIIdAktuellster(satzDto
-						.getIIMwstsatzbezId());
+				satzAktuell = mwstsatzFindByMwstsatzbezIIdAktuellster(satzDto.getIIMwstsatzbezId());
 			} else {
-				satzAktuell = mandantFac.mwstsatzFindZuDatum(
-						satzDto.getIIMwstsatzbezId(), tDatum);
+				satzAktuell = mandantFac.mwstsatzFindZuDatum(satzDto.getIIMwstsatzbezId(), tDatum);
 			}
+*/			
 			vkDto.setMwstsatzIId(satzAktuell.getIId());
 
 			if (!satzAktuell.getIId().equals(satzVorgher)) {
@@ -227,12 +239,10 @@ public class MandantDelegate extends Delegate {
 		return true;
 	}
 
-	public MwstsatzbezDto mwstsatzbezFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public MwstsatzbezDto mwstsatzbezFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		MwstsatzbezDto mwstsatzbezDto = null;
 		try {
-			mwstsatzbezDto = mandantFac.mwstsatzbezFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+			mwstsatzbezDto = mandantFac.mwstsatzbezFindByPrimaryKey(iId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -243,22 +253,19 @@ public class MandantDelegate extends Delegate {
 	public Map<?, ?> getAllMwstsatzbez(String mandantI) throws ExceptionLP {
 		Map<?, ?> mwstSaetze = null;
 		try {
-			mwstSaetze = mandantFac.mwstsatzbezFindAllByMandant(mandantI,
-					LPMain.getInstance().getTheClient());
+			mwstSaetze = mandantFac.mwstsatzbezFindAllByMandant(mandantI, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return mwstSaetze;
 	}
 
-	public Map<?, ?> getAllMwstsatz(String mandantI, Timestamp tBelegdatum)
-			throws ExceptionLP {
+	public Map<?, ?> getAllMwstsatz(String mandantI, Timestamp tBelegdatum) throws ExceptionLP {
 		Map<?, ?> mwstSaetze = null;
 		try {
 			if (tBelegdatum != null) {
-				mwstSaetze = mandantFac
-						.mwstsatzFindAllByMandant(mandantI, tBelegdatum, false,
-								LPMain.getInstance().getTheClient());
+				mwstSaetze = mandantFac.mwstsatzFindAllByMandant(mandantI, tBelegdatum, false,
+						LPMain.getInstance().getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -266,25 +273,23 @@ public class MandantDelegate extends Delegate {
 		return mwstSaetze;
 	}
 
-	public DokumentenlinkbelegDto[] getDokumentenlinkbelegs(String belegartCNr,
-			Integer belegartIId) throws ExceptionLP {
+	public DokumentenlinkbelegDto[] getDokumentenlinkbelegs(String belegartCNr, Integer belegartIId)
+			throws ExceptionLP {
 		try {
-			return mandantFac.getDokumentenlinkbelegs(belegartCNr, belegartIId,
-					LPMain.getInstance().getTheClient());
+			return mandantFac.getDokumentenlinkbelegs(belegartCNr, belegartIId, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Map<?, ?> getAllMwstsatz(String mandantI, Timestamp tBelegdatum,
-			boolean bInklHandeingabe) throws ExceptionLP {
+	public Map<?, ?> getAllMwstsatz(String mandantI, Timestamp tBelegdatum, boolean bInklHandeingabe)
+			throws ExceptionLP {
 		Map<?, ?> mwstSaetze = null;
 		try {
 			if (tBelegdatum != null) {
-				mwstSaetze = mandantFac.mwstsatzFindAllByMandant(mandantI,
-						tBelegdatum, bInklHandeingabe, LPMain.getInstance()
-								.getTheClient());
+				mwstSaetze = mandantFac.mwstsatzFindAllByMandant(mandantI, tBelegdatum, bInklHandeingabe,
+						LPMain.getInstance().getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -292,26 +297,33 @@ public class MandantDelegate extends Delegate {
 		return mwstSaetze;
 	}
 
-	public ModulberechtigungDto[] modulberechtigungFindByMandantCNr()
-			throws ExceptionLP {
+	public ModulberechtigungDto[] modulberechtigungFindByMandantCNr() throws ExceptionLP {
 		ModulberechtigungDto[] berechtigungen = null;
 		try {
 			berechtigungen = mandantFac
-					.modulberechtigungFindByMandantCNr(LPMain.getInstance()
-							.getTheClient().getMandant());
+					.modulberechtigungFindByMandantCNr(LPMain.getInstance().getTheClient().getMandant());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return berechtigungen;
 	}
 
-	public ZusatzfunktionberechtigungDto[] zusatzfunktionberechtigungFindByMandantCNr()
-			throws ExceptionLP {
+	public ZusatzfunktionberechtigungDto[] zusatzfunktionberechtigungFindByMandantCNr() throws ExceptionLP {
 		ZusatzfunktionberechtigungDto[] zusatzberechtigungen = null;
 		try {
 			zusatzberechtigungen = mandantFac
-					.zusatzfunktionberechtigungFindByMandantCNr(LPMain
-							.getInstance().getTheClient().getMandant());
+					.zusatzfunktionberechtigungFindByMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return zusatzberechtigungen;
+	}
+
+	public ZusatzfunktionberechtigungDto[] zusatzfunktionberechtigungFindByMandantCNr(String mandantCNr)
+			throws ExceptionLP {
+		ZusatzfunktionberechtigungDto[] zusatzberechtigungen = null;
+		try {
+			zusatzberechtigungen = mandantFac.zusatzfunktionberechtigungFindByMandantCNr(mandantCNr);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -320,8 +332,7 @@ public class MandantDelegate extends Delegate {
 
 	// *** Spediteur
 	// ****************************************************************
-	public SpediteurDto spediteurFindByPrimaryKey(Integer iIdSpediteurI)
-			throws ExceptionLP {
+	public SpediteurDto spediteurFindByPrimaryKey(Integer iIdSpediteurI) throws ExceptionLP {
 		SpediteurDto spediteurDto = null;
 		try {
 			spediteurDto = mandantFac.spediteurFindByPrimaryKey(iIdSpediteurI);
@@ -331,21 +342,17 @@ public class MandantDelegate extends Delegate {
 		return spediteurDto;
 	}
 
-	public Integer createSpediteur(SpediteurDto spediteurDtoI)
-			throws ExceptionLP {
+	public Integer createSpediteur(SpediteurDto spediteurDtoI) throws ExceptionLP {
 		Integer iId = null;
 
 		// Precondition
 		if (spediteurDtoI.getMandantCNr() != null) {
-			throw new ExceptionLP(EJBExceptionLP.FEHLER,
-					"spediteurDtoI.getMandantCNr() != null", null);
+			throw new ExceptionLP(EJBExceptionLP.FEHLER, "spediteurDtoI.getMandantCNr() != null", null);
 		}
 
 		try {
-			spediteurDtoI.setMandantCNr(LPMain.getInstance().getTheClient()
-					.getMandant());
-			iId = mandantFac.createSpediteur(spediteurDtoI, LPMain
-					.getInstance().getTheClient());
+			spediteurDtoI.setMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+			iId = mandantFac.createSpediteur(spediteurDtoI, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -354,8 +361,7 @@ public class MandantDelegate extends Delegate {
 
 	public void updateSpediteur(SpediteurDto spediteurDtoI) throws ExceptionLP {
 		try {
-			mandantFac.updateSpediteur(spediteurDtoI, LPMain.getInstance()
-					.getTheClient());
+			mandantFac.updateSpediteur(spediteurDtoI, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -374,50 +380,42 @@ public class MandantDelegate extends Delegate {
 	/**
 	 * Ein bestimmtes Zahlungsziel holen.
 	 * 
-	 * @param iiZahlungszielI
-	 *            Integer
+	 * @param iiZahlungszielI Integer
 	 * @throws ExceptionLP
 	 * @throws Throwable
 	 * @return ZahlungszielDto
 	 */
-	public ZahlungszielDto zahlungszielFindByPrimaryKey(Integer iiZahlungszielI)
-			throws ExceptionLP {
+	public ZahlungszielDto zahlungszielFindByPrimaryKey(Integer iiZahlungszielI) throws ExceptionLP {
 		ZahlungszielDto zahlungszielDto = null;
 		try {
-			zahlungszielDto = mandantFac.zahlungszielFindByPrimaryKey(
-					iiZahlungszielI, LPMain.getInstance().getTheClient());
+			zahlungszielDto = mandantFac.zahlungszielFindByPrimaryKey(iiZahlungszielI,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return zahlungszielDto;
 	}
 
-	public void updateZahlungsziel(ZahlungszielDto zahlungszielDto)
-			throws ExceptionLP {
+	public void updateZahlungsziel(ZahlungszielDto zahlungszielDto) throws ExceptionLP {
 
 		try {
-			mandantFac.updateZahlungsziel(zahlungszielDto, LPMain.getInstance()
-					.getTheClient());
+			mandantFac.updateZahlungsziel(zahlungszielDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public Integer createZahlungsziel(ZahlungszielDto zahlungszielDto)
-			throws ExceptionLP {
+	public Integer createZahlungsziel(ZahlungszielDto zahlungszielDto) throws ExceptionLP {
 
 		// Precondition
 		if (zahlungszielDto.getMandantCNr() != null) {
-			throw new ExceptionLP(EJBExceptionLP.FEHLER,
-					"zahlungszielDto.getMandantCNr() != null", null);
+			throw new ExceptionLP(EJBExceptionLP.FEHLER, "zahlungszielDto.getMandantCNr() != null", null);
 		}
 
 		Integer iId = null;
 		try {
-			zahlungszielDto.setMandantCNr(LPMain.getInstance().getTheClient()
-					.getMandant());
-			iId = mandantFac.createZahlungsziel(zahlungszielDto, LPMain
-					.getInstance().getTheClient());
+			zahlungszielDto.setMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+			iId = mandantFac.createZahlungsziel(zahlungszielDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			zahlungszielDto.setMandantCNr(null);
 			handleThrowable(ex);
@@ -425,20 +423,17 @@ public class MandantDelegate extends Delegate {
 		return iId;
 	}
 
-	public Integer createDokumentenlink(DokumentenlinkDto dokumentenlinkDto)
-			throws ExceptionLP {
+	public Integer createDokumentenlink(DokumentenlinkDto dokumentenlinkDto) throws ExceptionLP {
 		Integer iId = null;
 		try {
-			iId = mandantFac.createDokumentenlink(dokumentenlinkDto, LPMain
-					.getInstance().getTheClient());
+			iId = mandantFac.createDokumentenlink(dokumentenlinkDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return iId;
 	}
 
-	public Integer createKostentraeger(KostentraegerDto kostentraegerDto)
-			throws ExceptionLP {
+	public Integer createKostentraeger(KostentraegerDto kostentraegerDto) throws ExceptionLP {
 		Integer iId = null;
 		try {
 			iId = mandantFac.createKostentraeger(kostentraegerDto);
@@ -448,12 +443,29 @@ public class MandantDelegate extends Delegate {
 		return iId;
 	}
 
-	public void removeZahlungsziel(ZahlungszielDto zahlungszielDto)
-			throws ExceptionLP {
+	public byte[] getAGBs_PDF(Locale loc) throws ExceptionLP {
+		byte[] pdf = null;
+		try {
+			pdf = mandantFac.getAGBs_PDF(loc, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return pdf;
+	}
+
+	public void updateAGBs_PDF(byte[] oPdf) throws ExceptionLP {
+		try {
+			mandantFac.updateAGBs_PDF(oPdf, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
+
+	public void removeZahlungsziel(ZahlungszielDto zahlungszielDto) throws ExceptionLP {
 
 		try {
-			mandantFac.removeZahlungsziel(zahlungszielDto, LPMain.getInstance()
-					.getTheClient());
+			mandantFac.removeZahlungsziel(zahlungszielDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -464,8 +476,7 @@ public class MandantDelegate extends Delegate {
 	public String createMandant(MandantDto mandantDto) throws ExceptionLP {
 		String mandant = null;
 		try {
-			mandant = mandantFac.createMandant(mandantDto, LPMain.getInstance()
-					.getTheClient());
+			mandant = mandantFac.createMandant(mandantDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			// so fange ich Exceptions vom server und verarbeite sie
 			handleThrowable(ex);
@@ -495,8 +506,7 @@ public class MandantDelegate extends Delegate {
 
 	public void updateMandant(MandantDto mandantDto) throws ExceptionLP {
 		try {
-			mandantFac.updateMandant(mandantDto, LPMain.getInstance()
-					.getTheClient());
+			mandantFac.updateMandant(mandantDto, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			// so fange ich Exceptions vom server und verarbeite sie
 			handleThrowable(ex);
@@ -504,8 +514,7 @@ public class MandantDelegate extends Delegate {
 
 	}
 
-	public void updateDokumentenlink(DokumentenlinkDto dokumentenlinkDto)
-			throws ExceptionLP {
+	public void updateDokumentenlink(DokumentenlinkDto dokumentenlinkDto) throws ExceptionLP {
 		try {
 			mandantFac.updateDokumentenlink(dokumentenlinkDto);
 		} catch (Throwable ex) {
@@ -515,8 +524,7 @@ public class MandantDelegate extends Delegate {
 
 	}
 
-	public void updateKostentraeger(KostentraegerDto dto)
-			throws ExceptionLP {
+	public void updateKostentraeger(KostentraegerDto dto) throws ExceptionLP {
 		try {
 			mandantFac.updateKostentraeger(dto);
 		} catch (Throwable ex) {
@@ -526,14 +534,11 @@ public class MandantDelegate extends Delegate {
 
 	}
 
-	public void updateDokumentenlinkbeleg(String belegartCNr,
-			Integer iBelegartId,
-			DokumentenlinkbelegDto[] dokumentenlinkbelegDtos)
-			throws ExceptionLP {
+	public void updateDokumentenlinkbeleg(String belegartCNr, Integer iBelegartId,
+			DokumentenlinkbelegDto[] dokumentenlinkbelegDtos) throws ExceptionLP {
 		try {
-			mandantFac.updateDokumentenlinkbeleg(belegartCNr, iBelegartId,
-					dokumentenlinkbelegDtos, LPMain.getInstance()
-							.getTheClient());
+			mandantFac.updateDokumentenlinkbeleg(belegartCNr, iBelegartId, dokumentenlinkbelegDtos,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -542,8 +547,7 @@ public class MandantDelegate extends Delegate {
 
 	public MandantDto mandantFindByPrimaryKey(String cNr) throws ExceptionLP {
 		try {
-			return mandantFac.mandantFindByPrimaryKey(cNr, LPMain.getInstance()
-					.getTheClient());
+			return mandantFac.mandantFindByPrimaryKey(cNr, LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -561,16 +565,14 @@ public class MandantDelegate extends Delegate {
 
 	public MandantDto[] mandantFindAll() throws ExceptionLP {
 		try {
-			return mandantFac.mandantFindAll(LPMain.getInstance()
-					.getTheClient());
+			return mandantFac.mandantFindAll(LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public DokumentenlinkDto dokumentenlinkFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public DokumentenlinkDto dokumentenlinkFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return mandantFac.dokumentenlinkFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -579,72 +581,63 @@ public class MandantDelegate extends Delegate {
 		}
 	}
 
-	public DokumentenlinkDto[] dokumentenlinkFindByBelegartCNrMandantCNr(
-			String belegartCNr) throws ExceptionLP {
+	public DokumentenlinkDto[] dokumentenlinkFindByBelegartCNrMandantCNr(String belegartCNr) throws ExceptionLP {
 		try {
-			return mandantFac.dokumentenlinkFindByBelegartCNrMandantCNr(
-					belegartCNr, LPMain.getInstance().getTheClient()
-							.getMandant());
+			return mandantFac.dokumentenlinkFindByBelegartCNrMandantCNr(belegartCNr,
+					LPMain.getInstance().getTheClient().getMandant());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public DokumentenlinkDto[] dokumentenlinkFindByBelegartCNrMandantCNrBPfadabsolut(
-			String belegartCNr, boolean bPfadAbsolut) throws ExceptionLP {
+	public DokumentenlinkDto[] dokumentenlinkFindByBelegartCNrMandantCNrBPfadabsolut(String belegartCNr,
+			boolean bPfadAbsolut) throws ExceptionLP {
 		try {
-			return mandantFac
-					.dokumentenlinkFindByBelegartCNrMandantCNrBPfadabsolut(
-							belegartCNr, LPMain.getInstance().getTheClient()
-									.getMandant(), bPfadAbsolut);
+			return mandantFac.dokumentenlinkFindByBelegartCNrMandantCNrBPfadabsolut(belegartCNr,
+					LPMain.getInstance().getTheClient().getMandant(), bPfadAbsolut);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public MandantDto[] mandantFindByPartnerIId(Integer partnerIId)
+	public MandantDto[] mandantFindByPartnerIId(Integer partnerIId) throws ExceptionLP {
+		try {
+			return mandantFac.mandantFindByPartnerIIdOhneExc(partnerIId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public java.sql.Date berechneZielDatumFuerBelegdatum(java.sql.Date dBelegdatum, Integer zahlungszielIId)
 			throws ExceptionLP {
 		try {
-			return mandantFac.mandantFindByPartnerIIdOhneExc(partnerIId, LPMain
-					.getInstance().getTheClient());
+			return mandantFac.berechneZielDatumFuerBelegdatum(dBelegdatum, zahlungszielIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public java.sql.Date berechneZielDatumFuerBelegdatum(
-			java.sql.Date dBelegdatum, Integer zahlungszielIId)
+	public java.sql.Date berechneSkontoTage1FuerBelegdatum(java.sql.Date dBelegdatum, Integer zahlungszielIId)
 			throws ExceptionLP {
 		try {
-			return mandantFac.berechneZielDatumFuerBelegdatum(dBelegdatum,
-					zahlungszielIId, LPMain.getInstance().getTheClient());
+			return mandantFac.berechneSkontoTage1FuerBelegdatum(dBelegdatum, zahlungszielIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public java.sql.Date berechneSkontoTage1FuerBelegdatum(
-			java.sql.Date dBelegdatum, Integer zahlungszielIId)
+	public java.sql.Date berechneSkontoTage2Belegdatum(java.sql.Date dBelegdatum, Integer zahlungszielIId)
 			throws ExceptionLP {
 		try {
-			return mandantFac.berechneSkontoTage1FuerBelegdatum(dBelegdatum,
-					zahlungszielIId, LPMain.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public java.sql.Date berechneSkontoTage2Belegdatum(
-			java.sql.Date dBelegdatum, Integer zahlungszielIId)
-			throws ExceptionLP {
-		try {
-			return mandantFac.berechneSkontoTage2Belegdatum(dBelegdatum,
-					zahlungszielIId, LPMain.getInstance().getTheClient());
+			return mandantFac.berechneSkontoTage2Belegdatum(dBelegdatum, zahlungszielIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -653,8 +646,7 @@ public class MandantDelegate extends Delegate {
 
 	private void reloadMwstMap() throws ExceptionLP {
 		try {
-			hmMWSTSaetze = mandantFac.mwstsatzFindAll(LPMain.getInstance()
-					.getTheClient());
+			hmMWSTSaetze = mandantFac.mwstsatzFindAll(LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -663,46 +655,61 @@ public class MandantDelegate extends Delegate {
 	/**
 	 * Den Aktuellen MWST-Satz zu einer MWST-Bezeichnung finden.
 	 * 
-	 * @param mwstsatzbezIId
-	 *            String
+	 * @param mwstsatzbezIId String
 	 * @return MwstsatzDto[]
 	 * @throws ExceptionLP
 	 */
-	public MwstsatzDto mwstsatzFindByMwstsatzbezIIdAktuellster(
-			Integer mwstsatzbezIId) throws ExceptionLP {
+	public MwstsatzDto mwstsatzFindByMwstsatzbezIIdAktuellster(Integer mwstsatzbezIId) throws ExceptionLP {
 		MwstsatzDto mwstsatzDto = null;
 		try {
-			mwstsatzDto = mandantFac.mwstsatzFindByMwstsatzbezIIdAktuellster(
-					mwstsatzbezIId, LPMain.getInstance().getTheClient());
+			mwstsatzDto = mandantFac.mwstsatzFindByMwstsatzbezIIdAktuellster(mwstsatzbezIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return mwstsatzDto;
 	}
 
-	public boolean darfAnwenderAufModulZugreifen(
-			String belegartFinanzbuchhaltung) {
+	public boolean darfAnwenderAufModulZugreifen(String belegartFinanzbuchhaltung) {
 		try {
-			return mandantFac.darfAnwenderAufModulZugreifen(
-					belegartFinanzbuchhaltung, LPMain.getTheClient());
+			return mandantFac.darfAnwenderAufModulZugreifen(belegartFinanzbuchhaltung, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			return false;
 		}
 
 	}
 
-	public MwstsatzDto mwstsatzFindZuDatum(Integer mwstsatzbezIId,
-			Timestamp tDatum) throws ExceptionLP {
+	public boolean darfAnwenderAufZusatzfunktionZugreifen(String zusatzfunktionCNr, String mandantCNr) {
+		try {
+			return mandantFac.darfAnwenderAufZusatzfunktionZugreifen(zusatzfunktionCNr, mandantCNr);
+		} catch (Throwable ex) {
+			return false;
+		}
+
+	}
+
+	public MwstsatzDto mwstsatzFindZuDatum(Integer mwstsatzbezIId, Timestamp tDatum) throws ExceptionLP {
 		MwstsatzDto mwstsatzDto = null;
 		try {
-			mwstsatzDto = mandantFac
-					.mwstsatzFindZuDatum(mwstsatzbezIId, tDatum);
+//			mwstsatzDto = mandantFac.mwstsatzFindZuDatum(mwstsatzbezIId, tDatum);
+			mwstsatzDto = mandantFac.mwstsatzZuDatumClient(
+					mwstsatzbezIId, tDatum, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return mwstsatzDto;
 	}
 
+	public Map<Integer, String>  mwstsatzFindAllByMandant() throws ExceptionLP {
+		try {
+
+			return mandantFac.mwstsatzFindAllByMandant(LPMain.getTheClient().getMandant(),  LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return null;
+	}
+	
 	public MwstsatzbezDto getMwstsatzbezSteuerfrei() throws ExceptionLP {
 		MwstsatzbezDto mwstsatzbezDto = null;
 		try {
@@ -713,11 +720,76 @@ public class MandantDelegate extends Delegate {
 		return mwstsatzbezDto;
 	}
 
-	public boolean hatTestFeature() {
+	public MwstsatzDto getMwstSatzVonBruttoBetragUndUst(Timestamp tBelegDatum, BigDecimal bruttoBetrag,
+			BigDecimal mwstBetrag) throws ExceptionLP {
 		try {
-			return mandantFac.hatZusatzfunktionberechtigung(MandantFac.ZUSATZFUNKTION_DEBUGMODUS, LPMain.getTheClient());
+			return mandantFac.getMwstSatzVonBruttoBetragUndUst(LPMain.getTheClient().getMandant(), tBelegDatum,
+					bruttoBetrag, mwstBetrag);
 		} catch (Throwable ex) {
-			return false;
+			handleThrowable(ex);
 		}
-	}		
+
+		return null;
+	}
+
+	public MwstsatzDto getMwstSatzVonNettoBetragUndUst(Timestamp tBelegDatum, BigDecimal nettoBetrag,
+			BigDecimal mwstBetrag) throws ExceptionLP {
+		try {
+			return mandantFac.getMwstSatzVonNettoBetragUndUst(LPMain.getTheClient().getMandant(), tBelegDatum,
+					nettoBetrag, mwstBetrag);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return null;
+	}
+
+	public int istMandatsreferenzAbgelaufen(Integer zahlungszielIId, Integer kundeIId, Timestamp tBelegdatum)
+			throws ExceptionLP {
+		try {
+			return mandantFac.istMandatsreferenzAbgelaufen(zahlungszielIId, kundeIId, tBelegdatum,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return -1;
+	}
+
+	public List<DokumentenlinkDto> getSichtbareDokumentenlinks(String belegartCnr, boolean bPfadAbsolut)
+			throws ExceptionLP {
+		try {
+			return mandantFac.getSichtbareDokumentenlinks(belegartCnr, bPfadAbsolut, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return new ArrayList<DokumentenlinkDto>();
+	}
+	
+	public List<MwstsatzCodeDto> getAllReversechargeartMwstsatzCodeByMwstsatzId(MwstsatzId mwstsatzId) throws ExceptionLP {
+		try {
+			return mandantFac.getAllReversechargeartMwstsatzCodeByMwstsatzId(mwstsatzId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return new ArrayList<MwstsatzCodeDto>();
+		}
+	}
+	
+	public void updateOrCreateMwstsatzCodes(List<MwstsatzCodeDto> mwstsatzCodeDtos) throws ExceptionLP {
+		try {
+			mandantFac.updateOrCreateMwstsatzCodes(mwstsatzCodeDtos, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	
+	public boolean hatZusatzfunktionIntrastat() throws ExceptionLP {
+		try {
+			return mandantFac.hatZusatzfunktionIntrastat(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		
+		return false;
+	}
 }

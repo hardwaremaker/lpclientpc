@@ -54,7 +54,7 @@ public class ReportKassabuch extends ReportKontoblaetter {
 		PrintKontoblaetterModel model = new PrintKontoblaetterModel(
 				getWdfVon().getTimestamp(),
 				getWdfBis().getTimestamp(),
-				((InternalFrameFinanz) getInternalFrame()).getAktuellesGeschaeftsjahr()) ;
+				"" + ((InternalFrameFinanz) getInternalFrame()).getIAktuellesGeschaeftsjahr()) ;
 		model.setKontoIId(getKontoDto().getIId()) ;
 		model.setSortOrder(PrintKontoblaetterModel.EnumSortOrder.SORT_NACH_DATUM) ;
 		model.setKontotypCNr(FinanzServiceFac.KONTOTYP_SACHKONTO) ;

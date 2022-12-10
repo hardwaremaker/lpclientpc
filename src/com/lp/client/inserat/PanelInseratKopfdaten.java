@@ -171,21 +171,17 @@ public class PanelInseratKopfdaten extends PanelBasis {
 	private WrapperLabel wlaStichwort2 = new WrapperLabel();
 	private WrapperTextField wtfSichwort2 = new WrapperTextField();
 
-	private WrapperLabel wlaAnhangKD = new WrapperLabel(
+	private WrapperLabel wlaAnhangKD = new WrapperLabel(LPMain.getTextRespectUISPr("label.anhang"));
+	private WrapperLabel wlaAnhangLF = new WrapperLabel(LPMain.getTextRespectUISPr("label.anhang"));
+
+	private WrapperEditorField wefAnhangKD = new WrapperEditorField(getInternalFrame(),
 			LPMain.getTextRespectUISPr("label.anhang"));
-	private WrapperLabel wlaAnhangLF = new WrapperLabel(
+	private WrapperEditorField wefAnhangLF = new WrapperEditorField(getInternalFrame(),
 			LPMain.getTextRespectUISPr("label.anhang"));
 
-	private WrapperEditorField wefAnhangKD = new WrapperEditorField(
-			getInternalFrame(), LPMain.getTextRespectUISPr("label.anhang"));
-	private WrapperEditorField wefAnhangLF = new WrapperEditorField(
-			getInternalFrame(), LPMain.getTextRespectUISPr("label.anhang"));
-
-	private WrapperGotoButton wbuKunde = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_KUNDE_AUSWAHL);
+	private WrapperGotoButton wbuKunde = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_KUNDE_AUSWAHL);
 	private WrapperTextField wtfKunde = new WrapperTextField();
-	private WrapperGotoButton wbuLieferant = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_LIEFERANT_AUSWAHL);
+	private WrapperGotoButton wbuLieferant = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_LIEFERANT_AUSWAHL);
 	private WrapperTextField wtfLieferant = new WrapperTextField();
 	private WrapperButton wbuAnsprechpartner = new WrapperButton();
 	private WrapperTextField wtfAnsprechpartner = new WrapperTextField();
@@ -199,22 +195,14 @@ public class PanelInseratKopfdaten extends PanelBasis {
 	}
 
 	private void dialogQueryLieferant() throws Throwable {
-		panelQueryFLRLieferant = PartnerFilterFactory.getInstance()
-				.createPanelFLRLieferantGoto(
-						getInternalFrame(),
-						internalFrameInserat.getTabbedPaneInserat().getDto()
-								.getLieferantIId(), true, false);
+		panelQueryFLRLieferant = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(),
+				internalFrameInserat.getTabbedPaneInserat().getDto().getLieferantIId(), true, false);
 		new DialogQuery(panelQueryFLRLieferant);
 	}
 
 	private void dialogQueryKunde(ActionEvent e) throws Throwable {
-		panelQueryFLRKunde = PartnerFilterFactory.getInstance()
-				.createPanelFLRKunde(
-						getInternalFrame(),
-						true,
-						true,
-						internalFrameInserat.getTabbedPaneInserat().getDto()
-								.getInseratrechnungDto().getKundeIId());
+		panelQueryFLRKunde = PartnerFilterFactory.getInstance().createPanelFLRKunde(getInternalFrame(), true, true,
+				internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto().getKundeIId());
 
 		new DialogQuery(panelQueryFLRKunde);
 	}
@@ -222,72 +210,45 @@ public class PanelInseratKopfdaten extends PanelBasis {
 	private void dialogQueryAnsprechpartner(ActionEvent e) throws Throwable {
 		// String key = (String) wcoReklamationart.getKeyOfSelectedItem();
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getInseratrechnungDto().getKundeIId() == null) {
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.error"),
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto().getKundeIId() == null) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
 					LPMain.getTextRespectUISPr("lp.error.kundenichtgewaehlt"));
 		} else {
-			KundeDto kundeDto = DelegateFactory
-					.getInstance()
-					.getKundeDelegate()
-					.kundeFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getInseratrechnungDto()
-									.getKundeIId());
+			KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(
+					internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto().getKundeIId());
 			panelQueryFLRAnsprechpartner = PartnerFilterFactory.getInstance()
-					.createPanelFLRAnsprechpartner(
-							getInternalFrame(),
-							kundeDto.getPartnerIId(),
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getInseratrechnungDto()
-									.getAnsprechpartnerIId(), true, true);
+					.createPanelFLRAnsprechpartner(getInternalFrame(), kundeDto.getPartnerIId(), internalFrameInserat
+							.getTabbedPaneInserat().getDto().getInseratrechnungDto().getAnsprechpartnerIId(), true,
+							true);
 			new DialogQuery(panelQueryFLRAnsprechpartner);
 		}
 
 	}
 
-	private void dialogQueryAnsprechpartnerLieferant(ActionEvent e)
-			throws Throwable {
+	private void dialogQueryAnsprechpartnerLieferant(ActionEvent e) throws Throwable {
 		// String key = (String) wcoReklamationart.getKeyOfSelectedItem();
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getLieferantIId() == null) {
-			DialogFactory.showModalDialog(LPMain
-					.getTextRespectUISPr("lp.error"), LPMain
-					.getTextRespectUISPr("lp.error.lieferantnichtgewaehlt"));
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getLieferantIId() == null) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.lieferantnichtgewaehlt"));
 		} else {
-			LieferantDto lfDto = DelegateFactory
-					.getInstance()
-					.getLieferantDelegate()
-					.lieferantFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getLieferantIId());
-			panelQueryFLRAnsprechpartner_Lieferant = PartnerFilterFactory
-					.getInstance().createPanelFLRAnsprechpartner(
-							getInternalFrame(),
-							lfDto.getPartnerIId(),
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getAnsprechpartnerIIdLieferant(),
-							true, true);
+			LieferantDto lfDto = DelegateFactory.getInstance().getLieferantDelegate()
+					.lieferantFindByPrimaryKey(internalFrameInserat.getTabbedPaneInserat().getDto().getLieferantIId());
+			panelQueryFLRAnsprechpartner_Lieferant = PartnerFilterFactory.getInstance().createPanelFLRAnsprechpartner(
+					getInternalFrame(), lfDto.getPartnerIId(),
+					internalFrameInserat.getTabbedPaneInserat().getDto().getAnsprechpartnerIIdLieferant(), true, true);
 			new DialogQuery(panelQueryFLRAnsprechpartner_Lieferant);
 		}
 
 	}
 
 	void dialogQueryPersonalFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRPersonal = PersonalFilterFactory.getInstance()
-				.createPanelFLRPersonal(
-						getInternalFrame(),
-						true,
-						false,
-						internalFrameInserat.getTabbedPaneInserat().getDto()
-								.getPersonalIIdVertreter());
+		panelQueryFLRPersonal = PersonalFilterFactory.getInstance().createPanelFLRPersonal(getInternalFrame(), true,
+				false, internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdVertreter());
 		new DialogQuery(panelQueryFLRPersonal);
 	}
 
-	public PanelInseratKopfdaten(InternalFrame internalFrame,
-			String add2TitleI, Object pk) throws Throwable {
+	public PanelInseratKopfdaten(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameInserat = (InternalFrameInserat) internalFrame;
 
@@ -300,32 +261,24 @@ public class PanelInseratKopfdaten extends PanelBasis {
 		LockStateValue lockStateValue = super.getLockedstateDetailMainKey();
 
 		if (internalFrameInserat.getTabbedPaneInserat().getDto().getIId() != null) {
-			if (internalFrameInserat.getTabbedPaneInserat().getDto()
-					.getStatusCNr().equals(LocaleFac.STATUS_VERRECHNET)
-					|| internalFrameInserat.getTabbedPaneInserat().getDto()
-							.getStatusCNr()
+			if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr().equals(LocaleFac.STATUS_VERRECHNET)
+					|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
 							.equals(LocaleFac.STATUS_TEILBEZAHLT)
-					|| internalFrameInserat.getTabbedPaneInserat().getDto()
-							.getStatusCNr().equals(LocaleFac.STATUS_BEZAHLT)
-					|| internalFrameInserat.getTabbedPaneInserat().getDto()
-							.getStatusCNr().equals(LocaleFac.STATUS_ERLEDIGT)) {
+					|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
+							.equals(LocaleFac.STATUS_BEZAHLT)
+					|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
+							.equals(LocaleFac.STATUS_ERLEDIGT)) {
 
 				// PJ18948 EK-Preis kann geaendert werden, solange es keine
 				// Er-Zuordnung gibt
-				InseraterDto[] inseraterDtos = DelegateFactory
-						.getInstance()
-						.getInseratDelegate()
-						.inseraterFindByInseratIId(
-								internalFrameInserat.getTabbedPaneInserat()
-										.getDto().getIId());
+				InseraterDto[] inseraterDtos = DelegateFactory.getInstance().getInseratDelegate()
+						.inseraterFindByInseratIId(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 
 				if (inseraterDtos.length == 0) {
 
-					lockStateValue = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDUPDATE_ONLY);
+					lockStateValue = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDUPDATE_ONLY);
 				} else {
-					lockStateValue = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					lockStateValue = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				}
 
 			}
@@ -338,8 +291,7 @@ public class PanelInseratKopfdaten extends PanelBasis {
 		return wnfMenge;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 
@@ -357,8 +309,7 @@ public class PanelInseratKopfdaten extends PanelBasis {
 			wnfRabattLF.setDouble(0D);
 			wdfDatum.setDatumHeute();
 			// SP1338
-			wdfTermin.setTimestamp(getInternalFrameInserat()
-					.getTabbedPaneInserat().tZuletztVerwendeterTermin);
+			wdfTermin.setTimestamp(getInternalFrameInserat().getTabbedPaneInserat().tZuletztVerwendeterTermin);
 
 			// PJ17996
 			wnfMenge.setBigDecimal(new BigDecimal(1));
@@ -373,353 +324,255 @@ public class PanelInseratKopfdaten extends PanelBasis {
 
 		} else {
 			internalFrameInserat.getTabbedPaneInserat().setInseratDto(
-					DelegateFactory.getInstance().getInseratDelegate()
-							.inseratFindByPrimaryKey((Integer) key));
+					DelegateFactory.getInstance().getInseratDelegate().inseratFindByPrimaryKey((Integer) key));
 
 			dto2Components();
+
+			getHmOfButtons().get(PanelBasis.ACTION_PREVIOUS).getButton().setEnabled(true);
+			getHmOfButtons().get(PanelBasis.ACTION_NEXT).getButton().setEnabled(true);
+
+			if (getHmOfButtons().containsKey(ACTION_SPECIAL_INSERAT_KOPIEREN)) {
+				// SP7749
+				if (getInternalFrame().getRechtModulweit().equals(RechteFac.RECHT_MODULWEIT_UPDATE)) {
+					getHmOfButtons().get(ACTION_SPECIAL_INSERAT_KOPIEREN).getButton().setEnabled(true);
+				}
+			}
 
 		}
 
 	}
 
-	protected void dto2Components() throws Throwable {
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getLieferantIId() != null) {
-			LieferantDto lieferantDtoNew = DelegateFactory
-					.getInstance()
-					.getLieferantDelegate()
-					.lieferantFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getLieferantIId());
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
+		super.eventActionRefresh(e, bNeedNoRefreshI);
 
-			String sAdresse = lieferantDtoNew.getPartnerDto()
-					.formatFixTitelName1Name2();
+		getHmOfButtons().get(PanelBasis.ACTION_PREVIOUS).getButton().setEnabled(true);
+		getHmOfButtons().get(PanelBasis.ACTION_NEXT).getButton().setEnabled(true);
+
+		if (getHmOfButtons().containsKey(ACTION_SPECIAL_INSERAT_KOPIEREN)) {
+			// SP7749
+			if (getInternalFrame().getRechtModulweit().equals(RechteFac.RECHT_MODULWEIT_UPDATE)) {
+				getHmOfButtons().get(ACTION_SPECIAL_INSERAT_KOPIEREN).getButton().setEnabled(true);
+			}
+		}
+	}
+
+	protected void dto2Components() throws Throwable {
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getLieferantIId() != null) {
+			LieferantDto lieferantDtoNew = DelegateFactory.getInstance().getLieferantDelegate()
+					.lieferantFindByPrimaryKey(internalFrameInserat.getTabbedPaneInserat().getDto().getLieferantIId());
+
+			String sAdresse = lieferantDtoNew.getPartnerDto().formatFixTitelName1Name2();
 			if (lieferantDtoNew.getPartnerDto().getCKbez() != null) {
-				sAdresse = sAdresse + "  /  "
-						+ lieferantDtoNew.getPartnerDto().getCKbez();
+				sAdresse = sAdresse + "  /  " + lieferantDtoNew.getPartnerDto().getCKbez();
 			}
 
 			wtfLieferant.setText(sAdresse);
-			wbuLieferant.setOKey(internalFrameInserat.getTabbedPaneInserat()
-					.getDto().getLieferantIId());
+			wbuLieferant.setOKey(internalFrameInserat.getTabbedPaneInserat().getDto().getLieferantIId());
 		} else {
 			wtfLieferant.setText(null);
 			wbuLieferant.setOKey(null);
 		}
 
-		setzeArtikelvorhandenLabelSichtbar(internalFrameInserat
-				.getTabbedPaneInserat().getDto().getIId());
+		setzeArtikelvorhandenLabelSichtbar(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getInseratrechnungDto().getKundeIId() != null) {
-			KundeDto kundeDto = DelegateFactory
-					.getInstance()
-					.getKundeDelegate()
-					.kundeFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getInseratrechnungDto()
-									.getKundeIId());
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto().getKundeIId() != null) {
+			KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(
+					internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto().getKundeIId());
 
-			String sAdresse = kundeDto.getPartnerDto()
-					.formatFixTitelName1Name2();
+			String sAdresse = kundeDto.getPartnerDto().formatFixTitelName1Name2();
 			if (kundeDto.getPartnerDto().getCKbez() != null) {
-				sAdresse = sAdresse + "  /  "
-						+ kundeDto.getPartnerDto().getCKbez();
+				sAdresse = sAdresse + "  /  " + kundeDto.getPartnerDto().getCKbez();
 			}
 
 			wtfKunde.setText(sAdresse);
-			wbuKunde.setOKey(internalFrameInserat.getTabbedPaneInserat()
-					.getDto().getInseratrechnungDto().getKundeIId());
+			wbuKunde.setOKey(
+					internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto().getKundeIId());
 		} else {
 			wtfKunde.setText(null);
 			wbuKunde.setOKey(null);
 		}
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getInseratrechnungDto().getAnsprechpartnerIId() != null) {
-			AnsprechpartnerDto ansprechpartnerDto = DelegateFactory
-					.getInstance()
-					.getAnsprechpartnerDelegate()
-					.ansprechpartnerFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getInseratrechnungDto()
-									.getAnsprechpartnerIId());
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto()
+				.getAnsprechpartnerIId() != null) {
+			AnsprechpartnerDto ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
+					.ansprechpartnerFindByPrimaryKey(internalFrameInserat.getTabbedPaneInserat().getDto()
+							.getInseratrechnungDto().getAnsprechpartnerIId());
 
-			wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto()
-					.formatTitelAnrede());
+			wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto().formatTitelAnrede());
 		} else {
 			wtfAnsprechpartner.setText(null);
 		}
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getAnsprechpartnerIIdLieferant() != null) {
-			AnsprechpartnerDto ansprechpartnerDto = DelegateFactory
-					.getInstance()
-					.getAnsprechpartnerDelegate()
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getAnsprechpartnerIIdLieferant() != null) {
+			AnsprechpartnerDto ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 					.ansprechpartnerFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getAnsprechpartnerIIdLieferant());
+							internalFrameInserat.getTabbedPaneInserat().getDto().getAnsprechpartnerIIdLieferant());
 
-			wtfAnsprechpartnerLieferant.setText(ansprechpartnerDto
-					.getPartnerDto().formatTitelAnrede());
+			wtfAnsprechpartnerLieferant.setText(ansprechpartnerDto.getPartnerDto().formatTitelAnrede());
 		} else {
 			wtfAnsprechpartnerLieferant.setText(null);
 		}
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getPersonalIIdVertreter() != null) {
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdVertreter() != null) {
 
-			PersonalDto personalDtoVerursacher = DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
+			PersonalDto personalDtoVerursacher = DelegateFactory.getInstance().getPersonalDelegate()
 					.personalFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getPersonalIIdVertreter());
+							internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdVertreter());
 			wtfPersonal.setText(personalDtoVerursacher.formatAnrede());
 		} else {
 			wtfPersonal.setText("");
 		}
 
-		ArtikelDto artikelDto = DelegateFactory
-				.getInstance()
-				.getArtikelDelegate()
-				.artikelFindByPrimaryKey(
-						internalFrameInserat.getTabbedPaneInserat().getDto()
-								.getArtikelIIdInseratart());
+		ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate().artikelFindByPrimaryKey(
+				internalFrameInserat.getTabbedPaneInserat().getDto().getArtikelIIdInseratart());
 		wifArtikel.setArtikelDto(artikelDto);
 
-		wdfDatum.setTimestamp(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getTBelegdatum());
-		wdfTermin.setTimestamp(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getTTermin());
-		wdfTerminBis.setTimestamp(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getTTerminBis());
+		wdfDatum.setTimestamp(internalFrameInserat.getTabbedPaneInserat().getDto().getTBelegdatum());
+		wdfTermin.setTimestamp(internalFrameInserat.getTabbedPaneInserat().getDto().getTTermin());
+		wdfTerminBis.setTimestamp(internalFrameInserat.getTabbedPaneInserat().getDto().getTTerminBis());
 
-		wnfNachlassKD.setDouble(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getFKdNachlass());
-		wnfNachlassLF.setDouble(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getFLfNachlass());
-		wnfZusatzRabattKD.setDouble(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getFKdZusatzrabatt());
-		wnfZusatzRabattLF.setDouble(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getFLfZusatzrabatt());
-		wnfRabattKD.setDouble(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getFKdRabatt());
-		wnfRabattLF.setDouble(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getFLFRabatt());
+		wnfNachlassKD.setDouble(internalFrameInserat.getTabbedPaneInserat().getDto().getFKdNachlass());
+		wnfNachlassLF.setDouble(internalFrameInserat.getTabbedPaneInserat().getDto().getFLfNachlass());
+		wnfZusatzRabattKD.setDouble(internalFrameInserat.getTabbedPaneInserat().getDto().getFKdZusatzrabatt());
+		wnfZusatzRabattLF.setDouble(internalFrameInserat.getTabbedPaneInserat().getDto().getFLfZusatzrabatt());
+		wnfRabattKD.setDouble(internalFrameInserat.getTabbedPaneInserat().getDto().getFKdRabatt());
+		wnfRabattLF.setDouble(internalFrameInserat.getTabbedPaneInserat().getDto().getFLFRabatt());
 
-		wnfMenge.setBigDecimal(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getNMenge());
-		wnfPreisEK.setBigDecimal(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getNNettoeinzelpreisEk());
-		wnfPreisVK.setBigDecimal(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getNNettoeinzelpreisVk());
+		wnfMenge.setBigDecimal(internalFrameInserat.getTabbedPaneInserat().getDto().getNMenge());
+		wnfPreisEK.setBigDecimal(internalFrameInserat.getTabbedPaneInserat().getDto().getNNettoeinzelpreisEk());
+		wnfPreisVK.setBigDecimal(internalFrameInserat.getTabbedPaneInserat().getDto().getNNettoeinzelpreisVk());
 
 		// Preise berechnen
-		InseratartikelDto[] inseratartikelDtos = DelegateFactory
-				.getInstance()
-				.getInseratDelegate()
-				.inseratartikelFindByInseratIId(
-						internalFrameInserat.getTabbedPaneInserat().getDto()
-								.getIId());
+		InseratartikelDto[] inseratartikelDtos = DelegateFactory.getInstance().getInseratDelegate()
+				.inseratartikelFindByInseratIId(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 
 		BigDecimal preisZusatzEK = new BigDecimal(0);
 		BigDecimal preisZusatzVK = new BigDecimal(0);
 		for (int i = 0; i < inseratartikelDtos.length; i++) {
-			preisZusatzEK = preisZusatzEK.add(inseratartikelDtos[i].getNMenge()
-					.multiply(inseratartikelDtos[i].getNNettoeinzelpreisEk()));
-			preisZusatzVK = preisZusatzVK.add(inseratartikelDtos[i].getNMenge()
-					.multiply(inseratartikelDtos[i].getNNettoeinzelpreisVk()));
+			preisZusatzEK = preisZusatzEK
+					.add(inseratartikelDtos[i].getNMenge().multiply(inseratartikelDtos[i].getNNettoeinzelpreisEk()));
+			preisZusatzVK = preisZusatzVK
+					.add(inseratartikelDtos[i].getNMenge().multiply(inseratartikelDtos[i].getNNettoeinzelpreisVk()));
 		}
 
 		// EK
 		Double dRabattGesamt = Helper.berechneRabattsatzMehrererRabatte(
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getFLFRabatt(), internalFrameInserat
-						.getTabbedPaneInserat().getDto().getFLfZusatzrabatt(),
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getFLfNachlass());
+				internalFrameInserat.getTabbedPaneInserat().getDto().getFLFRabatt(),
+				internalFrameInserat.getTabbedPaneInserat().getDto().getFLfZusatzrabatt(),
+				internalFrameInserat.getTabbedPaneInserat().getDto().getFLfNachlass());
 
-		BigDecimal bdErrechneterPreisEK = internalFrameInserat
-				.getTabbedPaneInserat()
-				.getDto()
-				.getNNettoeinzelpreisEk()
-				.subtract(
-						Helper.getProzentWert(internalFrameInserat
-								.getTabbedPaneInserat().getDto()
-								.getNNettoeinzelpreisEk(), new BigDecimal(
-								dRabattGesamt), 4));
+		BigDecimal bdErrechneterPreisEK = internalFrameInserat.getTabbedPaneInserat().getDto().getNNettoeinzelpreisEk()
+				.subtract(Helper.getProzentWert(
+						internalFrameInserat.getTabbedPaneInserat().getDto().getNNettoeinzelpreisEk(),
+						new BigDecimal(dRabattGesamt), 4));
 
 		wnfErrechneterPreisEK.setBigDecimal(bdErrechneterPreisEK);
-		wnfErrechneterWertEK.setBigDecimal(bdErrechneterPreisEK.multiply(
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getNMenge()).add(preisZusatzEK));
+		wnfErrechneterWertEK.setBigDecimal(bdErrechneterPreisEK
+				.multiply(internalFrameInserat.getTabbedPaneInserat().getDto().getNMenge()).add(preisZusatzEK));
 
 		// VK
 		dRabattGesamt = Helper.berechneRabattsatzMehrererRabatte(
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getFKdRabatt(), internalFrameInserat
-						.getTabbedPaneInserat().getDto().getFKdZusatzrabatt(),
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getFKdNachlass());
+				internalFrameInserat.getTabbedPaneInserat().getDto().getFKdRabatt(),
+				internalFrameInserat.getTabbedPaneInserat().getDto().getFKdZusatzrabatt(),
+				internalFrameInserat.getTabbedPaneInserat().getDto().getFKdNachlass());
 
-		BigDecimal bdErrechneterPreisVK = internalFrameInserat
-				.getTabbedPaneInserat()
-				.getDto()
-				.getNNettoeinzelpreisVk()
-				.subtract(
-						Helper.getProzentWert(internalFrameInserat
-								.getTabbedPaneInserat().getDto()
-								.getNNettoeinzelpreisVk(), new BigDecimal(
-								dRabattGesamt), 4));
+		BigDecimal bdErrechneterPreisVK = internalFrameInserat.getTabbedPaneInserat().getDto().getNNettoeinzelpreisVk()
+				.subtract(Helper.getProzentWert(
+						internalFrameInserat.getTabbedPaneInserat().getDto().getNNettoeinzelpreisVk(),
+						new BigDecimal(dRabattGesamt), 4));
 
 		wnfErrechneterPreisVK.setBigDecimal(bdErrechneterPreisVK);
-		wnfErrechneterWertVK.setBigDecimal(bdErrechneterPreisVK.multiply(
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getNMenge()).add(preisZusatzVK));
+		wnfErrechneterWertVK.setBigDecimal(bdErrechneterPreisVK
+				.multiply(internalFrameInserat.getTabbedPaneInserat().getDto().getNMenge()).add(preisZusatzVK));
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getPersonalIIdManuellverrechnen() != null) {
-			PersonalDto personalDtoVerrechnen = DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdManuellverrechnen() != null) {
+			PersonalDto personalDtoVerrechnen = DelegateFactory.getInstance().getPersonalDelegate()
 					.personalFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getPersonalIIdManuellverrechnen());
+							internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdManuellverrechnen());
 
-			wlaVerrechenbar.setText(LPMain
-					.getTextRespectUISPr("iv.verrechenbargesetzt")
-					+ " "
-					+ Helper.formatDatum(internalFrameInserat
-							.getTabbedPaneInserat().getDto()
-							.getTManuellverrechnen(), LPMain.getTheClient()
-							.getLocUi())
-					+ ", "
-					+ personalDtoVerrechnen.formatAnrede());
+			wlaVerrechenbar
+					.setText(
+							LPMain.getTextRespectUISPr("iv.verrechenbargesetzt") + " "
+									+ Helper.formatDatum(internalFrameInserat.getTabbedPaneInserat().getDto()
+											.getTManuellverrechnen(), LPMain.getTheClient().getLocUi())
+									+ ", " + personalDtoVerrechnen.formatAnrede());
 
-		} else if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getPersonalIIdVerrechnen() != null) {
-			PersonalDto personalDtoVerrechnen = DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
+		} else if (internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdVerrechnen() != null) {
+			PersonalDto personalDtoVerrechnen = DelegateFactory.getInstance().getPersonalDelegate()
 					.personalFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getPersonalIIdVerrechnen());
+							internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdVerrechnen());
 
-			wlaVerrechenbar.setText(LPMain
-					.getTextRespectUISPr("iv.verrechenbargesetzt")
-					+ " "
-					+ Helper.formatDatum(internalFrameInserat
-							.getTabbedPaneInserat().getDto().getTVerrechnen(),
+			wlaVerrechenbar.setText(LPMain.getTextRespectUISPr("iv.verrechenbargesetzt") + " "
+					+ Helper.formatDatum(internalFrameInserat.getTabbedPaneInserat().getDto().getTVerrechnen(),
 							LPMain.getTheClient().getLocUi())
-					+ ", "
-					+ personalDtoVerrechnen.formatAnrede());
+					+ ", " + personalDtoVerrechnen.formatAnrede());
 
 		} else {
 			wlaVerrechenbar.setText("");
 		}
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getPersonalIIdGestoppt() != null) {
-			PersonalDto personalDtoGestoppt = DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdGestoppt() != null) {
+			PersonalDto personalDtoGestoppt = DelegateFactory.getInstance().getPersonalDelegate()
 					.personalFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getPersonalIIdGestoppt());
+							internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdGestoppt());
 
 			String cGestoppt = "";
-			if (internalFrameInserat.getTabbedPaneInserat().getDto()
-					.getCGestoppt() != null) {
-				cGestoppt = internalFrameInserat.getTabbedPaneInserat()
-						.getDto().getCGestoppt();
+			if (internalFrameInserat.getTabbedPaneInserat().getDto().getCGestoppt() != null) {
+				cGestoppt = internalFrameInserat.getTabbedPaneInserat().getDto().getCGestoppt();
 			}
 
-			wlaGestoppt.setText(LPMain
-					.getTextRespectUISPr("iv.gestopptgesetzt")
-					+ " "
-					+ Helper.formatDatum(internalFrameInserat
-							.getTabbedPaneInserat().getDto().getTGestoppt(),
+			wlaGestoppt.setText(LPMain.getTextRespectUISPr("iv.gestopptgesetzt") + " "
+					+ Helper.formatDatum(internalFrameInserat.getTabbedPaneInserat().getDto().getTGestoppt(),
 							LPMain.getTheClient().getLocUi())
-					+ ", "
-					+ personalDtoGestoppt.formatAnrede() + ", " + cGestoppt);
+					+ ", " + personalDtoGestoppt.formatAnrede() + ", " + cGestoppt);
 
 		} else {
-			if (internalFrameInserat.getTabbedPaneInserat().getDto()
-					.getCGestoppt() != null) {
-				wlaGestoppt.setText(LPMain
-						.getTextRespectUISPr("iv.gestopptgesetzt")
-						+ " "
-						+ internalFrameInserat.getTabbedPaneInserat().getDto()
-								.getCGestoppt());
+			if (internalFrameInserat.getTabbedPaneInserat().getDto().getCGestoppt() != null) {
+				wlaGestoppt.setText(LPMain.getTextRespectUISPr("iv.gestopptgesetzt") + " "
+						+ internalFrameInserat.getTabbedPaneInserat().getDto().getCGestoppt());
 			} else {
 				wlaGestoppt.setText("");
 			}
 		}
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getPersonalIIdManuellerledigt() != null) {
-			PersonalDto personalDtoVerrechnen = DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdManuellerledigt() != null) {
+			PersonalDto personalDtoVerrechnen = DelegateFactory.getInstance().getPersonalDelegate()
 					.personalFindByPrimaryKey(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getPersonalIIdManuellerledigt());
+							internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdManuellerledigt());
 
-			wlaManuellerledigt.setText(LPMain
-					.getTextRespectUISPr("iv.manuellerledigtam")
-					+ " "
-					+ Helper.formatDatum(internalFrameInserat
-							.getTabbedPaneInserat().getDto()
-							.getTManuellerledigt(), LPMain.getTheClient()
-							.getLocUi())
-					+ ", "
-					+ personalDtoVerrechnen.formatAnrede());
+			wlaManuellerledigt.setText(LPMain.getTextRespectUISPr("iv.manuellerledigtam") + " "
+					+ Helper.formatDatum(internalFrameInserat.getTabbedPaneInserat().getDto().getTManuellerledigt(),
+							LPMain.getTheClient().getLocUi())
+					+ ", " + personalDtoVerrechnen.formatAnrede());
 
 		} else {
 			wlaManuellerledigt.setText("");
 		}
 
-		wcbDruckBestellungKD.setShort(internalFrameInserat
-				.getTabbedPaneInserat().getDto().getBDruckBestellungKd());
-		wcbDruckBestellungLF.setShort(internalFrameInserat
-				.getTabbedPaneInserat().getDto().getBDruckBestellungLf());
-		wcbDruckRechnungKD.setShort(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getBDruckRechnungKd());
-		wcbWertaufteilen.setShort(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getBWertaufteilen());
+		wcbDruckBestellungKD.setShort(internalFrameInserat.getTabbedPaneInserat().getDto().getBDruckBestellungKd());
+		wcbDruckBestellungLF.setShort(internalFrameInserat.getTabbedPaneInserat().getDto().getBDruckBestellungLf());
+		wcbDruckRechnungKD.setShort(internalFrameInserat.getTabbedPaneInserat().getDto().getBDruckRechnungKd());
+		wcbWertaufteilen.setShort(internalFrameInserat.getTabbedPaneInserat().getDto().getBWertaufteilen());
 
-		wtfBezeichnung.setText(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getCBez());
-		wtfRubrik.setText(internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getCRubrik());
-		wtfRubrik2.setText(internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getCRubrik2());
-		wtfSichwort.setText(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getCStichwort());
-		wtfSichwort2.setText(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getCStichwort2());
-		wtfMedium.setText(internalFrameInserat.getTabbedPaneInserat().getDto()
-				.getCMedium());
+		wtfBezeichnung.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getCBez());
+		wtfRubrik.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getCRubrik());
+		wtfRubrik2.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getCRubrik2());
+		wtfSichwort.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getCStichwort());
+		wtfSichwort2.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getCStichwort2());
+		wtfMedium.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getCMedium());
 
-		wefAnhangKD.setText(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getXAnhang());
-		wefAnhangLF.setText(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getXAnhangLf());
+		wefAnhangKD.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getXAnhang());
+		wefAnhangLF.setText(internalFrameInserat.getTabbedPaneInserat().getDto().getXAnhangLf());
 
-		this.setStatusbarPersonalIIdAendern(internalFrameInserat
-				.getTabbedPaneInserat().getDto().getPersonalIIdAendern());
-		this.setStatusbarPersonalIIdAnlegen(internalFrameInserat
-				.getTabbedPaneInserat().getDto().getPersonalIIdAnlegen());
-		this.setStatusbarTAnlegen(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getTAnlegen());
-		this.setStatusbarTAendern(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getTAendern());
-		this.setStatusbarSpalte5(internalFrameInserat.getTabbedPaneInserat()
-				.getDto().getStatusCNr());
+		this.setStatusbarPersonalIIdAendern(
+				internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdAendern());
+		this.setStatusbarPersonalIIdAnlegen(
+				internalFrameInserat.getTabbedPaneInserat().getDto().getPersonalIIdAnlegen());
+		this.setStatusbarTAnlegen(internalFrameInserat.getTabbedPaneInserat().getDto().getTAnlegen());
+		this.setStatusbarTAendern(internalFrameInserat.getTabbedPaneInserat().getDto().getTAendern());
+		this.setStatusbarSpalte5(internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr());
 	}
 
-	public void setzeArtikelvorhandenLabelSichtbar(Integer inseratIId)
-			throws ExceptionLP, Throwable {
+	public void setzeArtikelvorhandenLabelSichtbar(Integer inseratIId) throws ExceptionLP, Throwable {
 		int iAnzahlArtikel = DelegateFactory.getInstance().getInseratDelegate()
 				.inseratartikelFindByInseratIId(inseratIId).length;
 		if (iAnzahlArtikel == 0) {
@@ -745,8 +598,7 @@ public class PanelInseratKopfdaten extends PanelBasis {
 		wlaArtikelvorhanden.setText("A");
 		wlaArtikelvorhanden.setForeground(Color.RED);
 		Font defaultFont = wlaArtikelvorhanden.getFont();
-		wlaArtikelvorhanden.setFont(defaultFont.deriveFont(Font.BOLD,
-				defaultFont.getSize2D() + 10));
+		wlaArtikelvorhanden.setFont(defaultFont.deriveFont(Font.BOLD, defaultFont.getSize2D() + 10));
 
 		wdfTermin.setMandatoryField(true);
 		wbuKunde.setText(LPMain.getTextRespectUISPr("button.kunde"));
@@ -762,16 +614,12 @@ public class PanelInseratKopfdaten extends PanelBasis {
 		wtfLieferant.setActivatable(false);
 		wtfLieferant.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 		wtfKunde.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
-		wbuAnsprechpartner.setText(LPMain
-				.getTextRespectUISPr("button.ansprechpartner"));
-		wbuAnsprechpartner
-				.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE);
+		wbuAnsprechpartner.setText(LPMain.getTextRespectUISPr("button.ansprechpartner"));
+		wbuAnsprechpartner.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE);
 		wbuAnsprechpartner.addActionListener(this);
 
-		wbuAnsprechpartnerLieferant.setText(LPMain
-				.getTextRespectUISPr("button.ansprechpartner"));
-		wbuAnsprechpartnerLieferant
-				.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT_FROM_LISTE);
+		wbuAnsprechpartnerLieferant.setText(LPMain.getTextRespectUISPr("button.ansprechpartner"));
+		wbuAnsprechpartnerLieferant.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT_FROM_LISTE);
 		wbuAnsprechpartnerLieferant.addActionListener(this);
 		wtfAnsprechpartner.setActivatable(false);
 		wtfAnsprechpartnerLieferant.setActivatable(false);
@@ -810,39 +658,23 @@ public class PanelInseratKopfdaten extends PanelBasis {
 		wnfErrechneterWertEK.setActivatable(false);
 		wnfErrechneterWertVK.setActivatable(false);
 
-		wnfRabattKD.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK());
-		wnfZusatzRabattKD.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK());
-		wnfNachlassKD.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK());
-		wnfRabattLF.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseEK());
-		wnfZusatzRabattLF.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseEK());
-		wnfNachlassLF.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseEK());
-		wnfPreisEK.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseEK());
-		wnfPreisVK.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK());
-		wnfErrechneterPreisEK.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseEK());
-		wnfErrechneterPreisVK.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK());
-		wnfErrechneterWertEK.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseEK());
-		wnfErrechneterWertVK.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK());
+		wnfRabattKD.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+		wnfZusatzRabattKD.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+		wnfNachlassKD.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+		wnfRabattLF.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wnfZusatzRabattLF.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wnfNachlassLF.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wnfPreisEK.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wnfPreisVK.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+		wnfErrechneterPreisEK.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wnfErrechneterPreisVK.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+		wnfErrechneterWertEK.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+		wnfErrechneterWertVK.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
 
-		wcbDruckBestellungLF.setText(LPMain
-				.getTextRespectUISPr("iv.kopfdaten.mitdrucken.bestellung"));
-		wcbDruckBestellungKD.setText(LPMain
-				.getTextRespectUISPr("iv.kopfdaten.mitdrucken.bestellung"));
-		wcbDruckRechnungKD.setText(LPMain
-				.getTextRespectUISPr("iv.kopfdaten.mitdrucken.rechnung"));
-		wcbWertaufteilen.setText(LPMain
-				.getTextRespectUISPr("iv.kopfdaten.wertaufteilen"));
+		wcbDruckBestellungLF.setText(LPMain.getTextRespectUISPr("iv.kopfdaten.mitdrucken.bestellung"));
+		wcbDruckBestellungKD.setText(LPMain.getTextRespectUISPr("iv.kopfdaten.mitdrucken.bestellung"));
+		wcbDruckRechnungKD.setText(LPMain.getTextRespectUISPr("iv.kopfdaten.mitdrucken.rechnung"));
+		wcbWertaufteilen.setText(LPMain.getTextRespectUISPr("iv.kopfdaten.wertaufteilen"));
 
 		wnfPreisEK.setMandatoryField(true);
 		wnfPreisVK.setMandatoryField(true);
@@ -850,50 +682,36 @@ public class PanelInseratKopfdaten extends PanelBasis {
 		// Actionpanel von Oberklasse holen und anhaengen.
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
-		jpaWorkingOn = new JPanel(
-				new MigLayout(
-						"wrap 8",
-						"[fill,20%][fill,15%][fill,5%][fill,20%][fill,15%][fill,10%][fill,10%][fill,10%]"));
+		jpaWorkingOn = new JPanel(new MigLayout("wrap 8",
+				"[fill,20%][fill,15%][fill,5%][fill,20%][fill,15%][fill,10%][fill,10%][fill,10%]"));
 
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTHEAST, GridBagConstraints.BOTH,
-				new Insets(-9, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.BOTH, new Insets(-9, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		jpaWorkingOn.add(wlaDatum);
 		jpaWorkingOn.add(wdfDatum);
 		jpaWorkingOn.add(wlaArtikelvorhanden, "span 3");
 		jpaWorkingOn.add(wlaMenge);
 		jpaWorkingOn.add(wnfMenge);
-		jpaWorkingOn.add(new WrapperLabel(SystemFac.EINHEIT_STUECK.trim()),
-				"left, wrap");
+		jpaWorkingOn.add(new WrapperLabel(SystemFac.EINHEIT_STUECK.trim()), "left, wrap");
 
 		jpaWorkingOn.add(wbuKunde);
 		jpaWorkingOn.add(wtfKunde, "span 4");
-		jpaWorkingOn
-				.add(new WrapperLabel(LPMain
-						.getTextRespectUISPr("label.lieferant")), "skip");
-		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getTextRespectUISPr("label.kunde")),
-				"wrap");
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("label.lieferant")), "skip");
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("label.kunde")), "wrap");
 
 		jpaWorkingOn.add(wbuAnsprechpartner);
 		jpaWorkingOn.add(wtfAnsprechpartner, "span 3");
-		wlaMitdrucken.setText(LPMain
-				.getTextRespectUISPr("iv.kopfdaten.mitdrucken"));
+		wlaMitdrucken.setText(LPMain.getTextRespectUISPr("iv.kopfdaten.mitdrucken"));
 		wlaMitdrucken.setHorizontalAlignment(SwingConstants.LEFT);
 		jpaWorkingOn.add(wlaMitdrucken);
-		wnfPreisVK.setToolTipText(LPMain
-				.getTextRespectUISPr("iv.kopfdaten.preis")
-				+ " "
-				+ LPMain.getTheClient().getSMandantenwaehrung());
-		jpaWorkingOn.add(new WrapperLabel(LPMain
-				.getTextRespectUISPr("iv.kopfdaten.preis")));
+		wnfPreisVK.setToolTipText(
+				LPMain.getTextRespectUISPr("iv.kopfdaten.preis") + " " + LPMain.getTheClient().getSMandantenwaehrung());
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("iv.kopfdaten.preis")));
 		jpaWorkingOn.add(wnfPreisEK);
 		jpaWorkingOn.add(wnfPreisVK, "wrap");
 
@@ -917,17 +735,14 @@ public class PanelInseratKopfdaten extends PanelBasis {
 
 		jpaWorkingOn.add(wbuAnsprechpartnerLieferant);
 		jpaWorkingOn.add(wtfAnsprechpartnerLieferant, "span 3");
-		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getTextRespectUISPr("iv.err.preis")),
-				"skip");
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("iv.err.preis")), "skip");
 		jpaWorkingOn.add(wnfErrechneterPreisEK);
 		jpaWorkingOn.add(wnfErrechneterPreisVK, "wrap");
 
 		jpaWorkingOn.add(wlaAnhangLF);
 		jpaWorkingOn.add(wefAnhangLF, "w 30%:50%:100%, gpx 110, span 3 2");
 		jpaWorkingOn.add(wcbDruckBestellungLF);
-		jpaWorkingOn.add(new WrapperLabel(LPMain
-				.getTextRespectUISPr("iv.err.wert")));
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("iv.err.wert")));
 		jpaWorkingOn.add(wnfErrechneterWertEK);
 		jpaWorkingOn.add(wnfErrechneterWertVK, "wrap");
 
@@ -971,42 +786,32 @@ public class PanelInseratKopfdaten extends PanelBasis {
 		wlaManuellerledigt.setHorizontalAlignment(SwingConstants.LEFT);
 		jpaWorkingOn.add(wlaGestoppt, "skip, span");
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, ACTION_PREVIOUS, ACTION_NEXT, };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_STORNIEREN, ACTION_DISCARD, ACTION_PREVIOUS,
+				ACTION_NEXT, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		createAndSaveAndShowButton("/com/lp/client/res/news16x16.png",
-				LPMain.getTextRespectUISPr("iv.inserat.kopieren"),
-				ACTION_SPECIAL_INSERAT_KOPIEREN, KeyStroke.getKeyStroke('K',
-						java.awt.event.InputEvent.CTRL_MASK),
-				RechteFac.RECHT_IV_INSERAT_CUD);
+				LPMain.getTextRespectUISPr("iv.inserat.kopieren"), ACTION_SPECIAL_INSERAT_KOPIEREN,
+				KeyStroke.getKeyStroke('K', java.awt.event.InputEvent.CTRL_MASK), RechteFac.RECHT_IV_INSERAT_CUD);
 
-		createAndSaveAndShowButton(
-				"/com/lp/client/res/shoppingcart_full16x16.png",
+		createAndSaveAndShowButton("/com/lp/client/res/shoppingcart_full16x16.png",
 				LPMain.getTextRespectUISPr("iv.inserat.bestellung.fuer.selektiertenkunden"),
-				ACTION_SPECIAL_BESTELLUNG_AUSLOESEN, KeyStroke.getKeyStroke(
-						'B', java.awt.event.InputEvent.CTRL_MASK),
+				ACTION_SPECIAL_BESTELLUNG_AUSLOESEN, KeyStroke.getKeyStroke('B', java.awt.event.InputEvent.CTRL_MASK),
 				RechteFac.RECHT_IV_INSERAT_CUD);
 
 		createAndSaveAndShowButton("/com/lp/client/res/calculator16x16.png",
-				LPMain.getTextRespectUISPr("iv.inserat.toggle.verrechenbar"),
-				ACTION_SPECIAL_TOGGLE_VERRECHENBAR,
+				LPMain.getTextRespectUISPr("iv.inserat.toggle.verrechenbar"), ACTION_SPECIAL_TOGGLE_VERRECHENBAR,
 				RechteFac.RECHT_IV_INSERAT_CUD);
 
 		// Focus aendern:
 
-		FocusTraversalPolicy policy = getFocusTraversal(new JComponent[] {
-				wdfDatum, wnfMenge, wbuKunde.getWrapperButton(),
-				wbuAnsprechpartner, wnfPreisEK, wnfPreisVK, wnfRabattLF,
-				wnfRabattKD, wnfZusatzRabattLF, wnfZusatzRabattKD,
-				wnfNachlassLF, wnfNachlassKD, wcbDruckBestellungKD,
-				wcbDruckRechnungKD, wbuLieferant.getWrapperButton(),
-				wbuAnsprechpartnerLieferant, wcbDruckBestellungLF, wtfMedium,
-				wtfRubrik, wtfRubrik2, wtfBezeichnung, wtfSichwort,
-				wtfSichwort2, wbuPersonal,
-				wifArtikel.getWbuArtikel().getWrapperButton(),
-				wifArtikel.getWtfIdent(), wdfTermin, wdfTerminBis }); // hier
+		FocusTraversalPolicy policy = getFocusTraversal(new JComponent[] { wdfDatum, wnfMenge,
+				wbuKunde.getWrapperButton(), wbuAnsprechpartner, wnfPreisEK, wnfPreisVK, wnfRabattLF, wnfRabattKD,
+				wnfZusatzRabattLF, wnfZusatzRabattKD, wnfNachlassLF, wnfNachlassKD, wcbDruckBestellungKD,
+				wcbDruckRechnungKD, wbuLieferant.getWrapperButton(), wbuAnsprechpartnerLieferant, wcbDruckBestellungLF,
+				wtfMedium, wtfRubrik, wtfRubrik2, wtfBezeichnung, wtfSichwort, wtfSichwort2, wbuPersonal,
+				wifArtikel.getWbuArtikel().getWrapperButton(), wifArtikel.getWtfIdent(), wdfTermin, wdfTerminBis }); // hier
 		// alles
 		// eintragen
 		// was
@@ -1019,8 +824,7 @@ public class PanelInseratKopfdaten extends PanelBasis {
 
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 
 		super.eventActionNew(eventObject, true, false);
 		leereAlleFelder(this);
@@ -1033,24 +837,18 @@ public class PanelInseratKopfdaten extends PanelBasis {
 
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
-				.equals(LocaleFac.STATUS_VERRECHNET)
-				|| internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getStatusCNr().equals(LocaleFac.STATUS_TEILBEZAHLT)
-				|| internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getStatusCNr().equals(LocaleFac.STATUS_BEZAHLT)) {
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr().equals(LocaleFac.STATUS_VERRECHNET)
+				|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
+						.equals(LocaleFac.STATUS_TEILBEZAHLT)
+				|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
+						.equals(LocaleFac.STATUS_BEZAHLT)) {
 
 			// PJ18948 EK-Preis kann geaendert werden, solange es keine
 			// Er-Zuordnung gibt
-			InseraterDto[] inseraterDtos = DelegateFactory
-					.getInstance()
-					.getInseratDelegate()
-					.inseraterFindByInseratIId(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getIId());
+			InseraterDto[] inseraterDtos = DelegateFactory.getInstance().getInseratDelegate()
+					.inseraterFindByInseratIId(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 
 			if (inseraterDtos.length == 0) {
 
@@ -1063,28 +861,21 @@ public class PanelInseratKopfdaten extends PanelBasis {
 				wnfNachlassLF.setEditable(true);
 				return;
 			} else {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.error"),
-								LPMain.getTextRespectUISPr("iv.inseratkunde.updatenichtmoeglich"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("iv.inseratkunde.updatenichtmoeglich"));
 				return;
 			}
 
 		}
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
-				.equals(LocaleFac.STATUS_STORNIERT)) {
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr().equals(LocaleFac.STATUS_STORNIERT)) {
 
 			boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
 					LPMain.getTextRespectUISPr("iv.stornoaufheben"));
 
 			if (b == true) {
-				DelegateFactory
-						.getInstance()
-						.getInseratDelegate()
-						.storniertAufheben(
-								internalFrameInserat.getTabbedPaneInserat()
-										.getDto().getIId());
+				DelegateFactory.getInstance().getInseratDelegate()
+						.storniertAufheben(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 			} else {
 				return;
 			}
@@ -1092,12 +883,11 @@ public class PanelInseratKopfdaten extends PanelBasis {
 
 		super.eventActionUpdate(aE, bNeedNoUpdateI);
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
-				.equals(LocaleFac.STATUS_BESTELLT)
-				|| internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getStatusCNr().equals(LocaleFac.STATUS_ERSCHIENEN)
-				|| internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getStatusCNr().equals(LocaleFac.STATUS_VERRECHENBAR)) {
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr().equals(LocaleFac.STATUS_BESTELLT)
+				|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
+						.equals(LocaleFac.STATUS_ERSCHIENEN)
+				|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
+						.equals(LocaleFac.STATUS_VERRECHENBAR)) {
 
 			wbuLieferant.setEnabled(false);
 			wbuAnsprechpartnerLieferant.setEnabled(false);
@@ -1110,46 +900,33 @@ public class PanelInseratKopfdaten extends PanelBasis {
 			dialogQueryPersonalFromListe(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_KUNDE_FROM_LISTE)) {
 			dialogQueryKunde(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE)) {
 			dialogQueryAnsprechpartner(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT_FROM_LISTE)) {
 			dialogQueryAnsprechpartnerLieferant(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_LIEFERANT_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LIEFERANT_FROM_LISTE)) {
 			dialogQueryLieferant();
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_TOGGLE_VERRECHENBAR)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_TOGGLE_VERRECHENBAR)) {
 
-			if (internalFrameInserat.getTabbedPaneInserat().getDto()
-					.getStatusCNr().equals(LocaleFac.STATUS_ERSCHIENEN)
-					|| internalFrameInserat.getTabbedPaneInserat().getDto()
-							.getStatusCNr()
+			if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr().equals(LocaleFac.STATUS_ERSCHIENEN)
+					|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
 							.equals(LocaleFac.STATUS_VERRECHENBAR)) {
 
-				DelegateFactory
-						.getInstance()
-						.getInseratDelegate()
-						.toggleVerrechenbar(
-								internalFrameInserat.getTabbedPaneInserat()
-										.getDto().getIId());
+				DelegateFactory.getInstance().getInseratDelegate()
+						.toggleVerrechenbar(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 				eventYouAreSelected(false);
 			} else {
 
-				DialogFactory.showModalDialog(LPMain
-						.getTextRespectUISPr("lp.hinweis"), LPMain
-						.getTextRespectUISPr("iv.verrechnbar.nichtmoeglich"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+						LPMain.getTextRespectUISPr("iv.verrechnbar.nichtmoeglich"));
 				return;
 			}
 
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_BESTELLUNG_AUSLOESEN)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_BESTELLUNG_AUSLOESEN)) {
 
-			Integer kundeIId = internalFrameInserat.getTabbedPaneInserat()
-					.getDto().getInseratrechnungDto().getKundeIId();
-			internalFrameInserat.getTabbedPaneInserat()
-					.bestellungenAusloesenKunde(kundeIId);
+			Integer kundeIId = internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto()
+					.getKundeIId();
+			internalFrameInserat.getTabbedPaneInserat().bestellungenAusloesenKunde(kundeIId);
 			eventYouAreSelected(false);
 
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_INSERAT_KOPIEREN)) {
@@ -1168,125 +945,76 @@ public class PanelInseratKopfdaten extends PanelBasis {
 
 	protected void components2Dto() throws Throwable {
 
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setMandantCNr(LPMain.getTheClient().getMandant());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setTBelegdatum(wdfDatum.getTimestamp());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setFKdNachlass(wnfNachlassKD.getDouble());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setFLfNachlass(wnfNachlassLF.getDouble());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setFKdRabatt(wnfRabattKD.getDouble());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setFLFRabatt(wnfRabattLF.getDouble());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setFKdZusatzrabatt(wnfZusatzRabattKD.getDouble());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setFLfZusatzrabatt(wnfZusatzRabattLF.getDouble());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setTTermin(wdfTermin.getTimestamp());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setNMenge(wnfMenge.getBigDecimal());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setNNettoeinzelpreisEk(wnfPreisEK.getBigDecimal());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setNNettoeinzelpreisVk(wnfPreisVK.getBigDecimal());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setMandantCNr(LPMain.getTheClient().getMandant());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setTBelegdatum(wdfDatum.getTimestamp());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setFKdNachlass(wnfNachlassKD.getDouble());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setFLfNachlass(wnfNachlassLF.getDouble());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setFKdRabatt(wnfRabattKD.getDouble());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setFLFRabatt(wnfRabattLF.getDouble());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setFKdZusatzrabatt(wnfZusatzRabattKD.getDouble());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setFLfZusatzrabatt(wnfZusatzRabattLF.getDouble());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setTTermin(wdfTermin.getTimestamp());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setNMenge(wnfMenge.getBigDecimal());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setNNettoeinzelpreisEk(wnfPreisEK.getBigDecimal());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setNNettoeinzelpreisVk(wnfPreisVK.getBigDecimal());
 
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setCBez(wtfBezeichnung.getText());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setCRubrik(wtfRubrik.getText());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setCRubrik2(wtfRubrik2.getText());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setCStichwort(wtfSichwort.getText());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setCStichwort2(wtfSichwort2.getText());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setCMedium(wtfMedium.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setCBez(wtfBezeichnung.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setCRubrik(wtfRubrik.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setCRubrik2(wtfRubrik2.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setCStichwort(wtfSichwort.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setCStichwort2(wtfSichwort2.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setCMedium(wtfMedium.getText());
 
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setXAnhang(wefAnhangKD.getText());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setXAnhangLf(wefAnhangLF.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setXAnhang(wefAnhangKD.getText());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setXAnhangLf(wefAnhangLF.getText());
 
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setBDruckBestellungKd(wcbDruckBestellungKD.getShort());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setBDruckBestellungLf(wcbDruckBestellungLF.getShort());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setBDruckRechnungKd(wcbDruckRechnungKD.getShort());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setTTerminBis(wdfTerminBis.getTimestamp());
-		internalFrameInserat.getTabbedPaneInserat().getDto()
-				.setBWertaufteilen(wcbWertaufteilen.getShort());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setBDruckBestellungKd(wcbDruckBestellungKD.getShort());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setBDruckBestellungLf(wcbDruckBestellungLF.getShort());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setBDruckRechnungKd(wcbDruckRechnungKD.getShort());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setTTerminBis(wdfTerminBis.getTimestamp());
+		internalFrameInserat.getTabbedPaneInserat().getDto().setBWertaufteilen(wcbWertaufteilen.getShort());
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
-		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
-				.equals(LocaleFac.STATUS_ANGELEGT)
-				|| internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getStatusCNr().equals(LocaleFac.STATUS_BESTELLT)) {
-			DelegateFactory
-					.getInstance()
-					.getInseratDelegate()
-					.storniereInserat(
-							internalFrameInserat.getTabbedPaneInserat()
-									.getDto().getIId());
+		if (internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr().equals(LocaleFac.STATUS_ANGELEGT)
+				|| internalFrameInserat.getTabbedPaneInserat().getDto().getStatusCNr()
+						.equals(LocaleFac.STATUS_BESTELLT)) {
+			DelegateFactory.getInstance().getInseratDelegate()
+					.storniereInserat(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 			super.eventActionDelete(e, true, true);
 		} else {
 
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.hinweis"),
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
 					LPMain.getTextRespectUISPr("iv.storno.nichmoeglich"));
 			return;
 		}
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
-			if (wdfTerminBis.getTimestamp() != null
-					&& wdfTerminBis.getTimestamp().before(
-							wdfTermin.getTimestamp())) {
+			if (wdfTerminBis.getTimestamp() != null && wdfTerminBis.getTimestamp().before(wdfTermin.getTimestamp())) {
 
 				DialogFactory.showModalDialog(
 
-				LPMain.getTextRespectUISPr("lp.warning"),
-						LPMain.getTextRespectUISPr("iv.kopdaten.bisvorvon"));
+						LPMain.getTextRespectUISPr("lp.warning"), LPMain.getTextRespectUISPr("iv.kopdaten.bisvorvon"));
 				return;
 			}
 
 			components2Dto();
 
 			if (internalFrameInserat.getTabbedPaneInserat().getDto().getIId() == null) {
-				internalFrameInserat
-						.getTabbedPaneInserat()
-						.getDto()
-						.setIId(DelegateFactory
-								.getInstance()
-								.getInseratDelegate()
-								.createInserat(
-										internalFrameInserat
-												.getTabbedPaneInserat()
-												.getDto()));
-				setKeyWhenDetailPanel(internalFrameInserat
-						.getTabbedPaneInserat().getDto().getIId());
+				internalFrameInserat.getTabbedPaneInserat().getDto().setIId(DelegateFactory.getInstance()
+						.getInseratDelegate().createInserat(internalFrameInserat.getTabbedPaneInserat().getDto()));
+				setKeyWhenDetailPanel(internalFrameInserat.getTabbedPaneInserat().getDto().getIId());
 
 			} else {
 
-				DelegateFactory
-						.getInstance()
-						.getInseratDelegate()
-						.updateInserat(
-								internalFrameInserat.getTabbedPaneInserat()
-										.getDto());
+				DelegateFactory.getInstance().getInseratDelegate()
+						.updateInserat(internalFrameInserat.getTabbedPaneInserat().getDto());
 
 			}
 			super.eventActionSave(e, true);
@@ -1295,9 +1023,8 @@ public class PanelInseratKopfdaten extends PanelBasis {
 					.getTabbedPaneInserat().getDto().getTTermin();
 
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
-				getInternalFrame().setKeyWasForLockMe(
-						internalFrameInserat.getTabbedPaneInserat().getDto()
-								.getIId().toString());
+				getInternalFrame()
+						.setKeyWasForLockMe(internalFrameInserat.getTabbedPaneInserat().getDto().getIId().toString());
 			}
 			eventYouAreSelected(false);
 
@@ -1310,107 +1037,76 @@ public class PanelInseratKopfdaten extends PanelBasis {
 			if (e.getSource() == panelQueryFLRPersonal) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
-					PersonalDto personalDto = DelegateFactory.getInstance()
-							.getPersonalDelegate()
+					PersonalDto personalDto = DelegateFactory.getInstance().getPersonalDelegate()
 							.personalFindByPrimaryKey((Integer) key);
 					wtfPersonal.setText(personalDto.formatAnrede());
-					internalFrameInserat.getTabbedPaneInserat().getDto()
-							.setPersonalIIdVertreter((Integer) key);
+					internalFrameInserat.getTabbedPaneInserat().getDto().setPersonalIIdVertreter((Integer) key);
 				}
 
 			} else if (e.getSource() == wifArtikel.getPanelQueryFLRArtikel()) {
-				internalFrameInserat
-						.getTabbedPaneInserat()
-						.getDto()
-						.setArtikelIIdInseratart(
-								(Integer) wifArtikel.getPanelQueryFLRArtikel()
-										.getSelectedId());
+				internalFrameInserat.getTabbedPaneInserat().getDto()
+						.setArtikelIIdInseratart((Integer) wifArtikel.getPanelQueryFLRArtikel().getSelectedId());
 
-				ArtikelDto aDto = DelegateFactory
-						.getInstance()
-						.getArtikelDelegate()
-						.artikelFindByPrimaryKey(
-								(Integer) wifArtikel.getPanelQueryFLRArtikel()
-										.getSelectedId());
+				ArtikelDto aDto = DelegateFactory.getInstance().getArtikelDelegate()
+						.artikelFindByPrimaryKey((Integer) wifArtikel.getPanelQueryFLRArtikel().getSelectedId());
 				if (aDto.getArtikelsprDto() != null) {
 					wtfBezeichnung.setText(aDto.getArtikelsprDto().getCBez());
 				}
 			} else if (e.getSource() == panelQueryFLRLieferant) {
-				Integer keyLieferant = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				LieferantDto lieferantDtoNew = DelegateFactory.getInstance()
-						.getLieferantDelegate()
+				Integer keyLieferant = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				LieferantDto lieferantDtoNew = DelegateFactory.getInstance().getLieferantDelegate()
 						.lieferantFindByPrimaryKey(keyLieferant);
 
-				DelegateFactory
-						.getInstance()
-						.getLieferantDelegate()
-						.pruefeLieferant(lieferantDtoNew.getIId(), null,
-								getInternalFrame());
+				DelegateFactory.getInstance().getLieferantDelegate().pruefeLieferant(lieferantDtoNew.getIId(), null,
+						getInternalFrame());
 
-				String sAdresse = lieferantDtoNew.getPartnerDto()
-						.formatFixTitelName1Name2();
+				String sAdresse = lieferantDtoNew.getPartnerDto().formatFixTitelName1Name2();
 				if (lieferantDtoNew.getPartnerDto().getCKbez() != null) {
-					sAdresse = sAdresse + "  /  "
-							+ lieferantDtoNew.getPartnerDto().getCKbez();
+					sAdresse = sAdresse + "  /  " + lieferantDtoNew.getPartnerDto().getCKbez();
 				}
 
 				wtfLieferant.setText(sAdresse);
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.setLieferantIId(keyLieferant);
+				internalFrameInserat.getTabbedPaneInserat().getDto().setLieferantIId(keyLieferant);
 
 				wtfAnsprechpartnerLieferant.setText(null);
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.setAnsprechpartnerIIdLieferant(null);
+				internalFrameInserat.getTabbedPaneInserat().getDto().setAnsprechpartnerIIdLieferant(null);
 
 				if (lieferantDtoNew.getNRabatt() != null) {
 					wnfRabattLF.setDouble(lieferantDtoNew.getNRabatt());
 				}
 			} else if (e.getSource() == panelQueryFLRKunde) {
-				Integer iIdKunde = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				KundeDto kundeDto = DelegateFactory.getInstance()
-						.getKundeDelegate().kundeFindByPrimaryKey(iIdKunde);
+				Integer iIdKunde = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(iIdKunde);
 
-				DelegateFactory.getInstance().getKundeDelegate()
-						.pruefeKunde(iIdKunde, null, getInternalFrame());
+				DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(iIdKunde, null, getInternalFrame());
 
-				String sAdresse = kundeDto.getPartnerDto()
-						.formatFixTitelName1Name2();
+				String sAdresse = kundeDto.getPartnerDto().formatFixTitelName1Name2();
 				if (kundeDto.getPartnerDto().getCKbez() != null) {
-					sAdresse = sAdresse + "  /  "
-							+ kundeDto.getPartnerDto().getCKbez();
+					sAdresse = sAdresse + "  /  " + kundeDto.getPartnerDto().getCKbez();
 				}
 
 				boolean bKundeBereitsAusgewaehlt = true;
 
-				if (internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getInseratrechnungDto().getKundeIId() == null) {
+				if (internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto()
+						.getKundeIId() == null) {
 					bKundeBereitsAusgewaehlt = false;
 				}
 
 				wtfKunde.setText(sAdresse);
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getInseratrechnungDto().setKundeIId(iIdKunde);
+				internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto().setKundeIId(iIdKunde);
 
 				wtfAnsprechpartner.setText(null);
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getInseratrechnungDto().setAnsprechpartnerIId(null);
+				internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto()
+						.setAnsprechpartnerIId(null);
 
 				// Vertreter ist Provisionsempaenger aus Kunde
 
-				internalFrameInserat
-						.getTabbedPaneInserat()
-						.getDto()
-						.setPersonalIIdVertreter(
-								kundeDto.getPersonaliIdProvisionsempfaenger());
+				internalFrameInserat.getTabbedPaneInserat().getDto()
+						.setPersonalIIdVertreter(kundeDto.getPersonaliIdProvisionsempfaenger());
 
 				if (kundeDto.getPersonaliIdProvisionsempfaenger() != null) {
-					PersonalDto personalDtoVerursacher = DelegateFactory
-							.getInstance()
-							.getPersonalDelegate()
-							.personalFindByPrimaryKey(
-									kundeDto.getPersonaliIdProvisionsempfaenger());
+					PersonalDto personalDtoVerursacher = DelegateFactory.getInstance().getPersonalDelegate()
+							.personalFindByPrimaryKey(kundeDto.getPersonaliIdProvisionsempfaenger());
 					wtfPersonal.setText(personalDtoVerursacher.formatAnrede());
 				}
 
@@ -1431,23 +1127,14 @@ public class PanelInseratKopfdaten extends PanelBasis {
 					if (dRabattsatzvorhanden.doubleValue() != dKundenrabattsatz.doubleValue()) {
 						// PJ18946
 						Object[] aOptionen = new Object[2];
-						aOptionen[0] = LPMain
-								.getTextRespectUISPr("iv.rabattunterschiedlich.option0")
-								+ " "
-								+ Helper.formatZahl(dRabattsatzvorhanden, 2,
-										LPMain.getTheClient().getLocUi()) + "%";
-						aOptionen[1] = LPMain
-								.getTextRespectUISPr("iv.rabattunterschiedlich.option1")
-								+ " "
-								+ Helper.formatZahl(dKundenrabattsatz, 2,
-										LPMain.getTheClient().getLocUi()) + "%";
+						aOptionen[0] = LPMain.getTextRespectUISPr("iv.rabattunterschiedlich.option0") + " "
+								+ Helper.formatZahl(dRabattsatzvorhanden, 2, LPMain.getTheClient().getLocUi()) + "%";
+						aOptionen[1] = LPMain.getTextRespectUISPr("iv.rabattunterschiedlich.option1") + " "
+								+ Helper.formatZahl(dKundenrabattsatz, 2, LPMain.getTheClient().getLocUi()) + "%";
 
-						int iAuswahl = DialogFactory
-								.showModalDialog(
-										getInternalFrame(),
-										LPMain.getTextRespectUISPr("iv.rabattunterschiedlich"),
-										LPMain.getTextRespectUISPr("lp.frage"),
-										aOptionen, aOptionen[0]);
+						int iAuswahl = DialogFactory.showModalDialog(getInternalFrame(),
+								LPMain.getTextRespectUISPr("iv.rabattunterschiedlich"),
+								LPMain.getTextRespectUISPr("lp.frage"), aOptionen, aOptionen[0]);
 
 						if (iAuswahl == 0) {
 							wnfRabattKD.setDouble(dRabattsatzvorhanden);
@@ -1466,59 +1153,46 @@ public class PanelInseratKopfdaten extends PanelBasis {
 				}
 
 			} else if (e.getSource() == panelQueryFLRAnsprechpartner) {
-				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
-				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory
-						.getInstance().getAnsprechpartnerDelegate()
+				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 						.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartner);
 
-				wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto()
-						.formatTitelAnrede());
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getInseratrechnungDto()
+				wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto().formatTitelAnrede());
+				internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto()
 						.setAnsprechpartnerIId(iIdAnsprechpartner);
 			} else if (e.getSource() == panelQueryFLRAnsprechpartner_Lieferant) {
-				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
-				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory
-						.getInstance().getAnsprechpartnerDelegate()
+				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 						.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartner);
 
-				wtfAnsprechpartnerLieferant.setText(ansprechpartnerDto
-						.getPartnerDto().formatTitelAnrede());
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.setAnsprechpartnerIIdLieferant(iIdAnsprechpartner);
+				wtfAnsprechpartnerLieferant.setText(ansprechpartnerDto.getPartnerDto().formatTitelAnrede());
+				internalFrameInserat.getTabbedPaneInserat().getDto().setAnsprechpartnerIIdLieferant(iIdAnsprechpartner);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
 			if (e.getSource() == panelQueryFLRAnsprechpartner) {
 				wtfAnsprechpartner.setText(null);
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.getInseratrechnungDto().setAnsprechpartnerIId(null);
+				internalFrameInserat.getTabbedPaneInserat().getDto().getInseratrechnungDto()
+						.setAnsprechpartnerIId(null);
 			} else if (e.getSource() == panelQueryFLRAnsprechpartner_Lieferant) {
 				wtfAnsprechpartnerLieferant.setText(null);
-				internalFrameInserat.getTabbedPaneInserat().getDto()
-						.setAnsprechpartnerIIdLieferant(null);
+				internalFrameInserat.getTabbedPaneInserat().getDto().setAnsprechpartnerIIdLieferant(null);
 			}
 		}
 	}
 
-	public static FocusTraversalPolicy getFocusTraversal(
-			final JComponent order[]) {
+	public static FocusTraversalPolicy getFocusTraversal(final JComponent order[]) {
 		FocusTraversalPolicy policy = new FocusTraversalPolicy() {
 			java.util.List<JComponent> list = java.util.Arrays.asList(order);
 
-			public java.awt.Component getFirstComponent(
-					java.awt.Container focusCycleRoot) {
+			public java.awt.Component getFirstComponent(java.awt.Container focusCycleRoot) {
 				return order[0];
 			}
 
-			public java.awt.Component getLastComponent(
-					java.awt.Container focusCycleRoot) {
+			public java.awt.Component getLastComponent(java.awt.Container focusCycleRoot) {
 				return order[order.length - 1];
 			}
 
-			public java.awt.Component getComponentAfter(
-					java.awt.Container focusCycleRoot,
+			public java.awt.Component getComponentAfter(java.awt.Container focusCycleRoot,
 					java.awt.Component aComponent) {
 				int index = 0, x = -1;
 				index = list.indexOf(aComponent);
@@ -1527,8 +1201,7 @@ public class PanelInseratKopfdaten extends PanelBasis {
 							// musz
 				// er geht rein entweder wenn es disabled ist oder wenn es nicht
 				// angezeigt wird
-				if (!order[index % order.length].isEnabled()
-						|| !order[index % order.length].isVisible()) {
+				if (!order[index % order.length].isEnabled() || !order[index % order.length].isVisible()) {
 					x = index;
 					index = -1;
 					// zuerst die Schleife nach hinten
@@ -1551,14 +1224,12 @@ public class PanelInseratKopfdaten extends PanelBasis {
 				return order[index % order.length];
 			}
 
-			public java.awt.Component getComponentBefore(
-					java.awt.Container focusCycleRoot,
+			public java.awt.Component getComponentBefore(java.awt.Container focusCycleRoot,
 					java.awt.Component aComponent) {
 				int index = list.indexOf(aComponent), x = -1;
 				index--;
 				if (!order[(index + order.length) % order.length].isEnabled()
-						|| !order[(index + order.length) % order.length]
-								.isVisible()) {
+						|| !order[(index + order.length) % order.length].isVisible()) {
 					x = index;
 					index = -1;
 					for (; x >= 0; x--) {
@@ -1582,8 +1253,7 @@ public class PanelInseratKopfdaten extends PanelBasis {
 				return order[(index + order.length) % order.length];
 			}
 
-			public java.awt.Component getDefaultComponent(
-					java.awt.Container focusCycleRoot) {
+			public java.awt.Component getDefaultComponent(java.awt.Container focusCycleRoot) {
 				return order[0];
 			}
 

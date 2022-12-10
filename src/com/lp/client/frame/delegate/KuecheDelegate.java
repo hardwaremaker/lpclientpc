@@ -59,6 +59,7 @@ import com.lp.server.reklamation.service.ReklamationbildDto;
 import com.lp.server.reklamation.service.SchwereDto;
 import com.lp.server.reklamation.service.TermintreueDto;
 import com.lp.server.reklamation.service.WirksamkeitDto;
+import com.lp.server.system.jcr.service.JCRMediaFac;
 
 public class KuecheDelegate extends Delegate {
 	private Context context;
@@ -66,7 +67,7 @@ public class KuecheDelegate extends Delegate {
 
 	public KuecheDelegate() throws Exception {
 		context = new InitialContext();
-		kuecheFac = (KuecheFac) context.lookup("lpserver/KuecheFacBean/remote");
+		kuecheFac = lookupFac(context, KuecheFac.class);
 	}
 
 	public Integer createKassaartikel(KassaartikelDto speisekassaDto)

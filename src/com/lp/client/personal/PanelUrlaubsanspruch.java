@@ -46,6 +46,8 @@ import com.lp.client.frame.*;
 import com.lp.client.frame.component.*;
 import com.lp.client.pc.*;
 import com.lp.server.personal.service.*;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.client.frame.delegate.DelegateFactory;
 
@@ -63,8 +65,8 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 	private GridBagLayout gridBagLayoutWorkingPanel = null;
 	private InternalFramePersonal internalFramePersonal = null;
 	private UrlaubsanspruchDto urlaubsanspruchDto = null;
-	private WrapperSpinner wspJahr = new WrapperSpinner(new Integer(0),
-			new Integer(0), new Integer(9999), new Integer(1));
+	private WrapperSpinner wspJahr = new WrapperSpinner(new Integer(0), new Integer(0), new Integer(9999),
+			new Integer(1));
 
 	private WrapperLabel wlaJahr = new WrapperLabel();
 	private WrapperLabel wlaTage = new WrapperLabel();
@@ -99,9 +101,9 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 	private WrapperNumberField wnfResturlaubTage = new WrapperNumberField();
 
 	private WrapperCheckBox wcbGesperrt = new WrapperCheckBox();
+	boolean bUrlaubsabrechnungZumEintritt = false;
 
-	public PanelUrlaubsanspruch(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	public PanelUrlaubsanspruch(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFramePersonal = (InternalFramePersonal) internalFrame;
 		jbInit();
@@ -117,8 +119,7 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 	protected void setDefaults() {
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		urlaubsanspruchDto = new UrlaubsanspruchDto();
 
@@ -131,70 +132,59 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		// urlaubsanspruch berechnen
 		if (e.getActionCommand().equals(ACTION_SPECIAL_ALIQUOT)) {
-			java.sql.Date dAbrechnungszeitpunkt = new java.sql.Date(
-					System.currentTimeMillis());
+			java.sql.Date dAbrechnungszeitpunkt = new java.sql.Date(System.currentTimeMillis());
 
-			UrlaubsabrechnungDto v = DelegateFactory
-					.getInstance()
-					.getZeiterfassungDelegate()
-					.berechneUrlaubsAnspruch(
-							internalFramePersonal.getPersonalDto().getIId(),
-							dAbrechnungszeitpunkt);
-			wtfUrlaubverfuegbar
-					.setText(v.getNVerfuegbarerUrlaubTage().toString()
-							+ " Tage / "
-							+ v.getNVerfuegbarerUrlaubStunden().toString()
-							+ " Stunden");
-			DialogUrlaubsanspruch d = new DialogUrlaubsanspruch(v);
+			UrlaubsabrechnungDto v = DelegateFactory.getInstance().getZeiterfassungDelegate()
+					.berechneUrlaubsAnspruch(internalFramePersonal.getPersonalDto().getIId(), dAbrechnungszeitpunkt);
+			wtfUrlaubverfuegbar.setText(v.getNVerfuegbarerUrlaubTage().toString() + " Tage / "
+					+ v.getNVerfuegbarerUrlaubStunden().toString() + " Stunden");
+			DialogUrlaubsanspruch d = new DialogUrlaubsanspruch(v, internalFramePersonal.getPersonalDto().getIId(),
+					bUrlaubsabrechnungZumEintritt);
 
-			LPMain.getInstance().getDesktop()
-					.platziereDialogInDerMitteDesFensters(d);
+			LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
 			d.setVisible(true);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ENDEDESJAHRES)) {
-			java.sql.Date dAbrechnungszeitpunkt = new java.sql.Date(
-					System.currentTimeMillis());
 
-			UrlaubsabrechnungDto v = DelegateFactory
-					.getInstance()
-					.getZeiterfassungDelegate()
-					.berechneUrlaubsAnspruch(
-							internalFramePersonal.getPersonalDto().getIId(),
-							dAbrechnungszeitpunkt);
-			DialogUrlaubsanspruchEndeDesJahres d = new DialogUrlaubsanspruchEndeDesJahres(
-					v);
-			LPMain.getInstance().getDesktop()
-					.platziereDialogInDerMitteDesFensters(d);
+			if (bUrlaubsabrechnungZumEintritt == true) {
+				DialogUrlaubsanspruchZumEintrittsdatum d = new DialogUrlaubsanspruchZumEintrittsdatum(
+						internalFramePersonal.getPersonalDto().getIId());
+				LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
 
-			d.setVisible(true);
+				d.setVisible(true);
+			} else {
+
+				java.sql.Date dAbrechnungszeitpunkt = new java.sql.Date(System.currentTimeMillis());
+
+				UrlaubsabrechnungDto v = DelegateFactory.getInstance().getZeiterfassungDelegate()
+						.berechneUrlaubsAnspruch(internalFramePersonal.getPersonalDto().getIId(),
+								dAbrechnungszeitpunkt);
+				DialogUrlaubsanspruchEndeDesJahres d = new DialogUrlaubsanspruchEndeDesJahres(v);
+				LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+
+				d.setVisible(true);
+			}
 		}
 
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		DelegateFactory.getInstance().getPersonalDelegate()
-				.removeUrlaubsanspruch(urlaubsanspruchDto);
+		DelegateFactory.getInstance().getPersonalDelegate().removeUrlaubsanspruch(urlaubsanspruchDto);
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
 	}
 
 	protected void components2Dto() throws ExceptionLP {
-		urlaubsanspruchDto.setPersonalIId(internalFramePersonal
-				.getPersonalDto().getIId());
+		urlaubsanspruchDto.setPersonalIId(internalFramePersonal.getPersonalDto().getIId());
 		urlaubsanspruchDto.setIJahr((Integer) wspJahr.getValue());
 		urlaubsanspruchDto.setFTage(wnfTage.getDouble());
 		urlaubsanspruchDto.setFStunden(wnfStunden.getDouble());
 		urlaubsanspruchDto.setFTagezusaetzlich(wnfTageZusaetzlich.getDouble());
-		urlaubsanspruchDto.setFStundenzusaetzlich(wnfStundenZusaetzlich
-				.getDouble());
+		urlaubsanspruchDto.setFStundenzusaetzlich(wnfStundenZusaetzlich.getDouble());
 		urlaubsanspruchDto.setBGesperrt(wcbGesperrt.getShort());
-		urlaubsanspruchDto.setFResturlaubjahresendestunden(wnfResturlaubStunden
-				.getDouble());
-		urlaubsanspruchDto.setFResturlaubjahresendetage(wnfResturlaubTage
-				.getDouble());
-		urlaubsanspruchDto.setFJahresurlaubinwochen(wnfAnspruchInWochen
-				.getDouble());
+		urlaubsanspruchDto.setFResturlaubjahresendestunden(wnfResturlaubStunden.getDouble());
+		urlaubsanspruchDto.setFResturlaubjahresendetage(wnfResturlaubTage.getDouble());
+		urlaubsanspruchDto.setFJahresurlaubinwochen(wnfAnspruchInWochen.getDouble());
 
 	}
 
@@ -203,42 +193,32 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 		wnfTage.setDouble(urlaubsanspruchDto.getFTage());
 		wnfStunden.setDouble(urlaubsanspruchDto.getFStunden());
 		wnfTageZusaetzlich.setDouble(urlaubsanspruchDto.getFTagezusaetzlich());
-		wnfStundenZusaetzlich.setDouble(urlaubsanspruchDto
-				.getFStundenzusaetzlich());
+		wnfStundenZusaetzlich.setDouble(urlaubsanspruchDto.getFStundenzusaetzlich());
 		wcbGesperrt.setShort(urlaubsanspruchDto.getBGesperrt());
 
-		wnfResturlaubStunden.setDouble(urlaubsanspruchDto
-				.getFResturlaubjahresendestunden());
-		wnfResturlaubTage.setDouble(urlaubsanspruchDto
-				.getFResturlaubjahresendetage());
-		wnfAnspruchInWochen.setDouble(urlaubsanspruchDto
-				.getFJahresurlaubinwochen());
-		wnfUmrechnungTage.setDouble(urlaubsanspruchDto
-				.getFJahresurlaubinwochen() * 5);
-		this.setStatusbarPersonalIIdAendern(urlaubsanspruchDto
-				.getPersonaIIdAendern());
+		wnfResturlaubStunden.setDouble(urlaubsanspruchDto.getFResturlaubjahresendestunden());
+		wnfResturlaubTage.setDouble(urlaubsanspruchDto.getFResturlaubjahresendetage());
+		wnfAnspruchInWochen.setDouble(urlaubsanspruchDto.getFJahresurlaubinwochen());
+		wnfUmrechnungTage.setDouble(urlaubsanspruchDto.getFJahresurlaubinwochen() * 5);
+		this.setStatusbarPersonalIIdAendern(urlaubsanspruchDto.getPersonaIIdAendern());
 		this.setStatusbarTAendern(urlaubsanspruchDto.getTAendern());
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (urlaubsanspruchDto.getIId() == null) {
-				urlaubsanspruchDto.setIId(DelegateFactory.getInstance()
-						.getPersonalDelegate()
-						.createUrlaubsanspruch(urlaubsanspruchDto));
+				urlaubsanspruchDto.setIId(
+						DelegateFactory.getInstance().getPersonalDelegate().createUrlaubsanspruch(urlaubsanspruchDto));
 				setKeyWhenDetailPanel(urlaubsanspruchDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getPersonalDelegate()
-						.updateUrlaubsanspruch(urlaubsanspruchDto);
+				DelegateFactory.getInstance().getPersonalDelegate().updateUrlaubsanspruch(urlaubsanspruchDto);
 			}
 			super.eventActionSave(e, true);
 
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
-				getInternalFrame().setKeyWasForLockMe(
-						internalFramePersonal.getPersonalDto().getIId() + "");
+				getInternalFrame().setKeyWasForLockMe(internalFramePersonal.getPersonalDto().getIId() + "");
 			}
 			eventYouAreSelected(false);
 		}
@@ -263,60 +243,47 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
 
-		wlaJahr.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubsanspruch.abjahr"));
-		wlaTage.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubsanspruch.tageltzm"));
-		wlaStunden.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubsanspruch.stdltzm"));
+		wlaJahr.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.abjahr"));
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_URLAUBSABRECHNUNG_ZUM_EINTRITT,
+						ParameterFac.KATEGORIE_PERSONAL, LPMain.getTheClient().getMandant());
 
-		wlaTageZusaetzlich.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubsanspruch.tagezusaetzlich"));
-		wlaStundenZusaetzlich
-				.setText(LPMain
-						.getTextRespectUISPr("pers.urlaubsanspruch.stundenzusaetzlich"));
+		bUrlaubsabrechnungZumEintritt = (Boolean) parameter.getCWertAsObject();
+		if (bUrlaubsabrechnungZumEintritt) {
+			wlaJahr.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.abjahrzumeintritt"));
+		}
+
+		wlaTage.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.tageltzm"));
+		wlaStunden.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.stdltzm"));
+
+		wlaTageZusaetzlich.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.tagezusaetzlich"));
+		wlaStundenZusaetzlich.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.stundenzusaetzlich"));
 
 		wlaKeinGuelitgesEintrittsdatum.setForeground(Color.RED);
-		
-		wcbGesperrt.setText(LPMain
-				.getTextRespectUISPr("pers.gleitzeitsaldo.gesperrt"));
 
-		wlaResturlaubTage.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubanspruch.tageresturlaub"));
-		wlaResturlaubStunden.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubanspruch.stundenresturlaub"));
+		wcbGesperrt.setText(LPMain.getTextRespectUISPr("pers.gleitzeitsaldo.gesperrt"));
 
-		wlaEintrittsdatum.setText(LPMain
-				.getTextRespectUISPr("pers.eintrittaustritt.eintritt"));
-		wbuAliquot.setMaximumSize(new Dimension(50, 19));
-		wbuAliquot.setMinimumSize(new Dimension(50, 19));
-		wbuAliquot.setPreferredSize(new Dimension(50, 19));
-		wbuAliquot.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubsanspruch.anspruchaliquot"));
+		wlaResturlaubTage.setText(LPMain.getTextRespectUISPr("pers.urlaubanspruch.tageresturlaub"));
+		wlaResturlaubStunden.setText(LPMain.getTextRespectUISPr("pers.urlaubanspruch.stundenresturlaub"));
+
+		wlaEintrittsdatum.setText(LPMain.getTextRespectUISPr("pers.eintrittaustritt.eintritt"));
+		HelperClient.setMinimumAndPreferredSize(wbuAliquot, HelperClient.getSizeFactoredDimension(50));
+		wbuAliquot.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.anspruchaliquot"));
 		wbuAliquot.setActionCommand(ACTION_SPECIAL_ALIQUOT);
 		wbuAliquot.addActionListener(this);
 
-		wlaAnspruchInWochen
-				.setText(LPMain
-						.getTextRespectUISPr("pers.urlaubsanspruch.jahresanspruchinwochen"));
+		wlaAnspruchInWochen.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.jahresanspruchinwochen"));
 		wnfAnspruchInWochen.setFractionDigits(2);
 
-		wbuEndeDesJahres.setMaximumSize(new Dimension(50, 19));
-		wbuEndeDesJahres.setMinimumSize(new Dimension(50, 19));
-		wbuEndeDesJahres.setPreferredSize(new Dimension(50, 19));
-		wbuEndeDesJahres.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubsanspruch.endedesjahres"));
+		HelperClient.setMinimumAndPreferredSize(wbuEndeDesJahres, HelperClient.getSizeFactoredDimension(50));
+		wbuEndeDesJahres.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.endedesjahres") + " (31.12.)");
 		wbuEndeDesJahres.setActionCommand(ACTION_SPECIAL_ENDEDESJAHRES);
 		wbuEndeDesJahres.addActionListener(this);
 
 		wlaVerfuegbar.setHorizontalAlignment(SwingConstants.CENTER);
-		wlaVerfuegbar.setText(LPMain
-				.getTextRespectUISPr("pers.urlaubsanspruch.verfuegbarerurlaub")
-				+ ":");
+		wlaVerfuegbar.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.verfuegbarerurlaub") + ":");
 		wlaInTagen.setHorizontalAlignment(SwingConstants.CENTER);
-		wlaInTagen
-				.setText(LPMain
-						.getTextRespectUISPr("pers.urlaubsanspruch.jahresanspruchintagen"));
+		wlaInTagen.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.jahresanspruchintagen"));
 
 		wtfUrlaubverfuegbar.setActivatable(false);
 		wtfUrlaubverfuegbar.setText("");
@@ -325,12 +292,8 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 		wnfTage.setMandatoryField(true);
 		wnfAnspruchInWochen.setMandatoryField(true);
 
-		wnfAnspruchInWochen
-				.addFocusListener(new PanelUrlaubsanspruch_wnfAnspruchInWochen_focusAdapter(
-						this));
-		wnfUmrechnungTage
-				.addFocusListener(new PanelUrlaubsanspruch_wnfUmrechnungTage_focusAdapter(
-						this));
+		wnfAnspruchInWochen.addFocusListener(new PanelUrlaubsanspruch_wnfAnspruchInWochen_focusAdapter(this));
+		wnfUmrechnungTage.addFocusListener(new PanelUrlaubsanspruch_wnfUmrechnungTage_focusAdapter(this));
 
 		wnfStunden.setMandatoryField(true);
 
@@ -350,130 +313,101 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 		wlaDummy.setText("");
 		wspJahr.setMandatoryField(true);
 
+		HelperClient.setMinimumAndPreferredSize(wlaResturlaubStunden, HelperClient.getSizeFactoredDimension(300));
+
 		wspJahr.addChangeListener(this);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTHEAST, GridBagConstraints.BOTH,
-				new Insets(-9, 0, 9, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.BOTH, new Insets(-9, 0, 9, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaJahr, new GridBagConstraints(0, iZeile, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 150, 0));
+		jpaWorkingOn.add(wlaJahr, new GridBagConstraints(0, iZeile, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 150, 0));
 
-		jpaWorkingOn.add(wspJahr, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), -25, 0));
-		jpaWorkingOn.add(wlaKeinGuelitgesEintrittsdatum, new GridBagConstraints(2, iZeile, 2, 1,
-				0.00, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wspJahr, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.EAST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -25, 0));
+		jpaWorkingOn.add(wlaKeinGuelitgesEintrittsdatum, new GridBagConstraints(2, iZeile, 2, 1, 0.00, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		iZeile++;
+
+		jpaWorkingOn.add(wlaAnspruchInWochen, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wnfAnspruchInWochen, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -25, 0));
+
+		jpaWorkingOn.add(wlaInTagen, new GridBagConstraints(2, iZeile, 1, 1, 0.00, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wnfUmrechnungTage, new GridBagConstraints(3, iZeile, 1, 1, 0.00, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), -25, 0));
+
+		jpaWorkingOn.add(wlaVerfuegbar, new GridBagConstraints(4, iZeile, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		iZeile++;
 
-		jpaWorkingOn.add(wlaAnspruchInWochen, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaTage, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wnfAnspruchInWochen, new GridBagConstraints(1, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wnfTage, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -25, 0));
 
-		jpaWorkingOn.add(wlaInTagen, new GridBagConstraints(2, iZeile, 1, 1,
-				0.00, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wnfUmrechnungTage, new GridBagConstraints(3, iZeile,
-				1, 1, 0.00, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), -25, 0));
-
-		jpaWorkingOn.add(wlaVerfuegbar, new GridBagConstraints(4, iZeile, 1, 1,
-				0.05, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-		iZeile++;
-
-		jpaWorkingOn.add(wlaTage, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wnfTage, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), -25, 0));
-
-		jpaWorkingOn.add(wlaDummy, new GridBagConstraints(2, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 100, 0));
-		jpaWorkingOn.add(wtfUrlaubverfuegbar, new GridBagConstraints(3, iZeile,
-				2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaDummy, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 100, 0));
+		jpaWorkingOn.add(wtfUrlaubverfuegbar, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaTageZusaetzlich, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaTageZusaetzlich, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wnfTageZusaetzlich, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -25, 0));
+		jpaWorkingOn.add(wbuAliquot, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 0, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wbuEndeDesJahres, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 0), 0, 0));
+
+		iZeile++;
+
+		jpaWorkingOn.add(wlaStunden, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wnfTageZusaetzlich, new GridBagConstraints(1, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wnfStunden, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -25, 0));
-		jpaWorkingOn.add(wbuAliquot, new GridBagConstraints(3, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 70, 0));
-
-		jpaWorkingOn.add(wbuEndeDesJahres, new GridBagConstraints(4, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaResturlaubTage, new GridBagConstraints(2, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfResturlaubTage, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaStunden, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaStundenZusaetzlich, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wnfStundenZusaetzlich, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -25, 0));
+		jpaWorkingOn.add(wlaResturlaubStunden, new GridBagConstraints(2, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfResturlaubStunden, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+
+		jpaWorkingOn.add(wlaEintrittsdatum, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfStunden, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), -25, 0));
-		jpaWorkingOn.add(wlaResturlaubTage, new GridBagConstraints(2, iZeile,
-				2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 70, 0));
-		jpaWorkingOn.add(wnfResturlaubTage, new GridBagConstraints(4, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wdfEintrittsdatum, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbGesperrt, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaStundenZusaetzlich, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wnfStundenZusaetzlich, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -25, 0));
-		jpaWorkingOn.add(wlaResturlaubStunden, new GridBagConstraints(2,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 70, 0));
-		jpaWorkingOn.add(wnfResturlaubStunden, new GridBagConstraints(4,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-
-		jpaWorkingOn.add(wlaEintrittsdatum, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfEintrittsdatum, new GridBagConstraints(1, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbGesperrt, new GridBagConstraints(4, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -483,30 +417,25 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 		return HelperClient.LOCKME_PERSONAL;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 		wlaKeinGuelitgesEintrittsdatum.setText("");
 		try {
-			
-			java.sql.Timestamp tEintritt=null;
-			
-			EintrittaustrittDto eaDto=	DelegateFactory
-			.getInstance()
-			.getPersonalDelegate()
-			.eintrittaustrittFindLetztenEintrittBisDatum(
-					internalFramePersonal.getPersonalDto().getIId());
-			if(eaDto!=null){
-				tEintritt=eaDto.getTEintritt();
+
+			java.sql.Timestamp tEintritt = null;
+
+			EintrittaustrittDto eaDto = DelegateFactory.getInstance().getPersonalDelegate()
+					.eintrittaustrittFindLetztenEintrittBisDatum(internalFramePersonal.getPersonalDto().getIId());
+			if (eaDto != null) {
+				tEintritt = eaDto.getTEintritt();
 			}
 			wdfEintrittsdatum.setTimestamp(tEintritt);
 		} catch (ExceptionLP e) {
-			
-			if(e.getICode()==EJBExceptionLP.FEHLER_PERSONAL_FEHLER_BEI_EINTRITTSDATUM){
-			
-				wlaKeinGuelitgesEintrittsdatum.setText(LPMain
-						.getTextRespectUISPr("pers.urlaubsanspruch.keineintritt"));
+
+			if (e.getICode() == EJBExceptionLP.FEHLER_PERSONAL_FEHLER_BEI_EINTRITTSDATUM) {
+
+				wlaKeinGuelitgesEintrittsdatum.setText(LPMain.getTextRespectUISPr("pers.urlaubsanspruch.keineintritt"));
 			} else {
 				handleException(e, false);
 			}
@@ -526,8 +455,7 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 
 		} else {
 
-			urlaubsanspruchDto = DelegateFactory.getInstance()
-					.getPersonalDelegate()
+			urlaubsanspruchDto = DelegateFactory.getInstance().getPersonalDelegate()
 					.urlaubsanspruchFindByPrimaryKey((Integer) key);
 			dto2Components();
 		}
@@ -542,11 +470,9 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 			try {
 				LockStateValue lockstateValue = getLockedstateDetailMainKey();
 				int iLockState = lockstateValue.getIState();
-				if (iLockState == LOCK_IS_LOCKED_BY_ME
-						|| iLockState == LOCK_FOR_NEW) {
+				if (iLockState == LOCK_IS_LOCKED_BY_ME || iLockState == LOCK_FOR_NEW) {
 
-					if (wspJahr.getInteger() != null
-							&& wspJahr.getInteger() < 2009) {
+					if (wspJahr.getInteger() != null && wspJahr.getInteger() < 2009) {
 						wnfStunden.setEditable(true);
 						wnfStunden.setActivatable(true);
 
@@ -572,8 +498,7 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 	void wnfAnspruchInWochen_focusLost(FocusEvent e) {
 		try {
 			if (wnfAnspruchInWochen.getDouble() != null) {
-				wnfUmrechnungTage
-						.setDouble(wnfAnspruchInWochen.getDouble() * 5);
+				wnfUmrechnungTage.setDouble(wnfAnspruchInWochen.getDouble() * 5);
 			}
 		} catch (Throwable ex) {
 			// nothing here
@@ -583,8 +508,7 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 	void wnfUmrechnungTage_focusLost(FocusEvent e) {
 		try {
 			if (wnfUmrechnungTage.getDouble() != null) {
-				wnfAnspruchInWochen.setDouble(wnfUmrechnungTage.getDouble()
-						/ ((double) 5));
+				wnfAnspruchInWochen.setDouble(wnfUmrechnungTage.getDouble() / ((double) 5));
 			}
 		} catch (Throwable ex) {
 			// nothing here
@@ -593,12 +517,10 @@ public class PanelUrlaubsanspruch extends PanelBasis implements ChangeListener {
 
 }
 
-class PanelUrlaubsanspruch_wnfAnspruchInWochen_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelUrlaubsanspruch_wnfAnspruchInWochen_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelUrlaubsanspruch adaptee;
 
-	PanelUrlaubsanspruch_wnfAnspruchInWochen_focusAdapter(
-			PanelUrlaubsanspruch adaptee) {
+	PanelUrlaubsanspruch_wnfAnspruchInWochen_focusAdapter(PanelUrlaubsanspruch adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -607,12 +529,10 @@ class PanelUrlaubsanspruch_wnfAnspruchInWochen_focusAdapter extends
 	}
 }
 
-class PanelUrlaubsanspruch_wnfUmrechnungTage_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelUrlaubsanspruch_wnfUmrechnungTage_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelUrlaubsanspruch adaptee;
 
-	PanelUrlaubsanspruch_wnfUmrechnungTage_focusAdapter(
-			PanelUrlaubsanspruch adaptee) {
+	PanelUrlaubsanspruch_wnfUmrechnungTage_focusAdapter(PanelUrlaubsanspruch adaptee) {
 		this.adaptee = adaptee;
 	}
 

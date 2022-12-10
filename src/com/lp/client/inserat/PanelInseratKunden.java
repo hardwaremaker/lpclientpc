@@ -65,7 +65,6 @@ import com.lp.server.rechnung.service.RechnungPositionDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.util.Facade;
 
-@SuppressWarnings("static-access")
 public class PanelInseratKunden extends PanelBasis {
 
 	/**
@@ -82,7 +81,7 @@ public class PanelInseratKunden extends PanelBasis {
 	private InseratrechnungDto inseratkundebnDto = null;
 
 	private WrapperGotoButton wbuRechnung = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_RECHNUNG_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_RECHNUNG_AUSWAHL);
 	private WrapperTextField wtfRechnung = new WrapperTextField();
 	private WrapperButton wbuKunde = new WrapperButton();
 	private WrapperTextField wtfKunde = new WrapperTextField();

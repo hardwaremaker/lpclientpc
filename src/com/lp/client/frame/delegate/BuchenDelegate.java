@@ -43,6 +43,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.finanz.service.BuchenFac;
 import com.lp.server.finanz.service.BuchungDto;
@@ -50,6 +51,7 @@ import com.lp.server.finanz.service.BuchungdetailDto;
 import com.lp.server.finanz.service.KassenbuchungsteuerartDto;
 import com.lp.server.finanz.service.SaldovortragModelPersonenKonto;
 import com.lp.server.finanz.service.SaldovortragModelSachkonto;
+import com.lp.server.system.service.ParameterFac;
 
 @SuppressWarnings("static-access") 
 /**
@@ -74,7 +76,7 @@ public class BuchenDelegate
       throws ExceptionLP {
     try {
       context = new InitialContext();
-      buchenFac = (BuchenFac) context.lookup("lpserver/BuchenFacBean/remote");
+      buchenFac = lookupFac(context, BuchenFac.class);	
     }
     catch (Throwable t) {
       handleThrowable(t);
@@ -152,17 +154,21 @@ public class BuchenDelegate
     }
   }
 
-  public void storniereBuchung(Integer buchungIId)
-      throws
-      ExceptionLP {
-    try {
-      buchenFac.storniereBuchung(buchungIId,  LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
-
+	public void storniereBuchung(Integer buchungIId) throws ExceptionLP {
+		try {
+			if(buchenFac.istBuchungStorniert(buchungIId)) {
+				 DialogFactory.showMeldung(
+						 LPMain.getTextRespectUISPr("lp.hint.buchung.bereitsstorniert"),
+						 LPMain.getTextRespectUISPr("lp.hint"),
+						 javax.swing.JOptionPane.DEFAULT_OPTION) ; 
+			} else {
+				buchenFac.storniereBuchung(
+					buchungIId, LPMain.getInstance().getTheClient());
+			}
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
   public boolean hatPartnerBuchungenAufKonto(
       Integer iIdPartnerI,
@@ -227,6 +233,18 @@ public class BuchenDelegate
   public BigDecimal getSaldoVonKontoByAuszug(Integer kontoIId, Integer auszug, Integer geschaeftsjahr) throws ExceptionLP {
 	  try {
 		  return buchenFac.getSaldoVonKontoByAuszug(kontoIId, geschaeftsjahr, auszug, true, true, LPMain.getTheClient());
+	  }
+	  catch (Throwable ex) {
+		  handleThrowable(ex);
+		  return null;
+	  }
+  }
+  
+  public BigDecimal getSaldoVonKontoByAuszugInWaehrung(Integer kontoIId, Integer auszug, 
+		  Integer geschaeftsjahr, String waehrungCNr) throws ExceptionLP {
+	  try {
+		  return buchenFac.getSaldoVonKontoByAuszugInWaehrung(
+				  kontoIId, geschaeftsjahr, auszug, true, true, waehrungCNr, LPMain.getTheClient());
 	  }
 	  catch (Throwable ex) {
 		  handleThrowable(ex);
@@ -403,4 +421,23 @@ public class BuchenDelegate
 		  handleThrowable(t) ;
 	  }
   }
+  
+  public Integer getNaechstniedrigereAuszugsnummer(Integer kontoIId, Integer auszugsNr, Integer geschaeftsjahr) throws ExceptionLP {
+	  try {
+		  return buchenFac.getNaechstNiedrigereAuszugsNr(kontoIId, auszugsNr, geschaeftsjahr, LPMain.getTheClient());
+	  } catch(Throwable t) {
+		  handleThrowable(t);
+	  }
+	  return null;
+  }
+  
+  public boolean existsBuchungenMitAuszugsNr(Integer kontoIId, Integer iAuszug, Date buchungsdatum) throws ExceptionLP {
+	  try {
+		  return buchenFac.existsBuchungenMitAuszugsNr(kontoIId, iAuszug, buchungsdatum, LPMain.getTheClient());
+	  } catch(Throwable t) {
+		  handleThrowable(t);
+	  }
+	  return false;
+  }
+  
 }

@@ -41,6 +41,7 @@ import javax.swing.JPanel;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.frameposition.ClientPerspectiveManager;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -61,12 +62,14 @@ public class ReportPanelQuery extends PanelBasis implements PanelReportIfJRDS {
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 	private QueryParameters q = null;
 	private String uuid = null;
+	int[] widths = null;
 
 	public ReportPanelQuery(String uuid, InternalFrame internalFrame,
-			String add2Title, QueryParameters q) throws Throwable {
+			String add2Title, QueryParameters q, int[] widths) throws Throwable {
 		super(internalFrame, add2Title);
 		this.q = q;
 		this.uuid = uuid;
+		this.widths = widths;
 		LPMain.getInstance().getTextRespectUISPr(
 				"artikel.report.freiinfertigung");
 		jbInit();
@@ -97,10 +100,11 @@ public class ReportPanelQuery extends PanelBasis implements PanelReportIfJRDS {
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getSystemReportDelegate()
-				.printUseCaseHandler(uuid, q, 50, getInternalFrame().getTitle());
+
+		return DelegateFactory.getInstance().getSystemReportDelegate()
+				.printUseCaseHandler(uuid, q, 50,
+
+				getInternalFrame().getTitle(), widths);
 	}
 
 	public boolean getBErstelleReportSofort() {

@@ -45,7 +45,7 @@ import com.lp.server.inserat.service.ReportJournalInseratDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access")
+
 public class ReportAlleInserate extends ReportInseratBasis implements
 		PanelReportIfJRDS {
 	/**

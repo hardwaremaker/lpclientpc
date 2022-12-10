@@ -76,6 +76,7 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 	private static final int IDX_PANEL_HISTORYART = 3;
 	private static final int IDX_PANEL_ERLEDIGUNGSGRUND = 4;
 	private static final int IDX_PANEL_BEREICH = 5;
+	private static final int IDX_PANEL_VKFORTSCHRITT = 6;
 
 	private PanelQuery panelQueryKategorie = null;
 	private PanelBasis panelSplitKategorie = null;
@@ -100,6 +101,10 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 	private PanelQuery panelQueryBereich = null;
 	private PanelBasis panelSplitBereich = null;
 	private PanelBasis panelBottomBereich = null;
+
+	private PanelQuery panelQueryVkfortschritt = null;
+	private PanelBasis panelSplitVkfortschritt = null;
+	private PanelBasis panelBottomVkfortschritt = null;
 
 	public TabbedPaneProjektGrunddaten(InternalFrame internalFrameI)
 			throws Throwable {
@@ -157,6 +162,12 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				IDX_PANEL_BEREICH);
 		refreshPanelBereich();
 
+		insertTab(LPMain.getInstance()
+				.getTextRespectUISPr("proj.vkfortschritt"), null, null, LPMain
+				.getInstance().getTextRespectUISPr("proj.vkfortschritt"),
+				IDX_PANEL_VKFORTSCHRITT);
+		refreshPanelVkfortschritt();
+
 		setSelectedComponent(panelSplitKategorie);
 		panelQueryKategorie.eventYouAreSelected(false);
 		if (getInternalFrameProjekt().getKategorieDto() != null) {
@@ -173,10 +184,10 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 
 		if (panelSplitKategorie == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			FilterKriterium[] filterAuswahl = ProjektFilterFactory
-					.getInstance().createFKMandantCNr(); // die Filterkriterien
-															// aendern sich
-															// nicht
+			FilterKriterium[] filterAuswahl = SystemFilterFactory.getInstance()
+					.createFKMandantCNr(); // die Filterkriterien
+											// aendern sich
+											// nicht
 			panelQueryKategorie = new PanelQuery(null, filterAuswahl,
 					QueryParameters.UC_ID_KATEGORIE, aWhichStandardButtonIUse,
 					getInternalFrame(), LPMain.getInstance()
@@ -199,10 +210,10 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 	private void refreshPanelTyp() throws Throwable {
 		if (panelSplitProjekttyp == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			FilterKriterium[] filterAuswahl = ProjektFilterFactory
-					.getInstance().createFKMandantCNr(); // die Filterkriterien
-															// aendern sich
-															// nicht
+			FilterKriterium[] filterAuswahl = SystemFilterFactory.getInstance()
+					.createFKMandantCNr(); // die Filterkriterien
+											// aendern sich
+											// nicht
 			panelQueryProjekttyp = new PanelQuery(null, filterAuswahl,
 					QueryParameters.UC_ID_TYP, aWhichStandardButtonIUse,
 					getInternalFrame(), LPMain.getInstance()
@@ -227,10 +238,10 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 	private void refreshPanelStatus() throws Throwable {
 		if (panelSplitStatus == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			FilterKriterium[] filterAuswahl = ProjektFilterFactory
-					.getInstance().createFKMandantCNr(); // die Filterkriterien
-															// aendern sich
-															// nicht
+			FilterKriterium[] filterAuswahl = SystemFilterFactory.getInstance()
+					.createFKMandantCNr(); // die Filterkriterien
+											// aendern sich
+											// nicht
 			panelQueryStatus = new PanelQuery(null, filterAuswahl,
 					QueryParameters.UC_ID_PROJEKTSTATUS,
 					aWhichStandardButtonIUse, getInternalFrame(), LPMain
@@ -265,7 +276,7 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 					null);
 
 			panelSplitHistoryart = new PanelSplit(getInternalFrame(),
-					panelBottomHistoryart, panelQueryHistoryart, 350);
+					panelBottomHistoryart, panelQueryHistoryart, 320);
 
 			setComponentAt(IDX_PANEL_HISTORYART, panelSplitHistoryart);
 		}
@@ -286,19 +297,41 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 					.getInstance().getTextRespectUISPr("proj.bereich"), null);
 
 			panelSplitBereich = new PanelSplit(getInternalFrame(),
-					panelBottomBereich, panelQueryBereich, 350);
+					panelBottomBereich, panelQueryBereich, 320);
 
 			setComponentAt(IDX_PANEL_BEREICH, panelSplitBereich);
+		}
+	}
+
+	private void refreshPanelVkfortschritt() throws Throwable {
+		if (panelSplitVkfortschritt == null) {
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW,
+					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1 };
+			panelQueryVkfortschritt = new PanelQuery(null, SystemFilterFactory
+					.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_VKFORTSCHRITT,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain
+							.getInstance().getTextRespectUISPr(
+									"proj.vkfortschritt"), true);
+
+			panelBottomVkfortschritt = new PanelVkfortschritt(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr(
+							"proj.vkfortschritt"), null);
+
+			panelSplitVkfortschritt = new PanelSplit(getInternalFrame(),
+					panelBottomVkfortschritt, panelQueryVkfortschritt, 350);
+
+			setComponentAt(IDX_PANEL_VKFORTSCHRITT, panelSplitVkfortschritt);
 		}
 	}
 
 	private void refreshPanelErledigungsgrund() throws Throwable {
 		if (panelSplitErledigungsgrund == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			
-			
-			
-			panelQueryErledigungsgrund = new PanelQuery(null, ProjektFilterFactory.getInstance().createFKMandantCNr(),
+
+			panelQueryErledigungsgrund = new PanelQuery(null,
+					SystemFilterFactory.getInstance().createFKMandantCNr(),
 					QueryParameters.UC_ID_PROJEKTERLEDIGUNGSGRUND,
 					aWhichStandardButtonIUse, getInternalFrame(), LPMain
 							.getInstance().getTextRespectUISPr(
@@ -372,6 +405,14 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				// im QP die Buttons in den Zustand nolocking/save setzen.
 				panelQueryBereich.updateButtons(panelBottomBereich
 						.getLockedstateDetailMainKey());
+			} else if (eI.getSource() == panelQueryVkfortschritt) {
+				Integer iId = (Integer) panelQueryVkfortschritt.getSelectedId();
+				getInternalFrame().setKeyWasForLockMe(iId + "");
+				panelBottomVkfortschritt.setKeyWhenDetailPanel(iId);
+				panelBottomVkfortschritt.eventYouAreSelected(false);
+				// im QP die Buttons in den Zustand nolocking/save setzen.
+				panelQueryVkfortschritt.updateButtons(panelBottomVkfortschritt
+						.getLockedstateDetailMainKey());
 			} else if (eI.getSource() == panelQueryErledigungsgrund) {
 				Integer iId = (Integer) panelQueryErledigungsgrund
 						.getSelectedId();
@@ -412,6 +453,11 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				// 1:n
 				// Panel
 				// neu aufbauen
+			} else if (eI.getSource() == panelBottomVkfortschritt) {
+				panelSplitVkfortschritt.eventYouAreSelected(false); // das
+				// 1:n
+				// Panel
+				// neu aufbauen
 			}
 
 		}
@@ -448,6 +494,11 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				panelQueryBereich.eventYouAreSelected(false);
 				panelQueryBereich.setSelectedId(oKey);
 				panelSplitBereich.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelBottomVkfortschritt) {
+				Object oKey = panelBottomVkfortschritt.getKeyWhenDetailPanel();
+				panelQueryVkfortschritt.eventYouAreSelected(false);
+				panelQueryVkfortschritt.setSelectedId(oKey);
+				panelSplitVkfortschritt.eventYouAreSelected(false);
 			}
 
 		}
@@ -480,6 +531,12 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				// panel
 			} else if (eI.getSource() == panelBottomBereich) {
 				panelSplitBereich.eventYouAreSelected(false); // refresh
+				// auf
+				// das
+				// gesamte 1:n
+				// panel
+			} else if (eI.getSource() == panelBottomVkfortschritt) {
+				panelSplitVkfortschritt.eventYouAreSelected(false); // refresh
 				// auf
 				// das
 				// gesamte 1:n
@@ -534,6 +591,13 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				panelBottomBereich.eventActionNew(eI, true, false);
 				panelBottomBereich.eventYouAreSelected(false);
 				setSelectedComponent(panelSplitBereich);
+			} else if (eI.getSource() == panelQueryVkfortschritt) {
+				if (panelQueryVkfortschritt.getSelectedId() == null) {
+					getInternalFrame().enableAllPanelsExcept(true);
+				}
+				panelBottomVkfortschritt.eventActionNew(eI, true, false);
+				panelBottomVkfortschritt.eventYouAreSelected(false);
+				setSelectedComponent(panelSplitVkfortschritt);
 			}
 
 		} else if (eI.getID() == ItemChangedEvent.ACTION_UPDATE) {
@@ -563,6 +627,10 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				// im QP die Buttons in den Zustand neu setzen.
 				panelQueryBereich.updateButtons(new LockStateValue(
 						PanelBasis.LOCK_FOR_NEW));
+			} else if (eI.getSource() == panelBottomVkfortschritt) {
+				// im QP die Buttons in den Zustand neu setzen.
+				panelQueryVkfortschritt.updateButtons(new LockStateValue(
+						PanelBasis.LOCK_FOR_NEW));
 			}
 
 		}
@@ -580,6 +648,8 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 				panelSplitErledigungsgrund.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelBottomBereich) {
 				panelSplitBereich.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelBottomVkfortschritt) {
+				panelSplitVkfortschritt.eventYouAreSelected(false);
 			}
 
 		} else if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
@@ -602,6 +672,28 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 					panelQueryBereich.setSelectedId(iIdPosition);
 				}
 			}
+			if (eI.getSource() == panelQueryVkfortschritt) {
+				int iPos = panelQueryVkfortschritt.getTable().getSelectedRow();
+
+				// wenn die Position nicht die erste ist
+				if (iPos > 0) {
+					Integer iIdPosition = (Integer) panelQueryVkfortschritt
+							.getSelectedId();
+
+					Integer iIdPositionMinus1 = (Integer) panelQueryVkfortschritt
+							.getTable().getValueAt(iPos - 1, 0);
+
+					DelegateFactory
+							.getInstance()
+							.getProjektServiceDelegate()
+							.vertauscheVkfortschritt(iIdPosition,
+									iIdPositionMinus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelQueryVkfortschritt.setSelectedId(iIdPosition);
+				}
+			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
 			if (eI.getSource() == panelQueryBereich) {
 				int iPos = panelQueryBereich.getTable().getSelectedRow();
@@ -620,6 +712,28 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 					// die Liste neu anzeigen und den richtigen Datensatz
 					// markieren
 					panelQueryBereich.setSelectedId(iIdPosition);
+				}
+			}
+			if (eI.getSource() == panelQueryVkfortschritt) {
+				int iPos = panelQueryVkfortschritt.getTable().getSelectedRow();
+
+				// wenn die Position nicht die letzte ist
+				if (iPos < panelQueryVkfortschritt.getTable().getRowCount() - 1) {
+					Integer iIdPosition = (Integer) panelQueryVkfortschritt
+							.getSelectedId();
+
+					Integer iIdPositionPlus1 = (Integer) panelQueryVkfortschritt
+							.getTable().getValueAt(iPos + 1, 0);
+
+					DelegateFactory
+							.getInstance()
+							.getProjektServiceDelegate()
+							.vertauscheVkfortschritt(iIdPosition,
+									iIdPositionPlus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelQueryVkfortschritt.setSelectedId(iIdPosition);
 				}
 			}
 		}
@@ -705,6 +819,14 @@ public class TabbedPaneProjektGrunddaten extends TabbedPane {
 
 			// im QP die Buttons setzen.
 			panelQueryBereich.updateButtons();
+			break;
+		}
+		case IDX_PANEL_VKFORTSCHRITT: {
+			refreshPanelVkfortschritt();
+			panelQueryVkfortschritt.eventYouAreSelected(false);
+
+			// im QP die Buttons setzen.
+			panelQueryVkfortschritt.updateButtons();
 			break;
 		}
 

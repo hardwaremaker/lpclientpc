@@ -45,6 +45,7 @@ import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EventObject;
+import java.util.GregorianCalendar;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -54,8 +55,11 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import com.lp.client.auftrag.AuftragFilterFactory;
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
@@ -71,13 +75,16 @@ import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperSelectField;
+import com.lp.client.frame.component.WrapperSlider;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.component.WrapperTimestampField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.personal.PersonalFilterFactory;
 import com.lp.client.projekt.ProjektFilterFactory;
+import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.auftrag.service.AuftragFac;
@@ -88,6 +95,8 @@ import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.personal.service.DiaetenDto;
+import com.lp.server.personal.service.FahrzeugDto;
+import com.lp.server.personal.service.PersonalFac;
 import com.lp.server.personal.service.ReiseDto;
 import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.projekt.service.ProjektDto;
@@ -101,10 +110,10 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.EJBExceptionLP;
+import com.lp.util.GotoHelper;
 import com.lp.util.Helper;
 
-public class PanelReisezeiten extends PanelBasis implements
-		PropertyChangeListener {
+public class PanelReisezeiten extends PanelBasis implements PropertyChangeListener, ChangeListener {
 
 	private static final long serialVersionUID = 5817369209583609394L;
 	// von hier ...
@@ -113,7 +122,7 @@ public class PanelReisezeiten extends PanelBasis implements
 	private JPanel jpaButtonAction = null;
 	private Border border = null;
 	private GridBagLayout gridBagLayoutWorkingPanel = null;
-	private ReiseDto reiseDto = null;
+	protected ReiseDto reiseDto = null;
 
 	private Integer selectedBelegIId = null;
 
@@ -134,38 +143,44 @@ public class PanelReisezeiten extends PanelBasis implements
 
 	private boolean bZeitdatenAufErledigteBuchbar = false;
 
-	private WrapperButton wbuKunde = new WrapperButton();
+	private WrapperLabel wlaMitahrer = new WrapperLabel();
+	private WrapperNumberField wnfMitfahrer = new WrapperNumberField(0, 99);
+
+	private WrapperGotoButton wbuKunde = new WrapperGotoButton(GotoHelper.GOTO_KUNDE_AUSWAHL);
 	private WrapperButton wbuAnsprechpartner = new WrapperButton();
 	private WrapperButton wbuLand = new WrapperButton();
-	private WrapperLabel wlaKmBeginn = new WrapperLabel();
-	private WrapperLabel wlaKmEnde = new WrapperLabel();
+	private WrapperLabel wlaKmBeginnOderEnde = new WrapperLabel();
 	private WrapperLabel wlaEntfernung = new WrapperLabel();
 	private WrapperLabel wlaKommentar = new WrapperLabel();
 	private WrapperLabel wlaFahrzeug = new WrapperLabel();
 	private WrapperLabel wlaSpesen = new WrapperLabel();
+	private WrapperLabel wlaZusaetzlicheSpesen = new WrapperLabel();
 	private WrapperTextField wtfReiseland = new WrapperTextField();
 	private WrapperTextField wtfAnsprechpartner = new WrapperTextField();
 	private WrapperTextField wtfKunde = new WrapperTextField();
 	private WrapperTextField wtfKommentar = new WrapperTextField();
 	public WrapperTextField wtfFahrzeug = new WrapperTextField();
-	private WrapperNumberField wnfKmBeginn = new WrapperNumberField(0, 9999999);
-	private WrapperNumberField wnfKmEnde = new WrapperNumberField(0, 9999999);
-	private WrapperNumberField wnfEntfernung = new WrapperNumberField(0,
-			9999999);
+	private WrapperNumberField wnfKmBeginnOderEnde = new WrapperNumberField(0, 9999999);
+	private WrapperNumberField wnfEntfernung = new WrapperNumberField(0, 9999999);
 	private WrapperNumberField wnfSpesen = new WrapperNumberField(0, 9999999);
+	private WrapperNumberField wnfZusaetzlicheSpesen = new WrapperNumberField(0, 9999999);
+
+	public WrapperButton wbuPersonalfahrzeug = new WrapperButton();
+	public WrapperTextField wtfPersonalfahrzeug = new WrapperTextField();
+
+	private WrapperLabel wlaLetzterKmBeginn = new WrapperLabel();
+	private WrapperNumberField wnfLetzterKmBeginn = new WrapperNumberField(0, 9999999);
 
 	private WrapperComboBox wcoBeleg = new WrapperComboBox();
 	private WrapperGotoButton wbuBeleg = new WrapperGotoButton(-1);
 	private WrapperTextField wtfBeleg = new WrapperTextField();
-	private WrapperLabel wlaFaktor = new WrapperLabel();
-	private WrapperNumberField wnfFaktor = new WrapperNumberField(0, 100);
 	private PanelQueryFLR panelQueryFLRProjekt = null;
 	private PanelQueryFLR panelQueryFLRAuftrag = null;
 
-	public WrapperSelectField wsfFahrzeug = new WrapperSelectField(
-			WrapperSelectField.FAHRZEUG, getInternalFrame(), true);
+	private WrapperComboBox wcbVerrechenbar = createWcbVerrechenbar();
 
 	private WrapperLabel wlaWaehrungSpesen = new WrapperLabel();
+	private WrapperLabel wlaWaehrungSpesen2 = new WrapperLabel();
 
 	private PanelQueryFLR panelQueryFLRAnsprechpartner = null;
 	private PanelQueryFLR panelQueryFLRKunde = null;
@@ -181,10 +196,16 @@ public class PanelReisezeiten extends PanelBasis implements
 	static final public String ACTION_SPECIAL_LAND_FROM_LISTE = "ACTION_SPECIAL_LAND_FROM_LISTE";
 	static final public String ACTION_SPECIAL_BELEG_FROM_LISTE = "action_beleg_from_liste";
 
-	public PanelReisezeiten(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	private ZeiterfassungPruefer zeiterfassungPruefer = null;
+
+	private PanelQueryFLR panelQueryFLRFahrzeug = null;
+
+	static final public String ACTION_SPECIAL_FAHRZEUG_FROM_LISTE = "ACTION_SPECIAL_FAHRZEUG_FROM_LISTE";
+
+	public PanelReisezeiten(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameZeiterfassung = (InternalFrameZeiterfassung) internalFrame;
+		zeiterfassungPruefer = new ZeiterfassungPruefer(getInternalFrame());
 		jbInit();
 		setDefaults();
 		initComponents();
@@ -199,14 +220,46 @@ public class PanelReisezeiten extends PanelBasis implements
 	}
 
 	public void propertyChange(PropertyChangeEvent e) {
-		// System.out.println(e.getPropertyName());
-		if (e.getSource() == wtfZeit.getWdfDatum().getDisplay()
-				&& e.getNewValue() instanceof Date
-				&& e.getPropertyName().equals("date")) {
+
+		if ((e.getSource() == wtfZeit.getWdfDatum().getDisplay()
+				&& (e.getPropertyName().equals("date") || e.getPropertyName().equals("value"))
+				&& wtfZeit.getWdfDatum().getTimestamp() != null)) {
 
 			try {
-				zeitVorschlagen();
-				labelsLetzteKommtErstesGehtAktualisieren();
+
+				// Letzten KM-Bginn holen
+				if (e.getNewValue() != null && e.getNewValue() instanceof java.util.Date) {
+					zeitVorschlagen();
+					labelsLetzteKommtErstesGehtAktualisieren();
+
+					java.util.Date d = (Date) e.getNewValue();
+
+					GregorianCalendar gcZeit = new GregorianCalendar();
+					gcZeit.setTimeInMillis(wtfZeit.getWtfZeit().getTime().getTime());
+
+					GregorianCalendar gc = new GregorianCalendar();
+					gc.setTime(wtfZeit.getTimestamp());
+					gc.set(GregorianCalendar.HOUR_OF_DAY, gcZeit.get(GregorianCalendar.HOUR_OF_DAY));
+					gc.set(GregorianCalendar.MINUTE, gcZeit.get(GregorianCalendar.MINUTE));
+
+					ReiseDto reiseDto = DelegateFactory.getInstance().getZeiterfassungDelegate().getReiseDtoVorgaenger(
+							new Timestamp(d.getTime()), internalFrameZeiterfassung.getPersonalDto().getIId());
+					if (reiseDto != null && Helper.short2Boolean(reiseDto.getBBeginn())) {
+						wnfLetzterKmBeginn.setInteger(reiseDto.getIKmbeginn());
+						wlaLetzterKmBeginn.setVisible(true);
+						wnfLetzterKmBeginn.setVisible(true);
+
+						wlaEntfernung.setVisible(true);
+						wnfEntfernung.setVisible(true);
+					} else {
+						wlaLetzterKmBeginn.setVisible(false);
+						wnfLetzterKmBeginn.setVisible(false);
+
+						wlaEntfernung.setVisible(false);
+						wnfEntfernung.setVisible(false);
+					}
+				}
+
 			} catch (Throwable e1) {
 				handleException(e1, true);
 			}
@@ -214,17 +267,13 @@ public class PanelReisezeiten extends PanelBasis implements
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		reiseDto = new ReiseDto();
 
 		leereAlleFelder(this);
-		if (wnfEntfernung.getInteger() != null) {
-			wnfKmBeginn.setMandatoryField(true);
-		} else {
-			wnfKmBeginn.setMandatoryField(false);
-		}
+
+		wcbVerrechenbar.setKeyOfSelectedItem(100D);
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -233,8 +282,7 @@ public class PanelReisezeiten extends PanelBasis implements
 			if (reiseDto.getPartnerIId() != null) {
 				dialogQueryAnsprechpartner(e);
 			} else {
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.hint"),
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
 						LPMain.getTextRespectUISPr("rechnung.kundewaehlen"));
 			}
 
@@ -242,12 +290,12 @@ public class PanelReisezeiten extends PanelBasis implements
 			dialogQueryKunde(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LAND_FROM_LISTE)) {
 			dialogQueryLandFromListe(e);
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FAHRZEUG_FROM_LISTE)) {
+			dialogQueryFahrzeugFromListe(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_BELEG_FROM_LISTE)) {
-			if (wcoBeleg.getKeyOfSelectedItem().equals(
-					LocaleFac.BELEGART_AUFTRAG)) {
+			if (wcoBeleg.getKeyOfSelectedItem().equals(LocaleFac.BELEGART_AUFTRAG)) {
 				dialogQueryAuftragFromListe(e);
-			} else if (wcoBeleg.getKeyOfSelectedItem().equals(
-					LocaleFac.BELEGART_PROJEKT)) {
+			} else if (wcoBeleg.getKeyOfSelectedItem().equals(LocaleFac.BELEGART_PROJEKT)) {
 				dialogQueryProjektFromListe(e);
 			}
 		}
@@ -256,12 +304,10 @@ public class PanelReisezeiten extends PanelBasis implements
 			wtfBeleg.setText(null);
 			selectedBelegIId = null;
 
-			if (wcoBeleg.getKeyOfSelectedItem().equals(
-					LocaleFac.BELEGART_AUFTRAG)) {
-				wbuBeleg.setWhereToGo(WrapperGotoButton.GOTO_AUFTRAG_AUSWAHL);
-			} else if (wcoBeleg.getKeyOfSelectedItem().equals(
-					LocaleFac.BELEGART_PROJEKT)) {
-				wbuBeleg.setWhereToGo(WrapperGotoButton.GOTO_PROJEKT_AUSWAHL);
+			if (wcoBeleg.getKeyOfSelectedItem().equals(LocaleFac.BELEGART_AUFTRAG)) {
+				wbuBeleg.setWhereToGo(com.lp.util.GotoHelper.GOTO_AUFTRAG_AUSWAHL);
+			} else if (wcoBeleg.getKeyOfSelectedItem().equals(LocaleFac.BELEGART_PROJEKT)) {
+				wbuBeleg.setWhereToGo(com.lp.util.GotoHelper.GOTO_PROJEKT_AUSWAHL);
 			}
 
 		}
@@ -270,60 +316,48 @@ public class PanelReisezeiten extends PanelBasis implements
 
 	void dialogQueryProjektFromListe(ActionEvent e) throws Throwable {
 
-		panelQueryFLRProjekt = ProjektFilterFactory.getInstance()
-				.createPanelFLRProjekt(getInternalFrame(),
-						reiseDto.getIBelegartid(), true);
+		panelQueryFLRProjekt = ProjektFilterFactory.getInstance().createPanelFLRProjekt(getInternalFrame(),
+				reiseDto.getIBelegartid(), true);
 		new DialogQuery(panelQueryFLRProjekt);
 
 	}
 
 	void dialogQueryAuftragFromListe(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN, PanelBasis.ACTION_FILTER };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN, PanelBasis.ACTION_FILTER };
 
 		FilterKriterium[] kriterien = null;
 
 		if (bZeitdatenAufErledigteBuchbar) {
 			kriterien = new FilterKriterium[2];
-			FilterKriterium krit1 = new FilterKriterium(
-					AuftragFac.FLR_AUFTRAG_MANDANT_C_NR, true, "'"
-							+ LPMain.getTheClient().getMandant() + "'",
-					FilterKriterium.OPERATOR_EQUAL, false);
-			FilterKriterium krit2 = new FilterKriterium(
-					AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "('"
-							+ AuftragServiceFac.AUFTRAGSTATUS_STORNIERT + "')",
-					FilterKriterium.OPERATOR_NOT_IN, false);
+			FilterKriterium krit1 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_MANDANT_C_NR, true,
+					"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
+			FilterKriterium krit2 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true,
+					"('" + AuftragServiceFac.AUFTRAGSTATUS_STORNIERT + "')", FilterKriterium.OPERATOR_NOT_IN, false);
 			kriterien[0] = krit1;
 			kriterien[1] = krit2;
 		} else {
 
 			kriterien = new FilterKriterium[2];
-			FilterKriterium krit1 = new FilterKriterium(
-					AuftragFac.FLR_AUFTRAG_MANDANT_C_NR, true, "'"
-							+ LPMain.getTheClient().getMandant() + "'",
-					FilterKriterium.OPERATOR_EQUAL, false);
+			FilterKriterium krit1 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_MANDANT_C_NR, true,
+					"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 
 			FilterKriterium krit2 = new FilterKriterium(
-					AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "('"
-							+ AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT + "','"
-							+ AuftragServiceFac.AUFTRAGSTATUS_STORNIERT + "')",
+					AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "('" + AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT
+							+ "','" + AuftragServiceFac.AUFTRAGSTATUS_STORNIERT + "')",
 					FilterKriterium.OPERATOR_NOT_IN, false);
 
 			kriterien[0] = krit1;
 			kriterien[1] = krit2;
 		}
-		panelQueryFLRAuftrag = new PanelQueryFLR(AuftragFilterFactory
-				.getInstance().createQTPanelAuftragAuswahl(), kriterien,
-				QueryParameters.UC_ID_AUFTRAG, aWhichButtonIUse,
-				getInternalFrame(),
+		panelQueryFLRAuftrag = new PanelQueryFLR(AuftragFilterFactory.getInstance().createQTPanelAuftragAuswahl(),
+				kriterien, QueryParameters.UC_ID_AUFTRAG, aWhichButtonIUse, getInternalFrame(),
 				LPMain.getTextRespectUISPr("title.auftragauswahlliste"));
 
 		panelQueryFLRAuftrag.befuellePanelFilterkriterienDirektUndVersteckte(
 				AuftragFilterFactory.getInstance().createFKDAuftragnummer(),
 				AuftragFilterFactory.getInstance().createFKDKundenname(),
 				AuftragFilterFactory.getInstance().createFKVAuftrag());
-		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance()
-				.createFKDProjekt());
+		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance().createFKDProjekt());
 		panelQueryFLRAuftrag.setSelectedId(reiseDto.getIBelegartid());
 
 		new DialogQuery(panelQueryFLRAuftrag);
@@ -333,8 +367,7 @@ public class PanelReisezeiten extends PanelBasis implements
 	/**
 	 * Dialogfenster zur Ansprechpartnerauswahl.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	private void dialogQueryAnsprechpartner(ActionEvent e) throws Throwable {
@@ -343,24 +376,17 @@ public class PanelReisezeiten extends PanelBasis implements
 			ansprechpartnerIId = ansprechpartnerDto.getIId();
 		}
 
-		panelQueryFLRAnsprechpartner = PartnerFilterFactory.getInstance()
-				.createPanelFLRAnsprechpartner(getInternalFrame(),
-						reiseDto.getPartnerIId(), ansprechpartnerIId, true,
-						true);
+		panelQueryFLRAnsprechpartner = PartnerFilterFactory.getInstance().createPanelFLRAnsprechpartner(
+				getInternalFrame(), reiseDto.getPartnerIId(), ansprechpartnerIId, true, true);
 
 		new DialogQuery(panelQueryFLRAnsprechpartner);
 	}
 
 	private void dialogQueryKunde(ActionEvent e) throws Throwable {
-		panelQueryFLRKunde = PartnerFilterFactory.getInstance()
-				.createPanelFLRKunde(getInternalFrame(), true, true);
+		panelQueryFLRKunde = PartnerFilterFactory.getInstance().createPanelFLRKunde(getInternalFrame(), true, true);
 		if (reiseDto.getPartnerIId() != null) {
-			KundeDto kundeDto = DelegateFactory
-					.getInstance()
-					.getKundeDelegate()
-					.kundeFindByiIdPartnercNrMandantOhneExc(
-							reiseDto.getPartnerIId(),
-							LPMain.getTheClient().getMandant());
+			KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByiIdPartnercNrMandantOhneExc(
+					reiseDto.getPartnerIId(), LPMain.getTheClient().getMandant());
 			if (kundeDto != null) {
 				panelQueryFLRKunde.setSelectedId(kundeDto.getIId());
 			}
@@ -372,17 +398,12 @@ public class PanelReisezeiten extends PanelBasis implements
 	private void dialogQueryLandFromListe(ActionEvent e) throws Throwable {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH };
 
-		panelQueryFLRReiseland = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_DIAETEN, aWhichButtonIUse,
-				getInternalFrame(),
-				LPMain.getTextRespectUISPr("title.landauswahlliste"));
+		panelQueryFLRReiseland = new PanelQueryFLR(null, null, QueryParameters.UC_ID_DIAETEN, aWhichButtonIUse,
+				getInternalFrame(), LPMain.getTextRespectUISPr("title.landauswahlliste"));
 
-		FilterKriteriumDirekt fKD1 = new FilterKriteriumDirekt(
-				ZeiterfassungFac.FLR_DIAETEN_FLRLAND + ".c_lkz", "",
-				FilterKriterium.OPERATOR_LIKE,
-				LPMain.getTextRespectUISPr("lp.land"),
-				FilterKriteriumDirekt.PROZENT_BOTH, true, true,
-				Facade.MAX_UNBESCHRAENKT);
+		FilterKriteriumDirekt fKD1 = new FilterKriteriumDirekt(ZeiterfassungFac.FLR_DIAETEN_FLRLAND + ".c_lkz", "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.land"),
+				FilterKriteriumDirekt.PROZENT_BOTH, true, true, Facade.MAX_UNBESCHRAENKT);
 
 		panelQueryFLRReiseland.befuellePanelFilterkriterienDirekt(fKD1, null);
 
@@ -391,12 +412,11 @@ public class PanelReisezeiten extends PanelBasis implements
 		new DialogQuery(panelQueryFLRReiseland);
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		if (pruefeObBuchungMoeglich()) {
-			DelegateFactory.getInstance().getZeiterfassungDelegate()
-					.removeReise(reiseDto);
+		if (zeiterfassungPruefer.pruefeObBuchungMoeglich(wtfZeit.getTimestamp(),
+				internalFrameZeiterfassung.getPersonalDto().getIId())) {
+			DelegateFactory.getInstance().getZeiterfassungDelegate().removeReise(reiseDto);
 			this.setKeyWhenDetailPanel(null);
 			super.eventActionDelete(e, false, false);
 		}
@@ -406,26 +426,47 @@ public class PanelReisezeiten extends PanelBasis implements
 
 		if (wrbBeginn.isSelected()) {
 			reiseDto.setBBeginn(Helper.boolean2Short(true));
+			reiseDto.setIKmbeginn(wnfKmBeginnOderEnde.getInteger());
+			reiseDto.setFVerrechenbar((Double) wcbVerrechenbar.getKeyOfSelectedItem());
+			reiseDto.setNSpesen(wnfSpesen.getBigDecimal());
+
+			reiseDto.setIMitfahrer(wnfMitfahrer.getInteger());
+
+			reiseDto.setCFahrzeug(wtfFahrzeug.getText());
+			if (wtfFahrzeug.getText() != null) {
+				reiseDto.setFahrzeugIId(null);
+			}
 		} else {
 			reiseDto.setBBeginn(Helper.boolean2Short(false));
 			reiseDto.setDiaetenIId(null);
+			reiseDto.setIKmende(wnfKmBeginnOderEnde.getInteger());
 		}
 		reiseDto.setTZeit(wtfZeit.getTimestamp());
-		reiseDto.setPersonalIId(internalFrameZeiterfassung.getPersonalDto()
-				.getIId());
-
-		reiseDto.setCFahrzeug(wtfFahrzeug.getText());
-		if (wtfFahrzeug.getText() != null) {
-			reiseDto.setFahrzeugIId(null);
-		}
+		reiseDto.setPersonalIId(internalFrameZeiterfassung.getPersonalDto().getIId());
 
 		reiseDto.setCKommentar(wtfKommentar.getText());
-		reiseDto.setIKmbeginn(wnfKmBeginn.getInteger());
-		reiseDto.setIKmende(wnfKmEnde.getInteger());
-		reiseDto.setNSpesen(wnfSpesen.getBigDecimal());
-		reiseDto.setFFaktor(wnfFaktor.getDouble());
-		reiseDto.setFahrzeugIId(wsfFahrzeug.getIKey());
 
+	}
+
+	void dialogQueryFahrzeugFromListe(ActionEvent e) throws Throwable {
+
+		String[] aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_FILTER,
+				PanelBasis.ACTION_LEEREN };
+
+		FilterKriterium[] kriterien = new FilterKriterium[2];
+		kriterien[0] = new FilterKriterium("mandant_c_nr", true, "'" + LPMain.getTheClient().getMandant() + "'",
+				FilterKriterium.OPERATOR_EQUAL, false);
+		kriterien[1] = new FilterKriterium(PersonalFac.FILTER_BERECHTIGTE_FAHRZEUGE, true,
+				internalFrameZeiterfassung.getPersonalDto().getIId() + "", FilterKriterium.OPERATOR_EQUAL, false);
+
+		panelQueryFLRFahrzeug = new PanelQueryFLR(null, kriterien, QueryParameters.UC_ID_FAHRZEUG, aWhichButtonIUse,
+				getInternalFrame(), LPMain.getTextRespectUISPr("pers.fahrzeug"));
+		panelQueryFLRFahrzeug
+				.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+
+		panelQueryFLRFahrzeug.setSelectedId(reiseDto.getFahrzeugIId());
+
+		new DialogQuery(panelQueryFLRFahrzeug);
 	}
 
 	protected void dto2Components() throws ExceptionLP, Throwable {
@@ -433,28 +474,34 @@ public class PanelReisezeiten extends PanelBasis implements
 			wrbBeginn.setSelected(true);
 			wrbBeginn_actionPerformed(null);
 			if (reiseDto.getAnsprechpartnerIId() != null) {
-				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory
-						.getInstance()
-						.getAnsprechpartnerDelegate()
-						.ansprechpartnerFindByPrimaryKey(
-								reiseDto.getAnsprechpartnerIId());
-				wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto()
-						.formatFixTitelName1Name2());
+				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
+						.ansprechpartnerFindByPrimaryKey(reiseDto.getAnsprechpartnerIId());
+				wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto().formatFixTitelName1Name2());
 			} else {
 				wtfAnsprechpartner.setText(null);
 			}
 			if (reiseDto.getPartnerIId() != null) {
-				PartnerDto partnerDto = DelegateFactory.getInstance()
-						.getPartnerDelegate()
+				PartnerDto partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
 						.partnerFindByPrimaryKey(reiseDto.getPartnerIId());
+
+				KundeDto kdDto = DelegateFactory.getInstance().getKundeDelegate()
+						.kundeFindByiIdPartnercNrMandantOhneExc(reiseDto.getPartnerIId(),
+								LPMain.getTheClient().getMandant());
+
 				wtfKunde.setText(partnerDto.formatFixTitelName1Name2());
+				if (kdDto != null) {
+					wbuKunde.setOKey(kdDto.getIId());
+				}
 			} else {
 				wtfKunde.setText(null);
 			}
-			DiaetenDto diaetenDto = DelegateFactory.getInstance()
-					.getZeiterfassungDelegate()
+			DiaetenDto diaetenDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
 					.diaetenFindByPrimaryKey(reiseDto.getDiaetenIId());
 			wtfReiseland.setText(diaetenDto.getCBez());
+			wcbVerrechenbar.setKeyOfSelectedItem(reiseDto.getFVerrechenbar());
+
+			wnfKmBeginnOderEnde.setInteger(reiseDto.getIKmbeginn());
+
 		} else {
 
 			wrbEnde.setSelected(true);
@@ -463,19 +510,29 @@ public class PanelReisezeiten extends PanelBasis implements
 			wtfAnsprechpartner.setText(null);
 			wtfKunde.setText(null);
 			wtfReiseland.setText(null);
+			wnfKmBeginnOderEnde.setInteger(reiseDto.getIKmende());
 		}
 
-		wnfFaktor.setDouble(reiseDto.getFFaktor());
+		wnfZusaetzlicheSpesen.setBigDecimal(DelegateFactory.getInstance().getZeiterfassungDelegate()
+				.getZusaetzlicheReisespesenInMandantenwaehrung(reiseDto.getIId()));
+
 		wtfZeit.setTimestamp(reiseDto.getTZeit());
 		wtfFahrzeug.setText(reiseDto.getCFahrzeug());
+		wnfMitfahrer.setInteger(reiseDto.getIMitfahrer());
 		wtfKommentar.setText(reiseDto.getCKommentar());
-		wnfKmBeginn.setInteger(reiseDto.getIKmbeginn());
-		wnfKmEnde.setInteger(reiseDto.getIKmende());
-		wsfFahrzeug.setKey(reiseDto.getFahrzeugIId());
 
-		if (wnfKmBeginn.getInteger() != null && wnfKmEnde.getInteger() != null) {
-			wnfEntfernung.setInteger(wnfKmEnde.getInteger()
-					- wnfKmBeginn.getInteger());
+		if (reiseDto.getFahrzeugIId() != null) {
+			FahrzeugDto fzDto = DelegateFactory.getInstance().getPersonalDelegate()
+					.fahrzeugFindByPrimaryKey(reiseDto.getFahrzeugIId());
+			wtfPersonalfahrzeug.setText(fzDto.getCBez());
+		} else {
+			wtfPersonalfahrzeug.setText(null);
+		}
+
+		if (wnfKmBeginnOderEnde.getInteger() != null && wnfLetzterKmBeginn.getInteger() != null) {
+			wnfEntfernung.setInteger(wnfKmBeginnOderEnde.getInteger() - wnfLetzterKmBeginn.getInteger());
+		} else {
+			wnfEntfernung.setInteger(null);
 		}
 
 		wnfSpesen.setBigDecimal(reiseDto.getNSpesen());
@@ -486,8 +543,7 @@ public class PanelReisezeiten extends PanelBasis implements
 		if (reiseDto.getBelegartCNr() != null) {
 			if (reiseDto.getBelegartCNr().equals(LocaleFac.BELEGART_AUFTRAG)) {
 
-				AuftragDto auftragDto = DelegateFactory.getInstance()
-						.getAuftragDelegate()
+				AuftragDto auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
 						.auftragFindByPrimaryKey(reiseDto.getIBelegartid());
 
 				String sProjBez = "";
@@ -497,11 +553,9 @@ public class PanelReisezeiten extends PanelBasis implements
 
 				wtfBeleg.setText(auftragDto.getCNr() + sProjBez);
 				selectedBelegIId = auftragDto.getIId();
-			} else if (reiseDto.getBelegartCNr().equals(
-					LocaleFac.BELEGART_PROJEKT)) {
+			} else if (reiseDto.getBelegartCNr().equals(LocaleFac.BELEGART_PROJEKT)) {
 
-				ProjektDto projektDto = DelegateFactory.getInstance()
-						.getProjektDelegate()
+				ProjektDto projektDto = DelegateFactory.getInstance().getProjektDelegate()
 						.projektFindByPrimaryKey(reiseDto.getIBelegartid());
 
 				String sProjBez = "";
@@ -518,51 +572,51 @@ public class PanelReisezeiten extends PanelBasis implements
 
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		super.eventActionUpdate(aE, bNeedNoUpdateI);
-		enableAllComponents(panelEnde, true);
-		enableAllComponents(panelBeginn, true);
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 
-		// Wenn Fahrzeug manuell eingetragen wurde, dann auswahl ueber Button
-		// nicht m?glich
-		if (wtfFahrzeug.getText() != null) {
-			wsfFahrzeug.setEnabled(false);
+		if (zeiterfassungPruefer.pruefeObBuchungMoeglich(wtfZeit.getTimestamp(),
+				internalFrameZeiterfassung.getPersonalDto().getIId())) {
+
+			super.eventActionUpdate(aE, bNeedNoUpdateI);
+			enableAllComponents(panelEnde, true);
+			enableAllComponents(panelBeginn, true);
+
+			// Wenn Fahrzeug manuell eingetragen wurde, dann auswahl ueber Button
+			// nicht m?glich
+			if (wtfFahrzeug.getText() != null) {
+				wbuPersonalfahrzeug.setEnabled(false);
+			}
+		} else {
+			return;
 		}
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
-			if (pruefeObBuchungMoeglich()) {
+			if (zeiterfassungPruefer.pruefeObBuchungMoeglich(wtfZeit.getTimestamp(),
+					internalFrameZeiterfassung.getPersonalDto().getIId())) {
 				components2Dto();
-				if (wnfKmBeginn.getInteger() != null
-						&& wnfKmEnde.getInteger() != null) {
-					if (wnfKmBeginn.getInteger() > wnfKmEnde.getInteger()) {
-						DialogFactory.showModalDialog(LPMain
-								.getTextRespectUISPr("lp.error"), LPMain
-								.getTextRespectUISPr("pers.reisezeiten.error"));
-						return;
-					}
-				}
+				/*
+				 * if (wnfBeginnOderEnde.getInteger() != null && wnfKmEnde.getInteger() != null)
+				 * { if (wnfBeginnOderEnde.getInteger() > wnfKmEnde.getInteger()) {
+				 * DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+				 * LPMain.getTextRespectUISPr("pers.reisezeiten.error")); return; } }
+				 */
 
 				if (reiseDto.getIId() == null) {
 					components2Dto();
 					tLetzterTimestamp = wtfZeit.getTimestamp();
-					reiseDto.setIId(DelegateFactory.getInstance()
-							.getZeiterfassungDelegate().createReise(reiseDto));
+					reiseDto.setIId(DelegateFactory.getInstance().getZeiterfassungDelegate().createReise(reiseDto));
 					setKeyWhenDetailPanel(reiseDto.getIId());
 				} else {
-					DelegateFactory.getInstance().getZeiterfassungDelegate()
-							.updateReise(reiseDto);
+					DelegateFactory.getInstance().getZeiterfassungDelegate().updateReise(reiseDto);
 				}
 				super.eventActionSave(e, true);
 
 				if (getInternalFrame().getKeyWasForLockMe() == null) {
-					getInternalFrame().setKeyWasForLockMe(
-							reiseDto.getIId() + "");
+					getInternalFrame().setKeyWasForLockMe(reiseDto.getIId() + "");
 				}
 				eventYouAreSelected(false);
 			}
@@ -574,26 +628,27 @@ public class PanelReisezeiten extends PanelBasis implements
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryFLRAnsprechpartner) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory
-						.getInstance().getAnsprechpartnerDelegate()
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				AnsprechpartnerDto ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 						.ansprechpartnerFindByPrimaryKey((Integer) key);
 				reiseDto.setAnsprechpartnerIId(ansprechpartnerDto.getIId());
-				wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto()
-						.formatFixTitelName1Name2());
+				wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto().formatFixTitelName1Name2());
 			} else if (e.getSource() == panelQueryFLRKunde) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				KundeDto kundeDto = DelegateFactory.getInstance()
-						.getKundeDelegate().kundeFindByPrimaryKey(key);
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(key);
 				reiseDto.setPartnerIId(kundeDto.getPartnerIId());
-				wtfKunde.setText(kundeDto.getPartnerDto()
-						.formatFixTitelName1Name2());
+				wtfKunde.setText(kundeDto.getPartnerDto().formatFixTitelName1Name2());
+			} else if (e.getSource() == panelQueryFLRFahrzeug) {
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+
+				FahrzeugDto apDto = DelegateFactory.getInstance().getPersonalDelegate()
+						.fahrzeugFindByPrimaryKey((Integer) key);
+				wtfPersonalfahrzeug.setText(apDto.getCBez());
+				reiseDto.setFahrzeugIId(apDto.getIId());
+
 			} else if (e.getSource() == panelQueryFLRReiseland) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				DiaetenDto diaetenDto = DelegateFactory.getInstance()
-						.getZeiterfassungDelegate()
+				DiaetenDto diaetenDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
 						.diaetenFindByPrimaryKey((Integer) key);
 
 				diaetenIId_Reiseland_Zuletztgewaehlt = diaetenDto.getIId();
@@ -601,42 +656,31 @@ public class PanelReisezeiten extends PanelBasis implements
 				wtfReiseland.setText(diaetenDto.getCBez());
 				reiseDto.setDiaetenIId(diaetenDto.getIId());
 			} else if (e.getSource() == panelQueryFLRAuftrag) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					AuftragDto auftragDto = null;
-					auftragDto = DelegateFactory.getInstance()
-							.getAuftragDelegate().auftragFindByPrimaryKey(key);
+					auftragDto = DelegateFactory.getInstance().getAuftragDelegate().auftragFindByPrimaryKey(key);
 
 					reiseDto.setBelegartCNr(LocaleFac.BELEGART_AUFTRAG);
 					reiseDto.setIBelegartid(auftragDto.getIId());
 
 					// Kunde und Reiseland vorbesetzen
 
-					String projBez = ", "
-							+ auftragDto.getCBezProjektbezeichnung();
+					String projBez = ", " + auftragDto.getCBezProjektbezeichnung();
 
 					wtfBeleg.setText(auftragDto.getCNr() + projBez);
 					selectedBelegIId = key;
 
-					KundeDto kundeDto = DelegateFactory
-							.getInstance()
-							.getKundeDelegate()
-							.kundeFindByPrimaryKey(
-									auftragDto.getKundeIIdAuftragsadresse());
+					KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+							.kundeFindByPrimaryKey(auftragDto.getKundeIIdAuftragsadresse());
 					reiseDto.setPartnerIId(kundeDto.getPartnerIId());
-					wtfKunde.setText(kundeDto.getPartnerDto()
-							.formatFixTitelName1Name2());
+					wtfKunde.setText(kundeDto.getPartnerDto().formatFixTitelName1Name2());
 					wtfReiseland.setText(null);
 					reiseDto.setDiaetenIId(null);
 					if (kundeDto.getPartnerDto().getLandplzortDto() != null) {
-						DiaetenDto[] diaetenDto = DelegateFactory
-								.getInstance()
-								.getZeiterfassungDelegate()
+						DiaetenDto[] diaetenDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
 								.diaetenFindByLandIId(
-										kundeDto.getPartnerDto()
-												.getLandplzortDto()
-												.getLandDto().getIID());
+										kundeDto.getPartnerDto().getLandplzortDto().getLandDto().getIID());
 
 						if (diaetenDto.length > 0) {
 							wtfReiseland.setText(diaetenDto[0].getCBez());
@@ -644,21 +688,17 @@ public class PanelReisezeiten extends PanelBasis implements
 						}
 
 					}
-
+					wcbVerrechenbar.setKeyOfSelectedItem(100D);
 				}
 			} else if (e.getSource() == panelQueryFLRProjekt) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					ProjektDto projektDto = null;
-					projektDto = DelegateFactory.getInstance()
-							.getProjektDelegate().projektFindByPrimaryKey(key);
+					projektDto = DelegateFactory.getInstance().getProjektDelegate().projektFindByPrimaryKey(key);
 					reiseDto.setBelegartCNr(LocaleFac.BELEGART_PROJEKT);
 					reiseDto.setIBelegartid(projektDto.getIId());
 
-					PartnerDto partnerDto = DelegateFactory
-							.getInstance()
-							.getPartnerDelegate()
+					PartnerDto partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
 							.partnerFindByPrimaryKey(projektDto.getPartnerIId());
 
 					reiseDto.setPartnerIId(partnerDto.getIId());
@@ -666,12 +706,8 @@ public class PanelReisezeiten extends PanelBasis implements
 					wtfReiseland.setText(null);
 					reiseDto.setDiaetenIId(null);
 					if (partnerDto.getLandplzortDto() != null) {
-						DiaetenDto[] diaetenDto = DelegateFactory
-								.getInstance()
-								.getZeiterfassungDelegate()
-								.diaetenFindByLandIId(
-										partnerDto.getLandplzortDto()
-												.getLandDto().getIID());
+						DiaetenDto[] diaetenDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
+								.diaetenFindByLandIId(partnerDto.getLandplzortDto().getLandDto().getIID());
 
 						if (diaetenDto.length > 0) {
 							wtfReiseland.setText(diaetenDto[0].getCBez());
@@ -697,14 +733,16 @@ public class PanelReisezeiten extends PanelBasis implements
 				wtfKunde.setText(null);
 			}
 
-			if (e.getSource() == panelQueryFLRAuftrag
-					|| e.getSource() == panelQueryFLRProjekt) {
+			if (e.getSource() == panelQueryFLRAuftrag || e.getSource() == panelQueryFLRProjekt) {
 				reiseDto.setBelegartCNr(null);
 				reiseDto.setIBelegartid(null);
 				wtfBeleg.setText(null);
 				selectedBelegIId = null;
 			}
-
+			if (e.getSource() == panelQueryFLRFahrzeug) {
+				reiseDto.setFahrzeugIId(null);
+				wtfPersonalfahrzeug.setText(null);
+			}
 		}
 	}
 
@@ -720,13 +758,9 @@ public class PanelReisezeiten extends PanelBasis implements
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_ZEITBUCHUNG_AUF_ERLEDIGTE_MOEGLICH,
-						ParameterFac.KATEGORIE_PERSONAL,
-						LPMain.getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_ZEITBUCHUNG_AUF_ERLEDIGTE_MOEGLICH,
+						ParameterFac.KATEGORIE_PERSONAL, LPMain.getTheClient().getMandant());
 
 		if (parameter.getCWert() != null && parameter.getCWert().equals("1")) {
 			bZeitdatenAufErledigteBuchbar = true;
@@ -735,23 +769,16 @@ public class PanelReisezeiten extends PanelBasis implements
 		wrbBeginn.setText(LPMain.getTextRespectUISPr("lp.beginn"));
 		wrbEnde.setText(LPMain.getTextRespectUISPr("lp.ende"));
 
-		wlaFaktor.setText(LPMain.getTextRespectUISPr("preis.reise.faktor"));
-
 		wrbBeginn.setMnemonic('B');
 		wrbBeginn.setSelected(true);
-		wrbBeginn
-				.addActionListener(new PanelReisezeiten_wrbBeginn_actionAdapter(
-						this));
-		wrbEnde.addActionListener(new PanelReisezeiten_wrbEnde_actionAdapter(
-				this));
+		wrbBeginn.addActionListener(new PanelReisezeiten_wrbBeginn_actionAdapter(this));
+		wrbEnde.addActionListener(new PanelReisezeiten_wrbEnde_actionAdapter(this));
 		wrbEnde.setMnemonic('E');
 
 		wlaZeit.setText(LPMain.getTextRespectUISPr("lp.datum"));
 
-		wlaErstesKommt.setText(LPMain
-				.getTextRespectUISPr("pers.reisezeiten.ersteskommt"));
-		wlaLetztesGeht.setText(LPMain
-				.getTextRespectUISPr("pers.reisezeiten.letztesgeht"));
+		wlaErstesKommt.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.ersteskommt"));
+		wlaLetztesGeht.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.letztesgeht"));
 
 		wbuKunde.setText(LPMain.getTextRespectUISPr("button.kunde"));
 		wbuKunde.setActionCommand(ACTION_SPECIAL_KUNDE);
@@ -761,16 +788,17 @@ public class PanelReisezeiten extends PanelBasis implements
 		wbuBeleg.setActionCommand(ACTION_SPECIAL_BELEG_FROM_LISTE);
 		wbuBeleg.addActionListener(this);
 
+		wbuPersonalfahrzeug.setText(LPMain.getTextRespectUISPr("pers.fahrzeug") + "...");
+		wbuPersonalfahrzeug.setActionCommand(ACTION_SPECIAL_FAHRZEUG_FROM_LISTE);
+		wbuPersonalfahrzeug.addActionListener(this);
+		wtfPersonalfahrzeug.setActivatable(false);
+
 		Map<String, String> mBelegarten = new TreeMap<String, String>();
-		if (LPMain.getInstance().getDesktop()
-				.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_AUFTRAG)) {
-			mBelegarten.put(LocaleFac.BELEGART_AUFTRAG,
-					LPMain.getTextRespectUISPr("auft.auftrag"));
+		if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_AUFTRAG)) {
+			mBelegarten.put(LocaleFac.BELEGART_AUFTRAG, LPMain.getTextRespectUISPr("auft.auftrag"));
 		}
-		if (LPMain.getInstance().getDesktop()
-				.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_PROJEKT)) {
-			mBelegarten.put(LocaleFac.BELEGART_PROJEKT,
-					LPMain.getTextRespectUISPr("proj.projekt"));
+		if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_PROJEKT)) {
+			mBelegarten.put(LocaleFac.BELEGART_PROJEKT, LPMain.getTextRespectUISPr("proj.projekt"));
 		}
 		wcoBeleg.setMandatoryField(true);
 		wcoBeleg.setMap(mBelegarten);
@@ -778,38 +806,35 @@ public class PanelReisezeiten extends PanelBasis implements
 		wtfBeleg.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 		wcoBeleg.addActionListener(this);
 
-		wbuAnsprechpartner.setText(LPMain
-				.getTextRespectUISPr("button.ansprechpartner.long"));
+		wbuAnsprechpartner.setText(LPMain.getTextRespectUISPr("button.ansprechpartner.long"));
 		wbuAnsprechpartner.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER);
 		wbuAnsprechpartner.addActionListener(this);
 
 		wbuLand.setText(LPMain.getTextRespectUISPr("pers.reiseland") + "...");
 		wbuLand.setActionCommand(ACTION_SPECIAL_LAND_FROM_LISTE);
 		wbuLand.addActionListener(this);
-		wlaKmBeginn.setText(LPMain
-				.getTextRespectUISPr("pers.reisezeiten.kmbeginn"));
-		wlaKmEnde
-				.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.kmende"));
-		wlaEntfernung.setText(LPMain
-				.getTextRespectUISPr("pers.reisezeiten.entfernung"));
+		wlaKmBeginnOderEnde.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.kmbeginn"));
+		wlaEntfernung.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.entfernung"));
 		wlaKommentar.setText(LPMain.getTextRespectUISPr("lp.kommentar"));
-		wlaFahrzeug.setText(LPMain
-				.getTextRespectUISPr("pers.reisezeiten.fahrzeug"));
-		wlaSpesen
-				.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.spesen"));
+		wlaFahrzeug.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.fahrzeug"));
+		wlaSpesen.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.spesen"));
+		wlaZusaetzlicheSpesen.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.zusspesen"));
+
+		wlaLetzterKmBeginn.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.kmbeginnvorgaenger"));
 
 		wlaWaehrungSpesen.setHorizontalAlignment(SwingConstants.LEFT);
-		wlaWaehrungSpesen.setText(DelegateFactory.getInstance()
-				.getMandantDelegate()
-				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant())
-				.getWaehrungCNr());
+		wlaWaehrungSpesen.setText(DelegateFactory.getInstance().getMandantDelegate()
+				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getWaehrungCNr());
 
-		wnfEntfernung
-				.addFocusListener(new PanelReisezeiten_wnfEntfernung_focusAdapter(
-						this));
-		wnfKmBeginn
-				.addFocusListener(new PanelReisezeiten_wnfKmBeginn_focusAdapter(
-						this));
+		wlaWaehrungSpesen2.setHorizontalAlignment(SwingConstants.LEFT);
+		wlaWaehrungSpesen2.setText(DelegateFactory.getInstance().getMandantDelegate()
+				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getWaehrungCNr());
+
+		wnfEntfernung.addFocusListener(new PanelReisezeiten_wnfEntfernung_focusAdapter(this));
+		wnfKmBeginnOderEnde.addFocusListener(new PanelReisezeiten_wnfKmBeginn_focusAdapter(this));
+
+		wnfLetzterKmBeginn.setActivatable(false);
+		wnfLetzterKmBeginn.setDependenceField(true);
 
 		wtfReiseland.setActivatable(false);
 		wtfAnsprechpartner.setActivatable(false);
@@ -820,6 +845,8 @@ public class PanelReisezeiten extends PanelBasis implements
 
 		wtfZeit.setMandatoryField(true);
 		wtfZeit.getWdfDatum().getDisplay().addPropertyChangeListener(this);
+		wtfZeit.getWtfZeit().getWspStunden().addChangeListener(this);
+		wtfZeit.getWtfZeit().getWspMinuten().addChangeListener(this);
 
 		wlaZeit.setLabelFor(wtfZeit);
 		wlaZeit.setDisplayedMnemonic('D');
@@ -831,14 +858,14 @@ public class PanelReisezeiten extends PanelBasis implements
 		wbuKunde.setMnemonic('K');
 		wbuLand.setMnemonic('R');
 
-		wtfFahrzeug
-				.addKeyListener(new PanelReisezeiten_wtfFahrzeug_keyListener(
-						this));
+		wtfFahrzeug.addKeyListener(new PanelReisezeiten_wtfFahrzeug_keyListener(this));
 
 		wbuBeleg.setMnemonic('L');
 
 		wlaFahrzeug.setLabelFor(wtfFahrzeug);
 		wlaFahrzeug.setDisplayedMnemonic('F');
+
+		wlaMitahrer.setText(LPMain.getTextRespectUISPr("pers.reise.mitfahrer"));
 
 		wlaEntfernung.setLabelFor(wnfEntfernung);
 		wlaEntfernung.setDisplayedMnemonic('U');
@@ -846,162 +873,160 @@ public class PanelReisezeiten extends PanelBasis implements
 		wlaSpesen.setLabelFor(wnfSpesen);
 		wlaSpesen.setDisplayedMnemonic('S');
 
-		wlaKmBeginn.setLabelFor(wnfKmBeginn);
-		wlaKmBeginn.setDisplayedMnemonic('G');
-		wlaKmEnde.setLabelFor(wnfKmEnde);
-		wlaKmEnde.setDisplayedMnemonic('N');
-		wsfFahrzeug.setMnemonic('Z');
+		wnfZusaetzlicheSpesen.setActivatable(false);
+		wnfZusaetzlicheSpesen.setDependenceField(true);
+
+		wlaKmBeginnOderEnde.setLabelFor(wnfKmBeginnOderEnde);
+		wlaKmBeginnOderEnde.setDisplayedMnemonic('G');
+		wlaKmBeginnOderEnde.setLabelFor(wnfKmBeginnOderEnde);
+		wlaKmBeginnOderEnde.setDisplayedMnemonic('N');
+		wbuPersonalfahrzeug.setMnemonic('Z');
 
 		wtfReiseland.setMandatoryField(true);
 
-		wnfKmBeginn.setFractionDigits(0);
-		wnfKmEnde.setFractionDigits(0);
+		wnfKmBeginnOderEnde.setFractionDigits(0);
+		wnfKmBeginnOderEnde.setFractionDigits(0);
 		wnfEntfernung.setFractionDigits(0);
 
+		wnfMitfahrer.setFractionDigits(0);
+
+		HelperClient.setMinimumAndPreferredSize(wtfZeit, HelperClient.getSizeFactoredDimension(50));
+
+		HelperClient.setMinimumAndPreferredSize(wnfKmBeginnOderEnde, HelperClient.getSizeFactoredDimension(50));
+
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(wrbBeginn, new GridBagConstraints(0, 0, 1, 1, 0.15,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbEnde, new GridBagConstraints(1, 0, 1, 1, 1, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaErstesKommt, new GridBagConstraints(2, 0, 1, 1, 1,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbBeginn, new GridBagConstraints(0, 0, 1, 1, 0.15, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbEnde, new GridBagConstraints(1, 0, 1, 1, 1, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaErstesKommt, new GridBagConstraints(4, 0, 3, 1, 1, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wlaZeit, new GridBagConstraints(0, 1, 1, 1, 0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfZeit, new GridBagConstraints(1, 1, 1, 1, 0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2,
-						2, 2, 2), 170, 0));
-		jpaWorkingOn.add(wlaLetztesGeht, new GridBagConstraints(2, 1, 1, 1, 1,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaZeit, new GridBagConstraints(0, 1, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfZeit, new GridBagConstraints(1, 1, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 170, 0));
+		jpaWorkingOn.add(wlaLetztesGeht, new GridBagConstraints(4, 1, 3, 1, 1, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaLetzterKmBeginn, new GridBagConstraints(1, 2, 1, 1, 0.15, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfLetzterKmBeginn, new GridBagConstraints(2, 2, 1, 1, 1, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+
+		jpaWorkingOn.add(wlaEntfernung, new GridBagConstraints(3, 2, 1, 1, 0.2, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		jpaWorkingOn.add(wnfEntfernung, new GridBagConstraints(4, 2, 1, 1, 1, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+
+		jpaWorkingOn.add(wlaKmBeginnOderEnde, new GridBagConstraints(5, 2, 1, 1, 0.2, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		jpaWorkingOn.add(wnfKmBeginnOderEnde, new GridBagConstraints(6, 2, 1, 1, 1, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		// PANELBEGINN
 		int iZeileBeginn = 0;
 
-		panelBeginn.add(wbuBeleg, new GridBagConstraints(0, iZeileBeginn, 1, 1,
-				0.1, 0.0, GridBagConstraints.WEST,
+		panelBeginn.add(wbuBeleg, new GridBagConstraints(0, iZeileBeginn, 1, 1, 0.15, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+		panelBeginn.add(wcoBeleg, new GridBagConstraints(1, iZeileBeginn, 1, 1, 0.15, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+		panelBeginn.add(wtfBeleg, new GridBagConstraints(2, iZeileBeginn, 1, 1, 0.4, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+		panelBeginn.add(wlaFahrzeug, new GridBagConstraints(3, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wcoBeleg, new GridBagConstraints(1, iZeileBeginn, 1, 1,
-				0.1, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wtfBeleg, new GridBagConstraints(2, iZeileBeginn, 1, 1,
-				0.5, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wlaFaktor, new GridBagConstraints(3, iZeileBeginn, 1,
-				1, 0.1, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wnfFaktor, new GridBagConstraints(4, iZeileBeginn, 1,
-				1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -80, 0));
-		iZeileBeginn++;
-
-		panelBeginn.add(wbuKunde, new GridBagConstraints(0, iZeileBeginn, 1, 1,
-				0.15, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wtfKunde, new GridBagConstraints(1, iZeileBeginn, 2, 1,
-				0.5, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeileBeginn++;
-
-		panelBeginn.add(wbuAnsprechpartner, new GridBagConstraints(0,
-				iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wtfAnsprechpartner, new GridBagConstraints(1,
-				iZeileBeginn, 2, 1, 0, 0.0, GridBagConstraints.WEST,
+		panelBeginn.add(wtfFahrzeug, new GridBagConstraints(4, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		iZeileBeginn++;
-		panelBeginn.add(wbuLand, new GridBagConstraints(0, iZeileBeginn, 1, 1,
-				0, 0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wtfReiseland, new GridBagConstraints(1, iZeileBeginn,
-				2, 1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelBeginn.add(wlaMitahrer, new GridBagConstraints(5, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 40, 0));
+		panelBeginn.add(wnfMitfahrer, new GridBagConstraints(6, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 60, 0));
 
 		iZeileBeginn++;
-		panelBeginn.add(wlaKommentar, new GridBagConstraints(0, iZeileBeginn,
-				1, 1, 0, 0.0, GridBagConstraints.WEST,
+
+		panelBeginn.add(wbuKunde, new GridBagConstraints(0, iZeileBeginn, 1, 1, 0.15, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelBeginn.add(wtfKommentar, new GridBagConstraints(1, iZeileBeginn,
-				2, 1, 0, 0.0, GridBagConstraints.WEST,
+		panelBeginn.add(wtfKunde, new GridBagConstraints(1, iZeileBeginn, 2, 1, 0.5, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		panelBeginn.add(wbuPersonalfahrzeug, new GridBagConstraints(3, iZeileBeginn, 1, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		panelBeginn.add(wtfPersonalfahrzeug, new GridBagConstraints(4, iZeileBeginn, 1, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ABRECHNUNGSVORSCHLAG)) {
+
+			panelBeginn.add(new WrapperLabel(LPMain.getTextRespectUISPr("pers.reisezeiten.verr")),
+					new GridBagConstraints(5, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 40, 0));
+
+			panelBeginn.add(wcbVerrechenbar, new GridBagConstraints(6, iZeileBeginn, 1, 1, 0.1, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+
+			wcbVerrechenbar.setKeyOfSelectedItem(100D);
+		}
+
+		iZeileBeginn++;
+
+		panelBeginn.add(wbuAnsprechpartner, new GridBagConstraints(0, iZeileBeginn, 1, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelBeginn.add(wtfAnsprechpartner, new GridBagConstraints(1, iZeileBeginn, 2, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelBeginn.add(wlaSpesen, new GridBagConstraints(3, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+		panelBeginn.add(wnfSpesen, new GridBagConstraints(4, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+		panelBeginn.add(wlaWaehrungSpesen, new GridBagConstraints(5, iZeileBeginn, 1, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 20, 0));
+
+		iZeileBeginn++;
+		panelBeginn.add(wbuLand, new GridBagConstraints(0, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelBeginn.add(wtfReiseland, new GridBagConstraints(1, iZeileBeginn, 2, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		panelBeginn.add(wlaZusaetzlicheSpesen, new GridBagConstraints(3, iZeileBeginn, 1, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelBeginn.add(wnfZusaetzlicheSpesen, new GridBagConstraints(4, iZeileBeginn, 1, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelBeginn.add(wlaWaehrungSpesen2, new GridBagConstraints(5, iZeileBeginn, 1, 1, 0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 20, 0));
+		iZeileBeginn++;
+		panelBeginn.add(wlaKommentar, new GridBagConstraints(0, iZeileBeginn, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelBeginn.add(wtfKommentar, new GridBagConstraints(1, iZeileBeginn, 6, 1, 0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		// PANELENDE
 
 		int iZeileEnde = 0;
 
-		panelEnde.add(wlaKmBeginn, new GridBagConstraints(0, iZeileEnde, 1, 1,
-				0.2, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelEnde.add(wnfKmBeginn, new GridBagConstraints(1, iZeileEnde, 1, 1,
-				0.3, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelEnde.add(wlaEntfernung, new GridBagConstraints(2, iZeileEnde, 1,
-				1, 0.2, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelEnde.add(wnfEntfernung, new GridBagConstraints(3, iZeileEnde, 1,
-				1, 0.3, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 0, 0));
+		iZeileEnde++;
 
 		iZeileEnde++;
-		panelEnde.add(wlaKmEnde, new GridBagConstraints(0, iZeileEnde, 1, 1, 0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		panelEnde.add(wnfKmEnde, new GridBagConstraints(1, iZeileEnde, 1, 1, 0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeileEnde++;
-		panelEnde.add(wlaFahrzeug, new GridBagConstraints(0, iZeileEnde, 1, 1,
-				0, 0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		panelEnde.add(wtfFahrzeug, new GridBagConstraints(1, iZeileEnde, 1, 1,
-				0, 0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeileEnde++;
-		panelEnde.add(wsfFahrzeug.getWrapperButton(), new GridBagConstraints(0,
-				iZeileEnde, 1, 1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
-		panelEnde.add(wsfFahrzeug.getWrapperTextField(),
-				new GridBagConstraints(1, iZeileEnde, 1, 1, 0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						new Insets(2, 2, 2, 2), 0, 0));
-		iZeileEnde++;
-		panelEnde.add(wlaSpesen, new GridBagConstraints(0, iZeileEnde, 1, 1, 0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		panelEnde.add(wnfSpesen, new GridBagConstraints(1, iZeileEnde, 1, 1, 0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		panelEnde.add(wlaWaehrungSpesen, new GridBagConstraints(2, iZeileEnde,
-				1, 1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelEnde.add(new WrapperLabel(""), new GridBagConstraints(0, iZeileEnde, 1, 1, 0.1, .5,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		// -------------
-		jpaWorkingOn.add(panelBeginn, new GridBagConstraints(0, 2, 5, 5, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(panelBeginn, new GridBagConstraints(0, 2, 5, 5, 1, 1, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		buttonGroup.add(wrbBeginn);
 		buttonGroup.add(wrbEnde);
@@ -1015,89 +1040,88 @@ public class PanelReisezeiten extends PanelBasis implements
 	}
 
 	public void labelsLetzteKommtErstesGehtAktualisieren() throws Throwable {
-		Timestamp tErstesKommt = DelegateFactory
-				.getInstance()
-				.getZeiterfassungDelegate()
-				.getErstesKommtEinesTages(
-						internalFrameZeiterfassung.getPersonalDto().getIId(),
-						wtfZeit.getTimestamp());
-		Timestamp tLetztesGeht = DelegateFactory
-				.getInstance()
-				.getZeiterfassungDelegate()
-				.getLetztesGehtEinesTages(
-						internalFrameZeiterfassung.getPersonalDto().getIId(),
-						wtfZeit.getTimestamp());
 
-		String erstesKommt = LPMain
-				.getTextRespectUISPr("pers.reisezeiten.ersteskommt");
+		Timestamp tErstesKommt = DelegateFactory.getInstance().getZeiterfassungDelegate()
+				.getErstesKommtEinesTages(internalFrameZeiterfassung.getPersonalDto().getIId(), wtfZeit.getTimestamp());
+		Timestamp tLetztesGeht = DelegateFactory.getInstance().getZeiterfassungDelegate()
+				.getLetztesGehtEinesTages(internalFrameZeiterfassung.getPersonalDto().getIId(), wtfZeit.getTimestamp());
+
+		String erstesKommt = LPMain.getTextRespectUISPr("pers.reisezeiten.ersteskommt");
 
 		if (tErstesKommt != null) {
-			erstesKommt += " "
-					+ Helper.formatTimestamp(tErstesKommt, LPMain
-							.getTheClient().getLocUi());
+			erstesKommt += " " + Helper.formatTimestamp(tErstesKommt, LPMain.getTheClient().getLocUi());
 		} else {
 			erstesKommt += " X";
 		}
 
 		wlaErstesKommt.setText(erstesKommt);
 
-		String letztesGeht = LPMain
-				.getTextRespectUISPr("pers.reisezeiten.letztesgeht");
+		String letztesGeht = LPMain.getTextRespectUISPr("pers.reisezeiten.letztesgeht");
 
 		if (tLetztesGeht != null) {
-			letztesGeht += " "
-					+ Helper.formatTimestamp(tLetztesGeht, LPMain
-							.getTheClient().getLocUi());
+			letztesGeht += " " + Helper.formatTimestamp(tLetztesGeht, LPMain.getTheClient().getLocUi());
 		} else {
 			letztesGeht += " X";
 		}
 
 		wlaLetztesGeht.setText(letztesGeht);
+
+	}
+
+	// PJ21203
+	private Timestamp zeitAufMintenRunden(Timestamp t) {
+
+		if (t != null) {
+			Calendar cl = Calendar.getInstance();
+			cl.setTimeInMillis(t.getTime());
+			cl.set(Calendar.MILLISECOND, 0);
+			int sekunden = cl.get(Calendar.SECOND);
+
+			if (sekunden > 0) {
+				if (sekunden >= 31) {
+					cl.add(Calendar.MINUTE, 1);
+				}
+				cl.set(Calendar.SECOND, 0);
+			}
+
+			t = new Timestamp(cl.getTimeInMillis());
+		}
+		return t;
 	}
 
 	public void zeitVorschlagen() throws Throwable {
 		Timestamp tZeit = null;
 
-		if (wtfZeit.getTimestamp() != null
-				&& getLockedstateDetailMainKey().getIState() == LOCK_FOR_NEW) {
+		if (reiseDto == null || reiseDto.getIId() == null) {
+			if (wtfZeit.getTimestamp() != null && getLockedstateDetailMainKey().getIState() == LOCK_FOR_NEW) {
 
-			Timestamp tErstesKommt = DelegateFactory
-					.getInstance()
-					.getZeiterfassungDelegate()
-					.getErstesKommtEinesTages(
-							internalFrameZeiterfassung.getPersonalDto()
-									.getIId(), wtfZeit.getTimestamp());
-			Timestamp tLetztesGeht = DelegateFactory
-					.getInstance()
-					.getZeiterfassungDelegate()
-					.getLetztesGehtEinesTages(
-							internalFrameZeiterfassung.getPersonalDto()
-									.getIId(), wtfZeit.getTimestamp());
+				Timestamp tErstesKommt = DelegateFactory.getInstance().getZeiterfassungDelegate()
+						.getErstesKommtEinesTages(internalFrameZeiterfassung.getPersonalDto().getIId(),
+								wtfZeit.getTimestamp());
+				Timestamp tLetztesGeht = DelegateFactory.getInstance().getZeiterfassungDelegate()
+						.getLetztesGehtEinesTages(internalFrameZeiterfassung.getPersonalDto().getIId(),
+								wtfZeit.getTimestamp());
 
-			if (wrbBeginn.isSelected()) {
-				// Darf nur bei der ersten Beginnbuchung vorgeschlagen werden
+				if (wrbBeginn.isSelected()) {
+					// Darf nur bei der ersten Beginnbuchung vorgeschlagen
+					// werden
 
-				if (DelegateFactory
-						.getInstance()
-						.getZeiterfassungDelegate()
-						.sindReisezeitenZueinemTagVorhanden(
-								internalFrameZeiterfassung.getPersonalDto()
-										.getIId(), wtfZeit.getTimestamp()) == false) {
+					if (DelegateFactory.getInstance().getZeiterfassungDelegate().sindReisezeitenZueinemTagVorhanden(
+							internalFrameZeiterfassung.getPersonalDto().getIId(), wtfZeit.getTimestamp()) == false) {
 
-					tZeit = tErstesKommt;
+						tZeit = zeitAufMintenRunden(tErstesKommt);
+					}
+				} else {
+					tZeit = zeitAufMintenRunden(tLetztesGeht);
 				}
-			} else {
-				tZeit = tLetztesGeht;
-			}
-			if (tZeit != null) {
-				wtfZeit.getWtfZeit()
-						.setTime(new java.sql.Time(tZeit.getTime()));
+				if (tZeit != null) {
+					wtfZeit.getWtfZeit().setTime(new java.sql.Time(tZeit.getTime()));
+				}
 			}
 		}
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
@@ -1105,8 +1129,7 @@ public class PanelReisezeiten extends PanelBasis implements
 			clearStatusbar();
 
 			if (tLetzterTimestamp == null) {
-				wtfZeit.setTimestamp(new java.sql.Timestamp(System
-						.currentTimeMillis()));
+				wtfZeit.setTimestamp(new java.sql.Timestamp(System.currentTimeMillis()));
 			} else {
 				wtfZeit.setTimestamp(tLetzterTimestamp);
 
@@ -1117,31 +1140,20 @@ public class PanelReisezeiten extends PanelBasis implements
 
 				if (diaetenIId_Reiseland_Zuletztgewaehlt != null) {
 
-					DiaetenDto diaetenDto = DelegateFactory
-							.getInstance()
-							.getZeiterfassungDelegate()
-							.diaetenFindByPrimaryKey(
-									diaetenIId_Reiseland_Zuletztgewaehlt);
+					DiaetenDto diaetenDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
+							.diaetenFindByPrimaryKey(diaetenIId_Reiseland_Zuletztgewaehlt);
 					wtfReiseland.setText(diaetenDto.getCBez());
 					reiseDto.setDiaetenIId(diaetenIId_Reiseland_Zuletztgewaehlt);
 
 				} else {
 
-					MandantDto mDto = DelegateFactory
-							.getInstance()
-							.getMandantDelegate()
-							.mandantFindByPrimaryKey(
-									LPMain.getTheClient().getMandant());
+					MandantDto mDto = DelegateFactory.getInstance().getMandantDelegate()
+							.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant());
 					if (mDto.getPartnerDto().getLandplzortDto() != null) {
-						DiaetenDto[] dtos = DelegateFactory
-								.getInstance()
-								.getZeiterfassungDelegate()
-								.diaetenFindByLandIId(
-										mDto.getPartnerDto().getLandplzortDto()
-												.getIlandID());
+						DiaetenDto[] dtos = DelegateFactory.getInstance().getZeiterfassungDelegate()
+								.diaetenFindByLandIId(mDto.getPartnerDto().getLandplzortDto().getIlandID());
 						if (dtos.length > 0) {
-							diaetenIId_Reiseland_Zuletztgewaehlt = dtos[0]
-									.getIId();
+							diaetenIId_Reiseland_Zuletztgewaehlt = dtos[0].getIId();
 							wtfReiseland.setText(dtos[0].getCBez());
 							reiseDto.setDiaetenIId(diaetenIId_Reiseland_Zuletztgewaehlt);
 						}
@@ -1153,141 +1165,26 @@ public class PanelReisezeiten extends PanelBasis implements
 				labelsLetzteKommtErstesGehtAktualisieren();
 
 			}
-
+			wcbVerrechenbar.setKeyOfSelectedItem(100D);
 			if (key != null && key.equals(LPMain.getLockMeForNew())) {
 				enableAllComponents(panelEnde, true);
 				enableAllComponents(panelBeginn, true);
+
 			}
 		} else {
-			reiseDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
-					.reiseFindByPrimaryKey((Integer) key);
+			reiseDto = DelegateFactory.getInstance().getZeiterfassungDelegate().reiseFindByPrimaryKey((Integer) key);
+
 			dto2Components();
 		}
 	}
 
-	private boolean pruefeObBuchungMoeglich() throws ExceptionLP, Throwable {
-
-		if (wtfZeit.getTimestamp() != null) {
-
-			// SP3285
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_ZEITEN_ABSCHLIESSEN)) {
-
-				java.sql.Timestamp t = DelegateFactory
-						.getInstance()
-						.getZeiterfassungDelegate()
-						.gibtEsBereitseinenZeitabschlussBisZurKW(
-								internalFrameZeiterfassung.getPersonalDto()
-										.getIId(), wtfZeit.getTimestamp());
-
-				if (t != null) {
-					MessageFormat mf = new MessageFormat(
-							LPMain.getTextRespectUISPr("pers.zeiterfassung.zeitenbereitsabgeschlossen.bis"));
-					mf.setLocale(LPMain.getTheClient().getLocUi());
-
-					Calendar c = Calendar.getInstance();
-					c.setTimeInMillis(t.getTime());
-					c.get(Calendar.WEEK_OF_YEAR);
-					Object pattern[] = { c.get(Calendar.WEEK_OF_YEAR) };
-
-					String sMsg = mf.format(pattern);
-
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"), sMsg);
-					return false;
-				}
-
-			}
-
-			boolean bRechtChefbuchhalter = DelegateFactory.getInstance()
-					.getTheJudgeDelegate()
-					.hatRecht(RechteFac.RECHT_FB_CHEFBUCHHALTER);
-
-			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.ZEITBUCHUNGEN_NACHTRAEGLICH_BUCHEN_BIS,
-							ParameterFac.KATEGORIE_PERSONAL,
-							LPMain.getTheClient().getMandant());
-
-			int iTag = (Integer) parameter.getCWertAsObject();
-
-			Calendar cAktuelleZeit = Calendar.getInstance();
-			cAktuelleZeit.setTimeInMillis(DelegateFactory.getInstance()
-					.getSystemDelegate().getServerTimestamp().getTime());
-
-			Calendar cBisDahinDarfGeaendertWerden = Calendar.getInstance();
-			cBisDahinDarfGeaendertWerden.setTimeInMillis(Helper.cutTimestamp(
-					DelegateFactory.getInstance().getSystemDelegate()
-							.getServerTimestamp()).getTime());
-
-			// Im aktuelle Monat darf geaendert werden
-			cBisDahinDarfGeaendertWerden.set(Calendar.DAY_OF_MONTH, 1);
-
-			if (cAktuelleZeit.get(Calendar.DAY_OF_MONTH) <= iTag) {
-				// Im Vormonat darf geaendert werden
-				cBisDahinDarfGeaendertWerden.set(Calendar.MONTH,
-						cBisDahinDarfGeaendertWerden.get(Calendar.MONTH) - 1);
-			}
-
-			if (cBisDahinDarfGeaendertWerden.getTimeInMillis() > wtfZeit
-					.getTimestamp().getTime()) {
-
-				if (bRechtChefbuchhalter) {
-					// Warnung anzeigen
-					MessageFormat mf = new MessageFormat(
-							LPMain.getTextRespectUISPr("pers.error.zeitbuchungenduerfenichtmehrgeaendertwerden.trotzdem"));
-					mf.setLocale(LPMain.getTheClient().getLocUi());
-
-					Object pattern[] = { Helper.formatDatum(
-							cBisDahinDarfGeaendertWerden.getTime(), LPMain
-									.getTheClient().getLocUi()) };
-					String sMsg = mf.format(pattern);
-
-					boolean b = DialogFactory.showModalJaNeinDialog(
-							getInternalFrame(), sMsg,
-							LPMain.getTextRespectUISPr("lp.warning"));
-					if (b == false) {
-						return false;
-					}
-
-				} else {
-					// Fehler anzeigen
-					MessageFormat mf = new MessageFormat(
-							LPMain.getTextRespectUISPr("pers.error.zeitbuchungenduerfenichtmehrgeaendertwerden"));
-
-					try {
-						mf.setLocale(LPMain.getTheClient().getLocUi());
-					} catch (Throwable ex) {
-					}
-
-					Object pattern[] = { Helper.formatDatum(
-							cBisDahinDarfGeaendertWerden.getTime(), LPMain
-									.getTheClient().getLocUi()) };
-
-					String sMsg = mf.format(pattern);
-
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"), sMsg);
-
-					return false;
-				}
-
-			}
-		}
-
-		return true;
-	}
-
 	void wrbBeginn_actionPerformed(ActionEvent e) {
 		jpaWorkingOn.remove(panelEnde);
-		jpaWorkingOn.add(panelBeginn, new GridBagConstraints(0, 2, 5, 1, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+
+		wlaKmBeginnOderEnde.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.kmbeginn"));
+
+		jpaWorkingOn.add(panelBeginn, new GridBagConstraints(0, 3, 7, 1, 1, 1, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		jpaWorkingOn.repaint();
 		LPMain.getInstance().getDesktop().repaint();
 		try {
@@ -1300,16 +1197,13 @@ public class PanelReisezeiten extends PanelBasis implements
 
 	void wrbEnde_actionPerformed(ActionEvent e) {
 		jpaWorkingOn.remove(panelBeginn);
-		jpaWorkingOn.add(panelEnde, new GridBagConstraints(0, 2, 3, 1, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+
+		wlaKmBeginnOderEnde.setText(LPMain.getTextRespectUISPr("pers.reisezeiten.kmende"));
+		jpaWorkingOn.add(panelEnde, new GridBagConstraints(0, 3, 7, 1, 1, 1, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		try {
-			if (wnfEntfernung.getInteger() != null) {
-				wnfKmBeginn.setMandatoryField(true);
-			} else {
-				wnfKmBeginn.setMandatoryField(false);
-			}
+
 			zeitVorschlagen();
 		} catch (Throwable e1) {
 			handleException(e1, true);
@@ -1323,16 +1217,14 @@ public class PanelReisezeiten extends PanelBasis implements
 	void wnfEntfernung_focusLost(FocusEvent e) {
 		try {
 
-			if (wnfEntfernung.getInteger() != null) {
-				wnfKmBeginn.setMandatoryField(true);
-			} else {
-				wnfKmBeginn.setMandatoryField(false);
+			Integer letzerBeginn = 0;
+			if (wnfLetzterKmBeginn.getInteger() != null) {
+				letzerBeginn = wnfLetzterKmBeginn.getInteger();
 			}
 
-			if (wnfKmBeginn.getInteger() != null
-					&& wnfEntfernung.getInteger() != null) {
-				wnfKmEnde.setInteger(wnfKmBeginn.getInteger()
-						+ wnfEntfernung.getInteger());
+			if (wnfEntfernung.getInteger() != null) {
+				wnfKmBeginnOderEnde.setInteger(letzerBeginn + wnfEntfernung.getInteger());
+
 			}
 		} catch (ExceptionLP ex) {
 			handleException(ex, true);
@@ -1342,25 +1234,61 @@ public class PanelReisezeiten extends PanelBasis implements
 	void wnfKmBeginn_focusLost(FocusEvent e) {
 		try {
 
-			if (wnfEntfernung.getInteger() != null) {
-				wnfKmBeginn.setMandatoryField(true);
-			} else {
-				wnfKmBeginn.setMandatoryField(false);
+			Integer letzerBeginn = 0;
+			if (wnfLetzterKmBeginn.getInteger() != null) {
+				letzerBeginn = wnfLetzterKmBeginn.getInteger();
 			}
 
-			if (wnfKmBeginn.getInteger() != null
-					&& wnfEntfernung.getInteger() != null) {
-				wnfKmEnde.setInteger(wnfKmBeginn.getInteger()
-						+ wnfEntfernung.getInteger());
+			if (wnfKmBeginnOderEnde.getInteger() != null) {
+				wnfEntfernung.setInteger(wnfKmBeginnOderEnde.getInteger() - letzerBeginn);
 			}
 		} catch (ExceptionLP ex) {
 			handleException(ex, true);
 		}
 	}
+
+	@Override
+	public void stateChanged(ChangeEvent e) {
+		if (e.getSource() == wtfZeit.getWtfZeit().getWspStunden()
+				|| e.getSource() == wtfZeit.getWtfZeit().getWspMinuten()) {
+
+			try {
+
+				// Letzten KM-Bginn holen
+
+				java.util.Date d = wtfZeit.getTimestamp();
+
+				if (d != null) {
+					// zeitVorschlagen();
+					labelsLetzteKommtErstesGehtAktualisieren();
+
+					ReiseDto reiseDto = DelegateFactory.getInstance().getZeiterfassungDelegate().getReiseDtoVorgaenger(
+							new Timestamp(d.getTime()), internalFrameZeiterfassung.getPersonalDto().getIId());
+					if (reiseDto != null && Helper.short2Boolean(reiseDto.getBBeginn())) {
+						wnfLetzterKmBeginn.setInteger(reiseDto.getIKmbeginn());
+						wlaLetzterKmBeginn.setVisible(true);
+						wnfLetzterKmBeginn.setVisible(true);
+
+						wlaEntfernung.setVisible(true);
+						wnfEntfernung.setVisible(true);
+					} else {
+						wlaLetzterKmBeginn.setVisible(false);
+						wnfLetzterKmBeginn.setVisible(false);
+
+						wlaEntfernung.setVisible(false);
+						wnfEntfernung.setVisible(false);
+					}
+				}
+
+			} catch (Throwable e1) {
+				handleException(e1, true);
+			}
+
+		}
+	}
 }
 
-class PanelReisezeiten_wrbBeginn_actionAdapter implements
-		java.awt.event.ActionListener {
+class PanelReisezeiten_wrbBeginn_actionAdapter implements java.awt.event.ActionListener {
 	PanelReisezeiten adaptee;
 
 	PanelReisezeiten_wrbBeginn_actionAdapter(PanelReisezeiten adaptee) {
@@ -1372,8 +1300,7 @@ class PanelReisezeiten_wrbBeginn_actionAdapter implements
 	}
 }
 
-class PanelReisezeiten_wrbEnde_actionAdapter implements
-		java.awt.event.ActionListener {
+class PanelReisezeiten_wrbEnde_actionAdapter implements java.awt.event.ActionListener {
 	PanelReisezeiten adaptee;
 
 	PanelReisezeiten_wrbEnde_actionAdapter(PanelReisezeiten adaptee) {
@@ -1385,8 +1312,7 @@ class PanelReisezeiten_wrbEnde_actionAdapter implements
 	}
 }
 
-class PanelReisezeiten_wnfEntfernung_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelReisezeiten_wnfEntfernung_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelReisezeiten adaptee;
 
 	PanelReisezeiten_wnfEntfernung_focusAdapter(PanelReisezeiten adaptee) {
@@ -1398,8 +1324,7 @@ class PanelReisezeiten_wnfEntfernung_focusAdapter extends
 	}
 }
 
-class PanelReisezeiten_wnfKmBeginn_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelReisezeiten_wnfKmBeginn_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelReisezeiten adaptee;
 
 	PanelReisezeiten_wnfKmBeginn_focusAdapter(PanelReisezeiten adaptee) {
@@ -1411,8 +1336,7 @@ class PanelReisezeiten_wnfKmBeginn_focusAdapter extends
 	}
 }
 
-class PanelReisezeiten_wtfFahrzeug_keyListener implements
-		java.awt.event.KeyListener {
+class PanelReisezeiten_wtfFahrzeug_keyListener implements java.awt.event.KeyListener {
 	PanelReisezeiten adaptee;
 
 	PanelReisezeiten_wtfFahrzeug_keyListener(PanelReisezeiten adaptee) {
@@ -1434,11 +1358,13 @@ class PanelReisezeiten_wtfFahrzeug_keyListener implements
 	public void keyReleased(KeyEvent e) {
 		// TODO Auto-generated method stub
 		if (adaptee.wtfFahrzeug.getText() == null) {
-			adaptee.wsfFahrzeug.setEnabled(true);
+			adaptee.wbuPersonalfahrzeug.setEnabled(true);
 		} else {
-			adaptee.wsfFahrzeug.setEnabled(false);
+			adaptee.wbuPersonalfahrzeug.setEnabled(false);
+
 			try {
-				adaptee.wsfFahrzeug.setKey(null);
+				adaptee.reiseDto.setFahrzeugIId(null);
+				adaptee.wtfPersonalfahrzeug.setText(null);
 			} catch (Throwable e1) {
 				adaptee.handleException(e1, true);
 			}

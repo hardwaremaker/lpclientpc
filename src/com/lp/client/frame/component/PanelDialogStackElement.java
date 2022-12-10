@@ -50,7 +50,8 @@ public class PanelDialogStackElement
 {
   private JComponent jComponent=null;
   private String sTitle=null;
-
+  private String[] titles = null;
+  
   public PanelDialogStackElement(JComponent jComponent, String sTitle) {
     this.jComponent=jComponent;
     this.sTitle=sTitle;
@@ -64,5 +65,13 @@ public class PanelDialogStackElement
 
   public String getSTitle() {
     return sTitle;
+  }
+  
+  public void setTitles(String[] titles) {
+	  this.titles = titles != null ? titles.clone() : titles;
+  }
+  
+  public String[] getTitles() {
+	  return this.titles;
   }
 }

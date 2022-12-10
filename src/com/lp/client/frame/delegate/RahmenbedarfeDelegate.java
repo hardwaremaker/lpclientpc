@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
-
 import java.math.BigDecimal;
 
 import javax.naming.Context;
@@ -40,68 +39,55 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.ArtikelbestelltFac;
 import com.lp.server.artikel.service.RahmenbedarfeFac;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access") 
-public class RahmenbedarfeDelegate
-    extends Delegate
-{
-  private Context context;
-  private RahmenbedarfeFac rahmenbedarfeFac;
-  public RahmenbedarfeDelegate()
-      throws Exception {
-    context = new InitialContext();
-    rahmenbedarfeFac = (RahmenbedarfeFac) context.lookup("lpserver/RahmenbedarfeFacBean/remote");
-  }
+@SuppressWarnings("static-access")
+public class RahmenbedarfeDelegate extends Delegate {
+	private Context context;
+	private RahmenbedarfeFac rahmenbedarfeFac;
 
+	public RahmenbedarfeDelegate() throws Exception {
+		context = new InitialContext();
+		rahmenbedarfeFac = lookupFac(context, RahmenbedarfeFac.class);
 
-  public JasperPrintLP printRahmenbedarfe(Integer artikelIId)
-      throws ExceptionLP {
-    try {
-      return rahmenbedarfeFac.printRahmenbedarfe(artikelIId,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+	}
 
-  public JasperPrintLP printAlleOffenenRahmenbedarfe(boolean BSortiertNachArtikel)
-      throws ExceptionLP {
-    try {
-      return rahmenbedarfeFac.printAlleOffenenRahmenbedarfe(BSortiertNachArtikel,
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+	public JasperPrintLP printRahmenbedarfe(Integer artikelIId) throws ExceptionLP {
+		try {
+			return rahmenbedarfeFac.printRahmenbedarfe(artikelIId, LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  public BigDecimal getSummeAllerRahmenbedarfeEinesArtikels(Integer artikelIId)
-      throws ExceptionLP {
-    try {
-      return rahmenbedarfeFac.getSummeAllerRahmenbedarfeEinesArtikels(artikelIId);
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-      return null;
-    }
-  }
+	public JasperPrintLP printAlleOffenenRahmenbedarfe(boolean BSortiertNachArtikel) throws ExceptionLP {
+		try {
+			return rahmenbedarfeFac.printAlleOffenenRahmenbedarfe(BSortiertNachArtikel,
+					LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
+	public BigDecimal getSummeAllerRahmenbedarfeEinesArtikels(Integer artikelIId) throws ExceptionLP {
+		try {
+			return rahmenbedarfeFac.getSummeAllerRahmenbedarfeEinesArtikels(artikelIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
-  public void aktualisiereAlleRahmenauftaegeEinesMandanten()
-      throws ExceptionLP {
-    try {
-      rahmenbedarfeFac.aktualisiereAlleRahmenauftaegeEinesMandanten(
-          LPMain.getInstance().getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
+	public void aktualisiereAlleRahmenauftaegeEinesMandanten() throws ExceptionLP {
+		try {
+			rahmenbedarfeFac.aktualisiereAlleRahmenauftaegeEinesMandanten(LPMain.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
-  
 }

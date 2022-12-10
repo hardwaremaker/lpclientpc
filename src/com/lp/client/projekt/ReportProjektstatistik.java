@@ -36,23 +36,34 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.util.EventObject;
+import java.util.Calendar;
 
+import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
-import com.lp.client.frame.component.ItemChangedEvent;
+import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperDateRangeController;
+import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperRadioButton;
+import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
-import com.lp.server.auftrag.service.AuftragReportFac;
-import com.lp.server.personal.service.ZeiterfassungReportFac;
+import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.server.artikel.service.ArtikelFac;
+import com.lp.server.artikel.service.ArtikelReportFac;
 import com.lp.server.projekt.service.ProjektReportFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class ReportProjektstatistik extends PanelBasis implements
@@ -61,16 +72,31 @@ public class ReportProjektstatistik extends PanelBasis implements
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
-	InternalFrameProjekt internalFrameProjekt = null;
-
 	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 
-	public ReportProjektstatistik(InternalFrameProjekt internalFrameProjekt,
-			String add2Title) throws Throwable {
-		super(internalFrameProjekt, add2Title);
-		this.internalFrameProjekt = internalFrameProjekt;
+	private WrapperLabel wlaBelegarten = new WrapperLabel();
+
+	private ButtonGroup buttonGroupOption = new ButtonGroup();
+	private WrapperRadioButton wrbOptionAlle = new WrapperRadioButton();
+	private WrapperRadioButton wrbOptionEK = new WrapperRadioButton();
+	private WrapperRadioButton wrbOptionVK = new WrapperRadioButton();
+	private WrapperRadioButton wrbOptionFertigung = new WrapperRadioButton();
+
+	private WrapperCheckBox wcbAktuellerStand = new WrapperCheckBox();
+
+	private Integer projektIId = null;
+
+	public ReportProjektstatistik(InternalFrame internalFrame,
+			Integer projektIId, String add2Title) throws Throwable {
+		super(internalFrame, add2Title);
+
+		this.projektIId = projektIId;
+
+		LPMain.getInstance().getTextRespectUISPr("lp.statistik");
 		jbInit();
+		initComponents();
 
 	}
 
@@ -79,28 +105,60 @@ public class ReportProjektstatistik extends PanelBasis implements
 	}
 
 	private void jbInit() throws Throwable {
-		this.setLayout(new GridBagLayout());
-		getInternalFrame().addItemChangedListener(this);
-		jpaWorkingOn.setLayout(new GridBagLayout());
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
+
+		buttonGroupOption.add(wrbOptionAlle);
+		buttonGroupOption.add(wrbOptionEK);
+		buttonGroupOption.add(wrbOptionVK);
+		buttonGroupOption.add(wrbOptionFertigung);
+		wrbOptionAlle.setSelected(true);
+
+		wrbOptionAlle.setText(LPMain.getInstance().getTextRespectUISPr(
+				"label.alle"));
+		wrbOptionEK.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.menu.einkauf"));
+		wrbOptionVK.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.menu.verkauf"));
+		wrbOptionFertigung.setText(LPMain.getInstance().getTextRespectUISPr(
+				"fert.modulname"));
+		wlaBelegarten.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.belegarten"));
+		
+		
+		wcbAktuellerStand.setText(LPMain.getInstance().getTextRespectUISPr(
+				"proj.projektstatistik.aktuellerstand"));
+		
+
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
-		int iZeile = 0;
 
-		iZeile++;
+		jpaWorkingOn.add(wlaBelegarten, new GridBagConstraints(0, 6, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wrbOptionAlle, new GridBagConstraints(2, 6, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbOptionEK, new GridBagConstraints(3, 6, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbOptionVK, new GridBagConstraints(4, 6, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbOptionFertigung, new GridBagConstraints(5, 6, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wcbAktuellerStand, new GridBagConstraints(2, 7,3, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
-	}
-
-	protected void eventItemchanged(EventObject eI) throws Throwable {
-		ItemChangedEvent e = (ItemChangedEvent) eI;
-		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
-
-		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
-
-		}
 	}
 
 	public String getModul() {
@@ -108,21 +166,31 @@ public class ReportProjektstatistik extends PanelBasis implements
 	}
 
 	public String getReportname() {
-		return ProjektReportFac.REPORT_PROJEKTVERLAUF;
+		return ProjektReportFac.REPORT_PROJEKTSTATISTIK;
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		JasperPrintLP jasperPrint = null;
 
-		jasperPrint = DelegateFactory
+		int iOption = -1;
+
+		if (wrbOptionAlle.isSelected()) {
+			iOption = ProjektReportFac.REPORT_PROJEKTSTATISTIK_OPTION_ALLE;
+		} else if (wrbOptionEK.isSelected()) {
+			iOption = ProjektReportFac.REPORT_PROJEKTSTATISTIK_OPTION_EK;
+
+		} else if (wrbOptionVK.isSelected()) {
+			iOption = ProjektReportFac.REPORT_PROJEKTSTATISTIK_OPTION_VK;
+
+		} else if (wrbOptionFertigung.isSelected()) {
+			iOption = ProjektReportFac.REPORT_PROJEKTSTATISTIK_OPTION_FERTIGUNG;
+
+		}
+
+		return DelegateFactory
 				.getInstance()
 				.getProjektDelegate()
-				.printProjektverlauf(
-						internalFrameProjekt.getTabbedPaneProjekt()
-								.getProjektDto().getIId());
-
-		return jasperPrint;
-
+				.printProjektstatistik(projektIId, iOption,
+						wcbAktuellerStand.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

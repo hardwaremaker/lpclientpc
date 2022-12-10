@@ -43,6 +43,7 @@ import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.AuftragpositionFac;
 import com.lp.server.partner.service.KundeFac;
 import com.lp.server.partner.service.PartnerFac;
+import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.rechnung.service.RechnungDto;
 import com.lp.server.rechnung.service.RechnungFac;
 import com.lp.server.rechnung.service.RechnungServiceFac;
@@ -103,8 +104,7 @@ public class RechnungFilterFactory {
 	 * @throws Throwable
 	 */
 	public FilterKriteriumDirekt createFKDRechnungnummer() throws Throwable {
-		return new FilterKriteriumDirekt(RechnungFac.FLR_RECHNUNG_C_NR, "",
-				FilterKriterium.OPERATOR_LIKE, "Rechnung",
+		return new FilterKriteriumDirekt(RechnungFac.FLR_RECHNUNG_C_NR, "", FilterKriterium.OPERATOR_LIKE, "Rechnung",
 				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
 				true, // wrapWithSingleQuotes
 				false, Facade.MAX_UNBESCHRAENKT);
@@ -113,13 +113,11 @@ public class RechnungFilterFactory {
 	protected QueryType[] createQTPanelRechnungauswahl() {
 		QueryType[] types = new QueryType[1];
 
-		FilterKriterium f4 = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNG_FLRKOSTENSTELLE + ".c_nr", true, "",
+		FilterKriterium f4 = new FilterKriterium(RechnungFac.FLR_RECHNUNG_FLRKOSTENSTELLE + ".c_nr", true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain
-				.getTextRespectUISPr("label.kostenstelle"), f4,
-				new String[] { FilterKriterium.OPERATOR_LIKE }, true, // eingabeformat
+		types[0] = new QueryType(LPMain.getTextRespectUISPr("label.kostenstelle"), f4,
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, // eingabeformat
 				// 10.12.2004
 				true, false);
 
@@ -129,8 +127,8 @@ public class RechnungFilterFactory {
 		 * FilterKriterium.OPERATOR_LIKE, false);
 		 * 
 		 * types[3] = new QueryType(
-		 * LPMain.getInstance().getTextRespectUISPr("label.projekt"), f4, new
-		 * String[] {FilterKriterium.OPERATOR_EQUAL} , true, true);
+		 * LPMain.getInstance().getTextRespectUISPr("label.projekt"), f4, new String[]
+		 * {FilterKriterium.OPERATOR_EQUAL} , true, true);
 		 */
 
 		return types;
@@ -143,8 +141,7 @@ public class RechnungFilterFactory {
 	 * @throws Throwable
 	 */
 	public FilterKriteriumDirekt createFKDGutschriftnummer() throws Throwable {
-		return new FilterKriteriumDirekt(RechnungFac.FLR_RECHNUNG_C_NR, "",
-				FilterKriterium.OPERATOR_LIKE, "Gutschrift",
+		return new FilterKriteriumDirekt(RechnungFac.FLR_RECHNUNG_C_NR, "", FilterKriterium.OPERATOR_LIKE, "Gutschrift",
 				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
 				true, // wrapWithSingleQuotes
 				false, Facade.MAX_UNBESCHRAENKT);
@@ -156,51 +153,41 @@ public class RechnungFilterFactory {
 	 * @return FilterKriteriumDirekt
 	 */
 	public FilterKriteriumDirekt createFKDKundename() throws Throwable {
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
-						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
+						ParameterFac.KATEGORIE_PARTNER, LPMain.getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
-			return new FilterKriteriumDirekt(RechnungFac.FLR_RECHNUNG_FLRKUNDE
-					+ "." + KundeFac.FLR_PARTNER + "."
-					+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain
-							.getTextRespectUISPr("label.kunde"),
-					FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als 'XX%'
+			return new FilterKriteriumDirekt(
+					RechnungFac.FLR_RECHNUNG_FLRKUNDE + "." + KundeFac.FLR_PARTNER + "."
+							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+					"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("label.kunde"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH, // Auswertung
+																	// als 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT);
 		} else {
-			return new FilterKriteriumDirekt(RechnungFac.FLR_RECHNUNG_FLRKUNDE
-					+ "." + KundeFac.FLR_PARTNER + "."
-					+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain
-							.getTextRespectUISPr("label.kunde"),
-					FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als
-															// 'XX%'
+			return new FilterKriteriumDirekt(
+					RechnungFac.FLR_RECHNUNG_FLRKUNDE + "." + KundeFac.FLR_PARTNER + "."
+							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+					"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("label.kunde"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING, // Auswertung
+																		// als
+					// 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT);
 		}
 	}
 
-	
 	public FilterKriteriumDirekt createFKDProjekt() throws Throwable {
-		return new FilterKriteriumDirekt("c_bez", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain
-						.getTextRespectUISPr("label.projekt"),
-				FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als '%XX'
-				true, // wrapWithSingleQuotes
-				false, Facade.MAX_UNBESCHRAENKT); // ignore case
+		return new FilterKriteriumDirekt("c_bez", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("label.projektbestellnr"), FilterKriteriumDirekt.EXTENDED_SEARCH, false, // wrapWithSingleQuotes
+				true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
-	
-	public FilterKriterium[] createFKRechnungKey(Integer artikelIId)
-			throws Throwable {
+
+	public FilterKriterium[] createFKRechnungKey(Integer artikelIId) throws Throwable {
 		// Handartikel nicht anzeigen
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		kriterien[0] = new FilterKriterium("i_id", true, artikelIId + "",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		kriterien[0] = new FilterKriterium("i_id", true, artikelIId + "", FilterKriterium.OPERATOR_EQUAL, false);
 
 		return kriterien;
 	}
@@ -212,11 +199,17 @@ public class RechnungFilterFactory {
 	 */
 	public FilterKriteriumDirekt createFKDKundestatistikadresse() {
 		return new FilterKriteriumDirekt(
-				RechnungFac.FLR_RECHNUNG_FLRSTATISTIKADRESSE + "."
-						+ KundeFac.FLR_PARTNER + "."
-						+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain
-						.getTextRespectUISPr("label.statistikadresse"),
+				RechnungFac.FLR_RECHNUNG_FLRSTATISTIKADRESSE + "." + KundeFac.FLR_PARTNER + "."
+						+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+				"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("label.statistikadresse"),
+				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als 'XX%'
+				true, // wrapWithSingleQuotes
+				true, Facade.MAX_UNBESCHRAENKT);
+	}
+
+	public FilterKriteriumDirekt createFKDDebitorenkonto() {
+		return new FilterKriteriumDirekt(RechnungFac.FLR_RECHNUNG_FLRKUNDE + "." + KundeFac.FLR_KONTO + ".c_nr", "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.debitorennummer"),
 				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als 'XX%'
 				true, // wrapWithSingleQuotes
 				true, Facade.MAX_UNBESCHRAENKT);
@@ -226,22 +219,17 @@ public class RechnungFilterFactory {
 	 * Default Filter Kriterien fuer eine Liste von Rechnungtexten
 	 * 
 	 * @return FilterKriterium[] Default Filter Kriterien
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
 	public FilterKriterium[] createFKRechnungtext() throws Throwable {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
 
-		FilterKriterium krit1 = new FilterKriterium(
-				RechnungServiceFac.FLR_RECHNUNGTEXT_MANDANT_C_NR, true, "'"
-						+ LPMain.getTheClient().getMandant() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(RechnungServiceFac.FLR_RECHNUNGTEXT_MANDANT_C_NR, true,
+				"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
-		FilterKriterium krit2 = new FilterKriterium(
-				RechnungServiceFac.FLR_RECHNUNGTEXT_LOCALE_C_NR, true, "'"
-						+ LPMain.getTheClient().getLocUiAsString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit2 = new FilterKriterium(RechnungServiceFac.FLR_RECHNUNGTEXT_LOCALE_C_NR, true,
+				"'" + LPMain.getTheClient().getLocUiAsString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
 		kriterien[1] = krit2;
@@ -249,19 +237,23 @@ public class RechnungFilterFactory {
 		return kriterien;
 	}
 
+	public FilterKriterium[] createFKVerrechnungsmodelltag(Integer verrechnungsmodel_i_id) {
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		FilterKriterium krit1 = new FilterKriterium("flrverrechnungsmodell.i_id", true, verrechnungsmodel_i_id + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
+		kriterien[0] = krit1;
+		return kriterien;
+	}
+
 	public FilterKriterium[] createFKGutschrifttext() throws Throwable {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
 
-		FilterKriterium krit1 = new FilterKriterium(
-				RechnungServiceFac.FLR_GUTSCHRIFTTEXT_MANDANT_C_NR, true, "'"
-						+ LPMain.getTheClient().getMandant() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(RechnungServiceFac.FLR_GUTSCHRIFTTEXT_MANDANT_C_NR, true,
+				"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
-		FilterKriterium krit2 = new FilterKriterium(
-				RechnungServiceFac.FLR_GUTSCHRIFTTEXT_LOCALE_C_NR, true, "'"
-						+ LPMain.getTheClient().getLocUiAsString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit2 = new FilterKriterium(RechnungServiceFac.FLR_GUTSCHRIFTTEXT_LOCALE_C_NR, true,
+				"'" + LPMain.getTheClient().getLocUiAsString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
 		kriterien[1] = krit2;
@@ -273,38 +265,43 @@ public class RechnungFilterFactory {
 		FilterKriterium[] filters = new FilterKriterium[2];
 		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
 		filters[1] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "."
-						+ RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
-				"'" + RechnungFac.RECHNUNGTYP_RECHNUNG + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." + RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
+				"'" + RechnungFac.RECHNUNGTYP_RECHNUNG + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
-
-	public FilterKriterium[] createFKRechnungenOffen() throws Throwable {
-		FilterKriterium[] filters = new FilterKriterium[2];
-		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
-		filters[1] = new FilterKriterium(
-		/*
-		 * RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." +
-		 */RechnungFac.FLR_RECHNUNG_STATUS_C_NR, true, "'"
-				+ RechnungFac.STATUS_OFFEN + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
-		return filters;
-	}
-
-	public FilterKriterium[] createFKRechnungenEinesKunden(Integer kundeIId)
-			throws Throwable {
+	public FilterKriterium[] createFKRechnungenNurAngelegte() throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[3];
 		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
-		filters[1] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_FLRKUNDE
-				+ ".i_id", true, kundeIId + "", FilterKriterium.OPERATOR_EQUAL,
-				false);
+		filters[1] = new FilterKriterium(
+				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." + RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
+				"'" + RechnungFac.RECHNUNGTYP_RECHNUNG + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		filters[2] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_STATUS_C_NR, true,
+"'" + RechnungFac.STATUS_ANGELEGT + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		return filters;
+	}
+	public FilterKriterium[] createFKRechnungenOffen() throws Throwable {
+		FilterKriterium[] filters = new FilterKriterium[3];
+		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
+		filters[1] = new FilterKriterium(/*
+											 * RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." +
+											 */RechnungFac.FLR_RECHNUNG_STATUS_C_NR, true,
+				"'" + RechnungFac.STATUS_OFFEN + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		filters[2] = new FilterKriterium(
+				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." + RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
+				"'" + RechnungFac.RECHNUNGTYP_RECHNUNG + "'", FilterKriterium.OPERATOR_EQUAL, false);
+
+		return filters;
+	}
+
+	public FilterKriterium[] createFKRechnungenEinesKunden(Integer kundeIId) throws Throwable {
+		FilterKriterium[] filters = new FilterKriterium[3];
+		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
+		filters[1] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_FLRKUNDE + ".i_id", true, kundeIId + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
 
 		filters[2] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "."
-						+ RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
-				"'" + RechnungFac.RECHNUNGTYP_RECHNUNG + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." + RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
+				"'" + RechnungFac.RECHNUNGTYP_RECHNUNG + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
 
@@ -312,20 +309,17 @@ public class RechnungFilterFactory {
 		FilterKriterium[] filters = new FilterKriterium[2];
 		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
 		filters[1] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "."
-						+ RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
-				"'" + RechnungFac.RECHNUNGTYP_GUTSCHRIFT + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." + RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
+				"'" + RechnungFac.RECHNUNGTYP_GUTSCHRIFT + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
+
 	public FilterKriterium[] createFKMahnsperren(java.sql.Date dateMahnlauf) throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[2];
 		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
-		filters[1] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNG_T_MAHNSPERREBIS, true,
-				"'" + Helper.formatDateWithSlashes(dateMahnlauf) + "'",
-				FilterKriterium.OPERATOR_GT, false);
-	
+		filters[1] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_T_MAHNSPERREBIS, true,
+				"'" + Helper.formatDateWithSlashes(dateMahnlauf) + "'", FilterKriterium.OPERATOR_GT, false);
+
 		return filters;
 	}
 
@@ -333,110 +327,90 @@ public class RechnungFilterFactory {
 		FilterKriterium[] filters = new FilterKriterium[2];
 		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
 		filters[1] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "."
-						+ RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
-				"'" + RechnungFac.RECHNUNGTYP_PROFORMARECHNUNG + "'",
+				RechnungFac.FLR_RECHNUNG_FLRRECHNUNGART + "." + RechnungFac.FLR_RECHNUNGART_RECHNUNGTYP_C_NR, true,
+				"'" + RechnungFac.RECHNUNGTYP_PROFORMARECHNUNG + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		return filters;
+	}
+
+	public FilterKriterium[] createFKZahlungen(Integer rechnungIId) throws Throwable {
+		FilterKriterium[] filters = new FilterKriterium[1];
+		filters[0] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_ZAHLUNG_RECHNUNG_I_ID, true, rechnungIId + "",
 				FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
 
-	public FilterKriterium[] createFKZahlungen(Integer rechnungIId)
-			throws Throwable {
+	public FilterKriterium[] createFKAuftrag(Integer auftragIId) throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNG_ZAHLUNG_RECHNUNG_I_ID, true,
-				rechnungIId + "", FilterKriterium.OPERATOR_EQUAL, false);
+		filters[0] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_AUFTRAG_I_ID, true, auftragIId + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
 
-	public FilterKriterium[] createFKAuftrag(Integer auftragIId)
-			throws Throwable {
+	public FilterKriterium[] createFKRechnungpositionen(Integer rechnungIId) throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_AUFTRAG_I_ID,
-				true, auftragIId + "", FilterKriterium.OPERATOR_EQUAL, false);
+		filters[0] = new FilterKriterium(RechnungFac.FLR_RECHNUNGPOSITION_RECHNUNG_I_ID, true, "'" + rechnungIId + "'",
+				FilterKriterium.OPERATOR_LIKE, false);
 		return filters;
 	}
 
-	public FilterKriterium[] createFKRechnungpositionen(Integer rechnungIId)
-			throws Throwable {
+	public FilterKriterium[] createFKRechnungpositionenQuery(Integer rechnungIId) throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNGPOSITION_RECHNUNG_I_ID, true, "'"
-						+ rechnungIId + "'", FilterKriterium.OPERATOR_LIKE,
-				false);
+		filters[0] = new FilterKriterium(RechnungFac.FLR_RECHNUNGPOSITION_RECHNUNG_I_ID, true, "" + rechnungIId,
+				FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
 
-	public FilterKriterium[] createFKRechnungpositionenQuery(Integer rechnungIId)
-			throws Throwable {
+	public FilterKriterium[] createFKRechnungkontierung(Integer rechnungIId) throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNGPOSITION_RECHNUNG_I_ID, true, ""
-						+ rechnungIId, FilterKriterium.OPERATOR_EQUAL, false);
-		return filters;
-	}
-
-	public FilterKriterium[] createFKRechnungkontierung(Integer rechnungIId)
-			throws Throwable {
-		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(
-				RechnungFac.FLR_KONTIERUNG_RECHNUNG_I_ID, true, rechnungIId
-						+ "", FilterKriterium.OPERATOR_EQUAL, false);
+		filters[0] = new FilterKriterium(RechnungFac.FLR_KONTIERUNG_RECHNUNG_I_ID, true, rechnungIId + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
 
 	public QueryType[] createQTRechnungpositionen() {
 		QueryType[] types = new QueryType[2];
 
-		FilterKriterium f1 = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNGPOSITION_C_BEZ, true, "",
+		FilterKriterium f1 = new FilterKriterium(RechnungFac.FLR_RECHNUNGPOSITION_C_BEZ, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain
-				.getTextRespectUISPr("rechnung.bezeichnung"), f1,
+		types[0] = new QueryType(LPMain.getTextRespectUISPr("rechnung.bezeichnung"), f1,
 				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
 
-		FilterKriterium f2 = new FilterKriterium(
-				RechnungFac.FLR_RECHNUNGPOSITION_C_ZUSATZBEZEICHNUNG, true, "",
+		FilterKriterium f2 = new FilterKriterium(RechnungFac.FLR_RECHNUNGPOSITION_C_ZUSATZBEZEICHNUNG, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
-		types[1] = new QueryType(LPMain
-				.getTextRespectUISPr("rechnung.lieferbezeichnung"), f2,
+		types[1] = new QueryType(LPMain.getTextRespectUISPr("rechnung.lieferbezeichnung"), f2,
 				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
 		return types;
 	}
 
-	public FilterKriterium createFKKriteriumKalenderjahr(boolean isSelectedI,
-			String sJahrI) throws Throwable {
+	public FilterKriterium createFKKriteriumKalenderjahr(boolean isSelectedI, String sJahrI) throws Throwable {
 		FilterKriterium[] filter = new FilterKriterium[1];
-		filter[0] = new FilterKriterium(RechnungFac.KRIT_JAHR_KALENDERJAHR,
-				isSelectedI, sJahrI, FilterKriterium.OPERATOR_EQUAL, false);
+		filter[0] = new FilterKriterium(RechnungFac.KRIT_JAHR_KALENDERJAHR, isSelectedI, sJahrI,
+				FilterKriterium.OPERATOR_EQUAL, false);
 
 		return filter[0];
 	}
 
-	public FilterKriterium createFKKriteriumGeschaeftsjahr(boolean isSelectedI,
-			String sJahrI) throws Throwable {
+	public FilterKriterium createFKKriteriumGeschaeftsjahr(boolean isSelectedI, String sJahrI) throws Throwable {
 		FilterKriterium[] filter = new FilterKriterium[1];
-		filter[0] = new FilterKriterium(RechnungFac.KRIT_JAHR_GESCHAEFTSJAHR,
-				isSelectedI, sJahrI, FilterKriterium.OPERATOR_EQUAL, false);
+		filter[0] = new FilterKriterium(RechnungFac.KRIT_JAHR_GESCHAEFTSJAHR, isSelectedI, sJahrI,
+				FilterKriterium.OPERATOR_EQUAL, false);
 
 		return filter[0];
 	}
 
-	public FilterKriterium createFKKriteriumMitGutschriften(
-			boolean isSelectedI, String sJahrI) throws Throwable {
+	public FilterKriterium createFKKriteriumMitGutschriften(boolean isSelectedI, String sJahrI) throws Throwable {
 		FilterKriterium[] filter = new FilterKriterium[1];
-		filter[0] = new FilterKriterium(RechnungFac.KRIT_MIT_GUTSCHRIFTEN,
-				isSelectedI, sJahrI, FilterKriterium.OPERATOR_EQUAL, false);
+		filter[0] = new FilterKriterium(RechnungFac.KRIT_MIT_GUTSCHRIFTEN, isSelectedI, sJahrI,
+				FilterKriterium.OPERATOR_EQUAL, false);
 
 		return filter[0];
 	}
 
-	public FilterKriterium createFKKriteriumOhneGutschriften(
-			boolean isSelectedI, String sJahrI) throws Throwable {
+	public FilterKriterium createFKKriteriumOhneGutschriften(boolean isSelectedI, String sJahrI) throws Throwable {
 		FilterKriterium[] filter = new FilterKriterium[1];
-		filter[0] = new FilterKriterium(RechnungFac.KRIT_OHNE_GUTSCHRIFTEN,
-				isSelectedI, sJahrI, FilterKriterium.OPERATOR_EQUAL, false);
+		filter[0] = new FilterKriterium(RechnungFac.KRIT_OHNE_GUTSCHRIFTEN, isSelectedI, sJahrI,
+				FilterKriterium.OPERATOR_EQUAL, false);
 
 		return filter[0];
 	}
@@ -445,15 +419,49 @@ public class RechnungFilterFactory {
 
 		FilterKriterium[] fk = new FilterKriterium[1];
 
-		fk[0] = new FilterKriterium(
-				AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAGPOSITIONSTATUS_C_NR,
-				true, "'" + AuftragServiceFac.AUFTRAGPOSITIONSTATUS_ERLEDIGT
-						+ "'", FilterKriterium.OPERATOR_NOT_EQUAL, false);
+		fk[0] = new FilterKriterium(AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAGPOSITIONSTATUS_C_NR, true,
+				"'" + AuftragServiceFac.AUFTRAGPOSITIONSTATUS_ERLEDIGT + "'", FilterKriterium.OPERATOR_NOT_EQUAL,
+				false);
 		return fk;
 	}
 
-	protected FilterKriterium[] createFKRechnungSichtAuftrag(
-			RechnungDto oRechnungDtoI, Integer iIdAuftragI) {
+	
+	protected FilterKriterium[] createFKRechnungSichtAnzahlungsposition(RechnungDto oRechnungDtoI, Integer iIdAuftragI) {
+		FilterKriterium[] kriterien = null;
+
+		if (oRechnungDtoI != null && oRechnungDtoI.getIId() != null) {
+			if (iIdAuftragI != null) {
+				kriterien = new FilterKriterium[3];
+
+				FilterKriterium krit1 = new FilterKriterium(
+						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID, true, iIdAuftragI.toString(),
+						FilterKriterium.OPERATOR_EQUAL, false);
+
+				kriterien[0] = krit1;
+				
+				
+				kriterien[1] = new FilterKriterium("RECHNUNG_I_ID", false, oRechnungDtoI.getIId()+"",
+						FilterKriterium.OPERATOR_EQUAL, false);
+				
+				kriterien[2] = new FilterKriterium(AuftragpositionFac.FLR_AUFTRAGPOSITION_FLRARTIKEL+".i_id", true, "",
+						FilterKriterium.OPERATOR_IS +" "+FilterKriterium.OPERATOR_NOT_NULL, false);
+
+			} else {
+				// der FLR muss immer eine leere Liste liefern
+				kriterien = new FilterKriterium[1];
+
+				FilterKriterium krit1 = new FilterKriterium(
+						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID, true, String.valueOf(-1),
+						 FilterKriterium.OPERATOR_EQUAL, false);
+
+				kriterien[0] = krit1;
+			}
+		}
+
+		return kriterien;
+	}
+	
+	protected FilterKriterium[] createFKRechnungSichtAuftrag(RechnungDto oRechnungDtoI, Integer iIdAuftragI) {
 		FilterKriterium[] kriterien = null;
 
 		if (oRechnungDtoI != null && oRechnungDtoI.getIId() != null) {
@@ -461,8 +469,7 @@ public class RechnungFilterFactory {
 				kriterien = new FilterKriterium[1];
 
 				FilterKriterium krit1 = new FilterKriterium(
-						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID,
-						true, iIdAuftragI.toString(),
+						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID, true, iIdAuftragI.toString(),
 						FilterKriterium.OPERATOR_EQUAL, false);
 
 				kriterien[0] = krit1;
@@ -472,8 +479,7 @@ public class RechnungFilterFactory {
 				kriterien = new FilterKriterium[1];
 
 				FilterKriterium krit1 = new FilterKriterium(
-						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID,
-						true, String.valueOf(-1),
+						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID, true, String.valueOf(-1),
 						FilterKriterium.OPERATOR_EQUAL, false);
 
 				kriterien[0] = krit1;
@@ -484,70 +490,69 @@ public class RechnungFilterFactory {
 	}
 
 	/**
-	 * @param iIdRechnungI
-	 *            PK der Rechnung
+	 * @param iIdRechnungI PK der Rechnung
 	 * @return FilterKriterium[] die Kriterien
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public FilterKriterium[] createFKAuftraegeEinerRechnung(Integer iIdRechnungI)
-			throws Throwable {
+	public FilterKriterium[] createFKAuftraegeEinerRechnung(Integer iIdRechnungI) throws Throwable {
 		FilterKriterium[] kriterien = null;
 
 		if (iIdRechnungI != null) {
 			kriterien = new FilterKriterium[2];
 
-			kriterien[0] = new FilterKriterium("rechnung_i_id", true, iIdRechnungI
-							.toString(), FilterKriterium.OPERATOR_EQUAL, false);
-			
-			kriterien[1] = new FilterKriterium("auftragposition_i_id", true, "", FilterKriterium.OPERATOR_IS + " "
-							+ FilterKriterium.OPERATOR_NOT_NULL, false);
+			kriterien[0] = new FilterKriterium("rechnung_i_id", true, iIdRechnungI.toString(),
+					FilterKriterium.OPERATOR_EQUAL, false);
+
+			kriterien[1] = new FilterKriterium("auftragposition_i_id", true, "",
+					FilterKriterium.OPERATOR_IS + " " + FilterKriterium.OPERATOR_NOT_NULL, false);
 		}
 
 		return kriterien;
 	}
 
-	public PanelQueryFLR createPanelFLRRechnung(InternalFrame internalFrameI,
-			Integer rechnungIId) throws Throwable {
+	public PanelQueryFLR createPanelFLRRechnung(InternalFrame internalFrameI, Integer rechnungIId) throws Throwable {
 		// String[] aWhichButtonIUse = {
 		// PanelBasis.ACTION_REFRESH,
 		// };
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(false, true);
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(false, true);
 
 		FilterKriterium[] filters = createFKRechnungen();
-		PanelQueryFLR panelQueryFLRRechnung = new PanelQueryFLR(null, filters,
-				QueryParameters.UC_ID_RECHNUNG, aWhichButtonIUse,
-				internalFrameI, "Liste der Rechnungen");
+		PanelQueryFLR panelQueryFLRRechnung = new PanelQueryFLR(null, filters, QueryParameters.UC_ID_RECHNUNG,
+				aWhichButtonIUse, internalFrameI, "Liste der Rechnungen");
 
-		panelQueryFLRRechnung.befuellePanelFilterkriterienDirekt(
-				createFKDRechnungnummer(), createFKDKundename());
+		
+		panelQueryFLRRechnung.befuelleFilterkriteriumSchnellansicht(createFKSchnellansicht());
+		
+		panelQueryFLRRechnung.befuellePanelFilterkriterienDirekt(createFKDRechnungnummer(), createFKDKundename());
 		panelQueryFLRRechnung.addDirektFilter(createFKDKundestatistikadresse());
-
+		panelQueryFLRRechnung.addDirektFilter(createFKDTextSuchen());
+		panelQueryFLRRechnung.eventActionRefresh(null, true);
 		if (rechnungIId != null) {
 			panelQueryFLRRechnung.setSelectedId(rechnungIId);
 		}
 		return panelQueryFLRRechnung;
 	}
 
-	public PanelQueryFLR createPanelFLRRechnungOffen(
-			InternalFrame internalFrameI, Integer rechnungIId) throws Throwable {
+	public PanelQueryFLR createPanelFLRRechnungOffen(InternalFrame internalFrameI, boolean bNurOffene,
+			boolean bShowLeerenButton, Integer rechnungIId) throws Throwable {
 		// String[] aWhichButtonIUse = {
 		// PanelBasis.ACTION_REFRESH,
 		// };
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(false, true);
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(false, bShowLeerenButton);
 
 		FilterKriterium[] filters = createFKRechnungen();
-		PanelQueryFLR panelQueryFLRRechnung = new PanelQueryFLR(null, filters,
-				QueryParameters.UC_ID_RECHNUNG, aWhichButtonIUse,
-				internalFrameI, "Liste der Rechnungen");
-		panelQueryFLRRechnung
-				.befuelleFilterkriteriumSchnellansicht(RechnungFilterFactory
-						.getInstance().createFKSchnellansicht());
-		panelQueryFLRRechnung.befuellePanelFilterkriterienDirekt(
-				createFKDRechnungnummer(), createFKDKundename());
+		if (bNurOffene) {
+			filters = createFKRechnungenOffen();
+		}
+
+		PanelQueryFLR panelQueryFLRRechnung = new PanelQueryFLR(null, filters, QueryParameters.UC_ID_RECHNUNG,
+				aWhichButtonIUse, internalFrameI, "Liste der Rechnungen");
+		if (bNurOffene == false) {
+			panelQueryFLRRechnung.befuelleFilterkriteriumSchnellansicht(createFKSchnellansicht());
+		}
+		panelQueryFLRRechnung.befuellePanelFilterkriterienDirekt(createFKDRechnungnummer(), createFKDKundename());
 		panelQueryFLRRechnung.addDirektFilter(createFKDKundestatistikadresse());
+		panelQueryFLRRechnung.addDirektFilter(createFKDTextSuchen());
 		panelQueryFLRRechnung.eventActionRefresh(null, true);
 
 		if (rechnungIId != null) {
@@ -556,18 +561,16 @@ public class RechnungFilterFactory {
 		return panelQueryFLRRechnung;
 	}
 
-	public PanelQueryFLR createPanelFLRRechnungenEinesKunden(
-			InternalFrame internalFrameI, Integer kundeIId_Rechnungsadresse,
-			Integer rechnungIId) throws Throwable {
+	public PanelQueryFLR createPanelFLRRechnungenEinesKunden(InternalFrame internalFrameI,
+			Integer kundeIId_Rechnungsadresse, Integer rechnungIId) throws Throwable {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, };
 		FilterKriterium[] filters = createFKRechnungenEinesKunden(kundeIId_Rechnungsadresse);
-		PanelQueryFLR panelQueryFLRRechnung = new PanelQueryFLR(null, filters,
-				QueryParameters.UC_ID_RECHNUNG, aWhichButtonIUse,
-				internalFrameI, "Liste der Rechnungen");
+		PanelQueryFLR panelQueryFLRRechnung = new PanelQueryFLR(null, filters, QueryParameters.UC_ID_RECHNUNG,
+				aWhichButtonIUse, internalFrameI, "Liste der Rechnungen");
 
-		panelQueryFLRRechnung.befuellePanelFilterkriterienDirekt(
-				createFKDRechnungnummer(), createFKDKundename());
+		panelQueryFLRRechnung.befuellePanelFilterkriterienDirekt(createFKDRechnungnummer(), createFKDKundename());
 		panelQueryFLRRechnung.addDirektFilter(createFKDKundestatistikadresse());
+		panelQueryFLRRechnung.addDirektFilter(createFKDTextSuchen());
 
 		if (rechnungIId != null) {
 			panelQueryFLRRechnung.setSelectedId(rechnungIId);
@@ -575,12 +578,10 @@ public class RechnungFilterFactory {
 		return panelQueryFLRRechnung;
 	}
 
-	public PanelQueryFLR createPanelFLRGutschriftsgrund(
-			InternalFrame internalFrame, Integer integer) throws Throwable {
+	public PanelQueryFLR createPanelFLRGutschriftsgrund(InternalFrame internalFrame, Integer integer) throws Throwable {
 
-		PanelQueryFLR panelQueryGutschriftgrund = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_GUTSCHRIFTGRUND, null, internalFrame,
-				LPMain.getTextRespectUISPr("rechnung.gutschriftsgrund"), true); // liste
+		PanelQueryFLR panelQueryGutschriftgrund = new PanelQueryFLR(null, null, QueryParameters.UC_ID_GUTSCHRIFTGRUND,
+				null, internalFrame, LPMain.getTextRespectUISPr("rechnung.gutschriftsgrund"), true); // liste
 		// refresh
 		// wenn
 		// lasche
@@ -593,14 +594,50 @@ public class RechnungFilterFactory {
 		return panelQueryGutschriftgrund;
 	}
 
+	public PanelQueryFLR createPanelFLRVerrechnungsmodell(InternalFrame internalFrame, Integer integer,
+			boolean bMitLeerenButton) throws Throwable {
+		String[] aWhichButtonIUse = null;
+		if (bMitLeerenButton) {
+
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
+		} else {
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH };
+
+		}
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		kriterien[0] = new FilterKriterium("mandant_c_nr", true, "'" + LPMain.getTheClient().getMandant() + "'",
+				FilterKriterium.OPERATOR_EQUAL, false);
+
+		PanelQueryFLR panelQuery = new PanelQueryFLR(null, kriterien, QueryParameters.UC_ID_VERRECHNUNGSMODELL,
+				aWhichButtonIUse, internalFrame, LPMain.getTextRespectUISPr("rech.verrechnungmodell"), true); // liste
+
+		if (integer != null) {
+			panelQuery.setSelectedId(integer);
+		}
+
+		return panelQuery;
+	}
+
 	public FilterKriterium[] createFKSchnellansicht() throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_STATUS_C_NR,
-				true, "('" + RechnungFac.STATUS_STORNIERT + "','"
-						+ RechnungFac.STATUS_BEZAHLT + "')",
+		filters[0] = new FilterKriterium(RechnungFac.FLR_RECHNUNG_STATUS_C_NR, true,
+				"('" + RechnungFac.STATUS_STORNIERT + "','" + RechnungFac.STATUS_BEZAHLT + "')",
 				FilterKriterium.OPERATOR_NOT_IN, false);
 
 		return filters;
+	}
+
+	/**
+	 * Direktes Filter Kriterium TextSuche PanelRechnungAuswahl.
+	 * 
+	 * @return FilterKriteriumDirekt
+	 * @throws Throwable
+	 */
+	public FilterKriteriumDirekt createFKDTextSuchen() throws Throwable {
+
+		return new FilterKriteriumDirekt("c_suche", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.textsuche"), FilterKriteriumDirekt.EXTENDED_SEARCH, false, // wrapWithSingleQuotes
+				true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
 }

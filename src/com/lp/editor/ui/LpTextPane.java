@@ -56,26 +56,26 @@ public class LpTextPane
 	 */
 	private static final long serialVersionUID = 1L;
 
-public String getText(int pos, int length) throws BadLocationException {
-    String txt;
-    try {
-      StringWriter buf = new StringWriter();
+//public String getText(int pos, int length) throws BadLocationException {
+//    String txt;
+//    try {
+//      StringWriter buf = new StringWriter();
+//
+//      StyledDocument doc = getStyledDocument();
+//
+//      getUI().getEditorKit(this).write(buf, doc, pos, length);
+//
+//      txt = buf.toString();
+//    }
+//    catch (IOException ioe) {
+//      txt = null;
+//    }
+//
+//    return txt;
+//  }
 
-      StyledDocument doc = getStyledDocument();
-
-      getUI().getEditorKit(this).write(buf, doc, pos, length);
-
-      txt = buf.toString();
-    }
-    catch (IOException ioe) {
-      txt = null;
-    }
-
-    return txt;
-  }
-
-  public void repaint(int x, int y, int width, int height) {
-    super.repaint(0,0,getWidth(),getHeight());
-  }
+//  public void repaint(int x, int y, int width, int height) {
+//    super.repaint(0,0,getWidth(),getHeight());
+//  }
 
 }

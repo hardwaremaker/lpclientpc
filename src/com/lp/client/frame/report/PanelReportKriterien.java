@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame.report;
@@ -43,6 +43,8 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.print.PrinterException;
 import java.beans.PropertyChangeEvent;
@@ -51,17 +53,14 @@ import java.beans.VetoableChangeListener;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.ResourceBundle;
+import java.util.Optional;
 
 import javax.print.PrintService;
 import javax.print.PrintServiceLookup;
@@ -76,36 +75,26 @@ import javax.swing.AbstractButton;
 import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
+import javax.swing.JToggleButton;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.filechooser.FileFilter;
 
-import net.sf.jasperreports.engine.JRException;
-import net.sf.jasperreports.engine.JRExporterParameter;
-import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.export.JRPrintServiceExporter;
-import net.sf.jasperreports.engine.export.JRPrintServiceExporterParameter;
-import net.sf.jasperreports.engine.type.OrientationEnum;
-import net.sf.jasperreports.engine.util.JRClassLoader;
-import net.sf.jasperreports.view.JRSaveContributor;
-import net.sf.jasperreports.view.save.JRPdfSaveContributor;
-import net.sf.jasperreports.view.save.JRPrintSaveContributor;
-
-import com.lp.client.bestellung.ReportWepEtikett;
+import com.lp.client.angebot.InternalFrameAngebot;
+import com.lp.client.auftrag.InternalFrameAuftrag;
+import com.lp.client.bestellung.InternalFrameBestellung;
 import com.lp.client.bestellung.ReportWepEtikett2;
 import com.lp.client.eingangsrechnung.ReportEingangsrechnung;
+import com.lp.client.frame.AttachmentDialog;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.DialogError;
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.IControl;
 import com.lp.client.frame.component.InternalFrame;
@@ -114,17 +103,30 @@ import com.lp.client.frame.component.PanelDialog;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperComboBoxPeriode;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperSelectField;
+import com.lp.client.frame.component.WrapperSpinner;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.ChooserSaveDialogJasper;
+import com.lp.client.frame.filechooser.FileChooserBuilder;
+import com.lp.client.frame.filechooser.WrapperSaveFileChooser;
+import com.lp.client.lieferschein.InternalFrameLieferschein;
 import com.lp.client.pc.LPMain;
+import com.lp.client.rechnung.IOpenTransBeleg;
+import com.lp.client.rechnung.InternalFrameRechnung;
+import com.lp.client.util.ExcFactory;
 import com.lp.client.zeiterfassung.ReportWochenabschluss;
+import com.lp.server.artikel.service.ArtikelReportFac;
+import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.bestellung.service.OpenTransXmlReportResult;
 import com.lp.server.partner.service.PartnerDto;
+import com.lp.server.rechnung.service.ZugferdResult;
 import com.lp.server.system.jcr.service.DokumentnichtarchiviertDto;
 import com.lp.server.system.jcr.service.JCRDocDto;
 import com.lp.server.system.jcr.service.JCRDocFac;
@@ -149,12 +151,19 @@ import com.lp.util.HVPDFExporter;
 import com.lp.util.Helper;
 import com.lp.util.LPDatenSubreport;
 
-public class PanelReportKriterien extends PanelDialog implements
-		VetoableChangeListener {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JRExporterParameter;
+import net.sf.jasperreports.engine.JRPrintPage;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.export.JRPrintServiceExporter;
+import net.sf.jasperreports.engine.export.JRPrintServiceExporterParameter;
+import net.sf.jasperreports.engine.type.OrientationEnum;
+
+public class PanelReportKriterien extends PanelDialog implements VetoableChangeListener {
+	private static final long serialVersionUID = -2100850848872925207L;
+
+	private javax.swing.Timer timer = null;
+
 	private PanelStandardDrucker panelStandardDrucker = null;
 	private PanelVersandEmail panelVersandEmail = null;
 	private PanelVersandFax panelVersandFax = null;
@@ -192,44 +201,43 @@ public class PanelReportKriterien extends PanelDialog implements
 
 	private PanelReportKriterienOptions options;
 
-	private static final String ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_preview";
-	private static final String ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_fullscreen";
-	private static final String ACTION_SPECIAL_DRUCKEN = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_drucken";
-	private static final String ACTION_SPECIAL_EMAIL = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_email";
-	private static final String ACTION_SPECIAL_FAX = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_fax";
-	private static final String ACTION_SPECIAL_CSV = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_csv";
-	private static final String ACTION_SPECIAL_SAVE = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_save";
-	private static final String ACTION_SPECIAL_ERWEITERT = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_erweitert";
-	private static final String ACTION_SPECIAL_DRUCKER_SPEICHERN = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_drucker_speichern";
-	private static final String ACTION_SPECIAL_DRUCKER_LOESCHEN = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_drucker_loeschen";
+	private static final String ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW = "action_special_" + ALWAYSENABLED
+			+ "reportkriterien_preview";
+	private static final String ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN = "action_special_" + ALWAYSENABLED
+			+ "reportkriterien_fullscreen";
+	private static final String ACTION_SPECIAL_DRUCKEN = "action_special_" + ALWAYSENABLED + "reportkriterien_drucken";
+	private static final String ACTION_SPECIAL_EMAIL = "action_special_" + ALWAYSENABLED + "reportkriterien_email";
+	private static final String ACTION_SPECIAL_FAX = "action_special_" + ALWAYSENABLED + "reportkriterien_fax";
+	private static final String ACTION_SPECIAL_CSV = "action_special_" + ALWAYSENABLED + "reportkriterien_csv";
+	private static final String ACTION_SPECIAL_SAVE = "action_special_" + ALWAYSENABLED + "reportkriterien_save";
+	private static final String ACTION_SPECIAL_ERWEITERT = "action_special_" + ALWAYSENABLED
+			+ "reportkriterien_erweitert";
+	private static final String ACTION_SPECIAL_DRUCKER_SPEICHERN = "action_special_" + ALWAYSENABLED
+			+ "reportkriterien_drucker_speichern";
+	private static final String ACTION_SPECIAL_DRUCKER_LOESCHEN = "action_special_" + ALWAYSENABLED
+			+ "reportkriterien_drucker_loeschen";
 
-	private static final String ACTION_COPY_TO_CLIPBOARD = "action_special_"
-			+ ALWAYSENABLED + "reportkriterien_copy_to_clipboard";
+	private static final String ACTION_COPY_TO_CLIPBOARD = "action_special_" + ALWAYSENABLED
+			+ "reportkriterien_copy_to_clipboard";
 
-	public PanelReportKriterien(InternalFrame internalFrame,
-			PanelReportIfJRDS panelReportIf, String addTitleI,
-			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId,
-			boolean bDirekt, boolean bMitEmailFax, boolean bNurVorschau)
-			throws Throwable {
-		this(internalFrame, panelReportIf, addTitleI, partnerDtoEmpfaenger,
-				ansprechpartnerIId, bDirekt, bMitEmailFax, bNurVorschau, true);
+	public PanelReportKriterien(InternalFrame internalFrame, PanelReportIfJRDS panelReportIf, String addTitleI,
+			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId, boolean bDirekt, boolean bMitEmailFax,
+			boolean bNurVorschau) throws Throwable {
+		this(internalFrame, panelReportIf, addTitleI, partnerDtoEmpfaenger, ansprechpartnerIId, bDirekt, bMitEmailFax,
+				bNurVorschau, true);
 	}
 
-	public PanelReportKriterien(InternalFrame internalFrame,
-			PanelReportIfJRDS panelReportIf, String addTitleI,
-			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId,
-			boolean bDirekt, boolean bMitEmailFax, boolean bNurVorschau,
-			boolean mitExitButton) throws Throwable {
+	public void setzeTimer(int timeInMillis) {
+		timer = new javax.swing.Timer(timeInMillis, this);
+
+		timer.setInitialDelay(timeInMillis);
+		timer.start();
+		timer.setActionCommand(ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW);
+	}
+
+	public PanelReportKriterien(InternalFrame internalFrame, PanelReportIfJRDS panelReportIf, String addTitleI,
+			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId, boolean bDirekt, boolean bMitEmailFax,
+			boolean bNurVorschau, boolean mitExitButton) throws Throwable {
 		super(internalFrame, addTitleI, mitExitButton);
 		options = new PanelReportKriterienOptions();
 		options.setPartnerDtoEmpfaenger(partnerDtoEmpfaenger);
@@ -241,10 +249,8 @@ public class PanelReportKriterien extends PanelDialog implements
 		initialize(panelReportIf);
 	}
 
-	public PanelReportKriterien(PanelReportIfJRDS panelReportIf,
-			PanelReportKriterienOptions options) throws Throwable {
-		super(options.getInternalFrame(), options.getAddTitleI(), options
-				.isMitExitButton());
+	public PanelReportKriterien(PanelReportIfJRDS panelReportIf, PanelReportKriterienOptions options) throws Throwable {
+		super(options.getInternalFrame(), options.getAddTitleI(), options.isMitExitButton());
 		this.options = options;
 
 		initialize(panelReportIf);
@@ -255,8 +261,7 @@ public class PanelReportKriterien extends PanelDialog implements
 
 		jbInitPanel();
 		initComponents();
-		LockStateValue lockstateValue = new LockStateValue(null, null,
-				LOCK_NO_LOCKING);
+		LockStateValue lockstateValue = new LockStateValue(null, null, LOCK_NO_LOCKING);
 		this.updateButtons(lockstateValue);
 		// Alle Controls aktivieren
 		if (panelReportIf instanceof PanelBasis) {
@@ -275,6 +280,35 @@ public class PanelReportKriterien extends PanelDialog implements
 		wbuErweitert.setVisible(false);
 		// eventYouAreSelected(false) ;
 		updateLpTitle();
+
+		setzeEmailRechnungsempfang();
+
+		if (panelReportIf instanceof PanelReportNotifyIntialize) {
+			((PanelReportNotifyIntialize) panelReportIf).setInitialized();
+		}
+
+	}
+
+	protected void setzeEmailRechnungsempfang() throws ExceptionLP, Throwable {
+		// PJ19901
+		if (this.jpaPanelReportIf != null && this.jpaPanelReportIf instanceof ReportBeleg) {
+			boolean bRechnungsempfaenger = false;
+
+			if (getInternalFrame() instanceof InternalFrameRechnung) {
+
+				bRechnungsempfaenger = (Boolean) DelegateFactory.getInstance().getParameterDelegate()
+						.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_RECHNUNG,
+								ParameterFac.PARAMETER_RECHNUNGSEMPFAENGER_NUR_AUS_RECHNUNGS_EMAIL)
+						.getCWertAsObject();
+			}
+
+			String empfaengerEmailAdresse = ((ReportBeleg) this.jpaPanelReportIf).getEmpfaengerEMailAdresse();
+			// PJ20268
+			if (empfaengerEmailAdresse != null || bRechnungsempfaenger == true) {
+				PanelVersandEmail panelVersandEmail = emailPanelAnzeigen();
+				panelVersandEmail.setEmpfaenger(empfaengerEmailAdresse);
+			}
+		}
 	}
 
 	protected PanelReportKriterienOptions getOptions() {
@@ -282,89 +316,78 @@ public class PanelReportKriterien extends PanelDialog implements
 	}
 
 	private void jbInitPanel() throws Throwable {
-		// Button Refresh
-		createAndSaveButton("/com/lp/client/res/refresh.png",
-				LPMain.getTextRespectUISPr("lp.drucken.reportaktualisieren"),
-				ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW,
-				KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), null);
-		if (!getOptions().isNurVorschau()) {
-			// Button Druckvorschau
-			createAndSaveButton("/com/lp/client/res/printer_view.png",
-					LPMain.getTextRespectUISPr("lp.drucken.vorschau"),
-					ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN,
-					KeyStroke.getKeyStroke('R',
-							java.awt.event.InputEvent.CTRL_MASK), null);
-			// Button Drucken
-			createAndSaveButton("/com/lp/client/res/printer.png",
-					LPMain.getTextRespectUISPr("lp.drucken.drucken"),
-					ACTION_SPECIAL_DRUCKEN, KeyStroke.getKeyStroke('P',
-							java.awt.event.InputEvent.CTRL_MASK), null);
-			// Button CSV-Export
-			createAndSaveButton("/com/lp/client/res/document_out.png",
-					LPMain.getTextRespectUISPr("lp.report.csvexport"),
-					ACTION_SPECIAL_CSV, null, null);
 
-			// Button Zwischenablage
-			createAndSaveButton("/com/lp/client/res/copy.png",
-					LPMain.getTextRespectUISPr("lp.inzwischenablagekopieren"),
-					ACTION_COPY_TO_CLIPBOARD, null, null);
+//		String recht = getRechtBeleg();
+//
+//		// Button Refresh
+//		createAndSaveButton("/com/lp/client/res/refresh.png",
+//				LPMain.getTextRespectUISPr("lp.drucken.reportaktualisieren"), ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW,
+//				KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), null);
+//		
+//		if (!getOptions().isNurVorschau()) {
+//			// Button Druckvorschau
+//			// createAndSaveButton("/com/lp/client/res/printer_view.png",
+//			// LPMain.getTextRespectUISPr("lp.drucken.vorschau"),
+//			// ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN,
+//			// KeyStroke.getKeyStroke('R',
+//			// java.awt.event.InputEvent.CTRL_MASK), null);
+//			createAndSaveButton("/com/lp/client/res/printer_view.png",
+//					LPMain.getTextRespectUISPr("lp.drucken.vorschau"), ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN,
+//					KeyStroke.getKeyStroke('R', java.awt.event.InputEvent.CTRL_MASK), recht);
+//			// Button Drucken
+//			createAndSaveButton("/com/lp/client/res/printer.png", LPMain.getTextRespectUISPr("lp.drucken.drucken"),
+//					ACTION_SPECIAL_DRUCKEN, KeyStroke.getKeyStroke('P', java.awt.event.InputEvent.CTRL_MASK), null);
+//			// Button CSV-Export
+//			createAndSaveButton("/com/lp/client/res/document_out.png",
+//					LPMain.getTextRespectUISPr("lp.report.csvexport"), ACTION_SPECIAL_CSV, null, null);
+//
+//			// Button Zwischenablage
+//			createAndSaveButton("/com/lp/client/res/copy.png",
+//					LPMain.getTextRespectUISPr("lp.inzwischenablagekopieren"), ACTION_COPY_TO_CLIPBOARD, null, null);
+//
+//			// Buttons fuer Email und Fax, falls erwuenscht
+//			if (getOptions().isMitEmailFax()) {
+//				if (LPMain.getInstance().getDesktop()
+//						.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_EMAILVERSAND)) {
+//					createAndSaveButton("/com/lp/client/res/mail.png",
+//							LPMain.getTextRespectUISPr("lp.drucken.alsemailversenden"), ACTION_SPECIAL_EMAIL,
+//							KeyStroke.getKeyStroke('E', java.awt.event.InputEvent.CTRL_MASK),
+//							RechteFac.RECHT_LP_DARF_EMAIL_SENDEN);
+//				}
+//				if (LPMain.getInstance().getDesktop()
+//						.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_FAXVERSAND)) {
+//					createAndSaveButton("/com/lp/client/res/fax.png",
+//							LPMain.getTextRespectUISPr("lp.drucken.alsfaxversenden"), ACTION_SPECIAL_FAX,
+//							KeyStroke.getKeyStroke('F', java.awt.event.InputEvent.CTRL_MASK), null);
+//				}
+//			}
+//		}
+//		// Button Speichern
+//		createAndSaveButton("/com/lp/client/res/disk_blue.png", LPMain.getTextRespectUISPr("lp.drucken.speichern"),
+//				ACTION_SPECIAL_SAVE, KeyStroke.getKeyStroke('S', java.awt.event.InputEvent.CTRL_MASK), null);
+//		// Das Action-Array fuer das ToolsPanel erstellen
+//		String[] aWhichButtonIUse;
+//
+//		if (getOptions().isNurVorschau()) {
+//			aWhichButtonIUse = new String[] { ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW };
+//		}
+//
+//		else {
+//			if (getOptions().isMitEmailFax()) {
+//				aWhichButtonIUse = new String[] { ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW,
+//						ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN, ACTION_SPECIAL_DRUCKEN, ACTION_SPECIAL_EMAIL,
+//						ACTION_SPECIAL_FAX, ACTION_SPECIAL_SAVE, ACTION_SPECIAL_CSV, ACTION_COPY_TO_CLIPBOARD };
+//			} else {
+//				aWhichButtonIUse = new String[] { ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW,
+//						ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN, ACTION_SPECIAL_DRUCKEN, ACTION_SPECIAL_SAVE,
+//						ACTION_SPECIAL_CSV, ACTION_COPY_TO_CLIPBOARD };
+//			}
+//		}
+//
+//		enableToolsPanelButtons(aWhichButtonIUse);
 
-			// Buttons fuer Email und Fax, falls erwuenscht
-			if (getOptions().isMitEmailFax()) {
-				if (LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_EMAILVERSAND)) {
-					createAndSaveButton(
-							"/com/lp/client/res/mail.png",
-							LPMain.getTextRespectUISPr("lp.drucken.alsemailversenden"),
-							ACTION_SPECIAL_EMAIL, KeyStroke.getKeyStroke('E',
-									java.awt.event.InputEvent.CTRL_MASK), null);
-				}
-				if (LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_FAXVERSAND)) {
-					createAndSaveButton(
-							"/com/lp/client/res/fax.png",
-							LPMain.getTextRespectUISPr("lp.drucken.alsfaxversenden"),
-							ACTION_SPECIAL_FAX, KeyStroke.getKeyStroke('F',
-									java.awt.event.InputEvent.CTRL_MASK), null);
-				}
-			}
-		}
-		// Button Speichern
-		createAndSaveButton("/com/lp/client/res/disk_blue.png",
-				LPMain.getTextRespectUISPr("lp.drucken.speichern"),
-				ACTION_SPECIAL_SAVE, KeyStroke.getKeyStroke('S',
-						java.awt.event.InputEvent.CTRL_MASK), null);
-		// Das Action-Array fuer das ToolsPanel erstellen
-		String[] aWhichButtonIUse;
-
-		if (getOptions().isNurVorschau()) {
-			aWhichButtonIUse = new String[] { ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW };
-		}
-
-		else {
-			if (getOptions().isMitEmailFax()) {
-				aWhichButtonIUse = new String[] {
-						ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW,
-						ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN,
-						ACTION_SPECIAL_DRUCKEN, ACTION_SPECIAL_EMAIL,
-						ACTION_SPECIAL_FAX, ACTION_SPECIAL_SAVE,
-						ACTION_SPECIAL_CSV, ACTION_COPY_TO_CLIPBOARD };
-			} else {
-				aWhichButtonIUse = new String[] {
-						ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW,
-						ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN,
-						ACTION_SPECIAL_DRUCKEN, ACTION_SPECIAL_SAVE,
-						ACTION_SPECIAL_CSV, ACTION_COPY_TO_CLIPBOARD };
-			}
-		}
-
-		enableToolsPanelButtons(aWhichButtonIUse);
+		ReportToolsPanelButtonCreator buttonCreator = new ReportToolsPanelButtonCreator();
+		enableToolsPanelButtons(buttonCreator.getToolsPanelButtons());
 
 		// Splitpane ausrichten
 		jSplitPane1.setOrientation(JSplitPane.VERTICAL_SPLIT);
@@ -384,35 +407,27 @@ public class PanelReportKriterien extends PanelDialog implements
 
 		wbuErweitert.setText(LPMain.getTextRespectUISPr("button.erweitert"));
 
-		wbuErweitert.setToolTipText(LPMain
-				.getTextRespectUISPr("button.erweitert.tooltip"));
+		wbuErweitert.setToolTipText(LPMain.getTextRespectUISPr("button.erweitert.tooltip"));
 
-		wbuErweitert.setMinimumSize(new Dimension(120, Defaults.getInstance()
-				.getControlHeight()));
+		wbuErweitert.setMinimumSize(new Dimension(120, Defaults.getInstance().getControlHeight()));
 
-		wbuErweitert.setPreferredSize(new Dimension(120, Defaults.getInstance()
-				.getControlHeight()));
+		wbuErweitert.setPreferredSize(new Dimension(120, Defaults.getInstance().getControlHeight()));
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(jSplitPane1, new GridBagConstraints(0, 0, 1, 1, 1.0,
-				1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(jSplitPane1, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		if (jpaPanelReportIf instanceof JPanel) {
 			jpaTop = new JPanel(gridBagLayoutTop);
-			jpaTop.add(panelStandardDrucker, new GridBagConstraints(0, iZeile,
-					1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
-			jpaTop.add(wbuErweitert, new GridBagConstraints(1, iZeile, 1, 1,
-					0.0, 0.0, GridBagConstraints.CENTER,
+			jpaTop.add(panelStandardDrucker, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+			jpaTop.add(wbuErweitert, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			iZeile++;
-			jpaTop.add((JPanel) jpaPanelReportIf, new GridBagConstraints(0,
-					iZeile, 2, 1, 1.0, 1.0, GridBagConstraints.CENTER,
-					GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+			jpaTop.add((JPanel) jpaPanelReportIf, new GridBagConstraints(0, iZeile, 2, 1, 1.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 			iZeile++;
 			jSplitPane1.add(jpaTop, JSplitPane.TOP);
 			jSplitPane1.add(new JPanel(), JSplitPane.BOTTOM);
@@ -430,6 +445,10 @@ public class PanelReportKriterien extends PanelDialog implements
 			LPMain.getInstance().exitFrame(getInternalFrame());
 		}
 		FocusManager.getCurrentManager().addVetoableChangeListener(this);
+	}
+
+	public Integer getReportVariante() {
+		return getPanelStandardDrucker().getVariante();
 	}
 
 	private List<AbstractButton> getAllButtons(JPanel panel) {
@@ -477,8 +496,7 @@ public class PanelReportKriterien extends PanelDialog implements
 			// initStandarddrucker();
 		}
 		// grosser Vorschaudialog
-		else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN)) {
+		else if (e.getActionCommand().equals(ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN)) {
 			// print erzeugen, falls das noch nicht passiert ist.
 			if (panelReport == null || panelReport.getPrint() == null) {
 				preview();
@@ -487,40 +505,37 @@ public class PanelReportKriterien extends PanelDialog implements
 			// uebernommen
 			if (panelReport != null && panelReport.getPrint() != null
 					&& panelReport.getPrint().getPrint().getPages().size() > 0) {
-				aktiviereBeleg();
+				// PJ19712
+				boolean bDruckvorschauAktiviert = (Boolean) DelegateFactory
+						.getInstance().getParameterDelegate().getMandantparameter(LPMain.getTheClient().getMandant(),
+								ParameterFac.KATEGORIE_ALLGEMEIN, ParameterFac.PARAMETER_GROSSE_DRUCKVORSCHAU_AKTIVIERT)
+						.getCWertAsObject();
+
+				if (bDruckvorschauAktiviert) {
+					aktiviereBeleg();
+				}
 				// den Timer im Hintergrund abdrehen
 				getInternalFrame().getFrameProgress().pause();
+				JasperPrint mergedPrint = mergeWithPrintTypeReport(panelReport.getPrint().getPrint(),
+						JasperPrintLP.DRUCKTYP_FULLSCREEN);
 				// und jetzt den Dialog zeigen
-				JDialog dialog = new JDialogDruckVorschau(LPMain.getInstance()
-						.getDesktop(),
-						LPMain.getTextRespectUISPr("lp.drucken.vorschau")
-								+ ": " + this.getAdd2Title(), panelReport
-								.getPrint().getPrint());
+				JDialog dialog = new JDialogDruckVorschau(LPMain.getInstance().getDesktop(),
+						LPMain.getTextRespectUISPr("lp.drucken.vorschau") + ": " + this.getAdd2Title(), mergedPrint);
 				dialog.setModal(true);
-				archiviereBeleg();
-				// TODO: soll hier nicht besser Drucktyp print verwendet werden
-				setzeVersandstatus(JasperPrintLP.DRUCKTYP_PREVIEW);
+				if (bDruckvorschauAktiviert) {
+					JasperPrint previewPrint = panelReport.getPrint().getPrint();
+					panelReport.getPrint().setPrintLP(mergedPrint);
+					archiviereBeleg(panelReport.getPrint());
+					panelReport.getPrint().setPrintLP(previewPrint);
+					// TODO: soll hier nicht besser Drucktyp print verwendet
+					// werden
+					setzeVersandstatus(JasperPrintLP.DRUCKTYP_PREVIEW);
+				}
 			}
 		}
 		// Email
 		else if (e.getActionCommand().equals(ACTION_SPECIAL_EMAIL)) {
-			// Email - Betreff setzen
-			if (jpaPanelReportIf.getMailtextDto().getMailBetreff() != null) {
-				getPanelVersandEmail(true).setBetreff(
-						jpaPanelReportIf.getMailtextDto().getMailBetreff());
-
-			}
-			// Email-Panel anzeigen
-			if (!getPanelVersandEmail(true).isVisible()) {
-				getPanelVersandEmail(true).setVisible(true);
-			}
-			// Wenn es das Fax-Panel schon gibt, muss ich das wegschalten
-			if (getPanelVersandFax(false) != null
-					&& getPanelVersandFax(true).isVisible()) {
-				getPanelVersandFax(true).setVisible(false);
-			}
-			// SplitPane anpassen (moeglichst platzsparend)
-			jSplitPane1.setDividerLocation(jpaTop.getMinimumSize().height);
+			emailPanelAnzeigen();
 		}
 
 		// Fax
@@ -530,334 +545,480 @@ public class PanelReportKriterien extends PanelDialog implements
 				getPanelVersandFax(true).setVisible(true);
 			}
 			// Wenn es das Email-Panel schon gibt, muss ich das wegschalten
-			if (getPanelVersandEmail(false) != null
-					&& getPanelVersandEmail(true).isVisible()) {
+			if (getPanelVersandEmail(false) != null && getPanelVersandEmail(true).isVisible()) {
 				getPanelVersandEmail(true).setVisible(false);
 			}
 			// SplitPane anpassen (moeglichst platzsparend)
 			jSplitPane1.setDividerLocation(jpaTop.getMinimumSize().height);
 		}
 		// Versandauftrag senden
-		else if (e.getActionCommand()
-				.equals(PanelVersand.ACTION_SPECIAL_SENDEN)) {
-			aktiviereBeleg();
-			String sDrucktyp = null;
-			// Fax ...
-			if (getPanelVersandFax(true).isVisible()) {
-				createVersandauftrag(getPanelVersandFax(true)
-						.getVersandauftragDto(), JasperPrintLP.DRUCKTYP_FAX);
-				sDrucktyp = JasperPrintLP.DRUCKTYP_FAX;
-			}
-			// ... oder Email
-			else if (getPanelVersandEmail(true).isVisible()) {
-				createVersandauftrag(getPanelVersandEmail(true)
-						.getVersandauftragDto(), JasperPrintLP.DRUCKTYP_MAIL);
-				sDrucktyp = JasperPrintLP.DRUCKTYP_MAIL;
-			}
-			archiviereBeleg();
-			setzeVersandstatus(sDrucktyp);
+		else if (e.getActionCommand().equals(PanelVersand.ACTION_SPECIAL_SENDEN)) {
+			doActionSenden();
+			/*
+			 * Integer iKopien = null; if (jpaPanelReportIf instanceof ReportBeleg) {
+			 * iKopien = ((ReportBeleg) jpaPanelReportIf).getKopien(); }
+			 * 
+			 * aktiviereBeleg(); String sDrucktyp = null; // Fax ... if
+			 * (getPanelVersandFax(true).isVisible()) {
+			 * createVersandauftrag(getPanelVersandFax(true) .getVersandauftragDto(),
+			 * JasperPrintLP.DRUCKTYP_FAX); sDrucktyp = JasperPrintLP.DRUCKTYP_FAX; } // ...
+			 * oder Email else if (getPanelVersandEmail(true).isVisible()) {
+			 * createVersandauftrag(getPanelVersandEmail(true) .getVersandauftragDto(),
+			 * JasperPrintLP.DRUCKTYP_MAIL); sDrucktyp = JasperPrintLP.DRUCKTYP_MAIL; }
+			 * 
+			 * if (jpaPanelReportIf instanceof ReportBeleg) { ((ReportBeleg)
+			 * jpaPanelReportIf).setKopien(iKopien); }
+			 * 
+			 * // PJ19901 lt. WH werden ab sofort beim Email-Versand die Kopien am //
+			 * Drucker gedruckt print(true);
+			 * 
+			 * archiviereBeleg(); setzeVersandstatus(sDrucktyp);
+			 */
+		} else if (PanelVersandEmail.ACTION_SPECIAL_SENDEN_OHNE_KOPIEN.equals(e.getActionCommand())) {
+//			Integer savedKopien = null;
+//			ReportBeleg reportBeleg = null;
+//			if (jpaPanelReportIf instanceof ReportBeleg) {
+//				reportBeleg = (ReportBeleg) jpaPanelReportIf;
+//				savedKopien = reportBeleg.getKopien();
+//				reportBeleg.setKopien(null);
+//			}
+//
+//			doActionSenden();
+//
+//			if (reportBeleg != null) {
+//				reportBeleg.setKopien(savedKopien);
+//			}
+			doActionSendenOhneKopien();
+		} else if (PanelVersandEmail.ACTION_SPECIAL_SENDEN_ZUGFERD.equals(e.getActionCommand())) {
+			doActionSendenAlsZugferd();
 		}
 		// Hinzufugen von Anhaengen an eine Mail.
-		else if (e.getActionCommand().equals(
-				PanelVersandEmail.ACTION_SPECIAL_ATTACHMENT)) {
-			String sAttachments = panelVersandEmail.getjtfAnhaengeText();
-			File[] files = HelperClient.chooseFile(this, "*.*", true);
-			if (files != null && files.length > 0) {
-				for (int i = 0; i < files.length; i++) {
-					sAttachments += files[i].getAbsolutePath() + ";";
-				}
-				panelVersandEmail.setjtfAnhaengeText(sAttachments);
-			}
-		} else if (e.getActionCommand().equals(
-				PanelVersandEmail.ACTION_SPECIAL_REMOVE_ATTACHMENT)) {
-			String sAttachments = panelVersandEmail.getjtfAnhaengeText();
+		else if (e.getActionCommand().equals(PanelVersandEmail.ACTION_SPECIAL_ATTACHMENT)) {
+			doActionAttachment();
 
-			if (sAttachments != null) {
-				String[] teile = sAttachments.split(";");
+		} else if (e.getActionCommand().equals(PanelVersandEmail.ACTION_SPECIAL_REMOVE_ATTACHMENT)) {
+			doActionRemoveAttachment();
 
-				DialogAnhaenge da = new DialogAnhaenge(teile);
-				LPMain.getInstance().getDesktop()
-						.platziereDialogInDerMitteDesFensters(da);
-				da.setVisible(true);
-				ArrayList al = da.getAnhaenge();
+		} else if (ACTION_SPECIAL_SAVE.equals(e.getActionCommand())) {
+			if (!shouldDoActionSave())
+				return;
 
-				String sAttachmentsNeu = null;
-				for (int i = 0; i < al.size(); i++) {
-					if (sAttachmentsNeu == null) {
-						sAttachmentsNeu = "";
-					}
-					sAttachmentsNeu += al.get(i) + ";";
-				}
-
-				panelVersandEmail.setjtfAnhaengeText(sAttachmentsNeu);
-			}
-
-		}
-
-		// Report abspeichern oder CSV Export
-		else if (e.getActionCommand().equals(ACTION_SPECIAL_SAVE)
-				|| e.getActionCommand().equals(ACTION_SPECIAL_CSV)
-				|| e.getActionCommand().equals(ACTION_COPY_TO_CLIPBOARD)) {
+			actionSaveJasperPrint(e);
+			// actionSaveJasperPrintOld(e);
+		} else if (ACTION_SPECIAL_CSV.equals(e.getActionCommand())) {
+			actionCsv();
+		} else if (ACTION_COPY_TO_CLIPBOARD.equals(e.getActionCommand())) {
 			// Den Report erstellen, falls dies noch nicht geschehen ist.
 			if (panelReport == null) {
 				preview();
 			}
+			JasperPrintLP print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(true, JasperPrintLP.DRUCKTYP_CSV);
 
-			if (e.getActionCommand().equals(ACTION_SPECIAL_SAVE)) {
+			Object[][] csvDaten = print.getDatenMitUeberschrift();
+			StringBuffer excelStr = new StringBuffer();
 
-				// Report speichern
-				if (panelReport != null) {
-					JasperPrintLP print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(
-							true, JasperPrintLP.DRUCKTYP_SAVE);
-					aktiviereBeleg();
+			if (csvDaten != null && csvDaten.length > 1) {
 
-					List saveContributors = new ArrayList();
-					File lastFolder;
-					JRSaveContributor lastSaveContributor = null;
-					final String[] DEFAULT_CONTRIBUTORS = {
-							"net.sf.jasperreports.view.save.JRPrintSaveContributor",
-							"net.sf.jasperreports.view.save.JRPdfSaveContributor",
-							"net.sf.jasperreports.view.save.JRRtfSaveContributor",
-							"net.sf.jasperreports.view.save.JROdtSaveContributor",
-							"net.sf.jasperreports.view.save.JRDocxSaveContributor",
-							"net.sf.jasperreports.view.save.JRHtmlSaveContributor",
-							"net.sf.jasperreports.view.save.JRSingleSheetXlsSaveContributor",
-							"net.sf.jasperreports.view.save.JRMultipleSheetsXlsSaveContributor",
-							"net.sf.jasperreports.view.save.JRCsvSaveContributor",
-							"net.sf.jasperreports.view.save.JRXmlSaveContributor",
-							"net.sf.jasperreports.view.save.JREmbeddedImagesXmlSaveContributor" };
+				// Daten
+				for (int i = 0; i < csvDaten.length; i++) {
+					Object[] zeile = csvDaten[i];
 
-					for (int i = 0; i < DEFAULT_CONTRIBUTORS.length; i++) {
-						try {
-							Class saveContribClass = JRClassLoader
-									.loadClassForName(DEFAULT_CONTRIBUTORS[i]);
-							Constructor constructor = saveContribClass
-									.getConstructor(new Class[] { Locale.class,
-											ResourceBundle.class });
-							JRSaveContributor saveContrib = (JRSaveContributor) constructor
-									.newInstance(new Object[] { getLocale(),
-											null });
-							saveContributors.add(saveContrib);
-						} catch (Exception et) {
-						}
-					}
+					if (zeile != null) {
+						for (int j = 0; j < zeile.length; j++) {
 
-					JFileChooser fileChooser = new JFileChooser();
-					fileChooser.setLocale(this.getLocale());
-					fileChooser.updateUI();
-					for (int i = 0; i < saveContributors.size(); i++) {
-						fileChooser
-								.addChoosableFileFilter((JRSaveContributor) saveContributors
-										.get(i));
-					}
-
-					if (saveContributors.contains(lastSaveContributor)) {
-						fileChooser.setFileFilter(lastSaveContributor);
-					} else if (saveContributors.size() > 0) {
-						fileChooser
-								.setFileFilter((JRSaveContributor) saveContributors
-										.get(0));
-					}
-
-					int retValue = fileChooser.showSaveDialog(this);
-					if (retValue == JFileChooser.APPROVE_OPTION) {
-						FileFilter fileFilter = fileChooser.getFileFilter();
-						File file = fileChooser.getSelectedFile();
-
-						lastFolder = file.getParentFile();
-
-						JRSaveContributor contributor = null;
-
-						if (fileFilter instanceof JRSaveContributor) {
-							contributor = (JRSaveContributor) fileFilter;
-						} else {
-							int i = 0;
-							while (contributor == null
-									&& i < saveContributors.size()) {
-								contributor = (JRSaveContributor) saveContributors
-										.get(i++);
-								if (!contributor.accept(file)) {
-									contributor = null;
+							if (zeile[j] instanceof Number) {
+								try {
+									excelStr.append(
+											Helper.formatZahl((Number) zeile[j], 6, LPMain.getTheClient().getLocUi()));
+								} catch (Throwable e1) {
+									//
 								}
-							}
-
-							if (contributor == null) {
-								contributor = new JRPrintSaveContributor(
-										getLocale(), null);
-							}
-						}
-
-						lastSaveContributor = contributor;
-
-						try {
-
-							if (contributor instanceof JRPdfSaveContributor) {
-								if (!file.getName().toLowerCase()
-										.endsWith(".pdf")) {
-									file = new File(file.getAbsolutePath()
-											+ ".pdf");
+							} else if (zeile[j] instanceof java.sql.Timestamp) {
+								try {
+									excelStr.append(Helper.formatTimestamp((java.sql.Timestamp) zeile[j],
+											LPMain.getTheClient().getLocUi()));
+								} catch (Throwable e1) {
+									//
 								}
-
-								if (!file.exists()
-										|| JOptionPane.OK_OPTION == JOptionPane
-												.showConfirmDialog(
-														null,
-														MessageFormat
-																.format("Die Datei existiert bereits. \u00DCberschreiben?",
-																		new Object[] { file
-																				.getName() }),
-														"Speichern",
-														JOptionPane.OK_CANCEL_OPTION)) {
-									HVPDFExporter exporter = new HVPDFExporter();
-									exporter.setParameter(
-											JRExporterParameter.JASPER_PRINT,
-											print.getPrint());
-									exporter.setParameter(
-											JRExporterParameter.OUTPUT_FILE,
-											file);
-
-									exporter.exportReport();
+							} else if (zeile[j] instanceof java.sql.Time) {
+								try {
+									excelStr.append(
+											Helper.formatTime(new Timestamp(((java.sql.Time) zeile[j]).getTime()),
+													LPMain.getTheClient().getLocUi()));
+								} catch (Throwable e1) {
+									//
 								}
+							} else if (zeile[j] instanceof java.util.Date) {
+								try {
+									excelStr.append(Helper.formatDatum((java.util.Date) zeile[j],
+											LPMain.getTheClient().getLocUi()));
+								} catch (Throwable e1) {
+									//
+								}
+							} else if (zeile[j] instanceof String) {
+								String s = (String) zeile[j];
+								excelStr.append("\"" + escape(s.replaceAll("\"", "\"\"")) + "\"");
 							} else {
-								contributor.save(print.getPrint(), file);
+								excelStr.append(escape(zeile[j]));
 							}
 
-						} catch (JRException ex) {
-
-							JOptionPane.showMessageDialog(this,
-									"Fehler beim Speichern");
-						}
-					}
-
-					if (jpaPanelReportIf instanceof IPanelReportAction) {
-						((IPanelReportAction) jpaPanelReportIf)
-								.eventActionSave(e);
-					}
-					archiviereBeleg();
-					setzeVersandstatus(JasperPrintLP.DRUCKTYP_SAVE);
-				}
-			} else if (e.getActionCommand().equals(ACTION_SPECIAL_CSV)) {
-
-				JasperPrintLP print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(
-						true, JasperPrintLP.DRUCKTYP_CSV);
-				java.util.List list = print.getPrint().getPages();
-
-				Object[][] csvDaten = print.getDatenMitUeberschrift();
-
-				// Derzeit einfach auf String umwandeln
-
-				if (csvDaten != null && csvDaten.length > 1) {
-
-					int iZeile = 0;
-					String[][] csv = new String[csvDaten.length][csvDaten[0].length];
-
-					for (int i = 0; i < csvDaten.length; i++) {
-						for (int z = 0; z < csvDaten[0].length; z++) {
-							try {
-								if (csvDaten[i][z] != null) {
-
-									if (csvDaten[i][z] instanceof Number) {
-										csv[i][z] = Helper.formatZahl(
-												(Number) csvDaten[i][z], LPMain
-														.getTheClient()
-														.getLocUi());
-									} else if (csvDaten[i][z] instanceof LPDatenSubreport) {
-										csv[i][z] = "SUBREPORT";
-									} else {
-										csv[i][z] = csvDaten[i][z].toString();
-									}
-
-								}
-							} catch (Exception e1) {
-								int u = 0;
+							if (j < zeile.length - 1) {
+								excelStr.append(CELL_BREAK);
 							}
 						}
-						iZeile++;
 					}
-
-					DialogFactory.showCSVExportDialog(
-							new String("\t").charAt(0), csv);
-
+					excelStr.append(LINE_BREAK);
 				}
-
-			} else if (e.getActionCommand().equals(ACTION_COPY_TO_CLIPBOARD)) {
-
-				JasperPrintLP print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(
-						true, JasperPrintLP.DRUCKTYP_CSV);
-
-				Object[][] csvDaten = print.getDatenMitUeberschrift();
-				StringBuffer excelStr = new StringBuffer();
-
-				if (csvDaten != null && csvDaten.length > 1) {
-
-					// Daten
-					for (int i = 0; i < csvDaten.length; i++) {
-						Object[] zeile = csvDaten[i];
-
-						if (zeile != null) {
-							for (int j = 0; j < zeile.length; j++) {
-
-								if (zeile[j] instanceof Number) {
-									try {
-										excelStr.append(Helper.formatZahl(
-												(Number) zeile[j], LPMain
-														.getTheClient()
-														.getLocUi()));
-									} catch (Throwable e1) {
-										//
-									}
-								} else if (zeile[j] instanceof String) {
-									String s = (String) zeile[j];
-									excelStr.append("\""
-											+ escape(s.replaceAll("\"", "\"\""))
-											+ "\"");
-								} else {
-									excelStr.append(escape(zeile[j]));
-								}
-
-								if (j < zeile.length - 1) {
-									excelStr.append(CELL_BREAK);
-								}
-							}
-						}
-						excelStr.append(LINE_BREAK);
-					}
-				}
-
-				Toolkit.getDefaultToolkit()
-						.getSystemClipboard()
-						.setContents(new StringSelection(excelStr.toString()),
-								null);
-
 			}
+
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(excelStr.toString()),
+					null);
 
 		}
 		// Ausdrucken
 		else if (e.getActionCommand().equals(ACTION_SPECIAL_DRUCKEN)) {
-			aktiviereBeleg();
-			print();
-			// if (jpaPanelReportIf instanceof com.lp.client.finanz.ReportUva)
-			// ((PanelBasis)jpaPanelReportIf).eventActionSave(e, true);
-			if (jpaPanelReportIf instanceof IPanelReportAction) {
-				((IPanelReportAction) jpaPanelReportIf).eventActionPrint(e);
-			}
-			archiviereBeleg();
-			setzeVersandstatus(JasperPrintLP.DRUCKTYP_DRUCKER);
+			if (!shouldDoActionPrint())
+				return;
+			doActionPrint(e);
+
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ERWEITERT)) {
+			// Den Report erstellen, falls dies noch nicht geschehen ist.
 			if (panelReport == null) {
 				preview();
 			}
 			if (panelReport != null) {
 				panelReport.doClickOnPrint();
 			}
-		} else if (e.getActionCommand()
-				.equals(ACTION_SPECIAL_DRUCKER_SPEICHERN)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_DRUCKER_SPEICHERN)) {
 			// Druckereinstellung speichern
 			saveStandarddrucker();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_DRUCKER_LOESCHEN)) {
 			// Druckereinstellung speichern
 			removeStandarddrucker();
+		} else if (PanelVersandEmail.ACTION_SPECIAL_SENDEN_OPENTRANS.equals(e.getActionCommand())) {
+			doActionSendenMitOpenTransXml();
 		}
+	}
+
+	private void doActionRemoveAttachment() throws Throwable {
+		AttachmentDialog attachmentDialog = new AttachmentDialog(panelVersandEmail.getjtfAnhaengeText());
+		if (attachmentDialog.remove()) {
+			panelVersandEmail.setjtfAnhaengeText(attachmentDialog.getAttachmentPathsAsString());
+		}
+	}
+
+	private void doActionAttachment() {
+		AttachmentDialog attachmentDialog = new AttachmentDialog(panelVersandEmail.getjtfAnhaengeText());
+		if (attachmentDialog.chooseFiles(this.getInternalFrame())) {
+			panelVersandEmail.setjtfAnhaengeText(attachmentDialog.getAttachmentPathsAsString());
+		}
+	}
+
+	private void doActionPrint(ActionEvent e) throws Throwable {
+		aktiviereBeleg();
+		doActionPrintImpl(e);
+	}
+
+	private void doActionPrintImpl(ActionEvent e) throws Throwable {
+		JasperPrintLP jasperPrintLP = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(false,
+				JasperPrintLP.DRUCKTYP_DRUCKER);
+		mergeWithPrintTypeReport(jasperPrintLP, JasperPrintLP.DRUCKTYP_DRUCKER);
+
+		OriginalCopiesCtrl ocCtrl = new OriginalCopiesCtrl(jasperPrintLP.getPrint(), iKopien);
+		print(jasperPrintLP);
+		if (jpaPanelReportIf instanceof IPanelReportAction) {
+			((IPanelReportAction) jpaPanelReportIf).eventActionPrint(e);
+		}
+
+		ocCtrl.setPagesOriginal(jasperPrintLP);
+		archiviereBeleg(jasperPrintLP);
+		setzeVersandstatus(JasperPrintLP.DRUCKTYP_DRUCKER);
+	}
+
+	private WrapperSaveFileChooser<JasperPrint> buildJasperPrintSaver() throws ExceptionLP, Throwable {
+		String reporttoken = jpaPanelReportIf.getReportname();
+		ChooserSaveDialogJasper chooserSaveDialog = FileChooserBuilder.createReportSaveDialog(reporttoken, this);
+		setFilename(chooserSaveDialog);
+		WrapperSaveFileChooser<JasperPrint> saver = chooserSaveDialog.locale(this.getLocale()).addJasperPdfSaver()
+				.preselected().addJasperCsvSaver().addJasperSingleSheetXlsSaver().addJasperOdtSaver()
+				.addJasperPrintSaver().build();
+
+		return saver;
+	}
+
+	private Optional<String> getReportFilename() throws ExceptionLP, Throwable {
+		if (!(jpaPanelReportIf instanceof ReportBeleg)) {
+			return Optional.empty();
+		}
+		String belegartCNr = ((ReportBeleg) jpaPanelReportIf).getBelegartCNr();
+		Integer belegIId = ((ReportBeleg) jpaPanelReportIf).getIIdBeleg();
+		MailtextDto mailtextDto = getMailtextDto();
+		if (mailtextDto == null)
+			mailtextDto = getDefaultMailtextDto(jpaPanelReportIf);
+
+		String filename = DelegateFactory.getInstance().getVersandDelegate()
+				.getUebersteuertenDateinamenForBeleg(mailtextDto, belegartCNr, belegIId);
+
+		if (Helper.isStringEmpty(filename)) {
+			return Optional.empty();
+		}
+
+		filename = filename.replace("/", "_");
+		Integer idxExtension = filename.lastIndexOf(".");
+		if (Integer.signum(idxExtension) > 0)
+			filename = filename.substring(0, idxExtension);
+		return Optional.of(filename);
+	}
+
+	private void setFilename(ChooserSaveDialogJasper chooserSaveDialog) throws ExceptionLP, Throwable {
+		getReportFilename().ifPresent(chooserSaveDialog::filename);
+	}
+
+	private void actionSaveJasperPrint(ActionEvent e) throws Throwable {
+		JasperPrintLP print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(true, JasperPrintLP.DRUCKTYP_SAVE);
+		mergeWithPrintTypeReport(print, JasperPrintLP.DRUCKTYP_SAVE);
+
+		try {
+			if (panelReport == null) {
+				preview();
+				if (panelReport == null)
+					return;
+			}
+
+			aktiviereBeleg();
+			WrapperSaveFileChooser<JasperPrint> fileSaver = buildJasperPrintSaver();
+			fileSaver.save(print.getPrint());
+		} catch (JRException ex) {
+			myLogger.error("Fehler beim Speichern des Reports '" + jpaPanelReportIf.getReportname() + "'", ex);
+			JOptionPane.showMessageDialog(this, "Fehler beim Speichern");
+		}
+
+		if (jpaPanelReportIf instanceof IPanelReportAction) {
+			((IPanelReportAction) jpaPanelReportIf).eventActionSave(e);
+		}
+		archiviereBeleg(print);
+		setzeVersandstatus(JasperPrintLP.DRUCKTYP_SAVE);
+	}
+
+	private void doActionSenden() throws Throwable {
+		aktiviereBeleg();
+
+		// Fax ...
+		if (getPanelVersandFax(true).isVisible()) {
+			doActionSendenImpl(getPanelVersandFax(true).getVersandauftragDto(), JasperPrintLP.DRUCKTYP_FAX);
+		}
+		// ... oder Email
+		else if (getPanelVersandEmail(true).isVisible()) {
+
+			if (getPanelVersandEmail(true).getWtfAbsender() != null
+					&& getPanelVersandEmail(true).getWtfAbsender().getText() == null) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("lp.error.absender.email.leer"));
+			} else {
+				doActionSendenImpl(getPanelVersandEmail(true).getVersandauftragDto(), JasperPrintLP.DRUCKTYP_MAIL);
+			}
+		}
+	}
+
+	private void doActionSendenOhneKopien() throws Throwable {
+		aktiviereBeleg();
+		VersandauftragDto versandauftragDto = null;
+		String druckType = null;
+		// Fax ...
+		if (getPanelVersandFax(true).isVisible()) {
+			versandauftragDto = getPanelVersandFax(true).getVersandauftragDto();
+			druckType = JasperPrintLP.DRUCKTYP_FAX;
+		}
+		// ... oder Email
+		else if (getPanelVersandEmail(true).isVisible()) {
+			versandauftragDto = getPanelVersandEmail(true).getVersandauftragDto();
+			druckType = JasperPrintLP.DRUCKTYP_MAIL;
+		}
+
+		JasperPrintLP jasperPrintLP = getPrintForVersandauftragMitKopien(druckType);
+		OriginalCopiesCtrl ocCtrl = new OriginalCopiesCtrl(jasperPrintLP.getPrint(), iKopien);
+		ocCtrl.setPagesOriginal(jasperPrintLP);
+		setupCreateVersandauftrag(versandauftragDto, jasperPrintLP.getPrint());
+
+		archiviereBeleg(jasperPrintLP);
+		setzeVersandstatus(druckType);
+	}
+
+	private void doActionSendenImpl(VersandauftragDto versandauftragDto, String sDrucktyp) throws Throwable {
+		JasperPrintLP jasperPrintLP = null;
+		if (isLogoImmerDrucken()) {
+			jasperPrintLP = getPrintForVersandauftragMitKopien(sDrucktyp);
+			OriginalCopiesCtrl ocCtrl = new OriginalCopiesCtrl(jasperPrintLP.getPrint(), iKopien);
+			ocCtrl.setPagesOriginal(jasperPrintLP);
+			setupCreateVersandauftrag(versandauftragDto, jasperPrintLP.getPrint());
+
+			// PJ19901 lt. WH werden ab sofort beim Email-Versand die Kopien am
+			// Drucker gedruckt
+			ocCtrl.setPagesAll(jasperPrintLP);
+			print(jasperPrintLP, true);
+		} else {
+			jasperPrintLP = getPrintForVersandauftragOhneKopien(sDrucktyp);
+			setupCreateVersandauftrag(versandauftragDto, jasperPrintLP.getPrint());
+			if (iKopien > 0) {
+				print(true, sDrucktyp);
+			}
+		}
+
+		archiviereBeleg(jasperPrintLP);
+		setzeVersandstatus(sDrucktyp);
+	}
+
+	private void doActionSendenAlsZugferd() throws Throwable {
+		if (!LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZUGFERD)
+				|| !(jpaPanelReportIf instanceof IZugferdBeleg)) {
+			return;
+		}
+
+		IZugferdBeleg zugferdBeleg = (IZugferdBeleg) jpaPanelReportIf;
+		ZugferdResult result = zugferdBeleg.createZugferdResult();
+
+		aktiviereBeleg();
+		VersandauftragDto versandauftragDto = getPanelVersandEmail(true).getVersandauftragDto();
+		setupVersandauftragDefaults(versandauftragDto);
+
+		if (result.getPdfData() == null) {
+			showDialogKeineDatenZuDrucken();
+			return;
+		}
+
+		versandauftragDto.setOInhalt(result.getPdfData());
+		versandauftragDto.setCDateiname(result.getPdfName());
+		createVersandauftragImpl(versandauftragDto);
+
+		// PJ19901 lt. WH werden ab sofort beim Email-Versand die Kopien am
+		// Drucker gedruckt
+		print(true, JasperPrintLP.DRUCKTYP_MAIL);
+
+		DelegateFactory.getInstance().getRechnungDelegate().archiviereZugferdResult(result);
+		archiviereBeleg(result.getJasperPrintLP());
+		setzeVersandstatus(JasperPrintLP.DRUCKTYP_MAIL);
+	}
+
+	private void doActionSendenMitOpenTransXml() throws Throwable {
+		if (!LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_WEB_BAUTEIL_ANFRAGE)
+				|| !(jpaPanelReportIf instanceof IOpenTransBeleg)) {
+			return;
+		}
+
+		IOpenTransBeleg otBeleg = (IOpenTransBeleg) jpaPanelReportIf;
+		OpenTransXmlReportResult result = otBeleg.createOpenTransResult();
+
+		aktiviereBeleg();
+
+		if (result.getPrints() == null || result.getPrints().length < 1 || result.getXmlOtOrder() == null) {
+			showDialogKeineDatenZuDrucken();
+			return;
+		}
+
+		JasperPrintLP print = result.getPrints()[0];
+		for (int i = 1; i < result.getPrints().length; i++) {
+			print = Helper.addReport2Report(print, result.getPrints()[i].getPrint());
+		}
+
+		if (print.getPrint().getPages().size() < 1) {
+			showDialogKeineDatenZuDrucken();
+			return;
+		}
+
+		if (jpaPanelReportIf instanceof ReportBeleg) {
+			ReportBeleg reportBeleg = (ReportBeleg) jpaPanelReportIf;
+			iKopien = reportBeleg.getKopien() != null ? reportBeleg.getKopien() : 0;
+		}
+		mergeWithPrintTypeReport(print, JasperPrintLP.DRUCKTYP_MAIL);
+		OriginalCopiesCtrl ocCtrl = new OriginalCopiesCtrl(print.getPrint(), iKopien);
+		ocCtrl.setPagesOriginal(print);
+
+		VersandauftragDto versandauftragDto = getPanelVersandEmail(true).getVersandauftragDto();
+		setupVersandauftragDefaults(versandauftragDto);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		HVPDFExporter exporter = new HVPDFExporter();
+		exporter.setParameter(JRExporterParameter.JASPER_PRINT, print.getPrint());
+		exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, baos);
+		exporter.exportReport();
+		versandauftragDto.setOInhalt(baos.toByteArray());
+
+		versandauftragDto = createVersandauftragImpl(versandauftragDto);
+		VersandanhangDto xmlAnhang = new VersandanhangDto();
+		xmlAnhang.setVersandauftragIId(versandauftragDto.getIId());
+		xmlAnhang.setCDateiname(result.getFilename());
+		xmlAnhang.setOInhalt(result.getXmlOtOrder().getBytes("UTF-8"));
+		DelegateFactory.getInstance().getVersandDelegate().createVersandanhang(xmlAnhang);
+
+		ocCtrl.setPagesAll(print);
+		print(print, true);
+
+		DelegateFactory.getInstance().getBestellungDelegate().archiviereOpenTransResult(result);
+		archiviereBeleg(print);
+		setzeVersandstatus(JasperPrintLP.DRUCKTYP_MAIL);
+	}
+
+	private PanelVersandEmail emailPanelAnzeigen() throws Throwable {
+		// Email - Betreff setzen
+		if (jpaPanelReportIf.getMailtextDto() != null && jpaPanelReportIf.getMailtextDto().getMailBetreff() != null) {
+			getPanelVersandEmail(true).setBetreff(jpaPanelReportIf.getMailtextDto().getMailBetreff());
+
+		}
+		// Email-Panel anzeigen
+		if (!getPanelVersandEmail(true).isVisible()) {
+			getPanelVersandEmail(true).setVisible(true);
+		}
+		// Wenn es das Fax-Panel schon gibt, muss ich das wegschalten
+		if (getPanelVersandFax(false) != null && getPanelVersandFax(true).isVisible()) {
+			getPanelVersandFax(true).setVisible(false);
+		}
+		// SplitPane anpassen (moeglichst platzsparend)
+		jSplitPane1.setDividerLocation(jpaTop.getMinimumSize().height);
+		return getPanelVersandEmail(true);
+	}
+
+	/**
+	 * @throws Throwable
+	 */
+	private void actionCsv() throws Throwable {
+		// Den Report erstellen, falls dies noch nicht geschehen ist.
+		if (panelReport == null) {
+			preview();
+		}
+
+		JasperPrintLP print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(true, JasperPrintLP.DRUCKTYP_CSV);
+//		List<JRPrintPage> list = print.getPrint().getPages();
+
+		Object[][] csvDaten = print.getDatenMitUeberschrift();
+
+		// Derzeit einfach auf String umwandeln
+
+		if (!(csvDaten != null && csvDaten.length > 1))
+			return;
+
+		Object[][] csv = new Object[csvDaten.length][csvDaten[0].length];
+
+		for (int i = 0; i < csvDaten.length; i++) {
+			for (int z = 0; z < csvDaten[0].length; z++) {
+				try {
+					if (csvDaten[i][z] != null) {
+
+						if (csvDaten[i][z] instanceof LPDatenSubreport) {
+							csv[i][z] = "SUBREPORT";
+						} else {
+							csv[i][z] = csvDaten[i][z];
+						}
+
+					}
+				} catch (Exception e1) {
+					int u = 0;
+				}
+			}
+			iZeile++;
+		}
+
+		DialogFactory.showReportCSVExportDialog(csv, LPMain.getTheClient().getLocUi());
 	}
 
 	private void aktiviereBeleg() throws Throwable {
@@ -870,66 +1031,293 @@ public class PanelReportKriterien extends PanelDialog implements
 
 	private void berecheneBeleg() throws Throwable {
 		if (jpaPanelReportIf instanceof IAktiviereBelegReport)
-			berechnungsZeitpunkt = ((IAktiviereBelegReport) jpaPanelReportIf)
-					.berechneBeleg();
+			berechnungsZeitpunkt = ((IAktiviereBelegReport) jpaPanelReportIf).berechneBeleg();
 	}
 
-	public void druckeArchiviereUndSetzeVersandstatusEinesBelegs()
-			throws Throwable {
+	public void druckeArchiviereUndSetzeVersandstatusEinesBelegs(boolean bNurEmail) throws Throwable {
 		if (berechnungsZeitpunkt == null)
 			berecheneBeleg();
 		aktiviereBeleg();
-		print();
-		archiviereBeleg();
-		setzeVersandstatus(JasperPrintLP.DRUCKTYP_DRUCKER);
+
+		// PJ19901
+		if (jpaPanelReportIf instanceof ReportBeleg) {
+			ReportBeleg reportBeleg = (ReportBeleg) jpaPanelReportIf;
+			String empfaengerEmailAdresse = reportBeleg.getEmpfaengerEMailAdresse();
+			if (empfaengerEmailAdresse != null) {
+				PanelVersandEmail panelVersandEmail = emailPanelAnzeigen();
+				panelVersandEmail.setEmpfaenger(empfaengerEmailAdresse);
+
+				doActionSendenImpl(panelVersandEmail.getVersandauftragDto(), JasperPrintLP.DRUCKTYP_MAIL);
+				return;
+			}
+		}
+
+		if (bNurEmail == false) {
+			doActionPrintImpl(new ActionEvent(this, 0, ACTION_SPECIAL_DRUCKEN));
+		}
+	}
+
+	public void druckeArchiviereUndSetzeVersandstatusEinesBelegs() throws Throwable {
+		druckeArchiviereUndSetzeVersandstatusEinesBelegs(false);
 	}
 
 	private String escape(Object cell) {
-		if (cell == null) {
+		if (cell == null || cell.toString() == null) {
 			return "";
 		} else {
-			return cell.toString().replace(LINE_BREAK, " ")
-					.replace(CELL_BREAK, " ");
+			return cell.toString().replace(LINE_BREAK, " ").replace(CELL_BREAK, " ");
 		}
 
+	}
+
+	private String getDateinameFuerAnhang(String belegartCnr, Integer belegIId) throws ExceptionLP, Throwable {
+		String sBelegnummer = null;
+
+		if (getPanelVersandEmail(true).getPartnerDtoEmpfaenger() != null
+				&& getPanelVersandEmail(true).getPartnerDtoEmpfaenger().getLocaleCNrKommunikation() != null) {
+			sBelegnummer = DelegateFactory.getInstance().getVersandDelegate().getDefaultAnhangForBelegEmail(
+					getMailtextDto(), belegartCnr, belegIId,
+					getPanelVersandEmail(true).getPartnerDtoEmpfaenger().getLocaleCNrKommunikation());
+		} else {
+			sBelegnummer = DelegateFactory.getInstance().getVersandDelegate()
+					.getDefaultAnhangForBelegEmail(getMailtextDto(), belegartCnr, belegIId);
+		}
+
+		return sBelegnummer == null ? null : sBelegnummer.replaceAll("\\s+", "").replace("/", "_");
+	}
+
+	private void setupVersandauftragDefaults(VersandauftragDto versandauftragDto) throws Throwable {
+		String belegartCnr = null;
+		Integer belegIId = null;
+		if (jpaPanelReportIf instanceof ReportBeleg) {
+			belegartCnr = ((ReportBeleg) jpaPanelReportIf).getBelegartCNr();
+			belegIId = ((ReportBeleg) jpaPanelReportIf).getIIdBeleg();
+			versandauftragDto.setBelegartCNr(belegartCnr);
+			versandauftragDto.setIIdBeleg(belegIId);
+
+			if (options.getPartnerDtoEmpfaenger() != null) {
+				versandauftragDto.setPartnerIIdEmpfaenger(options.getPartnerDtoEmpfaenger().getIId());
+			}
+		}
+		versandauftragDto.setCDateiname(getDateinameFuerAnhang(belegartCnr, belegIId));
+	}
+
+	private VersandauftragDto createVersandauftragImpl(VersandauftragDto versandauftragDto) throws Throwable {
+		boolean dokumenteAnhaengen = false;
+		PanelVersandEmail panelEmail = getPanelVersandEmail(true);
+		boolean emailVersand = panelEmail.isVisible();
+
+		byte[] bAGBs = null;
+		if (emailVersand) {
+			dokumenteAnhaengen = panelEmail.getWcbDokumenteAnhaengen().isSelected();
+
+			// PJ21318
+			if (versandauftragDto.getBelegartCNr() != null && versandauftragDto.getPartnerIIdEmpfaenger() != null) {
+
+				MandantDto mandantDto = DelegateFactory.getInstance().getMandantDelegate()
+						.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant());
+				if (Helper.short2boolean(mandantDto.getBAgbAnhang())) {
+
+					PartnerDto pDto = DelegateFactory.getInstance().getPartnerDelegate()
+							.partnerFindByPrimaryKey(versandauftragDto.getPartnerIIdEmpfaenger());
+
+					if ((versandauftragDto.getBelegartCNr().equals(LocaleFac.BELEGART_AUFTRAG)
+							&& Helper.short2boolean(mandantDto.getBAgbAuftrag()))
+							|| (versandauftragDto.getBelegartCNr().equals(LocaleFac.BELEGART_ANGEBOT)
+									&& Helper.short2boolean(mandantDto.getBAgbAngebot()))
+							|| (versandauftragDto.getBelegartCNr().equals(LocaleFac.BELEGART_ANFRAGE)
+									&& Helper.short2boolean(mandantDto.getBAgbAnfrage()))
+							|| (versandauftragDto.getBelegartCNr().equals(LocaleFac.BELEGART_LIEFERSCHEIN)
+									&& Helper.short2boolean(mandantDto.getBAgbLieferschein()))
+							|| (versandauftragDto.getBelegartCNr().equals(LocaleFac.BELEGART_RECHNUNG)
+									&& Helper.short2boolean(mandantDto.getBAgbRechnung()))
+							|| (versandauftragDto.getBelegartCNr().equals(LocaleFac.BELEGART_BESTELLUNG)
+									&& Helper.short2boolean(mandantDto.getBAgbBestellung()))) {
+
+						bAGBs = DelegateFactory.getInstance().getMandantDelegate()
+								.getAGBs_PDF(Helper.string2Locale(pDto.getLocaleCNrKommunikation()));
+
+					}
+
+				}
+			}
+
+		}
+
+		String[] attachments = getAttachments(panelEmail);
+		int attachmentSize = getAttachmentSizeInKB(attachments);
+
+		if (bAGBs != null) {
+			attachmentSize += bAGBs.length / 1024;
+		}
+
+		int maxSize = getMaxAttachmentSize();
+		if (attachmentSize > maxSize) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.drucken.anhangzugros") + " (" + maxSize + "KB)");
+			// Dient nur dazu, sauber aus dem ganzen Vorgang rauszukommen
+			throw new ExceptionLP(EJBExceptionLP.FEHLER_ATTACHMENTS_ZU_GROSS,
+					"Attachments in KB(" + attachmentSize + ") > max (" + maxSize + ")", new Exception(),
+					new Integer(attachmentSize), new Integer(maxSize));
+		}
+
+		List<VersandanhangDto> alAnhaenge = new ArrayList<VersandanhangDto>();
+		for (String attachment : attachments) {
+			File f = new File(attachment);
+			VersandanhangDto versandanhangDto = new VersandanhangDto();
+			versandanhangDto.setVersandauftragIId(versandauftragDto.getIId());
+			versandanhangDto.setCDateiname(f.getName());
+			FileInputStream fiStream = new FileInputStream(f);
+			byte[] fileData = new byte[(int) f.length()];
+			fiStream.read(fileData);
+			fiStream.close();
+			versandanhangDto.setOInhalt(fileData);
+			alAnhaenge.add(versandanhangDto);
+		}
+
+		if (bAGBs != null) {
+			VersandanhangDto versandanhangDto = new VersandanhangDto();
+			versandanhangDto.setVersandauftragIId(versandauftragDto.getIId());
+			versandanhangDto.setCDateiname("AGB.pdf");
+			versandanhangDto.setOInhalt(bAGBs);
+			alAnhaenge.add(versandanhangDto);
+		}
+
+		VersandauftragDto versandDto = DelegateFactory.getInstance().getVersandDelegate()
+				.createVersandauftrag(versandauftragDto, alAnhaenge, dokumenteAnhaengen);
+		getInternalFrame().closePanelDialog();
+
+		return versandDto;
+	}
+
+	private String[] getAttachments(PanelVersandEmail panelEmail) {
+		String allNames = panelEmail.getjtfAnhaengeText();
+		if (allNames == null || allNames.length() == 0) {
+			return new String[] {};
+		}
+
+		return allNames.split(";");
+	}
+
+	private int getAttachmentSizeInKB(String[] attachments) {
+		int totalSize = 0;
+		for (String attachment : attachments) {
+			File f = new File(attachment);
+			totalSize += f.length() / 1024;
+		}
+		return totalSize;
+	}
+
+	private int getMaxAttachmentSize() throws Throwable {
+		int maxsize = Integer.parseInt(DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), "ALLGEMEIN", ParameterFac.PARAMETER_SIZE_E_MAILANHANG).getCWert());
+		return maxsize;
+	}
+
+	private boolean isAttachmentSizeOk(String[] attachments) throws Throwable {
+		int totalSize = getAttachmentSizeInKB(attachments);
+
+		// Keine Anhaenge / keine Groesse, dann Server-Call einsparen
+		if (totalSize == 0)
+			return true;
+
+		int maxsize = getMaxAttachmentSize();
+		return maxsize >= totalSize;
+	}
+
+	private void setupCreateVersandauftrag(VersandauftragDto versandauftragDto, JasperPrint print) throws Throwable {
+		setupVersandauftragDefaults(versandauftragDto);
+
+		if (versandauftragDto.getCEmpfaenger() == null
+				|| (getPanelVersandEmail(true).isVisible() && versandauftragDto.getCAbsenderadresse() == null)) {
+			showDialogPflichtfelderAusfuellen();
+			return;
+		}
+
+		if (print.getPages().size() > 0) {
+
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+			HVPDFExporter exporter = new HVPDFExporter();
+			exporter.setParameter(JRExporterParameter.JASPER_PRINT, print);
+			exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, baos);
+
+			exporter.exportReport();
+
+			versandauftragDto.setOInhalt(baos.toByteArray());
+
+			createVersandauftragImpl(versandauftragDto);
+		} else {
+			showDialogKeineDatenZuDrucken();
+		}
+	}
+
+	private JasperPrintLP getPrintForVersandauftragOhneKopien(String sDruckType) throws Throwable {
+		ReportBeleg reportBeleg = null;
+		if (jpaPanelReportIf instanceof ReportBeleg) {
+			reportBeleg = (ReportBeleg) jpaPanelReportIf;
+			iKopien = reportBeleg.getKopien() != null ? reportBeleg.getKopien() : 0;
+		}
+
+		// Merken wie viele Kopien eingestellt waren
+		int iKopienAktuell = iKopien;
+		if (reportBeleg != null) {
+			reportBeleg.setKopien(null);
+		}
+
+		JasperPrintLP print = getPrintForVersandauftragMitKopien(sDruckType);
+		iKopien = iKopienAktuell;
+
+		if (reportBeleg != null) {
+			reportBeleg.setKopien(iKopienAktuell);
+		}
+		return print;
+	}
+
+	private JasperPrintLP getPrintForVersandauftragMitKopien(String sDruckType) throws Throwable {
+		if (jpaPanelReportIf instanceof ReportBeleg) {
+			ReportBeleg reportBeleg = (ReportBeleg) jpaPanelReportIf;
+			iKopien = reportBeleg.getKopien() != null ? reportBeleg.getKopien() : 0;
+			reportBeleg.setBPrintLogo(true);
+		}
+
+		JasperPrintLP print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(true, sDruckType);
+		mergeWithPrintTypeReport(print, sDruckType);
+
+		return print;
 	}
 
 	/**
 	 * createVersandauftrag
 	 * 
-	 * @param versandauftragDto
-	 *            VersandauftragDto
+	 * @param versandauftragDto VersandauftragDto
 	 * @throws Throwable
 	 */
-	private void createVersandauftrag(VersandauftragDto versandauftragDto,
-			String sDruckType) throws Throwable {
+	private void createVersandauftrag0(VersandauftragDto versandauftragDto, String sDruckType) throws Throwable {
 
 		int iKopienAktuell = 0;
+		String belegartCnr = null;
+		Integer belegIId = null;
 		if (jpaPanelReportIf instanceof ReportBeleg) {
 
-			if (((ReportBeleg) jpaPanelReportIf).wnfKopien.getInteger() == null) {
+			// if (((ReportBeleg) jpaPanelReportIf).wnfKopien.getInteger() ==
+			// null) {
+			if (((ReportBeleg) jpaPanelReportIf).getKopien() == null) {
 				iKopien = 0;
 			} else {
-
-				iKopien = ((ReportBeleg) jpaPanelReportIf).wnfKopien
-						.getInteger();
+				// iKopien = ((ReportBeleg)
+				// jpaPanelReportIf).wnfKopien.getInteger();
+				iKopien = ((ReportBeleg) jpaPanelReportIf).getKopien();
 			}
-			versandauftragDto.setBelegartCNr(((ReportBeleg) jpaPanelReportIf)
-					.getBelegartCNr());
-			versandauftragDto.setIIdBeleg(((ReportBeleg) jpaPanelReportIf)
-					.getIIdBeleg());
-			String sBelegnummer = DelegateFactory
-					.getInstance()
-					.getVersandDelegate()
-					.getDefaultDateinameForBelegEmail(
-							getPanelVersandEmail(true).getbelegartCNr(),
-							getPanelVersandEmail(true).getbelegIId());
-			versandauftragDto.setCDateiname(sBelegnummer.replace(" ", "")
-					.replace("/", "_"));
+			belegartCnr = ((ReportBeleg) jpaPanelReportIf).getBelegartCNr();
+			belegIId = ((ReportBeleg) jpaPanelReportIf).getIIdBeleg();
+			versandauftragDto.setBelegartCNr(belegartCnr);
+			versandauftragDto.setIIdBeleg(belegIId);
 		}
+		versandauftragDto.setCDateiname(getDateinameFuerAnhang(belegartCnr, belegIId));
+
 		if (versandauftragDto.getCEmpfaenger() == null
-				|| (getPanelVersandEmail(true).isVisible() && versandauftragDto
-						.getCAbsenderadresse() == null)) {
+				|| (getPanelVersandEmail(true).isVisible() && versandauftragDto.getCAbsenderadresse() == null)) {
 			showDialogPflichtfelderAusfuellen();
 		} else {
 			boolean sizeIsOk = true;
@@ -937,13 +1325,13 @@ public class PanelReportKriterien extends PanelDialog implements
 			if (iKopien > 0) {
 				// Merken wie viele Kopien eingestellt waren
 				iKopienAktuell = iKopien;
-				((ReportBeleg) jpaPanelReportIf).wnfKopien.setInteger(0);
+				// ((ReportBeleg) jpaPanelReportIf).wnfKopien.setInteger(0);
+				((ReportBeleg) jpaPanelReportIf).setKopien(null);
 				iKopien = 0;
 				((ReportBeleg) jpaPanelReportIf).setBPrintLogo(true);
 				print = createPrint(sDruckType).getPrint();
 			} else {
-				print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(
-						true, sDruckType).getPrint();
+				print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(true, sDruckType).getPrint();
 			}
 			// Kopieanzahl zuruecksetzen
 			iKopien = iKopienAktuell;
@@ -963,23 +1351,18 @@ public class PanelReportKriterien extends PanelDialog implements
 
 				if (getPanelVersandEmail(true).isVisible()) {
 
-					if (getPanelVersandEmail(true).getWcbDokumenteAnhaengen()
-							.isSelected()) {
+					if (getPanelVersandEmail(true).getWcbDokumenteAnhaengen().isSelected()) {
 						bDokumenteAnhaengen = true;
 					}
 				}
 
-				versandauftragDto = DelegateFactory
-						.getInstance()
-						.getVersandDelegate()
-						.updateVersandauftrag(versandauftragDto,
-								bDokumenteAnhaengen);
+				versandauftragDto = DelegateFactory.getInstance().getVersandDelegate()
+						.updateVersandauftrag(versandauftragDto, bDokumenteAnhaengen);
 				if (getPanelVersandEmail(true).isVisible()) {
 					// Anhaenge verarbeiten
 					String[] sAttachments = null;
 					if (!panelVersandEmail.getjtfAnhaengeText().equals("")) {
-						sAttachments = panelVersandEmail.getjtfAnhaengeText()
-								.split(";");
+						sAttachments = panelVersandEmail.getjtfAnhaengeText().split(";");
 					}
 					if (sAttachments != null) {
 						// check wie grosz die anhaenge sind:
@@ -989,24 +1372,15 @@ public class PanelReportKriterien extends PanelDialog implements
 							size += file.length() / 1024; // umrechnung in KB
 						}
 						// holen der maximalgroesze
-						int maxsize = Integer
-								.parseInt(DelegateFactory
-										.getInstance()
-										.getParameterDelegate()
-										.getMandantparameter(
-												LPMain.getTheClient()
-														.getMandant(),
-												"ALLGEMEIN",
-												ParameterFac.PARAMETER_SIZE_E_MAILANHANG)
-										.getCWert());
+						int maxsize = Integer.parseInt(DelegateFactory.getInstance().getParameterDelegate()
+								.getMandantparameter(LPMain.getTheClient().getMandant(), "ALLGEMEIN",
+										ParameterFac.PARAMETER_SIZE_E_MAILANHANG)
+								.getCWert());
 
 						if (size > maxsize) {
 							sizeIsOk = false;
-							DialogFactory
-									.showModalDialog(
-											LPMain.getTextRespectUISPr("lp.error"),
-											LPMain.getTextRespectUISPr("lp.drucken.anhangzugros")
-													+ " (" + maxsize + "KB)");
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+									LPMain.getTextRespectUISPr("lp.drucken.anhangzugros") + " (" + maxsize + "KB)");
 							panelVersandEmail.setjtfAnhaengeText("");
 						}
 						if (sizeIsOk) {
@@ -1016,12 +1390,9 @@ public class PanelReportKriterien extends PanelDialog implements
 							for (int i = 0; i < sAttachments.length; i++) {
 								File f = new File(sAttachments[i]);
 								VersandanhangDto versandanhangDto = new VersandanhangDto();
-								versandanhangDto
-										.setVersandauftragIId(versandauftragDto
-												.getIId());
+								versandanhangDto.setVersandauftragIId(versandauftragDto.getIId());
 								versandanhangDto.setCDateiname(f.getName());
-								FileInputStream fiStream = new FileInputStream(
-										f);
+								FileInputStream fiStream = new FileInputStream(f);
 								byte[] fileData = new byte[(int) f.length()];
 								fiStream.read(fileData);
 								fiStream.close();
@@ -1031,8 +1402,7 @@ public class PanelReportKriterien extends PanelDialog implements
 
 							}
 
-							DelegateFactory.getInstance().getVersandDelegate()
-									.createVersandanhaenge(alAnhaenge);
+							DelegateFactory.getInstance().getVersandDelegate().createVersandanhaenge(alAnhaenge);
 						}
 					}
 
@@ -1047,8 +1417,7 @@ public class PanelReportKriterien extends PanelDialog implements
 	}
 
 	private void preview() throws Throwable {
-		myLogger.debug("Erzeuge Report: " + jpaPanelReportIf.getModul() + "|"
-				+ jpaPanelReportIf.getReportname());
+		myLogger.debug("Erzeuge Report: " + jpaPanelReportIf.getModul() + "|" + jpaPanelReportIf.getReportname());
 		long lTime = System.currentTimeMillis();
 		boolean bAllowed = true;
 		// Pflichtfelder pruefen
@@ -1065,13 +1434,11 @@ public class PanelReportKriterien extends PanelDialog implements
 				print = createPrint(JasperPrintLP.DRUCKTYP_PREVIEW);
 				if (print == null) {
 					// nicht jede Option gibt auch wirklich einen print retour
-					myLogger.debug("Report=null nach: "
-							+ (System.currentTimeMillis() - lTime) + " ms.");
+					myLogger.debug("Report=null nach: " + (System.currentTimeMillis() - lTime) + " ms.");
 					return;
 				}
 				// Erstellungszeit loggen
-				myLogger.debug("Report erzeugt nach: "
-						+ (System.currentTimeMillis() - lTime) + " ms.");
+				myLogger.debug("Report erzeugt nach: " + (System.currentTimeMillis() - lTime) + " ms.");
 				saveValuesToCache();
 				setRefreshNecessary(false);
 			} catch (ExceptionLP ex) {
@@ -1079,41 +1446,31 @@ public class PanelReportKriterien extends PanelDialog implements
 					if (ex.getCause() != null) {
 						if (ex.getCause().getCause() != null) {
 							if (ex.getCause().getCause() instanceof EJBExceptionLP) {
-								EJBExceptionLP ejbex = (EJBExceptionLP) ex
-										.getCause().getCause();
+								EJBExceptionLP ejbex = (EJBExceptionLP) ex.getCause().getCause();
 								if (ejbex.getCode() == EJBExceptionLP.FEHLER_RECHNUNG_HVWERT_UNGLEICH_REPORTWERT) {
 									LPMain.getInstance();
-									String sMsg = LPMain
-											.getTextRespectUISPr("rech.warning.hvwertreportwert");
-									ArrayList<?> al = ejbex
-											.getAlInfoForTheClient();
+									String sMsg = LPMain.getTextRespectUISPr("rech.warning.hvwertreportwert");
+									List<?> al = ejbex.getAlInfoForTheClient();
 									if (al != null && al.size() > 0) {
 										sMsg += " (" + al.get(0) + ") ";
 									}
-									DialogFactory.showModalDialog(LPMain
-											.getTextRespectUISPr("lp.warning"),
-											sMsg);
+									DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"), sMsg);
 									return;
 								}
 							} else {
 								if (ex.getCause().getCause().getCause() != null) {
 									if (ex.getCause().getCause().getCause() instanceof EJBExceptionLP) {
-										EJBExceptionLP ejbex = (EJBExceptionLP) ex
-												.getCause().getCause()
-												.getCause();
-										if (ejbex.getCode() == EJBExceptionLP.FEHLER_RECHNUNG_HVWERT_UNGLEICH_REPORTWERT) {
+										EJBExceptionLP ejbex = (EJBExceptionLP) ex.getCause().getCause().getCause();
+										if (ejbex
+												.getCode() == EJBExceptionLP.FEHLER_RECHNUNG_HVWERT_UNGLEICH_REPORTWERT) {
 											LPMain.getInstance();
-											String sMsg = LPMain
-													.getTextRespectUISPr("rech.warning.hvwertreportwert");
-											ArrayList<?> al = ejbex
-													.getAlInfoForTheClient();
+											String sMsg = LPMain.getTextRespectUISPr("rech.warning.hvwertreportwert");
+											List<?> al = ejbex.getAlInfoForTheClient();
 											if (al != null && al.size() > 0) {
 												sMsg += " (" + al.get(0) + ") ";
 											}
-											DialogFactory
-													.showModalDialog(
-															LPMain.getTextRespectUISPr("lp.warning"),
-															sMsg);
+											DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+													sMsg);
 											return;
 										}
 									}
@@ -1127,50 +1484,55 @@ public class PanelReportKriterien extends PanelDialog implements
 				boolean bHandled = false;
 				// individuelle Fehlerbehandlung in PanelBasis
 				if (jpaPanelReportIf instanceof PanelBasis) {
-					bHandled = ((PanelBasis) jpaPanelReportIf)
-							.handleOwnException(ex);
+					bHandled = ((PanelBasis) jpaPanelReportIf).handleOwnException(ex);
 				}
 				if (!bHandled) {
 					// ansonsten Fehlerdialog anzeigen
 					String msg = LPMain.getInstance().getMsg(ex);
 					// CK 03.05.2006:WH moechte keine leeren Fehlermeldungen
 					// sehen
-					if (msg == null
-							|| ex.getICode() == EJBExceptionLP.FEHLER_DRUCKEN_FEHLER_IM_REPORT) {
+					if (msg == null || ex.getICode() == EJBExceptionLP.FEHLER_DRUCKEN_FEHLER_IM_REPORT) {
 						msg = "Fehlercode " + ex.getICode();
 						msg = msg + "\n" + ex.getSMsg();
-						new DialogError(LPMain.getInstance().getDesktop(), ex,
-								DialogError.TYPE_ERROR);
+						new DialogError(LPMain.getInstance().getDesktop(), ex, DialogError.TYPE_ERROR);
 					} else {
-						new DialogError(LPMain.getInstance().getDesktop(), ex,
-								DialogError.TYPE_INFORMATION);
+						new DialogError(LPMain.getInstance().getDesktop(), ex, DialogError.TYPE_INFORMATION);
 					}
 
 				}
 				// Fehler loggen
-				myLogger.info("getModul():                  "
-						+ jpaPanelReportIf.getModul());
-				myLogger.info("getReportname():             "
-						+ jpaPanelReportIf.getReportname());
-				myLogger.info("Report-Fehler " + ex.getICode() + " nach: "
-						+ (System.currentTimeMillis() - lTime) + " ms.");
+				myLogger.info("getModul():                  " + jpaPanelReportIf.getModul());
+				myLogger.info("getReportname():             " + jpaPanelReportIf.getReportname());
+				myLogger.info(
+						"Report-Fehler " + ex.getICode() + " nach: " + (System.currentTimeMillis() - lTime) + " ms.");
 				return;
 			}
 			if (print.getPrint().getPages().size() == 0) {
 				showDialogKeineDatenZuDrucken();
+				if (panelReport != null) {
+					panelReport.clearPrint();
+				}
 			} else {
 
 				if (panelReport != null) {
-					letzterZoomfaktor = panelReport.getJpaViewer().getCmbZoom()
-							.getSelectedItem();
+					letzterZoomfaktor = panelReport.getJpaViewer().getCmbZoom().getSelectedItem();
 				}
 
-				panelReport = new PanelReport(getInternalFrame(),
-						this.getAdd2Title(), print, false);
+				panelReport = new PanelReport(getInternalFrame(), this.getAdd2Title(), print, false);
+
+				panelReport.setReportFilenameSupplier(() -> {
+					try {
+						return getReportFilename();
+					} catch (Throwable e1) {
+						return Optional.empty();
+					}
+				});
+
+				panelReport
+						.setPreferredSize(new Dimension(getInternalFrame().getWidth(), getInternalFrame().getHeight()));
 
 				if (letzterZoomfaktor != null && bZoomfaktorGesetzt == true) {
-					panelReport.getJpaViewer().getCmbZoom()
-							.setSelectedItem(letzterZoomfaktor);
+					panelReport.getJpaViewer().getCmbZoom().setSelectedItem(letzterZoomfaktor);
 				}
 
 				jSplitPane1.add(panelReport, JSplitPane.BOTTOM);
@@ -1182,24 +1544,52 @@ public class PanelReportKriterien extends PanelDialog implements
 							ReportkonfDto dto = konfDtos[i];
 
 							if (dto.getCKomponentenname().equals("ZOOMFAKTOR")) {
-								panelReport.getJpaViewer().getCmbZoom()
-										.setSelectedItem(dto.getCKey());
-								bZoomfaktorGesetzt = true;
-								letzterZoomfaktor = panelReport.getJpaViewer()
-										.getCmbZoom().getSelectedItem();
+
+								try {
+									Float zoom;
+									zoom = new Float(dto.getCKey());
+
+									panelReport.getJpaViewer().setZoomRatio(zoom);
+									bZoomfaktorGesetzt = true;
+									letzterZoomfaktor = zoom;
+								} catch (NumberFormatException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+
+							} else if (dto.getCKomponentenname()
+									.equals(panelReport.getJpaViewer().getBtnActualSize().getName())) {
+								setJToggleButton(panelReport.getJpaViewer().getBtnActualSize());
+							} else if (dto.getCKomponentenname()
+									.equals(panelReport.getJpaViewer().getBtnFitPage().getName())) {
+								setJToggleButton(panelReport.getJpaViewer().getBtnFitPage());
+							} else if (dto.getCKomponentenname()
+									.equals(panelReport.getJpaViewer().getBtnFitWidth().getName())) {
+								setJToggleButton(panelReport.getJpaViewer().getBtnFitWidth());
 							}
 
 						}
 					}
 				}
+				saveValuesToCache();
 
 			}
 			// Titel setzen
-			String sTitle = "(" + LPMain.getTextRespectUISPr("lp.report") + "="
-					+ print.getSReportName() + ")";
-			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
-					sTitle);
+			String sTitle = "(" + LPMain.getTextRespectUISPr("lp.report") + "=" + print.getSReportName() + ")";
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, sTitle);
 		}
+	}
+
+	private void reloadPanelVersandComponents() throws Throwable {
+		if (panelVersandEmail == null)
+			return;
+
+		panelVersandEmail.setMailtextDto(getMailtextDto());
+		panelVersandEmail.setDefaultsPanel();
+	}
+
+	private void setJToggleButton(JToggleButton jToggleButton) {
+		jToggleButton.setSelected(true);
 	}
 
 	/**
@@ -1209,15 +1599,13 @@ public class PanelReportKriterien extends PanelDialog implements
 		// das untere panel weg
 		JPanel jpaPanel = new JPanel();
 		jpaPanel.setLayout(new BorderLayout());
-		JLabel jlaNoPages = new JLabel(
-				LPMain.getTextRespectUISPr("lp.hint.nopages"));
+		JLabel jlaNoPages = new JLabel(LPMain.getTextRespectUISPr("lp.hint.nopages"));
 		jlaNoPages.setHorizontalAlignment(SwingConstants.CENTER);
 		jpaPanel.add(jlaNoPages, BorderLayout.CENTER);
 		jSplitPane1.add(jpaPanel, JSplitPane.BOTTOM);
 	}
 
-	private PanelVersandEmail getPanelVersandEmail(
-			boolean bNeedInstantiationIfNull) throws Throwable {
+	protected PanelVersandEmail getPanelVersandEmail(boolean bNeedInstantiationIfNull) throws Throwable {
 		if (panelVersandEmail == null && bNeedInstantiationIfNull) {
 			String belegartCNr = null;
 			Integer belegIId = null;
@@ -1226,36 +1614,22 @@ public class PanelReportKriterien extends PanelDialog implements
 				belegIId = ((ReportBeleg) jpaPanelReportIf).getIIdBeleg();
 			}
 
-			MailtextDto mtDto = jpaPanelReportIf.getMailtextDto();
-			if (mtDto != null) {
+			MailtextDto mtDto = getMailtextDto();
 
-				if (panelStandardDrucker.getVariante() != null) {
-					ReportvarianteDto varDto = DelegateFactory
-							.getInstance()
-							.getDruckerDelegate()
-							.reportvarianteFindByPrimaryKey(
-									panelStandardDrucker.getVariante());
-					mtDto.setParamXslFile(varDto.getCReportnamevariante());
-				}
-
-			}
-
-			panelVersandEmail = new PanelVersandEmail(getInternalFrame(),
-					mtDto, belegartCNr, belegIId, jpaPanelReportIf, this,
-					getOptions().getPartnerDtoEmpfaenger());
-			panelVersandEmail.setDefaultAbsender(getOptions()
-					.getPartnerDtoEmpfaenger(), getOptions()
-					.getAnsprechpartnerIId());
+			panelVersandEmail = new PanelVersandEmail(getInternalFrame(), mtDto, belegartCNr, belegIId,
+					jpaPanelReportIf, this, getOptions().getPartnerDtoEmpfaenger());
+			panelVersandEmail.setDefaultAbsender(getOptions().getPartnerDtoEmpfaenger(),
+					getOptions().getAnsprechpartnerIId());
 			// Direktversand
 			if (getOptions().isDirekt()) {
 				panelVersandEmail.setEditorFieldVisible(false);
 			}
-			panelVersandEmail.getWbuSenden().addActionListener(this);
-			panelVersandEmail.getwbuAnhangWaehlen().addActionListener(this);
-			panelVersandEmail.getwbuAnhangLoeschen().addActionListener(this);
+			panelVersandEmail.installActionListeners(this);
+			// panelVersandEmail.getWbuSenden().addActionListener(this);
+			// panelVersandEmail.getwbuAnhangWaehlen().addActionListener(this);
+			// panelVersandEmail.getwbuAnhangLoeschen().addActionListener(this);
 
-			jpaTop.add(panelVersandEmail, new GridBagConstraints(0, iZeile, 1,
-					1, 1.0, 0.0, GridBagConstraints.CENTER,
+			jpaTop.add(panelVersandEmail, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
 					GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 			panelVersandEmail.setVisible(false);
 			iZeile++;
@@ -1263,8 +1637,21 @@ public class PanelReportKriterien extends PanelDialog implements
 		return panelVersandEmail;
 	}
 
-	private PanelVersandFax getPanelVersandFax(boolean bNeedInstantiationIfNull)
-			throws Throwable {
+	private MailtextDto getMailtextDto() throws Throwable, ExceptionLP {
+		MailtextDto mtDto = jpaPanelReportIf.getMailtextDto();
+		if (mtDto != null) {
+
+			if (panelStandardDrucker.getVariante() != null) {
+				ReportvarianteDto varDto = DelegateFactory.getInstance().getDruckerDelegate()
+						.reportvarianteFindByPrimaryKey(panelStandardDrucker.getVariante());
+				mtDto.setParamXslFile(varDto.getCReportnamevariante());
+			}
+
+		}
+		return mtDto;
+	}
+
+	protected PanelVersandFax getPanelVersandFax(boolean bNeedInstantiationIfNull) throws Throwable {
 		if (panelVersandFax == null && bNeedInstantiationIfNull) {
 			String belegartCNr = null;
 			Integer belegIId = null;
@@ -1272,15 +1659,12 @@ public class PanelReportKriterien extends PanelDialog implements
 				belegartCNr = ((ReportBeleg) jpaPanelReportIf).getBelegartCNr();
 				belegIId = ((ReportBeleg) jpaPanelReportIf).getIIdBeleg();
 			}
-			panelVersandFax = new PanelVersandFax(getInternalFrame(),
-					belegartCNr, belegIId, jpaPanelReportIf, this, getOptions()
-							.getPartnerDtoEmpfaenger());
-			panelVersandFax.setDefaultAbsender(getOptions()
-					.getPartnerDtoEmpfaenger(), getOptions()
-					.getAnsprechpartnerIId());
+			panelVersandFax = new PanelVersandFax(getInternalFrame(), belegartCNr, belegIId, jpaPanelReportIf, this,
+					getOptions().getPartnerDtoEmpfaenger());
+			panelVersandFax.setDefaultAbsender(getOptions().getPartnerDtoEmpfaenger(),
+					getOptions().getAnsprechpartnerIId());
 			panelVersandFax.getWbuSenden().addActionListener(this);
-			jpaTop.add(panelVersandFax, new GridBagConstraints(0, iZeile, 1, 1,
-					1.0, 0.0, GridBagConstraints.CENTER,
+			jpaTop.add(panelVersandFax, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
 					GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 			panelVersandFax.setVisible(false);
 			iZeile++;
@@ -1288,12 +1672,12 @@ public class PanelReportKriterien extends PanelDialog implements
 		return panelVersandFax;
 	}
 
-	private JasperPrintLP createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(
-			boolean bMitLogo, String sDrucktype) throws Throwable {
+	private JasperPrintLP createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(boolean bMitLogo, String sDrucktype)
+			throws Throwable {
 		int iKopienAktuell = 0;
 		if (jpaPanelReportIf instanceof ReportBeleg) {
-			Integer iiKopienAktuell = ((ReportBeleg) jpaPanelReportIf).wnfKopien
-					.getInteger();
+			Integer iiKopienAktuell = ((ReportBeleg) jpaPanelReportIf).getKopien();
+
 			if (iiKopienAktuell != null) {
 				iKopienAktuell = iiKopienAktuell.intValue();
 			}
@@ -1301,57 +1685,63 @@ public class PanelReportKriterien extends PanelDialog implements
 
 		// PJ 16106
 		if (jpaPanelReportIf instanceof ReportEingangsrechnung) {
-			((ReportEingangsrechnung) jpaPanelReportIf)
-					.schecknummerZurueckschreiben();
+			((ReportEingangsrechnung) jpaPanelReportIf).schecknummerZurueckschreiben();
 		}
 
 		JasperPrintLP print = null;
 		// wenn er noch nicht erzeugt wurde, muss er jetzt auf jeden fall
 		// erzeugt werden
-		if (panelReport == null || panelReport.getPrint() == null) {
+		if (panelReport == null || panelReport.getPrint() == null || isRefreshNecessary()) {
+			if (jpaPanelReportIf instanceof PanelReportLogoIfJRDS) {
+				((PanelReportLogoIfJRDS) jpaPanelReportIf).setBPrintLogo(bMitLogo);
+			}
 			print = createPrint(sDrucktype);
-			panelReport = new PanelReport(getInternalFrame(),
-					this.getAdd2Title(), print, false);
+			panelReport = new PanelReport(getInternalFrame(), this.getAdd2Title(), print, false);
+			panelReport.setReportFilenameSupplier(() -> {
+				try {
+					return getReportFilename();
+				} catch (Throwable e1) {
+					return Optional.empty();
+				}
+			});
 		} else {
 			// er ist schon da
 			print = panelReport.getPrint();
-			// jetzt muss noch geprueft werden, ob das logo fuer Belege drauf
-			// sein soll oder nicht
-			if (jpaPanelReportIf instanceof ReportBeleg) {
-				((ReportBeleg) jpaPanelReportIf).setBPrintLogo(bMitLogo);
-				// wenn der in der falschen form da ist ...
-				if (bMitLogo != print.getBMitLogo()
-						|| iKopien != iKopienAktuell) {
-					// ... muss er nochmal erzeugt werden
-					print = createPrint(sDrucktype);
-				}
+
+			boolean hasLogoChanged = isLogoImmerDrucken() ? false
+					: (jpaPanelReportIf instanceof PanelReportLogoIfJRDS) & (bMitLogo != print.getBMitLogo());
+			boolean hasKopienChanged = iKopien != iKopienAktuell;
+
+			if (hasLogoChanged) {
+				((PanelReportLogoIfJRDS) jpaPanelReportIf).setBPrintLogo(bMitLogo);
+			}
+			if (hasLogoChanged || hasKopienChanged) {
+				print = createPrint(sDrucktype);
 			}
 
-			/**
-			 * @todo MR->MR: Achtung von etwas anderem ableiten !! z.B Kurzbrief
-			 *       mit Logo das kein Reportbeleg ist hier abfangen
+			/*
+			 * // jetzt muss noch geprueft werden, ob das logo fuer Belege drauf // sein
+			 * soll oder nicht if (jpaPanelReportIf instanceof ReportBeleg) { ((ReportBeleg)
+			 * jpaPanelReportIf).setBPrintLogo(bMitLogo); // wenn der in der falschen form
+			 * da ist ... if (bMitLogo != print.getBMitLogo() || iKopien != iKopienAktuell)
+			 * { // ... muss er nochmal erzeugt werden print = createPrint(sDrucktype); } }
 			 * 
+			 * else if (jpaPanelReportIf instanceof com.lp.client.partner.ReportSerienbrief)
+			 * { ((com.lp.client.partner.ReportSerienbrief) jpaPanelReportIf)
+			 * .setBPrintLogo(bMitLogo); // wenn der in der falschen form da ist ... if
+			 * (bMitLogo != print.getBMitLogo() || iKopien != iKopienAktuell) { // ... muss
+			 * er nochmal erzeugt werden print = createPrint(sDrucktype); } } else if
+			 * (jpaPanelReportIf instanceof com.lp.client.partner.ReportKurzbrief) {
+			 * ((com.lp.client.partner.ReportKurzbrief) jpaPanelReportIf)
+			 * .setBPrintLogo(bMitLogo); // wenn der in der falschen form da ist ... if
+			 * (bMitLogo != print.getBMitLogo() || iKopien != iKopienAktuell) { // ... muss
+			 * er nochmal erzeugt werden print = createPrint(sDrucktype); } } else if
+			 * (jpaPanelReportIf instanceof com.lp.client.partner.ReportLastschrift) {
+			 * ((com.lp.client.partner.ReportLastschrift) jpaPanelReportIf)
+			 * .setBPrintLogo(bMitLogo); // wenn der in der falschen form da ist ... if
+			 * (bMitLogo != print.getBMitLogo() || iKopien != iKopienAktuell) { // ... muss
+			 * er nochmal erzeugt werden print = createPrint(sDrucktype); } }
 			 */
-			else if (jpaPanelReportIf instanceof com.lp.client.partner.ReportSerienbrief) {
-				((com.lp.client.partner.ReportSerienbrief) jpaPanelReportIf)
-						.setBPrintLogo(bMitLogo);
-				// wenn der in der falschen form da ist ...
-				if (bMitLogo != print.getBMitLogo()
-						|| iKopien != iKopienAktuell) {
-					// ... muss er nochmal erzeugt werden
-					print = createPrint(sDrucktype);
-				}
-			} else if (jpaPanelReportIf instanceof com.lp.client.partner.ReportKurzbrief) {
-				((com.lp.client.partner.ReportKurzbrief) jpaPanelReportIf)
-						.setBPrintLogo(bMitLogo);
-				// wenn der in der falschen form da ist ...
-				if (bMitLogo != print.getBMitLogo()
-						|| iKopien != iKopienAktuell) {
-					// ... muss er nochmal erzeugt werden
-					print = createPrint(sDrucktype);
-				}
-			}
-
 		}
 		// Kopien merken
 		iKopien = iKopienAktuell;
@@ -1361,8 +1751,7 @@ public class PanelReportKriterien extends PanelDialog implements
 	private JasperPrintLP createPrint(String sDrucktype) throws Throwable {
 		JasperPrintLP print = null;
 		try {
-			LPMain.getTheClient().setReportvarianteIId(
-					panelStandardDrucker.getVariante());
+			LPMain.getTheClient().setReportvarianteIId(panelStandardDrucker.getVariante());
 			print = jpaPanelReportIf.getReport(sDrucktype);
 			LPMain.getTheClient().setReportvarianteIId(null);
 		} catch (ExceptionLP ex) {
@@ -1377,29 +1766,26 @@ public class PanelReportKriterien extends PanelDialog implements
 
 	public boolean handleOwnException(ExceptionLP exfc) {
 		if (exfc.getICode() == EJBExceptionLP.FEHLER_DRUCKEN_FILE_NOT_FOUND) {
-			String message = LPMain
-					.getTextRespectUISPr("lp.error.reportfilenotfound");
-			if (exfc.getAlInfoForTheClient() != null
-					&& !exfc.getAlInfoForTheClient().isEmpty()) {
-				for (Iterator<?> iter = exfc.getAlInfoForTheClient().iterator(); iter
-						.hasNext();) {
+			String message = LPMain.getTextRespectUISPr("lp.error.reportfilenotfound");
+			if (exfc.getAlInfoForTheClient() != null && !exfc.getAlInfoForTheClient().isEmpty()) {
+				for (Iterator<?> iter = exfc.getAlInfoForTheClient().iterator(); iter.hasNext();) {
 					String item = (String) iter.next();
 					message = message + "\n" + item;
 				}
 			}
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.error"), message);
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), message);
 			return true;
 		} else if (exfc.getICode() == EJBExceptionLP.FEHLER_DRUCKEN_KEINE_DATEN_ZU_DRUCKEN) {
 			showDialogKeineDatenZuDrucken();
+			return true;
+		} else if (exfc.getICode() == EJBExceptionLP.FEHLER_ATTACHMENTS_ZU_GROSS) {
 			return true;
 		} else {
 			return false;
 		}
 	}
 
-	public static MailtextDto getDefaultMailtextDto(
-			PanelReportIfJRDS panelReportIfJRDS) throws Throwable {
+	public static MailtextDto getDefaultMailtextDto(PanelReportIfJRDS panelReportIfJRDS) throws Throwable {
 		// report_email: 1 hier wird ein standard-MailtextDto erstellt
 		MailtextDto mailtextDto = new MailtextDto();
 		mailtextDto.setParamLocale(LPMain.getTheClient().getLocUi());
@@ -1415,21 +1801,33 @@ public class PanelReportKriterien extends PanelDialog implements
 	}
 
 	public void print() throws Throwable {
+		print(false, JasperPrintLP.DRUCKTYP_DRUCKER);
+	}
+
+	public void print(JasperPrintLP jasperPrintLP) throws Throwable {
+		print(jasperPrintLP, false);
+	}
+
+	public void print(boolean bNurKopien, String sDrucktyp) throws Throwable {
+		JasperPrintLP jasperPrintLP = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(false, sDrucktyp);
+		if (bNurKopien) {
+			jasperPrintLP = mergeWithPrintTypeReport(jasperPrintLP, sDrucktyp);
+		}
+		print(jasperPrintLP, bNurKopien);
+	}
+
+	public void print(JasperPrintLP jasperPrintLP, boolean bNurKopien) throws Throwable {
 		boolean bCloseDialog = true;
-		JasperPrint print = createPrintIfPrintWasNotCreatedOrUpdateIfNecessary(
-				false, JasperPrintLP.DRUCKTYP_DRUCKER).getPrint();
+		JasperPrint print = jasperPrintLP.getPrint();
+
 		if (print.getPages().size() > 0) {
-			PrintService printer = panelStandardDrucker
-					.getSelectedPrintService();
-			String sUbersteuerterDrucker = DelegateFactory
-					.getInstance()
-					.getSystemDelegate()
-					.getPrinterNameForReport(jpaPanelReportIf.getModul(),
-							jpaPanelReportIf.getReportname(),
-							LPMain.getInstance().getUISprLocale(), null);
+			PrintService printer = panelStandardDrucker.getSelectedPrintService();
+
+			String sUbersteuerterDrucker = DelegateFactory.getInstance().getSystemDelegate().getPrinterNameForReport(
+					jpaPanelReportIf.getModul(), jpaPanelReportIf.getReportname(),
+					LPMain.getInstance().getUISprLocale(), null);
 			if (sUbersteuerterDrucker != null) {
-				PrintService[] printService = PrintServiceLookup
-						.lookupPrintServices(null, null);
+				PrintService[] printService = PrintServiceLookup.lookupPrintServices(null, null);
 				for (int i = 0; i < printService.length; i++) {
 					if (printService[i].getName().equals(sUbersteuerterDrucker)) {
 						printer = printService[i];
@@ -1438,90 +1836,86 @@ public class PanelReportKriterien extends PanelDialog implements
 			}
 			if (printer != null) {
 				try {
-					PrintRequestAttributeSet printRequestAttributeSet = new HashPrintRequestAttributeSet();
-					int printableWidth = 0;
-					int printableHeight = 0;
 
-					if (print.getOrientationValue() == OrientationEnum.LANDSCAPE) {
-						printableWidth = print.getPageHeight();
-						printableHeight = print.getPageWidth();
+					PrintService printerKopien = null;
+					Integer kopien = null;
+					if (jpaPanelReportIf instanceof ReportBeleg) {
+						ReportBeleg reportBeleg = ((ReportBeleg) jpaPanelReportIf);
+						printerKopien = reportBeleg.getSelectedPrintServiceKopien();
+						kopien = reportBeleg.getKopien();
+					}
+
+					if (printerKopien != null && kopien != null && kopien > 0
+							&& print.getPages().size() % (kopien + 1) == 0) {
+
+						int iSeitenProKopie = print.getPages().size() / (kopien + 1);
+
+						if (iSeitenProKopie > 0 && iSeitenProKopie < print.getPages().size()) {
+
+							List<JRPrintPage> pages = new ArrayList<JRPrintPage>(print.getPages());
+
+							print.getPages().clear();
+							print.getPages().addAll(pages.subList(0, iSeitenProKopie));
+
+							// Zuerst Original
+							if (bNurKopien == false) {
+								ausdrucken(print, printer);
+							}
+
+							// Dann Kopien
+							print.getPages().clear();
+							print.getPages().addAll(pages.subList(iSeitenProKopie, pages.size()));
+							ausdrucken(print, printerKopien);
+
+							// SP5208 Damit das Original fuer die
+							// Dokumentenablage zur Verfuegung steht
+							print.getPages().clear();
+							print.getPages().addAll(pages.subList(0, iSeitenProKopie));
+
+						} else {
+							ausdrucken(print, printer);
+						}
+
 					} else {
-						printableWidth = print.getPageWidth();
-						printableHeight = print.getPageHeight();
-					}
 
-					if ((printableWidth != 0) && (printableHeight != 0)) {
-						printRequestAttributeSet.add(new MediaPrintableArea(
-								0.0F, 0.0F, printableWidth / 72.0F,
-								printableHeight / 72.0F,
-								MediaPrintableArea.INCH));
-					}
-
-					PrintServiceAttributeSet printServiceAttributeSet = new HashPrintServiceAttributeSet();
-					printServiceAttributeSet.add(new PrinterName(printer
-							.getName(), null));
-
-					// AD JR LPJRPrintServiceExporter exporter = new
-					// LPJRPrintServiceExporter();
-					JRPrintServiceExporter exporter = new JRPrintServiceExporter();
-
-					exporter.setParameter(JRExporterParameter.JASPER_PRINT,
-							print);
-					exporter.setParameter(
-							JRPrintServiceExporterParameter.PRINT_REQUEST_ATTRIBUTE_SET,
-							printRequestAttributeSet);
-					exporter.setParameter(
-							JRPrintServiceExporterParameter.PRINT_SERVICE_ATTRIBUTE_SET,
-							printServiceAttributeSet);
-					exporter.setParameter(
-							JRPrintServiceExporterParameter.DISPLAY_PAGE_DIALOG,
-							Boolean.FALSE);
-					exporter.setParameter(
-							JRPrintServiceExporterParameter.DISPLAY_PRINT_DIALOG,
-							Boolean.FALSE);
-
-					// print it
-					int iAnzahl = 1;
-					// Etiketten koennen mehrfach gedruckt werden
-					if (jpaPanelReportIf instanceof ReportEtikett) {
-						Integer iExemplare = ((ReportEtikett) jpaPanelReportIf)
-								.getAnzahlExemplare();
-						if (iExemplare != null && iExemplare.intValue() >= 1) {
-							iAnzahl = iExemplare.intValue();
+						if (printerKopien != null && kopien != null && kopien > 0
+								&& print.getPages().size() % (kopien + 1) != 0) {
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+									LPMain.getTextRespectUISPr("lp.kopiendrucker.splittingnichtmoeglich"));
 						}
-					}
 
-					if (jpaPanelReportIf instanceof ReportWepEtikett) {
-						Integer iExemplare = ((ReportWepEtikett) jpaPanelReportIf)
-								.getAnzahlExemplare();
-						if (iExemplare != null && iExemplare.intValue() >= 1) {
-							iAnzahl = iExemplare.intValue();
+						if (bNurKopien) {
+
+							if (kopien != null && kopien > 0) {
+								// Original auslassen
+								int iSeitenProKopie = print.getPages().size() / (kopien + 1);
+
+								if (iSeitenProKopie > 0) {
+									List<JRPrintPage> pages = new ArrayList<JRPrintPage>(print.getPages());
+
+									print.getPages().clear();
+									print.getPages().addAll(pages.subList(iSeitenProKopie, pages.size()));
+									ausdrucken(print, printer);
+
+									// SP5208 Damit das Original fuer die
+									// Dokumentenablage zur Verfuegung steht
+									print.getPages().clear();
+									print.getPages().addAll(pages.subList(0, iSeitenProKopie));
+
+								}
+							}
+						} else {
+							ausdrucken(print, printer);
 						}
+
 					}
 
-					PrintService psOverride = overrideAcceptingJobs(printer);
-					if (psOverride != null) {
-						exporter.setParameter(
-								JRPrintServiceExporterParameter.PRINT_SERVICE,
-								psOverride);
-
-						// mehrere Exemplare geht auch
-						/**
-						 * @todo MR->VF exporter.exportReport() als Thread
-						 *       laufen lassen.
-						 */
-						for (int i = 0; i < iAnzahl; i++) {
-							exporter.exportReport();
-						}
-					}
 				} catch (Exception ex) {
-					if (ex instanceof ExceptionLP
-							&& ((ExceptionLP) ex).getICode() == EJBExceptionLP.FEHLER_DRUCKEN_KEINE_DRUCKER_INSTALLIERT) {
+					if (ex instanceof ExceptionLP && ((ExceptionLP) ex)
+							.getICode() == EJBExceptionLP.FEHLER_DRUCKEN_KEINE_DRUCKER_INSTALLIERT) {
 						bCloseDialog = false;
-						DialogFactory
-								.showModalDialog(
-										LPMain.getTextRespectUISPr("lp.error"),
-										LPMain.getTextRespectUISPr("lp.drucken.keindruckerinstalliert"));
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+								LPMain.getTextRespectUISPr("lp.drucken.keindruckerinstalliert"));
 					}
 
 					else if (ex instanceof JRException) {
@@ -1530,24 +1924,17 @@ public class PanelReportKriterien extends PanelDialog implements
 							if (ex.getCause() instanceof PrinterException) {
 								// z.B Fehler wie "Printer is not Accepting Job"
 								// oder "Invalid Name of PrinterService".
-								throw new ExceptionLP(
-										EJBExceptionLP.FEHLER_FEHLER_BEIM_DRUCKEN,
-										ex);
+								throw new ExceptionLP(EJBExceptionLP.FEHLER_FEHLER_BEIM_DRUCKEN, ex);
 							}
 						}
 					} else {
-						new DialogError(LPMain.getInstance().getDesktop(), ex,
-								DialogError.TYPE_ERROR);
+						new DialogError(LPMain.getInstance().getDesktop(), ex, DialogError.TYPE_ERROR);
 					}
 				}
 				// PJ 17341
 				boolean bAutomatischVerlassen = (Boolean) DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getMandantparameter(
-								LPMain.getTheClient().getMandant(),
-								"ALLGEMEIN",
-								ParameterFac.PARAMETER_DRUCKVORSCHAU_AUTOMATISCH_BEENDEN)
+						.getInstance().getParameterDelegate().getMandantparameter(LPMain.getTheClient().getMandant(),
+								"ALLGEMEIN", ParameterFac.PARAMETER_DRUCKVORSCHAU_AUTOMATISCH_BEENDEN)
 						.getCWertAsObject();
 
 				if (bCloseDialog && bAutomatischVerlassen == true) {
@@ -1561,9 +1948,75 @@ public class PanelReportKriterien extends PanelDialog implements
 					}
 
 					getInternalFrame().closePanelDialog();
+					if (jpaPanelReportIf instanceof ReportBeleg) {
+						((ReportBeleg) jpaPanelReportIf).printDialogClosed();
+					}
 				}
 			} else {
 				showDialogKeineDatenZuDrucken();
+			}
+		}
+	}
+
+	private void ausdrucken(JasperPrint print, PrintService printer) throws Throwable, JRException {
+		PrintRequestAttributeSet printRequestAttributeSet = new HashPrintRequestAttributeSet();
+		// SP6676
+		// printRequestAttributeSet.add(new PrinterResolution(600, 600,
+		// ResolutionSyntax.DPI));
+
+		int printableWidth = 0;
+		int printableHeight = 0;
+
+		if (print.getOrientationValue() == OrientationEnum.LANDSCAPE) {
+			printableWidth = print.getPageHeight();
+			printableHeight = print.getPageWidth();
+		} else {
+			printableWidth = print.getPageWidth();
+			printableHeight = print.getPageHeight();
+		}
+
+		if ((printableWidth != 0) && (printableHeight != 0)) {
+			printRequestAttributeSet.add(new MediaPrintableArea(0.0F, 0.0F, printableWidth / 72.0F,
+					printableHeight / 72.0F, MediaPrintableArea.INCH));
+		}
+
+		PrintServiceAttributeSet printServiceAttributeSet = new HashPrintServiceAttributeSet();
+		printServiceAttributeSet.add(new PrinterName(printer.getName(), null));
+
+		// AD JR LPJRPrintServiceExporter exporter = new
+		// LPJRPrintServiceExporter();
+		JRPrintServiceExporter exporter = new JRPrintServiceExporter();
+
+		exporter.setParameter(JRExporterParameter.JASPER_PRINT, print);
+		exporter.setParameter(JRPrintServiceExporterParameter.PRINT_REQUEST_ATTRIBUTE_SET, printRequestAttributeSet);
+		exporter.setParameter(JRPrintServiceExporterParameter.PRINT_SERVICE_ATTRIBUTE_SET, printServiceAttributeSet);
+
+		exporter.setParameter(JRPrintServiceExporterParameter.DISPLAY_PAGE_DIALOG, Boolean.FALSE);
+		exporter.setParameter(JRPrintServiceExporterParameter.DISPLAY_PRINT_DIALOG, Boolean.FALSE);
+
+		// print it
+		int iAnzahl = 1;
+		// Etiketten koennen mehrfach gedruckt werden
+		/*
+		 * if (jpaPanelReportIf instanceof ReportEtikett) { Integer iExemplare =
+		 * ((ReportEtikett) jpaPanelReportIf).getAnzahlExemplare(); if (iExemplare !=
+		 * null && iExemplare.intValue() >= 1) { iAnzahl = iExemplare.intValue(); } }
+		 * 
+		 * if (jpaPanelReportIf instanceof ReportWepEtikett) { Integer iExemplare =
+		 * ((ReportWepEtikett) jpaPanelReportIf).getAnzahlExemplare(); if (iExemplare !=
+		 * null && iExemplare.intValue() >= 1) { iAnzahl = iExemplare.intValue(); } }
+		 */
+
+		PrintService psOverride = overrideAcceptingJobs(printer);
+		if (psOverride != null) {
+			exporter.setParameter(JRPrintServiceExporterParameter.PRINT_SERVICE, psOverride);
+
+			// mehrere Exemplare geht auch
+			/**
+			 * @todo MR->VF exporter.exportReport() als Thread laufen lassen.
+			 */
+			for (int i = 0; i < iAnzahl; i++) {
+				exporter.exportReport();
 			}
 		}
 	}
@@ -1592,8 +2045,7 @@ public class PanelReportKriterien extends PanelDialog implements
 		// System.out.println("actual state is " + acceptingJob.getValue()) ;
 		// }
 
-		PrinterIsAcceptingJobs attribute = printService
-				.getAttribute(PrinterIsAcceptingJobs.class);
+		PrinterIsAcceptingJobs attribute = printService.getAttribute(PrinterIsAcceptingJobs.class);
 		if (null == attribute)
 			return true;
 		return 1 == attribute.getValue();
@@ -1602,15 +2054,11 @@ public class PanelReportKriterien extends PanelDialog implements
 
 	private PrintService overrideAcceptingJobs(PrintService printService) {
 		if (!isAcceptingPrintJobs(printService)) {
-			boolean shouldPrint = DialogFactory
-					.showModalJaNeinDialog(
-							getInternalFrame(),
-							LPMain.getTextRespectUISPr("lp.drucken.hinweisprinterisnotacceptingjob"),
-							LPMain.getTextRespectUISPr("lp.achtung"),
-							JOptionPane.QUESTION_MESSAGE, JOptionPane.NO_OPTION);
+			boolean shouldPrint = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.drucken.hinweisprinterisnotacceptingjob"),
+					LPMain.getTextRespectUISPr("lp.achtung"), JOptionPane.QUESTION_MESSAGE, JOptionPane.NO_OPTION);
 			if (shouldPrint) {
-				PrintService psOverride = new ForcedPrintServiceAcceptingJob(
-						printService, true);
+				PrintService psOverride = new ForcedPrintServiceAcceptingJob(printService, true);
 				printService = psOverride;
 			} else {
 				printService = null;
@@ -1622,14 +2070,13 @@ public class PanelReportKriterien extends PanelDialog implements
 
 	private void setDruckeinstellungenGeladen(boolean b) {
 		panelStandardDrucker.getWbuLoeschen().setEnabled(b);
-		panelStandardDrucker.getWbuSpeichern().setBackground(
-				b ? new Color(0, 200, 0) : null);
-		panelStandardDrucker.getWbuSpeichern().setOpaque(true);
+//		panelStandardDrucker.getWbuSpeichern().setBackground(b ? new Color(0, 200, 0) : null);
+//		panelStandardDrucker.getWbuSpeichern().setOpaque(true);
+		panelStandardDrucker.getWbuSpeichern().setPrintPropertiesSaved(b);
 	}
 
 	public void refreshVarianten() throws Throwable {
-		Map m = DelegateFactory.getInstance().getDruckerDelegate()
-				.holeAlleVarianten(jpaPanelReportIf.getReportname());
+		Map m = DelegateFactory.getInstance().getDruckerDelegate().holeAlleVarianten(jpaPanelReportIf.getReportname());
 		panelStandardDrucker.getWcoVariante().setMap(m);
 	}
 
@@ -1639,37 +2086,28 @@ public class PanelReportKriterien extends PanelDialog implements
 		}
 		standarddruckerDto.setCPc(Helper.getPCName());
 		if (jpaPanelReportIf instanceof ReportBeleg) {
-			Integer kstIId = ((ReportBeleg) jpaPanelReportIf)
-					.getKostenstelleIId();
+			Integer kstIId = ((ReportBeleg) jpaPanelReportIf).getKostenstelleIId();
 			standarddruckerDto.setKostenstelleIId_notInDB(kstIId);
+
 		}
 		/**
 		 * @todo das Locale des Reports
 		 */
 		standarddruckerDto.setLocale_notInDB(LPMain.getTheClient().getLocUi());
 		standarddruckerDto.setMandantCNr(LPMain.getTheClient().getMandant());
-		standarddruckerDto.setSFilename_notInDB(jpaPanelReportIf
-				.getReportname());
+		standarddruckerDto.setSFilename_notInDB(jpaPanelReportIf.getReportname());
 		standarddruckerDto.setSModul_notInDB(jpaPanelReportIf.getModul());
 
-		if (bVariantenInitialisiert == true
-				&& panelStandardDrucker.getVariante() == null) {
+		if (bVariantenInitialisiert == true && panelStandardDrucker.getVariante() == null) {
 			standarddruckerDto.setReportvarianteIId(null);
 			// Drucker holen
-			standarddruckerDto = DelegateFactory
-					.getInstance()
-					.getDruckerDelegate()
-					.standarddruckerFindByPcReportnameOhneVariante(
-							standarddruckerDto);
+			standarddruckerDto = DelegateFactory.getInstance().getDruckerDelegate()
+					.standarddruckerFindByPcReportnameOhneVariante(standarddruckerDto);
 		} else {
-			standarddruckerDto.setReportvarianteIId(panelStandardDrucker
-					.getVariante());
+			standarddruckerDto.setReportvarianteIId(panelStandardDrucker.getVariante());
 			// Drucker holen
-			standarddruckerDto = DelegateFactory
-					.getInstance()
-					.getDruckerDelegate()
-					.standarddruckerFindByPcReportnameOhneExc(
-							standarddruckerDto);
+			standarddruckerDto = DelegateFactory.getInstance().getDruckerDelegate()
+					.standarddruckerFindByPcReportnameOhneExc(standarddruckerDto);
 		}
 
 		if (bVariantenInitialisiert == false) {
@@ -1678,9 +2116,19 @@ public class PanelReportKriterien extends PanelDialog implements
 					.holeAlleVarianten(jpaPanelReportIf.getReportname());
 			panelStandardDrucker.getWcoVariante().setMap(m);
 
-			panelStandardDrucker.getWcoVariante().addActionListener(
-					new PanelReportKriterien_wcoVariante_actionAdapter(this));
-
+			panelStandardDrucker.getWcoVariante()
+					.addActionListener(new PanelReportKriterien_wcoVariante_actionAdapter(this));
+			panelStandardDrucker.getWcoVariante().addItemListener(new ItemListener() {
+				public void itemStateChanged(ItemEvent e) {
+					if (ItemEvent.SELECTED == e.getStateChange()) {
+						try {
+							reloadPanelVersandComponents();
+						} catch (Throwable e1) {
+							myLogger.error(e1);
+						}
+					}
+				}
+			});
 			bVariantenInitialisiert = true;
 		}
 
@@ -1688,21 +2136,22 @@ public class PanelReportKriterien extends PanelDialog implements
 		boolean druckerEinstellungenGeladen = false;
 		if (standarddruckerDto != null) {
 
-			panelStandardDrucker.setSelectedPrinter(standarddruckerDto
-					.getCDrucker());
+			panelStandardDrucker.setSelectedPrinter(standarddruckerDto.getCDrucker());
 
-			if (standarddruckerDto.getReportvarianteIId() != null) {
-				panelStandardDrucker.getWcoVariante().setKeyOfSelectedItem(
-						standarddruckerDto.getReportvarianteIId());
+			if (jpaPanelReportIf instanceof ReportBeleg) {
+
+				((ReportBeleg) jpaPanelReportIf).setPrinterKopien(standarddruckerDto.getCDruckerKopien());
+
 			}
 
-			konfDtos = DelegateFactory
-					.getInstance()
-					.getDruckerDelegate()
-					.reportkonfFindByStandarddruckerIId(
-							standarddruckerDto.getIId());
+			if (standarddruckerDto.getReportvarianteIId() != null) {
+				panelStandardDrucker.getWcoVariante().setKeyOfSelectedItem(standarddruckerDto.getReportvarianteIId());
+			}
+
+			konfDtos = DelegateFactory.getInstance().getDruckerDelegate()
+					.reportkonfFindByStandarddruckerIId(standarddruckerDto.getIId());
 			druckerEinstellungenGeladen = (konfDtos != null && konfDtos.length > 0);
-			// Nun Einstellungen wieder in due Komponenenten schreiben
+			// Nun Einstellungen wieder in die Komponenenten schreiben
 			if (druckerEinstellungenGeladen) {
 				schreibeReportKonfInDieKomponentenZurueck(konfDtos);
 			}
@@ -1712,11 +2161,9 @@ public class PanelReportKriterien extends PanelDialog implements
 		setDruckeinstellungenGeladen(druckerEinstellungenGeladen);
 
 		panelStandardDrucker.getWbuSpeichern().addActionListener(this);
-		panelStandardDrucker.getWbuSpeichern().setActionCommand(
-				ACTION_SPECIAL_DRUCKER_SPEICHERN);
+		panelStandardDrucker.getWbuSpeichern().setActionCommand(ACTION_SPECIAL_DRUCKER_SPEICHERN);
 		panelStandardDrucker.getWbuLoeschen().addActionListener(this);
-		panelStandardDrucker.getWbuLoeschen().setActionCommand(
-				ACTION_SPECIAL_DRUCKER_LOESCHEN);
+		panelStandardDrucker.getWbuLoeschen().setActionCommand(ACTION_SPECIAL_DRUCKER_LOESCHEN);
 
 		if (panelVersandEmail != null) {
 			panelVersandEmail.bUebersteuerterEmpaengerVorschlagGesetzt = false;
@@ -1726,21 +2173,17 @@ public class PanelReportKriterien extends PanelDialog implements
 
 	}
 
-	private void schreibeReportKonfInDieKomponentenZurueck(ReportkonfDto[] dtos)
-			throws Throwable {
+	private void schreibeReportKonfInDieKomponentenZurueck(ReportkonfDto[] dtos) throws Throwable {
 
 		// Zuerst alle Check-Boxen und Radio-Buttons
 
 		for (int i = 0; i < dtos.length; i++) {
 			ReportkonfDto dto = dtos[i];
 
-			if (dto.getCKomponententyp().equals(
-					DruckerFac.REPORTKONF_KOMPONENTENTYP_RADIOBUTTON)
-					|| dto.getCKomponententyp().equals(
-							DruckerFac.REPORTKONF_KOMPONENTENTYP_CHECKBOX)) {
+			if (dto.getCKomponententyp().equals(DruckerFac.REPORTKONF_KOMPONENTENTYP_RADIOBUTTON)
+					|| dto.getCKomponententyp().equals(DruckerFac.REPORTKONF_KOMPONENTENTYP_CHECKBOX)) {
 
-				sucheKomponente(dto,
-						((PanelBasis) jpaPanelReportIf).getComponents());
+				sucheKomponente(dto, ((PanelBasis) jpaPanelReportIf).getComponents());
 			}
 
 		}
@@ -1748,22 +2191,25 @@ public class PanelReportKriterien extends PanelDialog implements
 		for (int i = 0; i < dtos.length; i++) {
 			ReportkonfDto dto = dtos[i];
 
-			sucheKomponente(dto,
-					((PanelBasis) jpaPanelReportIf).getComponents());
+			sucheKomponente(dto, ((PanelBasis) jpaPanelReportIf).getComponents());
 
 		}
 
+		reportKonfGeladen(jpaPanelReportIf);
 	}
 
-	private void sucheKomponente(ReportkonfDto dto, Component[] components)
-			throws Throwable {
+	protected void reportKonfGeladen(PanelReportIfJRDS panelReport) {
+		if (panelReport instanceof PanelReportIfJRDSHasNonPersistentFields) {
+			((PanelReportIfJRDSHasNonPersistentFields) panelReport).reportKonfGeladen();
+		}
+	}
+
+	private void sucheKomponente(ReportkonfDto dto, Component[] components) throws Throwable {
 
 		try {
 			for (int i = 0; i < components.length; ++i) {
 
-				if (components[i].getName() != null
-						&& components[i].getName().equals(
-								dto.getCKomponentenname())) {
+				if (components[i].getName() != null && components[i].getName().equals(dto.getCKomponentenname())) {
 					if (components[i] instanceof WrapperSelectField) {
 						WrapperSelectField wsf = (WrapperSelectField) components[i];
 
@@ -1780,8 +2226,7 @@ public class PanelReportKriterien extends PanelDialog implements
 
 						WrapperTextField wtf = (WrapperTextField) components[i];
 
-						if (wtf.isSaveReportInformation() == true
-								&& wtf.isActivatable() == true) {
+						if (wtf.isSaveReportInformation() == true && wtf.isActivatable() == true) {
 							if (wtf.isEditable() == true) {
 								wtf.setText(dto.getCKey());
 							}
@@ -1791,13 +2236,34 @@ public class PanelReportKriterien extends PanelDialog implements
 
 						WrapperCheckBox wcb = (WrapperCheckBox) components[i];
 
-						wcb.setShort(new Short(dto.getCKey()));
-					} else if (components[i] instanceof WrapperRadioButton
-							|| components[i] instanceof JRadioButton) {
+						if (Helper.short2boolean(new Short(dto.getCKey())) == true) {
+							if (wcb.isSelected() == false) {
+								wcb.setSelected(false);
+								wcb.doClick();
+							}
+						} else {
+							if (wcb.isSelected() == true) {
+								wcb.setSelected(true);
+								wcb.doClick();
+							}
+						}
+
+					} else if (components[i] instanceof WrapperRadioButton || components[i] instanceof JRadioButton) {
 
 						JRadioButton wcb = (JRadioButton) components[i];
 
 						wcb.doClick();
+
+					} else if (components[i] instanceof WrapperComboBoxPeriode) {
+
+						WrapperComboBoxPeriode wcb = (WrapperComboBoxPeriode) components[i];
+
+						try {
+							Integer iKey = new Integer(dto.getCKey());
+							wcb.setPeriode(iKey);
+						} catch (Exception e) {
+							//
+						}
 
 					} else if (components[i] instanceof WrapperComboBox) {
 
@@ -1818,59 +2284,55 @@ public class PanelReportKriterien extends PanelDialog implements
 					} else if (components[i] instanceof WrapperNumberField) {
 						WrapperNumberField wcb = (WrapperNumberField) components[i];
 						wcb.setBigDecimal(new BigDecimal(dto.getCKey()));
+					} else if (components[i] instanceof WrapperSpinner) {
+						WrapperSpinner wcb = (WrapperSpinner) components[i];
+						wcb.setInteger(new Integer(dto.getCKey()));
 					}
 
 				}
-				if ((components[i] instanceof java.awt.Container)
-						&& !(components[i] instanceof IControl)) {
+				if ((components[i] instanceof java.awt.Container) && !(components[i] instanceof IControl)) {
 
-					sucheKomponente(dto,
-							((java.awt.Container) components[i])
-									.getComponents());
+					sucheKomponente(dto, ((java.awt.Container) components[i]).getComponents());
 				}
 			}
 		} catch (Exception e) {
 			// WENN FEHLER, dann wird der Eintrag geloescht
-			DelegateFactory.getInstance().getDruckerDelegate()
-					.removeReportkonf(dto.getIId());
+			DelegateFactory.getInstance().getDruckerDelegate().removeReportkonf(dto.getIId());
 		}
 
 	}
 
 	private ReportkonfDto[] getKomponentenEinesReports() throws Throwable {
-		ArrayList<?> al = getReportkonfDtos(new ArrayList(),
-				((PanelBasis) jpaPanelReportIf).getComponents());
+		ArrayList<?> al = getReportkonfDtos(new ArrayList(), ((PanelBasis) jpaPanelReportIf).getComponents());
+
+		getZoomFaktor(al);
 
 		ReportkonfDto[] a = new ReportkonfDto[al.size()];
 		return al.toArray(a);
 
 	}
 
-	private ArrayList getReportkonfDtos(ArrayList alKomponenten,
-			Component[] components) throws Throwable {
+	private ArrayList getReportkonfDtos(ArrayList alKomponenten, Component[] components) throws Throwable {
+
 		for (int i = 0; i < components.length; ++i) {
 
-			if ((components[i] instanceof java.awt.Container)
-					&& !(components[i] instanceof IControl)
+			if ((components[i] instanceof java.awt.Container) && !(components[i] instanceof IControl)
 					&& !(components[i] instanceof JRadioButton)) {
 				if (!(components[i] instanceof WrapperLabel)) {
 					alKomponenten = getReportkonfDtos(alKomponenten,
-							((java.awt.Container) components[i])
-									.getComponents());
+							((java.awt.Container) components[i]).getComponents());
 				}
-
 			} else {
 				ReportkonfDto reportkonfDto = new ReportkonfDto();
 				reportkonfDto.setCKomponentenname(components[i].getName());
-				if (components[i].getName() != null) {
+				if (components[i].getName() != null && components[i].isEnabled()) {
 					if (components[i] instanceof WrapperSelectField) {
 						WrapperSelectField wsf = (WrapperSelectField) components[i];
 
 						if (wsf.getOKey() != null) {
 
 							reportkonfDto.setCKey(wsf.getOKey().toString());
-							reportkonfDto
-									.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_SELECTFIELD);
+							reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_SELECTFIELD);
 							reportkonfDto.setCTyp(wsf.getSTyp());
 
 						}
@@ -1878,86 +2340,117 @@ public class PanelReportKriterien extends PanelDialog implements
 					} else if (components[i] instanceof WrapperTextField) {
 
 						WrapperTextField wtf = (WrapperTextField) components[i];
-						if (wtf.isSaveReportInformation() == true
-								&& wtf.getText() != null && wtf.isActivatable()) {
+						if (wtf.isSaveReportInformation() == true && wtf.getText() != null && wtf.isActivatable()) {
 
 							if (wtf.isEditable() == true) {
 
 								reportkonfDto.setCKey(wtf.getText());
-								reportkonfDto
-										.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_TEXTFIELD);
+								reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_TEXTFIELD);
 							}
 						}
 					} else if (components[i] instanceof WrapperCheckBox) {
 
 						WrapperCheckBox wcb = (WrapperCheckBox) components[i];
+						if (wcb.isSaveReportInformation() == true) {
+							reportkonfDto.setCKey(wcb.getShort().toString());
+							reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_CHECKBOX);
+						}
 
-						reportkonfDto.setCKey(wcb.getShort().toString());
-						reportkonfDto
-								.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_CHECKBOX);
-
-					} else if (components[i] instanceof WrapperRadioButton
-							|| components[i] instanceof JRadioButton) {
+					} else if (components[i] instanceof WrapperRadioButton || components[i] instanceof JRadioButton) {
 
 						JRadioButton wcb = (JRadioButton) components[i];
 
 						if (wcb.isSelected() == true) {
-							reportkonfDto.setCKey(Helper.boolean2Short(
-									wcb.isSelected()).toString());
-							reportkonfDto
-									.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_RADIOBUTTON);
+							reportkonfDto.setCKey(Helper.boolean2Short(wcb.isSelected()).toString());
+							reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_RADIOBUTTON);
 						}
+
+					} else if (components[i] instanceof WrapperComboBoxPeriode) {
+
+						WrapperComboBoxPeriode wcb = (WrapperComboBoxPeriode) components[i];
+
+						reportkonfDto.setCKey(wcb.getPeriode() + "");
+						reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_COMBOBOX_PERIODE);
 
 					} else if (components[i] instanceof WrapperComboBox) {
 
 						WrapperComboBox wcb = (WrapperComboBox) components[i];
 						if (wcb.getKeyOfSelectedItem() != null) {
-							reportkonfDto.setCKey(wcb.getKeyOfSelectedItem()
-									.toString());
-							reportkonfDto
-									.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_COMBOBOX);
+							reportkonfDto.setCKey(wcb.getKeyOfSelectedItem().toString());
+							reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_COMBOBOX);
 						}
 					} else if (components[i] instanceof WrapperDateField) {
 
 						WrapperDateField wcb = (WrapperDateField) components[i];
 						if (wcb.getDate() != null) {
 							reportkonfDto.setCKey(wcb.getDate().getTime() + "");
-							reportkonfDto
-									.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_DATEFIELD);
+							reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_DATEFIELD);
 						}
 					} else if (components[i] instanceof WrapperNumberField) {
 
 						WrapperNumberField wcb = (WrapperNumberField) components[i];
-						if (wcb.getBigDecimal() != null) {
-							reportkonfDto.setCKey(wcb.getBigDecimal()
-									.toString());
-							reportkonfDto
-									.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_NUMBERFIELD);
+						// SP7918
+						if (wcb.isEditable()) {
+							if (wcb.getBigDecimal() != null) {
+								reportkonfDto.setCKey(wcb.getBigDecimal().toString());
+								reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_NUMBERFIELD);
+							}
+						}
+					} else if (components[i] instanceof WrapperSpinner) {
+
+						WrapperSpinner wsp = (WrapperSpinner) components[i];
+						if (wsp.getInteger() != null) {
+							reportkonfDto.setCKey(wsp.getInteger().toString());
+							reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_SPINNER);
 						}
 					}
 
 					if (reportkonfDto.getCKey() != null) {
 						alKomponenten.add(reportkonfDto);
 					}
+
 				}
 			}
 
 		}
-		if (panelReport != null
-				&& panelReport.getJpaViewer().getCmbZoom().getSelectedItem() != null) {
-			ReportkonfDto reportkonfDto = new ReportkonfDto();
-			reportkonfDto.setCKomponentenname("ZOOMFAKTOR");
-
-			reportkonfDto.setCKey(panelReport.getJpaViewer().getCmbZoom()
-					.getSelectedItem()
-					+ "");
-			reportkonfDto
-					.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_COMBOBOX);
-
-			alKomponenten.add(reportkonfDto);
-		}
-
 		return alKomponenten;
+	}
+
+	private void getZoomFaktor(ArrayList alKomponenten) {
+
+		if (panelReport != null) {
+			JToggleButton jToggleButton = getJToggleButton();
+
+			Float zoom = 1F;
+			zoom = panelReport.getJpaViewer().getZoom();
+
+			if (jToggleButton == null) {
+				ReportkonfDto reportkonfDto = new ReportkonfDto();
+				reportkonfDto.setCKomponentenname("ZOOMFAKTOR");
+				reportkonfDto.setCKey(zoom + "");
+				reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_COMBOBOX);
+				alKomponenten.add(reportkonfDto);
+			}
+
+			else if (jToggleButton != null) {
+				ReportkonfDto reportkonfDto = new ReportkonfDto();
+				reportkonfDto.setCKomponentenname(jToggleButton.getName().toString());
+				reportkonfDto.setCKey("true");
+				reportkonfDto.setCKomponententyp(DruckerFac.REPORTKONF_KOMPONENTENTYP_JTOGGLEBUTTON);
+				alKomponenten.add(reportkonfDto);
+			}
+		}
+	}
+
+	private JToggleButton getJToggleButton() {
+		JToggleButton jToggleButton = null;
+		if (panelReport.getJpaViewer().getBtnActualSize().isSelected())
+			jToggleButton = panelReport.getJpaViewer().getBtnActualSize();
+		else if (panelReport.getJpaViewer().getBtnFitPage().isSelected())
+			jToggleButton = panelReport.getJpaViewer().getBtnFitPage();
+		else if (panelReport.getJpaViewer().getBtnFitWidth().isSelected())
+			jToggleButton = panelReport.getJpaViewer().getBtnFitWidth();
+		return jToggleButton;
 	}
 
 	private void saveStandarddrucker() throws Throwable {
@@ -1965,42 +2458,34 @@ public class PanelReportKriterien extends PanelDialog implements
 			if (standarddruckerDto == null) {
 				standarddruckerDto = new StandarddruckerDto();
 			}
-			if (Helper.getPCName() != null
-					&& jpaPanelReportIf.getModul() != null
+			if (Helper.getPCName() != null && jpaPanelReportIf.getModul() != null
 					&& jpaPanelReportIf.getReportname() != null) {
 				// nur, wenn auch ein Drucker ausgewaehlt ist
 				if (panelStandardDrucker.getSelectedPrinter() != null) {
 					standarddruckerDto.setCPc(Helper.getPCName());
 					if (jpaPanelReportIf instanceof ReportBeleg) {
-						Integer kstIId = ((ReportBeleg) jpaPanelReportIf)
-								.getKostenstelleIId();
+						Integer kstIId = ((ReportBeleg) jpaPanelReportIf).getKostenstelleIId();
 						standarddruckerDto.setKostenstelleIId_notInDB(kstIId);
+						standarddruckerDto
+								.setCDruckerKopien(((ReportBeleg) jpaPanelReportIf).getSelectedPrinterKopien());
+
 					}
 					/**
 					 * @todo das Locale des Reports
 					 */
-					standarddruckerDto.setLocale_notInDB(LPMain.getTheClient()
-							.getLocUi());
-					standarddruckerDto.setMandantCNr(LPMain.getTheClient()
-							.getMandant());
-					standarddruckerDto.setSFilename_notInDB(jpaPanelReportIf
-							.getReportname());
-					standarddruckerDto.setSModul_notInDB(jpaPanelReportIf
-							.getModul());
-					standarddruckerDto.setCDrucker(panelStandardDrucker
-							.getSelectedPrinter());
+					standarddruckerDto.setLocale_notInDB(LPMain.getTheClient().getLocUi());
+					standarddruckerDto.setMandantCNr(LPMain.getTheClient().getMandant());
+					standarddruckerDto.setSFilename_notInDB(jpaPanelReportIf.getReportname());
+					standarddruckerDto.setSModul_notInDB(jpaPanelReportIf.getModul());
+					standarddruckerDto.setCDrucker(panelStandardDrucker.getSelectedPrinter());
 					standarddruckerDto.setBStandard(Helper.boolean2Short(true));
 
-					standarddruckerDto
-							.setReportvarianteIId(panelStandardDrucker
-									.getVariante());
+					standarddruckerDto.setReportvarianteIId(panelStandardDrucker.getVariante());
 					if (jpaPanelReportIf instanceof ReportBeleg) {
 						standarddruckerDto
-								.setKostenstelleIId_notInDB(((ReportBeleg) jpaPanelReportIf)
-										.getKostenstelleIId());
+								.setKostenstelleIId_notInDB(((ReportBeleg) jpaPanelReportIf).getKostenstelleIId());
 					}
-					Integer iId = DelegateFactory.getInstance()
-							.getDruckerDelegate()
+					Integer iId = DelegateFactory.getInstance().getDruckerDelegate()
 							.updateStandarddrucker(standarddruckerDto);
 					standarddruckerDto.setIId(iId);
 
@@ -2008,11 +2493,8 @@ public class PanelReportKriterien extends PanelDialog implements
 					ReportkonfDto[] dtos = getKomponentenEinesReports();
 
 					if (dtos != null && dtos.length > 0) {
-						DelegateFactory
-								.getInstance()
-								.getDruckerDelegate()
-								.saveReportKonf(standarddruckerDto.getIId(),
-										dtos);
+						DelegateFactory.getInstance().getDruckerDelegate().saveReportKonf(standarddruckerDto.getIId(),
+								dtos);
 						setDruckeinstellungenGeladen(true);
 					}
 
@@ -2020,10 +2502,8 @@ public class PanelReportKriterien extends PanelDialog implements
 			}
 		} catch (ExceptionLP ex) {
 			if (ex.getICode() == EJBExceptionLP.FEHLER_BEIM_ANLEGEN) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.error"),
-								LPMain.getTextRespectUISPr("lp.drucken.druckereinstellungkonntenichtgespeichertwerden"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("lp.drucken.druckereinstellungkonntenichtgespeichertwerden"));
 			} else {
 				throw ex;
 			}
@@ -2032,10 +2512,8 @@ public class PanelReportKriterien extends PanelDialog implements
 
 	private void removeStandarddrucker() throws Throwable {
 		if (standarddruckerDto != null) {
-			DelegateFactory.getInstance().getDruckerDelegate()
-					.deleteReportKonf(standarddruckerDto.getIId());
-			DelegateFactory.getInstance().getDruckerDelegate()
-					.removeStandarddrucker(standarddruckerDto);
+			DelegateFactory.getInstance().getDruckerDelegate().deleteReportKonf(standarddruckerDto.getIId());
+			DelegateFactory.getInstance().getDruckerDelegate().removeStandarddrucker(standarddruckerDto);
 			standarddruckerDto = null;
 
 			setDruckeinstellungenGeladen(false);
@@ -2043,30 +2521,30 @@ public class PanelReportKriterien extends PanelDialog implements
 		}
 	}
 
-	private void archiviereBeleg() throws ExceptionLP, Throwable {
+	private void archiviereBeleg() throws Throwable {
+		if (panelReport != null) {
+			JasperPrintLP print = panelReport.getPrint();
+			archiviereBeleg(print);
+
+		} else {
+			JasperPrintLP print = createPrint(null);
+			archiviereBeleg(print);
+		}
+	}
+
+	private void archiviereBeleg(JasperPrintLP print) throws ExceptionLP, Throwable {
 		String sBelegnummer = null;
 		String sRow = null;
 		LPMain.getInstance();
 		TheClientDto theClientDto = LPMain.getTheClient();
-		JasperPrintLP print;
-		if (panelReport != null) {
-			print = panelReport.getPrint();
-		} else {
-			print = createPrint(null);
-		}
 		// Path Seperator vom server holen damit der Name richtig angezeigt
 		// werden kann
-		String sPathSeperator = DelegateFactory.getInstance()
-				.getSystemDelegate().getServerPathSeperator();
-		String sName = print.getSReportName().substring(
-				print.getSReportName().lastIndexOf(sPathSeperator) + 1);
+		String sPathSeperator = DelegateFactory.getInstance().getSystemDelegate().getServerPathSeperator();
+		String sName = print.getSReportName().substring(print.getSReportName().lastIndexOf(sPathSeperator) + 1);
 		// Wennn ein FLR-Druck dann is der Reportname ""
 		if (!sName.equals("")) {
-			DokumentnichtarchiviertDto docNichtArchivDto = DelegateFactory
-					.getInstance()
-					.getJCRDocDelegate()
-					.dokumentnichtarchiviertfindbyMandantCReportname(
-							theClientDto.getMandant(), sName);
+			DokumentnichtarchiviertDto docNichtArchivDto = DelegateFactory.getInstance().getJCRDocDelegate()
+					.dokumentnichtarchiviertfindbyMandantCReportname(theClientDto.getMandant(), sName);
 			if (docNichtArchivDto == null) {
 				PrintInfoDto oInfo = print.getOInfoForArchive();
 				DocPath docPath = null;
@@ -2077,7 +2555,7 @@ public class PanelReportKriterien extends PanelDialog implements
 					// Nur archivieren wenn nicht in dieser Tabelle vorhanden
 					JCRDocDto jcrDocDto = new JCRDocDto();
 					sBelegnummer = docPath.getLastDocNode().asVisualPath();
-					;
+
 					if (sBelegnummer == null) {
 						sBelegnummer = "0000000";
 					}
@@ -2087,19 +2565,18 @@ public class PanelReportKriterien extends PanelDialog implements
 					if (oInfo.getiId() != null) {
 						iPartnerIId = oInfo.getiId();
 					} else {
-						if (getOptions().getPartnerDtoEmpfaenger() != null) {
-							iPartnerIId = getOptions()
-									.getPartnerDtoEmpfaenger().getIId();
+						// Das PartnerDto kann gesetzt, aber leer sein
+						if (getOptions().getPartnerDtoEmpfaenger() != null
+								&& getOptions().getPartnerDtoEmpfaenger().getIId() != null) {
+							iPartnerIId = getOptions().getPartnerDtoEmpfaenger().getIId();
 						} else {
 							// Wenn kein Partner uebergeben dann Default
-							MandantDto mandantDto = DelegateFactory
-									.getInstance()
-									.getMandantDelegate()
-									.mandantFindByPrimaryKey(
-											theClientDto.getMandant());
+							MandantDto mandantDto = DelegateFactory.getInstance().getMandantDelegate()
+									.mandantFindByPrimaryKey(theClientDto.getMandant());
 							iPartnerIId = mandantDto.getPartnerIId();
 						}
 					}
+
 					// File file = File.createTempFile(sName, ".jrprint");
 					// file.delete();
 					// JRSaver.saveObject(print.getPrint(), file);
@@ -2116,8 +2593,7 @@ public class PanelReportKriterien extends PanelDialog implements
 					jcrDocDto.setlPartner(iPartnerIId);
 					jcrDocDto.setsBelegnummer(sBelegnummer);
 					jcrDocDto.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
-					jcrDocDto
-							.setlAnleger(LPMain.getTheClient().getIDPersonal());
+					jcrDocDto.setlAnleger(LPMain.getTheClient().getIDPersonal());
 					jcrDocDto.setlZeitpunkt(System.currentTimeMillis());
 					jcrDocDto.setsSchlagworte(" ");
 					jcrDocDto.setsName(sName);
@@ -2132,41 +2608,31 @@ public class PanelReportKriterien extends PanelDialog implements
 					jcrDocDto.setlSicherheitsstufe(JCRDocFac.SECURITY_ARCHIV);
 					jcrDocDto.setsGruppierung(JCRDocFac.DEFAULT_ARCHIV_GRUPPE);
 					jcrDocDto.setbVersteckt(false);
-					jcrDocDto
-							.setlVersion(DelegateFactory.getInstance()
-									.getJCRDocDelegate()
-									.getNextVersionNumer(jcrDocDto));
-					DelegateFactory.getInstance().getJCRDocDelegate()
-							.addNewDocumentOrNewVersionOfDocument(jcrDocDto);
+					jcrDocDto.setlVersion(
+							DelegateFactory.getInstance().getJCRDocDelegate().getNextVersionNumer(jcrDocDto));
+					DelegateFactory.getInstance().getJCRDocDelegate().addNewDocumentOrNewVersionOfDocument(jcrDocDto);
 				} else {
 
-					// PJ17937
-					if (LPMain.getInstance().isLPAdmin()) {
+					// PJ21088
 
-						String[] optionen = new String[] {
-								LPMain.getTextRespectUISPr("button.ok"),
+					if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_SYSTEM_CUD)) {
+
+						String[] optionen = new String[] { LPMain.getTextRespectUISPr("button.ok"),
 								LPMain.getTextRespectUISPr("lp.jcr.keinbelegpfad.button.lpadmin") };
 
-						int iOption = DialogFactory
-								.showModalDialog(
-										getInternalFrame(),
-										LPMain.getTextRespectUISPr("lp.jcr.keinbelegpfad"),
-										LPMain.getTextRespectUISPr("lp.hint"),
-										optionen, optionen[0]);
+						int iOption = DialogFactory.showModalDialog(getInternalFrame(),
+								LPMain.getTextRespectUISPr("lp.jcr.keinbelegpfad"),
+								LPMain.getTextRespectUISPr("lp.hint"), optionen, optionen[0]);
 
 						if (iOption == 1) {
 							// Archivierung deaktivieren
-							DelegateFactory
-									.getInstance()
-									.getJCRDocDelegate()
-									.deaktiviereArchivierung(
-											theClientDto.getMandant(), sName);
+							DelegateFactory.getInstance().getJCRDocDelegate()
+									.deaktiviereArchivierung(theClientDto.getMandant(), sName);
 						}
 
 					} else {
-						DialogFactory.showModalDialog(LPMain
-								.getTextRespectUISPr("lp.hint"), LPMain
-								.getTextRespectUISPr("lp.jcr.keinbelegpfad"));
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+								LPMain.getTextRespectUISPr("lp.jcr.keinbelegpfad"));
 					}
 
 				}
@@ -2190,48 +2656,44 @@ public class PanelReportKriterien extends PanelDialog implements
 		} else {
 			print = createPrint(null);
 		}
-		String sBelegart = (String) print
-				.getAdditionalInformation(JasperPrintLP.KEY_BELEGART);
+		String sBelegart = (String) print.getAdditionalInformation(JasperPrintLP.KEY_BELEGART);
 
-		Integer iIId = (Integer) print
-				.getAdditionalInformation(JasperPrintLP.KEY_BELEGIID);
+		Integer iIId = (Integer) print.getAdditionalInformation(JasperPrintLP.KEY_BELEGIID);
 
 		if (LocaleFac.BELEGART_BESTELLUNG.equals(sBelegart)) {
-			DelegateFactory.getInstance().getBestellungDelegate()
-					.setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
+			DelegateFactory.getInstance().getBestellungDelegate().setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
 		}
 
 		if (LocaleFac.BELEGART_ANFRAGE.equals(sBelegart)) {
-			DelegateFactory.getInstance().getAnfrageDelegate()
-					.setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
+			DelegateFactory.getInstance().getAnfrageDelegate().setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
 		}
 
 		if (LocaleFac.BELEGART_ANGEBOT.equals(sBelegart)) {
-			DelegateFactory.getInstance().getAngebotDelegate()
-					.setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
+			DelegateFactory.getInstance().getAngebotDelegate().setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
 		}
 
 		if (LocaleFac.BELEGART_AUFTRAG.equals(sBelegart)) {
-			DelegateFactory.getInstance().getAuftragDelegate()
-					.setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
+			DelegateFactory.getInstance().getAuftragDelegate().setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
 		}
 
 		if (LocaleFac.BELEGART_LIEFERSCHEIN.equals(sBelegart)) {
-			DelegateFactory.getInstance().getLsDelegate()
-					.setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
+			DelegateFactory.getInstance().getLsDelegate().setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
 		}
 
 		if (LocaleFac.BELEGART_RECHNUNG.equals(sBelegart)) {
-			DelegateFactory.getInstance().getRechnungDelegate()
-					.setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
+			DelegateFactory.getInstance().getRechnungDelegate().setzeVersandzeitpunktAufJetzt(iIId, sDruckart);
 		}
 		if (LocaleFac.BELEGART_EINGANGSRECHNUNG.equals(sBelegart)) {
-			DelegateFactory.getInstance().getEingangsrechnungDelegate()
-					.updateEingangsrechnungGedruckt(iIId);
+			DelegateFactory.getInstance().getEingangsrechnungDelegate().updateEingangsrechnungGedruckt(iIId);
 		}
 		if (jpaPanelReportIf instanceof IAktiviereBelegReport) {
 			IAktiviereBelegReport rep = (IAktiviereBelegReport) jpaPanelReportIf;
 			rep.refreshPanelInBackground();
+		}
+
+		Integer fasessionIId = (Integer) print.getAdditionalInformation(ArtikelReportFac.ADD_INFO_FASESSION);
+		if (fasessionIId != null) {
+			DelegateFactory.getInstance().getFehlmengeDelegate().schliesseAufgeloesteFehlmengenSessionAb(fasessionIId);
 		}
 
 	}
@@ -2253,8 +2715,7 @@ public class PanelReportKriterien extends PanelDialog implements
 			if ((actual.getCKey() == null) != (cache.getCKey() == null)) {
 				return true;
 			}
-			if (actual.getCKey() != null
-					&& !actual.getCKey().equals(cache.getCKey())) {
+			if (actual.getCKey() != null && !actual.getCKey().equals(cache.getCKey())) {
 				return true;
 			}
 		}
@@ -2269,22 +2730,28 @@ public class PanelReportKriterien extends PanelDialog implements
 		}
 	}
 
+	private boolean isRefreshNecessary() {
+		AbstractButton refreshBtn = getHmOfButtons().get(ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW).getButton();
+
+		if (refreshBtn.getBackground().equals(Color.blue)) {
+			return true;
+
+		} else {
+			return false;
+		}
+	}
+
 	private void setRefreshNecessary(boolean necessary) {
-		AbstractButton refreshBtn = getHmOfButtons().get(
-				ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW).getButton();
+		AbstractButton refreshBtn = getHmOfButtons().get(ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW).getButton();
 		refreshBtn.setOpaque(true);
 		// refreshBtn.setBorderPainted(necessary);
-		refreshBtn.setBackground(necessary ? Color.blue : UIManager
-				.getColor("Button.background"));
+		refreshBtn.setBackground(necessary ? Color.blue : UIManager.getColor("Button.background"));
 	}
 
 	@Override
-	public void vetoableChange(PropertyChangeEvent evt)
-			throws PropertyVetoException {
-		if ("focusOwner".equals(evt.getPropertyName())
-				&& evt.getNewValue() instanceof Component) {
-			if (SwingUtilities.isDescendingFrom((Component) evt.getNewValue(),
-					(Component) jpaPanelReportIf)) {
+	public void vetoableChange(PropertyChangeEvent evt) throws PropertyVetoException {
+		if ("focusOwner".equals(evt.getPropertyName()) && evt.getOldValue() instanceof Component) {
+			if (SwingUtilities.isDescendingFrom((Component) evt.getOldValue(), (Component) jpaPanelReportIf)) {
 				updateRefreshButton();
 			}
 		}
@@ -2298,6 +2765,234 @@ public class PanelReportKriterien extends PanelDialog implements
 	public PanelReportIfJRDS getPanelReportIfJRDS() {
 		return jpaPanelReportIf;
 	}
+
+	private boolean shouldDoActionPrint() throws Throwable {
+		return shouldDoActionIfEmailPanelIsVisible("lp.drucken.frage.beimailversand.drucken");
+	}
+
+	private boolean shouldDoActionSave() throws Throwable {
+		return shouldDoActionIfEmailPanelIsVisible("lp.drucken.frage.beimailversand.speichern");
+	}
+
+	private boolean shouldDoActionIfEmailPanelIsVisible(String tokenQuestion) throws Throwable {
+		PanelVersandEmail panelEmail = getPanelVersandEmail(false);
+		if (panelEmail == null || !panelEmail.isVisible()) {
+			return true;
+		}
+		return DialogFactory.showModalJaNeinDialog(getInternalFrame(), LPMain.getTextRespectUISPr(tokenQuestion));
+	}
+
+	private JasperPrintLP mergeWithPrintTypeReport(JasperPrintLP printLP, String druckType) throws Throwable {
+		printLP.setPrintLP(mergeWithPrintTypeReport(printLP.getPrint(), druckType));
+		return printLP;
+	}
+
+	private JasperPrint mergeWithPrintTypeReport(JasperPrint print, String druckType) throws Throwable {
+		if (jpaPanelReportIf instanceof IDruckTypeReport) {
+			print = DelegateFactory.getInstance().getSystemReportDelegate().mergeWithPrintTypePrint(print, druckType);
+		}
+		return print;
+	}
+
+	private class OriginalCopiesCtrl {
+		private List<JRPrintPage> pagesOriginal;
+		private List<JRPrintPage> pagesCopies;
+
+		public OriginalCopiesCtrl(JasperPrint print, Integer kopien) {
+			pagesOriginal = new ArrayList<JRPrintPage>();
+			pagesCopies = new ArrayList<JRPrintPage>();
+			split(print, kopien);
+		}
+
+		private void split(JasperPrint print, Integer kopien) {
+			List<JRPrintPage> pagesAll = print.getPages();
+			int size = print.getPages().size();
+			if (kopien == null || kopien == 0 || size % (kopien + 1) != 0) {
+				pagesOriginal.addAll(print.getPages());
+				return;
+			}
+
+			int pagesPerCopy = size / (kopien + 1);
+			if (pagesPerCopy < 1 || pagesPerCopy >= size) {
+				pagesOriginal.addAll(print.getPages());
+				return;
+			}
+
+			pagesOriginal.addAll(pagesAll.subList(0, pagesPerCopy));
+			pagesCopies.addAll(pagesAll.subList(pagesPerCopy, size));
+		}
+
+		public void setPagesOriginal(JasperPrintLP printLP) {
+			JasperPrint print = printLP.getPrint();
+			print.getPages().clear();
+			print.getPages().addAll(pagesOriginal);
+		}
+
+		public void setPagesCopies(JasperPrintLP printLP) {
+			JasperPrint print = printLP.getPrint();
+			print.getPages().clear();
+			print.getPages().addAll(pagesCopies);
+		}
+
+		public void setPagesAll(JasperPrintLP printLP) {
+			JasperPrint print = printLP.getPrint();
+			print.getPages().clear();
+			print.getPages().addAll(pagesOriginal);
+			print.getPages().addAll(pagesCopies);
+		}
+	}
+
+	private class ReportToolsPanelButtonCreator {
+
+		public String[] getToolsPanelButtons() throws Throwable {
+			List<String> buttonsIUse = new ArrayList<String>();
+
+			if (getOptions().isNurVorschau()) {
+				addButtonsNurVorschau(buttonsIUse);
+
+			} else if (getOptions().isNurVorschauMitDrucken()) {
+				addButtonsNurVorschauMitDrucken(buttonsIUse);
+
+			} else {
+				addButtonsAll(buttonsIUse);
+			}
+
+			return buttonsIUse.toArray(new String[] {});
+		}
+
+		private void addButtonsNurVorschau(List<String> buttonsIUse) {
+			addRefresh(buttonsIUse);
+		}
+
+		private void addButtonsNurVorschauMitDrucken(List<String> buttonsIUse) throws Throwable {
+			addRefresh(buttonsIUse);
+			addFullscreen(buttonsIUse);
+			addPrint(buttonsIUse);
+		}
+
+		private void addButtonsAll(List<String> buttonsIUse) throws Throwable {
+			addRefresh(buttonsIUse);
+			addFullscreen(buttonsIUse);
+			addPrint(buttonsIUse);
+			if (getOptions().isMitEmailFax()) {
+				addMail(buttonsIUse);
+				addFax(buttonsIUse);
+			}
+			addSave(buttonsIUse);
+			addCsvExport(buttonsIUse);
+			addCopyToClipboard(buttonsIUse);
+		}
+
+		private void addRefresh(List<String> buttonsIUse) {
+			createAndSaveButton("/com/lp/client/res/refresh.png",
+					LPMain.getTextRespectUISPr("lp.drucken.reportaktualisieren"),
+					ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW, KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), null);
+			buttonsIUse.add(ACTION_SPECIAL_REPORTKRITERIEN_PREVIEW);
+		}
+
+		private void addFullscreen(List<String> buttonsIUse) throws Throwable {
+
+			// SP8659 Wenn man im Beleg kein Schreibrecht hat, man darf die Preise jedoch
+			// trotzdem sehen, dann darf man den Beleg auch drucken
+			String recht = null;
+			if (getInternalFrame() instanceof InternalFrameAngebot) {
+
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF)) {
+					recht = RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF;
+				} else {
+					recht = RechteFac.RECHT_ANGB_ANGEBOT_CUD;
+				}
+
+			} else if (getInternalFrame() instanceof InternalFrameAuftrag) {
+
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF)) {
+					recht = RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF;
+				} else {
+					recht = RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF;
+				}
+
+			} else if (getInternalFrame() instanceof InternalFrameLieferschein) {
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF)) {
+					recht = RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF;
+				} else {
+					recht = RechteFac.RECHT_LS_LIEFERSCHEIN_CUD;
+				}
+			} else if (getInternalFrame() instanceof InternalFrameRechnung) {
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF)) {
+					recht = RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF;
+				} else {
+					recht = RechteFac.RECHT_RECH_RECHNUNG_CUD;
+				}
+			} else if (getInternalFrame() instanceof InternalFrameBestellung) {
+
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_EINKAUF)) {
+					recht = RechteFac.RECHT_LP_DARF_PREISE_SEHEN_EINKAUF;
+				} else {
+					recht = RechteFac.RECHT_BES_BESTELLUNG_CUD;
+				}
+
+			}
+
+			createAndSaveButton("/com/lp/client/res/printer_view.png",
+					LPMain.getTextRespectUISPr("lp.drucken.vorschau"), ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN,
+					KeyStroke.getKeyStroke('R', java.awt.event.InputEvent.CTRL_MASK), recht);
+			buttonsIUse.add(ACTION_SPECIAL_REPORTKRITERIEN_FULLSCREEN);
+		}
+
+		private void addPrint(List<String> buttonsIUse) {
+			createAndSaveButton("/com/lp/client/res/printer.png", LPMain.getTextRespectUISPr("lp.drucken.drucken"),
+					ACTION_SPECIAL_DRUCKEN, KeyStroke.getKeyStroke('P', java.awt.event.InputEvent.CTRL_MASK), null);
+			buttonsIUse.add(ACTION_SPECIAL_DRUCKEN);
+		}
+
+		private void addSave(List<String> buttonsIUse) {
+			createAndSaveButton("/com/lp/client/res/disk_blue.png", LPMain.getTextRespectUISPr("lp.drucken.speichern"),
+					ACTION_SPECIAL_SAVE, KeyStroke.getKeyStroke('S', java.awt.event.InputEvent.CTRL_MASK), null);
+			buttonsIUse.add(ACTION_SPECIAL_SAVE);
+		}
+
+		private void addCsvExport(List<String> buttonsIUse) {
+			createAndSaveButton("/com/lp/client/res/document_out.png",
+					LPMain.getTextRespectUISPr("lp.report.csvexport"), ACTION_SPECIAL_CSV, null, null);
+			buttonsIUse.add(ACTION_SPECIAL_CSV);
+		}
+
+		private void addCopyToClipboard(List<String> buttonsIUse) {
+			createAndSaveButton("/com/lp/client/res/copy.png",
+					LPMain.getTextRespectUISPr("lp.inzwischenablagekopieren"), ACTION_COPY_TO_CLIPBOARD, null, null);
+			buttonsIUse.add(ACTION_COPY_TO_CLIPBOARD);
+		}
+
+		private void addMail(List<String> buttonsIUse) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_EMAILVERSAND)) {
+				createAndSaveButton("/com/lp/client/res/mail.png",
+						LPMain.getTextRespectUISPr("lp.drucken.alsemailversenden"), ACTION_SPECIAL_EMAIL,
+						KeyStroke.getKeyStroke('E', java.awt.event.InputEvent.CTRL_MASK),
+						RechteFac.RECHT_LP_DARF_EMAIL_SENDEN);
+			}
+			buttonsIUse.add(ACTION_SPECIAL_EMAIL);
+		}
+
+		private void addFax(List<String> buttonsIUse) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_FAXVERSAND)) {
+				createAndSaveButton("/com/lp/client/res/fax.png",
+						LPMain.getTextRespectUISPr("lp.drucken.alsfaxversenden"), ACTION_SPECIAL_FAX,
+						KeyStroke.getKeyStroke('F', java.awt.event.InputEvent.CTRL_MASK), null);
+			}
+			buttonsIUse.add(ACTION_SPECIAL_FAX);
+		}
+	}
+
+	private boolean isLogoImmerDrucken() throws Throwable {
+		return Boolean.TRUE.equals(DelegateFactory.getInstance().getParameterDelegate().getLogoImmerDrucken());
+	}
 }
 
 class PanelReportKriterien_wcoVariante_actionAdapter implements ActionListener {
@@ -2309,5 +3004,10 @@ class PanelReportKriterien_wcoVariante_actionAdapter implements ActionListener {
 
 	public void actionPerformed(ActionEvent e) {
 		adaptee.wcoVariante_actionPerformed(e);
+		try {
+			adaptee.setzeEmailRechnungsempfang();
+		} catch (Throwable ex) {
+			adaptee.handleException(ex, false);
+		}
 	}
 }

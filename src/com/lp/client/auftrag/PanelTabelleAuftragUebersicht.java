@@ -48,121 +48,158 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.auftrag.service.AuftragFac;
 
-@SuppressWarnings("static-access") 
+@SuppressWarnings("static-access")
 /**
  * @author Uli Walch
  */
-public class PanelTabelleAuftragUebersicht
-    extends PanelTabelle {
-  /**
+public class PanelTabelleAuftragUebersicht extends PanelTabelle {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private InternalFrameAuftrag intFrame = null;
-  private TabbedPaneAuftrag tpAuftrag = null;
+	private InternalFrameAuftrag intFrame = null;
+	private TabbedPaneAuftrag tpAuftrag = null;
 
-  private WrapperLabel wlaKritAuswertung = null;
+	private WrapperLabel wlaKritAuswertung = null;
+	private WrapperLabel wlaKritAuswertung2 = null;
 
-  // das soll in der optionalen zweiten Zeile stehen
-  private WrapperLabel wlaEmpty = null;
-  private WrapperLabel wlaOffene = null;
-  private WrapperLabel wlaEingang = null;
+	// das soll in der optionalen zweiten Zeile stehen
+	private WrapperLabel wlaEmpty = null;
+	private WrapperLabel wlaOffene = null;
+	private WrapperLabel wlaEingang = null;
 
-  /**
-   * PanelTabelle.
-   *
-   * @param iUsecaseIdI die eindeutige UseCase ID
-   * @param sTitelTabbedPaneI der Titel des aktuellen TabbedPane
-   * @param oInternalFrameI der uebergeordente InternalFrame
-   * @throws java.lang.Throwable Ausnahme
-   */
-  public PanelTabelleAuftragUebersicht(
-      int iUsecaseIdI,
-      String sTitelTabbedPaneI,
-      InternalFrame oInternalFrameI)
-      throws Throwable {
-    super(iUsecaseIdI, sTitelTabbedPaneI, oInternalFrameI);
+	/**
+	 * PanelTabelle.
+	 * 
+	 * @param iUsecaseIdI
+	 *            die eindeutige UseCase ID
+	 * @param sTitelTabbedPaneI
+	 *            der Titel des aktuellen TabbedPane
+	 * @param oInternalFrameI
+	 *            der uebergeordente InternalFrame
+	 * @throws java.lang.Throwable
+	 *             Ausnahme
+	 */
+	public PanelTabelleAuftragUebersicht(int iUsecaseIdI,
+			String sTitelTabbedPaneI, InternalFrame oInternalFrameI)
+			throws Throwable {
+		super(iUsecaseIdI, sTitelTabbedPaneI, oInternalFrameI);
 
-    try {
-      intFrame = (InternalFrameAuftrag) oInternalFrameI;
-      tpAuftrag = intFrame.getTabbedPaneAuftrag();
+		try {
+			intFrame = (InternalFrameAuftrag) oInternalFrameI;
+			tpAuftrag = intFrame.getTabbedPaneAuftrag();
 
-      jbInit();
-      initComponents();
-    }
-    catch (Throwable t) {
-      LPMain.getInstance().exitFrame(getInternalFrame());
-    }
-  }
+			jbInit();
+			initComponents();
+		} catch (Throwable t) {
+			LPMain.getInstance().exitFrame(getInternalFrame());
+		}
+	}
 
-  /**
-   * Initialisiere alle Komponenten; braucht der JBX-Designer;
-   * hier bitte keine wilden Dinge wie zum Server gehen, etc. machen.
-   *
-   * @throws Exception
-   */
-  private void jbInit() throws Exception {
-    wlaKritAuswertung = new WrapperLabel();
+	/**
+	 * Initialisiere alle Komponenten; braucht der JBX-Designer; hier bitte
+	 * keine wilden Dinge wie zum Server gehen, etc. machen.
+	 * 
+	 * @throws Exception
+	 */
+	private void jbInit() throws Exception {
+		wlaKritAuswertung = new WrapperLabel();
+		wlaKritAuswertung2 = new WrapperLabel();
 
-    wlaEmpty = new WrapperLabel();
-    wlaEmpty.setMaximumSize(new Dimension(SPALTENBREITE_ZEILENHEADER, Defaults.getInstance().getControlHeight()));
-    wlaEmpty.setMinimumSize(new Dimension(SPALTENBREITE_ZEILENHEADER, Defaults.getInstance().getControlHeight()));
-    wlaEmpty.setPreferredSize(new Dimension(SPALTENBREITE_ZEILENHEADER, Defaults.getInstance().getControlHeight()));
+		wlaEmpty = new WrapperLabel();
+		wlaEmpty.setMaximumSize(new Dimension(SPALTENBREITE_ZEILENHEADER,
+				Defaults.getInstance().getControlHeight()));
+		wlaEmpty.setMinimumSize(new Dimension(SPALTENBREITE_ZEILENHEADER,
+				Defaults.getInstance().getControlHeight()));
+		wlaEmpty.setPreferredSize(new Dimension(SPALTENBREITE_ZEILENHEADER,
+				Defaults.getInstance().getControlHeight()));
 
-    wlaOffene = new WrapperLabel("    Offene    ");
-    wlaOffene.setHorizontalAlignment(SwingConstants.CENTER);
-    wlaEingang = new WrapperLabel("    Eingang    ");
-    wlaEingang.setHorizontalAlignment(SwingConstants.CENTER);
+		wlaOffene = new WrapperLabel("    Offene    ");
+		wlaOffene.setHorizontalAlignment(SwingConstants.CENTER);
+		wlaEingang = new WrapperLabel("    Eingang    ");
+		wlaEingang.setHorizontalAlignment(SwingConstants.CENTER);
 
-    getPanelOptionaleZweiteZeile().add(wlaEmpty,
-                                       new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-        GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-    getPanelOptionaleZweiteZeile().add(wlaOffene,
-                                       new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0,
-        GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-    getPanelOptionaleZweiteZeile().add(wlaEingang,
-                                       new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0,
-        GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		getPanelOptionaleZweiteZeile().add(
+				wlaEmpty,
+				new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
+		getPanelOptionaleZweiteZeile().add(
+				wlaOffene,
+				new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
+		getPanelOptionaleZweiteZeile().add(
+				wlaEingang,
+				new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
 
-    // die erste Spalte ist immer der ZeilenHeader
-    TableColumn tcZeilenHeader = table.getColumnModel().getColumn(1);
-    tcZeilenHeader.setCellRenderer(new ZeilenHeaderRenderer());
-    tcZeilenHeader.setPreferredWidth(SPALTENBREITE_ZEILENHEADER);
-    
-    TableColumn tcEmpty = getTable().getColumnModel().getColumn(5); // @todo not hardcoded  Pj 5118
-    tcEmpty.setCellRenderer(new LeeresFeldRenderer());
-    tcEmpty.setPreferredWidth(SPALTENBREITE_LEERESPALTE);
+		// die erste Spalte ist immer der ZeilenHeader
+		TableColumn tcZeilenHeader = table.getColumnModel().getColumn(1);
+		tcZeilenHeader.setCellRenderer(new ZeilenHeaderRenderer());
+		tcZeilenHeader.setPreferredWidth(SPALTENBREITE_ZEILENHEADER);
 
-    setFirstColumnVisible(false);
-  }
+		TableColumn tcEmpty = getTable().getColumnModel().getColumn(5); // @todo
+																		// not
+																		// hardcoded
+																		// Pj
+																		// 5118
+		tcEmpty.setCellRenderer(new LeeresFeldRenderer());
+		tcEmpty.setPreferredWidth(SPALTENBREITE_LEERESPALTE);
 
-  /**
-   * eventActionRefresh
-   *
-   * @param e ActionEvent
-   * @param bNeedNoRefreshI boolean
-   * @throws Throwable
-   */
-  protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws
-      Throwable {
-    super.eventActionRefresh(e, bNeedNoRefreshI);
+		setFirstColumnVisible(false);
+	}
 
-    wlaKritAuswertung.setText(
-        getDefaultFilter()[AuftragFac.IDX_KRIT_AUSWERTUNG]
-        .formatFilterKriterium(LPMain.getInstance().getTextRespectUISPr("lp.auswertung")));
-    wlaKritAuswertung.setMaximumSize(new Dimension(350, 23));
-    wlaKritAuswertung.setMinimumSize(new Dimension(350, 23));
-    wlaKritAuswertung.setPreferredSize(new Dimension(350, 23));
-    wlaKritAuswertung.setHorizontalAlignment(SwingConstants.LEADING);
+	/**
+	 * eventActionRefresh
+	 * 
+	 * @param e
+	 *            ActionEvent
+	 * @param bNeedNoRefreshI
+	 *            boolean
+	 * @throws Throwable
+	 */
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
+			throws Throwable {
+		super.eventActionRefresh(e, bNeedNoRefreshI);
 
-    getPanelFilterKriterien().add(wlaKritAuswertung);
+		wlaKritAuswertung
+				.setText(getDefaultFilter()[AuftragFac.IDX_KRIT_AUSWERTUNG]
+						.formatFilterKriterium(LPMain.getInstance()
+								.getTextRespectUISPr("lp.auswertung"))+" + " +getDefaultFilter()[AuftragFac.UMSATZUEBERSICHT_IDX_KRIT_PLUS_JAHRE].value);
+		wlaKritAuswertung.setMaximumSize(new Dimension(350, 23));
+		wlaKritAuswertung.setMinimumSize(new Dimension(350, 23));
+		wlaKritAuswertung.setPreferredSize(new Dimension(350, 23));
+		wlaKritAuswertung.setHorizontalAlignment(SwingConstants.LEADING);
 
-    String cNrMandantenwaehrung = DelegateFactory.getInstance().getMandantDelegate().mandantFindByPrimaryKey(
-        LPMain.getInstance().getTheClient().getMandant()).getWaehrungCNr();
+		wlaKritAuswertung2
+				.setText(LPMain.getInstance().getTextRespectUISPr(
+						"lp.auswertung")
+						+ " "
+						+ getDefaultFilter()[AuftragFac.UMSATZUEBERSICHT_IDX_KRIT_AUSWERTUNG].kritName);
+		wlaKritAuswertung2.setMaximumSize(new Dimension(350, 23));
+		wlaKritAuswertung2.setMinimumSize(new Dimension(350, 23));
+		wlaKritAuswertung2.setPreferredSize(new Dimension(350, 23));
+		wlaKritAuswertung2.setHorizontalAlignment(SwingConstants.LEADING);
 
-    getTable().getColumnModel().getColumn(1).setHeaderValue(
-        LPMain.getInstance().getTextRespectUISPr("lp.anzeigein")
-        + " "
-        + cNrMandantenwaehrung);
-  }
+		getPanelFilterKriterien().add(wlaKritAuswertung);
+		getPanelFilterKriterien().add(wlaKritAuswertung2);
+
+		String cNrMandantenwaehrung = DelegateFactory
+				.getInstance()
+				.getMandantDelegate()
+				.mandantFindByPrimaryKey(
+						LPMain.getInstance().getTheClient().getMandant())
+				.getWaehrungCNr();
+
+		getTable()
+				.getColumnModel()
+				.getColumn(1)
+				.setHeaderValue(
+						LPMain.getInstance()
+								.getTextRespectUISPr("lp.anzeigein")
+								+ " "
+								+ cNrMandantenwaehrung);
+	}
 }

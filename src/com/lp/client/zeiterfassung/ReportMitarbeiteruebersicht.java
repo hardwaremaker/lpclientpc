@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.zeiterfassung;
 
+import java.awt.event.ActionEvent;
 import java.text.DateFormatSymbols;
 import java.util.Calendar;
 import java.util.Map;
@@ -39,6 +40,7 @@ import java.util.TreeMap;
 
 import javax.swing.JComponent;
 
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperSpinner;
@@ -48,6 +50,7 @@ import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.personal.service.ZeiterfassungFacAll;
+import com.lp.server.personal.service.ZeiterfassungReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -68,6 +71,8 @@ public class ReportMitarbeiteruebersicht extends ReportZeiterfassung implements
 			new Integer(0), new Integer(9999), new Integer(1));
 	private WrapperLabel wlaMonatBis = new WrapperLabel();
 	private WrapperComboBox wcoMonatBis = new WrapperComboBox();
+	private WrapperCheckBox wcbDetailinfos = new WrapperCheckBox();
+	private WrapperCheckBox wcbAnerkannteZeiten = new WrapperCheckBox();
 
 	public ReportMitarbeiteruebersicht(
 			InternalFrameZeiterfassung internalFrame, String add2Title)
@@ -98,6 +103,8 @@ public class ReportMitarbeiteruebersicht extends ReportZeiterfassung implements
 
 		wcoMonatBis.setSelectedIndex(cal.get(Calendar.MONTH));
 		wspJahrBis.setValue(new Integer(cal.get(Calendar.YEAR)));
+		
+		
 
 	}
 
@@ -105,15 +112,35 @@ public class ReportMitarbeiteruebersicht extends ReportZeiterfassung implements
 		return wspJahr;
 	}
 
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		super.eventActionSpecial(e);
+		if (wcbAnerkannteZeiten.isSelected() && e.getSource().equals(wcbAnerkannteZeiten)) {
+			wcbDetailinfos.setSelected(true);
+		}
+		
+		if (!wcbDetailinfos.isSelected() && e.getSource().equals(wcbDetailinfos)) {
+			wcbAnerkannteZeiten.setSelected(false);
+		}
+	}
+	
 	private void jbInit() throws Throwable {
 		wlaJahr.setText(LPMain.getTextRespectUISPr("lp.von")
 				+ " " + LPMain.getTextRespectUISPr("lp.jahr"));
 		wlaMonat.setText(LPMain.getTextRespectUISPr("lp.monat1"));
+		
+		wcbDetailinfos.setText(LPMain.getTextRespectUISPr("pers.zeiterfassung.report.mitarbeiteruebersicht.detailinfos"));
+		wcbAnerkannteZeiten.setText(LPMain.getTextRespectUISPr("pers.zeiterfassung.report.mitarbeiteruebersicht.anerkannte"));
 
+		wcbDetailinfos.addActionListener(this);
+		wcbAnerkannteZeiten.addActionListener(this);
+		
 		wlaJahrBis.setText(LPMain.getTextRespectUISPr("lp.bis")
 				+ " " + LPMain.getTextRespectUISPr("lp.jahr"));
 		wlaMonatBis.setText(LPMain.getTextRespectUISPr(
 				"lp.monat1"));
+		
+		wcbNurAnwesende.setText(LPMain.getTextRespectUISPr("pers.zeiterfassung.report.mitarbeiteruebersicht.nureingetretene"));
+		
 
 		wcoMonat.setMandatoryField(true);
 		wcoMonatBis.setMandatoryField(true);
@@ -127,6 +154,9 @@ public class ReportMitarbeiteruebersicht extends ReportZeiterfassung implements
 		jpaWorkingOn.add(wspJahrBis, "growx");
 		jpaWorkingOn.add(wlaMonatBis, "growx 50");
 		jpaWorkingOn.add(wcoMonatBis, "growx");
+		
+		jpaWorkingOn.add(wcbDetailinfos, "growx, split 2");
+		jpaWorkingOn.add(wcbAnerkannteZeiten, "growx 150");
 	}
 
 	public String getModul() {
@@ -134,7 +164,7 @@ public class ReportMitarbeiteruebersicht extends ReportZeiterfassung implements
 	}
 
 	public String getReportname() {
-		return ZeiterfassungFac.REPORT_MONATSABRECHNUNG;
+		return ZeiterfassungReportFac.REPORT_MITARBEITERUEBERSICHT;
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
@@ -158,7 +188,7 @@ public class ReportMitarbeiteruebersicht extends ReportZeiterfassung implements
 						(Integer) wcoMonat.getKeyOfSelectedItem(),
 						(Integer) wspJahrBis.getValue(),
 						(Integer) wcoMonatBis.getKeyOfSelectedItem(),
-						getPersonAuswahl(), iSortierung, mitVersteckten(), nurAnwesende());
+						getPersonAuswahl(),getKostenstelleIIdAbteilung(), iSortierung, mitVersteckten(), nurAnwesende(),wcbDetailinfos.isSelected(), wcbAnerkannteZeiten.isSelected());
 
 	}
 

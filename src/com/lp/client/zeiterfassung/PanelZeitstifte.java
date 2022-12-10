@@ -102,8 +102,7 @@ public class PanelZeitstifte extends PanelBasis {
 	private PanelQueryFLR panelQueryFLRPersonal = null;
 	private int iLaengeZestiftkennung = 0;
 
-	public PanelZeitstifte(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	public PanelZeitstifte(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		jbInit();
 		setDefaults();
@@ -116,36 +115,28 @@ public class PanelZeitstifte extends PanelBasis {
 	}
 
 	protected void setDefaults() throws Throwable {
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_LAENGE_ZESTIFTKENNUNG,
-						ParameterFac.KATEGORIE_PERSONAL,
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_LAENGE_ZESTIFTKENNUNG, ParameterFac.KATEGORIE_PERSONAL,
 						LPMain.getTheClient().getMandant());
 
 		if (parameter.getCWertAsObject() != null) {
-			iLaengeZestiftkennung = ((Integer) parameter.getCWertAsObject())
-					.intValue();
+			iLaengeZestiftkennung = ((Integer) parameter.getCWertAsObject()).intValue();
 
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		zeitstifteDto = new ZeitstiftDto();
 		leereAlleFelder(this);
 
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		super.eventActionUpdate(aE, bNeedNoUpdateI);
 
 		if (wcoTyp.getKeyOfSelectedItem() != null
-				&& wcoTyp.getKeyOfSelectedItem().equals(
-						ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)) {
+				&& wcoTyp.getKeyOfSelectedItem().equals(ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)) {
 			wrbMehrpersonenstift.setEnabled(false);
 			wrbPersonenzuordnung.setEnabled(false);
 			wrbEinpersonenstift.setSelected(true);
@@ -157,10 +148,8 @@ public class PanelZeitstifte extends PanelBasis {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_PERSONAL_FROM_LISTE)) {
 
-			if ((wrbPersonenzuordnung.isSelected() || wrbMehrpersonenstift
-					.isSelected())) {
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.error"),
+			if ((wrbPersonenzuordnung.isSelected() || wrbMehrpersonenstift.isSelected())) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
 						LPMain.getTextRespectUISPr("pers.error.zestiftperson"));
 				return;
 			}
@@ -168,8 +157,7 @@ public class PanelZeitstifte extends PanelBasis {
 			dialogQueryPersonalFromListe(e);
 		} else {
 
-			if (wrbMehrpersonenstift.isSelected()
-					|| wrbPersonenzuordnung.isSelected()) {
+			if (wrbMehrpersonenstift.isSelected() || wrbPersonenzuordnung.isSelected()) {
 				wtfPersonal.setMandatoryField(false);
 
 				zeitstifteDto.setPersonalIId(null);
@@ -184,12 +172,10 @@ public class PanelZeitstifte extends PanelBasis {
 		if (e.getSource().equals(wcoTyp)) {
 
 			LockStateValue v = getLockedstateDetailMainKey();
-			if (v != null
-					&& (v.getIState() == LOCK_FOR_NEW || v.getIState() == LOCK_IS_LOCKED_BY_ME)) {
+			if (v != null && (v.getIState() == LOCK_FOR_NEW || v.getIState() == LOCK_IS_LOCKED_BY_ME)) {
 
 				if (wcoTyp.getKeyOfSelectedItem() != null
-						&& wcoTyp.getKeyOfSelectedItem().equals(
-								ZeiterfassungFac.ZEITSTIFT_TYP_F630)) {
+						&& wcoTyp.getKeyOfSelectedItem().equals(ZeiterfassungFac.ZEITSTIFT_TYP_F630)) {
 
 					wrbMehrpersonenstift.setEnabled(true);
 					wrbPersonenzuordnung.setEnabled(true);
@@ -213,29 +199,24 @@ public class PanelZeitstifte extends PanelBasis {
 
 	void dialogQueryPersonalFromListe(ActionEvent e) throws Throwable {
 
-		panelQueryFLRPersonal = PersonalFilterFactory.getInstance()
-				.createPanelFLRPersonal(getInternalFrame(), false, true,
-						zeitstifteDto.getPersonalIId());
+		panelQueryFLRPersonal = PersonalFilterFactory.getInstance().createPanelFLRPersonal(getInternalFrame(), false,
+				true, zeitstifteDto.getPersonalIId());
 
 		new DialogQuery(panelQueryFLRPersonal);
 
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 		if (wcoTyp.getKeyOfSelectedItem() != null
-				&& wcoTyp.getKeyOfSelectedItem().equals(
-						ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)) {
-			DialogFactory.showModalDialog(LPMain
-					.getTextRespectUISPr("lp.hinweis"), LPMain
-					.getTextRespectUISPr("pers.zeitstift.kdc100.delete.error"));
+				&& wcoTyp.getKeyOfSelectedItem().equals(ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+					LPMain.getTextRespectUISPr("pers.zeitstift.kdc100.delete.error"));
 
 			return;
 
 		} else {
-			DelegateFactory.getInstance().getZeiterfassungDelegate()
-					.removeZeitstift(zeitstifteDto);
+			DelegateFactory.getInstance().getZeiterfassungDelegate().removeZeitstift(zeitstifteDto);
 		}
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
@@ -271,8 +252,7 @@ public class PanelZeitstifte extends PanelBasis {
 		}
 
 		if (zeitstifteDto.getPersonalIId() != null) {
-			PersonalDto personalDto = DelegateFactory.getInstance()
-					.getPersonalDelegate()
+			PersonalDto personalDto = DelegateFactory.getInstance().getPersonalDelegate()
 					.personalFindByPrimaryKey(zeitstifteDto.getPersonalIId());
 			wtfPersonal.setText(personalDto.formatAnrede());
 		} else {
@@ -280,50 +260,50 @@ public class PanelZeitstifte extends PanelBasis {
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
-			if (wcoTyp.getKeyOfSelectedItem().equals(
-					ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)
+			if (wcoTyp.getKeyOfSelectedItem().equals(ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)
 					|| wtfKennung.getText().length() == iLaengeZestiftkennung) {
 				components2Dto();
 
 				if (zeitstifteDto.getIId() == null) {
 
-					if (zeitstifteDto.getCTyp().equals(
-							ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)) {
+					if (zeitstifteDto.getCTyp().equals(ZeiterfassungFac.ZEITSTIFT_TYP_KDC100)) {
 
-						DialogFactory
-								.showModalDialog(
-										LPMain.getTextRespectUISPr("lp.hinweis"),
-										LPMain.getTextRespectUISPr("pers.zeitstift.kdc100.error"));
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+								LPMain.getTextRespectUISPr("pers.zeitstift.kdc100.error"));
 
 						return;
 					}
 
-					zeitstifteDto.setIId(DelegateFactory.getInstance()
-							.getZeiterfassungDelegate()
-							.createZeitstift(zeitstifteDto));
+					zeitstifteDto.setIId(
+							DelegateFactory.getInstance().getZeiterfassungDelegate().createZeitstift(zeitstifteDto));
 					setKeyWhenDetailPanel(zeitstifteDto.getIId());
 				} else {
-					DelegateFactory.getInstance().getZeiterfassungDelegate()
-							.updateZeitstift(zeitstifteDto);
+					DelegateFactory.getInstance().getZeiterfassungDelegate().updateZeitstift(zeitstifteDto);
 				}
+
+				// SP8210 Pruefung auf doppelt
+				if (zeitstifteDto.getCTyp().equals(ZeiterfassungFac.ZEITSTIFT_TYP_KDC100) && zeitstifteDto.getPersonalIId()!=null) {
+					ZeitstiftDto[] dtos = DelegateFactory.getInstance().getZeiterfassungDelegate()
+							.zeitstiftFindByPersonalIIdCTyp(zeitstifteDto.getPersonalIId(),
+									ZeiterfassungFac.ZEITSTIFT_TYP_KDC100);
+					if(dtos.length>1) {
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"), LPMain.getTextRespectUISPr("pers.zeitstifte.kdc.mehrfach"));
+					}
+				}
+
 				super.eventActionSave(e, true);
 				if (getInternalFrame().getKeyWasForLockMe() == null) {
-					getInternalFrame().setKeyWasForLockMe(
-							zeitstifteDto.getIId() + "");
+					getInternalFrame().setKeyWasForLockMe(zeitstifteDto.getIId() + "");
 				}
 				eventYouAreSelected(false);
 			} else {
 				Object[] arguments = { iLaengeZestiftkennung + "" };
 
-				String result = MessageFormat.format(
-						LPMain.getTextRespectUISPr("pers.error.zestiftlaenge"),
-						arguments);
+				String result = MessageFormat.format(LPMain.getTextRespectUISPr("pers.error.zestiftlaenge"), arguments);
 
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.error"), result);
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), result);
 			}
 
 		}
@@ -336,18 +316,13 @@ public class PanelZeitstifte extends PanelBasis {
 			if (e.getSource() == panelQueryFLRPersonal) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
-					PersonalDto personalDto = DelegateFactory.getInstance()
-							.getPersonalDelegate()
+					PersonalDto personalDto = DelegateFactory.getInstance().getPersonalDelegate()
 							.personalFindByPrimaryKey((Integer) key);
 
-					if (personalDto.getCAusweis() == null
-							|| (personalDto.getCAusweis().length() != 3 && (wcoTyp
-									.getKeyOfSelectedItem()
-									.equals(ZeiterfassungFac.ZEITSTIFT_TYP_F630)))) {
-						DialogFactory
-								.showModalDialog(
-										LPMain.getTextRespectUISPr("lp.error"),
-										LPMain.getTextRespectUISPr("pers.error.ausweiszestift"));
+					if (personalDto.getCAusweis() == null || (personalDto.getCAusweis().length() != 3
+							&& (wcoTyp.getKeyOfSelectedItem().equals(ZeiterfassungFac.ZEITSTIFT_TYP_F630)))) {
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+								LPMain.getTextRespectUISPr("pers.error.ausweiszestift"));
 
 					} else {
 						wtfPersonal.setText(personalDto.formatAnrede());
@@ -395,10 +370,8 @@ public class PanelZeitstifte extends PanelBasis {
 		getInternalFrame().addItemChangedListener(this);
 
 		Map<String, String> m = new TreeMap<String, String>();
-		m.put(ZeiterfassungFac.ZEITSTIFT_TYP_F630,
-				ZeiterfassungFac.ZEITSTIFT_TYP_F630);
-		m.put(ZeiterfassungFac.ZEITSTIFT_TYP_KDC100,
-				ZeiterfassungFac.ZEITSTIFT_TYP_KDC100);
+		m.put(ZeiterfassungFac.ZEITSTIFT_TYP_F630, ZeiterfassungFac.ZEITSTIFT_TYP_F630);
+		m.put(ZeiterfassungFac.ZEITSTIFT_TYP_KDC100, ZeiterfassungFac.ZEITSTIFT_TYP_KDC100);
 
 		wcoTyp.setMap(m);
 
@@ -411,68 +384,49 @@ public class PanelZeitstifte extends PanelBasis {
 		wrbMehrpersonenstift.addActionListener(this);
 		wrbPersonenzuordnung.addActionListener(this);
 
-		wrbEinpersonenstift.setText(LPMain
-				.getTextRespectUISPr("zeiterfassung.einfachstift"));
-		wrbMehrpersonenstift.setText(LPMain
-				.getTextRespectUISPr("zeiterfassung.mehrfachstift"));
-		wrbPersonenzuordnung.setText(LPMain
-				.getTextRespectUISPr("zeiterfassung.personenzuordnung"));
+		wrbEinpersonenstift.setText(LPMain.getTextRespectUISPr("zeiterfassung.einfachstift"));
+		wrbMehrpersonenstift.setText(LPMain.getTextRespectUISPr("zeiterfassung.mehrfachstift"));
+		wrbPersonenzuordnung.setText(LPMain.getTextRespectUISPr("zeiterfassung.personenzuordnung"));
 
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, iZeile, 1, 1,
-				0.2, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wrbPersonenzuordnung, new GridBagConstraints(1,
-				iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbPersonenzuordnung, new GridBagConstraints(1, iZeile, 2, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wrbMehrpersonenstift, new GridBagConstraints(1,
-				iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbMehrpersonenstift, new GridBagConstraints(1, iZeile, 2, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wrbEinpersonenstift, new GridBagConstraints(1, iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wrbEinpersonenstift, new GridBagConstraints(1, iZeile,
-				2, 1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfPersonal, new GridBagConstraints(1, iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuPersonal, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wtfPersonal, new GridBagConstraints(1, iZeile, 2, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("lp.typ")), new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoTyp, new GridBagConstraints(1, iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuPersonal, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getTextRespectUISPr("lp.typ")),
-				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wcoTyp, new GridBagConstraints(1, iZeile, 2, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -482,8 +436,7 @@ public class PanelZeitstifte extends PanelBasis {
 		return HelperClient.LOCKME_ZEITSTIFT;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
@@ -493,8 +446,7 @@ public class PanelZeitstifte extends PanelBasis {
 				eventActionSpecial(new ActionEvent(this, 0, ""));
 			}
 		} else {
-			zeitstifteDto = DelegateFactory.getInstance()
-					.getZeiterfassungDelegate()
+			zeitstifteDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
 					.zeitstiftFindByPrimaryKey((Integer) key);
 			dto2Components();
 			eventActionSpecial(new ActionEvent(this, 0, ""));

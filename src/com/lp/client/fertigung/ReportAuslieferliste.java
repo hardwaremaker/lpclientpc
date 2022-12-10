@@ -46,9 +46,11 @@ import javax.swing.JPanel;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperRadioButton;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -59,8 +61,7 @@ import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class ReportAuslieferliste extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportAuslieferliste extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -70,14 +71,13 @@ public class ReportAuslieferliste extends PanelBasis implements
 	private WrapperLabel wlaBis = new WrapperLabel();
 	private WrapperDateField wdfBis = new WrapperDateField();
 
+	private WrapperCheckBox wcbNurNachLosEndeSortiert = new WrapperCheckBox();
 
-
-
+	protected WrapperSelectField wsfKunde = new WrapperSelectField(WrapperSelectField.KUNDE, getInternalFrame(), true);
 
 	protected JPanel jpaWorkingOn = new JPanel();
 
-	public ReportAuslieferliste(InternalFrame internalFrame, String add2Title)
-			throws Throwable {
+	public ReportAuslieferliste(InternalFrame internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
 		jbInit();
 
@@ -93,44 +93,46 @@ public class ReportAuslieferliste extends PanelBasis implements
 		jpaWorkingOn.setLayout(new GridBagLayout());
 		wlaVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
 		wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
+		wcbNurNachLosEndeSortiert.setText(LPMain.getInstance().getTextRespectUISPr("fert.auslieferliste.nurlosenachendeterminsortiert"));
+		
 		wdfVon.setMandatoryField(true);
 		wdfBis.setMandatoryField(true);
 		wdfVon.setTimestamp(Helper.cutTimestamp(new Timestamp(System.currentTimeMillis())));
 		wdfVon.setActivatable(false);
 		wdfVon.setEditable(false);
 		wdfVon.setEnabled(false);
-		
-		long l=System.currentTimeMillis();
-		l=l+(24 * 3600000 *20);
-		l=l+(24 * 3600000 *20);
-		l=l+(24 * 3600000 *16);
-		
+
+		long l = System.currentTimeMillis();
+		l = l + (24 * 3600000 * 20);
+		l = l + (24 * 3600000 * 20);
+		l = l + (24 * 3600000 * 16);
+
 		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(l);
 		wdfBis.setTimestamp(wdfBisTemp);
-		
-	
-		
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		int iZeile = 0;
 
-		jpaWorkingOn.add(wlaVon, new GridBagConstraints(0, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfVon, new GridBagConstraints(1, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfBis, new GridBagConstraints(3, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-			iZeile++;
-		
-	
+		jpaWorkingOn.add(wlaVon, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfVon, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfBis, new GridBagConstraints(3, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+
+		jpaWorkingOn.add(wsfKunde.getWrapperGotoButton(), new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfKunde.getWrapperTextField(), new GridBagConstraints(1, iZeile, 2, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbNurNachLosEndeSortiert, new GridBagConstraints(3, iZeile, 2, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -150,11 +152,10 @@ public class ReportAuslieferliste extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp = Helper.addiereTageZuTimestamp(wdfBis.getTimestamp(), 1);
 
-		return DelegateFactory.getInstance().getFertigungDelegate()
-				.printAuslieferliste(wdfBisTemp);
+		return DelegateFactory.getInstance().getFertigungDelegate().printAuslieferliste(wdfBisTemp, wsfKunde.getIKey(),
+				wcbNurNachLosEndeSortiert.isSelected());
 
 	}
 
@@ -163,8 +164,7 @@ public class ReportAuslieferliste extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

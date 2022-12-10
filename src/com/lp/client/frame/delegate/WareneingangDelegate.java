@@ -41,9 +41,12 @@ import javax.naming.InitialContext;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.bestellung.service.EinstandspreiseEinesWareneingangsDto;
+import com.lp.server.bestellung.service.RueckgabeWEPMitReelIDDto;
+import com.lp.server.bestellung.service.WEPBuchenReturnDto;
 import com.lp.server.bestellung.service.WareneingangDto;
 import com.lp.server.bestellung.service.WareneingangFac;
 import com.lp.server.bestellung.service.WareneingangspositionDto;
+import com.lp.server.reklamation.service.ReklamationFac;
 import com.lp.server.system.service.TheClientDto;
 
 public class WareneingangDelegate extends Delegate {
@@ -52,8 +55,7 @@ public class WareneingangDelegate extends Delegate {
 
 	public WareneingangDelegate() throws Throwable {
 		context = new InitialContext();
-		wareneingangFac = (WareneingangFac) context
-				.lookup("lpserver/WareneingangFacBean/remote");
+		wareneingangFac = lookupFac(context, WareneingangFac.class);
 	}
 
 	public Integer createWareneingang(WareneingangDto wareneingangDto)
@@ -103,6 +105,18 @@ public class WareneingangDelegate extends Delegate {
 		WareneingangDto wareneingangDto = null;
 		try {
 			wareneingangDto = wareneingangFac.wareneingangFindByPrimaryKey(iId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return wareneingangDto;
+	}
+
+	public WareneingangDto wareneingangFindByPrimaryKeyOhneExc(Integer iId)
+			throws ExceptionLP {
+		WareneingangDto wareneingangDto = null;
+		try {
+			wareneingangDto = wareneingangFac
+					.wareneingangFindByPrimaryKeyOhneExc(iId);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -163,8 +177,21 @@ public class WareneingangDelegate extends Delegate {
 		}
 	}
 
-	// WEPOS*********************************************************************
-	// ****
+	public RueckgabeWEPMitReelIDDto wareneingangspositionMitReelIDBuchen(
+			Integer wareneingangIId, Integer bestellpositionIId,
+			BigDecimal nMenge, String datecode, String batch1)
+			throws ExceptionLP {
+		RueckgabeWEPMitReelIDDto weposIId = null;
+		try {
+			weposIId = wareneingangFac.wareneingangspositionMitReelIDBuchen(
+					wareneingangIId, bestellpositionIId, nMenge, datecode,
+					batch1, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return weposIId;
+	}
+
 	public Integer createWareneingangsposition(
 			WareneingangspositionDto wareneingangspositionenDto)
 			throws ExceptionLP {
@@ -192,6 +219,30 @@ public class WareneingangDelegate extends Delegate {
 
 	}
 
+	public BigDecimal getWareneingangWertsumme(WareneingangDto wareneingangDto)
+			throws ExceptionLP {
+
+		try {
+			return wareneingangFac.getWareneingangWertsumme(wareneingangDto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+	public String generiereAutomatischeChargennummerAnhandBestellnummerWEPNrPosnr(
+			Integer bsposIId, Integer wareneingangIId)
+			throws ExceptionLP {
+
+		try {
+			return wareneingangFac.generiereAutomatischeChargennummerAnhandBestellnummerWEPNrPosnr(bsposIId,wareneingangIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
 	public void removeWareneingangsposition(
 			WareneingangspositionDto wareneingangspositionenDto)
 			throws ExceptionLP {
@@ -202,6 +253,29 @@ public class WareneingangDelegate extends Delegate {
 			handleThrowable(ex);
 		}
 
+	}
+
+	public Integer getLieferscheinIIdAusWareUnterwegs(String wareunterwegsCNr)
+			throws ExceptionLP {
+
+		try {
+			return wareneingangFac.getLieferscheinIIdAusWareUnterwegs(
+					wareunterwegsCNr, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public void wareUnterwegsZubuchen(Integer lieferscheinIId,ArrayList<String> wareunterwegsCNr)
+			throws ExceptionLP {
+		try {
+			wareneingangFac.wareUnterwegsZubuchen(
+					lieferscheinIId,wareunterwegsCNr, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
 	}
 
 	public void updateWareneingangsposition(
@@ -246,7 +320,17 @@ public class WareneingangDelegate extends Delegate {
 		}
 		return wareneingangspositionDto;
 	}
-
+	public WareneingangspositionDto wareneingangspositionFindByPrimaryKeyOhneExc(
+			Integer iId) throws ExceptionLP {
+		WareneingangspositionDto wareneingangspositionDto = null;
+		try {
+			wareneingangspositionDto = wareneingangFac
+					.wareneingangspositionFindByPrimaryKeyOhneExc(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return wareneingangspositionDto;
+	}
 	public WareneingangspositionDto[] wareneingangspositionFindByWareneingangIId(
 			Integer iIdWareneingangI) throws ExceptionLP {
 		WareneingangspositionDto[] wareneingangspositionDto = null;
@@ -279,16 +363,16 @@ public class WareneingangDelegate extends Delegate {
 		}
 	}
 
-	public ArrayList<Object[]> uebernimmAlleWepsOhneBenutzerinteraktion(
-			Integer iIdWareneingangI, Integer iIdBestellung) throws ExceptionLP {
-		ArrayList<Object[]> alData = null;
+	public WEPBuchenReturnDto uebernimmAlleWepsOhneBenutzerinteraktion(
+			Integer iIdWareneingangI, Integer iIdBestellung, ArrayList<Integer> bestellpositionIIds_selektiert) throws ExceptionLP {
+		WEPBuchenReturnDto wEPBuchenReturnDto = null;
 		try {
-			alData = wareneingangFac.uebernimmAlleWepsOhneBenutzerinteraktion(
-					iIdWareneingangI, iIdBestellung, LPMain.getTheClient());
+			wEPBuchenReturnDto = wareneingangFac.uebernimmAlleWepsOhneBenutzerinteraktion(
+					iIdWareneingangI, iIdBestellung, bestellpositionIIds_selektiert, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
-		return alData;
+		return wEPBuchenReturnDto;
 	}
 
 	public Integer[] erfasseAllePreiseOhneBenutzerinteraktion(
@@ -339,5 +423,41 @@ public class WareneingangDelegate extends Delegate {
 			handleThrowable(t);
 		}
 		return false;
+	}
+
+	public Integer createWareneingangsposition(
+			WareneingangspositionDto wareneingangspositionenDto,
+			boolean setartikelAufloesen) throws ExceptionLP {
+		Integer weposIId = null;
+		try {
+			weposIId = wareneingangFac.createWareneingangsposition(
+					wareneingangspositionenDto, setartikelAufloesen,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return weposIId;
+	}
+
+	public void updateWareneingangsposition(WareneingangspositionDto weposDtoI,
+			boolean setartikelAufloesen) throws ExceptionLP {
+		try {
+			wareneingangFac.updateWareneingangsposition(weposDtoI,
+					setartikelAufloesen, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void removeWareneingangsposition(
+			WareneingangspositionDto positionDto, boolean setartikelAufloesen)
+			throws ExceptionLP {
+		try {
+			wareneingangFac.removeWareneingangsposition(positionDto,
+					setartikelAufloesen, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 	}
 }

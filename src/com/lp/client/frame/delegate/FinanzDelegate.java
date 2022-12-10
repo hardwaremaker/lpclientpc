@@ -2,36 +2,38 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -41,20 +43,42 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.client.remote.IPayloadPublisher;
+import com.lp.client.remote.Router;
 import com.lp.server.finanz.service.BankverbindungDto;
 import com.lp.server.finanz.service.ErgebnisgruppeDto;
 import com.lp.server.finanz.service.FinanzFac;
 import com.lp.server.finanz.service.FinanzamtDto;
+import com.lp.server.finanz.service.ISepaImportResult;
+import com.lp.server.finanz.service.Iso20022BankverbindungDto;
+import com.lp.server.finanz.service.Iso20022PaymentsDto;
+import com.lp.server.finanz.service.Iso20022StandardDto;
+import com.lp.server.finanz.service.Iso20022StandardEnum;
 import com.lp.server.finanz.service.KassenbuchDto;
 import com.lp.server.finanz.service.KontoDto;
 import com.lp.server.finanz.service.KontoDtoSmall;
 import com.lp.server.finanz.service.KontoImporterResult;
+import com.lp.server.finanz.service.KontoRequest;
 import com.lp.server.finanz.service.KontolaenderartDto;
 import com.lp.server.finanz.service.KontolandDto;
 import com.lp.server.finanz.service.RechenregelDto;
+import com.lp.server.finanz.service.SepaImportFac;
+import com.lp.server.finanz.service.SepaImportProperties;
+import com.lp.server.finanz.service.SepaImportTransformResult;
+import com.lp.server.finanz.service.SepaKontoauszug;
+import com.lp.server.finanz.service.SepakontoauszugDto;
+import com.lp.server.kpi.service.KpiReportFac;
+import com.lp.server.partner.service.KundeDto;
+import com.lp.server.partner.service.LieferantDto;
+import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.system.service.TheClientDto;
+import com.lp.server.util.BankverbindungId;
+import com.lp.server.util.BelegAdapter;
+import com.lp.server.util.HvOptional;
+import com.lp.server.util.KontoId;
+import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access")
+
 /**
  * <p><I>Business-Delegate fuer das Finanzmodul</I> </p>
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -66,13 +90,17 @@ import com.lp.server.system.service.TheClientDto;
 public class FinanzDelegate extends Delegate {
 	private Context context;
 	private FinanzFac finanzFac;
-
+	private SepaImportFac sepaImportFac;
+	private KpiReportFac kpiReportFac;
+	
 	public FinanzDelegate() throws ExceptionLP {
 
 		try {
 			context = new InitialContext();
-			finanzFac = (FinanzFac) context
-					.lookup("lpserver/FinanzFacBean/remote");
+			
+			finanzFac = lookupFac(context, FinanzFac.class);	
+			sepaImportFac = lookupFac(context, SepaImportFac.class);	
+			kpiReportFac = lookupFac(context, KpiReportFac.class);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -80,8 +108,7 @@ public class FinanzDelegate extends Delegate {
 
 	public KassenbuchDto getHauptkassabuch() throws ExceptionLP {
 		try {
-			return finanzFac.getHauptkassabuch(LPMain.getInstance()
-					.getTheClient());
+			return finanzFac.getHauptkassabuch(LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -91,7 +118,7 @@ public class FinanzDelegate extends Delegate {
 	public void removeKonto(KontoDto kontoDto) throws ExceptionLP {
 		try {
 			finanzFac
-					.removeKonto(kontoDto, LPMain.getInstance().getTheClient());
+					.removeKonto(kontoDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -102,12 +129,11 @@ public class FinanzDelegate extends Delegate {
 		try {
 			if (kontoDto.getIId() != null) {
 				myLogger.debug("update Konto");
-				return finanzFac.updateKonto(kontoDto, LPMain.getInstance()
-						.getTheClient());
+				return finanzFac.updateKonto(kontoDto, 
+						LPMain.getTheClient());
 			} else {
 				myLogger.debug("create Konto");
-				return finanzFac.createKonto(kontoDto, LPMain.getInstance()
-						.getTheClient());
+				return finanzFac.createKonto(kontoDto, LPMain.getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -155,7 +181,7 @@ public class FinanzDelegate extends Delegate {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param sCnr
 	 * @param sMandant
 	 * @return
@@ -176,8 +202,7 @@ public class FinanzDelegate extends Delegate {
 
 	public void removeFinanzamt(FinanzamtDto finanzamtDto) throws ExceptionLP {
 		try {
-			finanzFac.removeFinanzamt(finanzamtDto, LPMain.getInstance()
-					.getTheClient());
+			finanzFac.removeFinanzamt(finanzamtDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -188,11 +213,9 @@ public class FinanzDelegate extends Delegate {
 		myLogger.entry();
 		try {
 			if (finanzamtDto.getPartnerIId() != null) {
-				return finanzFac.updateFinanzamt(finanzamtDto, LPMain
-						.getInstance().getTheClient());
+				return finanzFac.updateFinanzamt(finanzamtDto, LPMain.getTheClient());
 			} else {
-				return finanzFac.createFinanzamt(finanzamtDto, LPMain
-						.getInstance().getTheClient());
+				return finanzFac.createFinanzamt(finanzamtDto, LPMain.getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -204,7 +227,7 @@ public class FinanzDelegate extends Delegate {
 			String mandantCNr) throws ExceptionLP {
 		try {
 			return finanzFac.finanzamtFindByPrimaryKey(partnerIId, mandantCNr,
-					LPMain.getInstance().getTheClient());
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -215,7 +238,7 @@ public class FinanzDelegate extends Delegate {
 			String mandantCNr) throws ExceptionLP {
 		try {
 			return finanzFac.finanzamtFindByPartnerIIdMandantCNr(partnerIId,
-					mandantCNr, LPMain.getInstance().getTheClient());
+					mandantCNr, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -246,12 +269,12 @@ public class FinanzDelegate extends Delegate {
 		try {
 			if (bankverbindungDto.getIId() != null) {
 				myLogger.debug("update Bankverbindung");
-				return finanzFac.updateBankverbindung(bankverbindungDto, LPMain
-						.getInstance().getTheClient());
+				return finanzFac.updateBankverbindung(bankverbindungDto, 
+						LPMain.getTheClient());
 			} else {
 				myLogger.debug("create Bankverbindung");
-				return finanzFac.createBankverbindung(bankverbindungDto, LPMain
-						.getInstance().getTheClient());
+				return finanzFac.createBankverbindung(bankverbindungDto,
+						LPMain.getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -282,8 +305,8 @@ public class FinanzDelegate extends Delegate {
 	public void removeKassenbuch(KassenbuchDto kassenbuchDto)
 			throws ExceptionLP {
 		try {
-			finanzFac.removeKassenbuch(kassenbuchDto, LPMain.getInstance()
-					.getTheClient());
+			finanzFac.removeKassenbuch(kassenbuchDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -294,12 +317,12 @@ public class FinanzDelegate extends Delegate {
 		try {
 			if (kassenbuchDto.getIId() != null) {
 				myLogger.debug("update Kassenbuch");
-				return finanzFac.updateKassenbuch(kassenbuchDto, LPMain
-						.getInstance().getTheClient());
+				return finanzFac.updateKassenbuch(kassenbuchDto,
+						LPMain.getTheClient());
 			} else {
 				myLogger.debug("create Kassenbuch");
-				return finanzFac.createKassenbuch(kassenbuchDto, LPMain
-						.getInstance().getTheClient());
+				return finanzFac.createKassenbuch(kassenbuchDto,
+						LPMain.getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -311,7 +334,7 @@ public class FinanzDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			return finanzFac.kassenbuchFindByPrimaryKey(iId, LPMain
-					.getInstance().getTheClient());
+					.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -330,7 +353,7 @@ public class FinanzDelegate extends Delegate {
 
 	/**
 	 * Alle Rechenregeln in der UI-Sprache holen.
-	 * 
+	 *
 	 * @throws Exception
 	 * @return Map
 	 */
@@ -345,7 +368,7 @@ public class FinanzDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			finanzFac.removeErgebnisgruppe(ergebnisgruppeDto, LPMain
-					.getInstance().getTheClient());
+					.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -356,10 +379,10 @@ public class FinanzDelegate extends Delegate {
 		try {
 			if (ergebnisgruppeDto.getIId() == null) {
 				return finanzFac.createErgebnisgruppe(ergebnisgruppeDto, LPMain
-						.getInstance().getTheClient());
+						.getTheClient());
 			} else {
 				return finanzFac.updateErgebnisgruppe(ergebnisgruppeDto, LPMain
-						.getInstance().getTheClient());
+						.getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -381,7 +404,7 @@ public class FinanzDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			return finanzFac.getAnzahlStellenVonKontoNummer(kontotypCNr, LPMain
-					.getInstance().getTheClient().getMandant());
+					.getTheClient().getMandant());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
@@ -390,8 +413,7 @@ public class FinanzDelegate extends Delegate {
 
 	public Integer getAnzahlDerFinanzaemter() throws ExceptionLP {
 		try {
-			return finanzFac.getAnzahlDerFinanzaemter(LPMain.getInstance()
-					.getTheClient());
+			return finanzFac.getAnzahlDerFinanzaemter(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
@@ -401,9 +423,9 @@ public class FinanzDelegate extends Delegate {
 	public KontolaenderartDto createKontolaenderart(
 			KontolaenderartDto kontolaenderartDto) throws Exception {
 		try {
-			return finanzFac.createKontolaenderart(kontolaenderartDto, LPMain
-					.getInstance().getTheClient());
-		} catch (Throwable t) {
+			return finanzFac.createKontolaenderart(kontolaenderartDto, 
+					LPMain.getTheClient());
+			} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
@@ -413,7 +435,7 @@ public class FinanzDelegate extends Delegate {
 			throws Exception {
 		try {
 			finanzFac.removeKontolaenderart(kontolaenderartDto, LPMain
-					.getInstance().getTheClient());
+					.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -431,7 +453,7 @@ public class FinanzDelegate extends Delegate {
 			KontolaenderartDto kontolaenderartDto) throws Exception {
 		try {
 			return finanzFac.updateKontolaenderart(kontolaenderartDto, LPMain
-					.getInstance().getTheClient());
+					.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
@@ -440,25 +462,54 @@ public class FinanzDelegate extends Delegate {
 
 	public void updateKontoland(KontolandDto kontolandDto) throws Exception {
 		try {
-			finanzFac.updateKontoland(kontolandDto, LPMain.getInstance()
+			finanzFac.updateKontoland(kontolandDto, LPMain
 					.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public KontolaenderartDto kontolaenderartFindByPrimaryKey(Integer kontoIId,
-			String laenderartCNr, Integer finanzamtIId, String mandantCNr)
-			throws Exception {
+	public KontolaenderartDto kontolaenderartFindByPrimaryKey(Integer kontolaenderartId) throws Exception {
 		try {
-			return finanzFac.kontolaenderartFindByPrimaryKey(kontoIId,
-					laenderartCNr, finanzamtIId, mandantCNr);
+			return finanzFac.kontolaenderartFindByPrimaryKey(kontolaenderartId);
+		} catch(Throwable t) {
+			handleThrowable(t);
+			return null;			
+		}
+	}
+	
+	public KontolaenderartDto kontolaenderartFindByPrimaryKey(
+			Integer kontoIId,Integer reversechargeartId, 
+			String laenderartCNr, Integer finanzamtIId, String mandantCNr) throws Exception {
+		try {
+			return finanzFac.kontolaenderartFindByPrimaryKey(
+				kontoIId, reversechargeartId, laenderartCNr, finanzamtIId, mandantCNr);
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
+	public KontolandDto kontolandFindByPrimaryKey(Integer kontolandId) throws Exception {
+		try {
+			return finanzFac.kontolandFindByPrimaryKey(kontolandId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}		
+	}
+
+	public HvOptional<KontolandDto> kontolandZuDatum(Integer kontoIId,
+			Integer landIId, Timestamp gueltigZum) throws Exception {
+		try {
+			return finanzFac.kontolandZuDatum(kontoIId, landIId, gueltigZum);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+/*	
 	public KontolandDto kontolandFindByPrimaryKey(Integer kontoIId,
 			Integer LandIId) throws Exception {
 		try {
@@ -468,7 +519,8 @@ public class FinanzDelegate extends Delegate {
 			return null;
 		}
 	}
-
+*/
+	
 	public void updateKontoDtoUIDaten(Integer kontoIIdI,
 			String cLetztesortierungI, Integer iLetzteselektiertebuchungI)
 			throws ExceptionLP {
@@ -483,8 +535,8 @@ public class FinanzDelegate extends Delegate {
 	public void vertauscheErgebnisgruppen(Integer iIdEG1I, Integer iIdEG2I)
 			throws ExceptionLP {
 		try {
-			finanzFac.vertauscheErgebnisgruppen(iIdEG1I, iIdEG2I, LPMain
-					.getInstance().getTheClient());
+			finanzFac.vertauscheErgebnisgruppen(iIdEG1I, iIdEG2I, 
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -503,7 +555,7 @@ public class FinanzDelegate extends Delegate {
 	/**
 	 * Handelt es sich beim angegebenen Konto um eines welches einen
 	 * Vorperiodensaldo unterstuetzt
-	 * 
+	 *
 	 * @param kontoIId
 	 * @param theClientDto
 	 * @return true wenn das Konto einen Vorperiodensaldo kennt. Also
@@ -537,5 +589,262 @@ public class FinanzDelegate extends Delegate {
 			handleThrowable(t);
 			return null;
 		}
+	}
+
+	public KontoRequest[] kontoExist(String mandant, KontoRequest ... kontoRequest) throws ExceptionLP {
+		try {
+			return finanzFac.kontoExist(mandant, kontoRequest);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public SepaImportTransformResult readAndTransformSepaKontoauszug(SepaImportProperties importProperties) throws ExceptionLP {
+		try {
+			return sepaImportFac.readAndTransformSepaKontoauszug(importProperties, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public List<ISepaImportResult> searchForImportMatches(KontoId kontoId, List<SepaKontoauszug> ktoauszuege) 
+			throws ExceptionLP {
+		try {
+			return sepaImportFac.searchForImportMatches(kontoId, ktoauszuege, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public List<BankverbindungDto> bankverbindungFindByMandantCNrOhneExc(
+			String mandantCNr) throws ExceptionLP {
+		try {
+			return finanzFac.bankverbindungFindByMandantCNrOhneExc(mandantCNr);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public Integer importSepaImportResults(List<ISepaImportResult> results) 
+			throws ExceptionLP {
+		try {
+			return sepaImportFac.importSepaImportResults(results, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public List<BelegAdapter> getAlleOffenenEingangsrechnungen(String waehrungCnr) 
+			throws ExceptionLP {
+		try {
+			return sepaImportFac.getAlleOffenenEingangsrechnungen(waehrungCnr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public List<BelegAdapter> getAlleOffenenAusgangsrechnungen(String waehrungCnr) 
+			throws ExceptionLP {
+		try {
+			return sepaImportFac.getAlleOffenenAusgangsrechnungen(waehrungCnr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public Map<Integer, PartnerDto> getPartnerOfBelegeMap(List<BelegAdapter> belege) 
+			throws ExceptionLP {
+		try {
+			return sepaImportFac.getPartnerOfBelegeMap(belege, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public BigDecimal getSaldoVonBankverbindungByAuszug(Integer kontoIId,
+			Integer auszugNr) throws ExceptionLP {
+		try {
+			return sepaImportFac.getSaldoVonBankverbindungByAuszug(kontoIId, auszugNr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public void archiviereSepaKontoauszug(String xmlKontoauszug, String filename, 
+			Integer bankverbindungIId, Integer auszugsNr) throws ExceptionLP {
+		try {
+			sepaImportFac.archiviereSepaKontoauszug(xmlKontoauszug, filename, 
+					bankverbindungIId, auszugsNr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	public KontoDtoSmall[] kontoFindByPrimaryKeySmall(Integer[] ids) throws ExceptionLP {
+		try {
+			return finanzFac.kontosFindByPrimaryKeySmall(ids) ;
+		} catch(Throwable t) {
+			handleThrowable(t);
+			return null ;
+		}
+	}
+
+	public Integer importSepaImportResults(SepakontoauszugDto sepakontoauszugDto, List<ISepaImportResult> results, IPayloadPublisher worker) 
+			throws ExceptionLP {
+		String payloadReference = Integer.toString(System.identityHashCode(worker));
+		Router.getInstance().register(payloadReference, worker);
+		
+		try {
+			return sepaImportFac.importSepaImportResults(sepakontoauszugDto, results, payloadReference, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		} finally {
+			Router.getInstance().unregister(payloadReference);
+		}
+	}
+	
+	public SepakontoauszugDto sepakontoauszugFindByPrimaryKeySmall(Integer iId) throws ExceptionLP {
+		try {
+			return sepaImportFac.sepakontoauszugFindByPrimaryKeySmall(iId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public void storniereSepakontoauszug(Integer iId) throws ExceptionLP {
+		try {
+			sepaImportFac.storniereSepakontoauszug(iId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	
+	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer iId, boolean bilanzgruppe) throws ExceptionLP {
+		try {
+			finanzFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(iId,bilanzgruppe, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+		
+	public SepakontoauszugDto getSepakontoauszugNiedrigsteAuszugsnummer(Integer bankverbindungIId) throws ExceptionLP {
+		try {
+			return sepaImportFac.getSepakontoauszugNiedrigsteAuszugsnummer(bankverbindungIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public void pruefeSepakontoauszugAufVerbuchung(Integer sepakontoauszugIId) throws ExceptionLP {
+		try {
+			sepaImportFac.pruefeSepakontoauszugAufVerbuchung(sepakontoauszugIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	public JasperPrintLP printKpi(java.sql.Date von, java.sql.Date bis) throws ExceptionLP {
+		try {
+			return kpiReportFac.printKpi(von, bis, LPMain.getTheClient());
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		
+		return null;
+	}
+	
+	public FinanzamtDto findFinanzamtForKunde(KundeDto kundeDto) throws ExceptionLP {
+		try {
+			return finanzFac.finanzamtFindByKunde(kundeDto, LPMain.getTheClient());
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public FinanzamtDto findFinanzamtForLieferant(LieferantDto lieferantDto) throws ExceptionLP {
+		try {
+			return finanzFac.finanzamtFindByLieferant(lieferantDto, LPMain.getTheClient());
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+	
+	public Map<Iso20022StandardEnum, Iso20022PaymentsDto> getMapOfIso20022Payments() throws ExceptionLP {
+		try {
+			return sepaImportFac.getMapOfIso20022Payments();
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	
+	public List<Iso20022StandardDto> iso20022StandardsFindAll() throws ExceptionLP {
+		try {
+			return sepaImportFac.iso20022standardsFindAll();
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+	
+	public Iso20022BankverbindungDto iso20022BankverbindungFindByBankverbindungIId(BankverbindungId bankverbindungId) throws ExceptionLP {
+		try {
+			return sepaImportFac.iso20022BankverbindungFindByBankverbindungIIdNoExc(bankverbindungId);
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+		
+	}
+	
+	public Integer createIso20022Bankverbindung(Iso20022BankverbindungDto iso20022BankverbindungDto) throws ExceptionLP {
+		try {
+			return sepaImportFac.createIso20022Bankverbindung(iso20022BankverbindungDto);
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+	
+	public void updateIso20022Bankverbindung(Iso20022BankverbindungDto iso20022BankverbindungDto) throws ExceptionLP {
+		try {
+			sepaImportFac.updateIso20022Bankverbindung(iso20022BankverbindungDto);
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void removeIso20022Bankverbindung(Integer iId) throws ExceptionLP {
+		try {
+			sepaImportFac.removeIso20022Bankverbindung(iId);
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	public String getWaehrungOfKonto(KontoId kontoId) throws ExceptionLP {
+		try {
+			return sepaImportFac.getWaehrungOfKonto(kontoId, LPMain.getTheClient());
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
 	}
 }

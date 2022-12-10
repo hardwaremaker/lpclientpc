@@ -32,7 +32,6 @@
  ******************************************************************************/
  package com.lp.client.stueckliste.importassistent;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,10 +40,11 @@ import java.util.Set;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.assistent.AssistentPageController;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.WrapperFile;
+import com.lp.client.frame.filechooser.open.XlsFile;
 import com.lp.client.pc.LPMain;
-import com.lp.server.angebotstkl.service.AgstklDto;
-import com.lp.server.angebotstkl.service.EinkaufsangebotDto;
-import com.lp.server.stueckliste.service.StuecklisteDto;
 import com.lp.service.StklImportSpezifikation;
 
 public class StklImportPage1Ctrl extends AssistentPageController {
@@ -57,7 +57,7 @@ public class StklImportPage1Ctrl extends AssistentPageController {
 
 	@Override
 	public boolean isNextAllowed() {
-		return model.getImportFile() != null;
+		return model.hasFile();
 	}
 
 	@Override
@@ -95,14 +95,20 @@ public class StklImportPage1Ctrl extends AssistentPageController {
 		return true;
 	}
 	
-	public void setImportFile(File file) {
-		model.setImportFile(file);
+	public void setCsvFile(CsvFile csv) {
+		model.setCsvFile(csv);
 		fireDataUpdateEvent();
 		fireNavigationUpdateEvent();
 	}
 	
-	public File getImportFile() {
-		return model.getImportFile();
+	public void setXlsFile(XlsFile xls) {
+		model.setXlsFile(xls);
+		fireDataUpdateEvent();
+		fireNavigationUpdateEvent();
+	}
+	
+	public WrapperFile getImportFile() {
+		return model.getCsvFile() != null ? model.getCsvFile() : model.getXlsFile();
 	}
 	
 	public List<String> getImportSpezNames() {
@@ -142,26 +148,23 @@ public class StklImportPage1Ctrl extends AssistentPageController {
 		return model.getSelectedSpezifikation() == null ? null : model.getSelectedSpezifikation().getName();
 	}
 	
-	public boolean isKundeGesetzt() {
-		try {
-			if(model.isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.ANGEBOTSSTKL_SPEZ)) {
-				AgstklDto agstklDto = DelegateFactory.getInstance().getAngebotstklDelegate()
-						.agstklFindByPrimaryKey(model.getStklIId());
-				model.setKundeIsGesetzt(agstklDto.getKundeIId() != null);
-			} else if(model.isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.EINKAUFSANGEBOTSSTKL_SPEZ)) {
-				EinkaufsangebotDto einkaufsAgDto = DelegateFactory.getInstance().getAngebotstklDelegate()
-						.einkaufsangebotFindByPrimaryKey(model.getStklIId());
-				model.setKundeIsGesetzt(einkaufsAgDto.getKundeIId() != null);
-			} else if(model.isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.FERTIGUNGSSTKL_SPEZ)) {
-				StuecklisteDto stklDto = DelegateFactory.getInstance().getStuecklisteDelegate()
-						.stuecklisteFindByPrimaryKey(model.getStklIId());
-				model.setKundeIsGesetzt(stklDto.getPartnerIId() != null);
-			}
-		} catch (Throwable e) {
-			e.printStackTrace();
-			return false;
-		}
-		return model.isKundeGesetzt();
+	public boolean showKundeLieferantNichtHinterlegt() {
+		return model.getSelectedSpezifikation().isStuecklisteMitBezugVerkauf()
+				? !model.isBezugsobjektGesetzt() && model.hasZusatzfunktionKundeSoko()
+				: !model.isBezugsobjektGesetzt();
 	}
 
+	public String getTextBezugsobjektNichtGesetzt() {
+		if(model.getSelectedSpezifikation().isStuecklisteMitBezugVerkauf()) {
+			return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.kundenichthinterlegt");
+		}
+		
+		return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.lieferantnichthinterlegt");
+	}
+
+	public FileChooserConfigToken getFileChooserToken() {
+		return model.getChooserConfigToken();
+	}
+
+	
 }

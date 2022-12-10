@@ -83,8 +83,21 @@ private TabbedPaneStueckliste tabbedPaneStueckliste = null;
     return stuecklisteDto;
   }
 
+  
+  private boolean bNegativeZielmengenWarnungAnzeigen = true;
+  
 
-  public InternalFrameStueckliste(String title, String belegartCNr, String sRechtModulweitI)
+public boolean isbNegativeZielmengenWarnungAnzeigen() {
+	return bNegativeZielmengenWarnungAnzeigen;
+}
+
+
+public void setBNegativeZielmengenWarnungAnzeigen(boolean bNegativeZielmengenWarnungAnzeigen) {
+	this.bNegativeZielmengenWarnungAnzeigen = bNegativeZielmengenWarnungAnzeigen;
+}
+
+
+public InternalFrameStueckliste(String title, String belegartCNr, String sRechtModulweitI)
       throws Throwable {
     super(title, belegartCNr, sRechtModulweitI);
     jbInit();
@@ -153,6 +166,9 @@ private TabbedPaneStueckliste tabbedPaneStueckliste = null;
         getSelectedComponent();
     int selectedCur = ( (JTabbedPane) e.getSource()).getSelectedIndex();
 
+    DelegateFactory.getInstance().getStuecklisteDelegate()
+	.removeLockDerPruefkombinationWennIchIhnSperre();
+    
     if (selectedCur == IDX_TABBED_PANE_STUECKLISTE) {
       createTabbedPaneStueckliste(tabbedPane);
       tabbedPaneStueckliste.lPEventObjectChanged(null);

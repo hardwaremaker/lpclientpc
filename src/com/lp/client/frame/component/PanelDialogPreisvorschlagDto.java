@@ -35,6 +35,7 @@ package com.lp.client.frame.component;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.Timestamp;
 
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.VerkaufspreisDto;
@@ -59,7 +60,31 @@ public class PanelDialogPreisvorschlagDto
   /** Die Menge des Artikels, fuer den der Preisvorschlag erstellt wird. */
   private BigDecimal nMenge = null;
 
-  private BigDecimal nMaterialzuschlag = null;
+  public BigDecimal getNMaterialzuschlagKurs() {
+	return nMaterialzuschlagKurs;
+}
+
+
+public Timestamp getTMaterialzuschlagDatum() {
+	return tMaterialzuschlagDatum;
+}
+
+
+
+private BigDecimal nMaterialzuschlag = null;
+  private BigDecimal nMaterialzuschlagKurs = null;
+  public void setNMaterialzuschlagKurs(BigDecimal nMaterialzuschlagKurs) {
+	this.nMaterialzuschlagKurs = nMaterialzuschlagKurs;
+}
+
+
+public void setTMaterialzuschlagDatum(Timestamp tMaterialzuschlagDatum) {
+	this.tMaterialzuschlagDatum = tMaterialzuschlagDatum;
+}
+
+
+
+private Timestamp tMaterialzuschlagDatum = null;
   
   public BigDecimal getNMaterialzuschlag() {
 	return nMaterialzuschlag;
@@ -69,6 +94,9 @@ public class PanelDialogPreisvorschlagDto
 public void setNMaterialzuschlag(BigDecimal nMaterialzuschlag) {
 	this.nMaterialzuschlag = nMaterialzuschlag;
 }
+
+
+
 
 
 /** Das Lager, auf dem der gewuenschte Artikel liegt. */
@@ -109,8 +137,14 @@ public void setNMaterialzuschlag(BigDecimal nMaterialzuschlag) {
   private BigDecimal nFixPreis = null;
 
   private boolean bNettopreisUebersteuert = false;
+  boolean bArtikelGeaendert=false;
   
-  public PanelDialogPreisvorschlagDto(
+  public boolean isbArtikelGeaendert() {
+	return bArtikelGeaendert;
+}
+
+
+public PanelDialogPreisvorschlagDto(
       ArtikelDto artikelDtoI,
       BigDecimal nMengeI,
       Integer iIdLagerI,
@@ -123,9 +157,9 @@ public void setNMaterialzuschlag(BigDecimal nMaterialzuschlag) {
       Double ddWechselkursI,
       VerkaufspreisDto aktuellerVerkaufspreisDtoI,
       VkpreisfindungDto vkpreisfindungDtoI,
-      BigDecimal nFixPreisI,BigDecimal nMaterialzuschlag,
+      BigDecimal nFixPreisI,BigDecimal nMaterialzuschlag,BigDecimal nMaterialzuschlagKurs,Timestamp tMaterialzuschlagDatum,
       boolean bEditableI,
-      boolean bNettopreisUebersteuertI) {
+      boolean bNettopreisUebersteuertI, boolean bArtikelGeaendert) {
     this.artikelDto = artikelDtoI;
     this.nMenge = nMengeI;
     this.iIdLager = iIdLagerI;
@@ -142,6 +176,9 @@ public void setNMaterialzuschlag(BigDecimal nMaterialzuschlag) {
     this.nFixPreis = nFixPreisI;
     this.bNettopreisUebersteuert = bNettopreisUebersteuertI;
     this.nMaterialzuschlag=nMaterialzuschlag;
+    this.nMaterialzuschlagKurs=nMaterialzuschlagKurs;
+    this.tMaterialzuschlagDatum=tMaterialzuschlagDatum;
+    this.bArtikelGeaendert=bArtikelGeaendert;
   }
 
 

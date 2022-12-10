@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.system;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -51,231 +50,196 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.ArbeitsplatzDto;
+import com.lp.server.util.Facade;
 
-@SuppressWarnings("static-access")
-public class PanelArbeitsplatz
-    extends PanelBasis
-{
+//@SuppressWarnings("static-access")
+public class PanelArbeitsplatz extends PanelBasis {
 
-  /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 //von hier ...
-  private GridBagLayout gridBagLayoutAll = null;
-  private JPanel jpaWorkingOn = new JPanel();
-  private JPanel jpaButtonAction = null;
-  private Border border = null;
-  private GridBagLayout gridBagLayoutWorkingPanel = null;
-  private InternalFrameSystem internalFrameArtikel = null;
-  private WrapperLabel wlaPcname = new WrapperLabel();
-  private WrapperTextField wtfPcname = new WrapperTextField();
-  private WrapperLabel wlaStandort = new WrapperLabel();
-  private WrapperTextField wtfStandort = new WrapperTextField();
+	private GridBagLayout gridBagLayoutAll = null;
+	private JPanel jpaWorkingOn = new JPanel();
+	private JPanel jpaButtonAction = null;
+	private Border border = null;
+	private GridBagLayout gridBagLayoutWorkingPanel = null;
+	private InternalFrameSystem internalFrameArtikel = null;
+	private WrapperLabel wlaPcname = new WrapperLabel();
+	private WrapperTextField wtfPcname = new WrapperTextField();
+	private WrapperLabel wlaStandort = new WrapperLabel();
+	private WrapperTextField wtfStandort = new WrapperTextField();
+	
+	private WrapperLabel wlaTyp = new WrapperLabel();
+	private WrapperTextField wtfTyp = new WrapperTextField();
 
-  private WrapperLabel wlaBemerkung = new WrapperLabel();
-  private WrapperTextField wtfBemerkung = new WrapperTextField();
+	private WrapperLabel wlaBemerkung = new WrapperLabel();
+	private WrapperTextField wtfBemerkung = new WrapperTextField();
 
+	public PanelArbeitsplatz(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
+		super(internalFrame, add2TitleI, pk);
+		internalFrameArtikel = (InternalFrameSystem) internalFrame;
+		jbInit();
+		setDefaults();
+		initComponents();
+		enableAllComponents(this, false);
+	}
 
-  public PanelArbeitsplatz(InternalFrame internalFrame, String add2TitleI,
-                       Object pk)
-      throws Throwable {
-    super(internalFrame, add2TitleI, pk);
-    internalFrameArtikel = (InternalFrameSystem) internalFrame;
-    jbInit();
-    setDefaults();
-    initComponents();
-    enableAllComponents(this, false);
-  }
+	protected void setDefaults() {
+	}
 
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
+		super.eventActionNew(eventObject, true, false);
+		internalFrameArtikel.setArbeitsplatzDto(new ArbeitsplatzDto());
+		leereAlleFelder(this);
+	}
 
-  protected void setDefaults() {
-  }
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+			throws Throwable {
 
+		if (internalFrameArtikel.getArbeitsplatzDto().getCTyp() != null) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("syst.arbeitsplatzparameter.loeschen.error"));
 
-  public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws Throwable {
-    super.eventActionNew(eventObject, true, false);
-    internalFrameArtikel.setArbeitsplatzDto(new ArbeitsplatzDto());
-    leereAlleFelder(this);
-  }
+		} else {
+			DelegateFactory.getInstance().getParameterDelegate()
+					.removeArbeitsplatz(internalFrameArtikel.getArbeitsplatzDto());
+			super.eventActionDelete(e, false, false);
+		}
 
+	}
 
-  protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI,
-                                   boolean bNeedNoDeleteI)
-      throws Throwable {
-    DelegateFactory.getInstance().getParameterDelegate().removeArbeitsplatz(internalFrameArtikel.getArbeitsplatzDto());
-    super.eventActionDelete(e, false, false);
-  }
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wtfPcname;
+	}
 
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wtfPcname;
-  }
+		super.eventYouAreSelected(false);
+		Object key = null;
 
+		if (internalFrameArtikel.getArbeitsplatzDto() != null) {
+			key = internalFrameArtikel.getArbeitsplatzDto().getIId();
+		}
 
-  public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-      throws Throwable {
+		if (key == null) {
+			leereAlleFelder(this);
+			clearStatusbar();
+			wtfPcname.setText(java.net.InetAddress.getLocalHost().getHostName());
+		} else {
+			internalFrameArtikel.setArbeitsplatzDto(DelegateFactory.getInstance().getParameterDelegate()
+					.arbeitsplatzFindByPrimaryKey(internalFrameArtikel.getArbeitsplatzDto().getIId()));
+			wtfPcname.setText(internalFrameArtikel.getArbeitsplatzDto().getCPcname());
+			wtfStandort.setText(internalFrameArtikel.getArbeitsplatzDto().getCStandort());
+			wtfBemerkung.setText(internalFrameArtikel.getArbeitsplatzDto().getCBemerkung());
+			wtfTyp.setText(internalFrameArtikel.getArbeitsplatzDto().getCTyp());
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, LPMain.getTextRespectUISPr("system.pcname")
+					+ ": " + internalFrameArtikel.getArbeitsplatzDto().getCPcname());
+		}
+	}
 
-    super.eventYouAreSelected(false);
-    Object key = null;
+	protected void eventItemchanged(EventObject eI) {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+	}
 
-    if (internalFrameArtikel.getArbeitsplatzDto() != null) {
-      key = internalFrameArtikel.getArbeitsplatzDto().getIId();
-    }
+	private void jbInit() throws Throwable {
+		// von hier ...
+		border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+		setBorder(border);
+		// das Aussenpanel hat immer das Gridbaglayout.
+		gridBagLayoutAll = new GridBagLayout();
+		this.setLayout(gridBagLayoutAll);
 
-    if (key == null
-        || (key.equals(LPMain.getLockMeForNew()))) {
-      leereAlleFelder(this);
-      clearStatusbar();
-      wtfPcname.setText(java.net.InetAddress.getLocalHost().getHostName());
-    }
-    else {
-      internalFrameArtikel.setArbeitsplatzDto(DelegateFactory.getInstance().getParameterDelegate().
-          arbeitsplatzFindByPrimaryKey(internalFrameArtikel.getArbeitsplatzDto().getIId()));
-      wtfPcname.setText(internalFrameArtikel.getArbeitsplatzDto().getCPcname());
-      wtfStandort.setText(internalFrameArtikel.getArbeitsplatzDto().getCStandort());
-      wtfBemerkung.setText(internalFrameArtikel.getArbeitsplatzDto().getCBemerkung());
-      getInternalFrame().setLpTitle(
-          InternalFrame.TITLE_IDX_AS_I_LIKE,
-          LPMain.getInstance().getTextRespectUISPr("system.pcname") + ": " +
-          internalFrameArtikel.getArbeitsplatzDto().getCPcname());
-    }
-  }
+		// Actionpanel von Oberklasse holen und anhaengen.
+		jpaButtonAction = getToolsPanel();
+		this.setActionMap(null);
 
+		wlaPcname.setText(LPMain.getTextRespectUISPr("system.pcname"));
+		wtfPcname.setColumnsMax(255);
+		wtfPcname.setText("");
+		wtfPcname.setMandatoryField(true);
+		getInternalFrame().addItemChangedListener(this);
 
-  protected void eventItemchanged(EventObject eI) {
-    ItemChangedEvent e = (ItemChangedEvent) eI;
-  }
+		wlaStandort.setText(LPMain.getTextRespectUISPr("system.standort"));
+		wtfStandort.setColumnsMax(80);
+		wtfStandort.setText("");
 
+		wlaBemerkung.setText(LPMain.getTextRespectUISPr("lp.bemerkung"));
+		wtfBemerkung.setColumnsMax(80);
+		
+		wlaTyp.setText(LPMain.getTextRespectUISPr("syst.arbeitsplatzparameter.typ"));
+		wtfTyp.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
+		wtfTyp.setEditable(false);
 
-  private void jbInit()
-      throws Throwable {
-    //von hier ...
-    border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-    setBorder(border);
-    //das Aussenpanel hat immer das Gridbaglayout.
-    gridBagLayoutAll = new GridBagLayout();
-    this.setLayout(gridBagLayoutAll);
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
-    //Actionpanel von Oberklasse holen und anhaengen.
-    jpaButtonAction = getToolsPanel();
-    this.setActionMap(null);
+		// jetzt meine felder
+		jpaWorkingOn = new JPanel();
+		gridBagLayoutWorkingPanel = new GridBagLayout();
+		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaPcname, new GridBagConstraints(0, 0, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfPcname, new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaStandort, new GridBagConstraints(0, 1, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfStandort, new GridBagConstraints(1, 1, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
-    wlaPcname.setText(LPMain.getInstance().getTextRespectUISPr("system.pcname"));
-    wtfPcname.setColumnsMax(20);
-    wtfPcname.setText("");
-    wtfPcname.setMandatoryField(true);
-    getInternalFrame().addItemChangedListener(this);
+		jpaWorkingOn.add(wlaBemerkung, new GridBagConstraints(0, 2, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBemerkung, new GridBagConstraints(1, 2, 3, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		
+		jpaWorkingOn.add(wlaTyp, new GridBagConstraints(0, 3, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfTyp, new GridBagConstraints(1, 3, 3, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
-    wlaStandort.setText(LPMain.getInstance().getTextRespectUISPr("system.standort"));
-    wtfStandort.setColumnsMax(80);
-    wtfStandort.setText("");
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
-    wlaBemerkung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bemerkung"));
-    wtfBemerkung.setColumnsMax(80);
+		enableToolsPanelButtons(aWhichButtonIUse);
 
+	}
 
-    this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.NONE,
-        new Insets(0, 0, 0, 0), 0, 0));
+	protected String getLockMeWer() throws Exception {
+		return HelperClient.LOCKME_MATERIAL;
+	}
 
-    //jetzt meine felder
-    jpaWorkingOn = new JPanel();
-    gridBagLayoutWorkingPanel = new GridBagLayout();
-    jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-    this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0
-        , GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    jpaWorkingOn.add(wlaPcname,
-                        new GridBagConstraints(0, 0, 1, 1, 0.05, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wtfPcname,
-                        new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wlaStandort,
-                        new GridBagConstraints(2, 0, 1, 1, 0.05, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wtfStandort,
-                        new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(0, 0, 0, 0), 0, 0));
+	protected void components2Dto() {
+		internalFrameArtikel.getArbeitsplatzDto().setCPcname(wtfPcname.getText());
+		internalFrameArtikel.getArbeitsplatzDto().setCStandort(wtfStandort.getText());
+		internalFrameArtikel.getArbeitsplatzDto().setCBemerkung(wtfBemerkung.getText());
+	}
 
-    jpaWorkingOn.add(wlaBemerkung,
-                        new GridBagConstraints(0, 1, 1, 1, 0, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wtfBemerkung,
-                        new GridBagConstraints(1, 1, 3, 1, 0, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(0, 0, 0, 0), 0, 0));
-
-
-    String[] aWhichButtonIUse = {
-        ACTION_UPDATE,
-        ACTION_SAVE,
-        ACTION_DELETE,
-        ACTION_DISCARD,
-    };
-
-    enableToolsPanelButtons(aWhichButtonIUse);
-
-  }
-
-
-  protected String getLockMeWer()
-      throws Exception {
-    return HelperClient.LOCKME_MATERIAL;
-  }
-
-
-  protected void components2Dto() {
-    internalFrameArtikel.getArbeitsplatzDto().setCPcname(wtfPcname.getText());
-    internalFrameArtikel.getArbeitsplatzDto().setCStandort(wtfStandort.getText());
-    internalFrameArtikel.getArbeitsplatzDto().setCBemerkung(wtfBemerkung.getText());
-  }
-
-
-  public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-      throws
-      Throwable {
-    if (allMandatoryFieldsSetDlg()) {
-      components2Dto();
-      if (internalFrameArtikel.getArbeitsplatzDto().getIId() == null) {
-        // Create
-        internalFrameArtikel.getArbeitsplatzDto().setIId(DelegateFactory.getInstance().getParameterDelegate().
-                                                createArbeitsplatz(
-            internalFrameArtikel.getArbeitsplatzDto()));
-        // diesem panel den key setzen.
-        setKeyWhenDetailPanel(internalFrameArtikel.getArbeitsplatzDto().getIId());
-      }
-      else {
-        DelegateFactory.getInstance().getParameterDelegate().updateArbeitsplatz(internalFrameArtikel.
-            getArbeitsplatzDto());
-      }
-      super.eventActionSave(e, true);
-      if (getInternalFrame().getKeyWasForLockMe() == null) {
-        getInternalFrame().setKeyWasForLockMe(internalFrameArtikel.getArbeitsplatzDto().getIId().
-                                              toString());
-      }
-      eventYouAreSelected(false);
-    }
-  }
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
+		if (allMandatoryFieldsSetDlg()) {
+			components2Dto();
+			if (internalFrameArtikel.getArbeitsplatzDto().getIId() == null) {
+				// Create
+				internalFrameArtikel.getArbeitsplatzDto().setIId(DelegateFactory.getInstance().getParameterDelegate()
+						.createArbeitsplatz(internalFrameArtikel.getArbeitsplatzDto()));
+				// diesem panel den key setzen.
+				setKeyWhenDetailPanel(internalFrameArtikel.getArbeitsplatzDto().getIId());
+			} else {
+				DelegateFactory.getInstance().getParameterDelegate()
+						.updateArbeitsplatz(internalFrameArtikel.getArbeitsplatzDto());
+			}
+			super.eventActionSave(e, true);
+			if (getInternalFrame().getKeyWasForLockMe() == null) {
+				getInternalFrame().setKeyWasForLockMe(internalFrameArtikel.getArbeitsplatzDto().getIId().toString());
+			}
+			eventYouAreSelected(false);
+		}
+	}
 
 }

@@ -46,10 +46,12 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.Calendar;
 import java.util.EventObject;
+import java.util.TreeMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
@@ -109,13 +111,13 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 	// Preisgueltigkeitsanzeige ab legt fest, welche Preise im Panel angezeigt
 	// werden
 	private WrapperLabel wlaPreisgueltigkeitsanzeigeab = null;
-	private WrapperDateField wdfPreisgueltigkeitsanzeigeab =  new WrapperDateField();
+	private WrapperDateField wdfPreisgueltigkeitsanzeigeab = new WrapperDateField();
 	private Date datGueltigkeitsanzeigeab = null;
 
 	private WrapperLabel wlaGueltigab = null;
 	private WrapperDateField wdfGueltigab = new WrapperDateField();
 
-	private WrapperDateField wdfGueltigbis =  new WrapperDateField();
+	private WrapperDateField wdfGueltigbis = new WrapperDateField();
 	private WrapperLabel wlaGueltigbis = null;
 
 	private WrapperLabel wlaGestehungspreis = null;
@@ -145,6 +147,8 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 	private WrapperLabel wlaRabattsatzprozent = null;
 	private WrapperNumberField wnfBerechneterpreis = null;
 	private WrapperLabel wlaBerechneterpreiswaehrung = null;
+
+	private int begruendungAngeben = 0;
 
 	/**
 	 * Die Anzahl der Nachkommastellen fuer Preisfelder kommt aus
@@ -191,6 +195,16 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 
 		preisbasisVerkauf = (Integer) p.getCWertAsObject();
 
+		p = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_ARTIKEL,
+						ParameterFac.PARAMETER_BEGRUENDUNG_BEI_VKPREISAENDERUNG);
+		if (p != null) {
+			begruendungAngeben = (Integer) p.getCWertAsObject();
+		}
+
 		initPanel();
 		jbInit();
 		initComponents();
@@ -205,7 +219,9 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 
 		// Actionpanel setzen und anhaengen
 		JPanel panelButtonAction = getToolsPanel();
-		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
+				new Insets(0, 0, 0, 0), 0, 0));
 
 		// zusaetzliche buttons
 		String[] aWhichButtonIUse = null;
@@ -224,10 +240,14 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 		jpaWorkingOn = new JPanel();
 		jpaWorkingOn.setLayout(new GridBagLayout());
 
-		add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTH, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
+				GridBagConstraints.SOUTH, GridBagConstraints.BOTH, new Insets(
+						0, 0, 0, 0), 0, 0));
 
 		// Statusbar an den unteren Rand des Panels haengen
-		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
+						0, 0, 0, 0), 0, 0));
 
 		wlaPreisgueltigkeitsanzeigeab = new WrapperLabel(LPMain.getInstance()
 				.getTextRespectUISPr("vkpf.preisgueltigkeitsanzeigeab"));
@@ -249,15 +269,16 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 		wlaGestehungspreis = new WrapperLabel(LPMain.getInstance()
 				.getTextRespectUISPr("lp.gestehungspreis"));
 		wnfGestehungspreis = new WrapperNumberField();
-		
-		
-		int iNachkommastellenGestpreis=Defaults.getInstance().getIUINachkommastellenPreiseVK();
-		if(Defaults.getInstance().getIUINachkommastellenPreiseEK()>Defaults.getInstance().getIUINachkommastellenPreiseVK()){
-			iNachkommastellenGestpreis=Defaults.getInstance().getIUINachkommastellenPreiseEK();
+
+		int iNachkommastellenGestpreis = Defaults.getInstance()
+				.getIUINachkommastellenPreiseVK();
+		if (Defaults.getInstance().getIUINachkommastellenPreiseEK() > Defaults
+				.getInstance().getIUINachkommastellenPreiseVK()) {
+			iNachkommastellenGestpreis = Defaults.getInstance()
+					.getIUINachkommastellenPreiseEK();
 		}
 		wnfGestehungspreis.setFractionDigits(iNachkommastellenGestpreis);
-		
-		
+
 		wnfGestehungspreis.setActivatable(false);
 		wlaWaehrungGestehungspreis = new WrapperLabel(mandantenwaehrungCNr);
 		wlaWaehrungGestehungspreis
@@ -272,12 +293,27 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 		wlaWaehrungMinverkaufspreis
 				.setHorizontalAlignment(SwingConstants.LEADING);
 		wcoVkbasis.setMandatoryField(true);
-		wcoVkbasis.setMap(DelegateFactory.getInstance()
-				.getVkPreisfindungDelegate()
-				.getAlleAktivenPreislistenMitVkPreisbasis());
+
+		if (preisbasisVerkauf == 3) {
+
+			TreeMap<Integer, String> m = new TreeMap<Integer, String>();
+
+			VkpfartikelpreislisteDto[] pDtos = DelegateFactory.getInstance()
+					.getVkPreisfindungDelegate().getAlleAktivenPreislisten();
+
+			for (int i = 0; i < pDtos.length; i++) {
+				m.put(pDtos[i].getIId(), pDtos[i].getCNr());
+			}
+
+			wcoVkbasis.setMap(m);
+		} else {
+			wcoVkbasis.setMap(DelegateFactory.getInstance()
+					.getVkPreisfindungDelegate()
+					.getAlleAktivenPreislistenMitVkPreisbasis());
+		}
 
 		if (vkPreisBasisLief1Preis
-				|| (preisbasisVerkauf == 0 || preisbasisVerkauf == 2)) {
+				|| (preisbasisVerkauf == 0)) {
 			wcoVkbasis.setActivatable(false);
 		} else {
 			wcoVkbasis
@@ -285,14 +321,14 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 							this));
 		}
 		wnfVkbasis = new WrapperNumberField();
-		
-		if(vkPreisBasisLief1Preis){
-			wnfVkbasis.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
+
+		if (vkPreisBasisLief1Preis) {
+			wnfVkbasis.setFractionDigits(Defaults.getInstance()
+					.getIUINachkommastellenPreiseEK());
 		} else {
 			wnfVkbasis.setFractionDigits(iPreiseUINachkommastellen);
 		}
-		
-		
+
 		wnfVkbasis.setActivatable(false);
 		wlaVkbasiswaehrung = new WrapperLabel(mandantenwaehrungCNr);
 		wlaVkbasiswaehrung.setHorizontalAlignment(SwingConstants.LEADING);
@@ -389,60 +425,122 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 
 		JPanel gueltigkeitsanzeigePanel = new JPanel(new GridBagLayout());
 		gueltigkeitsanzeigePanel.add(wlaPreisgueltigkeitsanzeigeab,
-				new GridBagConstraints(0, 0, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		gueltigkeitsanzeigePanel.add(wbuTagZurueck,
-				new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
+				new GridBagConstraints(0, 0, 1, 1, 0.3, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
+		gueltigkeitsanzeigePanel.add(wbuTagZurueck, new GridBagConstraints(1,
+				0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
 		gueltigkeitsanzeigePanel.add(wdfPreisgueltigkeitsanzeigeab,
-				new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		gueltigkeitsanzeigePanel.add(wbuNaechsterTag,
-				new GridBagConstraints(3, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
-		
-		jpaWorkingOn.add(gueltigkeitsanzeigePanel, new GridBagConstraints(0, iZeile, 8, 1, 0.0, 0.0, GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(2, 2, 10, 2), 0, 0));
+				new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
+		gueltigkeitsanzeigePanel.add(wbuNaechsterTag, new GridBagConstraints(3,
+				0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
+
+		jpaWorkingOn.add(gueltigkeitsanzeigePanel, new GridBagConstraints(0,
+				iZeile, 8, 1, 0.0, 0.0, GridBagConstraints.EAST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 10, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaGestehungspreis, new GridBagConstraints(0, iZeile, 2, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfGestehungspreis, new GridBagConstraints(2, iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaWaehrungGestehungspreis, new GridBagConstraints(3, iZeile, 1, 1, 0.4, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaGestehungspreis, new GridBagConstraints(0, iZeile,
+				2, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfGestehungspreis, new GridBagConstraints(2, iZeile,
+				1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaWaehrungGestehungspreis, new GridBagConstraints(3,
+				iZeile, 1, 1, 0.4, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaMinverkaufspreis, new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfMinverkaufspreis, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaWaehrungMinverkaufspreis, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaMinverkaufspreis, new GridBagConstraints(0, iZeile,
+				2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfMinverkaufspreis, new GridBagConstraints(2, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaWaehrungMinverkaufspreis, new GridBagConstraints(3,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wcoVkbasis, new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 120, 0));
-		jpaWorkingOn.add(wnfVkbasis, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaVkbasiswaehrung, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaVkbasisGueltigab, new GridBagConstraints(4, iZeile, 2, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfVkbasisGueltigab, new GridBagConstraints(6, iZeile, 2, 1, 0.3, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoVkbasis, new GridBagConstraints(0, iZeile, 2, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 120, 0));
+		jpaWorkingOn.add(wnfVkbasis, new GridBagConstraints(2, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaVkbasiswaehrung, new GridBagConstraints(3, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaVkbasisGueltigab, new GridBagConstraints(4, iZeile,
+				2, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfVkbasisGueltigab, new GridBagConstraints(6, iZeile,
+				2, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaMenge, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaFixpreis, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaRabattsatz, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaMenge, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaFixpreis, new GridBagConstraints(2, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaRabattsatz, new GridBagConstraints(4, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
 		if (preisbasisVerkauf != 2) {
-			jpaWorkingOn.add(wlaBerechneterpreis, new GridBagConstraints(6, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wlaBerechneterpreis, new GridBagConstraints(6,
+					iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		}
 
 		// die Formatierungszeile
 		iZeile++;
-		jpaWorkingOn.add(wnfMenge, new GridBagConstraints(0, iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaMengeeinheit, new GridBagConstraints(1, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfFixpreis, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaFixpreiswaehrung, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfRabattsatz, new GridBagConstraints(4, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaRabattsatzprozent, new GridBagConstraints(5, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfMenge, new GridBagConstraints(0, iZeile, 1, 1, 0.3,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaMengeeinheit, new GridBagConstraints(1, iZeile, 1,
+				1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfFixpreis, new GridBagConstraints(2, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaFixpreiswaehrung, new GridBagConstraints(3, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfRabattsatz, new GridBagConstraints(4, iZeile, 1, 1,
+				0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaRabattsatzprozent, new GridBagConstraints(5,
+				iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		if (preisbasisVerkauf != 2) {
-			jpaWorkingOn.add(wnfBerechneterpreis, new GridBagConstraints(6, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wnfBerechneterpreis, new GridBagConstraints(6,
+					iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			jpaWorkingOn.add(wlaBerechneterpreiswaehrung,
-					new GridBagConstraints(7, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+					new GridBagConstraints(7, iZeile, 1, 1, 0.2, 0.0,
+							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+							new Insets(2, 2, 2, 2), 0, 0));
 		}
 
 		iZeile++;
-		jpaWorkingOn.add(wlaGueltigab, new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfGueltigab, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaGueltigbis, new GridBagConstraints(4, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfGueltigbis, new GridBagConstraints(6, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaGueltigab, new GridBagConstraints(0, iZeile, 2, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(10, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfGueltigab, new GridBagConstraints(2, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(10, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaGueltigbis, new GridBagConstraints(4, iZeile, 2, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfGueltigbis, new GridBagConstraints(6, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
 	}
 
 	private void initPanel() throws Throwable {
@@ -497,26 +595,18 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 			}
 
 			components2Dto();
-			
-			boolean bZentralerArtikelstamm = LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM);
-			if(bZentralerArtikelstamm){
-				
-				if(vkpfStaffelmengeDto.getVkpfartikelpreislisteIId()==null){
-					DialogFactory.showModalDialog(LPMain.getInstance()
-							.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-							.getTextRespectUISPr("artikel.vkmengenstaffel.zentralerartikelstamm.error"));
-					return;
-					
-				}
-				
-				
+
+			String bemerkung = null;
+
+			if (begruendungAngeben > 0) {
+				bemerkung = JOptionPane
+						.showInputDialog(
+								getInternalFrame(),
+								LPMain.getTextRespectUISPr("artikel.vkpreis.bemerkung"),
+								LPMain.getTextRespectUISPr("lp.frage"),
+								JOptionPane.QUESTION_MESSAGE);
+				vkpfStaffelmengeDto.setCBemerkung(bemerkung);
 			}
-			
-			
 
 			if (vkpfStaffelmengeDto.getIId() == null) {
 				Integer iId = DelegateFactory.getInstance()
@@ -591,7 +681,16 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 					.berechneVerkaufspreis(nPreisbasis,
 							vkpfStaffelmengeDto.getFArtikelstandardrabattsatz());
 
-			nBerechneterPreis = vkpfDto.nettopreis;
+			// PJ19707
+			if (vkpfDto == null) {
+				DialogFactory.showModalDialog(
+						LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						LPMain.getInstance().getTextRespectUISPr(
+								"lp.error.preisberechnungfehlgeschlagen"));
+			} else {
+				nBerechneterPreis = vkpfDto.nettopreis;
+			}
+
 		}
 
 		wnfBerechneterpreis.setBigDecimal(nBerechneterPreis);
@@ -941,6 +1040,7 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 				// rote Markierung
 				setColorBerechneterPreis();
 			} catch (Throwable ex) {
+				ex.printStackTrace();
 				DialogFactory
 						.showModalDialog(
 								LPMain.getInstance().getTextRespectUISPr(
@@ -960,7 +1060,7 @@ public class PanelVkpfStaffelmenge extends PanelBasis implements
 	 */
 	private void setColorBerechneterPreis() throws Throwable {
 		if (wnfMinverkaufspreis.getBigDecimal() != null
-				&& wnfBerechneterpreis != null
+				&& wnfBerechneterpreis != null &&  wnfBerechneterpreis.getDouble() !=null
 				&& wnfBerechneterpreis.getDouble().doubleValue() > 0) {
 			double dMinverkaufspreis = wnfMinverkaufspreis.getDouble()
 					.doubleValue();

@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.bestellung;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
@@ -52,229 +51,190 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.pc.LPMain;
 import com.lp.server.bestellung.service.BestellpositionFac;
 
-
 /**
- * <p><I>Dialog zur Eingabe der Kriterien fuer die Ueberleitung des Bestellvorschlags in Belege.</I> </p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>26.10.05</I></p>
- * <p> </p>
+ * <p>
+ * <I>Dialog zur Eingabe der Kriterien fuer die Ueberleitung des
+ * Bestellvorschlags in Belege.</I>
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>26.10.05</I>
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Josef Erlinger
  * @version $Revision: 1.5 $
  */
-public class PanelDialogKriteriensetABTermin
-    extends PanelDialogKriterien
-{
-  /**
+public class PanelDialogKriteriensetABTermin extends PanelDialogKriterien {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private ButtonGroup jbgKriterien = null;
-  private WrapperLabel wlaEmpty = null; // fuer die Formatierung
-  private WrapperLabel wlaABTermin = null;
-  private WrapperDateField wdfABTermin = null;
-  private WrapperLabel wlaABNummer = null;
-  private WrapperTextField wtfABNummer = null;
-  private WrapperLabel wlaAlleBesPosSetzen = null;
-  private WrapperLabel wlaLeereBesPosSetzen = null;
-  private WrapperLabel wlaMarkiertePosSetzen = null;
-  private WrapperRadioButton wrbAlleBestellpositionSetzen = null;
-  private WrapperRadioButton wrbLeereBestellpositionSetzen = null;
-  private WrapperRadioButton wrbMarkierteBestellpositionSetzen = null;
+	private ButtonGroup jbgKriterien = null;
+	private WrapperLabel wlaEmpty = null; // fuer die Formatierung
+	private WrapperLabel wlaABTermin = null;
+	private WrapperDateField wdfABTermin = null;
+	private WrapperLabel wlaABNummer = null;
+	private WrapperTextField wtfABNummer = null;
 
- 
-  private TabbedPaneBestellung tpBestellung = null;
+	private WrapperLabel wlaABBelegdatum = null;
+	private WrapperDateField wdfABBelegdatum = null;
 
-  public PanelDialogKriteriensetABTermin(InternalFrame oInternalFrameI,
-                                         String title,
-                                         TabbedPaneBestellung
-                                         tpBestellung)
-      throws Throwable {
-    super(oInternalFrameI, title);
-    this.tpBestellung = tpBestellung;
-    jbInitPanel();
-    setDefaults();
-    initComponents();
-  }
+	private WrapperLabel wlaAlleBesPosSetzen = null;
+	private WrapperLabel wlaLeereBesPosSetzen = null;
+	private WrapperLabel wlaMarkiertePosSetzen = null;
+	private WrapperRadioButton wrbAlleBestellpositionSetzen = null;
+	private WrapperRadioButton wrbLeereBestellpositionSetzen = null;
+	private WrapperRadioButton wrbMarkierteBestellpositionSetzen = null;
 
+	private TabbedPaneBestellung tpBestellung = null;
 
-  private void jbInitPanel()
-      throws Throwable {
+	public PanelDialogKriteriensetABTermin(InternalFrame oInternalFrameI, String title,
+			TabbedPaneBestellung tpBestellung) throws Throwable {
+		super(oInternalFrameI, title);
+		this.tpBestellung = tpBestellung;
+		jbInitPanel();
+		setDefaults();
+		initComponents();
+	}
 
-    jbgKriterien = new ButtonGroup();
-    getInternalFrame().addItemChangedListener(this);
-    wlaEmpty = new WrapperLabel();
-    wlaABTermin = new WrapperLabel(LPMain.getTextRespectUISPr("bes.abtermin"));
-    wdfABTermin = new WrapperDateField();
-    wdfABTermin.setMandatoryField(true);
+	private void jbInitPanel() throws Throwable {
 
-    wlaABNummer = new WrapperLabel(LPMain.getTextRespectUISPr("bes.abnummer"));
-    wtfABNummer = new WrapperTextField();
-    wtfABNummer.setEditable(true);
-    wtfABNummer.setColumnsMax(20);
-    wtfABNummer.setMandatoryField(true);
+		jbgKriterien = new ButtonGroup();
+		getInternalFrame().addItemChangedListener(this);
+		wlaEmpty = new WrapperLabel();
+		wlaABTermin = new WrapperLabel(LPMain.getTextRespectUISPr("bes.abtermin"));
+		wdfABTermin = new WrapperDateField();
+		wdfABTermin.setMandatoryField(true);
 
-    wlaAlleBesPosSetzen = new WrapperLabel(LPMain.getTextRespectUISPr("bes.allepositionensetzen"));
-    wlaLeereBesPosSetzen = new WrapperLabel(LPMain.getTextRespectUISPr("bes.leerepositionensetzen"));
-    wlaMarkiertePosSetzen = new WrapperLabel(LPMain.getTextRespectUISPr("bes.markiertepositionensetzen"));
-    wrbAlleBestellpositionSetzen = new WrapperRadioButton();
-   
+		wlaABNummer = new WrapperLabel(LPMain.getTextRespectUISPr("bes.abnummer"));
+		wtfABNummer = new WrapperTextField();
+		wtfABNummer.setEditable(true);
+		wtfABNummer.setColumnsMax(20);
+		wtfABNummer.setMandatoryField(true);
 
-    wrbLeereBestellpositionSetzen = new WrapperRadioButton();
-    wrbMarkierteBestellpositionSetzen = new WrapperRadioButton();
-  
+		wlaABBelegdatum = new WrapperLabel();
+		wdfABBelegdatum = new WrapperDateField();
+		wlaABBelegdatum.setText(LPMain.getTextRespectUISPr("bes.abbelegdatum"));
 
-    jbgKriterien.add(wrbAlleBestellpositionSetzen);
-    jbgKriterien.add(wrbLeereBestellpositionSetzen);
-    jbgKriterien.add(wrbMarkierteBestellpositionSetzen);
+		wlaAlleBesPosSetzen = new WrapperLabel(LPMain.getTextRespectUISPr("bes.allepositionensetzen"));
+		wlaLeereBesPosSetzen = new WrapperLabel(LPMain.getTextRespectUISPr("bes.leerepositionensetzen"));
+		wlaMarkiertePosSetzen = new WrapperLabel(LPMain.getTextRespectUISPr("bes.markiertepositionensetzen"));
+		wrbAlleBestellpositionSetzen = new WrapperRadioButton();
 
-    iZeile++;
-    jpaWorkingOn.add(new WrapperLabel(),
-                     new GridBagConstraints(0, iZeile, 1, 1, 7.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		wrbLeereBestellpositionSetzen = new WrapperRadioButton();
+		wrbMarkierteBestellpositionSetzen = new WrapperRadioButton();
 
-    jpaWorkingOn.add(new WrapperLabel(),
-                     new GridBagConstraints(1, iZeile, 1, 1, 7.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		jbgKriterien.add(wrbAlleBestellpositionSetzen);
+		jbgKriterien.add(wrbLeereBestellpositionSetzen);
+		jbgKriterien.add(wrbMarkierteBestellpositionSetzen);
 
-    jpaWorkingOn.add(new WrapperLabel(),
-                     new GridBagConstraints(2, iZeile, 1, 1, 7.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(0, iZeile, 1, 1, 7.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    jpaWorkingOn.add(new WrapperLabel(),
-                     new GridBagConstraints(3, iZeile, 1, 1, 7.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(1, iZeile, 1, 1, 7.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    iZeile++;
-    jpaWorkingOn.add(wlaEmpty,
-                     new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wlaABTermin,
-                     new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(2, iZeile, 1, 1, 7.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    jpaWorkingOn.add(wdfABTermin,
-                     new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wlaABNummer,
-                     new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(3, iZeile, 1, 1, 7.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    jpaWorkingOn.add(wtfABNummer,
-                     new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wlaLeereBesPosSetzen,
-                     new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaEmpty, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaABTermin, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    jpaWorkingOn.add(wrbLeereBestellpositionSetzen,
-                     new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wlaAlleBesPosSetzen,
-                     new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfABTermin, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaABBelegdatum, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    jpaWorkingOn.add(wrbAlleBestellpositionSetzen,
-                     new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wlaMarkiertePosSetzen,
-                     new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfABBelegdatum, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    jpaWorkingOn.add(wrbMarkierteBestellpositionSetzen,
-                     new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0
-                                            , GridBagConstraints.CENTER,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaABNummer, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-  }
+		jpaWorkingOn.add(wtfABNummer, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaLeereBesPosSetzen, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wrbLeereBestellpositionSetzen, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaAlleBesPosSetzen, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-  private void setDefaults()
-      throws Throwable {
-    wdfABTermin.setEditable(false);
-    wdfABTermin.setDate(new Date(System.currentTimeMillis()));
-    wrbAlleBestellpositionSetzen.setSelected(true);
-   
-  }
+		jpaWorkingOn.add(wrbAlleBestellpositionSetzen, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaMarkiertePosSetzen, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wrbMarkierteBestellpositionSetzen, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-  public int getOptionAbTerminSetzen(){
-	  if(wrbAlleBestellpositionSetzen.isSelected()){
-		  return BestellpositionFac.SICHT_LIEFERANTENTERMINE_ABTERMIN_SETZEN_OPTION_ALLE;
-	  }else if(wrbMarkierteBestellpositionSetzen.isSelected()){
-		  return BestellpositionFac.SICHT_LIEFERANTENTERMINE_ABTERMIN_SETZEN_OPTION_MARKIERTE;
-	  }else if(wrbLeereBestellpositionSetzen.isSelected()){
-		  return BestellpositionFac.SICHT_LIEFERANTENTERMINE_ABTERMIN_SETZEN_OPTION_LEERE;
-	  } 
-	  return -1;
-  }
-  
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-    if (e.getActionCommand().equals(ACTION_SPECIAL_OK)) {
-      if (allMandatoryFieldsSetDlg()) {
-        setComponents();
-      }
-    }
-   
+	}
 
-    super.eventActionSpecial(e);
-  }
+	private void setDefaults() throws Throwable {
+		// SP8013 wdfABTermin.setEditable(false);
+		wdfABTermin.setDate(new Date(System.currentTimeMillis()));
+		wrbAlleBestellpositionSetzen.setSelected(true);
 
+	}
 
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    ItemChangedEvent e = (ItemChangedEvent) eI;
+	public int getOptionAbTerminSetzen() {
+		if (wrbAlleBestellpositionSetzen.isSelected()) {
+			return BestellpositionFac.SICHT_LIEFERANTENTERMINE_ABTERMIN_SETZEN_OPTION_ALLE;
+		} else if (wrbMarkierteBestellpositionSetzen.isSelected()) {
+			return BestellpositionFac.SICHT_LIEFERANTENTERMINE_ABTERMIN_SETZEN_OPTION_MARKIERTE;
+		} else if (wrbLeereBestellpositionSetzen.isSelected()) {
+			return BestellpositionFac.SICHT_LIEFERANTENTERMINE_ABTERMIN_SETZEN_OPTION_LEERE;
+		}
+		return -1;
+	}
 
-    if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_OK)) {
+			if (allMandatoryFieldsSetDlg()) {
+				setComponents();
+			}
+		}
 
-    }
-  }
+		super.eventActionSpecial(e);
+	}
 
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
 
-  private void setComponents()
-      throws Throwable {
-    tpBestellung.setABDate(wdfABTermin.getDate());
-    tpBestellung.setABNummer(wtfABNummer.getText());
-  }
+		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 
+		}
+	}
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wtfABNummer;
-  }
+	public java.sql.Date getAbBelegdatum() {
+		return wdfABBelegdatum.getDate();
+	}
+
+	private void setComponents() throws Throwable {
+		tpBestellung.setABDate(wdfABTermin.getDate());
+		tpBestellung.setABNummer(wtfABNummer.getText());
+	}
+
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wtfABNummer;
+	}
 
 }

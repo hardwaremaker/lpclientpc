@@ -35,14 +35,13 @@ package com.lp.client.projekt;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 
 import net.miginfocom.swing.MigLayout;
 
-import com.lp.client.fertigung.ReportLoszeiten;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.PanelTabelle;
@@ -52,6 +51,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.PersonalDto;
+import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.projekt.service.ProjektFac;
 import com.lp.server.system.service.SystemFac;
 import com.lp.util.EJBExceptionLP;
@@ -152,7 +152,6 @@ public class PanelTabelleProjektzeiten extends PanelTabelle {
 
 	}
 
-	
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
 		super.eventActionSpecial(e);
@@ -161,13 +160,14 @@ public class PanelTabelleProjektzeiten extends PanelTabelle {
 			String add2Title = LPMain.getInstance().getTextRespectUISPr(
 					"proj.report.projektzeiten");
 			getInternalFrame().showReportKriterien(
-					new ReportProjektzeiten(getInternalFrame(),oInternalFrameI.getTabbedPaneProjekt().getProjektDto()
-							.getIId(), add2Title));
+					new ReportProjektzeiten(getInternalFrame(), oInternalFrameI
+							.getTabbedPaneProjekt().getProjektDto().getIId(),
+							add2Title));
 
 		}
 
 	}
-	
+
 	/**
 	 * eventActionRefresh
 	 * 
@@ -185,7 +185,7 @@ public class PanelTabelleProjektzeiten extends PanelTabelle {
 			if (ex.getCause() != null
 					&& ex.getCause().getCause() instanceof EJBExceptionLP) {
 				EJBExceptionLP exp = (EJBExceptionLP) ex.getCause().getCause();
-				ArrayList<?> al = exp.getAlInfoForTheClient();
+				List<?> al = exp.getAlInfoForTheClient();
 				String s = "";
 				if (al != null && al.size() > 1) {
 					if (al.get(0) instanceof Integer) {
@@ -223,10 +223,23 @@ public class PanelTabelleProjektzeiten extends PanelTabelle {
 			}
 
 		}
-		wlaKritAuswertung
-				.setText(getDefaultFilter()[ProjektFac.IDX_KRIT_AUSWERTUNG]
-						.formatFilterKriterium(LPMain.getInstance()
-								.getTextRespectUISPr("lp.auswertung")));
+		int iSortierung = new Integer(
+				getDefaultFilter()[ProjektFac.IDX_KRIT_AUSWERTUNG].value);
+		if (iSortierung == ZeiterfassungFac.SORTIERUNG_ZEITDATEN_ARTIKEL) {
+			wlaKritAuswertung.setText(LPMain.getInstance().getTextRespectUISPr(
+					"lp.auswertung")+" "+LPMain.getInstance().getTextRespectUISPr(
+							"lp.zeitdaten.artikel")) ;
+		}else if(iSortierung==ZeiterfassungFac.SORTIERUNG_ZEITDATEN_PERSONAL){
+			wlaKritAuswertung.setText(LPMain.getInstance().getTextRespectUISPr(
+					"lp.auswertung")+" "+LPMain.getInstance().getTextRespectUISPr(
+							"lp.zeitdaten.personal"));
+		}else if(iSortierung==ZeiterfassungFac.SORTIERUNG_ZEITDATEN_ZEITPUNKT_PERSONAL){
+			wlaKritAuswertung.setText(LPMain.getInstance().getTextRespectUISPr(
+					"lp.auswertung")+" "+LPMain.getInstance().getTextRespectUISPr(
+							"lp.zeitdaten.datumpersonal"));
+		}
+		
+				
 		wlaKritAuswertung.setMaximumSize(new Dimension(350, 23));
 		wlaKritAuswertung.setMinimumSize(new Dimension(350, 23));
 		wlaKritAuswertung.setPreferredSize(new Dimension(350, 23));
@@ -276,8 +289,10 @@ public class PanelTabelleProjektzeiten extends PanelTabelle {
 		// die Spaltenueberschriften in den ersten drei Spalten sind von den
 		// Kriterien abhaengig
 		String sKrit = getDefaultFilter()[ProjektFac.IDX_KRIT_AUSWERTUNG].kritName;
+		
 
-		if (sKrit.equals(ProjektFac.KRIT_PERSONAL)) {
+		if (iSortierung == ZeiterfassungFac.SORTIERUNG_ZEITDATEN_PERSONAL
+				|| iSortierung == ZeiterfassungFac.SORTIERUNG_ZEITDATEN_ZEITPUNKT_PERSONAL) {
 			getTable()
 					.getColumnModel()
 					.getColumn(1)
@@ -296,7 +311,7 @@ public class PanelTabelleProjektzeiten extends PanelTabelle {
 					.setHeaderValue(
 							LPMain.getInstance().getTextRespectUISPr(
 									"lo.tabelle.beztext"));
-		} else if (sKrit.equals(ProjektFac.KRIT_IDENT)) {
+		} else if (iSortierung == ZeiterfassungFac.SORTIERUNG_ZEITDATEN_ARTIKEL) {
 			getTable()
 					.getColumnModel()
 					.getColumn(1)
@@ -325,7 +340,7 @@ public class PanelTabelleProjektzeiten extends PanelTabelle {
 
 		} catch (ExceptionLP ex) {
 			if (ex.getICode() == EJBExceptionLP.FEHLER_IN_ZEITDATEN) {
-				ArrayList<?> al = ex.getAlInfoForTheClient();
+				List<?> al = ex.getAlInfoForTheClient();
 				String s = "";
 				if (al != null && al.size() > 1) {
 					if (al.get(0) instanceof Integer) {

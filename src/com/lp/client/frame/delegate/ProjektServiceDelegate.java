@@ -40,15 +40,18 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
-import com.lp.server.artikel.service.VorschlagstextDto;
 import com.lp.server.projekt.service.BereichDto;
 import com.lp.server.projekt.service.HistoryartDto;
 import com.lp.server.projekt.service.KategorieDto;
+import com.lp.server.projekt.service.ProjektFac;
 import com.lp.server.projekt.service.ProjektServiceFac;
 import com.lp.server.projekt.service.ProjektStatusDto;
 import com.lp.server.projekt.service.ProjekterledigungsgrundDto;
+import com.lp.server.projekt.service.ProjektgruppeDto;
+import com.lp.server.projekt.service.ProjekttaetigkeitDto;
+import com.lp.server.projekt.service.ProjekttechnikerDto;
 import com.lp.server.projekt.service.ProjekttypDto;
-import com.lp.server.system.service.TheClientDto;
+import com.lp.server.projekt.service.VkfortschrittDto;
 
 @SuppressWarnings("static-access")
 public class ProjektServiceDelegate extends Delegate {
@@ -59,8 +62,7 @@ public class ProjektServiceDelegate extends Delegate {
 	public ProjektServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			projektServiceFac = (ProjektServiceFac) context
-					.lookup("lpserver/ProjektServiceFacBean/remote");
+			projektServiceFac = lookupFac(context, ProjektServiceFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -101,7 +103,45 @@ public class ProjektServiceDelegate extends Delegate {
 	public boolean sindErledigugnsgruendeVorhanden() throws ExceptionLP {
 		try {
 
-			return projektServiceFac.sindErledigugnsgruendeVorhanden(LPMain.getTheClient());
+			return projektServiceFac.sindErledigugnsgruendeVorhanden(LPMain
+					.getTheClient());
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return false;
+	}
+	public boolean esGibtMindestensEinenBereichMitBetreiber() throws ExceptionLP {
+		try {
+
+			return projektServiceFac.esGibtMindestensEinenBereichMitBetreiber(LPMain
+					.getTheClient());
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return false;
+	}
+	
+	public boolean esGibtMindestensEinenBereichMitArtikel() throws ExceptionLP {
+		try {
+
+			return projektServiceFac.esGibtMindestensEinenBereichMitArtikel(LPMain
+					.getTheClient());
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return false;
+	}
+	public boolean istMeinProjekt(Integer projektIId, Integer personalIId)
+			throws ExceptionLP {
+		try {
+
+			return projektServiceFac.istMeinProjekt(projektIId, personalIId);
 
 		} catch (Throwable t) {
 			handleThrowable(t);
@@ -125,6 +165,44 @@ public class ProjektServiceDelegate extends Delegate {
 
 		try {
 			arten = projektServiceFac.getAllBereich(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return arten;
+	}
+	
+	public Map<?, ?> getAllVerrechenbar() throws ExceptionLP {
+
+		Map<?, ?> arten = null;
+
+		try {
+			arten = projektServiceFac.getAllVerrechenbar(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return arten;
+	}
+	
+	public Map<?, ?> getAllLeadstatus() throws ExceptionLP {
+
+		Map<?, ?> arten = null;
+
+		try {
+			arten = projektServiceFac.getAllLeadstatus(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return arten;
+	}
+	public Map<?, ?> getAllSprVkfortschritt() throws ExceptionLP {
+
+		Map<?, ?> arten = null;
+
+		try {
+			arten = projektServiceFac.getAllSprVkfortschritt(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -198,6 +276,15 @@ public class ProjektServiceDelegate extends Delegate {
 
 	}
 
+	public void removeVkfortschritt(VkfortschrittDto dto) throws ExceptionLP {
+		try {
+			projektServiceFac.removeVkfortschritt(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+	}
+
 	public void removeBereich(BereichDto bereichDto) throws ExceptionLP {
 		try {
 			projektServiceFac.removeBereich(bereichDto);
@@ -244,6 +331,59 @@ public class ProjektServiceDelegate extends Delegate {
 		return kategorieDto;
 	}
 
+	public ProjekttechnikerDto projekttechnikerFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+
+		try {
+
+			return projektServiceFac.projekttechnikerFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public ProjektgruppeDto projektgruppeFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+
+		try {
+
+			return projektServiceFac.projektgruppeFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public ProjekttaetigkeitDto projekttaetigkeitFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+
+		try {
+
+			return projektServiceFac.projekttaetigkeitFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public ProjekttaetigkeitDto[] projekttaetigkeitFindByProjektIId(
+			Integer projektIId) throws ExceptionLP {
+
+		try {
+
+			return projektServiceFac
+					.projekttaetigkeitFindByProjektIId(projektIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
 	public String createProjekttyp(ProjekttypDto projekttypDtoI)
 			throws ExceptionLP {
 		String s = null;
@@ -269,10 +409,92 @@ public class ProjektServiceDelegate extends Delegate {
 		}
 	}
 
+	public Integer createVkfortschritt(VkfortschrittDto dto) throws ExceptionLP {
+		try {
+			return projektServiceFac.createVkfortschritt(dto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createProjekttechniker(ProjekttechnikerDto dto)
+			throws ExceptionLP {
+		try {
+			return projektServiceFac.createProjekttechniker(dto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public int getAnzahlTechniker(Integer projektIId)
+			throws ExceptionLP {
+		try {
+			return projektServiceFac.getAnzahlTechniker(projektIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return 0;
+		}
+	}
+
+	public Integer createProjektgruppe(ProjektgruppeDto dto) throws ExceptionLP {
+		try {
+			return projektServiceFac.createProjektgruppe(dto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createProjekttaetigkeit(ProjekttaetigkeitDto dto)
+			throws ExceptionLP {
+		try {
+			return projektServiceFac.createProjekttaetigkeit(dto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
 	public void updateHistoryart(HistoryartDto vorschlagstextDto)
 			throws ExceptionLP {
 		try {
 			projektServiceFac.updateHistoryart(vorschlagstextDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateProjekttechniker(ProjekttechnikerDto projekttechnikerDto)
+			throws ExceptionLP {
+		try {
+			projektServiceFac.updateProjekttechniker(projekttechnikerDto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateProjektgruppe(ProjektgruppeDto projektgruppeDto)
+			throws ExceptionLP {
+		try {
+			projektServiceFac.updateProjektgruppe(projektgruppeDto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateProjekttaetigkeit(
+			ProjekttaetigkeitDto projekttaetigkeitDto) throws ExceptionLP {
+		try {
+			projektServiceFac.updateProjekttaetigkeit(projekttaetigkeitDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -308,6 +530,32 @@ public class ProjektServiceDelegate extends Delegate {
 	public void removeHistoryart(HistoryartDto dto) throws ExceptionLP {
 		try {
 			projektServiceFac.removeHistoryart(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeProjekttechniker(ProjekttechnikerDto dto)
+			throws ExceptionLP {
+		try {
+			projektServiceFac.removeProjekttechniker(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeProjektgruppe(ProjektgruppeDto dto) throws ExceptionLP {
+		try {
+			projektServiceFac.removeProjektgruppe(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeProjekttaetigkeit(ProjekttaetigkeitDto dto)
+			throws ExceptionLP {
+		try {
+			projektServiceFac.removeProjekttaetigkeit(dto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -387,6 +635,20 @@ public class ProjektServiceDelegate extends Delegate {
 		return projekttypDto;
 	}
 
+	public VkfortschrittDto vkfortschrittFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+
+		VkfortschrittDto vkfortschrittDto = null;
+		try {
+
+			vkfortschrittDto = projektServiceFac.vkfortschrittFindByPrimaryKey(
+					iId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return vkfortschrittDto;
+	}
+
 	public ProjektStatusDto projektstatusFindByPrimaryKey(String cNrI)
 			throws ExceptionLP {
 
@@ -419,6 +681,16 @@ public class ProjektServiceDelegate extends Delegate {
 		}
 	}
 
+	public void vertauscheVkfortschritt(Integer iId1I, Integer iId2I)
+			throws ExceptionLP {
+
+		try {
+			projektServiceFac.vertauscheVkfortschritt(iId1I, iId2I);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
 	public void removeProjekttyp(ProjekttypDto projekttypDto)
 			throws ExceptionLP {
 		try {
@@ -444,6 +716,14 @@ public class ProjektServiceDelegate extends Delegate {
 		try {
 			projektServiceFac.updateProjekttyp(projekttypDto,
 					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateVkfortschritt(VkfortschrittDto dto) throws ExceptionLP {
+		try {
+			projektServiceFac.updateVkfortschritt(dto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}

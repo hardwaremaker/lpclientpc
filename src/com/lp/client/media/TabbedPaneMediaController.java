@@ -43,6 +43,7 @@ import com.lp.client.frame.component.ItemChangedEventDropDone;
 import com.lp.client.frame.delegate.AnsprechpartnerDelegate;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.delegate.PartnerDelegate;
+import com.lp.client.pc.LPMain;
 import com.lp.client.util.logger.LpLogger;
 import com.lp.server.media.service.EmailMediaFac;
 import com.lp.server.media.service.HvCancelQueueSender;
@@ -232,6 +233,7 @@ public class TabbedPaneMediaController {
 			kurzbriefDto.setBelegartCNr(LocaleFac.BELEGART_PARTNER);
 			kurzbriefDto.setTAendern(getEmailMetaDto().getTEmailDate()) ;
 			kurzbriefDto.setBHtml(getEmailMetaDto().getBHtml());
+			kurzbriefDto.setMandantCNr(LPMain.getTheClient().getMandant());
 			Integer id = partnerDelegate.createKurzbrief(kurzbriefDto) ;
 			
 			log.info("Created kurzbrief for partner " + 
@@ -250,6 +252,7 @@ public class TabbedPaneMediaController {
 			kurzbriefDto.setBelegartCNr(LocaleFac.BELEGART_PARTNER);
 			kurzbriefDto.setTAendern(getEmailMetaDto().getTEmailDate()) ;
 			kurzbriefDto.setBHtml(getEmailMetaDto().getBHtml());
+			kurzbriefDto.setMandantCNr(LPMain.getTheClient().getMandant());
 			Integer id = partnerDelegate.createKurzbrief(kurzbriefDto) ;
 			
 			log.info("Created kurzbrief for ansprechpartner " +

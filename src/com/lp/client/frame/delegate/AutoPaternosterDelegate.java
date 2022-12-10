@@ -38,6 +38,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.LagerFac;
 import com.lp.server.artikel.service.PaternosterDto;
 import com.lp.server.system.service.AutoPaternosterFac;
 
@@ -54,7 +55,7 @@ public class AutoPaternosterDelegate
       throws ExceptionLP {
     try {
       context = new InitialContext();
-      autoPaternosterFac = (AutoPaternosterFac) context.lookup("lpserver/AutoPaternosterFacBean/remote");
+      autoPaternosterFac = lookupFac(context, AutoPaternosterFac.class);
     }
     catch (Throwable t) {
       handleThrowable(t);

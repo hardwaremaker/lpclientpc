@@ -33,6 +33,9 @@
 package com.lp.client.artikel;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.swing.JMenu;
 import javax.swing.KeyStroke;
@@ -53,6 +56,7 @@ import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.server.artikel.service.ArtikelReportFac;
 import com.lp.server.artikel.service.LagerDto;
 import com.lp.server.artikel.service.LagerFac;
 import com.lp.server.benutzer.service.RechteFac;
@@ -260,19 +264,11 @@ public class TabbedPaneLagercockpit extends TabbedPane {
 							.getTextRespectUISPr("lp.auswahl"), true);
 
 			panelQueryLossollmaterial
-					.befuelleFilterkriteriumSchnellansicht(ArtikelFilterFactory
-							.getInstance().createFKLagercockpitSchnellansicht());
-
-			panelQueryLossollmaterial
 					.befuellePanelFilterkriterienDirekt(
 							ArtikelFilterFactory
 									.getInstance()
 									.createFKDArtikelnummerLagercockpitMaterialumlagerung(
 											getInternalFrame()), null);
-
-			panelQueryLossollmaterial.getCbSchnellansicht().setText(
-					LPMain.getInstance().getTextRespectUISPr(
-							"ww.lagercockpit.schnellansicht"));
 
 			panelQueryLossollmaterial.createAndSaveAndShowButton(
 					"/com/lp/client/res/data_next.png",
@@ -280,6 +276,20 @@ public class TabbedPaneLagercockpit extends TabbedPane {
 							"ww.lagercockpit.material.auflos"),
 					BUTTON_UMLAGERUNG, KeyStroke.getKeyStroke('B',
 							java.awt.event.InputEvent.CTRL_MASK), null);
+
+			Map m = new LinkedHashMap();
+
+			m.put(ArtikelReportFac.OPTION_LAGERCOCKPIT_MATERIAL_VERTEILUNGSVORSCHLAG_NUR_ARTIKEL_MIT_LAGERSTAND,
+					LPMain.getInstance().getTextRespectUISPr(
+							"ww.lagercockpit.schnellansicht"));
+			m.put(ArtikelReportFac.OPTION_LAGERCOCKPIT_MATERIAL_VERTEILUNGSVORSCHLAG_NUR_RUECKNAHMEN_AUS_FERTIGUNG,
+					LPMain.getInstance().getTextRespectUISPr(
+							"ww.lagercockpit.nurruecknahmenausfertigung"));
+			panelQueryLossollmaterial
+					.setFilterComboBox(m, new FilterKriterium("OPTION", true,
+							"" + "", FilterKriterium.OPERATOR_EQUAL, false),
+							false, LPMain.getTextRespectUISPr("lp.alle"), false);
+			panelQueryLossollmaterial.setKeyOfFilterComboBox(ArtikelReportFac.OPTION_LAGERCOCKPIT_MATERIAL_VERTEILUNGSVORSCHLAG_NUR_ARTIKEL_MIT_LAGERSTAND);
 
 			setComponentAt(IDX_PANEL_LOSSOLLMATERIAL, panelQueryLossollmaterial);
 		}
@@ -440,6 +450,23 @@ public class TabbedPaneLagercockpit extends TabbedPane {
 		LPMain.getInstance().getDesktop()
 				.platziereDialogInDerMitteDesFensters(dialog);
 		dialog.setVisible(true);
+
+		// SP3432 Wenn Lagerstand = 0, dann zurueck in Auswahl
+		BigDecimal lagerstand = null;
+		HashMap<String, BigDecimal> hmLagerstaende = DelegateFactory
+				.getInstance()
+				.getLagerDelegate()
+				.getLagerstaendeAllerLagerartenOhneKeinLager(
+						getArtikelDto().getIId());
+		lagerstand = hmLagerstaende.get(LagerFac.LAGERART_WARENEINGANG);
+		if (lagerstand == null) {
+			lagerstand = new BigDecimal(0);
+		}
+
+		if (lagerstand.doubleValue() <= 0) {
+			setSelectedComponent(panelQueryArtikel);
+		}
+
 		panelQueryFehlmengen.eventYouAreSelected(false);
 	}
 

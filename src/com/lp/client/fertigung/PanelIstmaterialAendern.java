@@ -54,15 +54,19 @@ import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQuery;
+import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.component.WrapperTimestampField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.LagerDto;
+import com.lp.server.artikel.service.LagerbewegungDto;
 import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.fertigung.service.LossollmaterialDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.util.Helper;
@@ -80,21 +84,23 @@ public class PanelIstmaterialAendern extends PanelBasis {
 
 	private GridBagLayout gridBagLayoutWorkingPanel = null;
 
-	WrapperLabel wlaArtikel = new WrapperLabel(LPMain.getInstance()
-			.getTextRespectUISPr("lp.artikel"));
+	WrapperLabel wlaArtikel = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.artikel"));
 	WrapperTextField wtfArtikel = new WrapperTextField();
 
-	WrapperLabel wlaLager = new WrapperLabel(LPMain.getInstance()
-			.getTextRespectUISPr("label.lager"));
+	WrapperLabel wlaLager = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.lager"));
 	WrapperTextField wtfLager = new WrapperTextField();
 
-	WrapperLabel wlaSnrChnr = new WrapperLabel(LPMain.getInstance()
-			.getTextRespectUISPr("artikel.handlagerbewegung.seriennrchargennr"));
+	WrapperLabel wlaSnrChnr = new WrapperLabel(
+			LPMain.getInstance().getTextRespectUISPr("artikel.handlagerbewegung.seriennrchargennr"));
 	WrapperTextField wtfSnrChnr = new WrapperTextField();
 
 	WrapperLabel wlaMenge = new WrapperLabel("Menge");
 
 	WrapperNumberField wnfMenge = new WrapperNumberField();
+
+	WrapperLabel wlaBelegdatum = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.belegdatum"));
+
+	WrapperTimestampField wdfBelegdatum = new WrapperTimestampField();
 
 	Integer lossollmaterialIId = null;
 	PanelQuery panelQuery = null;
@@ -102,12 +108,17 @@ public class PanelIstmaterialAendern extends PanelBasis {
 	com.lp.server.fertigung.service.LosistmaterialDto losistmaterialDto = null;
 	com.lp.server.fertigung.service.LosDto losDto = null;
 
-	public PanelIstmaterialAendern(InternalFrame internalFrame,
-			Integer lossollmaterialIId, String add2TitleI, PanelQuery panelQuery)
-			throws Throwable {
+	boolean bDarfBelegdatumEingeben = false;
+
+	public PanelIstmaterialAendern(InternalFrame internalFrame, Integer lossollmaterialIId, String add2TitleI,
+			PanelQuery panelQuery) throws Throwable {
 		super(internalFrame, add2TitleI);
 		this.lossollmaterialIId = lossollmaterialIId;
 		this.panelQuery = panelQuery;
+
+		bDarfBelegdatumEingeben = DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_FERT_LOS_DARF_ISTMATERIAL_BELEGDATUM_EINGEBEN);
+
 		jbInit();
 		setDefaults();
 		initComponents();
@@ -125,12 +136,10 @@ public class PanelIstmaterialAendern extends PanelBasis {
 	protected void dto2Components() throws Throwable {
 		wnfMenge.setBigDecimal(losistmaterialDto.getNMenge());
 
-		LossollmaterialDto lossollmaterialDto = DelegateFactory.getInstance()
-				.getFertigungDelegate()
+		LossollmaterialDto lossollmaterialDto = DelegateFactory.getInstance().getFertigungDelegate()
 				.lossollmaterialFindByPrimaryKey(lossollmaterialIId);
 
-		ArtikelDto artikelDto = DelegateFactory.getInstance()
-				.getArtikelDelegate()
+		ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 				.artikelFindByPrimaryKey(lossollmaterialDto.getArtikelIId());
 
 		wtfArtikel.setText(artikelDto.formatArtikelbezeichnung());
@@ -140,16 +149,21 @@ public class PanelIstmaterialAendern extends PanelBasis {
 
 		wtfLager.setText(lagerDto.getCNr());
 
-		List<SeriennrChargennrMitMengeDto> dtos = DelegateFactory
-				.getInstance()
-				.getLagerDelegate()
-				.getAllSeriennrchargennrEinerBelegartposition(
-						LocaleFac.BELEGART_LOS, losistmaterialDto.getIId());
+		List<SeriennrChargennrMitMengeDto> dtos = DelegateFactory.getInstance().getLagerDelegate()
+				.getAllSeriennrchargennrEinerBelegartposition(LocaleFac.BELEGART_LOS, losistmaterialDto.getIId());
 
 		if (dtos != null && dtos.size() > 0) {
 			wtfSnrChnr.setText(dtos.get(0).getCSeriennrChargennr());
 		} else {
 			wtfSnrChnr.setText(null);
+		}
+
+		if (bDarfBelegdatumEingeben == true) {
+			LagerbewegungDto[] lbewDtos = DelegateFactory.getInstance().getLagerDelegate()
+					.lagerbewegungFindByBelegartCNrBelegartPositionIId(LocaleFac.BELEGART_LOS,
+							losistmaterialDto.getIId());
+
+			wdfBelegdatum.setTimestamp(lbewDtos[0].getTBelegdatum());
 		}
 
 	}
@@ -158,11 +172,9 @@ public class PanelIstmaterialAendern extends PanelBasis {
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 		if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
 			if (e.getSource().equals(panelQuery)) {
-				Integer key = (Integer) ((PanelQuery) e.getSource())
-						.getSelectedId();
+				Integer key = (Integer) ((PanelQuery) e.getSource()).getSelectedId();
 				if (key != null) {
-					losistmaterialDto = DelegateFactory.getInstance()
-							.getFertigungDelegate()
+					losistmaterialDto = DelegateFactory.getInstance().getFertigungDelegate()
 							.losistmaterialFindByPrimaryKey(key);
 
 					dto2Components();
@@ -212,43 +224,39 @@ public class PanelIstmaterialAendern extends PanelBasis {
 
 		wnfMenge.setMinimumValue(0);
 		wtfLager.setActivatable(false);
-		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTHEAST, GridBagConstraints.BOTH,
-				new Insets(-9, 0, 9, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 0, 1, 1, 0.3,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfArtikel, new GridBagConstraints(1, 0, 1, 1, 0.3,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaSnrChnr, new GridBagConstraints(0, 1, 1, 1, 0.3,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfSnrChnr, new GridBagConstraints(1, 1, 1, 1, 0.3,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaLager, new GridBagConstraints(0, 2, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfLager, new GridBagConstraints(1, 2, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaMenge, new GridBagConstraints(0, 3, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfMenge, new GridBagConstraints(1, 3, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.BOTH, new Insets(-9, 0, 9, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 0, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfArtikel, new GridBagConstraints(1, 0, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaSnrChnr, new GridBagConstraints(0, 1, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfSnrChnr, new GridBagConstraints(1, 1, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaLager, new GridBagConstraints(0, 2, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfLager, new GridBagConstraints(1, 2, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaMenge, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfMenge, new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD,
-		// ACTION_PRINT,
+		if (bDarfBelegdatumEingeben == true) {
+			wdfBelegdatum.setMandatoryField(true);
+			jPanelWorkingOn.add(wlaBelegdatum, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			jPanelWorkingOn.add(wdfBelegdatum, new GridBagConstraints(1, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		}
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD,
+				// ACTION_PRINT,
 		};
 
 		enableToolsPanelButtons(aWhichButtonIUse);
@@ -271,20 +279,17 @@ public class PanelIstmaterialAendern extends PanelBasis {
 
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 		super.eventActionDelete(e, false, false);
 	}
 
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
 		super.eventActionRefresh(e, bNeedNoRefreshI);
 
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		leereAlleFelder(this);
 	}
@@ -293,8 +298,7 @@ public class PanelIstmaterialAendern extends PanelBasis {
 
 	}
 
-	private void setzeButton(String button, boolean bEnabled,
-			boolean bPanelQuery) {
+	private void setzeButton(String button, boolean bEnabled, boolean bPanelQuery) {
 		Collection<?> buttons = getHmOfButtons().values();
 		if (bPanelQuery == true) {
 			buttons = panelQuery.getHmOfButtons().values();
@@ -325,8 +329,7 @@ public class PanelIstmaterialAendern extends PanelBasis {
 
 	}
 
-	protected void eventActionUpdate(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		// super.eventActionUpdate(e, false);
 
 		if (panelQuery.getSelectedId() != null) {
@@ -348,55 +351,47 @@ public class PanelIstmaterialAendern extends PanelBasis {
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
 			if (losistmaterialDto != null) {
 
 				BigDecimal diff = losistmaterialDto.getNMenge();
 
-				DelegateFactory
-						.getInstance()
-						.getFertigungDelegate()
-						.updateLosistmaterialMenge(losistmaterialDto.getIId(),
-								wnfMenge.getBigDecimal());
-				losistmaterialDto = DelegateFactory
-						.getInstance()
-						.getFertigungDelegate()
-						.losistmaterialFindByPrimaryKey(
-								losistmaterialDto.getIId());
-
-				if (Helper.short2Boolean(losistmaterialDto.getBAbgang())) {
-					diff = diff.subtract(losistmaterialDto.getNMenge());
-
-					if (diff.doubleValue() > 0) {
-
-						LossollmaterialDto lossollmaterialDto = DelegateFactory
-								.getInstance()
-								.getFertigungDelegate()
-								.lossollmaterialFindByPrimaryKey(
-										lossollmaterialIId);
-						if (wtfSnrChnr.getText() == null) {
-							FehlmengenAufloesen.fehlmengenAufloesen(
-									getInternalFrame(),
-									lossollmaterialDto.getArtikelIId(),
-									losistmaterialDto.getLagerIId(),
-									(String[]) null, diff);
-						} else {
-							FehlmengenAufloesen
-									.fehlmengenAufloesen(
-											getInternalFrame(),
-											lossollmaterialDto.getArtikelIId(),
-											losistmaterialDto.getLagerIId(),
-											new String[] { wtfSnrChnr.getText() },
-											diff);
-						}
-
-					}
+				if (bDarfBelegdatumEingeben) {
+					DelegateFactory.getInstance().getFertigungDelegate().updateLosistmaterialMenge(
+							losistmaterialDto.getIId(), wnfMenge.getBigDecimal(), wdfBelegdatum.getTimestamp());
+				} else {
+					DelegateFactory.getInstance().getFertigungDelegate()
+							.updateLosistmaterialMenge(losistmaterialDto.getIId(), wnfMenge.getBigDecimal());
 				}
 
-				dto2Components();
+				BigDecimal freigewordeneMenge = BigDecimal.ZERO;
+				if (Helper.short2Boolean(losistmaterialDto.getBAbgang())) {
+					freigewordeneMenge= diff.subtract(wnfMenge.getBigDecimal());
+				}
+
+				if (freigewordeneMenge.doubleValue() > 0) {
+
+					LossollmaterialDto lossollmaterialDto = DelegateFactory.getInstance().getFertigungDelegate()
+							.lossollmaterialFindByPrimaryKey(lossollmaterialIId);
+					if (wtfSnrChnr.getText() == null) {
+						FehlmengenAufloesen.fehlmengenAufloesen(getInternalFrame(), lossollmaterialDto.getArtikelIId(),
+								losistmaterialDto.getLagerIId(), (String[]) null, diff);
+					} else {
+						FehlmengenAufloesen.fehlmengenAufloesen(getInternalFrame(), lossollmaterialDto.getArtikelIId(),
+								losistmaterialDto.getLagerIId(), new String[] { wtfSnrChnr.getText() }, diff);
+					}
+
+				}
+
+				if (wnfMenge.getBigDecimal().doubleValue() > 0) {
+					losistmaterialDto = DelegateFactory.getInstance().getFertigungDelegate()
+							.losistmaterialFindByPrimaryKey(losistmaterialDto.getIId());
+					dto2Components();
+				}else {
+					 DelegateFactory.getInstance().getFertigungDelegate().removeLosistmaterial(losistmaterialDto);
+				}
 
 			}
 			panelQuery.eventYouAreSelected(false);
@@ -414,8 +409,7 @@ public class PanelIstmaterialAendern extends PanelBasis {
 		setzeButton(PanelBasis.ACTION_PRINT, true, true);
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = panelQuery.getSelectedId();
@@ -425,8 +419,7 @@ public class PanelIstmaterialAendern extends PanelBasis {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {
-			losistmaterialDto = DelegateFactory.getInstance()
-					.getFertigungDelegate()
+			losistmaterialDto = DelegateFactory.getInstance().getFertigungDelegate()
 					.losistmaterialFindByPrimaryKey((Integer) key);
 			dto2Components();
 

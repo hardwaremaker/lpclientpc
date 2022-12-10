@@ -45,6 +45,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.editor.LpEditor;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.SystemFac;
 
 /**
  * <p>
@@ -86,14 +87,16 @@ abstract public class PanelDialogKommentar extends PanelDialog {
 	private void jbInit() throws Throwable {
 		
 		lpEditor = new LpEditor(null, LPMain.getInstance().getUISprLocale());
+		lpEditor.setInternalFrame(getInternalFrame());
 		lpEditor.setPageWidth(ParameterCache.getPageWidth(ParameterFac.PARAMETER_EDITOR_BREITE_KOMMENTAR)) ;
+		lpEditor.getTextBlockAttributes(-1).capacity = SystemFac.MAX_LAENGE_EDITORTEXT_WENN_NTEXT;
+		
 
 		jpaWorkingOn.add(lpEditor, new GridBagConstraints(1, iZeile, 2, 1, 0.1,
 				0.1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
 
-		if (getInternalFrame().getRechtModulweit().equals(
-				RechteFac.RECHT_MODULWEIT_UPDATE)) {
+		if (isEditable()) {
 			createAndSaveButton("/com/lp/client/res/disk_blue.png",
 					LPMain.getTextRespectUISPr("lp.save"), ACTION_SPECIAL_SAVE,
 					KeyStroke.getKeyStroke('S',
@@ -108,6 +111,10 @@ abstract public class PanelDialogKommentar extends PanelDialog {
 		updateButtons(lockstateValue);
 	}
 
+	protected boolean isEditable() throws Throwable {
+		return RechteFac.RECHT_MODULWEIT_UPDATE.equals(getInternalFrame().getRechtModulweit());		
+	}
+	
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(PanelBasis.ESC)
 				|| e.getActionCommand()

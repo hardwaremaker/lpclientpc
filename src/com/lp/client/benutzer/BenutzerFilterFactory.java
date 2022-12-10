@@ -214,7 +214,33 @@ public class BenutzerFilterFactory {
 
 		return kriterien;
 	}
+	
+	public FilterKriterium[] createFKHvmarecht(Integer systemrolleIId)
+			throws Throwable {
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		kriterien[0] = new FilterKriterium("if.systemrolle_i_id", true,
+				systemrolleIId + "", FilterKriterium.OPERATOR_EQUAL, false);
 
+		return kriterien;
+	}
+	
+	
+	public FilterKriterium[] createFKHvmabenutzer(Integer hvmalizenzIId)
+			throws Throwable {
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		kriterien[0] = new FilterKriterium("hvmalizenz_i_id", true,
+				hvmalizenzIId + "", FilterKriterium.OPERATOR_EQUAL, false);
+
+		return kriterien;
+	}
+	public FilterKriterium[] createFKHvmabenutzerparameter(Integer hvmabenutzerIId)
+			throws Throwable {
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		kriterien[0] = new FilterKriterium("hvmabenutzer_i_id", true,
+				hvmabenutzerIId + "", FilterKriterium.OPERATOR_EQUAL, false);
+
+		return kriterien;
+	}
 	public FilterKriterium[] createFKOhneLpwebappzemecs() throws Throwable {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
 		kriterien[0] = new FilterKriterium(

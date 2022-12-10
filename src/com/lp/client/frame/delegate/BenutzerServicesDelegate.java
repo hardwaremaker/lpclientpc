@@ -32,6 +32,8 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.Set;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
@@ -39,6 +41,7 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 
 import com.lp.server.benutzer.service.BenutzerServicesFac;
+import com.lp.server.system.service.BelegpositionkonvertierungFac;
 
 public class BenutzerServicesDelegate extends Delegate {
 	private Context context;
@@ -46,8 +49,8 @@ public class BenutzerServicesDelegate extends Delegate {
 
 	public BenutzerServicesDelegate() throws Exception {
 		context = new InitialContext();
-		benutzerServicesFac = (BenutzerServicesFac) context
-				.lookup("lpserver/BenutzerServicesFacBean/remote");
+		benutzerServicesFac = lookupFac(context, BenutzerServicesFac.class);
+
 	}
 
 	public void reloadUebersteuertenText() throws ExceptionLP {
@@ -59,16 +62,31 @@ public class BenutzerServicesDelegate extends Delegate {
 
 		}
 	}
-	
+
+	public boolean hatRechtInZielmandant(String rechtCNr, String mandantCNrZiel) throws ExceptionLP {
+
+		try {
+			return benutzerServicesFac.hatRechtInZielmandant(rechtCNr, mandantCNrZiel, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return false;
+
+		}
+	}
+
 	public String getTextRespectUISpr(String token) throws ExceptionLP {
 
 		try {
-			return benutzerServicesFac.getTextRespectUISpr(token, LPMain.getTheClient().getMandant(), LPMain.getTheClient().getLocUi());
+			return benutzerServicesFac.getTextRespectUISpr(token, LPMain.getTheClient().getMandant(),
+					LPMain.getTheClient().getLocUi());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
-	
+
+	public Set<String> getMandantparameterZeitabhaenigCNr() {
+		return benutzerServicesFac.getMandantparameterZeitabhaenigCNr();
+	}
 
 }

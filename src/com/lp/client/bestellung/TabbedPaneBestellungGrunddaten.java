@@ -866,12 +866,12 @@ public class TabbedPaneBestellungGrunddaten extends TabbedPane {
 				DelegateFactory.getInstance().getBSMahnwesenDelegate()
 						.createBSMahnstufe(bsmahnstufeDto);
 			}
-			BSMahnstufeDto bsmahnstufeDto99 = DelegateFactory
+			BSMahnstufeDto bsmahnstufeDto0 = DelegateFactory
 					.getInstance()
 					.getBSMahnwesenDelegate()
 					.bsmahnstufeFindByPrimaryKey(
 							new Integer(BSMahnwesenFac.MAHNSTUFE_0));
-			if (bsmahnstufeDto99 == null) {
+			if (bsmahnstufeDto0 == null) {
 				BSMahnstufeDto bsmahnstufeDto = new BSMahnstufeDto();
 				bsmahnstufeDto.setIId(new Integer(BSMahnwesenFac.MAHNSTUFE_0));
 				bsmahnstufeDto.setITage(new Integer(10));
@@ -892,6 +892,21 @@ public class TabbedPaneBestellungGrunddaten extends TabbedPane {
 				DelegateFactory.getInstance().getBSMahnwesenDelegate()
 						.createBSMahnstufe(bsmahnstufeDto);
 			}
+			
+			
+			BSMahnstufeDto bsmahnstufeDto99 = DelegateFactory
+					.getInstance()
+					.getBSMahnwesenDelegate()
+					.bsmahnstufeFindByPrimaryKey(
+							new Integer(BSMahnwesenFac.MAHNSTUFE_99));
+			if (bsmahnstufeDto99 == null) {
+				BSMahnstufeDto bsmahnstufeDto = new BSMahnstufeDto();
+				bsmahnstufeDto.setIId(new Integer(BSMahnwesenFac.MAHNSTUFE_99));
+				bsmahnstufeDto.setITage(new Integer(10));
+				DelegateFactory.getInstance().getBSMahnwesenDelegate()
+						.createBSMahnstufe(bsmahnstufeDto);
+			}
+			
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 			panelQueryMahnstufe = new PanelQuery(null, null,
 					QueryParameters.UC_ID_BESMAHNSTUFE,

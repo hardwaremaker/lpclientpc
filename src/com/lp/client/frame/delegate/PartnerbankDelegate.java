@@ -32,6 +32,8 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.List;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
@@ -40,6 +42,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.BankDto;
 import com.lp.server.partner.service.BankFac;
 import com.lp.server.partner.service.PartnerbankDto;
+import com.lp.server.system.service.MediaFac;
 
 public class PartnerbankDelegate extends Delegate {
 	private Context context;
@@ -48,7 +51,7 @@ public class PartnerbankDelegate extends Delegate {
 	public PartnerbankDelegate() throws Exception {
 
 		context = new InitialContext();
-		bankFac = (BankFac) context.lookup("lpserver/BankFacBean/remote");
+		bankFac = lookupFac(context, BankFac.class);
 	}
 
 	public Integer createPartnerbank(PartnerbankDto partnerbankDto)
@@ -144,7 +147,15 @@ public class PartnerbankDelegate extends Delegate {
 		}
 		return b;
 	}
-
+	public List<PartnerbankDto> partnerbankFindByESRUndKontonummer(String esr, String kontonummer) throws ExceptionLP {
+		List<PartnerbankDto> b = null;
+		try {
+			b = bankFac.partnerbankFindByESRUndKontonummer(esr, kontonummer, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return b;
+	}
 	public BankDto bankFindByPrimaryKeyOhneExc(Integer partnerIId) throws ExceptionLP {
 		BankDto b = null;
 		try {
@@ -162,7 +173,14 @@ public class PartnerbankDelegate extends Delegate {
 		}
 		return null;
 	}
-
+	public PartnerbankDto[] partnerbankfindByPartnerbankIIdCKtonr(Integer partnerbankIId, String cktonr) throws ExceptionLP {
+		try {
+			return  bankFac.partnerbankfindByPartnerbankIIdCKtonr(partnerbankIId, cktonr, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return null;
+	}
 	
 	
 }

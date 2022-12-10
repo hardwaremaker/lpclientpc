@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.partner;
@@ -36,19 +36,33 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
-import com.lp.client.frame.component.*;
-import com.lp.client.pc.*;
-import com.lp.client.util.fastlanereader.gui.*;
-import com.lp.server.artikel.service.ArtikelFac;
-import com.lp.server.artikel.service.ArtikelkommentarFac;
-import com.lp.server.partner.service.*;
-import com.lp.server.system.service.*;
-import com.lp.server.util.fastlanereader.service.query.*;
-import com.lp.util.*;
-import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.frame.ExceptionLP;
-import com.lp.server.util.Facade;
+import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.PanelQueryFLRAnsprechpartnerAnlegen;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.pc.LPMain;
+import com.lp.client.system.SystemFilterFactory;
+import com.lp.client.util.fastlanereader.gui.QueryType;
+import com.lp.server.artikel.service.ArtikelFac;
+import com.lp.server.partner.service.AnsprechpartnerFac;
+import com.lp.server.partner.service.BankFac;
+import com.lp.server.partner.service.KundeFac;
+import com.lp.server.partner.service.KundesachbearbeiterFac;
+import com.lp.server.partner.service.KundesokoFac;
+import com.lp.server.partner.service.LieferantFac;
+import com.lp.server.partner.service.PartnerFac;
+import com.lp.server.partner.service.PartnerServicesFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.system.service.SystemFac;
+import com.lp.server.util.Facade;
+import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
+import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
+import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.EJBExceptionLP;
+import com.lp.util.Helper;
 
 /**
  * <p>
@@ -93,24 +107,20 @@ public class PartnerFilterFactory {
 		FilterKriterium[] aKriterien = new FilterKriterium[1];
 		/*
 		 * PJ 09/0014039 aKriterien[0] = new FilterKriterium(
-		 * SystemFac.FLR_LP_VERSTECKT, true, "'" +
-		 * Helper.boolean2Short(bVersteckt) + "'",
-		 * FilterKriterium.OPERATOR_LIKE, false);
+		 * SystemFac.FLR_LP_VERSTECKT, true, "'" + Helper.boolean2Short(bVersteckt) +
+		 * "'", FilterKriterium.OPERATOR_LIKE, false);
 		 */
 
-		aKriterien[0] = new FilterKriterium(SystemFac.FLR_LP_VERSTECKT, true,
-				"" + Helper.boolean2Short(bVersteckt),
+		aKriterien[0] = new FilterKriterium(SystemFac.FLR_LP_VERSTECKT, true, "" + Helper.boolean2Short(bVersteckt),
 				FilterKriterium.OPERATOR_EQUAL, false);
 
 		return aKriterien;
 	}
 
-	public FilterKriterium[] createFKPartnerKey(Integer artikelIId)
-			throws Throwable {
+	public FilterKriterium[] createFKPartnerKey(Integer artikelIId) throws Throwable {
 		// Handartikel nicht anzeigen
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		kriterien[0] = new FilterKriterium("i_id", true, artikelIId + "",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		kriterien[0] = new FilterKriterium("i_id", true, artikelIId + "", FilterKriterium.OPERATOR_EQUAL, false);
 
 		return kriterien;
 	}
@@ -118,105 +128,81 @@ public class PartnerFilterFactory {
 	public QueryType[] createFFirmaNNPartnerart() {
 		QueryType[] types = new QueryType[2];
 
-		FilterKriterium f1 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, true, "",
+		FilterKriterium f1 = new FilterKriterium(PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"part.firma_nachname"), f1,
+		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr("part.firma_nachname"), f1,
 				new String[] { FilterKriterium.OPERATOR_LIKE }, true, true);
 
-		FilterKriterium f2 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_PARTNERART, true, "",
+		FilterKriterium f2 = new FilterKriterium(PartnerFac.FLR_PARTNER_PARTNERART, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"part.partnerart"), f2,
+		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr("part.partnerart"), f2,
 				new String[] { FilterKriterium.OPERATOR_LIKE }, true, true);
 
 		return types;
 	}
 
-	public PanelQueryFLR createPanelFLRPartner(InternalFrame internalFrameI)
-			throws Throwable {
+	public PanelQueryFLR createPanelFLRPartner(InternalFrame internalFrameI) throws Throwable {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_FILTER };
 
-		PanelQueryFLR plPartner = new PanelQueryFLR(createFFirmaNNPartnerart(),
-				null, QueryParameters.UC_ID_PARTNER, aWhichButtonIUse,
-				internalFrameI,
-				LPMain.getTextRespectUISPr("title.partnerauswahlliste"));
+		PanelQueryFLR plPartner = new PanelQueryFLR(createFFirmaNNPartnerart(), null, QueryParameters.UC_ID_PARTNER,
+				aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("title.partnerauswahlliste"));
 
-		plPartner
-				.befuellePanelFilterkriterienDirektUndVersteckte(
-						PartnerFilterFactory.getInstance()
-								.createFKDPartnerName(), PartnerFilterFactory
-								.getInstance().createFKDPartnerLandPLZOrt(),
-						PartnerFilterFactory.getInstance().createFKVPartner());
+		plPartner.befuellePanelFilterkriterienDirektUndVersteckte(
+				PartnerFilterFactory.getInstance().createFKDPartnerName(),
+				PartnerFilterFactory.getInstance().createFKDPartnerLandPLZOrt(),
+				PartnerFilterFactory.getInstance().createFKVPartner());
 
-		plPartner.addDirektFilter(PartnerFilterFactory.getInstance()
-				.createFKDPartnerErweiterteSuche());
+		plPartner.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnerErweiterteSuche());
 
-		ParametermandantDto parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
-						ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
-		boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter
-				.getCWertAsObject();
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+				ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
+		boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter.getCWertAsObject();
 
 		if (!bSuchenInklusiveKbez) {
-			plPartner.addDirektFilter(PartnerFilterFactory.getInstance()
-					.createFKDPartnerKurzbezeichnung());
+			plPartner.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnerKurzbezeichnung());
 		}
 
 		return plPartner;
 	}
 
-	public PanelQueryFLR createPanelFLRPartnerPartnerklassen(
-			InternalFrame internalFrameI, boolean bShowFilterButton,
+	public PanelQueryFLR createPanelFLRPartnerPartnerklassen(InternalFrame internalFrameI, boolean bShowFilterButton,
 			boolean bShowLeerenButton, Integer selectedId) throws Throwable {
 
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(bShowFilterButton, bShowLeerenButton);
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(bShowFilterButton,
+				bShowLeerenButton);
 
-		aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER,
-				PanelBasis.ACTION_LEEREN };
+		aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER, PanelBasis.ACTION_LEEREN };
 
-		PanelQueryFLR plPartnerklassen = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_PARTNERKLASSE, aWhichButtonIUse,
-				internalFrameI,
-				LPMain.getTextRespectUISPr("auftrag.partnerklassen"));
+		PanelQueryFLR plPartnerklassen = new PanelQueryFLR(null, null, QueryParameters.UC_ID_PARTNERKLASSE,
+				aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("auftrag.partnerklassen"));
 		plPartnerklassen.setSelectedId(selectedId);
 
 		return plPartnerklassen;
 	}
 
-	public PanelQueryFLR createPanelFLRPartner(InternalFrame internalFrameI,
-			Integer selectedId, boolean bMitLeerenButton) throws Throwable {
+	public PanelQueryFLR createPanelFLRPartner(InternalFrame internalFrameI, Integer selectedId,
+			boolean bMitLeerenButton) throws Throwable {
 		String[] aWhichButtonIUse = null;
 
 		if (bMitLeerenButton) {
-			aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER,
-					PanelBasis.ACTION_LEEREN };
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER, PanelBasis.ACTION_LEEREN };
 		} else {
 			aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER };
 		}
 
-		PanelQueryFLR plPartner = new PanelQueryFLR(createFFirmaNNPartnerart(),
-				null, QueryParameters.UC_ID_PARTNER, aWhichButtonIUse,
-				internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-						"title.partnerauswahlliste"));
+		PanelQueryFLR plPartner = new PanelQueryFLR(createFFirmaNNPartnerart(), null, QueryParameters.UC_ID_PARTNER,
+				aWhichButtonIUse, internalFrameI,
+				LPMain.getInstance().getTextRespectUISPr("title.partnerauswahlliste"));
 
-		plPartner
-				.befuellePanelFilterkriterienDirektUndVersteckte(
-						PartnerFilterFactory.getInstance()
-								.createFKDPartnerName(), PartnerFilterFactory
-								.getInstance().createFKDPartnerLandPLZOrt(),
-						PartnerFilterFactory.getInstance().createFKVPartner());
+		plPartner.befuellePanelFilterkriterienDirektUndVersteckte(
+				PartnerFilterFactory.getInstance().createFKDPartnerName(),
+				PartnerFilterFactory.getInstance().createFKDPartnerLandPLZOrt(),
+				PartnerFilterFactory.getInstance().createFKVPartner());
 
-		plPartner.addDirektFilter(PartnerFilterFactory.getInstance()
-				.createFKDPartnerErweiterteSuche());
+		plPartner.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnerErweiterteSuche());
 		if (selectedId != null) {
 			plPartner.setSelectedId(selectedId);
 		}
@@ -224,58 +210,39 @@ public class PartnerFilterFactory {
 		return plPartner;
 	}
 
-	public FilterKriteriumDirekt createFKDKundePartnerName(String sLabel)
-			throws Throwable {
+	public FilterKriteriumDirekt createFKDKundePartnerName(String sLabel) throws Throwable {
 		FilterKriteriumDirekt fKDPartnername = null;
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
-						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getInstance().getTheClient().getMandant());
+		LPMain.getInstance();
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
+						ParameterFac.KATEGORIE_PARTNER, LPMain.getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
 
-			fKDPartnername = new FilterKriteriumDirekt(
-					KundeFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, sLabel,
-					FilterKriteriumDirekt.PROZENT_BOTH, true, true,
+			fKDPartnername = new FilterKriteriumDirekt(KundeFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+					FilterKriterium.OPERATOR_LIKE, sLabel, FilterKriteriumDirekt.PROZENT_BOTH, true, true,
 					Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 		} else {
-			fKDPartnername = new FilterKriteriumDirekt(
-					KundeFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, sLabel,
-					FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+			fKDPartnername = new FilterKriteriumDirekt(KundeFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+					FilterKriterium.OPERATOR_LIKE, sLabel, FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
 					Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 
 		}
 		return fKDPartnername;
 	}
 
-	public FilterKriteriumDirekt createFKDLieferantPartnerName()
-			throws Throwable {
+	public FilterKriteriumDirekt createFKDLieferantPartnerName() throws Throwable {
 		FilterKriteriumDirekt fKDPartnername = null;
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
-						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getInstance().getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
+						ParameterFac.KATEGORIE_PARTNER, LPMain.getInstance().getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
-			fKDPartnername = new FilterKriteriumDirekt(
-					LieferantFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.firma"),
-					FilterKriteriumDirekt.PROZENT_BOTH, true, true,
-					Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
+			fKDPartnername = new FilterKriteriumDirekt(LieferantFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.firma"),
+					FilterKriteriumDirekt.PROZENT_BOTH, true, true, Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 		} else {
-			fKDPartnername = new FilterKriteriumDirekt(
-					LieferantFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.firma"),
-					FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-					Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
+			fKDPartnername = new FilterKriteriumDirekt(LieferantFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.firma"),
+					FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 
 		}
 		return fKDPartnername;
@@ -284,124 +251,129 @@ public class PartnerFilterFactory {
 	public FilterKriteriumDirekt createFKDLieferantPartnerKurzbezeichnung() {
 
 		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(
-				LieferantFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_C_KBEZ,
-				"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.kurzbezeichnung"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+				LieferantFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_C_KBEZ, "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.kurzbez"), FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
 				Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 		return fKDPartnername;
 	}
 
-	
 	public FilterKriteriumDirekt createFKDPartnerKurzbezeichnung() {
 
-		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(
-				PartnerFac.FLR_PARTNER_C_KBEZ, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.kurzbezeichnung"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-				Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
+		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(PartnerFac.FLR_PARTNER_C_KBEZ, "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.kurzbez"),
+				FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 		return fKDPartnername;
 	}
 
 	public FilterKriteriumDirekt createFKDPartnerErweiterteSuche() {
 
-		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(
-				PartnerFac.PARTNERQP1_ERWEITERTE_SUCHE, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("part.erweitertesuche"),
-				FilterKriteriumDirekt.EXTENDED_SEARCH, false, true,
-				Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
+		LPMain.getInstance();
+		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(PartnerFac.PARTNERQP1_ERWEITERTE_SUCHE, "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("part.erweitertesuche"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, false, true, Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 		return fKDPartnername;
 	}
 
 	public FilterKriteriumDirekt createFKDPartnersucheNachTelefonnummer() {
 
-		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(
-				PartnerFac.PARTNERQP1_TELEFONNUMMERN_SUCHE, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("part.telefonnummernsuche"),
-				FilterKriteriumDirekt.PROZENT_BOTH, true, true,
-				Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
+		LPMain.getInstance();
+		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(PartnerFac.PARTNERQP1_TELEFONNUMMERN_SUCHE, "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("part.telefonnummernsuche"),
+				FilterKriteriumDirekt.PROZENT_BOTH, true, true, Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 		return fKDPartnername;
 	}
 
-	
 	public FilterKriteriumDirekt createFKDKundePartnerKurzbezeichnung() {
 
 		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(
-				KundeFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_C_KBEZ, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.kurzbezeichnung"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+				KundeFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_C_KBEZ, "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.kurzbez"), FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
 				Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
 		return fKDPartnername;
 	}
 
 	public FilterKriteriumDirekt createFKDKundeKundennummer() {
-
-		FilterKriteriumDirekt fKDPartnername = new FilterKriteriumDirekt(
-				KundeFac.FLR_KUNDE_I_KUNDENNUMMER, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.kundennummer"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-				Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
-		return fKDPartnername;
+		return new FilterKriteriumDirekt(KundeFac.FLR_KUNDE_I_KUNDENNUMMER, "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.kundennummer"), FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+				Facade.MAX_UNBESCHRAENKT);
 	}
 
-	public FilterKriterium[] createFKLieferantMandantPartner() throws Throwable {
-
-		FilterKriterium[] krit = new FilterKriterium[1];
-		krit[0] = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
-				FilterKriterium.OPERATOR_LIKE, false);
-
-		return krit;
+	public FilterKriteriumDirekt createFKDDebitorennummer() {
+		return new FilterKriteriumDirekt("debitorennummer", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.debitorennummer"), FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+				Facade.MAX_UNBESCHRAENKT);
 	}
 
-	public FilterKriterium[] createFKPartnerPartnerart(String cNrListNotIn)
-			throws Throwable {
-
-		FilterKriterium[] krit = new FilterKriterium[1];
-		krit[0] = new FilterKriterium("partnerart_c_nr", true, "("
-				+ cNrListNotIn + ")", FilterKriterium.OPERATOR_NOT_IN, false);
-
-		return krit;
+	public FilterKriteriumDirekt createFKDKreditorennummer() {
+		return new FilterKriteriumDirekt("kreditorennummer", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("er.kreditorennr"), FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+				Facade.MAX_UNBESCHRAENKT);
 	}
 
-	public FilterKriterium[] createFKLieferantMandantPartnerVersteckt()
-			throws Throwable {
+	public FilterKriterium[] createFKLieferantMandantPartner(Map mGewaehlteLieferanten) throws Throwable {
 
 		FilterKriterium[] krit = new FilterKriterium[2];
-		krit[0] = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
+		krit[0] = new FilterKriterium("mandant_c_nr", true, "'" + LPMain.getTheClient().getMandant() + "'",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		krit[1] = new FilterKriterium(LieferantFac.FLR_PARTNER + "."
-				+ PartnerFac.FLR_PARTNER_VERSTECKT, true,
-				Helper.boolean2Short(false) + "",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		if (mGewaehlteLieferanten != null && mGewaehlteLieferanten.size() > 0) {
+			// SP4594
+			Object[] lieferantIIds = mGewaehlteLieferanten.keySet().toArray();
+
+			String in = "(";
+
+			for (int i = 0; i < lieferantIIds.length; i++) {
+				in += lieferantIIds[i];
+
+				if (i < lieferantIIds.length - 1) {
+					in += ",";
+				}
+			}
+			in += ")";
+			krit[1] = new FilterKriteriumDirekt("i_id", in, FilterKriterium.OPERATOR_IN, "",
+					FilterKriteriumDirekt.PROZENT_NONE, false, false, Facade.MAX_UNBESCHRAENKT);
+
+		} else {
+			krit[1] = new FilterKriterium(LieferantFac.FLR_KUNDE_B_VERSTECKTERKUNDE, true,
+					Helper.boolean2Short(false) + "", FilterKriterium.OPERATOR_EQUAL, false);
+		}
+
+		return krit;
+	}
+
+	public FilterKriterium[] createFKPartnerPartnerart(String cNrListNotIn) throws Throwable {
+
+		FilterKriterium[] krit = new FilterKriterium[1];
+		krit[0] = new FilterKriterium("partnerart_c_nr", true, "(" + cNrListNotIn + ")",
+				FilterKriterium.OPERATOR_NOT_IN, false);
+
+		return krit;
+	}
+
+	public FilterKriterium[] createFKLieferantMandantPartnerVersteckt() throws Throwable {
+
+		FilterKriterium[] krit = new FilterKriterium[2];
+		krit[0] = new FilterKriterium("mandant_c_nr", true, "'" + LPMain.getTheClient().getMandant() + "'",
+				FilterKriterium.OPERATOR_LIKE, false);
+
+		krit[1] = new FilterKriterium(LieferantFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_VERSTECKT, true,
+				Helper.boolean2Short(false) + "", FilterKriterium.OPERATOR_EQUAL, false);
 
 		return krit;
 	}
 
 	public FilterKriteriumDirekt createFKDKundePartnerOrt() {
 
-		FilterKriteriumDirekt fKDPartnerOrt = new FilterKriteriumDirekt(
-				KundeFac.FLR_PARTNER_LANDPLZORT_ORT_NAME, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.ort"),
-				FilterKriteriumDirekt.PROZENT_BOTH, true, true,
-				Facade.MAX_UNBESCHRAENKT);
+		FilterKriteriumDirekt fKDPartnerOrt = new FilterKriteriumDirekt(KundeFac.FLR_PARTNER_LANDPLZORT_ORT_NAME, "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.ort"),
+				FilterKriteriumDirekt.PROZENT_BOTH, true, true, Facade.MAX_UNBESCHRAENKT);
 		return fKDPartnerOrt;
 	}
 
 	public FilterKriteriumDirekt createFKDLieferantPartnerOrt() {
 
-		FilterKriteriumDirekt fKDPartnerOrt = new FilterKriteriumDirekt(
-				LieferantFac.FLR_PARTNER_LANDPLZORT_ORT_NAME, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.ort"),
+		FilterKriteriumDirekt fKDPartnerOrt = new FilterKriteriumDirekt(LieferantFac.FLR_PARTNER_LANDPLZORT_ORT_NAME,
+				"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.ort"),
 				FilterKriteriumDirekt.PROZENT_BOTH, true, // wrapWithSingleQuotes
 				true, Facade.MAX_UNBESCHRAENKT);
 		return fKDPartnerOrt;
@@ -411,9 +383,18 @@ public class PartnerFilterFactory {
 
 		FilterKriterium[] aKriterien = new FilterKriterium[1];
 
-		aKriterien[0] = new FilterKriterium(
-				KundesachbearbeiterFac.FLR_KUNDE_I_ID, true, "'" + iIdKundeI
-						+ "'", FilterKriterium.OPERATOR_EQUAL, false);
+		aKriterien[0] = new FilterKriterium(KundesachbearbeiterFac.FLR_KUNDE_I_ID, true, "" + iIdKundeI + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
+
+		return aKriterien;
+	}
+
+	public FilterKriterium[] createFKBeauskunftung(Integer partnerIId) {
+
+		FilterKriterium[] aKriterien = new FilterKriterium[1];
+
+		aKriterien[0] = new FilterKriterium("partner_i_id", true, "" + partnerIId, FilterKriterium.OPERATOR_EQUAL,
+				false);
 
 		return aKriterien;
 	}
@@ -421,13 +402,10 @@ public class PartnerFilterFactory {
 	public FilterKriterium[] createFKKundeMandantPartner() throws Throwable {
 
 		FilterKriterium[] krit = new FilterKriterium[2];
-		krit[0] = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
+		krit[0] = new FilterKriterium("mandant_c_nr", true, "'" + LPMain.getTheClient().getMandant() + "'",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		krit[1] = new FilterKriterium(
-				KundeFac.FLR_KUNDE_B_VERSTECKTERLIEFERANT, true,
-				Helper.boolean2Short(false) + "",
+		krit[1] = new FilterKriterium(KundeFac.FLR_KUNDE_B_VERSTECKTERLIEFERANT, true, Helper.boolean2Short(false) + "",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
 		return krit;
@@ -436,20 +414,18 @@ public class PartnerFilterFactory {
 	public QueryType[] createQTKundeABC() {
 		QueryType[] types = new QueryType[1];
 		types[0] = new QueryType("ABC", createFKABC(types),
-				new String[] { FilterKriterium.OPERATOR_LIKE }, true, true);
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, true);
 
 		return types;
 	}
 
-	public FilterKriterium[] createFKKundeLieferstatistik(Integer kundeIId)
-			throws Throwable {
+	public FilterKriterium[] createFKKundeLieferstatistik(Integer kundeIId) throws Throwable {
 
 		FilterKriterium[] krit = new FilterKriterium[2];
-		krit[0] = new FilterKriterium(KundeFac.FLR_KUNDE_I_ID, true,
-				kundeIId.toString(), FilterKriterium.OPERATOR_LIKE, false);
-		krit[1] = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		krit[0] = new FilterKriterium(KundeFac.FLR_KUNDE_I_ID, true, kundeIId.toString(), FilterKriterium.OPERATOR_LIKE,
+				false);
+		krit[1] = new FilterKriterium("mandant_c_nr", true,
+				"'" + LPMain.getInstance().getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		return krit;
 	}
 
@@ -462,67 +438,59 @@ public class PartnerFilterFactory {
 	public QueryType[] createQTKundeABCDebitoren() {
 		QueryType[] types = new QueryType[4];
 
-		FilterKriterium f1 = new FilterKriterium(KundeFac.FLR_KONTO + ".c_nr",
-				true, "", FilterKriterium.OPERATOR_LIKE, false);
+		FilterKriterium f1 = new FilterKriterium(KundeFac.FLR_KONTO + ".c_nr", true, "", FilterKriterium.OPERATOR_LIKE,
+				false);
 
-		types[0] = new QueryType(
-				LPMain.getTextRespectUISPr("lp.debitorenkonto"), f1,
-				new String[] { FilterKriterium.OPERATOR_LIKE }, true, true);
+		types[0] = new QueryType(LPMain.getTextRespectUISPr("lp.debitorenkonto"), f1,
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, true);
 
 		types[1] = createQTKundeABC()[0];
 
 		types[2] = new QueryType(LPMain.getTextRespectUISPr("lp.lkz1"),
-				new FilterKriterium("flrpartner."
-						+ PartnerFac.FLR_PARTNER_FLRLANDPLZORT
-						+ ".flrland.c_lkz", true, "",
+				new FilterKriterium("flrpartner." + PartnerFac.FLR_PARTNER_FLRLANDPLZORT + ".flrland.c_lkz", true, "",
 						FilterKriterium.OPERATOR_LIKE, true),
-				new String[] { FilterKriterium.OPERATOR_LIKE }, true, true);
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, true);
 
 		types[3] = new QueryType(LPMain.getTextRespectUISPr("menueentry.plz"),
-				new FilterKriterium("flrpartner."
-						+ PartnerFac.FLR_PARTNER_FLRLANDPLZORT + ".c_plz",
-						true, "", FilterKriterium.OPERATOR_LIKE, true),
-				new String[] { FilterKriterium.OPERATOR_LIKE }, true, true);
+				new FilterKriterium("flrpartner." + PartnerFac.FLR_PARTNER_FLRLANDPLZORT + ".c_plz", true, "",
+						FilterKriterium.OPERATOR_LIKE, true),
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, true);
 
 		return types;
 	}
 
 	public QueryType[] createQTPartnerart() {
-		QueryType[] types = new QueryType[1];
+		QueryType[] types = new QueryType[2];
 
-		FilterKriterium f2 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_PARTNERART, true, "",
+		FilterKriterium f1 = new FilterKriterium(PartnerFac.FLR_PARTNER_PARTNERART, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType("Partnerart", f2,
-				new String[] { FilterKriterium.OPERATOR_LIKE }, true, true);
+		types[0] = new QueryType("Partnerart", f1,
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, true);
+
+		FilterKriterium f2 = new FilterKriterium("selektionset.flrselektion.c_nr", true, "",
+				FilterKriterium.OPERATOR_LIKE, true);
+		types[1] = new QueryType(LPMain.getTextRespectUISPr("lp.selektion"), f2,
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, true);
 
 		return types;
 	}
 
 	public FilterKriteriumDirekt createFKDPartnerName() throws Throwable {
 		FilterKriteriumDirekt fKDPartnername = null;
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
-						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getInstance().getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
+						ParameterFac.KATEGORIE_PARTNER, LPMain.getInstance().getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
 
-			fKDPartnername = new FilterKriteriumDirekt(
-					PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.name"),
+			fKDPartnername = new FilterKriteriumDirekt(PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.name"),
 					FilterKriteriumDirekt.PROZENT_BOTH, true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignorecase: 0 Ignoriere
 														// Grosskleinschreibung
 		} else {
-			fKDPartnername = new FilterKriteriumDirekt(
-					PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("lp.name"),
+			fKDPartnername = new FilterKriteriumDirekt(PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.name"),
 					FilterKriteriumDirekt.PROZENT_TRAILING, true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT);
 
@@ -532,10 +500,9 @@ public class PartnerFilterFactory {
 
 	public FilterKriteriumDirekt createFKDAnsprechpartnerPartnerName() {
 		FilterKriteriumDirekt fkDirekt1 = new FilterKriteriumDirekt(
-				AnsprechpartnerFac.FLR_ANSPRECHPARTNER_PARTNERANSPRECHPARTNER
-						+ "." + PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
-				"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.name"),
+				AnsprechpartnerFac.FLR_ANSPRECHPARTNER_PARTNERANSPRECHPARTNER + "."
+						+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+				"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.name"),
 				FilterKriteriumDirekt.PROZENT_TRAILING, true, // wrapWithSingleQuotes
 				true, Facade.MAX_UNBESCHRAENKT); // ignorecase: 0 Ignoriere
 													// Grosskleinschreibung
@@ -543,64 +510,66 @@ public class PartnerFilterFactory {
 	}
 
 	public FilterKriteriumDirekt createFKDPartnerLandPLZOrt() {
-		FilterKriteriumDirekt fkDirekt2 = new FilterKriteriumDirekt(
-				PartnerFac.FLR_PARTNER_LANDPLZORT_ORT_NAME, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.ort"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-				Facade.MAX_UNBESCHRAENKT);
+		FilterKriteriumDirekt fkDirekt2 = new FilterKriteriumDirekt(PartnerFac.FLR_PARTNER_LANDPLZORT_ORT_NAME, "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.ort"),
+				FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT);
 		return fkDirekt2;
+	}
+
+	public FilterKriteriumDirekt createFKDLandPLZOrt() {
+		return new FilterKriteriumDirekt("PLZOrt", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.ortplz"), FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+				Facade.MAX_UNBESCHRAENKT);
 	}
 
 	// filterkritversteckt: 0
 	public FilterKriterium createFKVPartner() {
-		FilterKriterium fkVersteckt = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_VERSTECKT, true, "(1)", // wenn das
-																// Kriterium
-																// verwendet
-																// wird, sollen
-																// die
-																// versteckten
-																// nicht
-																// mitangezeigt
-																// werden
+		FilterKriterium fkVersteckt = new FilterKriterium(PartnerFac.FLR_PARTNER_VERSTECKT, true, "(1)", // wenn das
+																											// Kriterium
+																											// verwendet
+																											// wird,
+																											// sollen
+																											// die
+																											// versteckten
+																											// nicht
+																											// mitangezeigt
+																											// werden
 				FilterKriterium.OPERATOR_NOT_IN, false);
 
 		return fkVersteckt;
 	}
 
 	public FilterKriterium createFKVKunde() {
-		FilterKriterium fkVersteckt = new FilterKriterium(KundeFac.FLR_PARTNER
-				+ "." + PartnerFac.FLR_PARTNER_VERSTECKT, true, "(1)", // wenn
-																		// das
-																		// Kriterium
-																		// verwendet
-																		// wird,
-																		// sollen
-																		// die
-																		// versteckten
-																		// nicht
-																		// mitangezeigt
-																		// werden
+		FilterKriterium fkVersteckt = new FilterKriterium(KundeFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_VERSTECKT,
+				true, "(1)", // wenn
+								// das
+								// Kriterium
+								// verwendet
+								// wird,
+								// sollen
+								// die
+								// versteckten
+								// nicht
+								// mitangezeigt
+								// werden
 				FilterKriterium.OPERATOR_NOT_IN, false);
 
 		return fkVersteckt;
 	}
 
 	public FilterKriterium createFKVAnsprechpartner() {
-		FilterKriterium fkVersteckt = new FilterKriterium(
-				AnsprechpartnerFac.FLR_ANSPRECHPARTNER_VERSTECKT, true, "(1)", // wenn
-																				// das
-																				// Kriterium
-																				// verwendet
-																				// wird
-																				// ,
-																				// sollen
-																				// die
-																				// versteckten
-																				// nicht
-																				// mitangezeigt
-																				// werden
+		FilterKriterium fkVersteckt = new FilterKriterium(AnsprechpartnerFac.FLR_ANSPRECHPARTNER_VERSTECKT, true, "(1)", // wenn
+																															// das
+																															// Kriterium
+																															// verwendet
+																															// wird
+																															// ,
+																															// sollen
+																															// die
+																															// versteckten
+																															// nicht
+																															// mitangezeigt
+																															// werden
 				FilterKriterium.OPERATOR_NOT_IN, false);
 
 		return fkVersteckt;
@@ -608,19 +577,18 @@ public class PartnerFilterFactory {
 
 	public FilterKriterium createFKVLieferant() {
 		FilterKriterium fkVersteckt = new FilterKriterium(
-				LieferantFac.FLR_PARTNER + "."
-						+ PartnerFac.FLR_PARTNER_VERSTECKT, true, "(1)", // wenn
-																			// das
-																			// Kriterium
-																			// verwendet
-																			// wird
-																			// ,
-																			// sollen
-																			// die
-																			// versteckten
-																			// nicht
-																			// mitangezeigt
-																			// werden
+				LieferantFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_VERSTECKT, true, "(1)", // wenn
+																								// das
+																								// Kriterium
+																								// verwendet
+																								// wird
+																								// ,
+																								// sollen
+																								// die
+																								// versteckten
+																								// nicht
+																								// mitangezeigt
+																								// werden
 				FilterKriterium.OPERATOR_NOT_IN, false);
 
 		return fkVersteckt;
@@ -628,36 +596,30 @@ public class PartnerFilterFactory {
 
 	/**
 	 * Default Filterkriterium fuer Filter nach PASelektion. <br>
-	 * Bedingung: Attributname im FLR ist
-	 * PartnerFac.FLR_PASELEKTION_PARTNER_I_ID.
+	 * Bedingung: Attributname im FLR ist PartnerFac.FLR_PASELEKTION_PARTNER_I_ID.
 	 * 
-	 * @param iiPAPartnerI
-	 *            Integer
+	 * @param iiPAPartnerI Integer
 	 * @return FilterKriterium[]
 	 */
 	public FilterKriterium[] createFKPASelektion(Integer iiPAPartnerI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_PASELEKTION_PARTNER_I_ID, true, "'"
-						+ iiPAPartnerI.toString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_PASELEKTION_PARTNER_I_ID, true,
+				"'" + iiPAPartnerI.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
+
 	public FilterKriterium[] createFKPartnerkommentar(Integer iiPAPartnerI, boolean bKunde) {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerServicesFac.FLR_PARTNERKOMMENTAR_PARTNER_I_ID, true, ""
-						+ iiPAPartnerI.toString() + "",
-				FilterKriterium.OPERATOR_EQUAL, false);
-		
+		FilterKriterium krit1 = new FilterKriterium(PartnerServicesFac.FLR_PARTNERKOMMENTAR_PARTNER_I_ID, true,
+				"" + iiPAPartnerI.toString() + "", FilterKriterium.OPERATOR_EQUAL, false);
+
 		kriterien[0] = krit1;
-		
-		FilterKriterium krit2 = new FilterKriterium(
-				PartnerServicesFac.FLR_PARTNERKOMMENTAR_B_KUNDE, true, ""+ Helper.boolean2Short(bKunde),
-				FilterKriterium.OPERATOR_EQUAL, false);
+
+		FilterKriterium krit2 = new FilterKriterium(PartnerServicesFac.FLR_PARTNERKOMMENTAR_B_KUNDE, true,
+				"" + Helper.boolean2Short(bKunde), FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[1] = krit2;
-		
+
 		return kriterien;
 	}
 
@@ -665,25 +627,21 @@ public class PartnerFilterFactory {
 	 * Default Filterkriterium fuer Filter nach Partner. <br>
 	 * Bedingung: Attributname im FLR ist PartnerFac.FLR_PARTNER_I_ID.
 	 * 
-	 * @param iiPartnerI
-	 *            Integer
+	 * @param iiPartnerI Integer
 	 * @return FilterKriterium[]
 	 */
 	public FilterKriterium[] createFKPartner(Integer iiPartnerI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_I_ID, true, "'" + iiPartnerI.toString()
-						+ "'", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_PARTNER_I_ID, true,
+				"'" + iiPartnerI.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
 
 	public FilterKriterium[] createFKSerienbriefSelektion(Integer iiSerienbriefI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_SERIENBRIEFSELEKTION_SERIENBRIEF_I_ID, true, "'"
-						+ iiSerienbriefI.toString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_SERIENBRIEFSELEKTION_SERIENBRIEF_I_ID, true,
+				"'" + iiSerienbriefI.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
@@ -693,17 +651,13 @@ public class PartnerFilterFactory {
 	 * Bedingung: Attributname im FLR ist
 	 * PartnerFac.FLR_PARTNER_KOMMUNIKATION_PARTNER_I_ID.
 	 * 
-	 * @param iiKommunikationPartnerI
-	 *            Integer
+	 * @param iiKommunikationPartnerI Integer
 	 * @return FilterKriterium[]
 	 */
-	public FilterKriterium[] createFKPartnerKommunikationPartner(
-			Integer iiKommunikationPartnerI) {
+	public FilterKriterium[] createFKPartnerKommunikationPartner(Integer iiKommunikationPartnerI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_KOMMUNIKATION_PARTNER_I_ID, true, "'"
-						+ iiKommunikationPartnerI.toString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_PARTNER_KOMMUNIKATION_PARTNER_I_ID, true,
+				"'" + iiKommunikationPartnerI.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
@@ -712,16 +666,13 @@ public class PartnerFilterFactory {
 	 * Default Filterkriterium fuer Filter nach Partnerbank. <br>
 	 * Bedingung: Attributname im FLR ist BankFac.FLR_PARTNERBANK_PARTNER_I_ID.
 	 * 
-	 * @param iiPartnerbankPartnerI
-	 *            Integer
+	 * @param iiPartnerbankPartnerI Integer
 	 * @return FilterKriterium[]
 	 */
 	public FilterKriterium[] createFKPartnerbank(Integer iiPartnerbankPartnerI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				BankFac.FLR_PARTNERBANK_PARTNER_I_ID, true, "'"
-						+ iiPartnerbankPartnerI.toString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(BankFac.FLR_PARTNERBANK_PARTNER_I_ID, true,
+				"'" + iiPartnerbankPartnerI.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
@@ -730,32 +681,28 @@ public class PartnerFilterFactory {
 	 * Default Filterkriterium fuer Filter nach Ansprechpartner. <br>
 	 * Bedingung: Attributname im FLR ist AnsprechpartnerFac.FLR_PARTNER_I_ID.
 	 * 
-	 * @param iIdAnsprechpartner
-	 *            Integer
+	 * @param iIdAnsprechpartner Integer
 	 * @return FilterKriterium[]
 	 */
 	public FilterKriterium[] createFKAnsprechpartner(Integer iIdAnsprechpartner) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				AnsprechpartnerFac.FLR_ANSPRECHPARTNER_PARTNER_I_ID, true, "'"
-						+ iIdAnsprechpartner.toString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(AnsprechpartnerFac.FLR_ANSPRECHPARTNER_PARTNER_I_ID, true,
+				"'" + iIdAnsprechpartner.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
 
 	public FilterKriterium[] createFKKontakt(Integer iIdPartner) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium("flrpartner.i_id", true,
-				iIdPartner + "", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium("flrpartner.i_id", true, iIdPartner + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
 
 	public FilterKriterium[] createFKWiedervorlage(Integer iIdPartner) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium("t_erledigt", true, "",
-				FilterKriterium.OPERATOR_NOT_NULL, false);
+		FilterKriterium krit1 = new FilterKriterium("t_erledigt", true, "", FilterKriterium.OPERATOR_NOT_NULL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
@@ -765,23 +712,22 @@ public class PartnerFilterFactory {
 	 * Bedingung: Attributname im FLR ist
 	 * PartnerFac.FLR_PARTNER_KURZBRIEF_PARTNER_I_ID.
 	 * 
-	 * @param iIdKurzbriefpartner
-	 *            Integer
-	 * @param belegartCNr
-	 *            String
+	 * @param iIdKurzbriefpartner Integer
+	 * @param belegartCNr         String
 	 * @return FilterKriterium[]
 	 */
-	public FilterKriterium[] createFKKurzbriefpartner(
-			Integer iIdKurzbriefpartner, String belegartCNr) {
-		FilterKriterium[] kriterien = new FilterKriterium[2];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_KURZBRIEF_PARTNER_I_ID, true, "'"
-						+ iIdKurzbriefpartner.toString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+	public FilterKriterium[] createFKKurzbriefpartner(Integer iIdKurzbriefpartner, String belegartCNr)
+			throws Throwable {
+		FilterKriterium[] kriterien = new FilterKriterium[3];
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_PARTNER_KURZBRIEF_PARTNER_I_ID, true,
+				"'" + iIdKurzbriefpartner.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
-		FilterKriterium krit2 = new FilterKriterium("belegart_c_nr", true, "'"
-				+ belegartCNr + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit2 = new FilterKriterium("belegart_c_nr", true, "'" + belegartCNr + "'",
+				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[1] = krit2;
+		FilterKriterium krit3 = new FilterKriterium("mandant_c_nr", true,
+				"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		kriterien[2] = krit3;
 		return kriterien;
 	}
 
@@ -790,16 +736,13 @@ public class PartnerFilterFactory {
 	 * Bedingung: Attributname im FLR ist
 	 * PartnerFac.FLR_SERIENBRIEFSELEKTION_SERIENBRIEF_I_ID.
 	 * 
-	 * @param iIdSerienbriefI
-	 *            Integer
+	 * @param iIdSerienbriefI Integer
 	 * @return FilterKriterium[]
 	 */
 	public FilterKriterium[] createFKSerienbrief(Integer iIdSerienbriefI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_SERIENBRIEFSELEKTION_SERIENBRIEF_I_ID, true, "'"
-						+ iIdSerienbriefI + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_SERIENBRIEFSELEKTION_SERIENBRIEF_I_ID, true,
+				"'" + iIdSerienbriefI + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
@@ -809,16 +752,13 @@ public class PartnerFilterFactory {
 	 * Bedingung: Attributname im FLR ist
 	 * LieferantFac.FLR_ID_COMP_LF_LIEFERANT_I_ID.
 	 * 
-	 * @param iIdLieferantI
-	 *            Integer
+	 * @param iIdLieferantI Integer
 	 * @return FilterKriterium[]
 	 */
 	public FilterKriterium[] createFKLieferant(Integer iIdLieferantI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				LieferantFac.FLR_ID_COMP_LF_LIEFERANT_I_ID, true, "'"
-						+ iIdLieferantI.toString() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(LieferantFac.FLR_ID_COMP_LF_LIEFERANT_I_ID, true,
+				"'" + iIdLieferantI.toString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
 	}
@@ -828,14 +768,12 @@ public class PartnerFilterFactory {
 	 * Bedingung: Attributname im FLR ist
 	 * LieferantFac.FLR_ID_COMP_LF_LIEFERANT_I_ID.
 	 * 
-	 * @param iIdLieferantI
-	 *            Integer
+	 * @param iIdLieferantI Integer
 	 * @return FilterKriterium[]
 	 */
 	public FilterKriterium[] createFKLieferantbeurteilung(Integer iIdLieferantI) {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium("flrlieferant.i_id", true,
-				"'" + iIdLieferantI.toString() + "'",
+		FilterKriterium krit1 = new FilterKriterium("flrlieferant.i_id", true, "'" + iIdLieferantI.toString() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 		return kriterien;
@@ -844,71 +782,55 @@ public class PartnerFilterFactory {
 	public QueryType[] createQTPLZ() {
 		QueryType[] types = new QueryType[1];
 
-		FilterKriterium f1 = new FilterKriterium(
-				LieferantFac.FLR_PARTNER_LANDPLZORT_PLZ, // flrres: sind alles
-															// aliase
+		FilterKriterium f1 = new FilterKriterium(LieferantFac.FLR_PARTNER_LANDPLZORT_PLZ, // flrres: sind alles
+																							// aliase
 				true, "", FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"lp.plz"), f1, new String[] { FilterKriterium.OPERATOR_LIKE },
-				true, true);
+		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr("lp.plz"), f1,
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, true);
 
 		return types;
 	}
 
 	public FilterKriteriumDirekt createFKDBankLandPLZOrt() {
-		FilterKriteriumDirekt fkDirekt2 = new FilterKriteriumDirekt(
-				BankFac.FLR_PARTNERBANK_LANDPLZORT_ORT_NAME, "",
-				FilterKriterium.OPERATOR_LIKE,
-				LPMain.getTextRespectUISPr("lp.ort"),
-				FilterKriteriumDirekt.PROZENT_BOTH, true, false,
-				Facade.MAX_UNBESCHRAENKT);
+		FilterKriteriumDirekt fkDirekt2 = new FilterKriteriumDirekt(BankFac.FLR_PARTNERBANK_LANDPLZORT_ORT_NAME, "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.ort"), FilterKriteriumDirekt.PROZENT_BOTH,
+				true, false, Facade.MAX_UNBESCHRAENKT);
 		return fkDirekt2;
 	}
 
 	public FilterKriteriumDirekt createFKDBankBLZ() {
-		FilterKriteriumDirekt fkDirekt = new FilterKriteriumDirekt(
-				BankFac.FLR_PARTNERBANK_BLZ, "", FilterKriterium.OPERATOR_LIKE,
-				LPMain.getTextRespectUISPr("lp.blz") + "/"
-						+ LPMain.getTextRespectUISPr("lp.bic"),
-				FilterKriteriumDirekt.PROZENT_BOTH, true, false,
-				Facade.MAX_UNBESCHRAENKT);
+		FilterKriteriumDirekt fkDirekt = new FilterKriteriumDirekt(BankFac.FLR_PARTNERBANK_BLZ, "",
+				FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.blz") + "/" + LPMain.getTextRespectUISPr("lp.bic"),
+				FilterKriteriumDirekt.PROZENT_BOTH, true, false, Facade.MAX_UNBESCHRAENKT);
 		return fkDirekt;
 	}
 
 	/**
 	 * PanelFLRAnsprechpartner erzeugen
 	 * 
-	 * @param internalFrameI
-	 *            InternalFrame
-	 * @param partnerIId
-	 *            Integer
-	 * @param selectedId
-	 *            Integer
-	 * @param bMitNewButton
-	 *            boolean
-	 * @param bMitLeerenButton
-	 *            boolean
+	 * @param internalFrameI   InternalFrame
+	 * @param partnerIId       Integer
+	 * @param selectedId       Integer
+	 * @param bMitNewButton    boolean
+	 * @param bMitLeerenButton boolean
 	 * @return PanelQueryFLR
 	 * @throws Throwable
 	 */
-	public PanelQueryFLR createPanelFLRAnsprechpartner(
-			InternalFrame internalFrameI, Integer partnerIId,
-			Integer selectedId, boolean bMitNewButton, boolean bMitLeerenButton)
-			throws Throwable {
+	public PanelQueryFLR createPanelFLRAnsprechpartner(InternalFrame internalFrameI, Integer partnerIId,
+			Integer selectedId, boolean bMitNewButton, boolean bMitLeerenButton) throws Throwable {
 		String[] aWhichButtonIUse = null;
 		if (bMitLeerenButton) {
 			if (bMitNewButton) {
-				aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH,
-						PanelBasis.ACTION_LEEREN, PanelBasis.ACTION_NEW };
+				aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN,
+						PanelBasis.ACTION_NEW };
 			} else {
-				aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH,
-						PanelBasis.ACTION_LEEREN };
+				aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 			}
 		} else {
 			if (bMitNewButton) {
-				aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH,
-						PanelBasis.ACTION_NEW };
+				aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_NEW };
 			} else {
 				aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH };
 			}
@@ -916,16 +838,13 @@ public class PartnerFilterFactory {
 
 		QueryType[] types = new QueryType[0];
 
-		PanelQueryFLR panelQueryFLRAnsprechpartner = new PanelQueryFLRAnsprechpartnerAnlegen(
-				types, PartnerFilterFactory.getInstance()
-						.createFKAnsprechpartner(partnerIId), aWhichButtonIUse,
-				internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-						"title.ansprechpartnerauswahlliste"), partnerIId);
+		PanelQueryFLR panelQueryFLRAnsprechpartner = new PanelQueryFLRAnsprechpartnerAnlegen(types,
+				PartnerFilterFactory.getInstance().createFKAnsprechpartner(partnerIId), aWhichButtonIUse,
+				internalFrameI, LPMain.getInstance().getTextRespectUISPr("title.ansprechpartnerauswahlliste"),
+				partnerIId);
 		// Direktfilter gleich einbauen
-		panelQueryFLRAnsprechpartner
-				.befuellePanelFilterkriterienDirektUndVersteckte(
-						createFKDAnsprechpartnerPartnerName(), null,
-						createFKVAnsprechpartner());
+		panelQueryFLRAnsprechpartner.befuellePanelFilterkriterienDirektUndVersteckte(
+				createFKDAnsprechpartnerPartnerName(), null, createFKVAnsprechpartner());
 
 		// vorbesetzen falls gewuenscht
 		if (selectedId != null) {
@@ -935,33 +854,27 @@ public class PartnerFilterFactory {
 		return panelQueryFLRAnsprechpartner;
 	}
 
-	public PanelQueryFLR createPanelFLRPartnerkommentarart(
-			InternalFrame internalFrameI, Integer selectedId,
+	public PanelQueryFLR createPanelFLRPartnerkommentarart(InternalFrame internalFrameI, Integer selectedId,
 			boolean bMitLeerenButton) throws Throwable {
 
 		String[] aWhichButtonIUse = null;
 		if (bMitLeerenButton) {
-			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH,
-					PanelBasis.ACTION_LEEREN };
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 		} else {
 			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH };
 		}
 		PanelQueryFLR panelQueryFLRKommentarart = new PanelQueryFLR(
-				ArtikelFilterFactory.getInstance()
-						.createQTArtikelkommentarart(), null,
-				QueryParameters.UC_ID_PARTNERKOMMENTARART, aWhichButtonIUse,
-				internalFrameI, LPMain.getTextRespectUISPr(
-						"lp.kommentarart"));
+				ArtikelFilterFactory.getInstance().createQTArtikelkommentarart(), null,
+				QueryParameters.UC_ID_PARTNERKOMMENTARART, aWhichButtonIUse, internalFrameI,
+				LPMain.getTextRespectUISPr("lp.kommentarart"));
 
 		panelQueryFLRKommentarart
-				.befuellePanelFilterkriterienDirekt(
-						SystemFilterFactory.getInstance().createFKDBezeichnung(),null);
+				.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 		panelQueryFLRKommentarart.setSelectedId(selectedId);
 		return panelQueryFLRKommentarart;
 
 	}
 
-	
 	public Map getMapKundeInteressent() {
 		Map m = new TreeMap();
 		m.put(1, LPMain.getTextRespectUISPr("kunde.filter.alle"));
@@ -971,29 +884,22 @@ public class PartnerFilterFactory {
 	}
 
 	public FilterKriteriumDirekt createFKDBankName() {
-		FilterKriteriumDirekt fkDirekt1 = new FilterKriteriumDirekt(
-				BankFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.name"),
-				FilterKriteriumDirekt.PROZENT_BOTH, true, true,
-				Facade.MAX_UNBESCHRAENKT);
+		FilterKriteriumDirekt fkDirekt1 = new FilterKriteriumDirekt(BankFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.name"),
+				FilterKriteriumDirekt.PROZENT_BOTH, true, true, Facade.MAX_UNBESCHRAENKT);
 		return fkDirekt1;
 	}
 
-	public FilterKriterium createFKKriteriumGeschaeftsjahr(boolean isSelectedI)
-			throws Throwable {
+	public FilterKriterium createFKKriteriumGeschaeftsjahr(boolean isSelectedI) throws Throwable {
 		FilterKriterium[] krit = new FilterKriterium[1];
-		krit[0] = new FilterKriterium(KundeFac.KRIT_JAHR_GESCHAEFTSJAHR,
-				isSelectedI, KundeFac.KRIT_JAHR_GESCHAEFTSJAHR,
+		krit[0] = new FilterKriterium(KundeFac.KRIT_JAHR_GESCHAEFTSJAHR, isSelectedI, KundeFac.KRIT_JAHR_GESCHAEFTSJAHR,
 				FilterKriterium.OPERATOR_EQUAL, false);
 		return krit[0];
 	}
 
-	public FilterKriterium createFKKriteriumKalenderjahr(boolean isSelectedI)
-			throws Throwable {
+	public FilterKriterium createFKKriteriumKalenderjahr(boolean isSelectedI) throws Throwable {
 		FilterKriterium[] krit = new FilterKriterium[1];
-		krit[0] = new FilterKriterium(KundeFac.KRIT_JAHR_KALENDERJAHR,
-				isSelectedI, KundeFac.KRIT_JAHR_KALENDERJAHR,
+		krit[0] = new FilterKriterium(KundeFac.KRIT_JAHR_KALENDERJAHR, isSelectedI, KundeFac.KRIT_JAHR_KALENDERJAHR,
 				FilterKriterium.OPERATOR_EQUAL, false);
 		return krit[0];
 	}
@@ -1001,81 +907,95 @@ public class PartnerFilterFactory {
 	public FilterKriterium createFKKriteriumIId(Integer iIdI) throws Throwable {
 
 		FilterKriterium[] krit = new FilterKriterium[1];
-		krit[0] = new FilterKriterium("", true, iIdI.toString(),
-				FilterKriterium.OPERATOR_EQUAL, false);
+		krit[0] = new FilterKriterium("", true, iIdI.toString(), FilterKriterium.OPERATOR_EQUAL, false);
 		return krit[0];
 	}
 
 	/**
 	 * Kundenauswahlliste mit Filter & Direktfilter.
 	 * 
-	 * @param internalFrameI
-	 *            InternalFrame
-	 * @param bShowFilterButton
-	 *            den New Button anzeigen
-	 * @param bShowLeerenButton
-	 *            den Leeren Button anzeigen
+	 * @param internalFrameI    InternalFrame
+	 * @param bShowFilterButton den New Button anzeigen
+	 * @param bShowLeerenButton den Leeren Button anzeigen
 	 * @return PanelQueryFLR die Auswahlliste
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelQueryFLR createPanelFLRKunde(InternalFrame internalFrameI,
-			boolean bShowFilterButton, boolean bShowLeerenButton)
-			throws Throwable {
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(bShowFilterButton, bShowLeerenButton);
+	public PanelQueryFLR createPanelFLRKunde(InternalFrame internalFrameI, boolean bShowFilterButton,
+			boolean bShowLeerenButton) throws Throwable {
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(bShowFilterButton,
+				bShowLeerenButton);
 
-		PanelQueryFLR panelQueryFLRKunde = new PanelQueryFLR(
-				PartnerFilterFactory.getInstance().createQTKundeABCDebitoren(),
-				PartnerFilterFactory.getInstance()
-						.createFKKundeMandantPartner(),
-				QueryParameters.UC_ID_KUNDE2, aWhichButtonIUse, internalFrameI,
-				LPMain.getTextRespectUISPr("title.kundenauswahlliste"));
+		
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_KUNDEN,
+						ParameterFac.PARAMETER_KUNDENAUSWAHL_STRUKTURIERT);
+		boolean b = (java.lang.Boolean) parameter.getCWertAsObject();
+		
+		PanelQueryFLR panelQueryFLRKunde = null;
+		
+		if (b==true) {
+			panelQueryFLRKunde = new PanelQueryFLR(
+					PartnerFilterFactory.getInstance().createQTKundeABCDebitoren(),
+					PartnerFilterFactory.getInstance().createFKKundeMandantPartner(), QueryParameters.UC_ID_KUNDE_STRUKTUR,
+					aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("title.kundenauswahlliste"),
+					PartnerFilterFactory.getInstance().createFKVKunde(), null);
+		}else {
+			panelQueryFLRKunde = new PanelQueryFLR(
+					PartnerFilterFactory.getInstance().createQTKundeABCDebitoren(),
+					PartnerFilterFactory.getInstance().createFKKundeMandantPartner(), QueryParameters.UC_ID_KUNDE2,
+					aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("title.kundenauswahlliste"),
+					PartnerFilterFactory.getInstance().createFKVKunde(), null);
+		}
+		
+		
 
-		panelQueryFLRKunde.befuellePanelFilterkriterienDirektUndVersteckte(
-				PartnerFilterFactory.getInstance().createFKDKundePartnerName(
-						LPMain.getTextRespectUISPr("lp.firma")),
-				PartnerFilterFactory.getInstance().createFKDKundePartnerOrt(),
-				PartnerFilterFactory.getInstance().createFKVKunde());
+		panelQueryFLRKunde.befuellePanelFilterkriterienDirekt(
+				PartnerFilterFactory.getInstance().createFKDKundePartnerName(LPMain.getTextRespectUISPr("lp.firma")),
+				PartnerFilterFactory.getInstance().createFKDKundePartnerOrt());
 
-		panelQueryFLRKunde.setFilterComboBox(PartnerFilterFactory.getInstance()
-				.getMapKundeInteressent(), new FilterKriterium(
-				"KUNDE_INTERESSENT", true, "" + "",
-				FilterKriterium.OPERATOR_EQUAL, false), true);
+		panelQueryFLRKunde.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnerErweiterteSuche());
 
-		ParametermandantDto parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(
-						LPMain.getInstance().getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_KUNDEN,
-						ParameterFac.PARAMETER_DEFAULT_KUNDENAUSWAHL);
+		panelQueryFLRKunde.setFilterComboBox(PartnerFilterFactory.getInstance().getMapKundeInteressent(),
+				new FilterKriterium("KUNDE_INTERESSENT", true, "" + "", FilterKriterium.OPERATOR_EQUAL, false), true);
+
+		panelQueryFLRKunde.setFilterComboBox2(DelegateFactory.getInstance().getPartnerDelegate().getAllBranche(),
+				new FilterKriterium("flrpartner.branche_i_id", true, "" + "", FilterKriterium.OPERATOR_EQUAL, false),
+				false, LPMain.getTextRespectUISPr("lp.alle"), true);
+
+		parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_KUNDEN,
+				ParameterFac.PARAMETER_DEFAULT_KUNDENAUSWAHL);
 		Integer iAuswahl = (java.lang.Integer) parameter.getCWertAsObject();
 
 		panelQueryFLRKunde.setKeyOfFilterComboBox(iAuswahl);
 
-		parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
-						ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
-		boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter
-				.getCWertAsObject();
+		parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+				ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
+		boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter.getCWertAsObject();
 
 		if (!bSuchenInklusiveKbez) {
 
-			panelQueryFLRKunde
-					.addDirektFilter(createFKDKundePartnerKurzbezeichnung());
+			panelQueryFLRKunde.addDirektFilter(createFKDKundePartnerKurzbezeichnung());
 		}
+
+		parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_KUNDEN,
+				ParameterFac.PARAMETER_KUNDE_MIT_NUMMER);
+
+		int bKundeMitNummer = (java.lang.Integer) parameter.getCWertAsObject();
+
+		if (bKundeMitNummer>0) {
+			panelQueryFLRKunde.addDirektFilter(PartnerFilterFactory.getInstance().createFKDKundeKundennummer());
+		} else
+			panelQueryFLRKunde.addDirektFilter(PartnerFilterFactory.getInstance().createFKDDebitorennummer());
+
 		return panelQueryFLRKunde;
 	}
 
-	public PanelQueryFLR createPanelFLRKundenidentnummer(
-			InternalFrame internalFrameI, boolean bShowLeerenButton,
+	public PanelQueryFLR createPanelFLRKundenidentnummer(InternalFrame internalFrameI, boolean bShowLeerenButton,
 			Integer kundeIId) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 
 		if (bShowLeerenButton == false) {
 			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH };
@@ -1083,51 +1003,39 @@ public class PartnerFilterFactory {
 		FilterKriterium[] kriterien = null;
 		if (kundeIId != null) {
 			kriterien = new FilterKriterium[2];
-			kriterien[0] = new FilterKriterium(
-					"kundesoko.flrkunde.mandant_c_nr", true, "'"
-							+ LPMain.getInstance().getTheClient().getMandant()
-							+ "'", FilterKriterium.OPERATOR_EQUAL, false);
-			kriterien[1] = new FilterKriterium("kundesoko.flrkunde.i_id", true,
-					kundeIId + "", FilterKriterium.OPERATOR_EQUAL, false);
+			kriterien[0] = new FilterKriterium("kundesoko.flrkunde.mandant_c_nr", true,
+					"'" + LPMain.getInstance().getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL,
+					false);
+			kriterien[1] = new FilterKriterium("kundesoko.flrkunde.i_id", true, kundeIId + "",
+					FilterKriterium.OPERATOR_EQUAL, false);
 
 		} else {
 			kriterien = new FilterKriterium[1];
 
-			kriterien[0] = new FilterKriterium(
-					"kundesoko.flrkunde.mandant_c_nr", true, "'"
-							+ LPMain.getInstance().getTheClient().getMandant()
-							+ "'", FilterKriterium.OPERATOR_EQUAL, false);
+			kriterien[0] = new FilterKriterium("kundesoko.flrkunde.mandant_c_nr", true,
+					"'" + LPMain.getInstance().getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL,
+					false);
 
 		}
 
-		PanelQueryFLR panelQueryFLRKundenidentnummer = new PanelQueryFLR(null,
-				kriterien, QueryParameters.UC_ID_KUNDENIDENTNUMMER,
-				aWhichButtonIUse, internalFrameI, LPMain.getInstance()
-						.getTextRespectUISPr("auft.title.panel.auswahl"));
+		PanelQueryFLR panelQueryFLRKundenidentnummer = new PanelQueryFLR(null, kriterien,
+				QueryParameters.UC_ID_KUNDENIDENTNUMMER, aWhichButtonIUse, internalFrameI,
+				LPMain.getInstance().getTextRespectUISPr("auft.title.panel.auswahl"));
 
 		panelQueryFLRKundenidentnummer.befuellePanelFilterkriterienDirekt(
-				new FilterKriteriumDirekt("kundesoko.c_kundeartikelnummer", "",
-						FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-								.getTextRespectUISPr(
-										"kunde.soko.kundeartikelnummer"),
+				new FilterKriteriumDirekt("kundesoko.c_kundeartikelnummer", "", FilterKriterium.OPERATOR_LIKE,
+						LPMain.getInstance().getTextRespectUISPr("kunde.soko.kundeartikelnummer"),
 						FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung
 																// als '%XX'
 						true, // wrapWithSingleQuotes
 						true, Facade.MAX_UNBESCHRAENKT),
-				new FilterKriteriumDirekt("kundesoko.flrkunde."
-						+ KundeFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-						FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-								.getTextRespectUISPr("lp.firma"),
-						FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-						Facade.MAX_UNBESCHRAENKT));
+				new FilterKriteriumDirekt("kundesoko.flrkunde." + KundeFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
+						FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.firma"),
+						FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT));
 
-		panelQueryFLRKundenidentnummer
-				.addDirektFilter(new FilterKriteriumDirekt(
-						ArtikelFac.FLR_ARTIKELLISTE_C_VOLLTEXT, "",
-						FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-								.getTextRespectUISPr("lp.textsuche"),
-						FilterKriteriumDirekt.EXTENDED_SEARCH, false, true,
-						Facade.MAX_UNBESCHRAENKT));
+		panelQueryFLRKundenidentnummer.addDirektFilter(new FilterKriteriumDirekt(ArtikelFac.FLR_ARTIKELLISTE_C_VOLLTEXT,
+				"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("lp.textsuche"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, false, true, Facade.MAX_UNBESCHRAENKT));
 
 		return panelQueryFLRKundenidentnummer;
 
@@ -1136,23 +1044,16 @@ public class PartnerFilterFactory {
 	/**
 	 * Kundenauswahlliste mit Filter & Direktfilter.
 	 * 
-	 * @param internalFrameI
-	 *            InternalFrame
-	 * @param bShowFilterButton
-	 *            den New Button anzeigen
-	 * @param bShowLeerenButton
-	 *            den Leeren Button anzeigen
-	 * @param selectedIIdI
-	 *            die iId des in der Liste selektierten Kunden
+	 * @param internalFrameI    InternalFrame
+	 * @param bShowFilterButton den New Button anzeigen
+	 * @param bShowLeerenButton den Leeren Button anzeigen
+	 * @param selectedIIdI      die iId des in der Liste selektierten Kunden
 	 * @return PanelQueryFLR die Auswahlliste
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelQueryFLR createPanelFLRKunde(InternalFrame internalFrameI,
-			boolean bShowFilterButton, boolean bShowLeerenButton,
-			Integer selectedIIdI) throws Throwable {
-		PanelQueryFLR panelQueryFLRKunde = createPanelFLRKunde(internalFrameI,
-				bShowFilterButton, bShowLeerenButton);
+	public PanelQueryFLR createPanelFLRKunde(InternalFrame internalFrameI, boolean bShowFilterButton,
+			boolean bShowLeerenButton, Integer selectedIIdI) throws Throwable {
+		PanelQueryFLR panelQueryFLRKunde = createPanelFLRKunde(internalFrameI, bShowFilterButton, bShowLeerenButton);
 
 		if (selectedIIdI != null) {
 			panelQueryFLRKunde.setSelectedId(selectedIIdI);
@@ -1164,22 +1065,18 @@ public class PartnerFilterFactory {
 	/**
 	 * Filterkriterium fuer Filter PartnerFac.FLR_PARTNER_I_ID.
 	 * 
-	 * @param iIdPartnerI
-	 *            PK des Partners
+	 * @param iIdPartnerI PK des Partners
 	 * @return FilterKriterium[]
 	 * @throws ExceptionLP
 	 */
-	public FilterKriterium[] createFKPartnerIId(Integer iIdPartnerI)
-			throws ExceptionLP {
+	public FilterKriterium[] createFKPartnerIId(Integer iIdPartnerI) throws ExceptionLP {
 		if (iIdPartnerI == null) {
-			throw new ExceptionLP(EJBExceptionLP.FEHLER_KEIN_PARTNER_GEWAEHLT,
-					new Exception("iIdPartnerI == null"));
+			throw new ExceptionLP(EJBExceptionLP.FEHLER_KEIN_PARTNER_GEWAEHLT, new Exception("iIdPartnerI == null"));
 		}
 
 		FilterKriterium[] kriterien = new FilterKriterium[1];
 
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_I_ID, true, iIdPartnerI.toString(),
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_PARTNER_I_ID, true, iIdPartnerI.toString(),
 				FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
@@ -1195,30 +1092,25 @@ public class PartnerFilterFactory {
 	public QueryType[] createQTPanelQueryFLRKundenauswahl() {
 		QueryType[] types = new QueryType[3];
 
-		FilterKriterium f1 = new FilterKriterium(KundeFac.FLR_PARTNER + "."
-				+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, true, "",
+		FilterKriterium f1 = new FilterKriterium(
+				KundeFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"label.kunde"), f1,
+		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr("label.kunde"), f1,
 				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
 
-		FilterKriterium f2 = new FilterKriterium(KundeFac.FLR_KUNDE_C_KURZNR,
-				true, "", FilterKriterium.OPERATOR_LIKE, false);
+		FilterKriterium f2 = new FilterKriterium(KundeFac.FLR_KUNDE_C_KURZNR, true, "", FilterKriterium.OPERATOR_LIKE,
+				false);
 
-		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"lp.kurzbez"), f1,
+		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr("lp.kurzbez"), f1,
 				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
 
-		FilterKriterium f3 = new FilterKriterium(KundeFac.FLR_PARTNER + "."
-				+ PartnerFac.FLR_PARTNER_FLRLANDPLZORT + "."
-				+ SystemFac.FLR_LP_FLRORT + "."
-				+ SystemFac.FLR_LP_LANDPLZORTPLZ, true, "",
+		FilterKriterium f3 = new FilterKriterium(KundeFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_FLRLANDPLZORT + "."
+				+ SystemFac.FLR_LP_FLRORT + "." + SystemFac.FLR_LP_LANDPLZORTPLZ, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[2] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"lp.plz"), f1, new String[] { FilterKriterium.OPERATOR_EQUAL },
-				true, true);
+		types[2] = new QueryType(LPMain.getInstance().getTextRespectUISPr("lp.plz"), f1,
+				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
 
 		// @todo Debitorenkonto PJ 5140
 
@@ -1228,99 +1120,87 @@ public class PartnerFilterFactory {
 	/**
 	 * Liefergruppenauswahlliste mit Filter & Direktfilter.
 	 * 
-	 * @param internalFrameI
-	 *            InternalFrame
-	 * @param bShowFilterButton
-	 *            den New Button anzeigen
-	 * @param bShowLeerenButton
-	 *            den Leeren Button anzeigen
+	 * @param internalFrameI    InternalFrame
+	 * @param bShowFilterButton den New Button anzeigen
+	 * @param bShowLeerenButton den Leeren Button anzeigen
 	 * @return PanelQueryFLR die Auswahlliste
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelQueryFLR createPanelFLRLiefergruppe(
-			InternalFrame internalFrameI, boolean bShowFilterButton,
+	public PanelQueryFLR createPanelFLRLiefergruppe(InternalFrame internalFrameI, boolean bShowFilterButton,
 			boolean bShowLeerenButton) throws Throwable {
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(bShowFilterButton, bShowLeerenButton);
-		FilterKriterium[] f = SystemFilterFactory.getInstance()
-				.createFKMandantCNr();
-		PanelQueryFLR panelQueryFLRLiefergruppe = new PanelQueryFLR(null, f,
-				QueryParameters.UC_ID_LIEFERGRUPPEN, aWhichButtonIUse,
-				internalFrameI,
-				LPMain.getTextRespectUISPr("title.liefergruppenauswahlliste"));
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(bShowFilterButton,
+				bShowLeerenButton);
+		FilterKriterium[] f = SystemFilterFactory.getInstance().createFKMandantCNr();
+		PanelQueryFLR panelQueryFLRLiefergruppe = new PanelQueryFLR(null, f, QueryParameters.UC_ID_LIEFERGRUPPEN,
+				aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("title.liefergruppenauswahlliste"));
 
 		return panelQueryFLRLiefergruppe;
 	}
 
-	public PanelQueryFLR createPanelFLRBranche(InternalFrame internalFrameI,
-			boolean bShowFilterButton, boolean bShowLeerenButton,
-			Integer selectedId) throws Throwable {
+	public PanelQueryFLR createPanelFLRBranche(InternalFrame internalFrameI, boolean bShowFilterButton,
+			boolean bShowLeerenButton, Integer selectedId) throws Throwable {
 
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(bShowFilterButton, bShowLeerenButton);
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(bShowFilterButton,
+				bShowLeerenButton);
 
 		final QueryType[] querytypes = null;
 		final FilterKriterium[] filters = null;
-		PanelQueryFLR panelQueryFLRBranche = new PanelQueryFLR(querytypes,
-				filters, QueryParameters.UC_ID_BRANCHE, aWhichButtonIUse,
-				internalFrameI, LPMain.getTextRespectUISPr("lp.branche"));
+		PanelQueryFLR panelQueryFLRBranche = new PanelQueryFLR(querytypes, filters, QueryParameters.UC_ID_BRANCHE,
+				aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("lp.branche"));
 
 		panelQueryFLRBranche.setSelectedId(selectedId);
 
 		return panelQueryFLRBranche;
 	}
 
-	public PanelQueryFLR createPanelFLRSelektion(InternalFrame internalFrameI,
-			boolean bShowLeerenButton, Integer selectedId) throws Throwable {
+	public PanelQueryFLR createPanelFLRSelektion(InternalFrame internalFrameI, boolean bShowLeerenButton,
+			Integer selectedId) throws Throwable {
 
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(false, bShowLeerenButton);
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(false, bShowLeerenButton);
 
 		FilterKriterium[] f = null;
 
-		ParametermandantDto parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_PARTNER,
-						ParameterFac.PARAMETER_SELEKTIONEN_MANDANTENABHAENGIG);
-		boolean bSelektionenMandantenabhaengig = (java.lang.Boolean) parameter
-				.getCWertAsObject();
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_PARTNER,
+				ParameterFac.PARAMETER_SELEKTIONEN_MANDANTENABHAENGIG);
+		boolean bSelektionenMandantenabhaengig = (java.lang.Boolean) parameter.getCWertAsObject();
 
 		if (bSelektionenMandantenabhaengig == true) {
 			f = SystemFilterFactory.getInstance().createFKMandantCNr();
 		}
 
-		PanelQueryFLR panelQueryFLRSelektionAuswahl = new PanelQueryFLR(null,
-				f, QueryParameters.UC_ID_SELEKTION, aWhichButtonIUse,
-				internalFrameI, LPMain.getTextRespectUISPr("lp.selektion"));
+		PanelQueryFLR panelQueryFLRSelektionAuswahl = new PanelQueryFLR(null, f, QueryParameters.UC_ID_SELEKTION,
+				aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("lp.selektion"));
 
 		panelQueryFLRSelektionAuswahl.setSelectedId(selectedId);
 
 		return panelQueryFLRSelektionAuswahl;
 	}
 
+	public PanelQueryFLR createPanelFLRSerienbrief(InternalFrame internalFrame, boolean showLeerenButton)
+			throws Throwable {
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(false, showLeerenButton);
+		FilterKriterium[] krit = null;
+//		krit = SystemFilterFactory.getInstance().createFKMandantCNr();
+		PanelQueryFLR panelQuerySerienbrief = new PanelQueryFLR(null, krit, QueryParameters.UC_ID_PARTNERSERIENBRIEF,
+				aWhichButtonIUse, internalFrame, LPMain.getTextRespectUISPr("lp.serienbrief"));
+		return panelQuerySerienbrief;
+	}
+
 	/**
 	 * Liefergruppenauswahlliste mit Filter & Direktfilter.
 	 * 
-	 * @param internalFrameI
-	 *            InternalFrame
-	 * @param bShowFilterButton
-	 *            den New Button anzeigen
-	 * @param bShowLeerenButton
-	 *            den Leeren Button anzeigen
-	 * @param selectedIIdI
-	 *            die iId der in der Liste selektierten Liefergruppe
+	 * @param internalFrameI    InternalFrame
+	 * @param bShowFilterButton den New Button anzeigen
+	 * @param bShowLeerenButton den Leeren Button anzeigen
+	 * @param selectedIIdI      die iId der in der Liste selektierten Liefergruppe
 	 * @return PanelQueryFLR die Auswahlliste
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelQueryFLR createPanelFLRLiefergruppe(
-			InternalFrame internalFrameI, boolean bShowFilterButton,
+	public PanelQueryFLR createPanelFLRLiefergruppe(InternalFrame internalFrameI, boolean bShowFilterButton,
 			boolean bShowLeerenButton, Integer selectedIIdI) throws Throwable {
-		PanelQueryFLR panelQueryFLRLiefergruppe = createPanelFLRLiefergruppe(
-				internalFrameI, bShowFilterButton, bShowLeerenButton);
+		PanelQueryFLR panelQueryFLRLiefergruppe = createPanelFLRLiefergruppe(internalFrameI, bShowFilterButton,
+				bShowLeerenButton);
 
 		if (selectedIIdI != null) {
 			panelQueryFLRLiefergruppe.setSelectedId(selectedIIdI);
@@ -1333,27 +1213,20 @@ public class PartnerFilterFactory {
 	 * Liefergruppenauswahlliste, enthaelt alle Liefergruppen zum aktuellen
 	 * Mandanten, die mindestens einen Lieferanten enthalten.
 	 * 
-	 * @param internalFrameI
-	 *            InternalFrame
-	 * @param bShowFilterButton
-	 *            den New Button anzeigen
-	 * @param bShowLeerenButton
-	 *            den Leeren Button anzeigen
+	 * @param internalFrameI    InternalFrame
+	 * @param bShowFilterButton den New Button anzeigen
+	 * @param bShowLeerenButton den Leeren Button anzeigen
 	 * @return PanelQueryFLR die Auswahlliste
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelQueryFLR createPanelFLRLiefergruppeMindestensEinLieferant(
-			InternalFrame internalFrameI, boolean bShowFilterButton,
-			boolean bShowLeerenButton) throws Throwable {
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(bShowFilterButton, bShowLeerenButton);
-		FilterKriterium[] f = SystemFilterFactory.getInstance()
-				.createFKMandantCNr();
-		PanelQueryFLR panelQueryFLRLiefergruppe = new PanelQueryFLR(null, f,
-				QueryParameters.UC_ID_LFLIEFERGRUPPENONELF, aWhichButtonIUse,
-				internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-						"title.liefergruppenauswahlliste"));
+	public PanelQueryFLR createPanelFLRLiefergruppeMindestensEinLieferant(InternalFrame internalFrameI,
+			boolean bShowFilterButton, boolean bShowLeerenButton) throws Throwable {
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(bShowFilterButton,
+				bShowLeerenButton);
+		FilterKriterium[] f = SystemFilterFactory.getInstance().createFKMandantCNr();
+		PanelQueryFLR panelQueryFLRLiefergruppe = new PanelQueryFLR(null, f, QueryParameters.UC_ID_LFLIEFERGRUPPENONELF,
+				aWhichButtonIUse, internalFrameI,
+				LPMain.getInstance().getTextRespectUISPr("title.liefergruppenauswahlliste"));
 
 		return panelQueryFLRLiefergruppe;
 	}
@@ -1362,23 +1235,17 @@ public class PartnerFilterFactory {
 	 * Liefergruppenauswahlliste, enthaelt alle Liefergruppen zum aktuellen
 	 * Mandanten, die mindestens einen Lieferanten enthalten.
 	 * 
-	 * @param internalFrameI
-	 *            InternalFrame
-	 * @param bShowFilterButton
-	 *            den New Button anzeigen
-	 * @param bShowLeerenButton
-	 *            den Leeren Button anzeigen
-	 * @param selectedIIdI
-	 *            die iId der in der Liste selektierten Liefergruppe
+	 * @param internalFrameI    InternalFrame
+	 * @param bShowFilterButton den New Button anzeigen
+	 * @param bShowLeerenButton den Leeren Button anzeigen
+	 * @param selectedIIdI      die iId der in der Liste selektierten Liefergruppe
 	 * @return PanelQueryFLR die Auswahlliste
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelQueryFLR createPanelFLRLiefergruppeMindestensEinLieferant(
-			InternalFrame internalFrameI, boolean bShowFilterButton,
-			boolean bShowLeerenButton, Integer selectedIIdI) throws Throwable {
-		PanelQueryFLR panelQueryFLRLiefergruppe = createPanelFLRLiefergruppeMindestensEinLieferant(
-				internalFrameI, bShowFilterButton, bShowLeerenButton);
+	public PanelQueryFLR createPanelFLRLiefergruppeMindestensEinLieferant(InternalFrame internalFrameI,
+			boolean bShowFilterButton, boolean bShowLeerenButton, Integer selectedIIdI) throws Throwable {
+		PanelQueryFLR panelQueryFLRLiefergruppe = createPanelFLRLiefergruppeMindestensEinLieferant(internalFrameI,
+				bShowFilterButton, bShowLeerenButton);
 
 		if (selectedIIdI != null) {
 			panelQueryFLRLiefergruppe.setSelectedId(selectedIIdI);
@@ -1387,76 +1254,68 @@ public class PartnerFilterFactory {
 		return panelQueryFLRLiefergruppe;
 	}
 
-	public FilterKriterium[] createFKKundesoko(Integer iIdKundeI)
-			throws Throwable {
+	public FilterKriterium[] createFKKundesoko(Integer iIdKundeI) throws Throwable {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
 
-		FilterKriterium krit1 = new FilterKriterium(
-				KundesokoFac.FLR_KUNDESOKO_KUNDE_I_ID, true, "'" + iIdKundeI
-						+ "'", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(KundesokoFac.FLR_KUNDESOKO_KUNDE_I_ID, true, "'" + iIdKundeI + "'",
+				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
 		return kriterien;
 	}
 
-	public FilterKriterium[] createFKKundesokomengenstaffel(
-			Integer iIdKundesokoI) throws Throwable {
+	public FilterKriterium[] createFKKundesokomengenstaffel(Integer iIdKundesokoI) throws Throwable {
 		FilterKriterium[] kriterien = new FilterKriterium[1];
 
-		FilterKriterium krit1 = new FilterKriterium("kundesoko_i_id", true, "'"
-				+ iIdKundesokoI + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium("kundesoko_i_id", true, "'" + iIdKundesokoI + "'",
+				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
 		return kriterien;
 	}
 
-	public PanelQueryFLRGoto createPanelFLRLieferantGoto(
-			InternalFrame internalFrameI, Integer lieferantIIdI,
-			boolean bShowFilterButton, boolean bShowLeerenButton)
-			throws Throwable {
-		return createPanelFLRLieferantGoto(internalFrameI, lieferantIIdI,
-				bShowFilterButton, bShowLeerenButton,
+	public PanelQueryFLR createPanelFLRLieferant(InternalFrame internalFrameI, Integer lieferantIIdI,
+			boolean bShowFilterButton, boolean bShowLeerenButton) throws Throwable {
+		return createPanelFLRLieferant(internalFrameI, lieferantIIdI, bShowFilterButton, bShowLeerenButton, null,
 				LPMain.getTextRespectUISPr("title.lieferantenauswahlliste"));
 	}
 
-	public PanelQueryFLRGoto createPanelFLRLieferantGoto(
-			InternalFrame internalFrameI, Integer lieferantIIdI,
-			boolean bShowFilterButton, boolean bShowLeerenButton,
-			String sOwnTitleI) throws Throwable {
+	public PanelQueryFLR createPanelFLRLieferant(InternalFrame internalFrameI, Integer lieferantIIdI,
+			boolean bShowFilterButton, boolean bShowLeerenButton, String sOwnTitleI) throws Throwable {
+		return createPanelFLRLieferant(internalFrameI, lieferantIIdI, bShowFilterButton, bShowLeerenButton, null,
+				sOwnTitleI);
+	}
+
+	public PanelQueryFLR createPanelFLRLieferant(InternalFrame internalFrameI, Integer lieferantIIdI,
+			boolean bShowFilterButton, boolean bShowLeerenButton, Map mGewaehlteLieferanten, String sOwnTitleI)
+			throws Throwable {
 		bShowFilterButton = false; // zzt keine QueryTypes
 		// Buttons zusammenstellen.
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(bShowFilterButton, bShowLeerenButton);
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(bShowFilterButton,
+				bShowLeerenButton);
 
 		FilterKriterium[] fk = PartnerFilterFactory.getInstance()
-				.createFKLieferantMandantPartner();
-		PanelQueryFLRGoto panelQueryFLRLieferant = new PanelQueryFLRGoto(null,
-				fk, QueryParameters.UC_ID_LIEFERANTEN, aWhichButtonIUse,
-				internalFrameI, LocaleFac.BELEGART_LIEFERANT, sOwnTitleI,
-				lieferantIIdI);
+				.createFKLieferantMandantPartner(mGewaehlteLieferanten);
+		PanelQueryFLR panelQueryFLRLieferant = new PanelQueryFLR(null, fk, QueryParameters.UC_ID_LIEFERANTEN,
+				aWhichButtonIUse, internalFrameI, sOwnTitleI, lieferantIIdI);
 		panelQueryFLRLieferant.befuellePanelFilterkriterienDirektUndVersteckte(
-				PartnerFilterFactory.getInstance()
-						.createFKDLieferantPartnerName(), PartnerFilterFactory
-						.getInstance().createFKDLieferantPartnerOrt(),
+				PartnerFilterFactory.getInstance().createFKDLieferantPartnerName(),
+				PartnerFilterFactory.getInstance().createFKDLieferantPartnerOrt(),
 				PartnerFilterFactory.getInstance().createFKVLieferant());
 
-		panelQueryFLRLieferant.addDirektFilter(PartnerFilterFactory
-				.getInstance().createFKDPartnerErweiterteSuche());
+		panelQueryFLRLieferant.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnerErweiterteSuche());
 
-		ParametermandantDto parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(
-						LPMain.getInstance().getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
-						ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
-		boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter
-				.getCWertAsObject();
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+				ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
+		boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter.getCWertAsObject();
 
 		if (!bSuchenInklusiveKbez) {
-			panelQueryFLRLieferant.addDirektFilter(PartnerFilterFactory
-					.getInstance().createFKDLieferantPartnerKurzbezeichnung());
+			panelQueryFLRLieferant
+					.addDirektFilter(PartnerFilterFactory.getInstance().createFKDLieferantPartnerKurzbezeichnung());
 		}
+
+		panelQueryFLRLieferant.addDirektFilter(PartnerFilterFactory.getInstance().createFKDKreditorennummer());
 
 		return panelQueryFLRLieferant;
 	}

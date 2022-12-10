@@ -37,15 +37,11 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
-import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.HelperClient;
 import com.lp.client.pc.LPMain;
-import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /*
@@ -106,62 +102,8 @@ public class WrapperAttachmentViewer extends PanelBasis {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_ANZEIGEN)) {
 			if (fFileList != null) {
-				try {
-					File path = fFileList[wcbFileChooser.getSelectedIndex()];
-					// PJ 15451
-					HelperClient.desktopOpenEx(path);
-					// java.awt.Desktop.getDesktop().open(path);
-				} catch (IOException dex) {
-					// catch Exception Windows throws if no application is
-					// associated
-					if (dex.getMessage().startsWith("Failed to open file")) {
-						JFileChooser fc = new JFileChooser();
-						fc.setDialogType(JFileChooser.SAVE_DIALOG);
-						int selectedFile = wcbFileChooser.getSelectedIndex();
-						fc.setSelectedFile(fFileList[selectedFile]);
-						int returnVal = fc.showSaveDialog(getInternalFrame());
-						if (returnVal == JFileChooser.APPROVE_OPTION) {
-							File file = fc.getSelectedFile();
-							FileOutputStream foStream = new FileOutputStream(
-									file);
-							foStream.write(Helper
-									.getBytesFromFile(fFileList[selectedFile]));
-							foStream.close();
-						}
-					} else {
-						// catch exception thrown by mac if no application is
-						// associated
-						if (dex.getMessage()
-								.startsWith(
-										"Failed to launch the associated application with the specified file")) {
-							JFileChooser fc = new JFileChooser();
-							fc.setDialogType(JFileChooser.SAVE_DIALOG);
-							int selectedFile = wcbFileChooser
-									.getSelectedIndex();
-							fc.setSelectedFile(fFileList[selectedFile]);
-							int returnVal = fc
-									.showSaveDialog(getInternalFrame());
-							if (returnVal == JFileChooser.APPROVE_OPTION) {
-								File file = fc.getSelectedFile();
-								FileOutputStream foStream = new FileOutputStream(
-										file);
-								foStream.write(Helper
-										.getBytesFromFile(fFileList[selectedFile]));
-								foStream.close();
-							}
-						} else {
-							throw dex;
-						}
-					}
-				} catch (UnsatisfiedLinkError dex) {
-					File path = fFileList[wcbFileChooser.getSelectedIndex()];
-					String befehl = "open " + path.getPath();
-					Runtime.getRuntime().exec(befehl);
-				} catch (NoClassDefFoundError dex) {
-					File path = fFileList[wcbFileChooser.getSelectedIndex()];
-					String befehl = "open " + path.getPath();
-					Runtime.getRuntime().exec(befehl);
-				}
+				File file = fFileList[wcbFileChooser.getSelectedIndex()];
+				HelperClient.desktopTryToOpenElseSave(file, this);
 			}
 		}
 	}
@@ -177,8 +119,16 @@ public class WrapperAttachmentViewer extends PanelBasis {
 			if (fFileList[i] == null)
 				continue;
 			String toShow = fFileList[i].getName();
-			wcbFileChooser.addItem(toShow.substring(0,
-					toShow.lastIndexOf(".") - 5));
+			int index = toShow.lastIndexOf(".");
+
+			if (index > 0) {
+				wcbFileChooser.addItem(toShow.substring(0,
+						toShow.lastIndexOf(".") - 5));
+			} else {
+				wcbFileChooser
+						.addItem(toShow.substring(0, toShow.length() - 5));
+			}
+
 			fFileList[i].deleteOnExit();
 		}
 	}

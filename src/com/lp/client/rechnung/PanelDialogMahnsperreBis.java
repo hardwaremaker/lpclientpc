@@ -43,6 +43,7 @@ import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelDialogKriterien;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.rechnung.service.RechnungDto;
@@ -68,13 +69,20 @@ public class PanelDialogMahnsperreBis extends PanelDialogKriterien {
 	private static final long serialVersionUID = 1L;
 	private WrapperDateField wdfDatum = new WrapperDateField();
 	private WrapperLabel wlaNeuDatum = new WrapperLabel();
+
+	private WrapperLabel wlaAnmerkung = new WrapperLabel();
+	private WrapperTextField wtfAnmerkung = new WrapperTextField(80);
+
 	private RechnungDto rechnungDto;
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	
+	InternalFrameRechnung ifRe=null;
+	
 
-	public PanelDialogMahnsperreBis(InternalFrame p0, String title,
-			RechnungDto rechnungDto) throws Throwable {
+	public PanelDialogMahnsperreBis(InternalFrameRechnung p0, String title) throws Throwable {
 		super(p0, title);
-		this.rechnungDto = rechnungDto;
+		this.ifRe=p0;
+		rechnungDto=ifRe.getTabbedPaneRechnung().getRechnungDto();
 		jbInit();
 		initComponents();
 	}
@@ -87,6 +95,9 @@ public class PanelDialogMahnsperreBis extends PanelDialogKriterien {
 	private void jbInit() throws Throwable {
 		wlaNeuDatum.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.mahnsperrebis"));
+
+		wlaAnmerkung.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.mahnungsanmerkung"));
 		jpaWorkingOn.setLayout(gridBagLayout1);
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
 				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
@@ -97,20 +108,36 @@ public class PanelDialogMahnsperreBis extends PanelDialogKriterien {
 		jpaWorkingOn.add(wlaNeuDatum, new GridBagConstraints(0, 0, 1, 1, 1.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wtfAnmerkung, new GridBagConstraints(1, 1, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaAnmerkung, new GridBagConstraints(0, 1, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+
 		// Default auf heute setzen
 		if (rechnungDto != null && rechnungDto.getIId() != null) {
 
 			if (rechnungDto.getTMahnsperrebis() != null) {
 				wdfDatum.setDate(rechnungDto.getTMahnsperrebis());
 			} else {
-				ZahlungszielDto zahlungszielDto = DelegateFactory.getInstance()
-						.getMandantDelegate().zahlungszielFindByPrimaryKey(
-								rechnungDto.getZahlungszielIId());
 
-				wdfDatum.setDate(Helper.cutTimestamp(Helper
-						.addiereTageZuTimestamp(rechnungDto.getTBelegdatum(),
-								zahlungszielDto.getAnzahlZieltageFuerNetto())));
+				if (rechnungDto.getCMahnungsanmerkung() == null) {
+					ZahlungszielDto zahlungszielDto = DelegateFactory
+							.getInstance()
+							.getMandantDelegate()
+							.zahlungszielFindByPrimaryKey(
+									rechnungDto.getZahlungszielIId());
+
+					wdfDatum.setDate(Helper.cutTimestamp(Helper
+							.addiereTageZuTimestamp(rechnungDto
+									.getTBelegdatum(), zahlungszielDto
+									.getAnzahlZieltageFuerNetto())));
+				}
 			}
+
+			wtfAnmerkung.setText(rechnungDto.getCMahnungsanmerkung());
 		}
 	}
 
@@ -132,8 +159,16 @@ public class PanelDialogMahnsperreBis extends PanelDialogKriterien {
 	 */
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_OK)) {
-			DelegateFactory.getInstance().getRechnungDelegate()
-					.setzeMahnsperre(this.rechnungDto.getIId(), getDate());
+			DelegateFactory
+					.getInstance()
+					.getRechnungDelegate()
+					.setzeMahnsperre(this.rechnungDto.getIId(), getDate(),
+							wtfAnmerkung.getText());
+			this.rechnungDto.setTMahnsperrebis(getDate());
+			this.rechnungDto.setCMahnungsanmerkung(wtfAnmerkung.getText());
+			
+			ifRe.getTabbedPaneRechnung().setRechnungDto(this.rechnungDto);
+			
 		}
 		super.eventActionSpecial(e);
 	}

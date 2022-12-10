@@ -45,8 +45,6 @@ import javax.swing.JComponent;
 import javax.swing.SwingConstants;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
-import com.lp.client.artikel.PanelDialogChargennummer;
-import com.lp.client.artikel.PanelDialogSeriennummer;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
@@ -56,13 +54,12 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelDialog;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.WrapperButton;
-import com.lp.client.frame.component.WrapperCHNRField;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
-import com.lp.client.frame.component.WrapperSNRField;
 import com.lp.client.frame.component.WrapperSnrChnrField;
 import com.lp.client.frame.component.WrapperTable;
 import com.lp.client.frame.component.WrapperTextField;
@@ -102,7 +99,7 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	public PanelDialogSeriennummer pdSeriennummer = null;
+//	public PanelDialogSeriennummer pdSeriennummer = null;
 
 	private ArtikelDto artikelDto = null;
 	private LagerDto lagerDto = null;
@@ -110,6 +107,7 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 
 	private Integer losIId = null;
 	private LossollmaterialDto lossollmaterialDto = null;
+	private PanelSplit panelSplitLossollmaterial = null;
 	private PanelQuery panelQueryLossollmaterial = null;
 
 	private ButtonGroup buttonGroup1 = new ButtonGroup();
@@ -139,7 +137,7 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 	private WrapperLabel wlaFehlmengeEinheit = null;
 
 	private WrapperSnrChnrField wtfSeriennr = new WrapperSnrChnrField(
-			getInternalFrame(),false);
+			getInternalFrame(), false);
 	private WrapperCheckBox wcbReduziereFehlmenge = null;
 
 	private PanelQueryFLR panelQueryFLRArtikel = null;
@@ -156,13 +154,19 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 	private static final String ACTION_SPECIAL_MONTAGEART = "action_special_los_montageart";
 	private static final String ACTION_SPECIAL_SOLLMATERIAL = "action_special_los_sollmaterial";
 
+	private TabbedPaneLos tpLos = null;
+
 	public PanelDialogNachtraeglicheEntnahme(InternalFrame internalFrame,
-			PanelQuery panelQueryLossollmaterial, String title, Integer losIId,
+			TabbedPaneLos tpLos, PanelQuery panelQueryLossollmaterial,
+			PanelSplit panelSplitLossollmaterial, String title, Integer losIId,
 			LossollmaterialDto lossollmaterialDto) throws Throwable {
 		super(internalFrame, title);
 		this.losIId = losIId;
 		this.lossollmaterialDto = lossollmaterialDto;
 		this.panelQueryLossollmaterial = panelQueryLossollmaterial;
+		this.panelSplitLossollmaterial = panelSplitLossollmaterial;
+
+		this.tpLos = tpLos;
 		init();
 		setDefaults();
 		initComponents();
@@ -363,7 +367,7 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 				new Insets(2, 2, 2, 2), 50, 0));
 		jpaWorkingOn.add(wrbZugang, new GridBagConstraints(3, iZeile, 1, 1,
 				1.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 150, 2, 2), 50, 0));
+				new Insets(2, 170, 2, 2), 50, 0));
 		iZeile++;
 		jpaWorkingOn.add(wcbReduziereFehlmenge, new GridBagConstraints(3,
 				iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
@@ -423,6 +427,10 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 									artikelDto.getIId(), lagerDto.getIId());
 					lossollmaterialDto.setNSollpreis(bdSollpreis);
 					lossollmaterialDto.setNMenge(new BigDecimal(0));
+
+					tpLos.letzteArtikelId_OhneSollposition = artikelDto
+							.getIId();
+
 				} else {
 					lossollmaterialDto.setNMenge(new BigDecimal(0));
 				}
@@ -441,7 +449,7 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 					listSnrChnr = wtfSeriennr.getSeriennummern();
 				}
 
-				DelegateFactory
+				Integer lossollmaterialIId = DelegateFactory
 						.getInstance()
 						.getFertigungDelegate()
 						.gebeMaterialNachtraeglichAus(lossollmaterialDto,
@@ -449,6 +457,10 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 								wcbReduziereFehlmenge.isSelected());
 				// refresh auf die liste, damit mans gleich aktuell sieht
 				panelQueryLossollmaterial.eventYouAreSelected(false);
+
+				panelQueryLossollmaterial.setSelectedId(lossollmaterialIId);
+				panelSplitLossollmaterial.eventYouAreSelected(false);
+
 				// Dialog schliessen
 				getInternalFrame().closePanelDialog();
 			}
@@ -596,6 +608,15 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 
 	private void dto2ComponentsArtikel() throws Throwable {
 		if (artikelDto != null) {
+			
+			//SP4277
+			wtfSeriennr.setVisible(false);
+			wtfSeriennr.getButtonSnrAuswahl().setVisible(false);
+			wtfSeriennr.setMandatoryFieldDB(false);
+			wtfSeriennr.setMandatoryField(false);
+			wnfMenge.setActivatable(true);
+			wnfMenge.setEditable(true);
+			
 			wtfArtikelnummer.setText(artikelDto.getCNr());
 			wtfArtikelbezeichnung.setText(artikelDto.getArtikelsprDto()
 					.getCBez());
@@ -809,6 +830,12 @@ public class PanelDialogNachtraeglicheEntnahme extends PanelDialog {
 					holeLager(lagerIId);
 				}
 			}
+		}
+
+		// PJ19282
+		if (tpLos.letzteArtikelId_OhneSollposition != null
+				&& lossollmaterialDto == null) {
+			holeArtikel(tpLos.letzteArtikelId_OhneSollposition);
 		}
 
 		// default auf fehlmenge setzen

@@ -90,15 +90,19 @@ public class PanelBuchungsparameter extends PanelBasis {
 			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
 	private WrapperSelectField wsfGegebenAnzahlungBezahlt = new WrapperSelectField(
 			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
+	private WrapperSelectField wsfGewinnVortrag = new WrapperSelectField(
+			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
+	private WrapperSelectField wsfJahresgewinn = new WrapperSelectField(
+			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
 	
-	private WrapperSelectField wsfReverseChargeErhaltAnzahlungVerr = new WrapperSelectField(
-			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
-	private WrapperSelectField wsfReverseChargeErhaltAnzahlungBezahlt = new WrapperSelectField(
-			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
-	private WrapperSelectField wsfReverseChargeGegebenAnzahlungVerr = new WrapperSelectField(
-			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
-	private WrapperSelectField wsfReverseChargeGegebenAnzahlungBezahlt = new WrapperSelectField(
-			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
+//	private WrapperSelectField wsfReverseChargeErhaltAnzahlungVerr = new WrapperSelectField(
+//			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
+//	private WrapperSelectField wsfReverseChargeErhaltAnzahlungBezahlt = new WrapperSelectField(
+//			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
+//	private WrapperSelectField wsfReverseChargeGegebenAnzahlungVerr = new WrapperSelectField(
+//			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
+//	private WrapperSelectField wsfReverseChargeGegebenAnzahlungBezahlt = new WrapperSelectField(
+//			WrapperSelectField.SACHKONTO, getInternalFrame(), true);
 
 	private TabbedPaneFinanzamt tpFinanzamt = null;
 
@@ -170,18 +174,25 @@ public class PanelBuchungsparameter extends PanelBasis {
 				LPMain.getInstance().getTextRespectUISPr(
 						"fb.buchungsparameter.geleistete.anzahlungen.verrechnung"));
 
-		wsfReverseChargeErhaltAnzahlungBezahlt.getWrapperButton().setText(
+		wsfGewinnVortrag.getWrapperButton().setText(
 				LPMain.getInstance().getTextRespectUISPr(
-						"fb.buchungsparameter.erhaltene.anzahlungen"));
-		wsfReverseChargeErhaltAnzahlungVerr.getWrapperButton().setText(
+						"fb.buchungsparameter.gewinnvortrag"));
+		wsfJahresgewinn.getWrapperButton().setText(
 				LPMain.getInstance().getTextRespectUISPr(
-						"fb.buchungsparameter.erhaltene.anzahlungen.verrechnung"));
-		wsfReverseChargeGegebenAnzahlungBezahlt.getWrapperButton().setText(
-				LPMain.getInstance().getTextRespectUISPr(
-						"fb.buchungsparameter.geleistete.anzahlungen"));
-		wsfReverseChargeGegebenAnzahlungVerr.getWrapperButton().setText(
-				LPMain.getInstance().getTextRespectUISPr(
-						"fb.buchungsparameter.geleistete.anzahlungen.verrechnung"));
+						"fb.buchungsparameter.jahresgewinn"));
+		
+//		wsfReverseChargeErhaltAnzahlungBezahlt.getWrapperButton().setText(
+//				LPMain.getInstance().getTextRespectUISPr(
+//						"fb.buchungsparameter.erhaltene.anzahlungen"));
+//		wsfReverseChargeErhaltAnzahlungVerr.getWrapperButton().setText(
+//				LPMain.getInstance().getTextRespectUISPr(
+//						"fb.buchungsparameter.erhaltene.anzahlungen.verrechnung"));
+//		wsfReverseChargeGegebenAnzahlungBezahlt.getWrapperButton().setText(
+//				LPMain.getInstance().getTextRespectUISPr(
+//						"fb.buchungsparameter.geleistete.anzahlungen"));
+//		wsfReverseChargeGegebenAnzahlungVerr.getWrapperButton().setText(
+//				LPMain.getInstance().getTextRespectUISPr(
+//						"fb.buchungsparameter.geleistete.anzahlungen.verrechnung"));
 
 		// jetzt meine Felder
 		jpaWorkingOn = new JPanel();
@@ -191,6 +202,8 @@ public class PanelBuchungsparameter extends PanelBasis {
 				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
 		
+		WrapperLabel wlaInfo = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
+				"fb.buchungsparameter.hinweis")) ;
 		WrapperLabel wlaEBKonten = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
 			"fb.buchungsparameter.ebkonten"));
 		wlaEBKonten.setHorizontalAlignment(SwingConstants.LEFT);
@@ -203,6 +216,11 @@ public class PanelBuchungsparameter extends PanelBasis {
 		wlaReverseChargeAnzahlungen.setHorizontalAlignment(SwingConstants.LEFT);
 		
 		iZeile++;
+		jpaWorkingOn.add(wlaInfo,
+				new GridBagConstraints(0, iZeile, 2, 1, 0.1, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(1, 2, 1, 2), 0, 0));
+		++iZeile;
 		jpaWorkingOn.add(wlaEBKonten,
 				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -277,46 +295,76 @@ public class PanelBuchungsparameter extends PanelBasis {
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(1, 2, 1, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaReverseChargeAnzahlungen,
+
+		//PJ21166
+		WrapperLabel wlaGV = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
+				"fb.buchungsparameter.gv"));
+		wlaGV.setHorizontalAlignment(SwingConstants.LEFT);
+		jpaWorkingOn.add(wlaGV,
 				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(1, 2, 1, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungVerr.getWrapperButton(),
+		jpaWorkingOn.add(wsfGewinnVortrag.getWrapperButton(),
 				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(1, 2, 1, 2), 0, 0));
-		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungVerr.getWrapperTextField(),
+		jpaWorkingOn.add(wsfGewinnVortrag.getWrapperTextField(),
 				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(1, 2, 1, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungBezahlt.getWrapperButton(),
+		jpaWorkingOn.add(wsfJahresgewinn.getWrapperButton(),
 				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(1, 2, 1, 2), 0, 0));
-		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungBezahlt.getWrapperTextField(),
+		jpaWorkingOn.add(wsfJahresgewinn.getWrapperTextField(),
 				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(1, 2, 1, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungVerr.getWrapperButton(),
-				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(1, 2, 1, 2), 0, 0));
-		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungVerr.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(1, 2, 1, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungBezahlt.getWrapperButton(),
-				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(1, 2, 1, 2), 0, 0));
-		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungBezahlt.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(1, 2, 1, 2), 0, 0));
+
+// PJ19207 Reverse Charge Anzahlungen werden aus den Basis-Anzahlungskonten uebersetzt		
+//		jpaWorkingOn.add(wlaReverseChargeAnzahlungen,
+//				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		iZeile++;
+//		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungVerr.getWrapperButton(),
+//				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungVerr.getWrapperTextField(),
+//				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		iZeile++;
+//		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungBezahlt.getWrapperButton(),
+//				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		jpaWorkingOn.add(wsfReverseChargeErhaltAnzahlungBezahlt.getWrapperTextField(),
+//				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		iZeile++;
+//		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungVerr.getWrapperButton(),
+//				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungVerr.getWrapperTextField(),
+//				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		iZeile++;
+//		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungBezahlt.getWrapperButton(),
+//				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
+//		jpaWorkingOn.add(wsfReverseChargeGegebenAnzahlungBezahlt.getWrapperTextField(),
+//				new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
+//						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+//						new Insets(1, 2, 1, 2), 0, 0));
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -335,14 +383,17 @@ public class PanelBuchungsparameter extends PanelBasis {
 		wsfGegebenAnzahlungVerr.setKey(tpFinanzamt.getFinanzamtDto()
 				.getKontoIIdAnzahlungGegebenVerr());
 		
-		wsfReverseChargeErhaltAnzahlungBezahlt.setKey(tpFinanzamt.getFinanzamtDto()
-				.getKontoIIdRCAnzahlungErhaltBezahlt());
-		wsfReverseChargeErhaltAnzahlungVerr.setKey(tpFinanzamt.getFinanzamtDto()
-				.getKontoIIdRCAnzahlungErhaltVerr());
-		wsfReverseChargeGegebenAnzahlungBezahlt.setKey(tpFinanzamt.getFinanzamtDto()
-				.getKontoIIdRCAnzahlungGegebenBezahlt());
-		wsfReverseChargeGegebenAnzahlungVerr.setKey(tpFinanzamt.getFinanzamtDto()
-				.getKontoIIdRCAnzahlungGegebenVerr());
+		wsfGewinnVortrag.setKey(tpFinanzamt.getFinanzamtDto().getKontoIIdGewinnvortrag());
+		wsfJahresgewinn.setKey(tpFinanzamt.getFinanzamtDto().getKontoIIdJahresgewinn());
+		
+//		wsfReverseChargeErhaltAnzahlungBezahlt.setKey(tpFinanzamt.getFinanzamtDto()
+//				.getKontoIIdRCAnzahlungErhaltBezahlt());
+//		wsfReverseChargeErhaltAnzahlungVerr.setKey(tpFinanzamt.getFinanzamtDto()
+//				.getKontoIIdRCAnzahlungErhaltVerr());
+//		wsfReverseChargeGegebenAnzahlungBezahlt.setKey(tpFinanzamt.getFinanzamtDto()
+//				.getKontoIIdRCAnzahlungGegebenBezahlt());
+//		wsfReverseChargeGegebenAnzahlungVerr.setKey(tpFinanzamt.getFinanzamtDto()
+//				.getKontoIIdRCAnzahlungGegebenVerr());
 	}
 
 	protected void components2Dto() throws Throwable {
@@ -360,11 +411,13 @@ public class PanelBuchungsparameter extends PanelBasis {
 		famt.setKontoIIdAnzahlungGegebenBezahlt(wsfGegebenAnzahlungBezahlt.getIKey());
 		famt.setKontoIIdAnzahlungGegebenVerr(wsfGegebenAnzahlungVerr.getIKey());
 
-		famt.setKontoIIdRCAnzahlungErhaltBezahlt(wsfReverseChargeErhaltAnzahlungBezahlt.getIKey());
-		famt.setKontoIIdRCAnzahlungErhaltVerr(wsfReverseChargeErhaltAnzahlungVerr.getIKey());
-		famt.setKontoIIdRCAnzahlungGegebenBezahlt(wsfReverseChargeGegebenAnzahlungBezahlt.getIKey());
-		famt.setKontoIIdRCAnzahlungGegebenVerr(wsfReverseChargeGegebenAnzahlungVerr.getIKey());
+		famt.setKontoIIdGewinnvortrag(wsfGewinnVortrag.getIKey());
+		famt.setKontoIIdJahresgewinn(wsfJahresgewinn.getIKey());
 		
+//		famt.setKontoIIdRCAnzahlungErhaltBezahlt(wsfReverseChargeErhaltAnzahlungBezahlt.getIKey());
+//		famt.setKontoIIdRCAnzahlungErhaltVerr(wsfReverseChargeErhaltAnzahlungVerr.getIKey());
+//		famt.setKontoIIdRCAnzahlungGegebenBezahlt(wsfReverseChargeGegebenAnzahlungBezahlt.getIKey());
+//		famt.setKontoIIdRCAnzahlungGegebenVerr(wsfReverseChargeGegebenAnzahlungVerr.getIKey());		
 	}
 
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
@@ -418,5 +471,4 @@ public class PanelBuchungsparameter extends PanelBasis {
 		super.eventActionRefresh(aE, bNeedNoRefreshI);
 
 	}
-
 }

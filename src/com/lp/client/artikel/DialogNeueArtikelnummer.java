@@ -32,15 +32,18 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+
+import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
@@ -51,7 +54,6 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
-import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 
@@ -62,11 +64,13 @@ public class DialogNeueArtikelnummer extends JDialog implements ActionListener {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+//	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private WrapperLabel lNeueArtikelnummer = new WrapperLabel();
 	private WrapperTextField neueArtikelnummer = new WrapperTextField();
 	private JButton btnOK = new JButton();
 	private JButton btnAbbrechen = new JButton();
+	private WrapperLabel lArtikelnummerVorschlag = new WrapperLabel();
+	private WrapperLabel lVorschlag = new WrapperLabel();
 
 	private WrapperButton wbuGeneriereArtikelnummer = new WrapperButton();
 
@@ -74,8 +78,7 @@ public class DialogNeueArtikelnummer extends JDialog implements ActionListener {
 		super(
 				LPMain.getInstance().getDesktop(),
 				LPMain.getInstance()
-						.getTextRespectUISPr(
-								"angebot.bearbeiten.handartikelumwandeln.neueartikelnummer"),
+						.getTextRespectUISPr("angebot.bearbeiten.handartikelumwandeln.neueartikelnummer"),
 				true);
 
 		
@@ -83,7 +86,7 @@ public class DialogNeueArtikelnummer extends JDialog implements ActionListener {
 		jbInit();
 		HelperClient.memberVariablenEinerKlasseBenennen(this);
 
-		this.setSize(Defaults.getInstance().bySizeFactor(400, 150));
+		this.setSize(Defaults.getInstance().bySizeFactor(500, 150));
 		neueArtikelnummer.grabFocus();
 	}
 
@@ -115,6 +118,15 @@ public class DialogNeueArtikelnummer extends JDialog implements ActionListener {
 		String artikelnummerNeu = neueArtikelnummer.getText();
 		return artikelnummerNeu;
 	}
+	
+	public void setArtikelVorschlag(ArtikelDto artikelDto) {
+		if (artikelDto == null) return;
+		neueArtikelnummer.setText(artikelDto.getCNr());
+		lVorschlag.setText(LPMain.getTextRespectUISPr("dialog.neueartikelnummer.vorschlag"));
+		lVorschlag.setForeground(new Color(150, 150, 150));
+		lArtikelnummerVorschlag.setText("[" + artikelDto.getCNr() + "] " + artikelDto.getArtikelsprDto().getCBez());
+		lArtikelnummerVorschlag.setForeground(new Color(150, 150, 150));
+	}
 
 	protected void processWindowEvent(WindowEvent e) {
 		if (e.getID() == WindowEvent.WINDOW_CLOSING) {
@@ -139,6 +151,7 @@ public class DialogNeueArtikelnummer extends JDialog implements ActionListener {
 		}
 		lNeueArtikelnummer.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.artikelkopieren.neueartikelnummer"));
+		lArtikelnummerVorschlag.setHorizontalAlignment(SwingConstants.LEFT);
 
 		btnOK.setText(LPMain.getInstance().getTextRespectUISPr("button.ok"));
 		btnAbbrechen.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -152,42 +165,72 @@ public class DialogNeueArtikelnummer extends JDialog implements ActionListener {
 				.getTextRespectUISPr("artikel.generiereartikelnummer"));
 		wbuGeneriereArtikelnummer.addActionListener(this);
 
-		this.getContentPane().setLayout(gridBagLayout2);
+		this.getContentPane().setLayout(new MigLayout("wrap 3, hidemode 3", "[fill, grow 30||fill,grow 70]"));
+		this.getContentPane().add(lNeueArtikelnummer);
+		this.getContentPane().add(wbuGeneriereArtikelnummer, "width 50");
+		this.getContentPane().add(neueArtikelnummer);
+		this.getContentPane().add(lVorschlag, "span 2");
+		this.getContentPane().add(lArtikelnummerVorschlag, "align left");
+		JPanel okPanel = new JPanel();
+		okPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		okPanel.add(btnOK);
 
-		int iZeile = 0;
-
-		this.getContentPane().add(
-				lNeueArtikelnummer,
-				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
-						100, 0));
-
-		this.getContentPane().add(
-				wbuGeneriereArtikelnummer,
-				new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.EAST, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 20, 0));
-		this.getContentPane().add(
-				neueArtikelnummer,
-				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
-						200, 0));
-
-		iZeile++;
-
-		this.getContentPane().add(
-				btnOK,
-				new GridBagConstraints(0, iZeile, 2, 1, 0, 0,
-						GridBagConstraints.EAST, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 0, 0));
-		this.getContentPane().add(
-				btnAbbrechen,
-				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
-						GridBagConstraints.WEST, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 0, 0));
-	
+		JPanel abbrechenPanel = new JPanel();
+		abbrechenPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+		abbrechenPanel.add(btnAbbrechen);
+		this.getContentPane().add(okPanel, "span 2, align right");
+		this.getContentPane().add(abbrechenPanel);
+		
+//		this.getContentPane().setLayout(gridBagLayout2);
+//
+//		int iZeile = 0;
+//
+//		this.getContentPane().add(
+//				lNeueArtikelnummer,
+//				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
+//						GridBagConstraints.CENTER,
+//						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+//						100, 0));
+//
+//		this.getContentPane().add(
+//				wbuGeneriereArtikelnummer,
+//				new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
+//						GridBagConstraints.EAST, GridBagConstraints.NONE,
+//						new Insets(5, 5, 5, 5), 20, 0));
+//		this.getContentPane().add(
+//				neueArtikelnummer,
+//				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
+//						GridBagConstraints.CENTER,
+//						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+//						200, 0));
+//
+//		iZeile++;
+//		this.getContentPane().add(
+//				lVorschlag,
+//				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
+//						GridBagConstraints.CENTER,
+//						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+//						200, 0));
+//		this.getContentPane().add(
+//				lArtikelnummerVorschlag,
+//				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
+//						GridBagConstraints.CENTER,
+//						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+//						200, 0));
+//
+//		iZeile++;
+//
+//		this.getContentPane().add(
+//				btnOK,
+//				new GridBagConstraints(0, iZeile, 2, 1, 0, 0,
+//						GridBagConstraints.EAST, GridBagConstraints.NONE,
+//						new Insets(5, 5, 5, 5), 0, 0));
+//		this.getContentPane().add(
+//				btnAbbrechen,
+//				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
+//						GridBagConstraints.WEST, GridBagConstraints.NONE,
+//						new Insets(5, 5, 5, 5), 0, 0));
+//	
 	}
 
 }

@@ -139,10 +139,6 @@ public class ReportZusammenfassendeMeldung extends PanelBasis implements
 		jpaWorkingOn.add(wdrBereich, new GridBagConstraints(4, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-
-		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wbuFinanzamt, new GridBagConstraints(0, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
@@ -150,6 +146,9 @@ public class ReportZusammenfassendeMeldung extends PanelBasis implements
 		jpaWorkingOn.add(wtfFinanzamt, new GridBagConstraints(1, iZeile, 3, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0,
+				1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {

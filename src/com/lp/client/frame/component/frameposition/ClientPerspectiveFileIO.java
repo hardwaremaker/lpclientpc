@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.lp.client.angebot.AGSchnellerfassungPositionData;
 import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
 
 public class ClientPerspectiveFileIO implements IClientPerspectiveIO {
@@ -53,39 +54,48 @@ public class ClientPerspectiveFileIO implements IClientPerspectiveIO {
 	public static final String FONT_DIR = "Font";
 	public static final String QUERY_DIR = "Query";
 	public static final String SEP = System.getProperty("file.separator");
-	
+
 	private static final String FILEEX = ".ser";
 	private static final String MODULSSTARTUPLIST = "modulsstartup";
 	private static final String WIDTHSFILE = "columnwidth_";
 	private static final String SORTINGFILE = "sorting_";
 	private static final String FONTFILE = "font";
 	private static final String PROPERTIES = "properties";
+	private static final String DETAILHEIGHTFILE = "detailheight_";
+	private static final String POSITIONFILE = "columnposition_";
 
 	private String layoutPath;
 	private String fontPath;
 	private String queryPath;
 	private String propertiesPath;
-	
+
 	public ClientPerspectiveFileIO(String path) {
 		layoutPath = path + LAYOUT_DIR + SEP;
 		queryPath = path + QUERY_DIR + SEP;
 		fontPath = path + FONT_DIR + SEP;
 		propertiesPath = path;
 	}
-	
+
 	@Override
 	public boolean doSavedSettingsExist() {
 		return new File(layoutPath + MODULSSTARTUPLIST + FILEEX).exists();
 	}
-	
+
 	@Override
-	public void persistFramePositionMap(Map<String, FramePositionData> positionMap) throws FileNotFoundException, IOException, ClassNotFoundException {
-		for(String token : positionMap.keySet()) {
+	public void persistFramePositionMap(Map<String, FramePositionData> positionMap)
+			throws FileNotFoundException, IOException, ClassNotFoundException {
+		for (String token : positionMap.keySet()) {
 			saveLayoutObject(FramePositionExternalizer.getLatestExternalizer(positionMap.get(token)), token.trim());
 		}
-		
+
 	}
-	
+
+	@Override
+	public void persistAGSchnellerfassungPositionData(AGSchnellerfassungPositionData positionData)
+			throws FileNotFoundException, IOException, ClassNotFoundException {
+		saveObject(positionData, layoutPath, "AGS");
+	}
+
 	@Override
 	public void persistStartupModule(List<String> startupModule) throws FileNotFoundException, IOException {
 		saveLayoutObject(new ModulStartupListExternalizer(startupModule), MODULSSTARTUPLIST);
@@ -94,37 +104,37 @@ public class ClientPerspectiveFileIO implements IClientPerspectiveIO {
 	@Override
 	public List<String> readStartupModule() throws FileNotFoundException, ClassNotFoundException, IOException {
 		ModulStartupListExternalizer msle;
-		msle = (ModulStartupListExternalizer)readLayoutObject(MODULSSTARTUPLIST);
+		msle = (ModulStartupListExternalizer) readLayoutObject(MODULSSTARTUPLIST);
 		return msle.getStartupModule();
 	}
 
 	@Override
 	public void resetAllLayout() throws IOException {
 		File layoutDir = new File(layoutPath);
-		for(File file : layoutDir.listFiles()) {
+		for (File file : layoutDir.listFiles()) {
 			file.delete();
 		}
 		layoutDir.delete();
 	}
 
-	private void saveLayoutObject(Object object, String filename)  throws FileNotFoundException, IOException{
+	private void saveLayoutObject(Object object, String filename) throws FileNotFoundException, IOException {
 		saveObject(object, layoutPath, filename);
 	}
 
-	private void saveQueryObject(Object object, String filename)  throws FileNotFoundException, IOException{
+	private void saveQueryObject(Object object, String filename) throws FileNotFoundException, IOException {
 		saveObject(object, queryPath, filename);
 	}
-	
-	private void saveObject(Object object, String filepath, String filename) throws FileNotFoundException, IOException  {
+
+	private void saveObject(Object object, String filepath, String filename) throws FileNotFoundException, IOException {
 		ObjectOutputStream objectOutputStream = null;
 		try {
 			new File(filepath).mkdirs();
 			objectOutputStream = new ObjectOutputStream(new FileOutputStream(filepath + filename + FILEEX));
-			
+
 			objectOutputStream.writeObject(object);
 			objectOutputStream.flush();
 		} finally {
-			if(objectOutputStream != null) {
+			if (objectOutputStream != null) {
 				try {
 					objectOutputStream.close();
 				} catch (IOException e) {
@@ -133,57 +143,98 @@ public class ClientPerspectiveFileIO implements IClientPerspectiveIO {
 			}
 		}
 	}
-	
+
 	private Object readLayoutObject(String filename) throws FileNotFoundException, IOException, ClassNotFoundException {
 		return readObject(layoutPath, filename);
 	}
 
-	
 	private Object readQueryObject(String filename) throws FileNotFoundException, IOException, ClassNotFoundException {
 		return readObject(queryPath, filename);
 	}
-	
-	private Object readObject(String filepath, String filename) throws FileNotFoundException, IOException, ClassNotFoundException {
-		ObjectInputStream inputStream = null; 
+
+	private void removeQueryObject(String filename) throws FileNotFoundException, IOException, ClassNotFoundException {
+		removeObject(queryPath, filename);
+	}
+
+	public void removeQueryColumnPositions(int usecaseId) throws Exception {
+		removeQueryObject(POSITIONFILE + usecaseId);
+	}
+
+	public void removeQueryColumnWidth(int usecaseId) throws Exception {
+		removeQueryObject(WIDTHSFILE + usecaseId);
+	}
+
+	public void removeQueryColumnSorting(int usecaseId) throws Exception {
+		removeQueryObject(SORTINGFILE + usecaseId);
+	}
+
+	public void removeQueryDetailHeight(int usecaseId) throws Exception {
+		removeQueryObject(DETAILHEIGHTFILE + usecaseId);
+	}
+
+	private Object readObject(String filepath, String filename)
+			throws FileNotFoundException, IOException, ClassNotFoundException {
+		ObjectInputStream inputStream = null;
 		try {
 			inputStream = new ObjectInputStream(new FileInputStream(filepath + filename + FILEEX));
 			return inputStream.readObject();
 		} finally {
 			try {
-				if(inputStream != null)
-				inputStream.close();
+				if (inputStream != null)
+					inputStream.close();
 			} catch (IOException e) {
 				System.err.println("Konnte Datei " + filepath + filename + " nicht closen!\n" + e.getMessage());
 			}
 		}
 	}
 
-	@Override
-	public FramePositionData readFramePosition(String key) throws FileNotFoundException, ClassNotFoundException, IOException {
-		return ((FramePositionExternalizer)readLayoutObject(key.trim())).getFpData();
+	private void removeObject(String filepath, String filename)
+			throws FileNotFoundException, IOException, ClassNotFoundException {
+		File file = new File(filepath + filename + FILEEX);
+		if (file.exists()) {
+			file.delete();
+		}
 	}
 
+	@Override
+	public FramePositionData readFramePosition(String key)
+			throws FileNotFoundException, ClassNotFoundException, IOException {
+		return ((FramePositionExternalizer) readLayoutObject(key.trim())).getFpData();
+	}
+	public AGSchnellerfassungPositionData readAGSchnellerfassungPositionData()
+			throws Exception {
+		
+		return (AGSchnellerfassungPositionData)readObject(layoutPath, "AGS");
+		
+	}
 	@Override
 	public List<Integer> readQueryColumnWidth(int usecaseId) throws Exception {
-		return Arrays.asList((Integer[])readQueryObject(WIDTHSFILE + usecaseId));
+		return Arrays.asList((Integer[]) readQueryObject(WIDTHSFILE + usecaseId));
 	}
 
 	@Override
-	public void persistQueryColumnWidth(int usecaseId, List<Integer> widths)
-			throws Exception {
+	public List<Integer> readQueryColumnPositions(int usecaseId) throws Exception {
+		return Arrays.asList((Integer[]) readQueryObject(POSITIONFILE + usecaseId));
+	}
+
+	@Override
+	public void persistQueryColumnWidth(int usecaseId, List<Integer> widths) throws Exception {
 		saveQueryObject(widths.toArray(new Integer[0]), WIDTHSFILE + usecaseId);
 	}
 
 	@Override
-	public void persistQueryColumnSorting(int usecaseId,
-			List<SortierKriterium> kriterien) throws Exception {
+	public void persistQueryColumnPosition(int usecaseId, List<Integer> positions) throws Exception {
+		saveQueryObject(positions.toArray(new Integer[0]), POSITIONFILE + usecaseId);
+	}
+
+	@Override
+	public void persistQueryColumnSorting(int usecaseId, List<SortierKriterium> kriterien) throws Exception {
 		saveQueryObject(kriterien.toArray(new SortierKriterium[0]), SORTINGFILE + usecaseId);
 	}
 
 	@Override
-	public List<SortierKriterium> readQueryColumnSorting(int usecaseId)
-			throws Exception {
-		return Arrays.asList((SortierKriterium[])readQueryObject(SORTINGFILE +usecaseId));
+	public List<SortierKriterium> readQueryColumnSorting(int usecaseId) throws Exception {
+		return Arrays.asList((SortierKriterium[]) readQueryObject(SORTINGFILE + usecaseId));
 	}
 
 	@Override
@@ -191,6 +242,8 @@ public class ClientPerspectiveFileIO implements IClientPerspectiveIO {
 		return (Font) readObject(fontPath, FONTFILE);
 	}
 
+	
+	
 	@Override
 	public void persistClientFont(Font font) throws Exception {
 		saveObject(font, fontPath, FONTFILE);
@@ -199,21 +252,30 @@ public class ClientPerspectiveFileIO implements IClientPerspectiveIO {
 	@Override
 	public void resetClientFont() throws Exception {
 		File layoutDir = new File(fontPath);
-		for(File file : layoutDir.listFiles()) {
+		for (File file : layoutDir.listFiles()) {
 			file.delete();
 		}
 		layoutDir.delete();
 	}
 
 	@Override
-	public void persistPropertyMap(HashMap<String, String> properties)
-			throws Exception {
+	public void persistPropertyMap(HashMap<String, String> properties) throws Exception {
 		saveObject(properties, propertiesPath, PROPERTIES);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public HashMap<String, String> readPropertyMap() throws Exception {
-		return (HashMap<String, String>)readObject(propertiesPath, PROPERTIES);
+		return (HashMap<String, String>) readObject(propertiesPath, PROPERTIES);
+	}
+
+	@Override
+	public void persistDetailHeight(int usecaseId, int detailHeight) throws Exception {
+		saveQueryObject(detailHeight, DETAILHEIGHTFILE + usecaseId);
+	}
+
+	@Override
+	public Integer readDetailHeight(int usecaseId) throws Exception {
+		return (Integer) readQueryObject(DETAILHEIGHTFILE + usecaseId);
 	}
 }

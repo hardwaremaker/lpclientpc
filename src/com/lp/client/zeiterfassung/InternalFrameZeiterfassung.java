@@ -42,6 +42,7 @@ import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.personal.service.AnwesenheitsbestaetigungDto;
 import com.lp.server.personal.service.DiaetenDto;
 import com.lp.server.personal.service.MaschineDto;
 import com.lp.server.personal.service.MaschinenzmDto;
@@ -78,14 +79,16 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 	private TabbedPaneZeitstifte tabbedPaneZeitstifte = null;
 	private TabbedPaneMaschinenzeitmodell tabbedPaneMaschinenzeitmodell = null;
 	private TabbedPaneDiaeten tabbedPaneDiaeten = null;
+	private TabbedPaneAnwesenheitsbestaetigung tabbedPaneAnwesenheitsbestaetigung = null;
 	private TabbedPaneZeiterfassunggrunddaten tabbedPaneZeiterfassunggrunddaten = null;
 
-	public static int IDX_TABBED_PANE_ZEITERFASSUNG = -1;
-	public static int IDX_TABBED_PANE_SONDERTAETIGKEITEN = -1;
+	public int IDX_TABBED_PANE_ZEITERFASSUNG = -1;
+	public int IDX_TABBED_PANE_SONDERTAETIGKEITEN = -1;
 	public int IDX_TABBED_PANE_MASCHINEN = -1;
 	public int IDX_TABBED_PANE_MASCHINENZEITMODELL = -1;
 	public int IDX_TABBED_PANE_ZEITSTIFTE = -1;
 	public int IDX_TABBED_PANE_DIAETEN = -1;
+	public int IDX_TABBED_PANE_ANWESENHEITSBESTAETIGUNG = -1;
 	public int IDX_TABBED_PANE_GRUNDDATEN = -1;
 
 	public boolean bRechtNurBuchen = true;
@@ -95,7 +98,9 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 	private MaschineDto maschineDto = null;
 
 	private DiaetenDto diaetenDto = null;
+
 	
+
 	public MaschinenzmDto getMaschinenzmDto() {
 		return maschinenzmDto;
 	}
@@ -104,7 +109,7 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 		this.maschinenzmDto = maschinenzmDto;
 	}
 
-	private MaschinenzmDto maschinenzmDto=null;
+	private MaschinenzmDto maschinenzmDto = null;
 
 	public DialogLoseEinesTechnikers dialogLoseEinesTechnikers = null;
 
@@ -153,8 +158,7 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 		return diaetenDto;
 	}
 
-	public InternalFrameZeiterfassung(String title, String belegartCNr,
-			String sRechtModulweitI) throws Throwable {
+	public InternalFrameZeiterfassung(String title, String belegartCNr, String sRechtModulweitI) throws Throwable {
 		super(title, belegartCNr, sRechtModulweitI);
 		jbInit();
 		initComponents();
@@ -167,98 +171,73 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 
 		int tabIndex = 0;
 		IDX_TABBED_PANE_ZEITERFASSUNG = tabIndex;
-		tabbedPaneRoot.insertTab(
-				LPMain.getTextRespectUISPr("zeiterfassung.modulname"), null,
-				null, LPMain.getTextRespectUISPr("zeiterfassung.modulname"),
-				IDX_TABBED_PANE_ZEITERFASSUNG);
+		tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("zeiterfassung.modulname"), null, null,
+				LPMain.getTextRespectUISPr("zeiterfassung.modulname"), IDX_TABBED_PANE_ZEITERFASSUNG);
 
 		if (bRechtNurBuchen == false) {
-
-			tabIndex++;
-			IDX_TABBED_PANE_SONDERTAETIGKEITEN = tabIndex;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("zeiterfassung.title.tab.sondertaetigkeiten"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("zeiterfassung.title.tab.sondertaetigkeiten"),
-							IDX_TABBED_PANE_SONDERTAETIGKEITEN);
+			if (DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+				tabIndex++;
+				IDX_TABBED_PANE_SONDERTAETIGKEITEN = tabIndex;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("zeiterfassung.title.tab.sondertaetigkeiten"), null,
+						null, LPMain.getTextRespectUISPr("zeiterfassung.title.tab.sondertaetigkeiten"),
+						IDX_TABBED_PANE_SONDERTAETIGKEITEN);
+			}
 		}
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_MASCHINENZEITERFASSUNG)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MASCHINENZEITERFASSUNG)) {
 			tabIndex++;
 			IDX_TABBED_PANE_MASCHINEN = tabIndex;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("zeiterfassung.title.tab.maschinen"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("zeiterfassung.title.tab.maschinen"),
-							IDX_TABBED_PANE_MASCHINEN);
-			
-			tabIndex++;
-			IDX_TABBED_PANE_MASCHINENZEITMODELL = tabIndex;
-			tabbedPaneRoot
-					.insertTab(
-							LPMain.getTextRespectUISPr("pers.maschinenzeitmodell"),
-							null,
-							null,
-							LPMain.getTextRespectUISPr("pers.maschinenzeitmodell"),
-							IDX_TABBED_PANE_MASCHINENZEITMODELL);
-			
+			tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("zeiterfassung.title.tab.maschinen"), null, null,
+					LPMain.getTextRespectUISPr("zeiterfassung.title.tab.maschinen"), IDX_TABBED_PANE_MASCHINEN);
+
+			if (DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+				tabIndex++;
+				IDX_TABBED_PANE_MASCHINENZEITMODELL = tabIndex;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("pers.maschinenzeitmodell"), null, null,
+						LPMain.getTextRespectUISPr("pers.maschinenzeitmodell"), IDX_TABBED_PANE_MASCHINENZEITMODELL);
+			}
 
 		}
 		// zusatzberecht:3 So wir auf die neue Berechtigung abgefragt
 		if (bRechtNurBuchen == false) {
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_STIFTZEITERFASSUNG)) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_STIFTZEITERFASSUNG)) {
 				tabIndex++;
 				IDX_TABBED_PANE_ZEITSTIFTE = tabIndex;
 
-				tabbedPaneRoot
-						.insertTab(
-								LPMain.getTextRespectUISPr("zeiterfassung.title.tab.zeitstifte"),
-								null,
-								null,
-								LPMain.getTextRespectUISPr("zeiterfassung.title.tab.zeitstifte"),
-								IDX_TABBED_PANE_ZEITSTIFTE);
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("zeiterfassung.title.tab.zeitstifte"), null, null,
+						LPMain.getTextRespectUISPr("zeiterfassung.title.tab.zeitstifte"), IDX_TABBED_PANE_ZEITSTIFTE);
 			}
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_REISEZEITEN)) {
-				tabIndex++;
-				IDX_TABBED_PANE_DIAETEN = tabIndex;
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_REISEZEITEN)) {
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+					tabIndex++;
+					IDX_TABBED_PANE_DIAETEN = tabIndex;
 
-				tabbedPaneRoot
-						.insertTab(
-								LPMain.getTextRespectUISPr("pers.zeiterfassung.diaeten"),
-								null,
-								null,
-								LPMain.getTextRespectUISPr("pers.zeiterfassung.diaeten"),
-								IDX_TABBED_PANE_DIAETEN);
+					tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("pers.zeiterfassung.diaeten"), null, null,
+							LPMain.getTextRespectUISPr("pers.zeiterfassung.diaeten"), IDX_TABBED_PANE_DIAETEN);
+				}
 
 			}
 
-			tabIndex++;
-			IDX_TABBED_PANE_GRUNDDATEN = tabIndex;
 			// nur anzeigen wenn Benutzer Recht dazu hat
 			if (DelegateFactory.getInstance().getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
-				tabbedPaneRoot
-						.insertTab(
-								LPMain.getTextRespectUISPr("pers.title.tab.grunddaten"),
-								null,
-								null,
-								LPMain.getTextRespectUISPr("pers.title.tab.grunddaten"),
-								IDX_TABBED_PANE_GRUNDDATEN);
+				if (LPMain.getInstance().getDesktop()
+						.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_HVMA2)) {
+					tabIndex++;
+					IDX_TABBED_PANE_ANWESENHEITSBESTAETIGUNG = tabIndex;
+					tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("pers.title.tab.anwesenheitsbestaetigung"),
+							null, null, LPMain.getTextRespectUISPr("pers.title.tab.anwesenheitsbestaetigung"),
+							IDX_TABBED_PANE_ANWESENHEITSBESTAETIGUNG);
+				}
+				tabIndex++;
+				IDX_TABBED_PANE_GRUNDDATEN = tabIndex;
+				tabbedPaneRoot.insertTab(LPMain.getTextRespectUISPr("pers.title.tab.grunddaten"), null, null,
+						LPMain.getTextRespectUISPr("pers.title.tab.grunddaten"), IDX_TABBED_PANE_GRUNDDATEN);
 			}
 		}
 		registerChangeListeners();
@@ -266,18 +245,15 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 		tabbedPaneZeiterfassung.lPEventObjectChanged(null);
 		tabbedPaneRoot.setSelectedComponent(tabbedPaneZeiterfassung);
 		// iicon: hier das li/on icon gemacht
-		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
-				"/com/lp/client/res/clock16x16.png"));
+		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource("/com/lp/client/res/clock16x16.png"));
 		setFrameIcon(iicon);
 	}
 
-	private void createTabbedPaneZeiterfassung(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneZeiterfassung(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneZeiterfassung = new TabbedPaneZeiterfassung(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZEITERFASSUNG,
-					tabbedPaneZeiterfassung);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZEITERFASSUNG, tabbedPaneZeiterfassung);
 
 			if (tabbedPaneZeiterfassung.getPanelQueryPersonal().getSelectedId() == null) {
 				enableAllPanelsExcept(false);
@@ -286,76 +262,71 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 		}
 	}
 
-	private void createTabbedPaneSonderttaetigkeiten(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneSonderttaetigkeiten(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
-			tabbedPaneSondertaetigkeiten = new TabbedPaneSondertaetigkeiten(
-					this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_SONDERTAETIGKEITEN,
-					tabbedPaneSondertaetigkeiten);
+			tabbedPaneSondertaetigkeiten = new TabbedPaneSondertaetigkeiten(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_SONDERTAETIGKEITEN, tabbedPaneSondertaetigkeiten);
 			initComponents();
 		}
 	}
 
-	private void createTabbedPaneDiaeten(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneDiaeten(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneDiaeten = new TabbedPaneDiaeten(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_DIAETEN,
-					tabbedPaneDiaeten);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_DIAETEN, tabbedPaneDiaeten);
 			initComponents();
 		}
 	}
 
-	private void createTabbedPaneMaschinen(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneAnwesenheitsbestaetigung(JTabbedPane tabbedPane) throws Throwable {
+		if (tabbedPane == null) {
+			// lazy loading
+			tabbedPaneAnwesenheitsbestaetigung = new TabbedPaneAnwesenheitsbestaetigung(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ANWESENHEITSBESTAETIGUNG, tabbedPaneAnwesenheitsbestaetigung);
+			initComponents();
+		}
+	}
+
+	private void createTabbedPaneMaschinen(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneMaschinen = new TabbedPaneMaschinen(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MASCHINEN,
-					tabbedPaneMaschinen);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MASCHINEN, tabbedPaneMaschinen);
 			initComponents();
 		}
 	}
-	private void createTabbedPaneMaschinenzeitmodell(JTabbedPane tabbedPane)
-			throws Throwable {
+
+	private void createTabbedPaneMaschinenzeitmodell(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneMaschinenzeitmodell = new TabbedPaneMaschinenzeitmodell(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MASCHINENZEITMODELL,
-					tabbedPaneMaschinenzeitmodell);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MASCHINENZEITMODELL, tabbedPaneMaschinenzeitmodell);
 			initComponents();
 		}
 	}
 
-	private void createTabbedPaneZeitstifte(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneZeitstifte(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneZeitstifte = new TabbedPaneZeitstifte(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZEITSTIFTE,
-					tabbedPaneZeitstifte);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZEITSTIFTE, tabbedPaneZeitstifte);
 			initComponents();
 		}
 	}
 
-	private void createTabbedPaneGrunddaten(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneGrunddaten(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
-			tabbedPaneZeiterfassunggrunddaten = new TabbedPaneZeiterfassunggrunddaten(
-					this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN,
-					tabbedPaneZeiterfassunggrunddaten);
+			tabbedPaneZeiterfassunggrunddaten = new TabbedPaneZeiterfassunggrunddaten(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN, tabbedPaneZeiterfassunggrunddaten);
 			initComponents();
 		}
 	}
 
 	public void lPStateChanged(EventObject e) throws Throwable {
-		JTabbedPane tabbedPane = (JTabbedPane) ((JTabbedPane) e.getSource())
-				.getSelectedComponent();
+		JTabbedPane tabbedPane = (JTabbedPane) ((JTabbedPane) e.getSource()).getSelectedComponent();
 		int selectedCur = ((JTabbedPane) e.getSource()).getSelectedIndex();
 
 		if (selectedCur == IDX_TABBED_PANE_ZEITERFASSUNG) {
@@ -382,6 +353,10 @@ public class InternalFrameZeiterfassung extends InternalFrame {
 			createTabbedPaneDiaeten(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.
 			tabbedPaneDiaeten.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_ANWESENHEITSBESTAETIGUNG) {
+			createTabbedPaneAnwesenheitsbestaetigung(tabbedPane);
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneAnwesenheitsbestaetigung.lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_GRUNDDATEN) {
 			createTabbedPaneGrunddaten(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.

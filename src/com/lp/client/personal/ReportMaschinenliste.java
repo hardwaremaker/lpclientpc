@@ -67,6 +67,7 @@ public class ReportMaschinenliste extends PanelBasis implements
 	private WrapperLabel wlaStichtag = new WrapperLabel();
 	private WrapperDateField wdfStichtag = new WrapperDateField();
 	private WrapperCheckBox wcbMitVersteckten = new WrapperCheckBox();
+	private WrapperCheckBox wcbBarcodeliste = new WrapperCheckBox();
 
 	public ReportMaschinenliste(InternalFrame internalFrame, String add2Title)
 			throws Throwable {
@@ -91,6 +92,9 @@ public class ReportMaschinenliste extends PanelBasis implements
 		wlaStichtag.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.stichtag"));
 
+		wcbBarcodeliste.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.report.barcodeliste"));
+		
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
@@ -103,11 +107,18 @@ public class ReportMaschinenliste extends PanelBasis implements
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
 			jpaWorkingOn.add(wcbMitVersteckten,
-					new GridBagConstraints(1, 1, 2, 1, 0, 0.0,
+					new GridBagConstraints(1, 1, 1, 1, 0, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
 		}
+		
+		jpaWorkingOn.add(wcbBarcodeliste,
+				new GridBagConstraints(2, 1, 1, 1, 0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+								2), 100, 0));
+		
 
 	}
 
@@ -116,12 +127,21 @@ public class ReportMaschinenliste extends PanelBasis implements
 	}
 
 	public String getReportname() {
-		return ZeiterfassungReportFac.REPORT_MASCHINENLISTE;
+		if (wcbBarcodeliste.isSelected()) {
+			return ZeiterfassungReportFac.REPORT_MASCHINENLISTE_BARCODE;
+		} else {
+			return ZeiterfassungReportFac.REPORT_MASCHINENLISTE;
+		}
+
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory.getInstance().getZeiterfassungReportDelegate()
-				.printMaschinenliste(wdfStichtag.getTimestamp(),wcbMitVersteckten.isSelected());
+		return DelegateFactory
+				.getInstance()
+				.getZeiterfassungReportDelegate()
+				.printMaschinenliste(wdfStichtag.getTimestamp(),
+						wcbMitVersteckten.isSelected(),
+						wcbBarcodeliste.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

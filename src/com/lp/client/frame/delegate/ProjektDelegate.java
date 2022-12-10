@@ -45,7 +45,9 @@ import com.lp.server.projekt.service.ProjektDto;
 import com.lp.server.projekt.service.ProjektFac;
 import com.lp.server.projekt.service.ProjektReportFac;
 import com.lp.server.projekt.service.ProjektVerlaufHelperDto;
+import com.lp.server.system.service.PflegeFac;
 import com.lp.server.system.service.ReportJournalKriterienDto;
+import com.lp.server.util.DatumsfilterVonBis;
 import com.lp.server.util.report.JasperPrintLP;
 
 public class ProjektDelegate extends Delegate {
@@ -55,10 +57,9 @@ public class ProjektDelegate extends Delegate {
 
 	public ProjektDelegate() throws Exception {
 		context = new InitialContext();
-		projektFac = (ProjektFac) context
-				.lookup("lpserver/ProjektFacBean/remote");
-		projektReportFac = (ProjektReportFac) context
-				.lookup("lpserver/ProjektReportFacBean/remote");
+
+		projektFac = lookupFac(context, ProjektFac.class);
+		projektReportFac = lookupFac(context, ProjektReportFac.class);
 	}
 
 	public Integer createProjekt(ProjektDto projektDto) throws ExceptionLP {
@@ -105,8 +106,7 @@ public class ProjektDelegate extends Delegate {
 	/**
 	 * L&ouml;schen einer bestehendenreat History.
 	 * 
-	 * @param historyDto
-	 *            historyDto
+	 * @param historyDto historyDto
 	 * @throws ExceptionLP
 	 */
 	public void removeHistory(HistoryDto historyDto) throws ExceptionLP {
@@ -144,8 +144,7 @@ public class ProjektDelegate extends Delegate {
 	/**
 	 * Einen Projekt ueber seinen Schluessel von der db holen.
 	 * 
-	 * @param iId
-	 *            Integer
+	 * @param iId Integer
 	 * @throws ExceptionLP
 	 * @return ProjektDto
 	 */
@@ -161,8 +160,31 @@ public class ProjektDelegate extends Delegate {
 		return projektDto;
 	}
 
-	public ArrayList<String> getVorgaengerProjekte(Integer projektIId)
-			throws ExceptionLP {
+	public ProjektDto projektFindByMandantCNrCNrOhneExc(String cNrI) throws ExceptionLP {
+		ProjektDto projektDto = null;
+
+		try {
+			projektDto = projektFac.projektFindByMandantCNrCNrOhneExc(LPMain.getTheClient().getMandant(), cNrI);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return projektDto;
+	}
+
+	public ProjektDto projektfindByBereichIIdArtikelIId(Integer bereichIId, Integer artikelIId) throws ExceptionLP {
+		ProjektDto projektDto = null;
+
+		try {
+			projektDto = projektFac.projektfindByBereichIIdArtikelIId(bereichIId, artikelIId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return projektDto;
+	}
+
+	public ArrayList<String> getVorgaengerProjekte(Integer projektIId) throws ExceptionLP {
 		ArrayList<String> s = null;
 
 		try {
@@ -177,8 +199,7 @@ public class ProjektDelegate extends Delegate {
 	/**
 	 * Einen History ueber seinen Schluessel von der db holen.
 	 * 
-	 * @param iId
-	 *            Integer
+	 * @param iId Integer
 	 * @throws ExceptionLP
 	 * @return HistoryDto
 	 */
@@ -193,6 +214,7 @@ public class ProjektDelegate extends Delegate {
 
 		return historyDto;
 	}
+
 	public HistoryDto[] historyFindByProjektIid(Integer iId) throws ExceptionLP {
 		HistoryDto[] historyDto = null;
 
@@ -205,13 +227,10 @@ public class ProjektDelegate extends Delegate {
 		return historyDto;
 	}
 
-
-	public LinkedHashMap<String, ProjektVerlaufHelperDto> getProjektVerlauf(
-			Integer projektIId) throws ExceptionLP {
+	public LinkedHashMap<String, ProjektVerlaufHelperDto> getProjektVerlauf(Integer projektIId) throws ExceptionLP {
 
 		try {
-			return projektFac.getProjektVerlauf(projektIId,
-					LPMain.getTheClient());
+			return projektFac.getProjektVerlauf(projektIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
@@ -222,32 +241,37 @@ public class ProjektDelegate extends Delegate {
 	/**
 	 * Offene. Projekte drucken.
 	 * 
-	 * @param krit
-	 *            PK der Projekt
-	 * @param dStichtag
-	 *            Date
+	 * @param krit      PK der Projekt
+	 * @param dStichtag Date
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printProjektOffene(ReportJournalKriterienDto krit,
-			Integer bereichIId, java.sql.Date dStichtag) throws ExceptionLP {
+	public JasperPrintLP printProjektOffene(ReportJournalKriterienDto krit, Integer bereichIId, java.sql.Date dStichtag)
+			throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printProjektOffene(krit, dStichtag,
-					bereichIId, LPMain.getTheClient());
+			oPrintO = projektReportFac.printProjektOffene(krit, dStichtag, bereichIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public String istPartnerBeiEinemMandantenGesperrt(Integer partnerIId)
-			throws ExceptionLP {
+	public JasperPrintLP printProjektForecast(ReportJournalKriterienDto krit, Integer bereichIId,
+			java.sql.Date dStichtag) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = projektReportFac.printProjektForecast(krit, dStichtag, bereichIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public String istPartnerBeiEinemMandantenGesperrt(Integer partnerIId) throws ExceptionLP {
 
 		try {
-			return projektFac.istPartnerBeiEinemMandantenGesperrt(partnerIId,
-					LPMain.getTheClient());
+			return projektFac.istPartnerBeiEinemMandantenGesperrt(partnerIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
@@ -255,11 +279,10 @@ public class ProjektDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printProjektOffeneAuswahlListe() throws ExceptionLP {
+	public JasperPrintLP printProjektOffeneAuswahlListe(Integer bereichIId) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printProjektOffeneAuswahlListe(LPMain
-					.getTheClient());
+			oPrintO = projektReportFac.printProjektOffeneAuswahlListe(bereichIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -269,22 +292,39 @@ public class ProjektDelegate extends Delegate {
 	/**
 	 * Alle. Projekte drucken.
 	 * 
-	 * @param krit
-	 *            PK der Projekt
-	 * @param dStichtag
-	 *            Date
+	 * @param krit      PK der Projekt
+	 * @param dStichtag Date
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printProjektAlle(ReportJournalKriterienDto krit,
-			Integer bereichIId, java.sql.Date dStichtag,
-			boolean belegdatumStattZieltermin) throws ExceptionLP {
+	public JasperPrintLP printProjektAlle(ReportJournalKriterienDto krit, Integer bereichIId, java.sql.Date dStichtag,
+			boolean belegdatumStattZieltermin, boolean bMitIstzeitdaten) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printProjektAlle(krit, dStichtag,
-					bereichIId, belegdatumStattZieltermin,
+			oPrintO = projektReportFac.printProjektAlle(krit, dStichtag, bereichIId, belegdatumStattZieltermin, bMitIstzeitdaten,
 					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public JasperPrintLP printProjektAlleDetailliert(ReportJournalKriterienDto krit, Integer bereichIId,
+			java.sql.Date dStichtag, boolean belegdatumStattZieltermin) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = projektReportFac.printProjektAlleDetailliert(krit, dStichtag, bereichIId,
+					belegdatumStattZieltermin, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public JasperPrintLP printAenderungenEigenschaften(Integer projektIId) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = projektReportFac.printAenderungenEigenschaften(projektIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -294,21 +334,28 @@ public class ProjektDelegate extends Delegate {
 	/**
 	 * Alle. Projekte drucken.
 	 * 
-	 * @param krit
-	 *            PK der Projekt
-	 * @param dStichtag
-	 *            Date
+	 * @param krit      PK der Projekt
+	 * @param dStichtag Date
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printProjektErledigt(ReportJournalKriterienDto krit,
-			Integer bereichIId, java.sql.Date dStichtag,
-			boolean interneErledigungBeruecksichtigen) throws ExceptionLP {
+	public JasperPrintLP printProjektErledigt(ReportJournalKriterienDto krit, Integer bereichIId,
+			java.sql.Date dStichtag, boolean interneErledigungBeruecksichtigen) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printProjektErledigt(krit, dStichtag,
-					bereichIId, interneErledigungBeruecksichtigen,
+			oPrintO = projektReportFac.printProjektErledigt(krit, dStichtag, bereichIId,
+					interneErledigungBeruecksichtigen, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public JasperPrintLP printAktivitaetsuebersicht(DatumsfilterVonBis datumsfilter, boolean bGesamtinfo,
+			int iSortierung) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = projektReportFac.printAktivitaetsuebersicht(datumsfilter, bGesamtinfo, iSortierung,
 					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
@@ -316,24 +363,20 @@ public class ProjektDelegate extends Delegate {
 		return oPrintO;
 	}
 
-	public JasperPrintLP printAktivitaetsuebersicht(java.sql.Timestamp tVon,
-			java.sql.Timestamp tBis, boolean bGesamtinfo) throws ExceptionLP {
+	public JasperPrintLP printProjektverlauf(Integer projektIId, boolean bMitAZDetails) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printAktivitaetsuebersicht(tVon, tBis,
-					bGesamtinfo, LPMain.getTheClient());
+			oPrintO = projektReportFac.printProjektverlauf(projektIId, bMitAZDetails, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public JasperPrintLP printProjektverlauf(Integer projektIId)
-			throws ExceptionLP {
+	public JasperPrintLP printProjektbaum(Integer projektIId) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printProjektverlauf(projektIId,
-					LPMain.getTheClient());
+			oPrintO = projektReportFac.printProjektbaum(projektIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -343,7 +386,28 @@ public class ProjektDelegate extends Delegate {
 	public JasperPrintLP printProjekt(Integer iidProjekt) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printProjekt(iidProjekt, null, null,
+			oPrintO = projektReportFac.printProjekt(iidProjekt, null, null, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+	
+	public JasperPrintLP printProjektEinesArtikels(Integer artikelIId, boolean bNurOffene, DatumsfilterVonBis vonbis) throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = projektReportFac.printProjektEinesArtikels(artikelIId, bNurOffene, vonbis, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return oPrintO;
+	}
+
+	public JasperPrintLP printProjektstatistik(Integer projektIId, int iOption, boolean bAktuellerStand)
+			throws ExceptionLP {
+		JasperPrintLP oPrintO = null;
+		try {
+			oPrintO = projektReportFac.printProjektstatistik(projektIId, iOption, bAktuellerStand,
 					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
@@ -351,20 +415,17 @@ public class ProjektDelegate extends Delegate {
 		return oPrintO;
 	}
 
-	public JasperPrintLP printProjektzeiten(Integer projektIId,
-			Integer iSortierung) throws ExceptionLP {
+	public JasperPrintLP printProjektzeiten(Integer projektIId, Integer iSortierung) throws ExceptionLP {
 		JasperPrintLP oPrintO = null;
 		try {
-			oPrintO = projektReportFac.printProjektzeiten(projektIId,
-					iSortierung, LPMain.getTheClient());
+			oPrintO = projektReportFac.printProjektzeiten(projektIId, iSortierung, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return oPrintO;
 	}
 
-	public void vertauscheProjekte(Integer iIdPosition1I,
-			Integer iIdPosition2I, int min) throws ExceptionLP {
+	public void vertauscheProjekte(Integer iIdPosition1I, Integer iIdPosition2I, int min) throws ExceptionLP {
 		try {
 			projektFac.vertauscheProjekte(iIdPosition1I, iIdPosition2I, min);
 		} catch (Throwable ex) {
@@ -388,11 +449,9 @@ public class ProjektDelegate extends Delegate {
 		}
 	}
 
-	public Double berechneGesamtSchaetzung(Integer personal_i_id_zugewiesener)
-			throws ExceptionLP {
+	public Double berechneGesamtSchaetzung(Integer personal_i_id_zugewiesener) throws ExceptionLP {
 		try {
-			return projektFac.berechneGesamtSchaetzung(
-					personal_i_id_zugewiesener, LPMain.getTheClient());
+			return projektFac.berechneGesamtSchaetzung(personal_i_id_zugewiesener, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}

@@ -33,11 +33,15 @@
 package com.lp.client.frame.component.frameposition;
 
 import java.awt.Font;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.lp.client.angebot.AGSchnellerfassungPositionData;
 import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
+
 /**
  * Dieses Interface stellt die Schnittstelle zwischen der Ein-/Ausgabeschicht
  * und dem <code>ClientPerspecitveManager</code> dar. Das Speichern kann zB. im Filesystem erfolgen,
@@ -48,9 +52,10 @@ import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
  */
 /**
  * Dieses Interface stellt die Schnittstelle zwischen der Ein-/Ausgabeschicht
- * und dem <code>ClientPerspecitveManager</code> dar. Das Speichern kann zB. im Filesystem erfolgen,
- * aber auch in er DB.<br>
+ * und dem <code>ClientPerspecitveManager</code> dar. Das Speichern kann zB. im
+ * Filesystem erfolgen, aber auch in er DB.<br>
  * Die Layouts sollten abh&auml;ngig von Mandant und User gespeichert werden.
+ * 
  * @author robert
  *
  */
@@ -58,88 +63,132 @@ import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
 public interface IClientPerspectiveIO {
 
 	/**
-	 * Speichert die Map, in der die Framedarstellungsinformation enthalten ist.
-	 * Der Key der Map, ist die BelegCNr des jeweiligen Frames.
+	 * Speichert die Map, in der die Framedarstellungsinformation enthalten ist. Der
+	 * Key der Map, ist die BelegCNr des jeweiligen Frames.
+	 * 
 	 * @param positionMap
 	 * @throws Exception wenn ein Fehler beim Speichern auftritt.
 	 */
-	public void persistFramePositionMap(Map<String,FramePositionData> positionMap) throws Exception;
-	
+	public void persistFramePositionMap(Map<String, FramePositionData> positionMap) throws Exception;
+
 	/**
 	 * Liest die Framedarstellungseigentschaften f&uuml;r den jeweiligen Key aus.
+	 * 
 	 * @param key die BelegartCNr des Moduls
 	 * @return Framedarstellungseigenschaften-Objekt
 	 * @throws Exception wenn ein Fehler beim Lesen auftritt
 	 */
 	public FramePositionData readFramePosition(String key) throws Exception;
-	
+
 	/**
-	 * Speichert die Liste der (beim n&auml;chsten laden des Layouts) zu startenden Module.
-	 * Inhalt der String-Liste sind die BelegartCNr's der erw&auml;hnten Module.
+	 * Speichert die Liste der (beim n&auml;chsten laden des Layouts) zu startenden
+	 * Module. Inhalt der String-Liste sind die BelegartCNr's der erw&auml;hnten
+	 * Module.
+	 * 
 	 * @param startupModule
 	 * @throws Exception wenn ein Fehler beim Speichern auftritt.
 	 */
 	public void persistStartupModule(List<String> startupModule) throws Exception;
-	
+
 	/**
-	 * Liest die Liste der (beim n&auml;chsten laden des Layouts) zu startenden Module.
-	 * Inhalt der String-Liste sind die BelegartCNr's der erw&auml;hnten Module.
+	 * Liest die Liste der (beim n&auml;chsten laden des Layouts) zu startenden
+	 * Module. Inhalt der String-Liste sind die BelegartCNr's der erw&auml;hnten
+	 * Module.
+	 * 
 	 * @return eine Liste von Strings
 	 * @throws Exception
 	 */
 	public List<String> readStartupModule() throws Exception;
-	
+
 	/**
 	 * L&ouml;scht alle Einstellungen des Layouts.
+	 * 
 	 * @throws Exception wenn das l&ouml;schen scheitert.
 	 */
 	public void resetAllLayout() throws Exception;
-	
+
 	/**
 	 * Pr&uuml;ft ob ein gespeichertes Layout existiert.
+	 * 
 	 * @return true wenn ein Layout existiert.
 	 */
 	public boolean doSavedSettingsExist();
-	
+
 	/**
 	 * Liest eine IntegerListe aus, welche die Spaltenbreiten beinhaltet.
+	 * 
 	 * @param usecaseId die UsecaseId der Tabelle
 	 * @return die Breiten in einer Liste
 	 * @throws Exception wenn das lesen scheitert
 	 */
 	public List<Integer> readQueryColumnWidth(int usecaseId) throws Exception;
+
+	
+	public List<Integer> readQueryColumnPositions(int usecaseId) throws Exception;
+
+	
+	public void removeQueryColumnPositions(int usecaseId) throws Exception;
+	
+	public void removeQueryColumnWidth(int usecaseId) throws Exception;
+	
+	public void removeQueryColumnSorting(int usecaseId) throws Exception;
+	
+	public void removeQueryDetailHeight(int usecaseId) throws Exception;
 	
 	/**
 	 * Speichert die Spaltenbreiten einer Tabelle.
+	 * 
 	 * @param usecaseId die UsecaseId der Tabelle
-	 * @param widths die Liste mit den Spaltenbreiten
+	 * @param widths    die Liste mit den Spaltenbreiten
 	 * @throws Exception wenn das speichern scheitert.
 	 */
 	public void persistQueryColumnWidth(int usecaseId, List<Integer> widths) throws Exception;
 
+	
+	public void persistAGSchnellerfassungPositionData(AGSchnellerfassungPositionData positionData)
+			throws Exception;
+	
+	public AGSchnellerfassungPositionData readAGSchnellerfassungPositionData()
+			throws Exception;
+	
+	public void persistQueryColumnPosition(int usecaseId, List<Integer> position) throws Exception;
+
 	/**
 	 * Speichert die Sortierkriterien einer Tabelle.
+	 * 
 	 * @param usecaseId die UsecaseId der Tabelle
 	 * @param kriterien die Liste mit den SortierKriterien
 	 * @throws Exception wenn das speichern scheitert.
 	 */
 	public void persistQueryColumnSorting(int usecaseId, List<SortierKriterium> kriterien) throws Exception;
-	
+
 	/**
 	 * Liest die Sortierkriterien einer Tabelle.
+	 * 
 	 * @param usecaseId die UsecaseId der Tabelle
 	 * @return die Sortierkriterien
 	 * @throws Exception wenn das lesen scheitert.
 	 */
 	public List<SortierKriterium> readQueryColumnSorting(int usecaseId) throws Exception;
-	
+
 	public Font readClientFont() throws Exception;
 
 	public void persistClientFont(Font font) throws Exception;
-	
+
 	public void resetClientFont() throws Exception;
-	
-	public void persistPropertyMap(HashMap<String,String> properties) throws Exception;
-	
-	public HashMap<String,String> readPropertyMap() throws Exception;
+
+	public void persistPropertyMap(HashMap<String, String> properties) throws Exception;
+
+	public HashMap<String, String> readPropertyMap() throws Exception;
+
+	public Integer readDetailHeight(int usecaseId) throws Exception;
+
+	/**
+	 * Speichert die Hoehe des Detail-Panels eines Split-Panels
+	 * 
+	 * @param usecaseId    UsecaseId der Tabelle (Query-Panel)
+	 * @param detailHeight Hoehe des Detail-Panels
+	 * @throws Exception
+	 */
+	public void persistDetailHeight(int usecaseId, int detailHeight) throws Exception;
 }

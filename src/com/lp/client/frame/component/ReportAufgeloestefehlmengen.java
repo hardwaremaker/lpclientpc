@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.frame.component;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -49,72 +48,64 @@ import com.lp.server.artikel.service.ArtikelReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access") 
-public class ReportAufgeloestefehlmengen
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+@SuppressWarnings("static-access")
+public class ReportAufgeloestefehlmengen extends PanelBasis implements
+		PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  private TreeMap<?, ?> tmAufgeloesteFehlmengen = null;
-  public ReportAufgeloestefehlmengen(InternalFrame internalFrame,TreeMap<?, ?> tmAufgeloesteFehlmengen)
-      throws Throwable {
-    super(internalFrame,
-          LPMain.getInstance().getTextRespectUISPr("artikel.report.freiinfertigung"));
-    this.tmAufgeloesteFehlmengen = tmAufgeloesteFehlmengen;
-    jbInit();
-    initComponents();
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	private Integer fasessionIId = null;
+	private boolean bNachdruck = false;
 
-  }
+	public ReportAufgeloestefehlmengen(InternalFrame internalFrame,
+			Integer fasessionIId, boolean bNachdruck) throws Throwable {
+		super(internalFrame, LPMain.getInstance().getTextRespectUISPr(
+				"artikel.report.freiinfertigung"));
+		this.fasessionIId = fasessionIId;
+		this.bNachdruck = bNachdruck;
+		jbInit();
+		initComponents();
 
+	}
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return NO_VALUE_THATS_OK_JCOMPONENT;
-  }
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return NO_VALUE_THATS_OK_JCOMPONENT;
+	}
 
+	private void jbInit() throws Exception {
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
 
-  private void jbInit()
-      throws Exception {
-    this.setLayout(gridBagLayout1);
-    jpaWorkingOn.setLayout(gridBagLayout2);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
+						0, 0, 0), 0, 0));
 
-    this.add(jpaWorkingOn,
-             new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
-                                    GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+	}
 
-  }
+	public String getModul() {
+		return ArtikelReportFac.REPORT_MODUL;
+	}
 
+	public String getReportname() {
+		return ArtikelReportFac.REPORT_AUFGELOESTEFEHLMENGEN;
+	}
 
-  public String getModul() {
-    return ArtikelReportFac.REPORT_MODUL;
-  }
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		return DelegateFactory.getInstance().getArtikelReportDelegate()
+				.printAufgeloesteFehlmengen(fasessionIId, bNachdruck);
+	}
 
+	public boolean getBErstelleReportSofort() {
+		return true;
+	}
 
-  public String getReportname() {
-    return ArtikelReportFac.REPORT_AUFGELOESTEFEHLMENGEN;
-  }
-
-
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    return DelegateFactory.getInstance().getArtikelReportDelegate().
-        printAufgeloesteFehlmengen(tmAufgeloesteFehlmengen);
-  }
-
-
-  public boolean getBErstelleReportSofort() {
-    return true;
-  }
-
-
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien
+				.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

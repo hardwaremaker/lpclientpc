@@ -45,14 +45,11 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
-import com.lp.client.pc.LPMain;
 import com.lp.server.inserat.service.InseratReportFac;
-import com.lp.server.partner.service.KundeReportFac;
-import com.lp.server.partner.service.LieferantReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access")
+
 public class ReportInserateZuverrechen extends PanelBasis implements
 		PanelReportIfJRDS {
 	/**

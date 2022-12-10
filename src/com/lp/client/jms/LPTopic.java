@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.jms;
 
+import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
@@ -69,9 +70,8 @@ public class LPTopic {
 		super();
 	}
 
-	protected TopicSubscriber subscribe(String topicName, boolean durable,
-			MessageListener listener) throws NamingException, JMSException,
-			InterruptedException {
+	protected TopicSubscriber subscribe(String topicName, boolean durable, MessageListener listener)
+			throws NamingException, JMSException, InterruptedException {
 		this.topicName = topicName;
 		TopicSubscriber subscrib = null;
 		Topic topic = null;
@@ -82,14 +82,26 @@ public class LPTopic {
 			e.printStackTrace();
 		}
 		if (theClient != null) {
-			TopicConnectionFactory fact = (TopicConnectionFactory) ctx
-					.lookup("ConnectionFactory");
-			connect = fact.createTopicConnection();
+			TopicConnectionFactory fact = null;
+
+			try {
+				fact = (TopicConnectionFactory) ctx.lookup("ConnectionFactory");
+				connect = fact.createTopicConnection();
+			} catch (Throwable e) {
+				// WILDFLY
+				ctx.addToEnvironment(Context.SECURITY_PRINCIPAL, "guest");
+				fact = (TopicConnectionFactory) ctx.lookup("jms/RemoteConnectionFactory");
+				connect = fact.createTopicConnection("jmsuser","jmsuser");
+			}
+
 			String client = theClient.getBenutzername().trim();
 			connect.setClientID(client + topicName);
-			session = connect.createTopicSession(false,
-					Session.AUTO_ACKNOWLEDGE);
-			topic = (Topic) ctx.lookup(topicName);
+			session = connect.createTopicSession(false, Session.AUTO_ACKNOWLEDGE);
+			try {
+				topic = (Topic) ctx.lookup(topicName);
+			} catch (Exception e) {
+				topic = (Topic) ctx.lookup("jms/"+topicName);
+			}
 			if (durable)
 				subscrib = session.createDurableSubscriber(topic, "lpclientpc");
 			else
@@ -101,12 +113,29 @@ public class LPTopic {
 	}
 
 	protected void send(String sMessageI) throws NamingException, JMSException {
-		TopicConnectionFactory fact = (TopicConnectionFactory) ctx
-				.lookup("ConnectionFactory");
-		Topic topic = (Topic) ctx.lookup(this.topicName);
-		TopicConnection connect = fact.createTopicConnection();
-		TopicSession session = connect.createTopicSession(false,
-				Session.AUTO_ACKNOWLEDGE);
+		
+		TopicConnectionFactory fact =null;
+		TopicConnection connect = null;
+		try {
+		 fact = (TopicConnectionFactory) ctx.lookup("ConnectionFactory");
+			connect = fact.createTopicConnection();
+		}catch (Throwable e) {
+			// WILDFLY
+			ctx.addToEnvironment(Context.SECURITY_PRINCIPAL, "guest");
+			fact = (TopicConnectionFactory) ctx.lookup("jms/RemoteConnectionFactory");
+			connect = fact.createTopicConnection("jmsuser","jmsuser");
+
+		}
+		
+		Topic topic;
+		try {
+			topic = (Topic) ctx.lookup(this.topicName);
+		} catch (Exception e) {
+			topic = (Topic) ctx.lookup("jms/"+this.topicName);
+		}
+		
+		
+		TopicSession session = connect.createTopicSession(false, Session.AUTO_ACKNOWLEDGE);
 		TopicPublisher sender = session.createPublisher(topic);
 		connect.start();
 		TextMessage tm = session.createTextMessage(sMessageI);
@@ -121,6 +150,7 @@ public class LPTopic {
 			TextMessage msg = (TextMessage) message;
 			String msgText = msg.getText();
 			String msgtoshow;
+//			if (LPMain.getInstance().getBenutzernameRaw().startsWith("LPAdmin")) {
 			if (LPMain.getInstance().isLPAdmin()) {
 				msgtoshow = message.toString();
 			} else {
@@ -128,26 +158,20 @@ public class LPTopic {
 			}
 			Integer nachrichtarchivIId = null;
 			try {
-				nachrichtarchivIId = message
-						.getIntProperty(BenutzerFac.NPROP_NACHRICHTARCHIV_I_ID);
+				nachrichtarchivIId = message.getIntProperty(BenutzerFac.NPROP_NACHRICHTARCHIV_I_ID);
 			} catch (NumberFormatException e) {
 				// Property nicht vorhanden -> nur Info
 			}
 			if (nachrichtarchivIId == null) {
 				// ist nur eine Info Message
-				JOptionPane.showMessageDialog(getDesktop(), msgtoshow,
-						LPMain.getTextRespectUISPr("jms.frage.titel"),
+				JOptionPane.showMessageDialog(getDesktop(), msgtoshow, LPMain.getTextRespectUISPr("jms.frage.titel"),
 						JOptionPane.INFORMATION_MESSAGE);
 			} else {
 				if (tsAlleIgnorieren != null) {
 					try {
-						NachrichtarchivDto nDto = DelegateFactory
-								.getInstance()
-								.getBenutzerDelegate()
-								.nachrichtarchivFindByPrimaryKey(
-										nachrichtarchivIId);
-						if (nDto.getTZeit().getTime() < tsAlleIgnorieren
-								.getTime()) {
+						NachrichtarchivDto nDto = DelegateFactory.getInstance().getBenutzerDelegate()
+								.nachrichtarchivFindByPrimaryKey(nachrichtarchivIId);
+						if (nDto.getTZeit().getTime() < tsAlleIgnorieren.getTime()) {
 							return;
 						}
 					} catch (Throwable e) {
@@ -161,33 +185,25 @@ public class LPTopic {
 				final int indexErledigen = 1;
 				final int indexIgnorieren = 2;
 				final int indexAlleIgnorieren = 3;
-				aOptionen[indexUebernehmen] = LPMain
-						.getTextRespectUISPr("jms.frage.uebernehmen");
-				aOptionen[indexErledigen] = LPMain
-						.getTextRespectUISPr("jms.frage.erledigen");
-				aOptionen[indexIgnorieren] = LPMain
-						.getTextRespectUISPr("jms.frage.ignorieren");
-				aOptionen[indexAlleIgnorieren] = LPMain
-						.getTextRespectUISPr("jms.frage.alle.ignorieren");
+				aOptionen[indexUebernehmen] = LPMain.getTextRespectUISPr("jms.frage.uebernehmen");
+				aOptionen[indexErledigen] = LPMain.getTextRespectUISPr("jms.frage.erledigen");
+				aOptionen[indexIgnorieren] = LPMain.getTextRespectUISPr("jms.frage.ignorieren");
+				aOptionen[indexAlleIgnorieren] = LPMain.getTextRespectUISPr("jms.frage.alle.ignorieren");
 
-				int iAuswahl = JOptionPane.showOptionDialog(getDesktop(),
-						msgtoshow,
-						LPMain.getTextRespectUISPr("jms.frage.titel"),
-						JOptionPane.YES_NO_CANCEL_OPTION,
+				int iAuswahl = JOptionPane.showOptionDialog(getDesktop(), msgtoshow,
+						LPMain.getTextRespectUISPr("jms.frage.titel"), JOptionPane.YES_NO_CANCEL_OPTION,
 						JOptionPane.INFORMATION_MESSAGE, null, // Icon
 						aOptionen, aOptionen[0]);
 				switch (iAuswahl) {
 				case indexAlleIgnorieren:
-					tsAlleIgnorieren = new java.sql.Timestamp(
-							System.currentTimeMillis());
+					tsAlleIgnorieren = new java.sql.Timestamp(System.currentTimeMillis());
 
 					break;
 				case indexUebernehmen:
 					if (nachrichtarchivIId != null) {
 						Integer personalIId = null;
 						try {
-							personalIId = DelegateFactory.getInstance()
-									.getBenutzerDelegate()
+							personalIId = DelegateFactory.getInstance().getBenutzerDelegate()
 									.weiseNachrichtPersonZu(nachrichtarchivIId);
 						} catch (ExceptionLP e) {
 							e.printStackTrace();
@@ -197,18 +213,12 @@ public class LPTopic {
 						if (personalIId != null) {
 							PersonalDto personalDto = null;
 							try {
-								personalDto = DelegateFactory.getInstance()
-										.getPersonalDelegate()
+								personalDto = DelegateFactory.getInstance().getPersonalDelegate()
 										.personalFindByPrimaryKey(personalIId);
-								JOptionPane
-										.showMessageDialog(
-												getDesktop(),
-												"Die Aufgabe wurde bereits von "
-														+ personalDto
-																.formatFixUFTitelName2Name1()
-														+ " \u00FCbernommen!",
-												"Hinweis",
-												JOptionPane.INFORMATION_MESSAGE);
+								JOptionPane.showMessageDialog(
+										getDesktop(), "Die Aufgabe wurde bereits von "
+												+ personalDto.formatFixUFTitelName2Name1() + " \u00FCbernommen!",
+										"Hinweis", JOptionPane.INFORMATION_MESSAGE);
 							} catch (ExceptionLP e) {
 								e.printStackTrace();
 							} catch (Throwable e) {
@@ -220,12 +230,10 @@ public class LPTopic {
 				case indexErledigen:
 					try {
 
-						String response = JOptionPane
-								.showInputDialog(
-										null,
-										LPMain.getTextRespectUISPr("system.nachrichtarchiv.erledigungsgrund"),
-										LPMain.getTextRespectUISPr("system.nachrichtarchiv.erledigungsgrund"),
-										JOptionPane.QUESTION_MESSAGE);
+						String response = JOptionPane.showInputDialog(null,
+								LPMain.getTextRespectUISPr("system.nachrichtarchiv.erledigungsgrund"),
+								LPMain.getTextRespectUISPr("system.nachrichtarchiv.erledigungsgrund"),
+								JOptionPane.QUESTION_MESSAGE);
 
 						if (response != null && response.length() > 0) {
 
@@ -233,17 +241,12 @@ public class LPTopic {
 								response = response.substring(0, 79);
 							}
 
-							DelegateFactory
-									.getInstance()
-									.getBenutzerDelegate()
-									.erledigeNachricht(nachrichtarchivIId,
-											response);
+							DelegateFactory.getInstance().getBenutzerDelegate().erledigeNachricht(nachrichtarchivIId,
+									response);
 						} else {
 
-							DialogFactory
-									.showModalDialog(
-											LPMain.getTextRespectUISPr("lp.error"),
-											LPMain.getTextRespectUISPr("system.nachrichtarchiv.erledigungsgrund.pflichtfeld"));
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+									LPMain.getTextRespectUISPr("system.nachrichtarchiv.erledigungsgrund.pflichtfeld"));
 
 							return;
 						}
@@ -261,15 +264,14 @@ public class LPTopic {
 		} catch (JMSException ex) {
 			System.out.println(ex.getMessage());
 		}
-		getDesktop().aktualisiereAnzahlJMSMessages();
+		getDesktop().aktualisiereAnzahlJMSMessages(false);
 	}
 
 	/**
 	 * Called by the garbage collector on an object when garbage collection
 	 * determines that there are no more references to the object.
 	 * 
-	 * @throws Throwable
-	 *             the <code>Exception</code> raised by this method
+	 * @throws Throwable the <code>Exception</code> raised by this method
 	 */
 	protected void finalize() throws Throwable {
 		try {
@@ -290,8 +292,8 @@ public class LPTopic {
 			}
 		} catch (Exception ex) {
 		}
-		
-		super.finalize() ;
+
+		super.finalize();
 	}
 
 	public Desktop getDesktop() {

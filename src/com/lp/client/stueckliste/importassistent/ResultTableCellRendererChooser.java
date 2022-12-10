@@ -36,10 +36,13 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.stueckliste.service.IStklImportResult;
-import com.lp.server.system.service.IntelligenterStklImportFac;
 
 public class ResultTableCellRendererChooser extends ResultTableCellRenderer {
 	
+	public ResultTableCellRendererChooser(StklImportPage3Ctrl ctrl) {
+		super(ctrl);
+	}
+
 	private static final long serialVersionUID = 3515105436033557610L;
 	
 	@Override
@@ -54,6 +57,7 @@ public class ResultTableCellRendererChooser extends ResultTableCellRenderer {
 				if(dto == StklImportPage3Ctrl.HANDARTIKEL) return ArtikelFac.ARTIKELART_HANDARTIKEL;
 				if(dto == StklImportPage3Ctrl.FLR_LISTE) return LPMain.getTextRespectUISPr("title.artikelauswahlliste");
 				if(dto == StklImportPage3Ctrl.ZUVIELE_ARTIKEL_FLR_LISTE) return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.zuvieletreffer");
+				if(dto == StklImportPage3Ctrl.ARTIKEL_ERZEUGEN) return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.neuerartikel");
 				return dto.getCNr() + ", " + dto.getArtikelsprDto().getCBez();
 			}
 		} else {

@@ -42,6 +42,7 @@ import javax.swing.table.TableModel;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.angebot.service.AngebotFac;
 import com.lp.server.angebot.service.AngebotpositionDto;
 import com.lp.server.angebot.service.AngebotpositionFac;
 import com.lp.util.EJBExceptionLP;
@@ -67,8 +68,7 @@ public class AngebotpositionDelegate extends Delegate {
 	public AngebotpositionDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			angebotpositionFac = (AngebotpositionFac) context
-					.lookup("lpserver/AngebotpositionFacBean/remote");
+			angebotpositionFac = lookupFac(context, AngebotpositionFac.class);	
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -249,6 +249,15 @@ public class AngebotpositionDelegate extends Delegate {
 		try {
 			angebotpositionFac.sortierungAnpassenInBezugAufEndsumme(
 					iIdAngebotI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	public void sortiereNachArtikelnummer(Integer angebotIId)
+			throws ExceptionLP {
+		try {
+			angebotpositionFac.sortiereNachArtikelnummer(angebotIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

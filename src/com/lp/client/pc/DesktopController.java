@@ -35,56 +35,60 @@ package com.lp.client.pc;
 import java.util.HashMap;
 import java.util.List;
 
-import com.lp.client.frame.component.FehlmengenAufloesen;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ReportAufgeloestefehlmengen;
-import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportKriterienOptions;
 import com.lp.client.pc.Desktop.ModulStatus;
 import com.lp.client.util.logger.LpLogger;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ModulberechtigungDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.ZusatzfunktionberechtigungDto;
 
 public class DesktopController implements IDesktopController {
 	private final LpLogger log = (LpLogger) com.lp.client.util.logger.LpLogger
 			.getInstance(this.getClass());
 
-	private HashMap<String, String> moduls ;
-	private HashMap<String, String> functions ;
+	private HashMap<String, String> moduls;
+	private HashMap<String, String> functions;
 	private boolean darfDirekthilfeTexteBearbeiten;
-	
+
 	@Override
 	public void setModulBerechtigung(ModulberechtigungDto[] modulBerechtigungen) {
-		moduls = new HashMap<String, String>() ;
-		if(null == modulBerechtigungen) return ;
-		
+		moduls = new HashMap<String, String>();
+		if (null == modulBerechtigungen)
+			return;
+
 		for (int i = 0; i < modulBerechtigungen.length; i++) {
 			moduls.put(modulBerechtigungen[i].getBelegartCNr().trim(),
-					modulBerechtigungen[i].getBelegartCNr().trim()) ;
+					modulBerechtigungen[i].getBelegartCNr().trim());
 		}
 	}
 
 	@Override
 	public boolean darfAnwenderAufModulZugreifen(String whichModul) {
-		return moduls.containsKey(whichModul.trim()) ;
+		return moduls.containsKey(whichModul.trim());
 	}
 
 	@Override
 	public void setZusatzFunktionen(
-			ZusatzfunktionberechtigungDto[] zusatzFunktionen) {		
-		functions = new HashMap<String, String>() ;
-		if(null == zusatzFunktionen) return ;
-		
+			ZusatzfunktionberechtigungDto[] zusatzFunktionen) {
+		functions = new HashMap<String, String>();
+		if (null == zusatzFunktionen)
+			return;
+
 		for (int i = 0; i < zusatzFunktionen.length; i++) {
 			functions.put(zusatzFunktionen[i].getZusatzfunktionCNr().trim(),
-					zusatzFunktionen[i].getZusatzfunktionCNr().trim()) ;
+					zusatzFunktionen[i].getZusatzfunktionCNr().trim());
 		}
 	}
 
 	@Override
 	public boolean darfAnwenderAufZusatzfunktionZugreifen(
 			String whichZusatzfunktion) {
-		return functions.containsKey(whichZusatzfunktion.trim()) ;
+		return functions.containsKey(whichZusatzfunktion.trim());
 	}
 
 	@Override
@@ -96,55 +100,63 @@ public class DesktopController implements IDesktopController {
 	public void setDarfDirekthilfeTexteEditieren(boolean b) {
 		darfDirekthilfeTexteBearbeiten = b;
 	}
-	
+
 	@Override
-	public boolean hatAufgeloesteFehlmengen() {
-		return FehlmengenAufloesen.getAufgeloesteFehlmengen().size() > 0 ;
-	}
-	
-	@Override
-	public boolean hatOffeneAenderungen() {
-		return hatAufgeloesteFehlmengen() ;
+	public boolean hatOffeneAenderungen() throws Throwable {
+		return false;
 	}
 
 	@Override
-	public void behandleOffeneAenderungen(List<ModulStatus> offeneModule) throws Throwable {
-		if(!hatOffeneAenderungen()) return ;
+	public void behandleOffeneAenderungen(List<ModulStatus> offeneModule)
+			throws Throwable {
+		if (!hatOffeneAenderungen())
+			return;
 
-		if(offeneModule == null || offeneModule.size() == 0) {
+		if (offeneModule == null || offeneModule.size() == 0) {
 			throw new IllegalArgumentException(
-				"Die Liste der offenen Module darf nicht null sein und es wird erwartet, " +
-				"dass mindestens 1 Modul vorhanden ist, sonst macht die Fehlmengenaufloesung keinen Sinn!") ;
+					"Die Liste der offenen Module darf nicht null sein und es wird erwartet, "
+							+ "dass mindestens 1 Modul vorhanden ist, sonst macht die Fehlmengenaufloesung keinen Sinn!");
 		}
-		behandleOffeneFehlmengen(
-			(InternalFrame)offeneModule.get(0).getLpModule().getLPModule());
+
 	}
-	
-	public void behandleOffeneFehlmengen(InternalFrame internalFrame) throws Throwable {
-		if (FehlmengenAufloesen.getAufgeloesteFehlmengen().size() > 0) {
-			boolean bOption = DialogFactory
-					.showModalJaNeinDialog(
-							internalFrame,
-							LPMain.getTextRespectUISPr("lp.frage.fehlmengenaufloesendrucken"),
-							LPMain.getTextRespectUISPr("lp.hint"));
-			if (bOption) {
+
+	public void behandleOffeneFehlmengen(InternalFrame internalFrame)
+			throws Throwable {
+
+		Integer fasessionIId = DelegateFactory.getInstance()
+				.getFehlmengeDelegate().istOffeneFasessionVorhanden();
+
+		if (fasessionIId != null) {
+
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
+					.getInstance()
+					.getParameterDelegate()
+					.getParametermandant(
+							ParameterFac.PARAMETER_AUFGELOESTE_FEHLMENGEN_DRUCKEN,
+							ParameterFac.KATEGORIE_ARTIKEL,
+							LPMain.getTheClient().getMandant());
+			boolean b = (Boolean) parameter.getCWertAsObject();
+
+			if (b == true) {
 				PanelReportKriterienOptions options = new PanelReportKriterienOptions();
 				options.setInternalFrame(internalFrame);
 				options.setMitEmailFax(true);
 				internalFrame.showReportKriterienDialog(
 						new ReportAufgeloestefehlmengen(internalFrame,
-								FehlmengenAufloesen
-										.getAufgeloesteFehlmengen()),
-						options);
-
-//				exc = new PropertyVetoException("", null);
+								fasessionIId, false), options);
 			}
-			
-			log.warn("Es gab " 
-					+ FehlmengenAufloesen.getAufgeloesteFehlmengen().size() 
-					+ " aufgeloeste Fehlmenge(n), die " 
-					+ (!bOption ? "nicht" : "") + " gedruckt wurde(n).");
-			FehlmengenAufloesen.loescheAufgeloesteFehlmengen();
-		}		
+		}
+	}
+	
+	@Override
+	public boolean hatTestFeature() {
+		return darfAnwenderAufZusatzfunktionZugreifen(
+				MandantFac.ZUSATZFUNKTION_DEBUGMODUS);
+	}
+	
+	@Override
+	public boolean hatZusatzForecastVerteilen() {
+		return darfAnwenderAufZusatzfunktionZugreifen(
+				MandantFac.ZUSATZFUNKTION_FORECAST_AUFTRAG_VERTEILUNG);
 	}
 }

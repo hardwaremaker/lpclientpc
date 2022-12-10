@@ -44,6 +44,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
@@ -119,10 +120,7 @@ private JPanel jpaWorkingOn = null;
                                                     Defaults.getInstance().getControlHeight()));
     wrbSortierungIdent.setPreferredSize(new Dimension(100,
         Defaults.getInstance().getControlHeight()));
-    wcbNurArtikelMitLagerstand.setMinimumSize(new Dimension(200,
-        Defaults.getInstance().getControlHeight()));
-    wcbNurArtikelMitLagerstand.setPreferredSize(new Dimension(200,
-        Defaults.getInstance().getControlHeight()));
+    HelperClient.setMinimumAndPreferredSize(wcbNurArtikelMitLagerstand, HelperClient.getSizeFactoredDimension(210));
 
 
     this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0

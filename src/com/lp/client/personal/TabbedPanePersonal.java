@@ -39,6 +39,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.event.ChangeEvent;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -47,15 +48,25 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
+import com.lp.client.frame.component.WrapperMapButton;
+import com.lp.client.frame.component.WrapperMenu;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.dynamisch.PanelDynamisch;
 import com.lp.client.partner.PanelPartnerKurzbrief;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.ReportEntitylog;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.personal.service.PersonalDto;
+import com.lp.server.personal.service.PersonalFac;
+import com.lp.server.system.service.HvDtoLogClass;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.PanelFac;
+import com.lp.server.system.service.PanelbeschreibungDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
@@ -68,6 +79,7 @@ public class TabbedPanePersonal extends TabbedPane {
 	private PanelQuery panelQueryPersonal = null;
 	private PanelBasis panelDetailPersonal = null;
 	private PanelBasis panelDetailDaten = null;
+	private PanelBasis panelDetailParameter = null;
 
 	private PanelQuery panelQueryAngehoerige = null;
 	private PanelBasis panelBottomAngehoerige = null;
@@ -121,19 +133,38 @@ public class TabbedPanePersonal extends TabbedPane {
 	private PanelBasis panelBottomPersonalkurzbrief = null;
 	private PanelSplit panelSplitPersonalkurzbrief = null;
 
+	private PanelQuery panelQueryPersonalkurzbriefGehalt = null;
+	private PanelBasis panelBottomPersonalkurzbriefGehalt = null;
+	private PanelSplit panelSplitPersonalkurzbriefGehalt = null;
+
 	private PanelQuery panelQueryPersonalfinger = null;
 	private PanelBasis panelBottomPersonalfinger = null;
 	private PanelSplit panelSplitPersonalfinger = null;
 
+	private PanelQuery panelQueryPersonalterminal = null;
+	private PanelBasis panelBottomPersonalterminal = null;
+	private PanelSplit panelSplitPersonalterminal = null;
+
+	private PanelQuery panelQueryPersonalfahrzeug = null;
+	private PanelBasis panelBottomPersonalfahrzeug = null;
+	private PanelSplit panelSplitPersonalfahrzeug = null;
+
+	private PanelBasis panelDetailPersonaleigenschaft = null;
+
 	private PanelDialogPersonalKommentar pdPersonalKommentar = null;
 
+	private WrapperMapButton mapButton = null;
+
 	private static final String MENUE_ACTION_PERSONALLISTE = "MENUE_ACTION_PERSONALLISTE";
+	private static final String MENUE_ACTION_PERSONALSTAMMBLATT = "MENUE_ACTION_PERSONALSTAMMBLATT";
+
+	private final String MENU_INFO_AENDERUNGEN = "MENU_INFO_AENDERUNGEN";
 
 	private static final String MENU_BEARBEITEN_KOMMENTAR = "MENU_BEARBEITEN_KOMMENTAR";
 
 	private final static String EXTRA_SCHICHTZEIT = "EXTRA_SCHICHTZEIT";
 
-	private int IDX_PANEL_AUSWAHL = -1;
+	public int IDX_PANEL_AUSWAHL = -1;
 	private int IDX_PANEL_DETAIL = -1;
 	private int IDX_PANEL_DATEN = -1;
 	private int IDX_PANEL_ANGEHOERIGE = -1;
@@ -149,14 +180,20 @@ public class TabbedPanePersonal extends TabbedPane {
 	private int IDX_PANEL_PERSONALGEHALT = -1;
 	private int IDX_PANEL_PERSONALVERFUEGBARKEIT = -1;
 	private int IDX_PANEL_PERSONALKURZBRIEF = -1;
+	private int IDX_PANEL_PERSONALKURZBRIEF_GEHALT = -1;
 	private int IDX_PANEL_PERSONALFINGER = -1;
+	private int IDX_PANEL_PERSONALEIGENSCHAFTEN = -1;
+	private int IDX_PANEL_PERSONALPARAMETER = -1;
+	private int IDX_PANEL_PERSONALTERMINAL = -1;
+	private int IDX_PANEL_PERSONALFAHRZEUG = -1;
 
 	private WrapperMenuBar wrapperMenuBar = null;
 
-	public TabbedPanePersonal(InternalFrame internalFrameI) throws Throwable {
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"menueentry.personal"));
+	private String rechtModulweit = null;
 
+	public TabbedPanePersonal(InternalFrame internalFrameI) throws Throwable {
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr("menueentry.personal"));
+		rechtModulweit = getInternalFrame().getRechtModulweit();
 		jbInit();
 		initComponents();
 	}
@@ -168,41 +205,30 @@ public class TabbedPanePersonal extends TabbedPane {
 	private void createAuswahl() throws Throwable {
 		if (panelQueryPersonal == null) {
 			// MB 08.06.06 IMS 2173
-			boolean bDarfAlleSehen = DelegateFactory.getInstance()
-					.getTheJudgeDelegate()
+			boolean bDarfAlleSehen = DelegateFactory.getInstance().getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_PERS_SICHTBARKEIT_ALLE);
 			String[] aWhichButtonIUse;
 			// nur wenn er alle sehen darf, darf er auch neue anlegen.
 			if (bDarfAlleSehen) {
-				aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW,
-						PanelBasis.ACTION_FILTER };
+				aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 			} else {
 				aWhichButtonIUse = new String[] { PanelBasis.ACTION_FILTER };
 			}
-			panelQueryPersonal = new PanelQuery(PersonalFilterFactory
-					.getInstance().createQTPersonal(),
-					PersonalFilterFactory.getInstance()
-							.createFKDPersonalauswahl(getInternalFrame()),
-					QueryParameters.UC_ID_PERSONAL, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("auft.title.panel.auswahl"),
-					true);
+			panelQueryPersonal = new PanelQuery(PersonalFilterFactory.getInstance().createQTPersonal(),
+					PersonalFilterFactory.getInstance().createFKDPersonalauswahl(getInternalFrame()),
+					QueryParameters.UC_ID_PERSONAL, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("auft.title.panel.auswahl"), true);
 
-			panelQueryPersonal
-					.befuellePanelFilterkriterienDirektUndVersteckte(
-							PersonalFilterFactory.getInstance()
-									.createFKDPersonalname(),
-							PersonalFilterFactory.getInstance()
-									.createFKDPersonalnummer(),
-							PersonalFilterFactory.getInstance()
-									.createFKVPersonal());
-			panelQueryPersonal.addDirektFilter(PersonalFilterFactory
-					.getInstance().createFKDAusweis());
+			panelQueryPersonal.befuellePanelFilterkriterienDirektUndVersteckte(
+					PersonalFilterFactory.getInstance().createFKDPersonalname(),
+					PersonalFilterFactory.getInstance().createFKDPersonalnummer(),
+					PersonalFilterFactory.getInstance().createFKVPersonal());
+			panelQueryPersonal.addDirektFilter(PersonalFilterFactory.getInstance().createFKDAusweis());
 			panelQueryPersonal.eventYouAreSelected(false);
+
 			setComponentAt(IDX_PANEL_AUSWAHL, panelQueryPersonal);
 			try {
-				panelQueryPersonal.setSelectedId(LPMain.getInstance()
-						.getTheClient().getIDPersonal());
+				panelQueryPersonal.setSelectedId(LPMain.getInstance().getTheClient().getIDPersonal());
 			} catch (Throwable ex) {
 				// nothing here
 			}
@@ -211,8 +237,8 @@ public class TabbedPanePersonal extends TabbedPane {
 
 	private void createDetail(Integer key) throws Throwable {
 		if (panelDetailPersonal == null) {
-			panelDetailPersonal = new PanelPersonal(getInternalFrame(), LPMain
-					.getInstance().getTextRespectUISPr("lp.detail"), key);
+			panelDetailPersonal = new PanelPersonal(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.detail"), key);
 			setComponentAt(IDX_PANEL_DETAIL, panelDetailPersonal);
 		}
 	}
@@ -225,36 +251,64 @@ public class TabbedPanePersonal extends TabbedPane {
 		}
 	}
 
+	private void createParameter(Integer key) throws Throwable {
+		if (panelDetailParameter == null) {
+			panelDetailParameter = new PanelPersonalparameter(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.personal.parameter"), key);
+			setComponentAt(IDX_PANEL_PERSONALPARAMETER, panelDetailParameter);
+		}
+	}
+
 	private void createKurzbrief(Integer iIdPartnerI) throws Throwable {
 
 		if (panelSplitPersonalkurzbrief == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKKurzbriefpartner(iIdPartnerI,
-							LocaleFac.BELEGART_PERSONAL);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKKurzbriefpartner(iIdPartnerI,
+					LocaleFac.BELEGART_PERSONAL);
 
-			panelQueryPersonalkurzbrief = new PanelQuery(null, filters,
-					QueryParameters.UC_ID_PARTNERKURZBRIEF,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr("lp.kurzbrief"),
-					true);
+			panelQueryPersonalkurzbrief = new PanelQuery(null, filters, QueryParameters.UC_ID_PARTNERKURZBRIEF,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.kurzbrief"), true);
 
-			panelBottomPersonalkurzbrief = new PanelPartnerKurzbrief(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.kurzbrief"), null);
+			panelBottomPersonalkurzbrief = new PanelPartnerKurzbrief(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.kurzbrief"), null, LocaleFac.BELEGART_PERSONAL);
 
-			panelSplitPersonalkurzbrief = new PanelSplit(getInternalFrame(),
-					panelBottomPersonalkurzbrief, panelQueryPersonalkurzbrief,
-					150);
+			panelSplitPersonalkurzbrief = new PanelSplit(getInternalFrame(), panelBottomPersonalkurzbrief,
+					panelQueryPersonalkurzbrief, 150);
 
-			setComponentAt(IDX_PANEL_PERSONALKURZBRIEF,
-					panelSplitPersonalkurzbrief);
+			setComponentAt(IDX_PANEL_PERSONALKURZBRIEF, panelSplitPersonalkurzbrief);
 		} else {
 			// filter refreshen.
-			panelQueryPersonalkurzbrief.setDefaultFilter(PartnerFilterFactory
-					.getInstance().createFKKurzbriefpartner(iIdPartnerI,
-							LocaleFac.BELEGART_PERSONAL));
+			panelQueryPersonalkurzbrief.setDefaultFilter(PartnerFilterFactory.getInstance()
+					.createFKKurzbriefpartner(iIdPartnerI, LocaleFac.BELEGART_PERSONAL));
+		}
+	}
+
+	private void createKurzbriefGehalt(Integer iIdPartnerI) throws Throwable {
+
+		if (panelSplitPersonalkurzbriefGehalt == null) {
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
+
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKKurzbriefpartner(iIdPartnerI,
+					LocaleFac.BELEGART_PERSONAL2);
+
+			panelQueryPersonalkurzbriefGehalt = new PanelQuery(null, filters, QueryParameters.UC_ID_PARTNERKURZBRIEF,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.kurzbriefgehalt"), true);
+
+			panelBottomPersonalkurzbriefGehalt = new PanelPartnerKurzbrief(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.kurzbriefgehalt"), null,
+					LocaleFac.BELEGART_PERSONAL2);
+
+			panelSplitPersonalkurzbriefGehalt = new PanelSplit(getInternalFrame(), panelBottomPersonalkurzbriefGehalt,
+					panelQueryPersonalkurzbriefGehalt, 150);
+
+			setComponentAt(IDX_PANEL_PERSONALKURZBRIEF_GEHALT, panelSplitPersonalkurzbriefGehalt);
+		} else {
+			// filter refreshen.
+			panelQueryPersonalkurzbriefGehalt.setDefaultFilter(PartnerFilterFactory.getInstance()
+					.createFKKurzbriefpartner(iIdPartnerI, LocaleFac.BELEGART_PERSONAL2));
 		}
 	}
 
@@ -263,27 +317,73 @@ public class TabbedPanePersonal extends TabbedPane {
 		if (panelSplitPersonalfinger == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
-			FilterKriterium[] filters = PersonalFilterFactory.getInstance()
-					.createFKPersonal(iIdPartnerI);
+			FilterKriterium[] filters = PersonalFilterFactory.getInstance().createFKPersonal(iIdPartnerI);
 
-			panelQueryPersonalfinger = new PanelQuery(null, filters,
-					QueryParameters.UC_ID_PERSONALFINGER,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.zutritt.finger"), true);
+			panelQueryPersonalfinger = new PanelQuery(null, filters, QueryParameters.UC_ID_PERSONALFINGER,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.zutritt.finger"), true);
 
 			panelBottomPersonalfinger = new PanelFinger(getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr(
-							"pers.zutritt.finger"), null);
+					LPMain.getInstance().getTextRespectUISPr("pers.zutritt.finger"), null);
 
-			panelSplitPersonalfinger = new PanelSplit(getInternalFrame(),
-					panelBottomPersonalfinger, panelQueryPersonalfinger, 150);
+			panelSplitPersonalfinger = new PanelSplit(getInternalFrame(), panelBottomPersonalfinger,
+					panelQueryPersonalfinger, 150);
 
 			setComponentAt(IDX_PANEL_PERSONALFINGER, panelSplitPersonalfinger);
 		} else {
 			// filter refreshen.
-			panelQueryPersonalfinger.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(iIdPartnerI));
+			panelQueryPersonalfinger
+					.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(iIdPartnerI));
+		}
+	}
+
+	private void createTerminals(Integer personalIId) throws Throwable {
+
+		if (panelSplitPersonalterminal == null) {
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
+
+			FilterKriterium[] filters = PersonalFilterFactory.getInstance().createFKPersonal(personalIId);
+
+			panelQueryPersonalterminal = new PanelQuery(null, filters, QueryParameters.UC_ID_PERSONALTERMINAL,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.personal.erlaubteterminals"), true);
+
+			panelBottomPersonalterminal = new PanelPersonalterminal(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.personal.erlaubteterminals"), null);
+
+			panelSplitPersonalterminal = new PanelSplit(getInternalFrame(), panelBottomPersonalterminal,
+					panelQueryPersonalterminal, 350);
+
+			setComponentAt(IDX_PANEL_PERSONALTERMINAL, panelSplitPersonalterminal);
+		} else {
+			// filter refreshen.
+			panelQueryPersonalterminal
+					.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(personalIId));
+		}
+	}
+
+	private void createFahrzeuge(Integer personalIId) throws Throwable {
+
+		if (panelSplitPersonalfahrzeug == null) {
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
+
+			FilterKriterium[] filters = PersonalFilterFactory.getInstance().createFKPersonal(personalIId);
+
+			panelQueryPersonalfahrzeug = new PanelQuery(null, filters, QueryParameters.UC_ID_PERSONALFAHRZEUG,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.fahrzeuge"), true);
+
+			panelBottomPersonalfahrzeug = new PanelPersonalfahrzeug(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.fahrzeuge"), null);
+
+			panelSplitPersonalfahrzeug = new PanelSplit(getInternalFrame(), panelBottomPersonalfahrzeug,
+					panelQueryPersonalfahrzeug, 350);
+
+			setComponentAt(IDX_PANEL_PERSONALFAHRZEUG, panelSplitPersonalfahrzeug);
+		} else {
+			// filter refreshen.
+			panelQueryPersonalfahrzeug
+					.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(personalIId));
 		}
 	}
 
@@ -291,25 +391,19 @@ public class TabbedPanePersonal extends TabbedPane {
 
 		if (panelQueryAngehoerige == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryAngehoerige = new PanelQuery(null, PersonalFilterFactory
-					.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_PERSONALANGEHOERIGE,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.title.tab.angehoerige"), true);
-			panelBottomAngehoerige = new PanelPersonalangehoerige(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("pers.title.tab.angehoerige"),
-					null);
+			panelQueryAngehoerige = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKPersonal(key),
+					QueryParameters.UC_ID_PERSONALANGEHOERIGE, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.angehoerige"), true);
+			panelBottomAngehoerige = new PanelPersonalangehoerige(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.angehoerige"), null);
 
-			panelSplitAngehoerige = new PanelSplit(getInternalFrame(),
-					panelBottomAngehoerige, panelQueryAngehoerige, 300);
+			panelSplitAngehoerige = new PanelSplit(getInternalFrame(), panelBottomAngehoerige, panelQueryAngehoerige,
+					300);
 
 			setComponentAt(IDX_PANEL_ANGEHOERIGE, panelSplitAngehoerige);
 		} else {
 			// filter refreshen.
-			panelQueryAngehoerige.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQueryAngehoerige.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
 	}
 
@@ -317,27 +411,19 @@ public class TabbedPanePersonal extends TabbedPane {
 
 		if (panelQueryEintrittaustritt == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryEintrittaustritt = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_EINTRITTAUSTRITT,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.title.tab.eintrittaustritt"), true);
-			panelBottomEintrittaustritt = new PanelEintrittaustritt(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.title.tab.eintrittaustritt"), null);
+			panelQueryEintrittaustritt = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKPersonal(key),
+					QueryParameters.UC_ID_EINTRITTAUSTRITT, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.eintrittaustritt"), true);
+			panelBottomEintrittaustritt = new PanelEintrittaustritt(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.eintrittaustritt"), null);
 
-			panelSplitEintrittaustritt = new PanelSplit(getInternalFrame(),
-					panelBottomEintrittaustritt, panelQueryEintrittaustritt,
-					370);
+			panelSplitEintrittaustritt = new PanelSplit(getInternalFrame(), panelBottomEintrittaustritt,
+					panelQueryEintrittaustritt, 340);
 
-			setComponentAt(IDX_PANEL_EINTRITTAUSTRITT,
-					panelSplitEintrittaustritt);
+			setComponentAt(IDX_PANEL_EINTRITTAUSTRITT, panelSplitEintrittaustritt);
 		} else {
 			// filter refreshen.
-			panelQueryEintrittaustritt.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQueryEintrittaustritt.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
 	}
 
@@ -345,24 +431,32 @@ public class TabbedPanePersonal extends TabbedPane {
 
 		if (panelQueryPersonalzeiten == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryPersonalzeiten = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_PERSONALZEITEN,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.title.tab.zeiten"), true);
-			panelBottomPersonalzeiten = new PanelPersonalzeiten(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("pers.title.tab.zeiten"), null);
+			panelQueryPersonalzeiten = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKPersonal(key),
+					QueryParameters.UC_ID_PERSONALZEITEN, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.zeiten"), true);
+			panelBottomPersonalzeiten = new PanelPersonalzeiten(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.zeiten"), null);
 
-			panelSplitPersonalzeiten = new PanelSplit(getInternalFrame(),
-					panelBottomPersonalzeiten, panelQueryPersonalzeiten, 370);
+			panelSplitPersonalzeiten = new PanelSplit(getInternalFrame(), panelBottomPersonalzeiten,
+					panelQueryPersonalzeiten, 370);
 
 			setComponentAt(IDX_PANEL_ZEITEN, panelSplitPersonalzeiten);
 		} else {
 			// filter refreshen.
-			panelQueryPersonalzeiten.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQueryPersonalzeiten.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
+		}
+	}
+
+	private void createEigenschaften(Integer key) throws Throwable {
+		if (panelDetailPersonaleigenschaft == null) {
+
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
+					PanelBasis.ACTION_DISCARD, };
+
+			panelDetailPersonaleigenschaft = new PanelDynamisch(getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.eigenschaften"), panelQueryPersonal,
+					PanelFac.PANEL_PERSONALEIGENSCHAFTEN, HelperClient.LOCKME_ARTIKEL, aWhichButtonIUse);
+			setComponentAt(IDX_PANEL_PERSONALEIGENSCHAFTEN, panelDetailPersonaleigenschaft);
 		}
 	}
 
@@ -371,33 +465,24 @@ public class TabbedPanePersonal extends TabbedPane {
 		if (panelQueryPersonalzeitmodell == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 			panelQueryPersonalzeitmodell = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_PERSONALZEITMODELL,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.title.tab.personalzeitmodell"), true);
-			panelBottomPersonalzeitmodell = new PanelPersonalzeitmodell(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.title.tab.personalzeitmodell"), null);
+					PersonalFilterFactory.getInstance().createFKPersonal(key), QueryParameters.UC_ID_PERSONALZEITMODELL,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalzeitmodell"), true);
+			panelBottomPersonalzeitmodell = new PanelPersonalzeitmodell(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalzeitmodell"), null);
 
-			panelSplitPersonalzeitmodel = new PanelSplit(getInternalFrame(),
-					panelBottomPersonalzeitmodell,
+			panelSplitPersonalzeitmodel = new PanelSplit(getInternalFrame(), panelBottomPersonalzeitmodell,
 					panelQueryPersonalzeitmodell, 370);
 
 			// Hier den zusaetzlichen Button aufs Panel bringen
-			panelQueryPersonalzeitmodell.createAndSaveAndShowButton(
-					"/com/lp/client/res/heavy_operation.png",
-					LPMain.getInstance()
-							.getTextRespectUISPr("pers.schichtzeit"),
+			panelQueryPersonalzeitmodell.createAndSaveAndShowButton("/com/lp/client/res/heavy_operation.png",
+					LPMain.getInstance().getTextRespectUISPr("pers.schichtzeit"),
 					PanelBasis.ACTION_MY_OWN_NEW + EXTRA_SCHICHTZEIT, null);
 
-			setComponentAt(IDX_PANEL_PERSONALZEITMODELL,
-					panelSplitPersonalzeitmodel);
+			setComponentAt(IDX_PANEL_PERSONALZEITMODELL, panelSplitPersonalzeitmodel);
 		} else {
 			// filter refreshen.
-			panelQueryPersonalzeitmodell.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQueryPersonalzeitmodell.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
 	}
 
@@ -406,26 +491,19 @@ public class TabbedPanePersonal extends TabbedPane {
 		if (panelQuerySchichtzeitmodell == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 			panelQuerySchichtzeitmodell = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_SCHICHTZEITMODELL,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.title.tab.schichtzeitmodell"), true);
-			panelBottomSchichtzeitmodell = new PanelSchichtzeitmodell(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.title.tab.schichtzeitmodell"), null);
+					PersonalFilterFactory.getInstance().createFKPersonal(key), QueryParameters.UC_ID_SCHICHTZEITMODELL,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.schichtzeitmodell"), true);
+			panelBottomSchichtzeitmodell = new PanelSchichtzeitmodell(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.schichtzeitmodell"), null);
 
-			panelSplitSchichtzeitmodel = new PanelSplit(getInternalFrame(),
-					panelBottomSchichtzeitmodell, panelQuerySchichtzeitmodell,
-					370);
+			panelSplitSchichtzeitmodel = new PanelSplit(getInternalFrame(), panelBottomSchichtzeitmodell,
+					panelQuerySchichtzeitmodell, 370);
 
-			setComponentAt(IDX_PANEL_SCHICHTZEITMODELL,
-					panelSplitSchichtzeitmodel);
+			setComponentAt(IDX_PANEL_SCHICHTZEITMODELL, panelSplitSchichtzeitmodel);
 		} else {
 			// filter refreshen.
-			panelQuerySchichtzeitmodell.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQuerySchichtzeitmodell.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
 	}
 
@@ -435,26 +513,19 @@ public class TabbedPanePersonal extends TabbedPane {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 			panelQueryPersonalzutrittsklasse = new PanelQuery(null,
 					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_PERSONALZUTRITTSKLASSE,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.zutritt.zutrittsklasse"), true);
-			panelBottomPersonalzutrittsklasse = new PanelPersonalzutrittsklasse(
-					getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr(
-							"pers.zutritt.zutrittsklasse"), null);
+					QueryParameters.UC_ID_PERSONALZUTRITTSKLASSE, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.zutritt.zutrittsklasse"), true);
+			panelBottomPersonalzutrittsklasse = new PanelPersonalzutrittsklasse(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.zutritt.zutrittsklasse"), null);
 
-			panelSplitPersonalzutrittsklasse = new PanelSplit(
-					getInternalFrame(), panelBottomPersonalzutrittsklasse,
+			panelSplitPersonalzutrittsklasse = new PanelSplit(getInternalFrame(), panelBottomPersonalzutrittsklasse,
 					panelQueryPersonalzutrittsklasse, 370);
 
-			setComponentAt(IDX_PANEL_PERSONALZUTRITTSKLASSE,
-					panelSplitPersonalzutrittsklasse);
+			setComponentAt(IDX_PANEL_PERSONALZUTRITTSKLASSE, panelSplitPersonalzutrittsklasse);
 		} else {
 			// filter refreshen.
 			panelQueryPersonalzutrittsklasse
-					.setDefaultFilter(PersonalFilterFactory.getInstance()
-							.createFKPersonal(key));
+					.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
 	}
 
@@ -462,52 +533,64 @@ public class TabbedPanePersonal extends TabbedPane {
 
 		if (panelQueryUrlaubsanspruch == null) {
 
-			panelQueryUrlaubsanspruch = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_URLAUBSANSPRUCH,
-					new String[] { PanelBasis.ACTION_NEW }, getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr(
-							"pers.title.tab.urlaubsanspruch"), true);
-			panelBottomUrlaubsanspruch = new PanelUrlaubsanspruch(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.title.tab.urlaubsanspruch"), null);
+			panelQueryUrlaubsanspruch = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKPersonal(key),
+					QueryParameters.UC_ID_URLAUBSANSPRUCH, new String[] { PanelBasis.ACTION_NEW }, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.urlaubsanspruch"), true);
+			panelBottomUrlaubsanspruch = new PanelUrlaubsanspruch(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.urlaubsanspruch"), null);
 
-			panelSplitUrlaubsanspruch = new PanelSplit(getInternalFrame(),
-					panelBottomUrlaubsanspruch, panelQueryUrlaubsanspruch, 230);
+			panelSplitUrlaubsanspruch = new PanelSplit(getInternalFrame(), panelBottomUrlaubsanspruch,
+					panelQueryUrlaubsanspruch, 230);
 
 			setComponentAt(IDX_PANEL_URLAUBSANSPRUCH, panelSplitUrlaubsanspruch);
 		} else {
 			// filter refreshen.
-			panelQueryUrlaubsanspruch.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQueryUrlaubsanspruch.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
+	}
+
+	private String getKollektivAbrechnungsart() throws Throwable {
+		String abrechnungsart = null;
+		if (getInternalFramePersonal().getPersonalDto().getKollektivIId() != null) {
+			abrechnungsart = DelegateFactory.getInstance().getPersonalDelegate()
+					.kollektivFindByPrimaryKey(getInternalFramePersonal().getPersonalDto().getKollektivIId())
+					.getCAbrechungsart();
+		}
+
+		return abrechnungsart;
 	}
 
 	private void createGleitzeitsaldo(Integer key) throws Throwable {
 
-		if (panelQueryGleitzeitsaldo == null) {
-			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryGleitzeitsaldo = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_GLEITZEITSALDO,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.title.tab.gleitzeitsaldo"), true);
-			panelBottomGleitzeitsaldo = new PanelGleitzeitsaldo(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.title.tab.gleitzeitsaldo"), null);
+		String kollektivAbrechnungsart = getKollektivAbrechnungsart();
 
-			panelSplitGleitzeitsaldo = new PanelSplit(getInternalFrame(),
-					panelBottomGleitzeitsaldo, panelQueryGleitzeitsaldo, 180);
+		if (kollektivAbrechnungsart != null
+				&& kollektivAbrechnungsart.equals(PersonalFac.KOLLEKTIV_ABRECHNUNGSART_BETRIEBSVEREINBARUNG_A)) {
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
+			panelQueryGleitzeitsaldo = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKPersonal(key),
+					QueryParameters.UC_ID_UEBERTRAGBVA, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.gleitzeitsaldo"), true);
+			panelBottomGleitzeitsaldo = new PanelUebertragBVA(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.gleitzeitsaldo"), null);
+
+			panelSplitGleitzeitsaldo = new PanelSplit(getInternalFrame(), panelBottomGleitzeitsaldo,
+					panelQueryGleitzeitsaldo, 140);
 
 			setComponentAt(IDX_PANEL_GLEITZEITSALDO, panelSplitGleitzeitsaldo);
 		} else {
-			// filter refreshen.
-			panelQueryGleitzeitsaldo.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
+			panelQueryGleitzeitsaldo = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKPersonal(key),
+					QueryParameters.UC_ID_GLEITZEITSALDO, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.gleitzeitsaldo"), true);
+			panelBottomGleitzeitsaldo = new PanelGleitzeitsaldo(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.gleitzeitsaldo"), null);
+
+			panelSplitGleitzeitsaldo = new PanelSplit(getInternalFrame(), panelBottomGleitzeitsaldo,
+					panelQueryGleitzeitsaldo, 180);
+
+			setComponentAt(IDX_PANEL_GLEITZEITSALDO, panelSplitGleitzeitsaldo);
 		}
+
 	}
 
 	private void createBankverbindung(Integer iIdPartnerI) throws Throwable {
@@ -515,53 +598,54 @@ public class TabbedPanePersonal extends TabbedPane {
 		if (panelQueryBankverbindung == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKPartnerbank(iIdPartnerI);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKPartnerbank(iIdPartnerI);
 
-			panelQueryBankverbindung = new PanelQuery(null, filters,
-					QueryParameters.UC_ID_PARTNERBANK,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"finanz.bankverbindung"), true);
+			panelQueryBankverbindung = new PanelQuery(null, filters, QueryParameters.UC_ID_PARTNERBANK,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("finanz.bankverbindung"), true);
 
-			panelBottomBankverbindung = new PanelPersonalpartnerbank(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("finanz.bankverbindung"), null);
+			panelBottomBankverbindung = new PanelPersonalpartnerbank(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("finanz.bankverbindung"), null);
 
-			panelSplitBankverbindung = new PanelSplit(getInternalFrame(),
-					panelBottomBankverbindung, panelQueryBankverbindung, 200);
+			panelSplitBankverbindung = new PanelSplit(getInternalFrame(), panelBottomBankverbindung,
+					panelQueryBankverbindung, 200);
 			setComponentAt(IDX_PANEL_BANKVERBINDUNG, panelSplitBankverbindung);
 		} else {
 			// filter refreshen.
-			panelQueryBankverbindung.setDefaultFilter(PartnerFilterFactory
-					.getInstance().createFKPartnerbank(iIdPartnerI));
+			panelQueryBankverbindung
+					.setDefaultFilter(PartnerFilterFactory.getInstance().createFKPartnerbank(iIdPartnerI));
 		}
 	}
 
 	private void createStundenabrechnung(Integer key) throws Throwable {
 
-		if (panelQueryStundenabrechnung == null) {
+		String kollektivAbrechnungsart = getKollektivAbrechnungsart();
+
+		if (kollektivAbrechnungsart != null
+				&& kollektivAbrechnungsart.equals(PersonalFac.KOLLEKTIV_ABRECHNUNGSART_BETRIEBSVEREINBARUNG_A)) {
 			panelQueryStundenabrechnung = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_STUNDENABRECHNUNG,
+					PersonalFilterFactory.getInstance().createFKPersonal(key), QueryParameters.UC_ID_AUSZAHLUNGBVA,
 					new String[] { PanelBasis.ACTION_NEW }, getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr(
-							"pers.title.tab.stundenabrechnung"), true);
-			panelBottomStundenabrechnung = new PanelStundenabrechnung(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.title.tab.stundenabrechnung"), null);
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.stundenabrechnung"), true);
+			panelBottomStundenabrechnung = new PanelAuszahlungBVA(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.stundenabrechnung"), null);
 
-			panelSplitStundenabrechnung = new PanelSplit(getInternalFrame(),
-					panelBottomStundenabrechnung, panelQueryStundenabrechnung,
-					150);
+			panelSplitStundenabrechnung = new PanelSplit(getInternalFrame(), panelBottomStundenabrechnung,
+					panelQueryStundenabrechnung, 150);
 
-			setComponentAt(IDX_PANEL_STUNDENABRECHNUNG,
-					panelSplitStundenabrechnung);
+			setComponentAt(IDX_PANEL_STUNDENABRECHNUNG, panelSplitStundenabrechnung);
 		} else {
-			// filter refreshen.
-			panelQueryStundenabrechnung.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQueryStundenabrechnung = new PanelQuery(null,
+					PersonalFilterFactory.getInstance().createFKPersonal(key), QueryParameters.UC_ID_STUNDENABRECHNUNG,
+					new String[] { PanelBasis.ACTION_NEW }, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.stundenabrechnung"), true);
+			panelBottomStundenabrechnung = new PanelStundenabrechnung(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.stundenabrechnung"), null);
+
+			panelSplitStundenabrechnung = new PanelSplit(getInternalFrame(), panelBottomStundenabrechnung,
+					panelQueryStundenabrechnung, 150);
+
+			setComponentAt(IDX_PANEL_STUNDENABRECHNUNG, panelSplitStundenabrechnung);
 		}
 	}
 
@@ -569,27 +653,20 @@ public class TabbedPanePersonal extends TabbedPane {
 
 		if (panelQueryPersonalgehalt == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryPersonalgehalt = new PanelQuery(null,
-					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_PERSONALGEHALT,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.title.tab.personalgehalt"), true);
-			panelBottomPersonalgehalt = new PanelPersonalgehalt(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.title.tab.personalgehalt"), null);
+			panelQueryPersonalgehalt = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKPersonal(key),
+					QueryParameters.UC_ID_PERSONALGEHALT, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalgehalt"), true);
+			panelBottomPersonalgehalt = new PanelPersonalgehalt(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalgehalt"), null);
 
-			panelSplitPersonalgehalt = new PanelSplit(getInternalFrame(),
-					panelBottomPersonalgehalt, panelQueryPersonalgehalt, 130);
+			panelSplitPersonalgehalt = new PanelSplit(getInternalFrame(), panelBottomPersonalgehalt,
+					panelQueryPersonalgehalt, 130);
 			panelBottomPersonalgehalt.setMinimumSize(new Dimension(100, 350));
-
 
 			setComponentAt(IDX_PANEL_PERSONALGEHALT, panelSplitPersonalgehalt);
 		} else {
 			// filter refreshen.
-			panelQueryPersonalgehalt.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKPersonal(key));
+			panelQueryPersonalgehalt.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
 	}
 
@@ -599,26 +676,19 @@ public class TabbedPanePersonal extends TabbedPane {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 			panelQueryPersonalverfuegbarkeit = new PanelQuery(null,
 					PersonalFilterFactory.getInstance().createFKPersonal(key),
-					QueryParameters.UC_ID_PERSONALVERFUEGBARKEIT,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.personalgehalt.verfuegbarkeit"), true);
-			panelBottomPersonalverfuegbarkeit = new PanelPersonalverfuegbarkeit(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"pers.personalgehalt.verfuegbarkeit"), null);
+					QueryParameters.UC_ID_PERSONALVERFUEGBARKEIT, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.personalgehalt.verfuegbarkeit"), true);
+			panelBottomPersonalverfuegbarkeit = new PanelPersonalverfuegbarkeit(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("pers.personalgehalt.verfuegbarkeit"), null);
 
-			panelSplitPersonalverfuegbarkeit = new PanelSplit(
-					getInternalFrame(), panelBottomPersonalverfuegbarkeit,
+			panelSplitPersonalverfuegbarkeit = new PanelSplit(getInternalFrame(), panelBottomPersonalverfuegbarkeit,
 					panelQueryPersonalverfuegbarkeit, 320);
 
-			setComponentAt(IDX_PANEL_PERSONALVERFUEGBARKEIT,
-					panelSplitPersonalverfuegbarkeit);
+			setComponentAt(IDX_PANEL_PERSONALVERFUEGBARKEIT, panelSplitPersonalverfuegbarkeit);
 		} else {
 			// filter refreshen.
 			panelQueryPersonalverfuegbarkeit
-					.setDefaultFilter(PersonalFilterFactory.getInstance()
-							.createFKPersonal(key));
+					.setDefaultFilter(PersonalFilterFactory.getInstance().createFKPersonal(key));
 		}
 	}
 
@@ -629,205 +699,128 @@ public class TabbedPanePersonal extends TabbedPane {
 	 */
 	private void jbInit() throws Throwable {
 
-		int tabIndex = 0;
-		IDX_PANEL_AUSWAHL = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_AUSWAHL);
+		IDX_PANEL_AUSWAHL = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.auswahl"));
 
-		tabIndex++;
-		IDX_PANEL_DETAIL = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.detail"),
-				IDX_PANEL_DETAIL);
+		IDX_PANEL_DETAIL = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.detail"));
 
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_PERS_DARF_PERSONALDETAILDATEN_SEHEN)) {
 
-			tabIndex++;
-			IDX_PANEL_DATEN = tabIndex;
-			insertTab(LPMain.getInstance().getTextRespectUISPr("lp.daten"),
-					null, null,
-					LPMain.getInstance().getTextRespectUISPr("lp.daten"),
-					IDX_PANEL_DATEN);
+			IDX_PANEL_DATEN = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.daten"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("lp.daten"));
 
-			if (LPMain.getInstance().getDesktop()
-					.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_PERSONAL)) {
-				tabIndex++;
-				IDX_PANEL_ANGEHOERIGE = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.angehoerige"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.angehoerige"),
-						IDX_PANEL_ANGEHOERIGE);
+			if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_PERSONAL)) {
 
-				tabIndex++;
-				IDX_PANEL_BANKVERBINDUNG = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"finanz.bankverbindung"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"finanz.bankverbindung"),
-						IDX_PANEL_BANKVERBINDUNG);
+				IDX_PANEL_ANGEHOERIGE = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.angehoerige"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.angehoerige"));
 
-				tabIndex++;
-				IDX_PANEL_EINTRITTAUSTRITT = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.eintrittaustritt"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.eintrittaustritt"),
-						IDX_PANEL_EINTRITTAUSTRITT);
+				IDX_PANEL_BANKVERBINDUNG = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("finanz.bankverbindung"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("finanz.bankverbindung"));
 
-				tabIndex++;
-				IDX_PANEL_ZEITEN = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.zeiten"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.zeiten"), IDX_PANEL_ZEITEN);
+				IDX_PANEL_EINTRITTAUSTRITT = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.eintrittaustritt"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.eintrittaustritt"));
 
-				tabIndex++;
-				IDX_PANEL_PERSONALZEITMODELL = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.personalzeitmodell"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.personalzeitmodell"),
-						IDX_PANEL_PERSONALZEITMODELL);
-				tabIndex++;
-				IDX_PANEL_SCHICHTZEITMODELL = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.schichtzeitmodell"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.schichtzeitmodell"),
-						IDX_PANEL_SCHICHTZEITMODELL);
+				IDX_PANEL_ZEITEN = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("pers.title.tab.zeiten"),
+						null, null, LPMain.getInstance().getTextRespectUISPr("pers.title.tab.zeiten"));
 
-				if (LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufModulZugreifen(
-								LocaleFac.BELEGART_ZUTRITT)) {
-					tabIndex++;
-					IDX_PANEL_PERSONALZUTRITTSKLASSE = tabIndex;
-					insertTab(
-							LPMain.getInstance().getTextRespectUISPr(
-									"pers.zutritt.zutrittsklasse"),
-							null,
-							null,
-							LPMain.getInstance().getTextRespectUISPr(
-									"pers.zutritt.zutrittsklasse"),
-							IDX_PANEL_PERSONALZUTRITTSKLASSE);
+				IDX_PANEL_PERSONALZEITMODELL = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalzeitmodell"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalzeitmodell"));
+
+				IDX_PANEL_SCHICHTZEITMODELL = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.schichtzeitmodell"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.schichtzeitmodell"));
+
+				if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_ZUTRITT)) {
+
+					IDX_PANEL_PERSONALZUTRITTSKLASSE = reiterHinzufuegen(
+							LPMain.getInstance().getTextRespectUISPr("pers.zutritt.zutrittsklasse"), null, null,
+							LPMain.getInstance().getTextRespectUISPr("pers.zutritt.zutrittsklasse"));
 				}
 
-				tabIndex++;
-				IDX_PANEL_URLAUBSANSPRUCH = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.urlaubsanspruch"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.urlaubsanspruch"),
-						IDX_PANEL_URLAUBSANSPRUCH);
+				IDX_PANEL_URLAUBSANSPRUCH = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.urlaubsanspruch"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.urlaubsanspruch"));
 
-				tabIndex++;
-				IDX_PANEL_GLEITZEITSALDO = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.gleitzeitsaldo"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.gleitzeitsaldo"),
-						IDX_PANEL_GLEITZEITSALDO);
+				IDX_PANEL_GLEITZEITSALDO = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.gleitzeitsaldo"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.gleitzeitsaldo"));
 
-				tabIndex++;
-				IDX_PANEL_STUNDENABRECHNUNG = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.stundenabrechnung"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.stundenabrechnung"),
-						IDX_PANEL_STUNDENABRECHNUNG);
+				IDX_PANEL_STUNDENABRECHNUNG = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.stundenabrechnung"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.title.tab.stundenabrechnung"));
 
-				tabIndex++;
-				IDX_PANEL_PERSONALGEHALT = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.personalgehalt"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.title.tab.personalgehalt"),
-						IDX_PANEL_PERSONALGEHALT);
+				if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_PERS_GEHALT_R)
+						|| DelegateFactory.getInstance().getTheJudgeDelegate()
+								.hatRecht(RechteFac.RECHT_PERS_GEHALT_CUD)) {
 
-				tabIndex++;
-				IDX_PANEL_PERSONALVERFUEGBARKEIT = tabIndex;
-				insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.personalgehalt.verfuegbarkeit"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"pers.personalgehalt.verfuegbarkeit"),
-						IDX_PANEL_PERSONALVERFUEGBARKEIT);
+					IDX_PANEL_PERSONALGEHALT = reiterHinzufuegen(
+							LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalgehalt"), null, null,
+							LPMain.getInstance().getTextRespectUISPr("pers.title.tab.personalgehalt"));
+				}
 
-				tabIndex++;
-				IDX_PANEL_PERSONALKURZBRIEF = tabIndex;
-				insertTab(
-						LPMain.getInstance()
-								.getTextRespectUISPr("lp.kurzbrief"), null,
-						null,
-						LPMain.getInstance()
-								.getTextRespectUISPr("lp.kurzbrief"),
-						IDX_PANEL_PERSONALKURZBRIEF);
+				IDX_PANEL_PERSONALVERFUEGBARKEIT = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.personalgehalt.verfuegbarkeit"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.personalgehalt.verfuegbarkeit"));
 
-				if (LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_FINGERPRINT)) {
-					tabIndex++;
-					IDX_PANEL_PERSONALFINGER = tabIndex;
-					insertTab(
-							LPMain.getInstance().getTextRespectUISPr(
-									"pers.zutritt.finger"),
-							null,
-							null,
-							LPMain.getInstance().getTextRespectUISPr(
-									"pers.zutritt.finger"),
-							IDX_PANEL_PERSONALFINGER);
+				IDX_PANEL_PERSONALFAHRZEUG = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("pers.fahrzeuge"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("pers.fahrzeuge"));
+
+				IDX_PANEL_PERSONALKURZBRIEF = reiterHinzufuegen(
+						LPMain.getInstance().getTextRespectUISPr("lp.kurzbrief"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("lp.kurzbrief"));
+
+				if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_PERS_GEHALT_R)
+						|| DelegateFactory.getInstance().getTheJudgeDelegate()
+								.hatRecht(RechteFac.RECHT_PERS_GEHALT_CUD)) {
+
+					IDX_PANEL_PERSONALKURZBRIEF_GEHALT = reiterHinzufuegen(
+							LPMain.getInstance().getTextRespectUISPr("pers.kurzbriefgehalt"), null, null,
+							LPMain.getInstance().getTextRespectUISPr("pers.kurzbriefgehalt"));
+				}
+
+				if (LPMain.getInstance().getDesktop()
+						.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_FINGERPRINT)) {
+
+					IDX_PANEL_PERSONALFINGER = reiterHinzufuegen(
+							LPMain.getInstance().getTextRespectUISPr("pers.zutritt.finger"), null, null,
+							LPMain.getInstance().getTextRespectUISPr("pers.zutritt.finger"));
 
 				}
 			}
+
+			IDX_PANEL_PERSONALPARAMETER = reiterHinzufuegen(LPMain.getTextRespectUISPr("pers.personal.parameter"), null,
+					null, LPMain.getTextRespectUISPr("pers.personal.parameter"));
+
+			IDX_PANEL_PERSONALTERMINAL = reiterHinzufuegen(
+					LPMain.getInstance().getTextRespectUISPr("pers.personal.erlaubteterminals"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("pers.personal.erlaubteterminals"));
+
+			if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_PERSONAL)) {
+				// Wenn keine Panelbeschriebung vorhanden, dann ausblenden
+				PanelbeschreibungDto[] dtos = DelegateFactory.getInstance().getPanelDelegate()
+						.panelbeschreibungFindByPanelCNrMandantCNr(PanelFac.PANEL_PERSONALEIGENSCHAFTEN, null);
+				if (dtos != null && dtos.length > 0) {
+
+					IDX_PANEL_PERSONALEIGENSCHAFTEN = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.eigenschaften"),
+							null, null, LPMain.getTextRespectUISPr("lp.eigenschaften"));
+				}
+
+			}
+
 		}
+
 		createAuswahl();
 
 		if ((Integer) panelQueryPersonal.getSelectedId() != null) {
-			getInternalFramePersonal().setPersonalDto(
-					DelegateFactory
-							.getInstance()
-							.getPersonalDelegate()
-							.personalFindByPrimaryKey(
-									(Integer) panelQueryPersonal
-											.getSelectedId()));
+			getInternalFramePersonal().setPersonalDto(DelegateFactory.getInstance().getPersonalDelegate()
+					.personalFindByPrimaryKey((Integer) panelQueryPersonal.getSelectedId()));
 		}
 
 		// wenn es fuer das tabbed pane noch keinen eintrag gibt, die
@@ -836,9 +829,12 @@ public class TabbedPanePersonal extends TabbedPane {
 			getInternalFrame().enableAllPanelsExcept(false);
 		}
 
+		PersonalDto persDto = getInternalFramePersonal().getPersonalDto();
+		mapButton = new WrapperMapButton(persDto != null ? persDto.getPartnerDto() : null);
+		panelQueryPersonal.addButtonToToolpanel(mapButton);
+
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelQueryPersonal,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelQueryPersonal, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		this.addChangeListener(this);
@@ -858,36 +854,26 @@ public class TabbedPanePersonal extends TabbedPane {
 
 	public void refreshTitle() {
 
-		getInternalFrame()
-				.setLpTitle(
-						InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
-						LPMain.getInstance().getTextRespectUISPr(
-								"menueentry.personal"));
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
+				LPMain.getInstance().getTextRespectUISPr("menueentry.personal"));
 		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
 				((PanelBasis) this.getSelectedComponent()).getAdd2Title());
 		if (getInternalFramePersonal().getPersonalDto() != null) {
-			String sNachname = getInternalFramePersonal().getPersonalDto()
-					.getPartnerDto().getCName1nachnamefirmazeile1();
+			String sNachname = getInternalFramePersonal().getPersonalDto().getPartnerDto()
+					.getCName1nachnamefirmazeile1();
 			if (sNachname == null) {
 				sNachname = "";
 			}
-			String sVorname = getInternalFramePersonal().getPersonalDto()
-					.getPartnerDto().getCName2vornamefirmazeile2();
+			String sVorname = getInternalFramePersonal().getPersonalDto().getPartnerDto().getCName2vornamefirmazeile2();
 			if (sVorname == null) {
 				sVorname = "";
 			}
 			if (getInternalFramePersonal().getPersonalDto().getCPersonalnr() != null) {
-				getInternalFrame().setLpTitle(
-						InternalFrame.TITLE_IDX_AS_I_LIKE,
-						getInternalFramePersonal().getPersonalDto()
-								.getCPersonalnr()
-								+ ", "
-								+ sVorname
-								+ " "
+				getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+						getInternalFramePersonal().getPersonalDto().getCPersonalnr() + ", " + sVorname + " "
 								+ sNachname);
 			} else {
-				getInternalFrame().setLpTitle(
-						InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+				getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
 			}
 		}
 	}
@@ -900,10 +886,19 @@ public class TabbedPanePersonal extends TabbedPane {
 
 		if (e.getActionCommand().equals(MENUE_ACTION_PERSONALLISTE)) {
 			String add2Title = "Personalliste";
-			getInternalFrame().showReportKriterien(
-					new ReportPersonalliste(getInternalFramePersonal(),
-							add2Title));
+			getInternalFrame().showReportKriterien(new ReportPersonalliste(getInternalFramePersonal(), add2Title));
 
+		} else if (e.getActionCommand().equals(MENUE_ACTION_PERSONALSTAMMBLATT)) {
+
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("pers.report.personalstammblatt");
+			getInternalFrame().showReportKriterien(new ReportPersonalstammblatt(getInternalFramePersonal(), add2Title));
+
+		} else if (e.getActionCommand().equals(MENU_INFO_AENDERUNGEN)) {
+
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("lp.report.aenderungen");
+			getInternalFrame().showReportKriterien(new ReportEntitylog(HvDtoLogClass.PERSONAL,
+					getInternalFramePersonal().getPersonalDto().getIId() + "", getInternalFramePersonal(), add2Title,
+					getInternalFramePersonal().getPersonalDto().getPartnerDto().formatFixTitelVornameNachnameNTitel()));
 		} else if (e.getActionCommand().equals(MENU_BEARBEITEN_KOMMENTAR)) {
 			if (pruefeAktuellesPersonal()) {
 
@@ -919,9 +914,8 @@ public class TabbedPanePersonal extends TabbedPane {
 	private void refreshPdKommentar() throws Throwable {
 		// das Panel immer neu anlegen, sonst funktioniert das Locken des
 		// Angebots nicht richtig
-		pdPersonalKommentar = new PanelDialogPersonalKommentar(
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"lp.kommentar"), true);
+		pdPersonalKommentar = new PanelDialogPersonalKommentar(getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("lp.kommentar"), true);
 	}
 
 	private PanelBasis getPersonalDetail() throws Throwable {
@@ -931,13 +925,12 @@ public class TabbedPanePersonal extends TabbedPane {
 
 			// Die Angebot hat einen Key vom Typ Integer
 			if (getInternalFrame().getKeyWasForLockMe() != null) {
-				iIdPersonal = new Integer(Integer.parseInt(getInternalFrame()
-						.getKeyWasForLockMe()));
+				iIdPersonal = new Integer(Integer.parseInt(getInternalFrame().getKeyWasForLockMe()));
 			}
 
-			panelDetailPersonal = new PanelPersonal(getInternalFrame(), LPMain
-					.getInstance().getTextRespectUISPr("lp.detail"),
-					iIdPersonal); // empty bei leerer angebotsliste
+			panelDetailPersonal = new PanelPersonal(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.detail"), iIdPersonal); // empty bei leerer
+																							// angebotsliste
 
 			setComponentAt(IDX_PANEL_DETAIL, panelDetailPersonal);
 		}
@@ -951,9 +944,8 @@ public class TabbedPanePersonal extends TabbedPane {
 		if (getInternalFramePersonal().getPersonalDto() == null
 				|| getInternalFramePersonal().getPersonalDto().getIId() == null) {
 			bIstGueltig = false;
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.warning"), LPMain.getInstance()
-					.getTextRespectUISPr("pers.warning.keinpersonal"));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+					LPMain.getInstance().getTextRespectUISPr("pers.warning.keinpersonal"));
 		}
 
 		return bIstGueltig;
@@ -991,32 +983,27 @@ public class TabbedPanePersonal extends TabbedPane {
 				panelQueryPersonalzeiten.setSelectedId(oKey);
 				panelSplitPersonalzeiten.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomEintrittaustritt) {
-				Object oKey = panelBottomEintrittaustritt
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomEintrittaustritt.getKeyWhenDetailPanel();
 				panelQueryEintrittaustritt.eventYouAreSelected(false);
 				panelQueryEintrittaustritt.setSelectedId(oKey);
 				panelSplitEintrittaustritt.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalzeitmodell) {
-				Object oKey = panelBottomPersonalzeitmodell
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomPersonalzeitmodell.getKeyWhenDetailPanel();
 				panelQueryPersonalzeitmodell.eventYouAreSelected(false);
 				panelQueryPersonalzeitmodell.setSelectedId(oKey);
 				panelSplitPersonalzeitmodel.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomSchichtzeitmodell) {
-				Object oKey = panelBottomSchichtzeitmodell
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomSchichtzeitmodell.getKeyWhenDetailPanel();
 				panelQuerySchichtzeitmodell.eventYouAreSelected(false);
 				panelQuerySchichtzeitmodell.setSelectedId(oKey);
 				panelSplitSchichtzeitmodel.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalzutrittsklasse) {
-				Object oKey = panelBottomPersonalzutrittsklasse
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomPersonalzutrittsklasse.getKeyWhenDetailPanel();
 				panelQueryPersonalzutrittsklasse.eventYouAreSelected(false);
 				panelQueryPersonalzutrittsklasse.setSelectedId(oKey);
 				panelSplitPersonalzutrittsklasse.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomUrlaubsanspruch) {
-				Object oKey = panelBottomUrlaubsanspruch
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomUrlaubsanspruch.getKeyWhenDetailPanel();
 				panelQueryUrlaubsanspruch.eventYouAreSelected(false);
 				panelQueryUrlaubsanspruch.setSelectedId(oKey);
 				panelSplitUrlaubsanspruch.eventYouAreSelected(false);
@@ -1026,8 +1013,7 @@ public class TabbedPanePersonal extends TabbedPane {
 				panelQueryGleitzeitsaldo.setSelectedId(oKey);
 				panelSplitGleitzeitsaldo.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomStundenabrechnung) {
-				Object oKey = panelBottomStundenabrechnung
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomStundenabrechnung.getKeyWhenDetailPanel();
 				panelQueryStundenabrechnung.eventYouAreSelected(false);
 				panelQueryStundenabrechnung.setSelectedId(oKey);
 				panelSplitStundenabrechnung.eventYouAreSelected(false);
@@ -1037,71 +1023,69 @@ public class TabbedPanePersonal extends TabbedPane {
 				panelQueryPersonalgehalt.setSelectedId(oKey);
 				panelSplitPersonalgehalt.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalverfuegbarkeit) {
-				Object oKey = panelBottomPersonalverfuegbarkeit
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomPersonalverfuegbarkeit.getKeyWhenDetailPanel();
 				panelQueryPersonalverfuegbarkeit.eventYouAreSelected(false);
 				panelQueryPersonalverfuegbarkeit.setSelectedId(oKey);
 				panelSplitPersonalverfuegbarkeit.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalkurzbrief) {
-				Object oKey = panelBottomPersonalkurzbrief
-						.getKeyWhenDetailPanel();
+				Object oKey = panelBottomPersonalkurzbrief.getKeyWhenDetailPanel();
 				panelQueryPersonalkurzbrief.eventYouAreSelected(false);
 				panelQueryPersonalkurzbrief.setSelectedId(oKey);
 				panelSplitPersonalkurzbrief.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalkurzbriefGehalt) {
+				Object oKey = panelBottomPersonalkurzbriefGehalt.getKeyWhenDetailPanel();
+				panelQueryPersonalkurzbriefGehalt.eventYouAreSelected(false);
+				panelQueryPersonalkurzbriefGehalt.setSelectedId(oKey);
+				panelSplitPersonalkurzbriefGehalt.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalfinger) {
 				Object oKey = panelBottomPersonalfinger.getKeyWhenDetailPanel();
 				panelQueryPersonalfinger.eventYouAreSelected(false);
 				panelQueryPersonalfinger.setSelectedId(oKey);
 				panelSplitPersonalfinger.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalterminal) {
+				Object oKey = panelBottomPersonalterminal.getKeyWhenDetailPanel();
+				panelQueryPersonalterminal.eventYouAreSelected(false);
+				panelQueryPersonalterminal.setSelectedId(oKey);
+				panelSplitPersonalterminal.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalfahrzeug) {
+				Object oKey = panelBottomPersonalfahrzeug.getKeyWhenDetailPanel();
+				panelQueryPersonalfahrzeug.eventYouAreSelected(false);
+				panelQueryPersonalfahrzeug.setSelectedId(oKey);
+				panelSplitPersonalfahrzeug.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
 			if (e.getSource() == panelQueryPersonal) {
 				if (panelQueryPersonal.getSelectedId() != null) {
-					getInternalFramePersonal().setKeyWasForLockMe(
-							panelQueryPersonal.getSelectedId() + "");
+					getInternalFramePersonal().setKeyWasForLockMe(panelQueryPersonal.getSelectedId() + "");
 					createDetail((Integer) panelQueryPersonal.getSelectedId());
-					panelDetailPersonal
-							.setKeyWhenDetailPanel(panelQueryPersonal
-									.getSelectedId());
+					panelDetailPersonal.setKeyWhenDetailPanel(panelQueryPersonal.getSelectedId());
 
-					getInternalFramePersonal().setPersonalDto(
-							DelegateFactory
-									.getInstance()
-									.getPersonalDelegate()
-									.personalFindByPrimaryKey(
-											(Integer) panelQueryPersonal
-													.getSelectedId()));
-					String sNachname = getInternalFramePersonal()
-							.getPersonalDto().getPartnerDto()
+					getInternalFramePersonal().setPersonalDto(DelegateFactory.getInstance().getPersonalDelegate()
+							.personalFindByPrimaryKey((Integer) panelQueryPersonal.getSelectedId()));
+					String sNachname = getInternalFramePersonal().getPersonalDto().getPartnerDto()
 							.getCName1nachnamefirmazeile1();
 					if (sNachname == null) {
 						sNachname = "";
 					}
-					String sVorname = getInternalFramePersonal()
-							.getPersonalDto().getPartnerDto()
+					String sVorname = getInternalFramePersonal().getPersonalDto().getPartnerDto()
 							.getCName2vornamefirmazeile2();
 					if (sVorname == null) {
 						sVorname = "";
 					}
 					if (getInternalFramePersonal().getPersonalDto() != null) {
-						getInternalFrame().setLpTitle(
-								InternalFrame.TITLE_IDX_AS_I_LIKE,
-								getInternalFramePersonal().getPersonalDto()
-										.getCPersonalnr()
-										+ ", "
-										+ sVorname
-										+ " " + sNachname);
+						getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+								getInternalFramePersonal().getPersonalDto().getCPersonalnr() + ", " + sVorname + " "
+										+ sNachname);
 					}
 
-					getInternalFrame()
-							.enableAllOberePanelsExceptMe(
-									this,
-									IDX_PANEL_AUSWAHL,
-									((ISourceEvent) e.getSource())
-											.getIdSelected() != null);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL,
+							((ISourceEvent) e.getSource()).getIdSelected() != null);
+
+					mapButton.setPartnerDto(getInternalFramePersonal().getPersonalDto().getPartnerDto());
+
 				} else {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, false);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
+					mapButton.setPartnerDto(null);
 				}
 
 			} else if (e.getSource() == panelQueryAngehoerige) {
@@ -1110,152 +1094,134 @@ public class TabbedPanePersonal extends TabbedPane {
 				panelBottomAngehoerige.eventYouAreSelected(false);
 				panelQueryAngehoerige.updateButtons();
 			} else if (e.getSource() == panelQueryBankverbindung) {
-				Integer iId = (Integer) panelQueryBankverbindung
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryBankverbindung.getSelectedId();
 				panelBottomBankverbindung.setKeyWhenDetailPanel(iId);
 				panelBottomBankverbindung.eventYouAreSelected(false);
 				panelQueryBankverbindung.updateButtons();
 			} else if (e.getSource() == panelQueryEintrittaustritt) {
-				Integer iId = (Integer) panelQueryEintrittaustritt
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryEintrittaustritt.getSelectedId();
 				panelBottomEintrittaustritt.setKeyWhenDetailPanel(iId);
 				panelBottomEintrittaustritt.eventYouAreSelected(false);
 				panelQueryEintrittaustritt.updateButtons();
 			} else if (e.getSource() == panelQueryPersonalzeiten) {
-				Integer iId = (Integer) panelQueryPersonalzeiten
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryPersonalzeiten.getSelectedId();
 				panelBottomPersonalzeiten.setKeyWhenDetailPanel(iId);
 				panelBottomPersonalzeiten.eventYouAreSelected(false);
 				panelQueryPersonalzeiten.updateButtons();
 			} else if (e.getSource() == panelQueryPersonalzeitmodell) {
-				Integer iId = (Integer) panelQueryPersonalzeitmodell
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryPersonalzeitmodell.getSelectedId();
 				panelBottomPersonalzeitmodell.setKeyWhenDetailPanel(iId);
 				panelBottomPersonalzeitmodell.eventYouAreSelected(false);
 				panelQueryPersonalzeitmodell.updateButtons();
 			} else if (e.getSource() == panelQuerySchichtzeitmodell) {
-				Integer iId = (Integer) panelQuerySchichtzeitmodell
-						.getSelectedId();
+				Integer iId = (Integer) panelQuerySchichtzeitmodell.getSelectedId();
 				panelBottomSchichtzeitmodell.setKeyWhenDetailPanel(iId);
 				panelBottomSchichtzeitmodell.eventYouAreSelected(false);
 				panelQuerySchichtzeitmodell.updateButtons();
 			} else if (e.getSource() == panelQueryPersonalzutrittsklasse) {
-				Integer iId = (Integer) panelQueryPersonalzutrittsklasse
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryPersonalzutrittsklasse.getSelectedId();
 				panelBottomPersonalzutrittsklasse.setKeyWhenDetailPanel(iId);
 				panelBottomPersonalzutrittsklasse.eventYouAreSelected(false);
 				panelQueryPersonalzutrittsklasse.updateButtons();
 			} else if (e.getSource() == panelQueryUrlaubsanspruch) {
-				Integer iId = (Integer) panelQueryUrlaubsanspruch
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryUrlaubsanspruch.getSelectedId();
 				panelBottomUrlaubsanspruch.setKeyWhenDetailPanel(iId);
 				panelBottomUrlaubsanspruch.eventYouAreSelected(false);
 				panelQueryUrlaubsanspruch.updateButtons();
 			} else if (e.getSource() == panelQueryGleitzeitsaldo) {
-				Integer iId = (Integer) panelQueryGleitzeitsaldo
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryGleitzeitsaldo.getSelectedId();
 				panelBottomGleitzeitsaldo.setKeyWhenDetailPanel(iId);
 				panelBottomGleitzeitsaldo.eventYouAreSelected(false);
 				panelQueryGleitzeitsaldo.updateButtons();
 			} else if (e.getSource() == panelQueryStundenabrechnung) {
-				Integer iId = (Integer) panelQueryStundenabrechnung
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryStundenabrechnung.getSelectedId();
 				panelBottomStundenabrechnung.setKeyWhenDetailPanel(iId);
 				panelBottomStundenabrechnung.eventYouAreSelected(false);
 				panelQueryStundenabrechnung.updateButtons();
 			} else if (e.getSource() == panelQueryPersonalgehalt) {
-				Integer iId = (Integer) panelQueryPersonalgehalt
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryPersonalgehalt.getSelectedId();
 				panelBottomPersonalgehalt.setKeyWhenDetailPanel(iId);
 				panelBottomPersonalgehalt.eventYouAreSelected(false);
 				panelQueryPersonalgehalt.updateButtons();
 			} else if (e.getSource() == panelQueryPersonalverfuegbarkeit) {
-				Integer iId = (Integer) panelQueryPersonalverfuegbarkeit
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryPersonalverfuegbarkeit.getSelectedId();
 				panelBottomPersonalverfuegbarkeit.setKeyWhenDetailPanel(iId);
 				panelBottomPersonalverfuegbarkeit.eventYouAreSelected(false);
 				panelQueryPersonalverfuegbarkeit.updateButtons();
 			} else if (e.getSource() == panelQueryPersonalkurzbrief) {
-				Integer iId = (Integer) panelQueryPersonalkurzbrief
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryPersonalkurzbrief.getSelectedId();
 				panelBottomPersonalkurzbrief.setKeyWhenDetailPanel(iId);
 				panelBottomPersonalkurzbrief.eventYouAreSelected(false);
 				panelQueryPersonalkurzbrief.updateButtons();
+			} else if (e.getSource() == panelQueryPersonalkurzbriefGehalt) {
+				Integer iId = (Integer) panelQueryPersonalkurzbriefGehalt.getSelectedId();
+				panelBottomPersonalkurzbriefGehalt.setKeyWhenDetailPanel(iId);
+				panelBottomPersonalkurzbriefGehalt.eventYouAreSelected(false);
+				panelQueryPersonalkurzbriefGehalt.updateButtons();
 			} else if (e.getSource() == panelQueryPersonalfinger) {
-				Integer iId = (Integer) panelQueryPersonalfinger
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryPersonalfinger.getSelectedId();
 				panelBottomPersonalfinger.setKeyWhenDetailPanel(iId);
 				panelBottomPersonalfinger.eventYouAreSelected(false);
 				panelQueryPersonalfinger.updateButtons();
+			} else if (e.getSource() == panelQueryPersonalterminal) {
+				Integer iId = (Integer) panelQueryPersonalterminal.getSelectedId();
+				panelBottomPersonalterminal.setKeyWhenDetailPanel(iId);
+				panelBottomPersonalterminal.eventYouAreSelected(false);
+				panelQueryPersonalterminal.updateButtons();
+			} else if (e.getSource() == panelQueryPersonalfahrzeug) {
+				Integer iId = (Integer) panelQueryPersonalfahrzeug.getSelectedId();
+				panelBottomPersonalfahrzeug.setKeyWhenDetailPanel(iId);
+				panelBottomPersonalfahrzeug.eventYouAreSelected(false);
+				panelQueryPersonalfahrzeug.updateButtons();
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			if (e.getSource() == panelBottomAngehoerige) {
-				panelQueryAngehoerige.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryAngehoerige.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomEintrittaustritt) {
-				panelQueryEintrittaustritt.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryEintrittaustritt.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomGleitzeitsaldo) {
-				panelQueryGleitzeitsaldo.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryGleitzeitsaldo.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomBankverbindung) {
-				panelQueryBankverbindung.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryBankverbindung.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomPersonalgehalt) {
-				panelQueryPersonalgehalt.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryPersonalgehalt.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomPersonalverfuegbarkeit) {
-				panelQueryPersonalverfuegbarkeit
-						.updateButtons(new LockStateValue(
-								PanelBasis.LOCK_FOR_NEW));
+				panelQueryPersonalverfuegbarkeit.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomPersonalzeiten) {
-				panelQueryPersonalzeiten.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryPersonalzeiten.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomPersonalzeitmodell) {
-				panelQueryPersonalzeitmodell.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQueryPersonalzeitmodell.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomSchichtzeitmodell) {
-				panelQuerySchichtzeitmodell.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQuerySchichtzeitmodell.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomPersonalzutrittsklasse) {
-				panelQueryPersonalzutrittsklasse
-						.updateButtons(new LockStateValue(
-								PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQueryPersonalzutrittsklasse.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomStundenabrechnung) {
-				panelQueryStundenabrechnung.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQueryStundenabrechnung.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomUrlaubsanspruch) {
-				panelQueryUrlaubsanspruch.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQueryUrlaubsanspruch.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomPersonalkurzbrief) {
-				panelQueryPersonalkurzbrief.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQueryPersonalkurzbrief.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomPersonalkurzbriefGehalt) {
+				panelQueryPersonalkurzbriefGehalt.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomPersonalfinger) {
-				panelQueryPersonalfinger.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
-				;
+				panelQueryPersonalfinger.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomPersonalterminal) {
+				panelQueryPersonalterminal.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomPersonalfahrzeug) {
+				panelQueryPersonalfahrzeug.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			// aktiviere ein QP ...
 			if (e.getSource() == panelDetailPersonal) {
 				panelQueryPersonal.eventYouAreSelected(false);
-				getInternalFramePersonal().getPersonalDto().setIId(
-						(Integer) panelQueryPersonal.getSelectedId());
-				getInternalFrame().setKeyWasForLockMe(
-						panelQueryPersonal.getSelectedId() + "");
+				getInternalFramePersonal().getPersonalDto().setIId((Integer) panelQueryPersonal.getSelectedId());
+				getInternalFrame().setKeyWasForLockMe(panelQueryPersonal.getSelectedId() + "");
 				this.setSelectedComponent(panelQueryPersonal);
 			} else if (e.getSource() == panelBottomAngehoerige) {
 				setKeyWasForLockMe();
 				if (panelBottomAngehoerige.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryAngehoerige
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryAngehoerige.getId2SelectAfterDelete();
 					panelQueryAngehoerige.setSelectedId(oNaechster);
 				}
 
@@ -1263,8 +1229,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomBankverbindung) {
 				setKeyWasForLockMe();
 				if (panelBottomBankverbindung.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryBankverbindung
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryBankverbindung.getId2SelectAfterDelete();
 					panelQueryBankverbindung.setSelectedId(oNaechster);
 				}
 
@@ -1272,8 +1237,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomEintrittaustritt) {
 				setKeyWasForLockMe();
 				if (panelBottomEintrittaustritt.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryEintrittaustritt
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryEintrittaustritt.getId2SelectAfterDelete();
 					panelQueryEintrittaustritt.setSelectedId(oNaechster);
 				}
 
@@ -1281,8 +1245,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomPersonalzeiten) {
 				setKeyWasForLockMe();
 				if (panelBottomPersonalzeiten.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryPersonalzeiten
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryPersonalzeiten.getId2SelectAfterDelete();
 					panelQueryPersonalzeiten.setSelectedId(oNaechster);
 				}
 
@@ -1290,8 +1253,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomPersonalzeitmodell) {
 				setKeyWasForLockMe();
 				if (panelBottomPersonalzeitmodell.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryPersonalzeitmodell
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryPersonalzeitmodell.getId2SelectAfterDelete();
 					panelQueryPersonalzeitmodell.setSelectedId(oNaechster);
 				}
 
@@ -1299,8 +1261,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomSchichtzeitmodell) {
 				setKeyWasForLockMe();
 				if (panelBottomSchichtzeitmodell.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQuerySchichtzeitmodell
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQuerySchichtzeitmodell.getId2SelectAfterDelete();
 					panelQuerySchichtzeitmodell.setSelectedId(oNaechster);
 				}
 
@@ -1308,8 +1269,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomPersonalzutrittsklasse) {
 				setKeyWasForLockMe();
 				if (panelBottomPersonalzutrittsklasse.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryPersonalzutrittsklasse
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryPersonalzutrittsklasse.getId2SelectAfterDelete();
 					panelQueryPersonalzutrittsklasse.setSelectedId(oNaechster);
 				}
 
@@ -1317,8 +1277,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomUrlaubsanspruch) {
 				setKeyWasForLockMe();
 				if (panelBottomUrlaubsanspruch.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryUrlaubsanspruch
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryUrlaubsanspruch.getId2SelectAfterDelete();
 					panelQueryUrlaubsanspruch.setSelectedId(oNaechster);
 				}
 
@@ -1326,8 +1285,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomGleitzeitsaldo) {
 				setKeyWasForLockMe();
 				if (panelBottomGleitzeitsaldo.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryGleitzeitsaldo
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryGleitzeitsaldo.getId2SelectAfterDelete();
 					panelQueryGleitzeitsaldo.setSelectedId(oNaechster);
 				}
 
@@ -1335,8 +1293,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomStundenabrechnung) {
 				setKeyWasForLockMe();
 				if (panelBottomStundenabrechnung.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryStundenabrechnung
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryStundenabrechnung.getId2SelectAfterDelete();
 					panelQueryStundenabrechnung.setSelectedId(oNaechster);
 				}
 
@@ -1344,8 +1301,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomPersonalgehalt) {
 				setKeyWasForLockMe();
 				if (panelBottomPersonalgehalt.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryPersonalgehalt
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryPersonalgehalt.getId2SelectAfterDelete();
 					panelQueryPersonalgehalt.setSelectedId(oNaechster);
 				}
 
@@ -1353,8 +1309,7 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomPersonalverfuegbarkeit) {
 				setKeyWasForLockMe();
 				if (panelBottomPersonalverfuegbarkeit.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryPersonalverfuegbarkeit
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryPersonalverfuegbarkeit.getId2SelectAfterDelete();
 					panelQueryPersonalverfuegbarkeit.setSelectedId(oNaechster);
 				}
 
@@ -1362,21 +1317,43 @@ public class TabbedPanePersonal extends TabbedPane {
 			} else if (e.getSource() == panelBottomPersonalkurzbrief) {
 				setKeyWasForLockMe();
 				if (panelBottomPersonalkurzbrief.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryPersonalkurzbrief
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryPersonalkurzbrief.getId2SelectAfterDelete();
 					panelQueryPersonalkurzbrief.setSelectedId(oNaechster);
 				}
 
 				panelSplitPersonalkurzbrief.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalkurzbriefGehalt) {
+				setKeyWasForLockMe();
+				if (panelBottomPersonalkurzbriefGehalt.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryPersonalkurzbriefGehalt.getId2SelectAfterDelete();
+					panelQueryPersonalkurzbriefGehalt.setSelectedId(oNaechster);
+				}
+
+				panelSplitPersonalkurzbriefGehalt.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalfinger) {
 				setKeyWasForLockMe();
 				if (panelBottomPersonalfinger.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryPersonalfinger
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryPersonalfinger.getId2SelectAfterDelete();
 					panelQueryPersonalfinger.setSelectedId(oNaechster);
 				}
 
 				panelSplitPersonalfinger.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalterminal) {
+				setKeyWasForLockMe();
+				if (panelBottomPersonalterminal.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryPersonalterminal.getId2SelectAfterDelete();
+					panelQueryPersonalterminal.setSelectedId(oNaechster);
+				}
+
+				panelSplitPersonalterminal.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalfahrzeug) {
+				setKeyWasForLockMe();
+				if (panelBottomPersonalfahrzeug.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryPersonalfahrzeug.getId2SelectAfterDelete();
+					panelQueryPersonalfahrzeug.setSelectedId(oNaechster);
+				}
+
+				panelSplitPersonalfahrzeug.eventYouAreSelected(false);
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
@@ -1409,11 +1386,38 @@ public class TabbedPanePersonal extends TabbedPane {
 				panelSplitPersonalverfuegbarkeit.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalkurzbrief) {
 				panelSplitPersonalkurzbrief.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalkurzbriefGehalt) {
+				panelSplitPersonalkurzbriefGehalt.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomPersonalfinger) {
 				panelSplitPersonalfinger.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalterminal) {
+				panelSplitPersonalterminal.eventYouAreSelected(false);
+			} else if (e.getSource() == panelBottomPersonalfahrzeug) {
+				panelSplitPersonalfahrzeug.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (e.getSource() == panelQueryPersonal) {
+
+				if (!LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_PERSONAL)) {
+					int i = DelegateFactory.getInstance().getPersonalDelegate()
+							.getAnzahlDerNichtVerstecktenPersonenEinesMandanten();
+
+					MandantDto mDto = DelegateFactory.getInstance().getMandantDelegate()
+							.mandantFindByPrimaryKey(LPMain.getInstance().getTheClient().getMandant());
+
+					if (i >= mDto.getIMaxpersonen()) {
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+								LPMain.getInstance().getMessageTextRespectUISPr(
+										"lp.error.anzahlpersonen.ueberschritten.client", mDto.getIMaxpersonen()));
+						return;
+					} else if (i > (mDto.getIMaxpersonen() - 5)) {
+
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+								LPMain.getInstance().getMessageTextRespectUISPr(
+										"lp.error.anzahlpersonen.baldueberschritten", i, mDto.getIMaxpersonen()));
+					}
+
+				}
 
 				createDetail(null);
 				panelDetailPersonal.eventActionNew(e, true, false);
@@ -1456,8 +1460,7 @@ public class TabbedPanePersonal extends TabbedPane {
 
 			} else if (e.getSource() == panelQueryPersonalzutrittsklasse) {
 
-				panelBottomPersonalzutrittsklasse
-						.eventActionNew(e, true, false);
+				panelBottomPersonalzutrittsklasse.eventActionNew(e, true, false);
 				panelBottomPersonalzutrittsklasse.eventYouAreSelected(false);
 				this.setSelectedComponent(panelSplitPersonalzutrittsklasse);
 
@@ -1487,8 +1490,7 @@ public class TabbedPanePersonal extends TabbedPane {
 
 			} else if (e.getSource() == panelQueryPersonalverfuegbarkeit) {
 
-				panelBottomPersonalverfuegbarkeit
-						.eventActionNew(e, true, false);
+				panelBottomPersonalverfuegbarkeit.eventActionNew(e, true, false);
 				panelBottomPersonalverfuegbarkeit.eventYouAreSelected(false);
 				this.setSelectedComponent(panelSplitPersonalverfuegbarkeit);
 
@@ -1498,18 +1500,35 @@ public class TabbedPanePersonal extends TabbedPane {
 				panelBottomPersonalkurzbrief.eventYouAreSelected(false);
 				this.setSelectedComponent(panelSplitPersonalkurzbrief);
 
+			} else if (e.getSource() == panelQueryPersonalkurzbriefGehalt) {
+
+				panelBottomPersonalkurzbriefGehalt.eventActionNew(e, true, false);
+				panelBottomPersonalkurzbriefGehalt.eventYouAreSelected(false);
+				this.setSelectedComponent(panelSplitPersonalkurzbriefGehalt);
+
 			} else if (e.getSource() == panelQueryPersonalfinger) {
 
 				panelBottomPersonalfinger.eventActionNew(e, true, false);
 				panelBottomPersonalfinger.eventYouAreSelected(false);
 				this.setSelectedComponent(panelSplitPersonalfinger);
 
+			} else if (e.getSource() == panelQueryPersonalterminal) {
+
+				panelBottomPersonalterminal.eventActionNew(e, true, false);
+				panelBottomPersonalterminal.eventYouAreSelected(false);
+				this.setSelectedComponent(panelSplitPersonalterminal);
+
+			} else if (e.getSource() == panelQueryPersonalfahrzeug) {
+
+				panelBottomPersonalfahrzeug.eventActionNew(e, true, false);
+				panelBottomPersonalfahrzeug.eventYouAreSelected(false);
+				this.setSelectedComponent(panelSplitPersonalfahrzeug);
+
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_MY_OWN_NEW) {
 			if (e.getSource() == panelQueryPersonalzeitmodell) {
-				DialogSchichtzeit d = new DialogSchichtzeit(
-						getInternalFramePersonal(),
+				DialogSchichtzeit d = new DialogSchichtzeit(getInternalFramePersonal(),
 						(Integer) getPanelQueryPersonal().getSelectedId());
 				d.setVisible(true);
 				panelQueryPersonalzeitmodell.eventYouAreSelected(false);
@@ -1522,14 +1541,15 @@ public class TabbedPanePersonal extends TabbedPane {
 	/**
 	 * Behandle ChangeEvent; zB Tabwechsel oben.
 	 * 
-	 * @param e
-	 *            ChangeEvent
+	 * @param e ChangeEvent
 	 * @throws Throwable
 	 */
 	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
 
 		super.lPEventObjectChanged(e);
 		int selectedIndex = this.getSelectedIndex();
+
+		getInternalFrame().setRechtModulweit(rechtModulweit);
 
 		if (selectedIndex == IDX_PANEL_AUSWAHL) {
 			createAuswahl();
@@ -1541,19 +1561,19 @@ public class TabbedPanePersonal extends TabbedPane {
 		} else if (selectedIndex == IDX_PANEL_DATEN) {
 			createDaten(getInternalFramePersonal().getPersonalDto().getIId());
 			panelDetailDaten.eventYouAreSelected(false);
+		} else if (selectedIndex == IDX_PANEL_PERSONALPARAMETER) {
+			createParameter(getInternalFramePersonal().getPersonalDto().getIId());
+			panelDetailParameter.eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_PANEL_ANGEHOERIGE) {
-			createAngehoerige(getInternalFramePersonal().getPersonalDto()
-					.getIId());
+			createAngehoerige(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitAngehoerige.eventYouAreSelected(false);
 			panelQueryAngehoerige.updateButtons();
 		} else if (selectedIndex == IDX_PANEL_BANKVERBINDUNG) {
-			createBankverbindung(getInternalFramePersonal().getPersonalDto()
-					.getPartnerDto().getIId());
+			createBankverbindung(getInternalFramePersonal().getPersonalDto().getPartnerDto().getIId());
 			panelSplitBankverbindung.eventYouAreSelected(false);
 			panelQueryBankverbindung.updateButtons();
 		} else if (selectedIndex == IDX_PANEL_EINTRITTAUSTRITT) {
-			createEintrittAustritt(getInternalFramePersonal().getPersonalDto()
-					.getIId());
+			createEintrittAustritt(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitEintrittaustritt.eventYouAreSelected(false);
 			panelQueryEintrittaustritt.updateButtons();
 
@@ -1563,63 +1583,91 @@ public class TabbedPanePersonal extends TabbedPane {
 			panelQueryPersonalzeiten.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_PERSONALZEITMODELL) {
-			createPersonalzeitmodell(getInternalFramePersonal()
-					.getPersonalDto().getIId());
+			createPersonalzeitmodell(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitPersonalzeitmodel.eventYouAreSelected(false);
 			panelQueryPersonalzeitmodell.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_SCHICHTZEITMODELL) {
-			createSchichtzeitmodell(getInternalFramePersonal().getPersonalDto()
-					.getIId());
+			createSchichtzeitmodell(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitSchichtzeitmodel.eventYouAreSelected(false);
 			panelQuerySchichtzeitmodell.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_PERSONALZUTRITTSKLASSE) {
-			createPersonalzutrittsklasse(getInternalFramePersonal()
-					.getPersonalDto().getIId());
+			createPersonalzutrittsklasse(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitPersonalzutrittsklasse.eventYouAreSelected(false);
 			panelQueryPersonalzutrittsklasse.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_URLAUBSANSPRUCH) {
-			createUrlaubsanspruch(getInternalFramePersonal().getPersonalDto()
-					.getIId());
+			createUrlaubsanspruch(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitUrlaubsanspruch.eventYouAreSelected(false);
 			panelQueryUrlaubsanspruch.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_GLEITZEITSALDO) {
-			createGleitzeitsaldo(getInternalFramePersonal().getPersonalDto()
-					.getIId());
+			createGleitzeitsaldo(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitGleitzeitsaldo.eventYouAreSelected(false);
 			panelQueryGleitzeitsaldo.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_STUNDENABRECHNUNG) {
-			createStundenabrechnung(getInternalFramePersonal().getPersonalDto()
-					.getIId());
+			createStundenabrechnung(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitStundenabrechnung.eventYouAreSelected(false);
 			panelQueryStundenabrechnung.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_PERSONALGEHALT) {
-			createPersonalgehalt(getInternalFramePersonal().getPersonalDto()
-					.getIId());
+			
+			boolean hatRechtGehaltCUD = DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_PERS_GEHALT_CUD);
+			if (hatRechtGehaltCUD == true) {
+				getInternalFrame().setRechtModulweit(RechteFac.RECHT_MODULWEIT_UPDATE);
+			} else {
+				getInternalFrame().setRechtModulweit(RechteFac.RECHT_MODULWEIT_READ);
+			}
+			
+			createPersonalgehalt(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitPersonalgehalt.eventYouAreSelected(false);
 			panelQueryPersonalgehalt.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_PERSONALVERFUEGBARKEIT) {
-			createPersonalverfuegbarkeit(getInternalFramePersonal()
-					.getPersonalDto().getIId());
+			createPersonalverfuegbarkeit(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitPersonalverfuegbarkeit.eventYouAreSelected(false);
 			panelQueryPersonalverfuegbarkeit.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_PERSONALKURZBRIEF) {
-			createKurzbrief(getInternalFramePersonal().getPersonalDto()
-					.getPartnerDto().getIId());
+			createKurzbrief(getInternalFramePersonal().getPersonalDto().getPartnerDto().getIId());
 			panelSplitPersonalkurzbrief.eventYouAreSelected(false);
 			panelQueryPersonalkurzbrief.updateButtons();
+
+		} else if (selectedIndex == IDX_PANEL_PERSONALKURZBRIEF_GEHALT) {
+
+			boolean hatRechtGehaltCUD = DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_PERS_GEHALT_CUD);
+			if (hatRechtGehaltCUD == true) {
+				getInternalFrame().setRechtModulweit(RechteFac.RECHT_MODULWEIT_UPDATE);
+			} else {
+				getInternalFrame().setRechtModulweit(RechteFac.RECHT_MODULWEIT_READ);
+			}
+
+			createKurzbriefGehalt(getInternalFramePersonal().getPersonalDto().getPartnerDto().getIId());
+			panelSplitPersonalkurzbriefGehalt.eventYouAreSelected(false);
+			panelQueryPersonalkurzbriefGehalt.updateButtons();
 
 		} else if (selectedIndex == IDX_PANEL_PERSONALFINGER) {
 			createFinger(getInternalFramePersonal().getPersonalDto().getIId());
 			panelSplitPersonalfinger.eventYouAreSelected(false);
 			panelQueryPersonalfinger.updateButtons();
+
+		} else if (selectedIndex == IDX_PANEL_PERSONALTERMINAL) {
+			createTerminals(getInternalFramePersonal().getPersonalDto().getIId());
+			panelSplitPersonalterminal.eventYouAreSelected(false);
+			panelQueryPersonalterminal.updateButtons();
+
+		} else if (selectedIndex == IDX_PANEL_PERSONALFAHRZEUG) {
+			createFahrzeuge(getInternalFramePersonal().getPersonalDto().getIId());
+			panelSplitPersonalfahrzeug.eventYouAreSelected(false);
+			panelQueryPersonalfahrzeug.updateButtons();
+
+		} else if (selectedIndex == IDX_PANEL_PERSONALEIGENSCHAFTEN) {
+			createEigenschaften(getInternalFramePersonal().getPersonalDto().getIId());
+			panelDetailPersonaleigenschaft.eventYouAreSelected(false);
 
 		}
 		refreshTitle();
@@ -1633,16 +1681,13 @@ public class TabbedPanePersonal extends TabbedPane {
 				if (DelegateFactory.getInstance().getTheJudgeDelegate()
 						.hatRecht(RechteFac.RECHT_PERS_SICHTBARKEIT_ALLE)) {
 
-					JMenuItem menuItemPersonalliste = new JMenuItem(LPMain
-							.getInstance().getTextRespectUISPr(
-									"pers.report.personalliste"));
+					JMenuItem menuItemPersonalliste = new JMenuItem(
+							LPMain.getInstance().getTextRespectUISPr("pers.report.personalliste"));
 
 					menuItemPersonalliste.addActionListener(this);
 
-					menuItemPersonalliste
-							.setActionCommand(MENUE_ACTION_PERSONALLISTE);
-					JMenu jmJournal = (JMenu) wrapperMenuBar
-							.getComponent(WrapperMenuBar.MENU_JOURNAL);
+					menuItemPersonalliste.setActionCommand(MENUE_ACTION_PERSONALLISTE);
+					JMenu jmJournal = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_JOURNAL);
 					jmJournal.add(menuItemPersonalliste);
 
 				}
@@ -1650,15 +1695,30 @@ public class TabbedPanePersonal extends TabbedPane {
 				handleException(ex, false);
 			}
 
+			JMenu menuInfo = new WrapperMenu("lp.info", this);
+
+			JMenuItem menuItemStammblatt = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("pers.report.personalstammblatt"));
+
+			menuItemStammblatt.addActionListener(this);
+
+			menuItemStammblatt.setActionCommand(MENUE_ACTION_PERSONALSTAMMBLATT);
+
+			menuInfo.add(menuItemStammblatt);
+			wrapperMenuBar.addJMenuItem(menuInfo);
+
+			JMenuItem menuItemAenderungen = new JMenuItem(LPMain.getTextRespectUISPr("lp.report.aenderungen"));
+			menuItemAenderungen.addActionListener(this);
+			menuItemAenderungen.setActionCommand(MENU_INFO_AENDERUNGEN);
+			menuInfo.add(menuItemAenderungen);
+
 			// Menue Bearbeiten
-			JMenu jmBearbeiten = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
+			JMenu jmBearbeiten = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
 
 			JMenuItem menuItemBearbeitenExternerKommentar = new JMenuItem(
 					LPMain.getInstance().getTextRespectUISPr("lp.kommentar"));
 			menuItemBearbeitenExternerKommentar.addActionListener(this);
-			menuItemBearbeitenExternerKommentar
-					.setActionCommand(MENU_BEARBEITEN_KOMMENTAR);
+			menuItemBearbeitenExternerKommentar.setActionCommand(MENU_BEARBEITEN_KOMMENTAR);
 			jmBearbeiten.add(menuItemBearbeitenExternerKommentar, 0);
 
 		}

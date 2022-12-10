@@ -124,4 +124,7 @@ public class LPModul {
 		this.toolbarButton = toolbarButton;
 	}
 
+	public void redraw() {
+		this.toolbarButton.redraw();
+	}
 }

@@ -168,6 +168,9 @@ public interface DistributedTableDataSource {
     public void setReturnNullOnGetValueAt(boolean returnNullOnGetValueAt);
     
     public Integer getUseCaseId();
+
+
+	public String[] getColumnHeaderToolTips() throws ExceptionLP;
     
     
 }

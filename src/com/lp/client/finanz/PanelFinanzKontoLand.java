@@ -54,12 +54,13 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.fastlanereader.gui.QueryType;
-import com.lp.server.finanz.ejb.KontolandPK;
 import com.lp.server.finanz.service.KontoDto;
 import com.lp.server.finanz.service.KontolandDto;
 import com.lp.server.system.service.LandDto;
@@ -67,7 +68,6 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-@SuppressWarnings("static-access") 
 /**
  * <p> Diese Klasse kuemmert sich um die Kontolaenderart</p>
  *
@@ -100,6 +100,9 @@ private GridBagLayout gridBagLayoutAll = null;
   private WrapperButton wbuLand = null;
   private WrapperTextField wtfLand = null;
 
+  private WrapperLabel wlaGueltigab = new WrapperLabel();
+	private WrapperDateField wdfGueltigab = new WrapperDateField();
+  
   private final static String ACTION_SPECIAL_LAND = "action_special_laenderart";
   private final static String ACTION_SPECIAL_KONTO = "action_special_konto";
   private PanelQueryFLR panelQueryFLRLand = null;
@@ -143,6 +146,9 @@ private GridBagLayout gridBagLayoutAll = null;
     if (klDto != null) {
       holeLand(klDto.getLandIId());
       holeKonto(klDto.getKontoIIdUebersetzt());
+      
+      wdfGueltigab.setTimestamp(klDto.getTGueltigAb());
+      
       // StatusBar
       this.setStatusbarPersonalIIdAnlegen(klDto.getPersonalIIdAnlegen());
       this.setStatusbarTAnlegen(klDto.getTAnlegen());
@@ -164,8 +170,8 @@ private GridBagLayout gridBagLayoutAll = null;
       clearStatusbar();
     }
     else { 
-      KontolandPK kontolandPK = (KontolandPK) key;
-      klDto = DelegateFactory.getInstance().getFinanzDelegate().kontolandFindByPrimaryKey(kontolandPK.getKonto_i_id(),kontolandPK.getLand_i_id());
+      Integer pk = (Integer) key;
+      klDto = DelegateFactory.getInstance().getFinanzDelegate().kontolandFindByPrimaryKey(pk);
       dto2Components();
     }
   }
@@ -180,6 +186,7 @@ private GridBagLayout gridBagLayoutAll = null;
     klDto.setKontoIId(tabbedPaneKonten.getKontoDto().getIId());
     klDto.setLandIId(landDto.getIID());
     klDto.setKontoIIdUebersetzt(kontoDto.getIId());
+    klDto.setTGueltigAb(wdfGueltigab.getTimestamp());
   }
 
 
@@ -188,8 +195,7 @@ private GridBagLayout gridBagLayoutAll = null;
     if (allMandatoryFieldsSetDlg()) {
       components2Dto();
       DelegateFactory.getInstance().getFinanzDelegate().updateKontoland(klDto);
-      setKeyWhenDetailPanel(new KontolandPK(klDto.getKontoIId(),
-          klDto.getKontoIId()));
+      setKeyWhenDetailPanel(klDto.getIId());
       super.eventActionSave(e, true);
       eventYouAreSelected(false);
     }
@@ -255,12 +261,14 @@ private GridBagLayout gridBagLayoutAll = null;
     wbuLand.setActionCommand(ACTION_SPECIAL_LAND);
 
 
-    wbuLand.setText(LPMain.getInstance().getTextRespectUISPr("button.land"));
-    wbuLand.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-        "button.land.tooltip"));
-    wbuKonto.setText(LPMain.getInstance().getTextRespectUISPr("button.konto"));
-    wbuKonto.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-        "button.konto.tooltip"));
+    wlaGueltigab.setText(LPMain.getTextRespectUISPr("lp.gueltigab"));
+	
+	wdfGueltigab.setMandatoryField(true);
+    
+    wbuLand.setText(textFromToken("button.land"));
+    wbuLand.setToolTipText(textFromToken("button.land.tooltip"));
+    wbuKonto.setText(textFromToken("button.konto"));
+    wbuKonto.setToolTipText(textFromToken("button.konto.tooltip"));
     wbuKonto.setMinimumSize(new Dimension(120, Defaults.getInstance().getControlHeight()));
     wbuKonto.setPreferredSize(new Dimension(120, Defaults.getInstance().getControlHeight()));
 
@@ -290,6 +298,18 @@ private GridBagLayout gridBagLayoutAll = null;
                                                new Insets(2, 2, 2, 2),
                                                0, 0));
     iZeile++;
+    jpaWorkingOn.add(wlaGueltigab,
+            new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+                                   GridBagConstraints.CENTER,
+                                   GridBagConstraints.BOTH,
+                                   new Insets(2, 2, 2, 2),
+                                   0, 0));
+    jpaWorkingOn.add(wdfGueltigab,
+            new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
+                                   , GridBagConstraints.CENTER,
+                                   GridBagConstraints.BOTH,
+                                   new Insets(2, 2, 2, 2), 0, 0));
+    iZeile++;
     jpaWorkingOn.add(wbuKonto,
                         new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
                                                GridBagConstraints.CENTER,
@@ -306,6 +326,11 @@ private GridBagLayout gridBagLayoutAll = null;
                                                , GridBagConstraints.CENTER,
                                                GridBagConstraints.BOTH,
                                                new Insets(2, 2, 2, 2), 0, 0));
+    
+   
+    
+    
+    
     String[] aWhichButtonIUse = {
         ACTION_UPDATE,
         ACTION_SAVE,
@@ -389,7 +414,7 @@ private GridBagLayout gridBagLayoutAll = null;
         QueryParameters.UC_ID_FINANZKONTEN,
         aWhichButtonIUse,
         getInternalFrame(),
-        LPMain.getInstance().getTextRespectUISPr("finanz.liste.konten"));
+        textFromToken("finanz.liste.konten"));
     FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance().
         createFKDKontonummer();
     FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance().
@@ -417,7 +442,7 @@ private GridBagLayout gridBagLayoutAll = null;
         QueryParameters.UC_ID_LAND,
         aWhichButtonIUse,
         getInternalFrame(),
-        LPMain.getInstance().getTextRespectUISPr("finanz.tab.oben.land.title"));
+        textFromToken("finanz.tab.oben.land.title"));
     if (landDto != null) {
       panelQueryFLRLand.setSelectedId(landDto.getIID());
     }

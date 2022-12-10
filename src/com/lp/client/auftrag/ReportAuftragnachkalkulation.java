@@ -55,10 +55,17 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
 /**
- * <p>Report Auftragnachkalkulation.
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 12.07.05</p>
- * <p> </p>
+ * <p>
+ * Report Auftragnachkalkulation.
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 12.07.05
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.9 $
  */
@@ -70,6 +77,7 @@ public class ReportAuftragnachkalkulation extends PanelBasis implements
 	private static final long serialVersionUID = 1L;
 	private Integer auftragIId = null;
 	private WrapperCheckBox wcbArbeitszeitDetailliert = new WrapperCheckBox();
+	private WrapperCheckBox wcbAlleBetroffenenNachkalkulieren = new WrapperCheckBox();
 
 	protected JPanel jpaWorkingOn = new JPanel();
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
@@ -94,8 +102,13 @@ public class ReportAuftragnachkalkulation extends PanelBasis implements
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 		wlaStichtag.setText(LPMain.getTextRespectUISPr("lp.stichtag"));
-		wcbArbeitszeitDetailliert.setText(LPMain.getTextRespectUISPr("auft.nachkalkulation.zeitendetailliert"));
+		wcbArbeitszeitDetailliert.setText(LPMain
+				.getTextRespectUISPr("auft.nachkalkulation.zeitendetailliert"));
 		wcbArbeitszeitDetailliert.setSelected(false);
+
+		wcbAlleBetroffenenNachkalkulieren
+				.setText(LPMain
+						.getTextRespectUISPr("auft.nachkalkulation.allebetroffenen.nachkalkulieren"));
 
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
@@ -104,6 +117,9 @@ public class ReportAuftragnachkalkulation extends PanelBasis implements
 		jpaWorkingOn.add(wcbArbeitszeitDetailliert, new GridBagConstraints(1,
 				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbAlleBetroffenenNachkalkulieren, new GridBagConstraints(2,
+				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
 		iZeile++;
 		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
@@ -131,7 +147,7 @@ public class ReportAuftragnachkalkulation extends PanelBasis implements
 				.printAuftragstatistik(
 						new Timestamp(0),
 						new Timestamp(c.getTimeInMillis()),
-						true,
+						AuftragReportFac.REPORT_AUFTRAGSTATISTIK_OPTION_DATUM_BELEGDATUM,
 						null,
 						null,
 						auftragIId,
@@ -139,7 +155,8 @@ public class ReportAuftragnachkalkulation extends PanelBasis implements
 						null,
 						AuftragReportFac.REPORT_AUFTRAGSTATISTIK_SORTIERUNG_AUFTRAG,
 						!wcbArbeitszeitDetailliert.isSelected(),
-						wdfStichtag.getTimestamp(), null);
+						wdfStichtag.getTimestamp(), null,
+						wcbAlleBetroffenenNachkalkulieren.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

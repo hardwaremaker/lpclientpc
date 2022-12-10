@@ -74,7 +74,7 @@ public class DialogDynamischChargeneigenschaften extends JDialog implements
 	InternalFrame internalFrame = null;
 	public boolean bAbbruch = false;
 	public PaneldatenDto[] paneldatenDtos = null;
-	Integer i_id_buchung = null;
+	Integer artikelsnrchnrIId = null;
 	public SeriennrChargennrMitMengeDto dto = null;
 	PanelDynamischHelper phd = null;
 
@@ -115,7 +115,7 @@ public class DialogDynamischChargeneigenschaften extends JDialog implements
 	}
 
 	protected void components2Dto() throws Throwable {
-		paneldatenDtos = phd.components2Dto(i_id_buchung + "");
+		paneldatenDtos = phd.components2Dto(artikelsnrchnrIId + "");
 	}
 
 	private void jbInit() throws Throwable {

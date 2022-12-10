@@ -47,10 +47,12 @@ import javax.swing.border.Border;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperIdentField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.personal.service.PersonalFac;
 import com.lp.server.stueckliste.service.MontageartDto;
 
@@ -72,7 +74,9 @@ public class PanelMontageart
   private InternalFrameStueckliste internalFrameStueckliste = null;
   private WrapperLabel wlaBezeichnung = new WrapperLabel();
   private WrapperTextField wtfBezeichnung = new WrapperTextField();
+  private WrapperIdentField wifArtikel;
   private MontageartDto montageartDto = null;
+  
   public PanelMontageart(InternalFrame internalFrame, String add2TitleI,
                          Object pk)
       throws Throwable {
@@ -95,14 +99,13 @@ public class PanelMontageart
   }
 
 
-  public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws Throwable {
-    super.eventActionNew(eventObject, true, false);
-    montageartDto = new MontageartDto();
-    leereAlleFelder(this);
-  }
-
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
+			boolean bNeedNoNewI) throws Throwable {
+		super.eventActionNew(eventObject, true, false);
+		montageartDto = new MontageartDto();
+		wifArtikel.setArtikelDto(null);
+		leereAlleFelder(this);
+	}
 
   /**
    * Hier kommen die events meiner speziellen Buttons an.
@@ -126,13 +129,18 @@ public class PanelMontageart
 
   protected void components2Dto() {
     montageartDto.setCBez(wtfBezeichnung.getText());
-
+    montageartDto.setArtikelIId(wifArtikel.getArtikelDto() != null ? wifArtikel.getArtikelDto().getIId() : null);
   }
 
 
-  protected void dto2Components() {
+  protected void dto2Components() throws Throwable {
     wtfBezeichnung.setText(montageartDto.getCBez());
-
+    ArtikelDto artikelDto = null;
+    if (montageartDto.getArtikelIId() != null) {
+	    artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+	    		.artikelFindByPrimaryKey(montageartDto.getArtikelIId());
+    }
+    wifArtikel.setArtikelDto(artikelDto);
   }
 
 
@@ -203,10 +211,30 @@ public class PanelMontageart
                                                GridBagConstraints.HORIZONTAL,
                                                new Insets(2, 2, 2, 2), 0, 0));
     jpaWorkingOn.add(wtfBezeichnung,
-                        new GridBagConstraints(1, 0, 1, 1, 0.3, 0.0
+                        new GridBagConstraints(1, 0, 2, 1, 0.3, 0.0
                                                , GridBagConstraints.CENTER,
                                                GridBagConstraints.HORIZONTAL,
                                                new Insets(2, 2, 2, 2), 0, 0));
+    
+    wifArtikel = new WrapperIdentField(getInternalFrame(), this);
+    wifArtikel.setBMitLeerenButton(true);
+    wifArtikel.getWtfIdent().setMandatoryField(false);
+    
+    jpaWorkingOn.add(wifArtikel.getWbuArtikel(),
+            new GridBagConstraints(0, 1, 1, 1, 0.2, 0.0
+                                   , GridBagConstraints.CENTER,
+                                   GridBagConstraints.HORIZONTAL,
+                                   new Insets(2, 2, 2, 2), 0, 0));
+    jpaWorkingOn.add(wifArtikel.getWtfIdent(),
+            new GridBagConstraints(1, 1, 1, 1, 0.1, 0.0
+                                   , GridBagConstraints.CENTER,
+                                   GridBagConstraints.HORIZONTAL,
+                                   new Insets(2, 2, 2, 2), 0, 0));
+    jpaWorkingOn.add(wifArtikel.getWtfBezeichnung(),
+            new GridBagConstraints(2, 1, 1, 1, 0.7, 0.0
+                                   , GridBagConstraints.CENTER,
+                                   GridBagConstraints.HORIZONTAL,
+                                   new Insets(2, 2, 2, 2), 0, 0));
     String[] aWhichButtonIUse = {
         ACTION_UPDATE,
         ACTION_SAVE,

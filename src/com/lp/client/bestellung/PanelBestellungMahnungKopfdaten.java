@@ -181,7 +181,7 @@ private WrapperLabel wlaDatum = new WrapperLabel();
                         new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
                                                GridBagConstraints.CENTER,
                                                GridBagConstraints.BOTH,
-                                               new Insets(2, 2, 2, 2), 0, 0));
+                                               new Insets(2, 2, 2, 2), 100, 0));
     jPanelWorkingOn.add(wnfLetzteMahnstufe,
                         new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
                                                GridBagConstraints.CENTER,

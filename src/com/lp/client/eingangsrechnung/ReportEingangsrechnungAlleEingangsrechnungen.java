@@ -39,6 +39,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.ButtonGroup;
 import javax.swing.SwingConstants;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperRadioButton;
@@ -97,6 +98,8 @@ public class ReportEingangsrechnungAlleEingangsrechnungen extends
 		wrbRechnungsdatum.setSelected(true);
 		buttonGroupDatum.add(wrbFreigabedatum);
 		buttonGroupDatum.add(wrbRechnungsdatum);
+		
+		HelperClient.setMinimumAndPreferredSize(wlaDatum, HelperClient.getSizeFactoredDimension(100));
 
 		iZeile++;
 		jpaWorkingOn.add(wlaDatum, new GridBagConstraints(0, iZeile, 1, 1, 0.0,

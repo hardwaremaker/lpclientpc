@@ -33,9 +33,13 @@
 package com.lp.client.frame.delegate;
 
 import java.math.BigDecimal;
+import java.rmi.RemoteException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TreeMap;
 
 import javax.naming.Context;
@@ -43,7 +47,9 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.finanz.service.BucheBelegPeriodeInfoDto;
 import com.lp.server.finanz.service.FibuFehlerDto;
+import com.lp.server.finanz.service.FinanzFac;
 import com.lp.server.finanz.service.FinanzServiceFac;
 import com.lp.server.finanz.service.KontoDto;
 import com.lp.server.finanz.service.KontoartDto;
@@ -54,12 +60,15 @@ import com.lp.server.finanz.service.LaenderartDto;
 import com.lp.server.finanz.service.MahnspesenDto;
 import com.lp.server.finanz.service.MahntextDto;
 import com.lp.server.finanz.service.ReportUvaKriterienDto;
+import com.lp.server.finanz.service.ReversechargeartDto;
 import com.lp.server.finanz.service.SteuerkategorieDto;
 import com.lp.server.finanz.service.SteuerkategoriekontoDto;
 import com.lp.server.finanz.service.UvaartDto;
 import com.lp.server.finanz.service.UvaartsprDto;
 import com.lp.server.finanz.service.UvaverprobungDto;
 import com.lp.server.finanz.service.WarenverkehrsnummerDto;
+import com.lp.server.util.SteuerkategoriekontoId;
+import com.lp.util.EJBExceptionLP;
 
 public class FinanzServiceDelegate extends Delegate {
 	private Context context;
@@ -68,8 +77,8 @@ public class FinanzServiceDelegate extends Delegate {
 	public FinanzServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			finanzServiceFac = (FinanzServiceFac) context
-					.lookup("lpserver/FinanzServiceFacBean/remote");
+			finanzServiceFac = lookupFac(context, FinanzServiceFac.class);
+
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -97,8 +106,7 @@ public class FinanzServiceDelegate extends Delegate {
 	public Integer createSteuerkategorie(SteuerkategorieDto steuerkategorieDto)
 			throws ExceptionLP {
 		try {
-			return finanzServiceFac.createSteuerkategorie(steuerkategorieDto,
-					LPMain.getTheClient());
+			return finanzServiceFac.createSteuerkategorie(steuerkategorieDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -108,8 +116,7 @@ public class FinanzServiceDelegate extends Delegate {
 	public void updateSteuerkategorie(SteuerkategorieDto steuerkategorieDto)
 			throws ExceptionLP {
 		try {
-			finanzServiceFac.updateSteuerkategorie(steuerkategorieDto,
-					LPMain.getTheClient());
+			finanzServiceFac.updateSteuerkategorie(steuerkategorieDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -122,7 +129,15 @@ public class FinanzServiceDelegate extends Delegate {
 			handleThrowable(ex);
 		}
 	}
-
+	public SteuerkategoriekontoId createSteuerkategoriekonto(
+			SteuerkategoriekontoDto steuerkategoriekontoDto) throws ExceptionLP {
+		try {
+			return finanzServiceFac.createSteuerkategoriekonto(steuerkategoriekontoDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 	public void updateSteuerkategoriekonto(
 			SteuerkategoriekontoDto steuerkategoriekontoDto) throws ExceptionLP {
 		try {
@@ -152,6 +167,13 @@ public class FinanzServiceDelegate extends Delegate {
 	public void removeSteuerkategorie(Integer iId) throws ExceptionLP {
 		try {
 			finanzServiceFac.removeSteuerkategorie(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public void removeSteuerkategoriekonto(Integer iId) throws ExceptionLP {
+		try {
+			finanzServiceFac.removeSteuerkategoriekonto(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -239,9 +261,9 @@ public class FinanzServiceDelegate extends Delegate {
 		}
 	}
 
-	public UvaartsprDto uvaartsprFindByPrimaryKey() throws ExceptionLP {
+	public UvaartsprDto uvaartsprFindByPrimaryKey(Integer uvaartIId,String localeCNr) throws ExceptionLP {
 		try {
-			return finanzServiceFac.uvaartsprFindByPrimaryKey();
+			return finanzServiceFac.uvaartsprFindByPrimaryKey(uvaartIId,localeCNr);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -395,7 +417,7 @@ public class FinanzServiceDelegate extends Delegate {
 		}
 	}
 
-	public HashMap<?, ?> getAllLaenderartenMitUebersetzung() throws ExceptionLP {
+	public HashMap<String, String> getAllLaenderartenMitUebersetzung() throws ExceptionLP {
 		try {
 			return finanzServiceFac.getAllLaenderartenMitUebersetzung(LPMain
 					.getTheClient().getLocUi(), LPMain.getTheClient());
@@ -413,22 +435,25 @@ public class FinanzServiceDelegate extends Delegate {
 	 */
 	public TreeMap<?, ?> getAllBuchungsarten() throws ExceptionLP {
 		myLogger.entry();
-		TreeMap<?, ?> arten = null;
 		try {
 			Locale locale1 = LPMain.getTheClient().getLocUi();
 			Locale locale2 = LPMain.getTheClient().getLocMandant();
-			arten = finanzServiceFac.getAllBuchungsarten(locale1, locale2, LPMain.getTheClient().getMandant());
+			TreeMap<?, ?> arten = finanzServiceFac.getAllBuchungsarten(
+					locale1, locale2, LPMain.getTheClient().getMandant());
+			
+			// SP9354 Keine "Buchung" mehr fuer den Client
+			arten.remove(FinanzFac.BUCHUNGSART_BUCHUNG);
+			return arten;
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
-		return arten;
 	}
 
-	public String getLaenderartZuPartner(Integer partnerIId) throws ExceptionLP {
+	public String getLaenderartZuPartner(Integer partnerIId, Timestamp gueltigZum) throws ExceptionLP {
 		try {
-			return finanzServiceFac.getLaenderartZuPartner(partnerIId,
-					LPMain.getTheClient());
+			return finanzServiceFac.getLaenderartZuPartner(
+					partnerIId, gueltigZum, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -476,37 +501,38 @@ public class FinanzServiceDelegate extends Delegate {
 		}
 	}
 
-	public Integer getUstKontoFuerSteuerkategorie(Integer steuerkategorieIId,
-			Integer mwstsatzbezId) throws ExceptionLP {
+	public Integer getUstKontoFuerSteuerkategorie(
+			Integer steuerkategorieIId, Integer mwstsatzbezId, Timestamp gueltigAm) throws ExceptionLP {
 		try {
 			return finanzServiceFac.getUstKontoFuerSteuerkategorie(
-					steuerkategorieIId, mwstsatzbezId);
+					steuerkategorieIId, mwstsatzbezId, gueltigAm);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer getVstKontoFuerSteuerkategorie(Integer steuerkategorieIId,
-			Integer mwstsatzbezId) throws ExceptionLP {
+	public Integer getVstKontoFuerSteuerkategorie(
+			Integer steuerkategorieIId, Integer mwstsatzbezId, Timestamp gueltigAm) throws ExceptionLP {
 		try {
 			return finanzServiceFac.getVstKontoFuerSteuerkategorie(
-					steuerkategorieIId, mwstsatzbezId);
+					steuerkategorieIId, mwstsatzbezId, gueltigAm);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void verbucheBelege(Integer geschaeftsjahr, int periode,
-			boolean alleNeu) throws ExceptionLP {
+	public List<BucheBelegPeriodeInfoDto> verbucheBelege(
+			Integer geschaeftsjahr, 
+			int periode, boolean alleNeu) throws ExceptionLP {
 		try {
-			finanzServiceFac.verbucheBelegePeriode(geschaeftsjahr, periode,
+			return finanzServiceFac.verbucheBelegePeriode(geschaeftsjahr, periode,
 					alleNeu, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
+			return new ArrayList<BucheBelegPeriodeInfoDto>();
 		}
-
 	}
 
 	public ArrayList<FibuFehlerDto> pruefeBelege(Integer geschaeftsjahr,
@@ -553,16 +579,17 @@ public class FinanzServiceDelegate extends Delegate {
 		return null;
 	}
 
-	public SteuerkategorieDto steuerkategorieFindByCNrFinanzamtIId(String nr,
-			Integer finanzamtIId) throws ExceptionLP {
-		try {
-			return finanzServiceFac.steuerkategorieFindByCNrFinanzamtIId(nr,
-					finanzamtIId, LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
-		return null;
-	}
+// TODO: Veraltet, ReversechargeartId ist fuer eindeutiges Ergebnis notwendig
+//	public SteuerkategorieDto steuerkategorieFindByCNrFinanzamtIId(String nr,
+//			Integer finanzamtIId) throws ExceptionLP {
+//		try {
+//			return finanzServiceFac.steuerkategorieFindByCNrFinanzamtIId(nr,
+//					finanzamtIId, LPMain.getTheClient());
+//		} catch (Throwable ex) {
+//			handleThrowable(ex);
+//		}
+//		return null;
+//	}
 
 	/**
 	 * Alle im System bekannten Steuerkategorien f&uuml;r das angegebene Finanzamt
@@ -643,21 +670,22 @@ public class FinanzServiceDelegate extends Delegate {
 		return null;
 	}
 
-	public Integer createAuszifferung(Integer[] ids) throws ExceptionLP {
+	public Integer createAuszifferung(
+			Integer geschaeftsjahrVerursacher, Integer[] ids) throws ExceptionLP {
 		try {
-			return finanzServiceFac.createAuszifferung(ids,
-					LPMain.getTheClient());
+			return finanzServiceFac.createAuszifferung(
+					geschaeftsjahrVerursacher, ids, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return null;
 	}
 
-	public Integer updateAuszifferung(Integer auszifferKennzeichen,
-			Integer[] ids) throws ExceptionLP {
+	public Integer updateAuszifferung(Integer geschaeftsjahrVerursacher, 
+			Integer auszifferKennzeichen, Integer[] ids) throws ExceptionLP {
 		try {
-			return finanzServiceFac.updateAuszifferung(auszifferKennzeichen,
-					ids, LPMain.getTheClient());
+			return finanzServiceFac.updateAuszifferung(
+					geschaeftsjahrVerursacher, auszifferKennzeichen, ids, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -672,28 +700,41 @@ public class FinanzServiceDelegate extends Delegate {
 		}
 	}
 
+//	public boolean istIgErwerb(Integer kreditorenKontoIId) {
+//		KontoDto kreditorenKontoDto = null;
+//		SteuerkategorieDto steuerkategorieDto = null;
+//		try {
+//			kreditorenKontoDto = DelegateFactory.getInstance()
+//					.getFinanzDelegate()
+//					.kontoFindByPrimaryKey(kreditorenKontoIId);
+//			steuerkategorieDto = steuerkategorieFindByPrimaryKey(kreditorenKontoDto
+//					.getSteuerkategorieIId());
+//		} catch (Throwable e) {
+//			//
+//		}
+//		if (kreditorenKontoDto == null || steuerkategorieDto == null) {
+//			return false;
+//		} else {
+//			if (steuerkategorieDto.getCNr().equals(
+//					FinanzServiceFac.STEUERKATEGORIE_AUSLANDEU_UID)) {
+//				return true;
+//			} else {
+//				return false;
+//			}
+//		}
+//	}
+
 	public boolean istIgErwerb(Integer kreditorenKontoIId) {
 		KontoDto kreditorenKontoDto = null;
-		SteuerkategorieDto steuerkategorieDto = null;
 		try {
 			kreditorenKontoDto = DelegateFactory.getInstance()
 					.getFinanzDelegate()
 					.kontoFindByPrimaryKey(kreditorenKontoIId);
-			steuerkategorieDto = steuerkategorieFindByPrimaryKey(kreditorenKontoDto
-					.getSteuerkategorieIId());
+			return FinanzServiceFac.STEUERKATEGORIE_AUSLANDEU_UID.equals(kreditorenKontoDto.getSteuerkategorieCnr()) ;
 		} catch (Throwable e) {
-			//
 		}
-		if (kreditorenKontoDto == null || steuerkategorieDto == null) {
-			return false;
-		} else {
-			if (steuerkategorieDto.getCNr().equals(
-					FinanzServiceFac.STEUERKATEGORIE_AUSLANDEU_UID)) {
-				return true;
-			} else {
-				return false;
-			}
-		}
+		
+		return false ;
 	}
 	
 	public void createFinanzamtsbuchungen(Integer geschaeftsjahr, int periode) throws ExceptionLP {
@@ -712,4 +753,180 @@ public class FinanzServiceDelegate extends Delegate {
 		}
 		return null;
 	}
+	
+	public void pruefeSteuerkonten(Integer finanzamtId) throws ExceptionLP {
+		try {
+			finanzServiceFac.pruefeSteuerkonten(finanzamtId, LPMain.getTheClient());
+		} catch(Throwable t)  {
+			handleThrowable(t) ;
+		}
+	}
+	
+	public ReversechargeartDto reversechargeartFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+		try {
+			return finanzServiceFac.reversechargeartFindByPrimaryKey(iId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}	
+	
+	
+	public ReversechargeartDto reversechargeartFindOhne() throws ExceptionLP {
+		try {
+			return finanzServiceFac.reversechargeartFindOhne(LPMain.getTheClient()) ;
+		} catch(Throwable t) {
+			handleThrowable(t);
+			return null ;
+		}
+	}
+	
+	public Integer createReversechargeart(ReversechargeartDto reversechargeartDto) throws ExceptionLP {
+		try {
+			return finanzServiceFac.createReversechargeart(reversechargeartDto, LPMain.getTheClient()) ;
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+		return null ;
+	}
+
+	public void updateReversechargeart(ReversechargeartDto reversechargeartDto) throws ExceptionLP {
+		try {
+			finanzServiceFac.updateReversechargeart(reversechargeartDto, LPMain.getTheClient()) ;
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void removeReversechargeart(Integer reversechargeartId) throws ExceptionLP {
+		try {
+			finanzServiceFac.removeReversechargeart(reversechargeartId);
+		} catch(Throwable t) {
+			handleThrowable(t) ;
+		}
+	}
+	
+    public Map<Integer, String> getAllReversechargeArt() throws ExceptionLP {
+    	try {
+    		return finanzServiceFac.getAllReversechargeArt(LPMain.getTheClient()) ;
+    	} catch(Throwable t) {
+    		handleThrowable(t) ;
+    	}
+    	return null ;
+    } 
+    
+    public Map<Integer, String> getAllReversechargeartAllowed() throws ExceptionLP {
+    	try {
+    		return finanzServiceFac.getAllReversechargeartAllowed(LPMain.getTheClient()) ;
+    	} catch(Throwable t) {
+    		handleThrowable(t) ;
+    	}
+    	return null ;    	
+    }
+    
+	public void createIfNeededSteuerkategorieForFinanzamtIId(
+			Integer finanzamtIId, Integer reversechargeartId) throws ExceptionLP {
+		try {
+			finanzServiceFac.createIfNeededSteuerkategorieForFinanzamtIId(
+					finanzamtIId, reversechargeartId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	
+	public SteuerkategorieDto steuerkategorieFindByCNrFinanzamtIId(
+			String nr, Integer reversechargeartId, Integer finanzamtIId) throws ExceptionLP {
+		try {
+			return finanzServiceFac.steuerkategorieFindByCNrFinanzamtIId(nr,
+					reversechargeartId, finanzamtIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public Map<String, String> getAllSteuerkategorieCnr() throws ExceptionLP {
+		try {
+			return finanzServiceFac.getAllSteuerkategorieCnr(LPMain.getTheClient()) ;
+		} catch(Throwable t) {
+			handleThrowable(t) ;
+			return null ;
+		}
+	}
+	
+	public Integer getUstKontoFuerSteuerkategorie(String steuerkategorieCnr, 
+			Integer finanzamtId, Integer mwstsatzbezId, Timestamp gueltigAm) throws ExceptionLP {
+		try {
+			return finanzServiceFac.getUstKontoFuerSteuerkategorie(
+					steuerkategorieCnr,finanzamtId, mwstsatzbezId,
+					gueltigAm, LPMain.getTheClient()) ; 
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer getVstKontoFuerSteuerkategorie(String steuerkategorieCnr, 
+			Integer finanzamtId, Integer mwstsatzbezId, Timestamp gueltigAm) throws ExceptionLP {
+		try {
+			return finanzServiceFac.getVstKontoFuerSteuerkategorie(
+					steuerkategorieCnr, finanzamtId, mwstsatzbezId, 
+					gueltigAm, LPMain.getTheClient()) ; 
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}	
+	
+	public void vertauscheReversechargeart(Integer id1, Integer id2)
+			throws ExceptionLP {
+		try {
+			finanzServiceFac.vertauscheReversechargeart(id1, id2); 
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public Map<Integer, ReversechargeartDto> reversechargeartFindByPrimaryKeys(Integer... keys)
+			throws ExceptionLP {
+		try {
+			return finanzServiceFac.reversechargeartFindByPrimaryKeys(LPMain.getTheClient(), keys);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void createGewinnbuchungen(int geschaeftsjahr, int periode,
+			BigDecimal betrag) throws EJBExceptionLP, RemoteException, Throwable {
+		finanzServiceFac.createGewinnbuchungen(geschaeftsjahr, periode, betrag, LPMain.getTheClient());
+	}	
+	
+	public SteuerkategoriekontoDto[] steuerkategoriekontoAllZuDatum(
+			Integer steuerkategorieId, Timestamp gueltigZum) throws ExceptionLP {
+		try {
+			return finanzServiceFac.steuerkategoriekontoAllZuDatum(
+					steuerkategorieId, gueltigZum);
+		} catch (Throwable ex) {
+			return new SteuerkategoriekontoDto[0];
+		}
+	}
+	
+	public void pflegeUvaFormulare() throws ExceptionLP {
+		try {
+			finanzServiceFac.pflegeUvaFormulare(LPMain.getTheClient());
+		} catch(Throwable t) {
+			handleThrowable(t);
+		}
+	}
+    
+    public Map<Integer, String> getAllReversechargeartAllowedMitVersteckten() throws ExceptionLP {
+    	try {
+    		return finanzServiceFac.getAllReversechargeartAllowed(Boolean.TRUE, LPMain.getTheClient()) ;
+    	} catch(Throwable t) {
+    		handleThrowable(t) ;
+    	}
+    	return null ;    	
+    }
 }

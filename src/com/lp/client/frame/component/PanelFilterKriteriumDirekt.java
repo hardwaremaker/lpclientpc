@@ -66,8 +66,18 @@ public class PanelFilterKriteriumDirekt {
 	protected WrapperLabel wlaFkdirektOperator1 = null;
 	public WrapperTextField wtfFkdirektValue1 = null;
 	public WrapperNumberField wnfFkdirektValue1 = null;
+	public WrapperDateField wdfFkdirektValue1 = null;
 	protected WrapperLabel wlaEmpty1 = null;
 	
+	public WrapperCheckBox wcbFkdirektValue1 = null;
+	
+	public WrapperComboBox wcomboFkdirektValue1 = null;
+	
+	
+	public int iTyp=-1;
+	
+	public static int TYP_DATE_VON=0;
+	public static int TYP_DATE_BIS=1;
 
 	/**
 	 * Setzt die Komponenten-Namen fuer die Testumgebung Aufzurufen, wenn die
@@ -96,6 +106,12 @@ public class PanelFilterKriteriumDirekt {
 					+ buildFilterPattern(fkd).toString() + ")");
 		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL) {
 			wlaFkdirektName1 = new WrapperLabel(fkd.uiName);
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_DATE) {
+			wlaFkdirektName1 = new WrapperLabel(fkd.uiName);
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_COMBOBOX) {
+			wlaFkdirektName1 = new WrapperLabel(fkd.uiName);
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_BOOLEAN) {
+			wlaFkdirektName1 = new WrapperLabel("");
 		}
 
 		wlaFkdirektOperator1 = new WrapperLabel(FilterKriterium.OPERATOR_EQUAL);
@@ -108,6 +124,18 @@ public class PanelFilterKriteriumDirekt {
 			wtfFkdirektValue1.setText(fkd.value);
 		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_DECIMAL) {
 			wnfFkdirektValue1 = new WrapperNumberField();
+		} else if (fkd.iTyp == FilterKriteriumDirekt.TYP_COMBOBOX) {
+			wcomboFkdirektValue1 = new WrapperComboBox();
+			wcomboFkdirektValue1.setMandatoryField(true);
+			wcomboFkdirektValue1.setMap(fkd.comboboxValues,false);
+		}else if (fkd.iTyp == FilterKriteriumDirekt.TYP_DATE) {
+			wdfFkdirektValue1 = new WrapperDateField();
+			wlaFkdirektOperator1.setText(fkd.operator);
+		}else if (fkd.iTyp == FilterKriteriumDirekt.TYP_BOOLEAN) {
+			wcbFkdirektValue1 = new WrapperCheckBox(fkd.uiName);
+			//wcbFkdirektValue1.setHorizontalTextPosition(SwingConstants.LEFT);
+			
+			wlaFkdirektOperator1.setText(fkd.operator);
 		}
 
 		wlaEmpty1 = new WrapperLabel();
@@ -121,18 +149,24 @@ public class PanelFilterKriteriumDirekt {
 			sb.append("Aa|A+B-C");
 
 		} else {
-
+			if (oKrit1.iWrapWithProzent == FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH ||
+					oKrit1.iWrapWithProzent == FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING) {
+				sb.append("\u0040"); //@
+			}
 			if (oKrit1.isBIgnoreCase()) {
 				sb.append("Aa|");
 			}
+			
 			switch (oKrit1.iWrapWithProzent) {
 			case FilterKriteriumDirekt.PROZENT_BOTH:
+			case FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH:
 				sb.append("*A*");
 				break;
 			case FilterKriteriumDirekt.PROZENT_LEADING:
 				sb.append("*A");
 				break;
 			case FilterKriteriumDirekt.PROZENT_TRAILING:
+			case FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING:
 				sb.append("A*");
 				break;
 			}

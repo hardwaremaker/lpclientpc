@@ -93,6 +93,8 @@ public class ReportLieferscheinAdressetikett extends ReportEtikett implements
 	private WrapperLabel wlaEinheit = null;
 	private WrapperLabel wlaVersandnummer = null;
 	private WrapperTextField wtfVersandnummer = null;
+	private WrapperLabel wlaVersandnummer2 = null;
+	private WrapperTextField wtfVersandnummer2 = null;
 	
 
 
@@ -148,10 +150,7 @@ public class ReportLieferscheinAdressetikett extends ReportEtikett implements
 		wlaPaketnummer = new WrapperLabel();
 		wlaPaketnummer.setText(LPMain.getInstance().getTextRespectUISPr(
 				"label.paketnummer"));
-		wlaPaketnummer.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaPaketnummer.setPreferredSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wlaPaketnummer, HelperClient.getSizeFactoredDimension(100));
 		wnfPaketnummer = new WrapperNumberField();
 		wnfPaketnummer.setMinimumSize(new Dimension(30, Defaults.getInstance()
 				.getControlHeight()));
@@ -193,12 +192,23 @@ public class ReportLieferscheinAdressetikett extends ReportEtikett implements
 	    wlaVersandnummer = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
         "ls.versandnummer"));
 	    wtfVersandnummer = new WrapperTextField();
+	    
+	    wlaVersandnummer2 = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
+	            "ls.versandnummer2"));
+	    	    wtfVersandnummer2 = new WrapperTextField();
 
 		iZeile++;
 		jpaWorkingOn.add(wlaVersandnummer, new GridBagConstraints(0, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfVersandnummer, new GridBagConstraints(1, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaVersandnummer2, new GridBagConstraints(0, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfVersandnummer2, new GridBagConstraints(1, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -309,6 +319,7 @@ public class ReportLieferscheinAdressetikett extends ReportEtikett implements
 		}
 		wnfPakete.setInteger(lieferscheinDto.getIAnzahlPakete());
 		wtfVersandnummer.setText(lieferscheinDto.getCVersandnummer());
+		wtfVersandnummer2.setText(lieferscheinDto.getCVersandnummer2());
 	}
 	
 	protected void components2Dto() throws Throwable {
@@ -317,6 +328,7 @@ public class ReportLieferscheinAdressetikett extends ReportEtikett implements
 		lieferscheinDto.setTLiefertermin(wdfLiefertermin.getTimestamp());
 		lieferscheinDto.setIAnzahlPakete(wnfPakete.getInteger());
 		lieferscheinDto.setCVersandnummer(wtfVersandnummer.getText());
+		lieferscheinDto.setCVersandnummer2(wtfVersandnummer2.getText());
 		
 	}
 	

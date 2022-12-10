@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.bestellung;
@@ -40,20 +40,21 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
-import java.util.Calendar;
 import java.util.EventObject;
 import java.util.GregorianCalendar;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
-
-import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.auftrag.AuftragFilterFactory;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
 import com.lp.client.frame.component.DialogGeaenderteKonditionenEK;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
@@ -61,24 +62,28 @@ import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperBelegDateField;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperGotoButton;
+import com.lp.client.frame.component.WrapperGotoLieferantMapButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperSelectField;
+import com.lp.client.frame.component.WrapperTelefonField;
 import com.lp.client.frame.component.WrapperTextArea;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.partner.IPartnerDto;
 import com.lp.client.partner.PartnerFilterFactory;
-import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
 import com.lp.client.personal.PersonalFilterFactory;
 import com.lp.client.system.SystemFilterFactory;
+import com.lp.editor.LpEditor;
 import com.lp.server.anfrage.service.AnfrageDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.benutzer.service.RechteFac;
@@ -90,8 +95,10 @@ import com.lp.server.eingangsrechnung.service.EingangsrechnungFac;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.partner.service.PartnerDto;
+import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.projekt.service.ProjektDto;
+import com.lp.server.system.service.BelegDatumClient;
 import com.lp.server.system.service.KostenstelleDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
@@ -102,7 +109,10 @@ import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.EJBExceptionLP;
+import com.lp.util.GotoHelper;
 import com.lp.util.Helper;
+
+import net.miginfocom.swing.MigLayout;
 
 /**
  * <p>
@@ -122,10 +132,8 @@ import com.lp.util.Helper;
  * @version $Revision: 1.43 $
  */
 public class PanelBestellungKopfdaten extends PanelBasis {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = -2019931052941120726L;
+
 	private PanelQueryFLR panelQueryFLRKostenstelle = null;
 	private final InternalFrameBestellung intFrame;
 
@@ -158,6 +166,8 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private WrapperDateField wdfLiefertermin = null;
 	private WrapperButton wbuKostenstelle = null;
 
+	private WrapperGotoButton wbuAnfrage = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_ANFRAGE_AUSWAHL);
+
 	private WrapperTextField wtfKostenstelleBezeichnung = null;
 	private WrapperTextField wtfKostenstelleNummer = null;
 
@@ -179,6 +189,10 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private PanelQueryFLR panelQueryFLRAnforderer = null;
 	private WrapperTextField wtfAnforderer = null;
 
+	private WrapperButton wbuInternerAnforderer = null;
+	private PanelQueryFLR panelQueryFLRInternerAnforderer = null;
+	private WrapperTextField wtfInternerAnforderer = null;
+
 	private WrapperButton wbuLieferadresse = null;
 	private PanelQueryFLR panelQueryFLRLieferadresse = null;
 	private WrapperTextField wtfLieferadresse = null;
@@ -186,6 +200,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private WrapperTextField wtfAnsprechpartner = null;
 	private WrapperButton wbuAnsprechpartner = null;
 	private PanelQueryFLR panelQueryFLRAnsprechpartner = null;
+	private WrapperTelefonField wtfTelefon = null;
 
 	private WrapperTextField wtfAnsprechpartnerLieferadresse = null;
 	private WrapperButton wbuAnsprechpartnerLieferadresse = null;
@@ -208,7 +223,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private WrapperTextField wtfAbrufausrahmenbez = null;
 
 	private PanelQueryFLR panelQueryFLRAuftrag = null;
-	private WrapperButton wbuAuftrag = null;
+	private WrapperGotoButton wbuAuftrag = null;
 	private WrapperTextField wtfAuftragnummer = null;
 	private WrapperTextField wtfAuftragbezeichnung = null;
 
@@ -225,11 +240,20 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private PanelQueryFLR panelQueryFLRAnsprechpartnerAbholadresse = null;
 	private PanelQueryFLR panelQueryFLRAbholadresse = null;
 
+	private JLabel wlaInternerKommentar = null;
+	private JLabel wlaExternerKommentar = null;
+
+	private LpEditor jtpInternerKommentar = new LpEditor(null);
+	private LpEditor jtpExternerKommentar = new LpEditor(null);
+
+	private JScrollPane jspInternerKommentar = null;
+	private JScrollPane jspExternerKommentar = null;
+
 	private WrapperLabel wlaAnzahlungen;
 	private WrapperTextField wtfAnzahlungen;
 
-	private WrapperSelectField wsfProjekt = new WrapperSelectField(
-			WrapperSelectField.PROJEKT, getInternalFrame(), true);
+	private WrapperSelectField wsfProjekt = new WrapperSelectField(WrapperSelectField.PROJEKT, getInternalFrame(),
+			true);
 
 	public final static String ACTION_SPECIAL_BESTELLUNGART_CHANGED = "action_special_bestellungart_changed";
 	public final static String ACTION_SPECIAL_KOSTENSTELLE = "action_special_be_kostenstelle";
@@ -237,6 +261,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	public final static String ACTION_SPECIAL_RECHNUNGSADRESSE_BESTELLUNG = "action_special_rechnungsadresse_bestellung";
 	public final static String ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT = "action_special_ansprechpartnerlieferant";
 	public final static String ACTION_SPECIAL_ANFORDERER = "action_special_anforderer";
+	public final static String ACTION_SPECIAL_INTERNERANFORDERER = "action_special_interneranforderer";
 	public final static String ACTION_SPECIAL_LIEFERADRESSE = "action_special_lieferadresse";
 	public final static String ACTION_SPECIAL_RAHMENAUSWAHL = "action_special_rahmenauswahl";
 	public final static String ACTION_SPECIAL_AUFTRAG = "action_special_auftrag";
@@ -257,8 +282,11 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private JPanel jPanelAbrufBes = null;
 	private int nMengePos = 0;
 
-	public PanelBestellungKopfdaten(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
+	private WrapperLabel wlaVersion;
+	private WrapperNumberField wnfVersion;
+	private JPanel jPanelVersionBelegdatum;
+
+	public PanelBestellungKopfdaten(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 		intFrame = (InternalFrameBestellung) internalFrame;
 		jbInit();
@@ -268,12 +296,10 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 	private void prepareWaehrung() throws Throwable {
 		if (!wcoWaehrungen.isMapSet()) {
-			wcoWaehrungen.setMap(DelegateFactory.getInstance()
-					.getLocaleDelegate().getAllWaehrungen());
+			wcoWaehrungen.setMap(DelegateFactory.getInstance().getLocaleDelegate().getAllWaehrungen());
 		}
 
-		wcoWaehrungen.setKeyOfSelectedItem(LPMain.getTheClient()
-				.getSMandantenwaehrung());
+		wcoWaehrungen.setKeyOfSelectedItem(LPMain.getTheClient().getSMandantenwaehrung());
 	}
 
 	private void jbInit() throws Throwable {
@@ -281,98 +307,100 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 		// Actionpanel setzen und anhaengen
 		JPanel panelButtonAction = getToolsPanel();
-		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// zusaetzliche buttons
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE,
-				PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DELETE,
-				PanelBasis.ACTION_DISCARD, PanelBasis.ACTION_PRINT };
+		String[] aWhichButtonIUse = null;
+
+		if (DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_EINKAUF)) {
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
+					PanelBasis.ACTION_STORNIEREN, PanelBasis.ACTION_DISCARD, PanelBasis.ACTION_PRINT };
+		} else {
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
+					PanelBasis.ACTION_STORNIEREN, PanelBasis.ACTION_DISCARD };
+		}
+
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		// wegen Dialogauswahl auf FLR events hoeren
 		getInternalFrame().addItemChangedListener(this);
 
-		wlaProjekt = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.projekt"));
-		wlaLieferantenangebot = new WrapperLabel(
-				LPMain.getTextRespectUISPr("bes.lieferantenangebot"));
+		wlaProjekt = new WrapperLabel(LPMain.getTextRespectUISPr("label.projekt"));
+		wlaLieferantenangebot = new WrapperLabel(LPMain.getTextRespectUISPr("bes.lieferantenangebot"));
 
 		wtfProjekt = new WrapperTextField(80);
 		wtfLieferantenangebot = new WrapperTextField(40);
 
-		wlaBestellungsart = new WrapperLabel(
-				LPMain.getTextRespectUISPr("bes.bestellungart"));
+		wlaBestellungsart = new WrapperLabel(LPMain.getTextRespectUISPr("bes.bestellungart"));
 		HelperClient.setDefaultsToComponent(wlaBestellungsart, 115);
 
 		wcoBestellungsart = new WrapperComboBox();
 		wcoBestellungsart.setMandatoryFieldDB(true);
-		wcoBestellungsart
-				.setActionCommand(ACTION_SPECIAL_BESTELLUNGART_CHANGED);
+		wcoBestellungsart.setActionCommand(ACTION_SPECIAL_BESTELLUNGART_CHANGED);
 		wcoBestellungsart.addActionListener(this);
 
 		wcbPoenale = new WrapperCheckBox();
 		wcbPoenale.setText(LPMain.getTextRespectUISPr("detail.label.poenale"));
 
-		wlaBelegdatum = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.belegdatum"));
+		wlaVersion = new WrapperLabel();
+		wlaVersion.setText(LPMain.getTextRespectUISPr("lp.beleg.version"));
+		wlaVersion.setHorizontalAlignment(SwingConstants.RIGHT);
+		wlaVersion.setVisible(false);
+		wnfVersion = new WrapperNumberField();
+		wnfVersion.setFractionDigits(0);
+		wnfVersion.setActivatable(false);
+		wnfVersion.setVisible(false);
+
+		wlaExternerKommentar = new JLabel(LPMain.getTextRespectUISPr("lp.externerkommentar"));
+		wlaInternerKommentar = new JLabel(LPMain.getTextRespectUISPr("lp.internerkommentar"));
+
+		wlaBelegdatum = new WrapperLabel(LPMain.getTextRespectUISPr("label.belegdatum"));
 		HelperClient.setDefaultsToComponent(wlaBelegdatum, 90);
+		wlaBelegdatum.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		wdfBelegdatum = new WrapperDateField();
+		wdfBelegdatum = new WrapperBelegDateField(
+				new BelegDatumClient(LPMain.getTheClient().getMandant(), new GregorianCalendar(), false));
 		wdfBelegdatum.setShowRubber(false);
-		ParametermandantDto parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
-						ParameterFac.PARAMETER_BEWEGUNGSMODULE_ANLEGEN_BIS_ZUM);
-		int iTagen = ((Integer) parametermandantDto.getCWertAsObject())
-				.intValue();
-		// Parameter anlegen bis zum beruecksichtigen
-		GregorianCalendar gc = new GregorianCalendar();
-		// Auf Vormonat setzen
-		gc.set(Calendar.MONTH, gc.get(Calendar.MONTH) - 1);
-		// Tag setzen
-		gc.set(Calendar.DATE, iTagen);
-
-		wdfBelegdatum.setMinimumValue(new Date(gc.getTimeInMillis()));
+		wdfBelegdatum.setMandatoryField(true);
 
 		wlaLiefertermin = new WrapperLabel();
-		wlaLiefertermin.setText(LPMain
-				.getTextRespectUISPr("label.liefertermin"));
+		wlaLiefertermin.setText(LPMain.getTextRespectUISPr("label.liefertermin"));
 
 		wdfLiefertermin = new WrapperDateField();
 		wdfLiefertermin.setShowRubber(false);
 		wdfLiefertermin.setMandatoryField(true);
 
-		wlaWaehrung = new WrapperLabel(
-				LPMain.getTextRespectUISPr("bes.waehrung"));
+		wlaWaehrung = new WrapperLabel(LPMain.getTextRespectUISPr("bes.waehrung"));
 
 		wlaWechselkursMandant2BS = new WrapperLabel();
+
+		wtfTelefon = new WrapperTelefonField(PartnerFac.MAX_KOMMART_INHALT);
+		wtfTelefon.setActivatable(false);
 
 		// wcoWaehrungen = new WrapperComboBox();
 		wcoWaehrungen.setMandatoryFieldDB(true);
 		prepareWaehrung();
 
-		wcoWaehrungen
-				.addActionListener(new PanelBestellungKopfdaten_wcoWaehrungen_actionAdapter(
-						this));
+		wcoWaehrungen.addActionListener(new PanelBestellungKopfdaten_wcoWaehrungen_actionAdapter(this));
 
 		wbuKostenstelle = new WrapperButton();
 		wbuKostenstelle.setActionCommand(ACTION_SPECIAL_KOSTENSTELLE);
-		wbuKostenstelle.setText(LPMain
-				.getTextRespectUISPr("label.kostenstelle"));
-		wbuKostenstelle.setToolTipText(LPMain
-				.getTextRespectUISPr("button.kostenstelle.tooltip"));
+		wbuKostenstelle.setText(LPMain.getTextRespectUISPr("label.kostenstelle"));
+		wbuKostenstelle.setToolTipText(LPMain.getTextRespectUISPr("button.kostenstelle.tooltip"));
 		wbuKostenstelle.addActionListener(this);
-		wtfKostenstelleBezeichnung = new WrapperTextField();
+		wtfKostenstelleBezeichnung = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
 		wtfKostenstelleNummer = new WrapperTextField();
 		wtfKostenstelleBezeichnung.setActivatable(false);
 		wtfKostenstelleNummer.setActivatable(false);
 
-		wbuLieferant = new WrapperGotoButton(
-				WrapperGotoButton.GOTO_LIEFERANT_AUSWAHL);
+		wbuLieferant = new WrapperGotoLieferantMapButton(new IPartnerDto() {
+			public PartnerDto getPartnerDto() {
+				return getTabbedPaneBestellung() == null || getTabbedPaneBestellung().getLieferantDto() == null ? null
+						: getTabbedPaneBestellung().getLieferantDto().getPartnerDto();
+			}
+		});
 		wbuLieferant.setActionCommand(ACTION_SPECIAL_LIEFERANT_BESTELLUNG);
 		wbuLieferant.setText(LPMain.getTextRespectUISPr("button.lieferant"));
 		wbuLieferant.addActionListener(this);
@@ -383,34 +411,28 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wtfLieferantBestellung.setColumnsMax(80);
 
 		wbuAnsprechpartner = new WrapperButton();
-		wbuAnsprechpartner.setText(LPMain
-				.getTextRespectUISPr("button.ansprechpartner"));
+		wbuAnsprechpartner.setText(LPMain.getTextRespectUISPr("button.ansprechpartner"));
 
 		wbuAnsprechpartner.addActionListener(this);
 
 		wtfAnsprechpartner = new WrapperTextField();
 		wtfAnsprechpartner.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 		wtfAnsprechpartner.setActivatable(false);
-		wbuAnsprechpartner
-				.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT);
+		wbuAnsprechpartner.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT);
 
 		wbuAnsprechpartnerLieferadresse = new WrapperButton();
-		wbuAnsprechpartnerLieferadresse.setText(LPMain
-				.getTextRespectUISPr("button.ansprechpartner"));
+		wbuAnsprechpartnerLieferadresse.setText(LPMain.getTextRespectUISPr("button.ansprechpartner"));
 
 		wbuAnsprechpartnerLieferadresse.addActionListener(this);
 
 		wtfAnsprechpartnerLieferadresse = new WrapperTextField();
 		wtfAnsprechpartnerLieferadresse.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 		wtfAnsprechpartnerLieferadresse.setActivatable(false);
-		wbuAnsprechpartnerLieferadresse
-				.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERADRESSE);
+		wbuAnsprechpartnerLieferadresse.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERADRESSE);
 
 		wbuAnsprechpartnerAbholadresse = new WrapperButton();
-		wbuAnsprechpartnerAbholadresse.setText(LPMain
-				.getTextRespectUISPr("button.ansprechpartner"));
-		wbuAnsprechpartnerAbholadresse
-				.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_ABHOLADRESSE);
+		wbuAnsprechpartnerAbholadresse.setText(LPMain.getTextRespectUISPr("button.ansprechpartner"));
+		wbuAnsprechpartnerAbholadresse.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_ABHOLADRESSE);
 		wbuAnsprechpartnerAbholadresse.addActionListener(this);
 
 		wtfAnsprechpartnerAbholadresse = new WrapperTextField();
@@ -418,34 +440,27 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wtfAnsprechpartnerAbholadresse.setActivatable(false);
 
 		wbuLieferantRechnungsadresse = new WrapperButton();
-		wbuLieferantRechnungsadresse.setText(LPMain
-				.getTextRespectUISPr("button.rechnungsadresse"));
-		wbuLieferantRechnungsadresse
-				.setActionCommand(ACTION_SPECIAL_RECHNUNGSADRESSE_BESTELLUNG);
+		wbuLieferantRechnungsadresse.setText(LPMain.getTextRespectUISPr("button.rechnungsadresse"));
+		wbuLieferantRechnungsadresse.setActionCommand(ACTION_SPECIAL_RECHNUNGSADRESSE_BESTELLUNG);
 		wbuLieferantRechnungsadresse.addActionListener(this);
 
 		wtfLieferantRechnungsadresse = new WrapperTextField();
-		wtfLieferantRechnungsadresse
-				.setColumnsMax(QueryParameters.FLR_BREITE_XXL);
+		wtfLieferantRechnungsadresse.setColumnsMax(QueryParameters.FLR_BREITE_XXL);
 		wtfLieferantRechnungsadresse.setMandatoryField(true);
 		wtfLieferantRechnungsadresse.setActivatable(false);
 
 		wlaLeihtage = new WrapperLabel();
-		wlaLeihtage
-				.setText(LPMain.getTextRespectUISPr("detail.label.leihtage"));
+		wlaLeihtage.setText(LPMain.getTextRespectUISPr("detail.label.leihtage"));
 
-		wnfLeihtage = new WrapperNumberField(new Long(
-				BestellungFac.MIN_I_LEIHTAGE).intValue(), new Long(
-				BestellungFac.MAX_I_LEIHTAGE).intValue());
+		wnfLeihtage = new WrapperNumberField(new Long(BestellungFac.MIN_I_LEIHTAGE).intValue(),
+				new Long(BestellungFac.MAX_I_LEIHTAGE).intValue());
 		wnfLeihtage.setFractionDigits(BestellungFac.FRACTION_LEIHTAGE);
 
 		wlaLeihtage = new WrapperLabel();
-		wlaLeihtage
-				.setText(LPMain.getTextRespectUISPr("detail.label.leihtage"));
+		wlaLeihtage.setText(LPMain.getTextRespectUISPr("detail.label.leihtage"));
 
 		wbuAnforderer = new WrapperButton();
-		wbuAnforderer.setText(LPMain
-				.getTextRespectUISPr("bes.button.anforderer"));
+		wbuAnforderer.setText(LPMain.getTextRespectUISPr("bes.button.anforderer"));
 		wbuAnforderer.setActionCommand(ACTION_SPECIAL_ANFORDERER);
 		wbuAnforderer.addActionListener(this);
 
@@ -453,28 +468,32 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wtfAnforderer.setActivatable(false);
 		wtfAnforderer.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 
-		parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_BESTELLUNG,
+		wbuInternerAnforderer = new WrapperButton();
+		wbuInternerAnforderer.setText(LPMain.getTextRespectUISPr("bes.button.interneranforderer"));
+		wbuInternerAnforderer.setActionCommand(ACTION_SPECIAL_INTERNERANFORDERER);
+		wbuInternerAnforderer.addActionListener(this);
+		wbuInternerAnforderer.setToolTipText(LPMain.getTextRespectUISPr("bes.button.interneranforderer.tooltip"));
+
+		wtfInternerAnforderer = new WrapperTextField();
+		wtfInternerAnforderer.setActivatable(false);
+		wtfInternerAnforderer.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
+
+		ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_BESTELLUNG,
 						ParameterFac.PARAMETER_MAHNUNGSABSENDER);
-		int iMahnungsabsenderNachAnforderer = ((Integer) parametermandantDto
-				.getCWertAsObject());
+		int iMahnungsabsenderNachAnforderer = ((Integer) parametermandantDto.getCWertAsObject());
 
 		if (iMahnungsabsenderNachAnforderer == 1) {
 			wtfAnforderer.setMandatoryField(true);
 		}
 
 		wbuLieferadresse = new WrapperButton();
-		wbuLieferadresse.setText(LPMain
-				.getTextRespectUISPr("button.lieferadresse"));
+		wbuLieferadresse.setText(LPMain.getTextRespectUISPr("button.lieferadresse"));
 		wbuLieferadresse.setActionCommand(ACTION_SPECIAL_LIEFERADRESSE);
 		wbuLieferadresse.addActionListener(this);
 
 		wbuAbholadresse = new WrapperButton();
-		wbuAbholadresse.setText(LPMain.getTextRespectUISPr("best.abholadresse")
-				+ "..");
+		wbuAbholadresse.setText(LPMain.getTextRespectUISPr("best.abholadresse") + "..");
 		wbuAbholadresse.setActionCommand(ACTION_SPECIAL_ABHOLADRESSE);
 		wbuAbholadresse.addActionListener(this);
 		wtfAbholadresse = new WrapperTextField();
@@ -486,13 +505,11 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wtfLieferadresse.setActivatable(false);
 
 		wcbTeillieferung = new WrapperCheckBox();
-		wcbTeillieferung.setText(LPMain
-				.getTextRespectUISPr("label.teillieferung"));
+		wcbTeillieferung.setText(LPMain.getTextRespectUISPr("label.teillieferung"));
 
 		wnfLeihtage = new WrapperNumberField();
 
-		wlaAnfrage = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.anfragenummer"));
+		wlaAnfrage = new WrapperLabel(LPMain.getTextRespectUISPr("label.anfragenummer"));
 		wtfAnfrage = new WrapperTextField();
 		wtfAnfrage.setActivatable(false);
 
@@ -501,8 +518,8 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wtaAbrufe.setActivatable(false);
 		wtaAbrufe.setRows(4);
 
-		wbuRahmenauswahl = new WrapperGotoButton(
-				LPMain.getTextRespectUISPr("button.rahmen"),WrapperGotoButton.GOTO_BESTELLUNG_AUSWAHL);
+		wbuRahmenauswahl = new WrapperGotoButton(LPMain.getTextRespectUISPr("button.rahmen"),
+				com.lp.util.GotoHelper.GOTO_BESTELLUNG_AUSWAHL);
 		wbuRahmenauswahl.setActionCommand(ACTION_SPECIAL_RAHMENAUSWAHL);
 		wbuRahmenauswahl.addActionListener(this);
 
@@ -511,47 +528,52 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wtfAbrufausrahmenbez = new WrapperTextField();
 		wtfAbrufausrahmenbez.setActivatable(false);
 
-		wlaMahnsperreBis
-				.setText(LPMain.getTextRespectUISPr("lp.mahnsperrebis"));
+		wlaMahnsperreBis.setText(LPMain.getTextRespectUISPr("lp.mahnsperrebis"));
 
-		wbuAuftrag = new WrapperButton();
+		wbuAuftrag = new WrapperGotoButton(GotoHelper.GOTO_AUFTRAG_AUSWAHL);
 		wtfAuftragnummer = new WrapperTextField();
 		wtfAuftragbezeichnung = new WrapperTextField();
 		wbuAuftrag.addActionListener(this);
 		wbuAuftrag.setActionCommand(ACTION_SPECIAL_AUFTRAG);
 		wbuAuftrag.setText(LPMain.getTextRespectUISPr("button.auftrag"));
-		wbuAuftrag.setToolTipText(LPMain
-				.getTextRespectUISPr("button.auftrag.tooltip"));
+		wbuAuftrag.setToolTipText(LPMain.getTextRespectUISPr("button.auftrag.tooltip"));
 		wtfAuftragbezeichnung.setActivatable(false);
 		wtfAuftragnummer.setActivatable(false);
 
-		wlaAnzahlungen = new WrapperLabel(
-				LPMain.getTextRespectUISPr("rech.zahlung.anzahlungen")
-						+ "/"
-						+ LPMain.getTextRespectUISPr("rech.zahlung.schlusszahlung"));
+		wlaAnzahlungen = new WrapperLabel(LPMain.getTextRespectUISPr("rech.zahlung.anzahlungen") + "/"
+				+ LPMain.getTextRespectUISPr("rech.zahlung.schlusszahlung"));
 
 		wtfAnzahlungen = new WrapperTextField(9999);
 		wtfAnzahlungen.setActivatable(false);
 
+		jtpInternerKommentar.setEnabled(false);
+		jspInternerKommentar = new JScrollPane(jtpInternerKommentar);
+		jtpExternerKommentar.setEnabled(false);
+		jspExternerKommentar = new JScrollPane(jtpExternerKommentar);
+
 		// Workingpanel
-		jPanelWorkingOn = new JPanel(new MigLayout("wrap 5, hidemode 3",
-				"[35%][40%][25%][25%]"));
-		add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		jPanelWorkingOn = new JPanel(new MigLayout("wrap 5, hidemode 3", "[35%][40%][25%][25%]"));
+		add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Statusbar an den unteren Rand des Panels haengen
-		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		createAbrufPanel();
+
+		jPanelVersionBelegdatum = new JPanel();
+		HvLayout layoutVersionBelegdatum = HvLayoutFactory.create(jPanelVersionBelegdatum, "ins 0",
+				"push[fill,grow|fill|fill|fill]", "");
+		layoutVersionBelegdatum.add(wlaVersion, "push, right, wmin 80").add(wnfVersion, "wmin 40")
+				.add(wlaBelegdatum, "growx").add(wdfBelegdatum);
 
 		// 0. Zeile Abstaende
 		jPanelWorkingOn.add(wlaBestellungsart, "right, growx");
 		jPanelWorkingOn.add(wcoBestellungsart, "growx");
-		jPanelWorkingOn.add(wlaBelegdatum, "skip, growx");
-		jPanelWorkingOn.add(wdfBelegdatum, "growx, wrap");
+		jPanelWorkingOn.add(jPanelVersionBelegdatum, "gapleft 10, span 3, growx");
+		// jPanelWorkingOn.add(wlaBelegdatum, "skip, growx");
+		// jPanelWorkingOn.add(wdfBelegdatum, "growx, wrap");
 
 		jPanelWorkingOn.add(jPanelAbrufBes, "growx, span");
 
@@ -563,38 +585,39 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		jPanelWorkingOn.add(wtfLieferantBestellung, "growx, span");
 
 		jPanelWorkingOn.add(wbuAnsprechpartner, "growx");
-		jPanelWorkingOn.add(wtfAnsprechpartner, "growx, span");
+		jPanelWorkingOn.add(wtfAnsprechpartner, "growx");
+
+		jPanelWorkingOn.add(wtfTelefon, "growx, wrap");
 
 		jPanelWorkingOn.add(wbuLieferantRechnungsadresse, "growx");
 		jPanelWorkingOn.add(wtfLieferantRechnungsadresse, "growx, span");
 
 		jPanelWorkingOn.add(wbuAnforderer, "growx");
-		jPanelWorkingOn.add(wtfAnforderer, "growx, span");
+		jPanelWorkingOn.add(wtfAnforderer, "growx");
+
+		jPanelWorkingOn.add(wbuInternerAnforderer, "growx");
+		jPanelWorkingOn.add(wtfInternerAnforderer, "growx, span");
 
 		jPanelWorkingOn.add(wbuLieferadresse, "growx");
-		jPanelWorkingOn.add(wtfLieferadresse, "growx, span");
+		jPanelWorkingOn.add(wtfLieferadresse, "growx");
 
 		jPanelWorkingOn.add(wbuAnsprechpartnerLieferadresse, "growx");
 		jPanelWorkingOn.add(wtfAnsprechpartnerLieferadresse, "growx, span");
 
 		jPanelWorkingOn.add(wbuAbholadresse, "growx");
-		jPanelWorkingOn.add(wtfAbholadresse, "growx, span");
+		jPanelWorkingOn.add(wtfAbholadresse, "growx");
 
 		jPanelWorkingOn.add(wbuAnsprechpartnerAbholadresse, "growx");
 		jPanelWorkingOn.add(wtfAnsprechpartnerAbholadresse, "growx, span");
 
 		jPanelWorkingOn.add(wlaProjekt, "growx");
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
 
 			jPanelWorkingOn.add(wtfProjekt, "growx");
 			jPanelWorkingOn.add(wsfProjekt.getWrapperGotoButton(), "growx");
-			jPanelWorkingOn
-					.add(wsfProjekt.getWrapperTextField(), "growx, span");
+			jPanelWorkingOn.add(wsfProjekt.getWrapperTextField(), "growx, span");
 
 		} else {
 
@@ -619,7 +642,10 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 		jPanelWorkingOn.add(wlaLieferantenangebot, "growx");
 		jPanelWorkingOn.add(wtfLieferantenangebot, "growx");
-		jPanelWorkingOn.add(wlaAnfrage, "growx, span 2");
+		jPanelWorkingOn.add(wlaAnfrage, "growx, span 2, split 2");
+
+		jPanelWorkingOn.add(wbuAnfrage.getWrapperButtonGoTo(), "growx 12");
+
 		jPanelWorkingOn.add(wtfAnfrage, "growx");
 
 		jPanelWorkingOn.add(wbuAuftrag, "growx");
@@ -632,14 +658,36 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		jPanelWorkingOn.add(wlaMahnsperreBis, "growx");
 		jPanelWorkingOn.add(wdfMahnsperre, "growx, wrap");
 
-		jPanelWorkingOn.add(wlaAnzahlungen, "top, growx");
-		jPanelWorkingOn.add(wtfAnzahlungen, "top, growx, span");
+		jPanelWorkingOn.add(wlaAnzahlungen, "growx");
+		jPanelWorkingOn.add(wtfAnzahlungen, "growx, wrap");
 
-		createAndSaveAndShowButton(
-				"/com/lp/client/res/shoppingcart.png",
-				LPMain.getTextRespectUISPr("bes.bestellung.neuerwareneingang.auswep"),
-				TabbedPaneBestellung.MY_OWN_NEW_NEUER_WARENEINGANG_AUS_WEP,
-				RechteFac.RECHT_BES_BESTELLUNG_CUD);
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_KOMMENTARE_IM_KOPF, ParameterFac.KATEGORIE_BESTELLUNG,
+						LPMain.getTheClient().getMandant());
+
+		boolean bKommentareInKopfdaten = (Boolean) parameter.getCWertAsObject();
+		if (bKommentareInKopfdaten) {
+			jPanelWorkingOn.add(wlaInternerKommentar, "growx, span2");
+			jPanelWorkingOn.add(wlaExternerKommentar, "growx, span2,wrap");
+
+			jPanelWorkingOn.add(jspInternerKommentar, "top, growx, span2");
+			jPanelWorkingOn.add(jspExternerKommentar, "top, growx, span");
+		}
+
+		parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate().getParametermandant(
+				ParameterFac.PARAMETER_AUTOMATISCHE_CHARGENNUMMER_BEI_WEP, ParameterFac.KATEGORIE_BESTELLUNG,
+				LPMain.getTheClient().getMandant());
+
+		int automatischeChargennummerBeiWEPOS = (Integer) parameter.getCWertAsObject();
+
+		if (automatischeChargennummerBeiWEPOS != 3) {
+
+			createAndSaveAndShowButton("/com/lp/client/res/shoppingcart.png",
+					LPMain.getTextRespectUISPr("bes.bestellung.neuerwareneingang.auswep"),
+					TabbedPaneBestellung.MY_OWN_NEW_NEUER_WARENEINGANG_AUS_WEP, RechteFac.RECHT_BES_WARENEINGANG_CUD);
+
+		}
+		// RechteFac.RECHT_BES_BESTELLUNG_CUD);
 
 	}
 
@@ -652,12 +700,13 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wnfDivisor.setMinimumValue(1);
 		wnfDivisor.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wcbDivisor = new WrapperRadioButton(
-				LPMain.getTextRespectUISPr("bes.abruf_bes.divisor"));
-		wcbRest = new WrapperRadioButton(
-				LPMain.getTextRespectUISPr("bes.abruf_bes.rest"));
-		wcbManuellAbruf = new WrapperRadioButton(
-				LPMain.getTextRespectUISPr("bes.abruf_bes.manuel"));
+		wcbDivisor = new WrapperRadioButton(LPMain.getTextRespectUISPr("bes.abruf_bes.divisor"));
+		wcbRest = new WrapperRadioButton(LPMain.getTextRespectUISPr("bes.abruf_bes.rest"));
+		wcbManuellAbruf = new WrapperRadioButton(LPMain.getTextRespectUISPr("bes.abruf_bes.manuel"));
+
+		wcbDivisor.addActionListener(this);
+		wcbRest.addActionListener(this);
+		wcbManuellAbruf.addActionListener(this);
 
 		jbgAbrufBes = new ButtonGroup();
 		jbgAbrufBes.add(wcbDivisor);
@@ -665,17 +714,12 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		jbgAbrufBes.add(wcbManuellAbruf);
 		ParametermandantDto mandantParam = null;
 		try {
-			mandantParam = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getMandantparameter(
-							LPMain.getTheClient().getMandant(),
-							ParameterFac.KATEGORIE_BESTELLUNG,
-							ParameterFac.PARAMETER_ABRUFE_DEFAULT_ABRUFART_BESTELLUNG);
+			mandantParam = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+					LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_BESTELLUNG,
+					ParameterFac.PARAMETER_ABRUFE_DEFAULT_ABRUFART_BESTELLUNG);
 		} catch (Throwable e) {
-			DialogFactory.showModalDialog(LPMain
-					.getTextRespectUISPr("lp.hinweis"), LPMain
-					.getTextRespectUISPr("lp.abrufemenge.parameter.inkorrekt"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+					LPMain.getTextRespectUISPr("lp.abrufemenge.parameter.inkorrekt"));
 		}
 		if (mandantParam != null) {
 			String sParamValue = mandantParam.getCWert().toUpperCase();
@@ -687,45 +731,38 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 				wcbDivisor.setSelected(false);
 				wcbRest.setSelected(false);
 				wcbManuellAbruf.setSelected(true);
+				wnfDivisor.setMandatoryField(false);
 			} else if (sParamValue.equals("DIVISOR")) {
 				wcbRest.setSelected(false);
 				wcbManuellAbruf.setSelected(false);
 				wcbDivisor.setSelected(true);
 			} else {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.hinweis"),
-								LPMain.getTextRespectUISPr("lp.abrufemenge.parameter.inkorrekt"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+						LPMain.getTextRespectUISPr("lp.abrufemenge.parameter.inkorrekt"));
 			}
 		}
 
-		wlaLeerAbruf = new WrapperLabel(
-				LPMain.getTextRespectUISPr("bes.abruf_bes"));
+		wlaLeerAbruf = new WrapperLabel(LPMain.getTextRespectUISPr("bes.abruf_bes"));
 		wlaLeerAbruf.setHorizontalAlignment(SwingConstants.LEFT);
 
 		jPanelAbrufBes = new JPanel(new GridBagLayout());
 
-		jPanelAbrufBes.add(wlaLeerAbruf, new GridBagConstraints(0, 0, 1, 1,
-				0.12, 0.0, GridBagConstraints.EAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelAbrufBes.add(wcbDivisor, new GridBagConstraints(1, 0, 1, 1, 0.09,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelAbrufBes.add(wnfDivisor, new GridBagConstraints(2, 0, 1, 1,
-				0.005, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelAbrufBes.add(new WrapperLabel(), new GridBagConstraints(3, 0, 1,
-				1, 0.05, 0.0, GridBagConstraints.CENTER,
+		jPanelAbrufBes.add(wlaLeerAbruf, new GridBagConstraints(0, 0, 1, 1, 0.12, 0.0, GridBagConstraints.EAST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
-		jPanelAbrufBes.add(wcbManuellAbruf, new GridBagConstraints(4, 0, 1, 1,
-				0.07, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelAbrufBes.add(wcbRest, new GridBagConstraints(5, 0, 1, 1, 0.07,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelAbrufBes.add(new WrapperLabel(), new GridBagConstraints(6, 0, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jPanelAbrufBes.add(wcbDivisor, new GridBagConstraints(1, 0, 1, 1, 0.09, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelAbrufBes.add(wnfDivisor, new GridBagConstraints(2, 0, 1, 1, 0.005, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 10, 0));
+		jPanelAbrufBes.add(new WrapperLabel(), new GridBagConstraints(3, 0, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelAbrufBes.add(wcbManuellAbruf, new GridBagConstraints(4, 0, 1, 1, 0.07, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelAbrufBes.add(wcbRest, new GridBagConstraints(5, 0, 1, 1, 0.07, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelAbrufBes.add(new WrapperLabel(), new GridBagConstraints(6, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
+		abrufCheckBoxSetzen();
 
 	}
 
@@ -757,8 +794,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 */
 	private void initPanel() throws Throwable {
 
-		wcoBestellungsart.setMap(DelegateFactory.getInstance()
-				.getBestellungServiceDelegate()
+		wcoBestellungsart.setMap(DelegateFactory.getInstance().getBestellungServiceDelegate()
 				.getBestellungsart(LPMain.getInstance().getUISprLocale()));
 
 		// tmWaehrungen =
@@ -768,8 +804,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	}
 
 	/**
-	 * Das Panel fuer die Anzeige oder Eingabe eines Datensatzes sauber
-	 * aufbauen.
+	 * Das Panel fuer die Anzeige oder Eingabe eines Datensatzes sauber aufbauen.
 	 * 
 	 * @throws Throwable
 	 */
@@ -786,11 +821,10 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wlaWechselkursMandant2BS.setText("");
 
 		if (getTabbedPaneBestellung().getBesDto() != null) {
-			wcoBestellungsart
-					.setKeyOfSelectedItem(BestellungFac.BESTELLUNGART_FREIE_BESTELLUNG_C_NR);
+			wcoBestellungsart.setKeyOfSelectedItem(BestellungFac.BESTELLUNGART_FREIE_BESTELLUNG_C_NR);
 
-			getTabbedPaneBestellung().getBesDto().setBestellungartCNr(
-					BestellungFac.BESTELLUNGART_FREIE_BESTELLUNG_C_NR);
+			getTabbedPaneBestellung().getBesDto()
+					.setBestellungartCNr(BestellungFac.BESTELLUNGART_FREIE_BESTELLUNG_C_NR);
 
 			// default waehrung kommt vom mandanten
 			// String cNrMandantenwaehrung =
@@ -804,31 +838,26 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			// cNrMandantenwaehrung);
 			// wcoWaehrungen.setKeyOfSelectedItem(cNrMandantenwaehrung);
 
-			getTabbedPaneBestellung().getBesDto().setBTeillieferungMoeglich(
-					Helper.boolean2Short(false));
+			getTabbedPaneBestellung().getBesDto().setBTeillieferungMoeglich(Helper.boolean2Short(false));
 		}
 		ansprechpartnerDto = new AnsprechpartnerDto();
 		ansprechpartnerLieferadresseDto = new AnsprechpartnerDto();
 		anfordererDto = new PersonalDto();
 		auftragDto = null;
 		kostenstelleDto = null;
-		getInternalFrameBestellung().getTabbedPaneBestellung().setRahmBesDto(
-				new BestellungDto());
+		getInternalFrameBestellung().getTabbedPaneBestellung().setRahmBesDto(new BestellungDto());
+
+		wbuAnfrage.setOKey(null);
 
 		setLieferantDtoRechnungsadresse(new LieferantDto());
 		// Vorbelegungen im wenn neu geklickt
-		anfordererDto = DelegateFactory
-				.getInstance()
-				.getPersonalDelegate()
+		anfordererDto = DelegateFactory.getInstance().getPersonalDelegate()
 				.personalFindByPrimaryKey(LPMain.getTheClient().getIDPersonal());
-		getTabbedPaneBestellung().getBesDto().setPersonalIIdAnforderer(
-				anfordererDto.getIId());
+		getTabbedPaneBestellung().getBesDto().setPersonalIIdAnforderer(anfordererDto.getIId());
 		wtfAnforderer.setText(anfordererDto.getPartnerDto().formatAnrede());
 		// Default Lieferadresse ist die Adresse des aktuellen Mandanten
-		Integer iPartnerIIdLIeferadresse = DelegateFactory.getInstance()
-				.getMandantDelegate()
-				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant())
-				.getPartnerIIdLieferadresse();
+		Integer iPartnerIIdLIeferadresse = DelegateFactory.getInstance().getMandantDelegate()
+				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getPartnerIIdLieferadresse();
 		lieferadresseDto = DelegateFactory.getInstance().getPartnerDelegate()
 				.partnerFindByPrimaryKey(iPartnerIIdLIeferadresse);
 		wtfLieferadresse.setText(lieferadresseDto.formatAnrede());
@@ -839,22 +868,16 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	}
 
 	private void setDefaultNeuAus() throws Throwable {
-		java.sql.Date dHeute = Helper.cutDate(new java.sql.Date(System
-				.currentTimeMillis()));
+		java.sql.Date dHeute = Helper.cutDate(new java.sql.Date(System.currentTimeMillis()));
 		// Default-Liefertermin ist heute + 14 Tage.
 
-		ParametermandantDto parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_BESTELLUNG,
+		ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_BESTELLUNG,
 						ParameterFac.PARAMETER_DEFAULT_LIEFERZEITVERSATZ);
-		int iTagen = ((Integer) parametermandantDto.getCWertAsObject())
-				.intValue();
+		int iTagen = ((Integer) parametermandantDto.getCWertAsObject()).intValue();
 
 		if (iTagen != -1) {
-			java.sql.Date dVorgeschlagenerLiefertermin = Helper
-					.addiereTageZuDatum(dHeute, iTagen);
+			java.sql.Date dVorgeschlagenerLiefertermin = Helper.addiereTageZuDatum(dHeute, iTagen);
 			wdfLiefertermin.setDate(dVorgeschlagenerLiefertermin);
 
 		} else {
@@ -863,22 +886,17 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wdfBelegdatum.setDate(dHeute);
 
 		// PJ 16819
-		parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_BESTELLUNG,
-						ParameterFac.PARAMETER_DEFAULT_TEILLIEFERUNG);
-		boolean bTeillieferung = ((Boolean) parametermandantDto
-				.getCWertAsObject());
+		parametermandantDto = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_BESTELLUNG,
+				ParameterFac.PARAMETER_DEFAULT_TEILLIEFERUNG);
+		boolean bTeillieferung = ((Boolean) parametermandantDto.getCWertAsObject());
 
 		wcbTeillieferung.setSelected(bTeillieferung);
 
 	}
 
 	public void setDefaultsAusProjekt(Integer projektIId) throws Throwable {
-		ProjektDto projektDto = DelegateFactory.getInstance()
-				.getProjektDelegate().projektFindByPrimaryKey(projektIId);
+		ProjektDto projektDto = DelegateFactory.getInstance().getProjektDelegate().projektFindByPrimaryKey(projektIId);
 
 		wtfProjekt.setText(projektDto.getCTitel());
 		wsfProjekt.setKey(projektDto.getIId());
@@ -888,8 +906,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	/**
 	 * Hier werden die Events empfangen und verarbeitet.
 	 * 
-	 * @param eI
-	 *            das Event
+	 * @param eI das Event
 	 * @throws Throwable
 	 */
 	protected void eventItemchanged(EventObject eI) throws Throwable {
@@ -899,73 +916,57 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 
 			if (e.getSource() == panelQueryFLRRahmenauswahl) {
-				Object iIdRahmenbestellung = ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Object iIdRahmenbestellung = ((ISourceEvent) e.getSource()).getIdSelected();
 				if (iIdRahmenbestellung != null) {
-					getInternalFrameBestellung()
-							.getTabbedPaneBestellung()
-							.setRahmBesDto(
-									DelegateFactory
-											.getInstance()
-											.getBestellungDelegate()
-											.bestellungFindByPrimaryKey(
-													(Integer) iIdRahmenbestellung));
-					wbuRahmenauswahl.setOKey(getInternalFrameBestellung()
-							.getTabbedPaneBestellung().getRahmBesDto().getIId());
+					getInternalFrameBestellung().getTabbedPaneBestellung().setRahmBesDto(DelegateFactory.getInstance()
+							.getBestellungDelegate().bestellungFindByPrimaryKey((Integer) iIdRahmenbestellung));
+					wbuRahmenauswahl
+							.setOKey(getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getIId());
 					wtfAbrufausrahmencnr
-							.setText(getInternalFrameBestellung()
-									.getTabbedPaneBestellung().getRahmBesDto()
-									.getCNr());
+							.setText(getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getCNr());
 
-					wtfAbrufausrahmenbez.setText(getInternalFrameBestellung()
-							.getTabbedPaneBestellung().getRahmBesDto()
-							.getCBez());
+					wtfAbrufausrahmenbez
+							.setText(getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getCBez());
 
-					if (getInternalFrameBestellung().getTabbedPaneBestellung()
-							.getBesDto() != null) {
-						setBestellungIdforAbruf(getInternalFrameBestellung()
-								.getTabbedPaneBestellung().getBesDto().getIId());
+					if (getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto() != null) {
+						setBestellungIdforAbruf(
+								getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getIId());
 					}
 					getInternalFrameBestellung().getTabbedPaneBestellung()
-							.setBestellungDto(
-									getInternalFrameBestellung()
-											.getTabbedPaneBestellung()
-											.getRahmBesDto());
+							.setBestellungDto(getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto());
 					erzeugeAbrufbestellung();
 				}
 			} else if (e.getSource() == panelQueryFLRLieferant) {
-				Integer pkLieferant = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer pkLieferant = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (pkLieferant != null) {
 					refreshLieferant(pkLieferant);
 				}
 			} else if (e.getSource() == panelQueryFLRRechnungsadresse) {
-				Integer pkRechnungsadr = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
+				Integer pkRechnungsadr = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeRechnungsadresse(pkRechnungsadr);
 			} else if (e.getSource() == panelQueryFLRAnsprechpartner) {
-				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
+				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeAnsprechpartner(iIdAnsprechpartner);
 			} else if (e.getSource() == panelQueryFLRAnsprechpartnerLieferadresse) {
-				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
+				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeAnsprechpartnerLieferadresse(iIdAnsprechpartner);
 			} else if (e.getSource() == panelQueryFLRAnsprechpartnerAbholadresse) {
-				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
+				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeAnsprechpartnerAbholadresse(iIdAnsprechpartner);
 			} else if (e.getSource() == panelQueryFLRAnforderer) {
-				Integer pkPersonal = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer pkPersonal = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeAnforderer(pkPersonal);
+			} else if (e.getSource() == panelQueryFLRInternerAnforderer) {
+				Integer pkPersonal = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				PersonalDto anfordererDto = DelegateFactory.getInstance().getPersonalDelegate()
+						.personalFindByPrimaryKey(pkPersonal);
+				wtfInternerAnforderer.setText(anfordererDto.getPartnerDto().formatAnrede());
+				getBestellungDto().setPersonalIIdInterneranforderer(anfordererDto.getIId());
 			} else if (e.getSource() == this.panelQueryFLRLieferadresse) {
-				Integer pkPartner = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer pkPartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeLieferadresse(pkPartner);
 			} else if (e.getSource() == this.panelQueryFLRAbholadresse) {
-				Integer pkPartner = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer pkPartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeAbholadresse(pkPartner);
 			} else if (e.getSource() == panelQueryFLRKostenstelle) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
@@ -1001,6 +1002,9 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			} else if (e.getSource() == panelQueryFLRAnsprechpartnerAbholadresse) {
 				ansprechpartnerAbholadresseDto = new AnsprechpartnerDto();
 				wtfAnsprechpartnerAbholadresse.setText("");
+			} else if (e.getSource() == panelQueryFLRInternerAnforderer) {
+				wtfInternerAnforderer.setText("");
+				getBestellungDto().setPersonalIIdInterneranforderer(null);
 			}
 		}
 	}
@@ -1015,8 +1019,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 	private void holeKostenstelle(Integer key) throws Throwable {
 		if (key != null) {
-			kostenstelleDto = DelegateFactory.getInstance().getSystemDelegate()
-					.kostenstelleFindByPrimaryKey(key);
+			kostenstelleDto = DelegateFactory.getInstance().getSystemDelegate().kostenstelleFindByPrimaryKey(key);
 		} else {
 			kostenstelleDto = null;
 		}
@@ -1025,8 +1028,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 	private void holeAuftrag(Integer key) throws Throwable {
 		if (key != null) {
-			auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
-					.auftragFindByPrimaryKey(key);
+			auftragDto = DelegateFactory.getInstance().getAuftragDelegate().auftragFindByPrimaryKey(key);
 		} else {
 			auftragDto = null;
 		}
@@ -1046,39 +1048,33 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private void dto2ComponentsAuftrag() {
 		if (auftragDto != null) {
 			wtfAuftragnummer.setText(auftragDto.getCNr());
-			wtfAuftragbezeichnung.setText(auftragDto
-					.getCBezProjektbezeichnung());
+			wtfAuftragbezeichnung.setText(auftragDto.getCBezProjektbezeichnung());
+			wbuAuftrag.setOKey(auftragDto.getIId());
 		} else {
 			wtfAuftragnummer.setText(null);
 			wtfAuftragbezeichnung.setText(null);
+			wbuAuftrag.setOKey(null);
 		}
 	}
 
 	private void refreshLieferant(Integer iIdLieferantNewI) throws Throwable {
 
 		String sWaehrungBSOld = getBestellungDto().getWaehrungCNr();
-		waehrungDtoOld = DelegateFactory.getInstance().getLocaleDelegate()
-				.waehrungFindByPrimaryKey(sWaehrungBSOld);
+		waehrungDtoOld = DelegateFactory.getInstance().getLocaleDelegate().waehrungFindByPrimaryKey(sWaehrungBSOld);
 
-		LieferantDto lieferantDtoNew = DelegateFactory.getInstance()
-				.getLieferantDelegate()
+		LieferantDto lieferantDtoNew = DelegateFactory.getInstance().getLieferantDelegate()
 				.lieferantFindByPrimaryKey(iIdLieferantNewI);
 
+		getTabbedPaneBestellung().setLieferantDto(lieferantDtoNew);
+		
 		AnsprechpartnerDto dto = null;
 		// Ansprechpartner vorbesetzen?
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_BESTELLUNG_ANSP_VORBESETZEN,
-						ParameterFac.KATEGORIE_BESTELLUNG,
-						LPMain.getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_BESTELLUNG_ANSP_VORBESETZEN,
+						ParameterFac.KATEGORIE_BESTELLUNG, LPMain.getTheClient().getMandant());
 		if ((Boolean) parameter.getCWertAsObject()) {
-			dto = DelegateFactory
-					.getInstance()
-					.getAnsprechpartnerDelegate()
-					.ansprechpartnerFindErstenEinesPartnersOhneExc(
-							lieferantDtoNew.getPartnerIId());
+			dto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
+					.ansprechpartnerFindErstenEinesPartnersOhneExc(lieferantDtoNew.getPartnerIId());
 		}
 		if (dto != null) {
 			bestimmeUndZeigeAnsprechpartner(dto.getIId());
@@ -1088,33 +1084,26 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		if (wechselkurseOKDlg(LPMain.getTheClient().getSMandantenwaehrung(),
 				(String) wcoWaehrungen.getKeyOfSelectedItem())) {
 			// Alle Wechselkurse OK; LF in BS uebernehmen
-			if (getInternalFrameBestellung().getTabbedPaneBestellung()
-					.getBesDto().getIId() != null) {
+			if (getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getIId() != null) {
 				// upd.
 				// event. fragen, ob er die urspruengliche Waehrung beibehalten
 				// moechte
-				if (!takeNewWhgDlg(waehrungDtoOld.getCNr(),
-						lieferantDtoNew.getWaehrungCNr())) {
+				if (!takeNewWhgDlg(waehrungDtoOld.getCNr(), lieferantDtoNew.getWaehrungCNr())) {
 					// die alte Belegwaehrung wird beibehalten ->
 					// Waehrung und Wechselkurs zuruecksetzen
 					wcoWaehrungen.setKeyOfSelectedItem(waehrungDtoOld.getCNr());
-					getTabbedPaneBestellung().getBesDto().setWaehrungCNr(
-							waehrungDtoOld.getCNr());
+					getTabbedPaneBestellung().getBesDto().setWaehrungCNr(waehrungDtoOld.getCNr());
 				} else {
 					// die neue Belegwaehrung wird genommen
-					if (wechselkurseOKDlg(LPMain.getTheClient()
-							.getSMandantenwaehrung(),
+					if (wechselkurseOKDlg(LPMain.getTheClient().getSMandantenwaehrung(),
 							(String) wcoWaehrungen.getSelectedItem())) {
-						wcoWaehrungen.setKeyOfSelectedItem(lieferantDtoNew
-								.getWaehrungCNr());
+						wcoWaehrungen.setKeyOfSelectedItem(lieferantDtoNew.getWaehrungCNr());
 						// Alle Wechselkurse OK; LF in BS uebernehmen
 						lF2BS(lieferantDtoNew);
 					} else {
 						// Wechselkurse NICHT OK; alter LF bleibt
-						wcoWaehrungen.setKeyOfSelectedItem(waehrungDtoOld
-								.getCNr());
-						getTabbedPaneBestellung().getBesDto().setWaehrungCNr(
-								waehrungDtoOld.getCNr());
+						wcoWaehrungen.setKeyOfSelectedItem(waehrungDtoOld.getCNr());
+						getTabbedPaneBestellung().getBesDto().setWaehrungCNr(waehrungDtoOld.getCNr());
 					}
 				}
 			} else {
@@ -1122,16 +1111,14 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 				lF2BS(lieferantDtoNew);
 			}
 		}
+		wbuLieferant.setOKey(iIdLieferantNewI);
 	}
 
-	private void lF2BS(LieferantDto lieferantDtoNew) throws Exception,
-			Throwable {
+	private void lF2BS(LieferantDto lieferantDtoNew) throws Exception, Throwable {
 
 		// Lieferadresse
-		getTabbedPaneBestellung().getBesDto().setLieferantIIdBestelladresse(
-				lieferantDtoNew.getIId());
-		getInternalFrameBestellung().getTabbedPaneBestellung().setLieferantDto(
-				lieferantDtoNew);
+		getTabbedPaneBestellung().getBesDto().setLieferantIIdBestelladresse(lieferantDtoNew.getIId());
+		getInternalFrameBestellung().getTabbedPaneBestellung().setLieferantDto(lieferantDtoNew);
 
 		// Rechnungsadresse
 		PartnerDto partnerDto = lieferantDtoNew.getPartnerDto();
@@ -1142,33 +1129,41 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wtfLieferantBestellung.setText(partnerDto.formatFixTitelName1Name2());
 		// wenn LF keine Rechnungsadresse hat dann wird Hauptadresse genommen
 		if (lieferantDtoNew.getPartnerRechnungsadresseDto() == null) {
-			wtfLieferantRechnungsadresse.setText(partnerDto
-					.formatFixTitelName1Name2());
+			wtfLieferantRechnungsadresse.setText(partnerDto.formatFixTitelName1Name2());
 			// SP1759
-			getTabbedPaneBestellung().getBesDto()
-					.setLieferantIIdRechnungsadresse(lieferantDtoNew.getIId());
+			getTabbedPaneBestellung().getBesDto().setLieferantIIdRechnungsadresse(lieferantDtoNew.getIId());
 
 			setLieferantDtoRechnungsadresse(lieferantDtoNew);
 		} else {
-			wtfLieferantRechnungsadresse
-					.setText(lieferantDtoNew.getPartnerRechnungsadresseDto()
-							.formatFixTitelName1Name2());
 
-			LieferantDto lfDto = DelegateFactory
-					.getInstance()
-					.getLieferantDelegate()
+			LieferantDto lfDto = DelegateFactory.getInstance().getLieferantDelegate()
 					.lieferantFindByiIdPartnercNrMandantOhneExc(
-							lieferantDtoNew.getPartnerRechnungsadresseDto()
-									.getIId(),
+							lieferantDtoNew.getPartnerRechnungsadresseDto().getIId(),
 							LPMain.getTheClient().getMandant());
 			if (lfDto != null) {
 				// SP1759
-				getTabbedPaneBestellung().getBesDto()
-						.setLieferantIIdRechnungsadresse(lfDto.getIId());
+				getTabbedPaneBestellung().getBesDto().setLieferantIIdRechnungsadresse(lfDto.getIId());
 				setLieferantDtoRechnungsadresse(lfDto);
+				wtfLieferantRechnungsadresse
+						.setText(lieferantDtoNew.getPartnerRechnungsadresseDto().formatFixTitelName1Name2());
+
+			} else {
+				// SP4874
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+						LPMain.getTextRespectUISPr("bes.bestellung.rechnungsadresse.error"));
 
 			}
 
+		}
+
+		// Lieferadresse
+		if (lieferantDtoNew.getPartnerIIdLieferadresse() != null) {
+
+			lieferadresseDto = DelegateFactory.getInstance().getPartnerDelegate()
+					.partnerFindByPrimaryKey(lieferantDtoNew.getPartnerIIdLieferadresse());
+			wtfLieferadresse.setText(lieferadresseDto.formatAnrede());
+			getTabbedPaneBestellung().getBesDto()
+					.setPartnerIIdLieferadresse(lieferantDtoNew.getPartnerIIdLieferadresse());
 		}
 
 		if (kostenstelleDto == null) {
@@ -1176,8 +1171,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		}
 		// Lieferantenwaehrung vorbesetzen
 		if (lieferantDtoNew.getWaehrungCNr() != null) {
-			wcoWaehrungen
-					.setKeyOfSelectedItem(lieferantDtoNew.getWaehrungCNr());
+			wcoWaehrungen.setKeyOfSelectedItem(lieferantDtoNew.getWaehrungCNr());
 		}
 	}
 
@@ -1194,9 +1188,8 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			aOptionen[indexWaehrungNeuCNr] = sWaehrungNewI;
 
 			int iAuswahl = DialogFactory.showModalDialog(getInternalFrame(),
-					LPMain.getTextRespectUISPr("lp.waehrungunterschiedlich"),
-					LPMain.getTextRespectUISPr("lp.frage"), aOptionen,
-					aOptionen[0]);
+					LPMain.getTextRespectUISPr("lp.waehrungunterschiedlich"), LPMain.getTextRespectUISPr("lp.frage"),
+					aOptionen, aOptionen[0]);
 
 			if (iAuswahl == indexWaehrungOriCNr) {
 				// die Belegwaehrung wird beibehalten -> Waehrung und
@@ -1207,16 +1200,12 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		return bTakeNewWaehrung;
 	}
 
-	protected void refreshLabelKurs(BigDecimal bdWechselkursMandant2BS)
-			throws Throwable {
+	protected void refreshLabelKurs(BigDecimal bdWechselkursMandant2BS) throws Throwable {
 
-		Object pattern[] = {
-				LPMain.getTheClient().getSMandantenwaehrung(),
+		Object pattern[] = { LPMain.getTheClient().getSMandantenwaehrung(),
 				LPMain.getTextRespectUISPr("lp.mandantwaehrung"),
-				Helper.formatZahl(bdWechselkursMandant2BS, 6, LPMain
-						.getInstance().getUISprLocale()),
-				wcoWaehrungen.getKeyOfSelectedItem(),
-				LPMain.getTextRespectUISPr("bes.waehrung") };
+				Helper.formatZahl(bdWechselkursMandant2BS, 6, LPMain.getInstance().getUISprLocale()),
+				wcoWaehrungen.getKeyOfSelectedItem(), LPMain.getTextRespectUISPr("bes.waehrung") };
 		String sText = LPMain.getTextRespectUISPr("bes.wechselkurs");
 		sText = MessageFormat.format(sText, pattern);
 		wlaWechselkursMandant2BS.setText(sText);
@@ -1229,8 +1218,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	/**
 	 * Hier kommen die events meiner speziellen Buttons an.
 	 * 
-	 * @param eI
-	 *            ActionEvent
+	 * @param eI ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionSpecial(ActionEvent eI) throws Throwable {
@@ -1238,41 +1226,35 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		if (eI.getActionCommand().equals(ACTION_SPECIAL_LIEFERANT_BESTELLUNG)) {
 			wtfAnsprechpartner.setText(null);
 			dialogQueryLieferant();
-		} else if (eI.getActionCommand().equals(
-				ACTION_SPECIAL_RECHNUNGSADRESSE_BESTELLUNG)) {
+		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_RECHNUNGSADRESSE_BESTELLUNG)) {
 			dialogQueryRechnungsadresse();
-		} else if (eI.getActionCommand().equals(
-				ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT)) {
+		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERANT)) {
 			if (wtfLieferantBestellung.getText() != null) {
 				dialogQueryAnsprechpartner();
 			} else {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.error"),
-								LPMain.getTextRespectUISPr("er.error.zuerst_lieferant_waehlen"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("er.error.zuerst_lieferant_waehlen"));
 			}
-		} else if (eI.getActionCommand().equals(
-				ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERADRESSE)) {
+		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_ANSPRECHPARTNER_LIEFERADRESSE)) {
 			if (wtfLieferadresse.getText() != null) {
 				dialogQueryAnsprechpartnerLieferadresse();
 			} else {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.error"),
-								LPMain.getTextRespectUISPr("er.error.zuerst_lieferadresse_waehlen"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("er.error.zuerst_lieferadresse_waehlen"));
 			}
-		} else if (eI.getActionCommand().equals(
-				ACTION_SPECIAL_ANSPRECHPARTNER_ABHOLADRESSE)) {
+		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_ANSPRECHPARTNER_ABHOLADRESSE)) {
 			if (wtfAbholadresse.getText() != null) {
 				dialogQueryAnsprechpartnerAbholadresse();
 			} else {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.error"),
-								LPMain.getTextRespectUISPr("best.error.zuerst_abholadresse_waehlen"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("best.error.zuerst_abholadresse_waehlen"));
 			}
 		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_ANFORDERER)) {
 			dialogQueryAnforderer();
+		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_INTERNERANFORDERER)) {
+			panelQueryFLRInternerAnforderer = PersonalFilterFactory.getInstance().createPanelFLRPersonal(
+					getInternalFrame(), true, true, getBestellungDto().getPersonalIIdInterneranforderer());
+			new DialogQuery(panelQueryFLRInternerAnforderer);
 		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_LIEFERADRESSE)) {
 			wtfAnsprechpartnerLieferadresse.setText(null);
 			dialogQueryLieferadresse();
@@ -1285,51 +1267,60 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			dialogQueryRahmenbestellungFromListe();
 		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_AUFTRAG)) {
 			dialogQueryAuftrag();
-		} else if (eI.getActionCommand().equals(
-				ACTION_SPECIAL_BESTELLUNGART_CHANGED)) {
+		} else if (eI.getActionCommand().equals(ACTION_SPECIAL_BESTELLUNGART_CHANGED)) {
 			bestellungsartChanged();
-		} else if (eI.getActionCommand().equals(
-				TabbedPaneBestellung.MY_OWN_NEW_NEUER_WARENEINGANG_AUS_WEP)) {
+		} else if (eI.getActionCommand().equals(TabbedPaneBestellung.MY_OWN_NEW_NEUER_WARENEINGANG_AUS_WEP)) {
 			// Neue Wareneingang aus Dialog anlegen
-			DialogNeuerWareneingang dialog = new DialogNeuerWareneingang(
-					getTabbedPaneBestellung());
-			LPMain.getInstance().getDesktop()
-					.platziereDialogInDerMitteDesFensters(dialog);
+			DialogNeuerWareneingang dialog = new DialogNeuerWareneingang(getTabbedPaneBestellung());
+			LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(dialog);
 			dialog.setVisible(true);
+		} else if (eI.getSource() != null && (eI.getSource().equals(wcbDivisor)
+				|| eI.getSource().equals(wcbManuellAbruf) || eI.getSource().equals(wcbRest))) {
+
+			abrufCheckBoxSetzen();
+
 		}
+
+	}
+
+	private void abrufCheckBoxSetzen() {
+		wnfDivisor.setVisible(true);
+		wnfDivisor.setMandatoryField(true);
+
+		if (wcbManuellAbruf.isSelected() || wcbRest.isSelected()) {
+			wnfDivisor.setVisible(false);
+			wnfDivisor.setMandatoryField(false);
+		}
+		jPanelAbrufBes.updateUI();
 	}
 
 	private void bestellungsartChanged() throws Throwable {
 
 		/** @todo JO qs PJ 4868 */
-		if (wcoBestellungsart.getKeyOfSelectedItem().equals(
-				BestellungFac.BESTELLUNGART_RAHMENBESTELLUNG_C_NR)) {
-			wlaLiefertermin.setText(LPMain
-					.getTextRespectUISPr("lp.rahmentermin"));
+		if (wcoBestellungsart.getKeyOfSelectedItem().equals(BestellungFac.BESTELLUNGART_RAHMENBESTELLUNG_C_NR)) {
+			wlaLiefertermin.setText(LPMain.getTextRespectUISPr("lp.rahmentermin"));
 			setVisisbleMahnfelder(false);
 		} else {
-			wlaLiefertermin.setText(LPMain
-					.getTextRespectUISPr("label.liefertermin"));
+			wlaLiefertermin.setText(LPMain.getTextRespectUISPr("label.liefertermin"));
 		}
 		bAbrufbesUndNeu = false;
-		if (wcoBestellungsart.getKeyOfSelectedItem().equals(
-				BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
+		if (wcoBestellungsart.getKeyOfSelectedItem().equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
 			setVisisbleAbrufausrahmen(true);
 
 			wtfAbrufausrahmencnr.setMandatoryField(true);
 
-			bAbrufbesUndNeu = (getTabbedPaneBestellung() != null)
-					&& (getTabbedPaneBestellung().getBesDto() != null)
+			bAbrufbesUndNeu = (getTabbedPaneBestellung() != null) && (getTabbedPaneBestellung().getBesDto() != null)
 					&& (getTabbedPaneBestellung().getBesDto().getIId() == null);
 
 			wlaLeer.setVisible(!bAbrufbesUndNeu);
-			wnfDivisor.setMandatoryField(bAbrufbesUndNeu);
+			if (wcbDivisor.isSelected()) {
+				wnfDivisor.setMandatoryField(bAbrufbesUndNeu);
+			}
 			jPanelAbrufBes.setVisible(bAbrufbesUndNeu);
-			wnfDivisor.getText();
+			wnfDivisor.getInteger();
 		} else {
 			if (getInternalFrameBestellung().getTabbedPaneBestellung() != null) {
-				getInternalFrameBestellung().getTabbedPaneBestellung()
-						.setRahmBesDto(new BestellungDto());
+				getInternalFrameBestellung().getTabbedPaneBestellung().setRahmBesDto(new BestellungDto());
 			}
 
 			wtfAbrufausrahmencnr.setText("");
@@ -1342,29 +1333,24 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			jPanelAbrufBes.setVisible(false);
 		}
 
-		if (wcoBestellungsart.getKeyOfSelectedItem().equals(
-				BestellungFac.BESTELLUNGART_RAHMENBESTELLUNG_C_NR)) {
+		if (wcoBestellungsart.getKeyOfSelectedItem().equals(BestellungFac.BESTELLUNGART_RAHMENBESTELLUNG_C_NR)) {
 			setVisibleAbrufe(true);
 		} else {
 			setVisibleAbrufe(false);
 		}
 
-		setVisibleLeihtage(wcoBestellungsart.getKeyOfSelectedItem().equals(
-				BestellungFac.BESTELLUNGART_LEIHBESTELLUNG_C_NR));
+		setVisibleLeihtage(
+				wcoBestellungsart.getKeyOfSelectedItem().equals(BestellungFac.BESTELLUNGART_LEIHBESTELLUNG_C_NR));
 	}
 
 	private void dialogQueryRahmenbestellungFromListe() throws Throwable {
 		Integer rahmbesIId = null;
-		if (getInternalFrameBestellung().getTabbedPaneBestellung()
-				.getRahmBesDto() != null) {
-			rahmbesIId = getInternalFrameBestellung().getTabbedPaneBestellung()
-					.getRahmBesDto().getIId();
+		if (getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto() != null) {
+			rahmbesIId = getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getIId();
 		}
-		FilterKriterium[] fk = BestellungFilterFactory.getInstance()
-				.createFKRahmenbestellungenEinesMandanten();
-		panelQueryFLRRahmenauswahl = BestellungFilterFactory.getInstance()
-				.createPanelFLRBestellung(getInternalFrame(), false, false, fk,
-						rahmbesIId);
+		FilterKriterium[] fk = BestellungFilterFactory.getInstance().createFKRahmenbestellungenEinesMandanten();
+		panelQueryFLRRahmenauswahl = BestellungFilterFactory.getInstance().createPanelFLRBestellung(getInternalFrame(),
+				false, false, fk, rahmbesIId);
 		new DialogQuery(panelQueryFLRRahmenauswahl);
 	}
 
@@ -1375,14 +1361,12 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 */
 	private void dialogQueryAnforderer() throws Throwable {
 		if (anfordererDto != null) {
-			panelQueryFLRAnforderer = PersonalFilterFactory.getInstance()
-					.createPanelFLRPersonal(getInternalFrame(), true, false,
-							anfordererDto.getIId());
+			panelQueryFLRAnforderer = PersonalFilterFactory.getInstance().createPanelFLRPersonal(getInternalFrame(),
+					true, true, anfordererDto.getIId());
 			new DialogQuery(panelQueryFLRAnforderer);
 		} else {
-			panelQueryFLRAnforderer = PersonalFilterFactory.getInstance()
-					.createPanelFLRPersonal(getInternalFrame(), true, false,
-							null);
+			panelQueryFLRAnforderer = PersonalFilterFactory.getInstance().createPanelFLRPersonal(getInternalFrame(),
+					true, true, null);
 			new DialogQuery(panelQueryFLRAnforderer);
 		}
 	}
@@ -1395,19 +1379,12 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private void dialogQueryLieferadresse() throws Throwable {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRLieferadresse = new PanelQueryFLR(
-				null,
-				null,
-				QueryParameters.UC_ID_PARTNER,
-				aWhichButtonIUse,
-				getInternalFrameBestellung(),
-				LPMain.getTextRespectUISPr("bes.title.lieferadresseauswahlliste"));
+		panelQueryFLRLieferadresse = new PanelQueryFLR(null, null, QueryParameters.UC_ID_PARTNER, aWhichButtonIUse,
+				getInternalFrameBestellung(), LPMain.getTextRespectUISPr("bes.title.lieferadresseauswahlliste"));
 
-		panelQueryFLRLieferadresse
-				.befuellePanelFilterkriterienDirekt(PartnerFilterFactory
-						.getInstance().createFKDPartnerName(),
-						PartnerFilterFactory.getInstance()
-								.createFKDPartnerLandPLZOrt());
+		panelQueryFLRLieferadresse.befuellePanelFilterkriterienDirekt(
+				PartnerFilterFactory.getInstance().createFKDPartnerName(),
+				PartnerFilterFactory.getInstance().createFKDPartnerLandPLZOrt());
 
 		new DialogQuery(panelQueryFLRLieferadresse);
 	}
@@ -1415,19 +1392,12 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private void dialogQueryAbholadresse() throws Throwable {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRAbholadresse = new PanelQueryFLR(
-				null,
-				null,
-				QueryParameters.UC_ID_PARTNER,
-				aWhichButtonIUse,
-				getInternalFrameBestellung(),
-				LPMain.getTextRespectUISPr("bes.title.abholadresseauswahlliste"));
+		panelQueryFLRAbholadresse = new PanelQueryFLR(null, null, QueryParameters.UC_ID_PARTNER, aWhichButtonIUse,
+				getInternalFrameBestellung(), LPMain.getTextRespectUISPr("bes.title.abholadresseauswahlliste"));
 
-		panelQueryFLRAbholadresse
-				.befuellePanelFilterkriterienDirekt(PartnerFilterFactory
-						.getInstance().createFKDPartnerName(),
-						PartnerFilterFactory.getInstance()
-								.createFKDPartnerLandPLZOrt());
+		panelQueryFLRAbholadresse.befuellePanelFilterkriterienDirekt(
+				PartnerFilterFactory.getInstance().createFKDPartnerName(),
+				PartnerFilterFactory.getInstance().createFKDPartnerLandPLZOrt());
 
 		new DialogQuery(panelQueryFLRAbholadresse);
 	}
@@ -1438,11 +1408,8 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 * @throws Throwable
 	 */
 	private void dialogQueryLieferant() throws Throwable {
-		panelQueryFLRLieferant = PartnerFilterFactory.getInstance()
-				.createPanelFLRLieferantGoto(
-						getInternalFrame(),
-						getTabbedPaneBestellung().getBesDto()
-								.getLieferantIIdBestelladresse(), true, false);
+		panelQueryFLRLieferant = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(),
+				getTabbedPaneBestellung().getBesDto().getLieferantIIdBestelladresse(), true, false);
 		new DialogQuery(panelQueryFLRLieferant);
 	}
 
@@ -1452,34 +1419,25 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 * @throws Throwable
 	 */
 	private void dialogQueryAnsprechpartner() throws Throwable {
-		Integer ansprechpartnerIId = getTabbedPaneBestellung().getBesDto()
-				.getAnsprechpartnerIId();
+		Integer ansprechpartnerIId = getTabbedPaneBestellung().getBesDto().getAnsprechpartnerIId();
 		panelQueryFLRAnsprechpartner = PartnerFilterFactory.getInstance()
-				.createPanelFLRAnsprechpartner(
-						getInternalFrame(),
-						getInternalFrameBestellung().getTabbedPaneBestellung()
-								.getLieferantDto().getPartnerDto().getIId(),
-						ansprechpartnerIId, true, true);
+				.createPanelFLRAnsprechpartner(getInternalFrame(), getInternalFrameBestellung()
+						.getTabbedPaneBestellung().getLieferantDto().getPartnerDto().getIId(), ansprechpartnerIId, true,
+						true);
 		new DialogQuery(panelQueryFLRAnsprechpartner);
 	}
 
 	private void dialogQueryAnsprechpartnerLieferadresse() throws Throwable {
-		Integer ansprechpartnerIId = getTabbedPaneBestellung().getBesDto()
-				.getAnsprechpartnerIIdLieferadresse();
-		panelQueryFLRAnsprechpartnerLieferadresse = PartnerFilterFactory
-				.getInstance().createPanelFLRAnsprechpartner(
-						getInternalFrame(), lieferadresseDto.getIId(),
-						ansprechpartnerIId, true, true);
+		Integer ansprechpartnerIId = getTabbedPaneBestellung().getBesDto().getAnsprechpartnerIIdLieferadresse();
+		panelQueryFLRAnsprechpartnerLieferadresse = PartnerFilterFactory.getInstance().createPanelFLRAnsprechpartner(
+				getInternalFrame(), lieferadresseDto.getIId(), ansprechpartnerIId, true, true);
 		new DialogQuery(panelQueryFLRAnsprechpartnerLieferadresse);
 	}
 
 	private void dialogQueryAnsprechpartnerAbholadresse() throws Throwable {
-		Integer ansprechpartnerIId = getTabbedPaneBestellung().getBesDto()
-				.getAnsprechpartnerIIdAbholadresse();
-		panelQueryFLRAnsprechpartnerAbholadresse = PartnerFilterFactory
-				.getInstance().createPanelFLRAnsprechpartner(
-						getInternalFrame(), abholadresseDto.getIId(),
-						ansprechpartnerIId, true, true);
+		Integer ansprechpartnerIId = getTabbedPaneBestellung().getBesDto().getAnsprechpartnerIIdAbholadresse();
+		panelQueryFLRAnsprechpartnerAbholadresse = PartnerFilterFactory.getInstance().createPanelFLRAnsprechpartner(
+				getInternalFrame(), abholadresseDto.getIId(), ansprechpartnerIId, true, true);
 		new DialogQuery(panelQueryFLRAnsprechpartnerAbholadresse);
 	}
 
@@ -1487,9 +1445,8 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		boolean bErrorErkannt = true;
 
 		if (exfc.getICode() == EJBExceptionLP.FEHLER_KEIN_PARTNER_GEWAEHLT) {
-			DialogFactory.showModalDialog(LPMain
-					.getTextRespectUISPr("lp.error"), LPMain
-					.getTextRespectUISPr("lp.error.lieferantnichtgewaehlt"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.lieferantnichtgewaehlt"));
 		} else {
 			bErrorErkannt = false;
 		}
@@ -1502,21 +1459,15 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 * @throws Throwable
 	 */
 	private void dialogQueryRechnungsadresse() throws Throwable {
-		panelQueryFLRRechnungsadresse = PartnerFilterFactory
-				.getInstance()
-				.createPanelFLRLieferantGoto(
-						getInternalFrame(),
-						getTabbedPaneBestellung().getBesDto()
-								.getLieferantIIdRechnungsadresse(),
-						true,
-						false,
-						LPMain.getTextRespectUISPr("title.rechnungsadresseauswahlliste"));
+		panelQueryFLRRechnungsadresse = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(),
+				getTabbedPaneBestellung().getBesDto().getLieferantIIdRechnungsadresse(), true, false,
+				LPMain.getTextRespectUISPr("title.rechnungsadresseauswahlliste"));
 		new DialogQuery(panelQueryFLRRechnungsadresse);
 	}
 
 	public void dialogQueryKostenstelle() throws Throwable {
-		panelQueryFLRKostenstelle = SystemFilterFactory.getInstance()
-				.createPanelFLRKostenstelle(getInternalFrame(), false, false);
+		panelQueryFLRKostenstelle = SystemFilterFactory.getInstance().createPanelFLRKostenstelle(getInternalFrame(),
+				false, false);
 		if (kostenstelleDto != null) {
 			panelQueryFLRKostenstelle.setSelectedId(kostenstelleDto.getIId());
 		}
@@ -1543,14 +1494,11 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	/**
 	 * eine rahmen-, abruf-, leih-, oder normale bestellung abspeichern
 	 * 
-	 * @param e
-	 *            der Save Button schickt dieses Event
-	 * @param bNeedNoSaveI
-	 *            flag
+	 * @param e            der Save Button schickt dieses Event
+	 * @param bNeedNoSaveI flag
 	 * @throws Throwable
 	 */
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
@@ -1558,18 +1506,14 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			if (besDto.getBestellungartCNr() != null) {
 
 				// PJ 15052
-				if (Helper.cutTimestamp(besDto.getDLiefertermin()).before(
-						Helper.cutDate(besDto.getDBelegdatum()))) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.warning"),
-									LPMain.getTextRespectUISPr("bes.warning.lieferterminvorbelegdatum"));
+				if (Helper.cutTimestamp(besDto.getDLiefertermin()).before(Helper.cutDate(besDto.getDBelegdatum()))) {
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+							LPMain.getTextRespectUISPr("bes.warning.lieferterminvorbelegdatum"));
 				}
 
 				Integer iIdBes = null;
 
-				if (besDto.getBestellungartCNr().equals(
-						BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
+				if (besDto.getBestellungartCNr().equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
 					// --ist AbrufBes
 					if (wtfAbrufausrahmencnr.getText() == null) {
 						// --keine abrufbes mehr -> rahmenbezug loeschen
@@ -1584,38 +1528,27 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 					// create
 					besDto.setMandantCNr(LPMain.getTheClient().getMandant());
 					addExtraDaten(besDto);
-					iIdBes = DelegateFactory.getInstance()
-							.getBestellungDelegate().createBestellung(besDto);
+					iIdBes = DelegateFactory.getInstance().getBestellungDelegate().createBestellung(besDto);
 					besDto.setIId(iIdBes);
 					setKeyWhenDetailPanel(iIdBes);
-					DelegateFactory
-							.getInstance()
-							.getLieferantDelegate()
-							.pruefeLieferant(
-									besDto.getLieferantIIdBestelladresse(),LocaleFac.BELEGART_BESTELLUNG,
-									getInternalFrame());
+					DelegateFactory.getInstance().getLieferantDelegate().pruefeLieferant(
+							besDto.getLieferantIIdBestelladresse(), LocaleFac.BELEGART_BESTELLUNG, getInternalFrame());
 
 					getTabbedPaneBestellung().setBestellungDto(
-							DelegateFactory.getInstance()
-									.getBestellungDelegate()
-									.bestellungFindByPrimaryKey(iIdBes));
+							DelegateFactory.getInstance().getBestellungDelegate().bestellungFindByPrimaryKey(iIdBes));
 
 				} else {
 					bNeueBestellung = false;
 
 					// SP1141
 					boolean bUpdate = true;
-					BestellungDto aDtoVorhanden = DelegateFactory.getInstance()
-							.getBestellungDelegate()
+					BestellungDto aDtoVorhanden = DelegateFactory.getInstance().getBestellungDelegate()
 							.bestellungFindByPrimaryKey(besDto.getIId());
-					if (!aDtoVorhanden.getLieferantIIdBestelladresse().equals(
-							besDto.getLieferantIIdBestelladresse())) {
+					if (!aDtoVorhanden.getLieferantIIdBestelladresse().equals(besDto.getLieferantIIdBestelladresse())) {
 
-						DialogGeaenderteKonditionenEK dialog = new DialogGeaenderteKonditionenEK(
-								besDto, besDto.getLieferantIIdBestelladresse(),
-								getInternalFrame());
-						LPMain.getInstance().getDesktop()
-								.platziereDialogInDerMitteDesFensters(dialog);
+						DialogGeaenderteKonditionenEK dialog = new DialogGeaenderteKonditionenEK(besDto,
+								besDto.getLieferantIIdBestelladresse(), getInternalFrame());
+						LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(dialog);
 
 						if (dialog.bKonditionenUnterschiedlich == true) {
 							dialog.setVisible(true);
@@ -1630,29 +1563,24 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 					}
 
 					// update
-					if (!BestellungFac.BESTELLSTATUS_STORNIERT.equals(besDto
-							.getStatusCNr())) {
+					if (!BestellungFac.BESTELLSTATUS_STORNIERT.equals(besDto.getStatusCNr())) {
 						// Wenn Status nicht storniert muss tStorniert null sein
 						besDto.setTStorniert(null);
 					}
 					if (bUpdate == true) {
-						DelegateFactory.getInstance().getBestellungDelegate()
-								.updateBestellung(besDto);
+						DelegateFactory.getInstance().getBestellungDelegate().updateBestellung(besDto);
 					}
 					setKeyWhenDetailPanel(besDto.getIId());
 				}
 
 				super.eventActionSave(e, true); // ok
-				getInternalFrame().setKeyWasForLockMe(
-						getKeyWhenDetailPanel() + "");
+				getInternalFrame().setKeyWasForLockMe(getKeyWhenDetailPanel() + "");
 				eventYouAreSelected(false); // ok
 
 				// Wenn eine neue Abrufbestellung angelegt wurde, schalten wir
 				// auf die "Sicht Rahmen" um.
 				if (bNeueBestellung
-						&& besDto
-								.getBestellungartCNr()
-								.equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
+						&& besDto.getBestellungartCNr().equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
 					// --ist AbrufBes
 					workoutAbrufBes(iIdBes);
 				}
@@ -1660,8 +1588,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		}
 	}
 
-	private void workoutAbrufBes(Integer iIdAbrufBesI) throws ExceptionLP,
-			Throwable {
+	private void workoutAbrufBes(Integer iIdAbrufBesI) throws ExceptionLP, Throwable {
 
 		if (wcbDivisor.isSelected() || wcbRest.isSelected()) {
 			if (wcbRest.isSelected()) {
@@ -1671,65 +1598,59 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 			int iDivisor = wnfDivisor.getInteger();
 
-			DelegateFactory.getInstance().getBestellungDelegate()
-					.erzeugeAbrufpositionen(iIdAbrufBesI, iDivisor);
+			DelegateFactory.getInstance().getBestellungDelegate().erzeugeAbrufpositionen(iIdAbrufBesI, iDivisor);
 			getTabbedPaneBestellung().refreshBestellungPositionSichtRahmen();
-			getTabbedPaneBestellung().setSelectedComponent(
-					getTabbedPaneBestellung()
-							.getPanelBestellungPositionSichtRahmenSP6());
 			getTabbedPaneBestellung()
-					.getPanelBestellungPositionSichtRahmenSP6()
-					.eventYouAreSelected(false);
+					.setSelectedComponent(getTabbedPaneBestellung().getPanelBestellungPositionSichtRahmenSP6());
+			getTabbedPaneBestellung().getPanelBestellungPositionSichtRahmenSP6().eventYouAreSelected(false);
 
 		}
 
 		else if (wcbManuellAbruf.isSelected()) {
 			// alle bespos mit restmenge in sicht rahmen anzeigen
 			getTabbedPaneBestellung().refreshBestellungPositionSichtRahmen();
-			getTabbedPaneBestellung().setSelectedComponent(
-					getTabbedPaneBestellung()
-							.getPanelBestellungPositionSichtRahmenSP6());
 			getTabbedPaneBestellung()
-					.getPanelBestellungPositionSichtRahmenSP6()
-					.eventYouAreSelected(false);
+					.setSelectedComponent(getTabbedPaneBestellung().getPanelBestellungPositionSichtRahmenSP6());
+			getTabbedPaneBestellung().getPanelBestellungPositionSichtRahmenSP6().eventYouAreSelected(false);
 		}
 	}
 
 	private void addExtraDaten(BestellungDto besDto) throws Throwable {
 
 		if (besDto.getIBestellungIIdRahmenbestellung() != null
-				&& besDto.getBestellungartCNr().equals(
-						BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
+				&& besDto.getBestellungartCNr().equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
 
-			BestellungDto rahmenbestellungDto = DelegateFactory
-					.getInstance()
-					.getBestellungDelegate()
-					.bestellungFindByPrimaryKey(
-							besDto.getIBestellungIIdRahmenbestellung());
+			BestellungDto rahmenbestellungDto = DelegateFactory.getInstance().getBestellungDelegate()
+					.bestellungFindByPrimaryKey(besDto.getIBestellungIIdRahmenbestellung());
 
 			// SP2661
 
-			besDto.setFAllgemeinerRabattsatz(rahmenbestellungDto
-					.getFAllgemeinerRabattsatz());
+			besDto.setFAllgemeinerRabattsatz(rahmenbestellungDto.getFAllgemeinerRabattsatz());
 
 			besDto.setZahlungszielIId(rahmenbestellungDto.getZahlungszielIId());
 			besDto.setLieferartIId(rahmenbestellungDto.getLieferartIId());
 			besDto.setSpediteurIId(rahmenbestellungDto.getSpediteurIId());
 		} else {
 			if (besDto.getFAllgemeinerRabattsatz() == null) {
-				// kein rabatt->mit 0 vorbesetzen.
-				besDto.setFAllgemeinerRabattsatz(new Double(0));
-			}
+				// Rabatt wird am Server vom Lieferant vorbesetzt
+				// besDto.setFAllgemeinerRabattsatz(new Double(0));
 
-			besDto.setZahlungszielIId(getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getLieferantDto()
-					.getZahlungszielIId());
-			besDto.setLieferartIId(getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getLieferantDto()
-					.getLieferartIId());
-			besDto.setSpediteurIId(getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getLieferantDto()
-					.getIdSpediteur());
+			}
+			//SP9764
+			if(getLieferantDtoRechnungsadresse()!=null) {
+				besDto.setZahlungszielIId(getLieferantDtoRechnungsadresse().getZahlungszielIId());
+				besDto.setLieferartIId(getLieferantDtoRechnungsadresse().getLieferartIId());
+				besDto.setSpediteurIId(getLieferantDtoRechnungsadresse().getIdSpediteur());
+			}else {
+				besDto.setZahlungszielIId(
+						getInternalFrameBestellung().getTabbedPaneBestellung().getLieferantDto().getZahlungszielIId());
+				besDto.setLieferartIId(
+						getInternalFrameBestellung().getTabbedPaneBestellung().getLieferantDto().getLieferartIId());
+				besDto.setSpediteurIId(
+						getInternalFrameBestellung().getTabbedPaneBestellung().getLieferantDto().getIdSpediteur());
+			}
+			
+		
 		}
 
 	}
@@ -1739,72 +1660,56 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		wdfMahnsperre.setDate(getBestellungDto().getTMahnsperreBis());
 		wsfProjekt.setKey(getBestellungDto().getProjektIId());
 		if (getBestellungDto().getAnfrageIId() != null) {
-			AnfrageDto anfrageDto = DelegateFactory
-					.getInstance()
-					.getAnfrageDelegate()
+			AnfrageDto anfrageDto = DelegateFactory.getInstance().getAnfrageDelegate()
 					.anfrageFindByPrimaryKey(getBestellungDto().getAnfrageIId());
 			wtfAnfrage.setText(anfrageDto.getCNr());
 		} else {
 			wtfAnfrage.setText(null);
 		}
 
-		holeKostenstelle(getTabbedPaneBestellung().getBesDto()
-				.getKostenstelleIId());
+		holeKostenstelle(getTabbedPaneBestellung().getBesDto().getKostenstelleIId());
 
 		wtfProjekt.setText(getTabbedPaneBestellung().getBesDto().getCBez());
-		wtfLieferantenangebot.setText(getTabbedPaneBestellung().getBesDto()
-				.getCLieferantenangebot());
+		wtfLieferantenangebot.setText(getTabbedPaneBestellung().getBesDto().getCLieferantenangebot());
 
-		wcbPoenale
-				.setShort(getTabbedPaneBestellung().getBesDto().getBPoenale());
+		wbuAnfrage.setOKey(getTabbedPaneBestellung().getBesDto().getAnfrageIId());
 
-		wcoBestellungsart.setKeyOfSelectedItem(getTabbedPaneBestellung()
-				.getBesDto().getBestellungartCNr());
+		wcbPoenale.setShort(getTabbedPaneBestellung().getBesDto().getBPoenale());
 
+		wcoBestellungsart.setKeyOfSelectedItem(getTabbedPaneBestellung().getBesDto().getBestellungartCNr());
+
+		setVersionComponents(getTabbedPaneBestellung().getBesDto().getIVersion());
 		/*
 		 * PJ 13245 if
 		 * (getTabbedPaneBestellung().getBesDto().getBestellungartCNr().equals(
 		 * BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) { wdfBelegdatum
 		 * .setDate(new java.sql.Date(System.currentTimeMillis())); } else {
 		 */
-		wdfBelegdatum.setDate(getTabbedPaneBestellung().getBesDto()
-				.getDBelegdatum());
+		wdfBelegdatum.setDate(getTabbedPaneBestellung().getBesDto().getDBelegdatum());
 
-		Timestamp liefertermin = getTabbedPaneBestellung().getBesDto()
-				.getDLiefertermin();
-		wdfLiefertermin.setDate(new java.sql.Date(
-				(liefertermin == null) ? System.currentTimeMillis()
-						: liefertermin.getTime()));
+		Timestamp liefertermin = getTabbedPaneBestellung().getBesDto().getDLiefertermin();
+		wdfLiefertermin.setDate(
+				new java.sql.Date((liefertermin == null) ? System.currentTimeMillis() : liefertermin.getTime()));
 
 		// Bestelladresse bestimmen
-		Integer iIdBestelladresse = getTabbedPaneBestellung().getBesDto()
-				.getLieferantIIdBestelladresse();
+		Integer iIdBestelladresse = getTabbedPaneBestellung().getBesDto().getLieferantIIdBestelladresse();
 
 		if (iIdBestelladresse != null) {
 
-			getInternalFrameBestellung().getTabbedPaneBestellung()
-					.setLieferantDto(
-							DelegateFactory
-									.getInstance()
-									.getLieferantDelegate()
-									.lieferantFindByPrimaryKey(
-											iIdBestelladresse));
+			getInternalFrameBestellung().getTabbedPaneBestellung().setLieferantDto(
+					DelegateFactory.getInstance().getLieferantDelegate().lieferantFindByPrimaryKey(iIdBestelladresse));
 
-			LieferantDto lieferantDto = getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getLieferantDto();
+			LieferantDto lieferantDto = getInternalFrameBestellung().getTabbedPaneBestellung().getLieferantDto();
 			PartnerDto partnerDto = lieferantDto.getPartnerDto();
 			if (partnerDto != null) {
-				wtfLieferantBestellung.setText(partnerDto
-						.formatFixTitelName1Name2());
+				wtfLieferantBestellung.setText(partnerDto.formatFixTitelName1Name2());
 				// wenn LF keine Rechnungsadresse hat dann wird Hauptadresse
 				// genommen
 				if (lieferantDto.getPartnerRechnungsadresseDto() == null) {
-					wtfLieferantRechnungsadresse.setText(partnerDto
-							.formatFixTitelName1Name2());
+					wtfLieferantRechnungsadresse.setText(partnerDto.formatFixTitelName1Name2());
 				} else {
-					wtfLieferantRechnungsadresse.setText(lieferantDto
-							.getPartnerRechnungsadresseDto()
-							.formatFixTitelName1Name2());
+					wtfLieferantRechnungsadresse
+							.setText(lieferantDto.getPartnerRechnungsadresseDto().formatFixTitelName1Name2());
 				}
 				if (kostenstelleDto == null) {
 					holeKostenstelle(lieferantDto.getIIdKostenstelle());
@@ -1814,109 +1719,92 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 				wbuLieferant.setOKey(lieferantDto.getIId());
 			}
 
-			getTabbedPaneBestellung().getBesDto()
-					.setLieferantIIdBestelladresse(iIdBestelladresse);
+			getTabbedPaneBestellung().getBesDto().setLieferantIIdBestelladresse(iIdBestelladresse);
 
 		}
 
-		wnfLeihtage.setInteger(getTabbedPaneBestellung().getBesDto()
-				.getILeihtage());
+		wnfLeihtage.setInteger(getTabbedPaneBestellung().getBesDto().getILeihtage());
 		if (getTabbedPaneBestellung().getBesDto().getBTeillieferungMoeglich() != null) {
-			wcbTeillieferung.setShort(getTabbedPaneBestellung().getBesDto()
-					.getBTeillieferungMoeglich());
+			wcbTeillieferung.setShort(getTabbedPaneBestellung().getBesDto().getBTeillieferungMoeglich());
 		}
 
-		Integer iIdLieferadresse = getTabbedPaneBestellung().getBesDto()
-				.getPartnerIIdLieferadresse();
+		Integer iIdLieferadresse = getTabbedPaneBestellung().getBesDto().getPartnerIIdLieferadresse();
 		bestimmeUndZeigeLieferadresse(iIdLieferadresse);
 
-		Integer iIdAbholadresse = getTabbedPaneBestellung().getBesDto()
-				.getPartnerIIdAbholadresse();
+		Integer iIdAbholadresse = getTabbedPaneBestellung().getBesDto().getPartnerIIdAbholadresse();
 		bestimmeUndZeigeAbholadresse(iIdAbholadresse);
 
 		// Ansprechpartner bestimmen
-		Integer iIdAnsprechpartner = getTabbedPaneBestellung().getBesDto()
-				.getAnsprechpartnerIId();
+		Integer iIdAnsprechpartner = getTabbedPaneBestellung().getBesDto().getAnsprechpartnerIId();
 		bestimmeUndZeigeAnsprechpartner(iIdAnsprechpartner);
 
-		Integer iIdAnforderer = getTabbedPaneBestellung().getBesDto()
-				.getPersonalIIdAnforderer();
+		Integer iIdAnforderer = getTabbedPaneBestellung().getBesDto().getPersonalIIdAnforderer();
 		bestimmeUndZeigeAnforderer(iIdAnforderer);
 
-		Integer iIdAnsprechpartnerLieferadresse = getTabbedPaneBestellung()
-				.getBesDto().getAnsprechpartnerIIdLieferadresse();
+		if (getTabbedPaneBestellung().getBesDto().getPersonalIIdInterneranforderer() != null) {
+			PersonalDto anfordererDto = DelegateFactory.getInstance().getPersonalDelegate()
+					.personalFindByPrimaryKey(getTabbedPaneBestellung().getBesDto().getPersonalIIdInterneranforderer());
+			wtfInternerAnforderer.setText(anfordererDto.getPartnerDto().formatAnrede());
+
+		} else {
+			wtfInternerAnforderer.setText(null);
+		}
+
+		Integer iIdAnsprechpartnerLieferadresse = getTabbedPaneBestellung().getBesDto()
+				.getAnsprechpartnerIIdLieferadresse();
 		bestimmeUndZeigeAnsprechpartnerLieferadresse(iIdAnsprechpartnerLieferadresse);
 
-		Integer iIdAnsprechpartnerAbholadresse = getTabbedPaneBestellung()
-				.getBesDto().getAnsprechpartnerIIdAbholadresse();
+		Integer iIdAnsprechpartnerAbholadresse = getTabbedPaneBestellung().getBesDto()
+				.getAnsprechpartnerIIdAbholadresse();
 		bestimmeUndZeigeAnsprechpartnerAbholadresse(iIdAnsprechpartnerAbholadresse);
 
-		wcoWaehrungen.setKeyOfSelectedItem(getTabbedPaneBestellung()
-				.getBesDto().getWaehrungCNr());
+		wcoWaehrungen.setKeyOfSelectedItem(getTabbedPaneBestellung().getBesDto().getWaehrungCNr());
 
 		Double dWechselkursMandant2BS = getTabbedPaneBestellung().getBesDto()
 				.getFWechselkursmandantwaehrungzubelegwaehrung();
 		refreshLabelKurs(new BigDecimal(dWechselkursMandant2BS.doubleValue()));
 
 		// Rechnungsadresse bestimmen
-		Integer iIdRechnungsadresse = getTabbedPaneBestellung().getBesDto()
-				.getLieferantIIdRechnungsadresse();
+		Integer iIdRechnungsadresse = getTabbedPaneBestellung().getBesDto().getLieferantIIdRechnungsadresse();
 		bestimmeUndZeigeRechnungsadresse(iIdRechnungsadresse);
 
-		Integer iIdBestellungRahmenbestellung = getTabbedPaneBestellung()
-				.getBesDto().getIBestellungIIdRahmenbestellung();
+		Integer iIdBestellungRahmenbestellung = getTabbedPaneBestellung().getBesDto()
+				.getIBestellungIIdRahmenbestellung();
 
 		if (iIdBestellungRahmenbestellung != null) {
-			getInternalFrameBestellung().getTabbedPaneBestellung()
-					.setRahmBesDto(
-							DelegateFactory
-									.getInstance()
-									.getBestellungDelegate()
-									.bestellungFindByPrimaryKey(
-											iIdBestellungRahmenbestellung));
+			getInternalFrameBestellung().getTabbedPaneBestellung().setRahmBesDto(DelegateFactory.getInstance()
+					.getBestellungDelegate().bestellungFindByPrimaryKey(iIdBestellungRahmenbestellung));
 
-			wtfAbrufausrahmencnr.setText(getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getRahmBesDto().getCNr());
-			wbuRahmenauswahl.setOKey(getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getRahmBesDto().getIId());
-			wtfAbrufausrahmenbez.setText(getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getRahmBesDto().getCBez());
+			wtfAbrufausrahmencnr
+					.setText(getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getCNr());
+			wbuRahmenauswahl.setOKey(getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getIId());
+			wtfAbrufausrahmenbez
+					.setText(getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getCBez());
 		}
 
-		if (getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto()
-				.getBestellungartCNr()
+		if (getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getBestellungartCNr()
 				.equals(BestellungFac.BESTELLUNGART_RAHMENBESTELLUNG_C_NR)) {
 			// alle Abrufe anzeigen
-			BestellungDto[] aAbrufbestellungDto = DelegateFactory
-					.getInstance()
-					.getBestellungDelegate()
+			BestellungDto[] aAbrufbestellungDto = DelegateFactory.getInstance().getBestellungDelegate()
 					.abrufBestellungenfindByRahmenbestellung(
-							getInternalFrameBestellung()
-									.getTabbedPaneBestellung().getBesDto()
-									.getIId());
+							getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getIId());
 
 			wtaAbrufe.setText(formatBestellungen(aAbrufbestellungDto));
 		}
 
-		holeAuftrag(getInternalFrameBestellung().getTabbedPaneBestellung()
-				.getBesDto().getAuftragIId());
+		holeAuftrag(getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getAuftragIId());
 
 		StringBuffer sb = new StringBuffer();
 		wlaAnzahlungen.setVisible(true);
 		wtfAnzahlungen.setVisible(true);
-		EingangsrechnungDto[] dtos = DelegateFactory
-				.getInstance()
-				.getEingangsrechnungDelegate()
-				.findByBestellungIId(
-						getTabbedPaneBestellung().getBesDto().getIId());
+		EingangsrechnungDto[] dtos = DelegateFactory.getInstance().getEingangsrechnungDelegate()
+				.findByBestellungIId(getTabbedPaneBestellung().getBesDto().getIId());
 		for (EingangsrechnungDto dto : dtos) {
 			if (dto.getStatusCNr().equals(EingangsrechnungFac.STATUS_STORNIERT))
 				continue;
-			if (dto.getEingangsrechnungartCNr().equals(
-					EingangsrechnungFac.EINGANGSRECHNUNGART_ANZAHLUNG))
+			if (dto.getEingangsrechnungartCNr().equals(EingangsrechnungFac.EINGANGSRECHNUNGART_ANZAHLUNG))
 				sb.append("A ");
-			else if (dto.getEingangsrechnungartCNr().equals(
-					EingangsrechnungFac.EINGANGSRECHNUNGART_SCHLUSSZAHLUNG))
+			else if (dto.getEingangsrechnungartCNr().equals(EingangsrechnungFac.EINGANGSRECHNUNGART_SCHLUSSZAHLUNG))
 				sb.append("S ");
 			else
 				continue;
@@ -1924,7 +1812,16 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		}
 		wtfAnzahlungen.setText(sb.toString());
 
+		jtpInternerKommentar.setText(getTabbedPaneBestellung().getBesDto().getXInternerKommentar());
+		jtpExternerKommentar.setText(getTabbedPaneBestellung().getBesDto().getXExternerKommentar());
+
 		refreshStatusbar();
+	}
+
+	private void setVersionComponents(Integer iVersion) {
+		wnfVersion.setInteger(iVersion);
+		wnfVersion.setVisible(iVersion != null);
+		wlaVersion.setVisible(iVersion != null);
 	}
 
 	private static String formatBestellungen(BestellungDto[] aBestellungDtoI) {
@@ -1935,15 +1832,13 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 		if (aBestellungDtoI != null && aBestellungDtoI.length > 0) {
 			for (int i = 0; i < aBestellungDtoI.length; i++) {
-				
-				if (aBestellungDtoI[i].getStatusCNr().equals(
-						LocaleFac.STATUS_STORNIERT)) {
+
+				if (aBestellungDtoI[i].getStatusCNr().equals(LocaleFac.STATUS_STORNIERT)) {
 					cFormat += "(" + aBestellungDtoI[i].getCNr() + ")";
 				} else {
 					cFormat += aBestellungDtoI[i].getCNr();
 				}
-				
-				
+
 				iAnzahl++;
 
 				if (iAnzahl == 5) {
@@ -1965,117 +1860,127 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 * Die Anrede fuer einen Ansprechpartner bauen. <br>
 	 * Es muss keinen Ansprechpartner geben.
 	 * 
-	 * @param iIdAnsprechpartnerI
-	 *            pk des Ansprechpartners
+	 * @param iIdAnsprechpartnerI pk des Ansprechpartners
 	 * @throws Throwable
 	 */
-	private void bestimmeUndZeigeAnsprechpartner(Integer iIdAnsprechpartnerI)
-			throws Throwable {
+	private void bestimmeUndZeigeAnsprechpartner(Integer iIdAnsprechpartnerI) throws Throwable {
 
 		if (iIdAnsprechpartnerI != null) {
-			ansprechpartnerDto = DelegateFactory.getInstance()
-					.getAnsprechpartnerDelegate()
+			ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 					.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartnerI);
-			wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto()
-					.formatFixTitelName1Name2());
-			getTabbedPaneBestellung().getBesDto().setAnsprechpartnerIId(
-					iIdAnsprechpartnerI);
+			wtfAnsprechpartner.setText(ansprechpartnerDto.formatFixTitelVornameNachnameNTitel());
+			getTabbedPaneBestellung().getBesDto().setAnsprechpartnerIId(iIdAnsprechpartnerI);
+
+			if (getTabbedPaneBestellung().getLieferantDto() != null
+					&& getTabbedPaneBestellung().getLieferantDto().getPartnerDto() != null) {
+				// PJ22386
+				if (ansprechpartnerDto.getCTelefon() != null) {
+
+					wtfTelefon.setPartnerKommunikationDto(getTabbedPaneBestellung().getLieferantDto().getPartnerDto(),
+							ansprechpartnerDto.getCTelefon());
+
+					wtfTelefon.setTextDurchwahl(DelegateFactory.getInstance().getPartnerDelegate().enrichNumber(
+							getTabbedPaneBestellung().getLieferantDto().getPartnerDto().getIId(),
+							PartnerFac.KOMMUNIKATIONSART_TELEFON, ansprechpartnerDto.getCTelefon(), false));
+
+					if (Helper.short2boolean(ansprechpartnerDto.getBDurchwahl())) {
+						wtfTelefon.setIstAnsprechpartner(true);
+					} else {
+						wtfTelefon.setIstAnsprechpartner(false);
+						wtfTelefon.setPartnerKommunikationDto(
+								getTabbedPaneBestellung().getLieferantDto().getPartnerDto(),
+								ansprechpartnerDto.getCTelefon());
+					}
+
+				} else {
+					wtfTelefon.setPartnerKommunikationDto(getTabbedPaneBestellung().getLieferantDto().getPartnerDto(),
+							getTabbedPaneBestellung().getLieferantDto().getPartnerDto().getCTelefon());
+				}
+
+			}
+
 		} else {
 			getTabbedPaneBestellung().getBesDto().setAnsprechpartnerIId(null);
 			ansprechpartnerDto = null;
 			wtfAnsprechpartner.setText("");
+			
+			wtfTelefon.setPartnerKommunikationDto(getTabbedPaneBestellung().getLieferantDto().getPartnerDto(),
+					getTabbedPaneBestellung().getLieferantDto().getPartnerDto().getCTelefon());
+			
 		}
 	}
 
-	private void bestimmeUndZeigeAnsprechpartnerLieferadresse(
-			Integer iIdAnsprechpartnerI) throws Throwable {
+	private void bestimmeUndZeigeAnsprechpartnerLieferadresse(Integer iIdAnsprechpartnerI) throws Throwable {
 
 		if (iIdAnsprechpartnerI != null) {
-			ansprechpartnerLieferadresseDto = DelegateFactory.getInstance()
-					.getAnsprechpartnerDelegate()
+			ansprechpartnerLieferadresseDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 					.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartnerI);
 			wtfAnsprechpartnerLieferadresse
-					.setText(ansprechpartnerLieferadresseDto.getPartnerDto()
-							.formatFixTitelName1Name2());
-			getTabbedPaneBestellung().getBesDto()
-					.setAnsprechpartnerIIdLieferadresse(iIdAnsprechpartnerI);
+					.setText(ansprechpartnerLieferadresseDto.formatFixTitelVornameNachnameNTitel());
+			getTabbedPaneBestellung().getBesDto().setAnsprechpartnerIIdLieferadresse(iIdAnsprechpartnerI);
 		} else {
 			wtfAnsprechpartnerLieferadresse.setText("");
 		}
 	}
 
-	private void bestimmeUndZeigeAnsprechpartnerAbholadresse(
-			Integer iIdAnsprechpartnerI) throws Throwable {
+	private void bestimmeUndZeigeAnsprechpartnerAbholadresse(Integer iIdAnsprechpartnerI) throws Throwable {
 
 		if (iIdAnsprechpartnerI != null) {
-			ansprechpartnerAbholadresseDto = DelegateFactory.getInstance()
-					.getAnsprechpartnerDelegate()
+			ansprechpartnerAbholadresseDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 					.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartnerI);
 			wtfAnsprechpartnerAbholadresse
-					.setText(ansprechpartnerAbholadresseDto.getPartnerDto()
-							.formatFixTitelName1Name2());
-			getTabbedPaneBestellung().getBesDto()
-					.setAnsprechpartnerIIdAbholadresse(iIdAnsprechpartnerI);
+					.setText(ansprechpartnerAbholadresseDto.formatFixTitelVornameNachnameNTitel());
+			getTabbedPaneBestellung().getBesDto().setAnsprechpartnerIIdAbholadresse(iIdAnsprechpartnerI);
 		} else {
 			wtfAnsprechpartnerAbholadresse.setText("");
 		}
 	}
 
 	/**
-	 * Die Anrede fuer einen Ansprechpartner bauen. Es muss keinen
-	 * Ansprechpartner geben.
+	 * Die Anrede fuer einen Ansprechpartner bauen. Es muss keinen Ansprechpartner
+	 * geben.
 	 * 
-	 * @param iIdRechnungsadresseI
-	 *            pk des Ansprechpartners
+	 * @param iIdRechnungsadresseI pk des Ansprechpartners
 	 * @throws Throwable
 	 */
-	private void bestimmeUndZeigeRechnungsadresse(Integer iIdRechnungsadresseI)
-			throws Throwable {
+	private void bestimmeUndZeigeRechnungsadresse(Integer iIdRechnungsadresseI) throws Throwable {
 		if (iIdRechnungsadresseI != null) {
 			try {
-				setLieferantDtoRechnungsadresse(DelegateFactory.getInstance()
-						.getLieferantDelegate()
+				setLieferantDtoRechnungsadresse(DelegateFactory.getInstance().getLieferantDelegate()
 						.lieferantFindByPrimaryKey(iIdRechnungsadresseI));
 				this.wtfLieferantRechnungsadresse
-						.setText(getLieferantDtoRechnungsadresse()
-								.getPartnerDto().formatFixTitelName1Name2());
-				getTabbedPaneBestellung().getBesDto()
-						.setLieferantIIdRechnungsadresse(iIdRechnungsadresseI);
+						.setText(getLieferantDtoRechnungsadresse().getPartnerDto().formatFixTitelName1Name2());
+				getTabbedPaneBestellung().getBesDto().setLieferantIIdRechnungsadresse(iIdRechnungsadresseI);
 			} catch (Throwable t) {
 				/**
 				 * @todo so nicht
 				 */
-				getTabbedPaneBestellung().setRechnungPartnerDto(
-						DelegateFactory.getInstance().getPartnerDelegate()
-								.partnerFindByPrimaryKey(iIdRechnungsadresseI));
+				getTabbedPaneBestellung().setRechnungPartnerDto(DelegateFactory.getInstance().getPartnerDelegate()
+						.partnerFindByPrimaryKey(iIdRechnungsadresseI));
 				this.wtfLieferantRechnungsadresse
-						.setText(getTabbedPaneBestellung()
-								.getRechnungPartnerDto()
-								.formatFixTitelName1Name2());
+						.setText(getTabbedPaneBestellung().getRechnungPartnerDto().formatFixTitelName1Name2());
 			}
+		} else {
+			setLieferantDtoRechnungsadresse(null);
 		}
 	}
 
-	private void bestimmeUndZeigeAnforderer(Integer iIdAnfordererI)
-			throws Throwable {
+	private void bestimmeUndZeigeAnforderer(Integer iIdAnfordererI) throws Throwable {
 		if (iIdAnfordererI != null) {
 			anfordererDto = DelegateFactory.getInstance().getPersonalDelegate()
 					.personalFindByPrimaryKey(iIdAnfordererI);
 			if (anfordererDto != null && anfordererDto.getIId() != null) {
-				wtfAnforderer.setText(anfordererDto.getPartnerDto()
-						.formatAnrede());
+				wtfAnforderer.setText(anfordererDto.getPartnerDto().formatAnrede());
 			}
 		} else {
 			wtfAnforderer.setText("");
 		}
 	}
 
-	private void bestimmeUndZeigeLieferadresse(Integer iIdLieferadresse)
-			throws Throwable {
+	private void bestimmeUndZeigeLieferadresse(Integer iIdLieferadresse) throws Throwable {
 
 		if (iIdLieferadresse != null) {
-			lieferadresseDto = DelegateFactory.getInstance()
-					.getPartnerDelegate()
+			lieferadresseDto = DelegateFactory.getInstance().getPartnerDelegate()
 					.partnerFindByPrimaryKey(iIdLieferadresse);
 			if (lieferadresseDto != null && lieferadresseDto.getIId() != null) {
 				wtfLieferadresse.setText(lieferadresseDto.formatAnrede());
@@ -2085,12 +1990,10 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		}
 	}
 
-	private void bestimmeUndZeigeAbholadresse(Integer iIdAbholadresse)
-			throws Throwable {
+	private void bestimmeUndZeigeAbholadresse(Integer iIdAbholadresse) throws Throwable {
 
 		if (iIdAbholadresse != null) {
-			abholadresseDto = DelegateFactory.getInstance()
-					.getPartnerDelegate()
+			abholadresseDto = DelegateFactory.getInstance().getPartnerDelegate()
 					.partnerFindByPrimaryKey(iIdAbholadresse);
 			if (abholadresseDto != null && abholadresseDto.getIId() != null) {
 				wtfAbholadresse.setText(abholadresseDto.formatAnrede());
@@ -2107,64 +2010,44 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 */
 	private void components2Dto() throws Throwable {
 
-		getTabbedPaneBestellung().getBesDto().setTMahnsperreBis(
-				wdfMahnsperre.getDate());
+		getTabbedPaneBestellung().getBesDto().setTMahnsperreBis(wdfMahnsperre.getDate());
 
 		getTabbedPaneBestellung().getBesDto().setCBez(wtfProjekt.getText());
-		getTabbedPaneBestellung().getBesDto().setCLieferantenangebot(
-				wtfLieferantenangebot.getText());
+		getTabbedPaneBestellung().getBesDto().setCLieferantenangebot(wtfLieferantenangebot.getText());
 
-		getTabbedPaneBestellung().getBesDto().setDBelegdatum(
-				wdfBelegdatum.getDate());
-		getTabbedPaneBestellung().getBesDto()
-				.setBPoenale(wcbPoenale.getShort());
-		getTabbedPaneBestellung().getBesDto().setBestellungartCNr(
-				(String) wcoBestellungsart.getKeyOfSelectedItem());
+		getTabbedPaneBestellung().getBesDto().setDBelegdatum(wdfBelegdatum.getDate());
+		getTabbedPaneBestellung().getBesDto().setBPoenale(wcbPoenale.getShort());
+		getTabbedPaneBestellung().getBesDto().setBestellungartCNr((String) wcoBestellungsart.getKeyOfSelectedItem());
 
-		if (getInternalFrameBestellung().getTabbedPaneBestellung()
-				.getRahmBesDto() != null) {
-			if (wcoBestellungsart.getKeyOfSelectedItem().equals(
-					BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
-				getTabbedPaneBestellung().getBesDto()
-						.setIBestellungIIdRahmenbestellung(
-								getInternalFrameBestellung()
-										.getTabbedPaneBestellung()
-										.getRahmBesDto().getIId());
+		if (getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto() != null) {
+			if (wcoBestellungsart.getKeyOfSelectedItem().equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
+				getTabbedPaneBestellung().getBesDto().setIBestellungIIdRahmenbestellung(
+						getInternalFrameBestellung().getTabbedPaneBestellung().getRahmBesDto().getIId());
 			} else {
-				getTabbedPaneBestellung().getBesDto()
-						.setIBestellungIIdRahmenbestellung(null);
+				getTabbedPaneBestellung().getBesDto().setIBestellungIIdRahmenbestellung(null);
 			}
 		}
 
 		feldBelegung();
 
-		getTabbedPaneBestellung().getBesDto().setILeihtage(
-				wnfLeihtage.getInteger());
-		getTabbedPaneBestellung().getBesDto().setWaehrungCNr(
-				(String) wcoWaehrungen.getKeyOfSelectedItem());
+		getTabbedPaneBestellung().getBesDto().setILeihtage(wnfLeihtage.getInteger());
+		getTabbedPaneBestellung().getBesDto().setWaehrungCNr((String) wcoWaehrungen.getKeyOfSelectedItem());
 
 		getTabbedPaneBestellung().getBesDto()
-				.setFWechselkursmandantwaehrungzubelegwaehrung(
-						new Double(bdWechselkursMandant2BS.doubleValue()));
+				.setFWechselkursmandantwaehrungzubelegwaehrung(new Double(bdWechselkursMandant2BS.doubleValue()));
 
-		getTabbedPaneBestellung().getBesDto().setDLiefertermin(
-				this.wdfLiefertermin.getTimestamp());
+		getTabbedPaneBestellung().getBesDto().setDLiefertermin(this.wdfLiefertermin.getTimestamp());
 		if (kostenstelleDto != null) {
-			getTabbedPaneBestellung().getBesDto().setKostenstelleIId(
-					kostenstelleDto.getIId());
+			getTabbedPaneBestellung().getBesDto().setKostenstelleIId(kostenstelleDto.getIId());
 		} else {
 			getTabbedPaneBestellung().getBesDto().setKostenstelleIId(null);
 		}
-		getTabbedPaneBestellung().getBesDto().setILeihtage(
-				wnfLeihtage.getInteger());
-		getTabbedPaneBestellung().getBesDto().setBTeillieferungMoeglich(
-				wcbTeillieferung.getShort());
-		getTabbedPaneBestellung().getBesDto().setProjektIId(
-				(Integer) wsfProjekt.getOKey());
+		getTabbedPaneBestellung().getBesDto().setILeihtage(wnfLeihtage.getInteger());
+		getTabbedPaneBestellung().getBesDto().setBTeillieferungMoeglich(wcbTeillieferung.getShort());
+		getTabbedPaneBestellung().getBesDto().setProjektIId((Integer) wsfProjekt.getOKey());
 
 		if (auftragDto != null) {
-			getTabbedPaneBestellung().getBesDto().setAuftragIId(
-					auftragDto.getIId());
+			getTabbedPaneBestellung().getBesDto().setAuftragIId(auftragDto.getIId());
 		} else {
 			getTabbedPaneBestellung().getBesDto().setAuftragIId(null);
 		}
@@ -2173,91 +2056,86 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	private void feldBelegung() {
 		if (getTabbedPaneBestellung().getLieferantDto() != null) {
 			getTabbedPaneBestellung().getBesDto()
-					.setLieferantIIdBestelladresse(
-							getTabbedPaneBestellung().getLieferantDto()
-									.getIId());
+					.setLieferantIIdBestelladresse(getTabbedPaneBestellung().getLieferantDto().getIId());
 		}
 
 		if (getLieferantDtoRechnungsadresse() != null) {
 			getTabbedPaneBestellung().getBesDto()
-					.setLieferantIIdRechnungsadresse(
-							getLieferantDtoRechnungsadresse().getIId());
+					.setLieferantIIdRechnungsadresse(getLieferantDtoRechnungsadresse().getIId());
 		}
 
 		if (ansprechpartnerDto != null) {
-			getTabbedPaneBestellung().getBesDto().setAnsprechpartnerIId(
-					ansprechpartnerDto.getIId());
+			getTabbedPaneBestellung().getBesDto().setAnsprechpartnerIId(ansprechpartnerDto.getIId());
 		}
 
 		if (ansprechpartnerLieferadresseDto != null) {
 			getTabbedPaneBestellung().getBesDto()
-					.setAnsprechpartnerIIdLieferadresse(
-							ansprechpartnerLieferadresseDto.getIId());
+					.setAnsprechpartnerIIdLieferadresse(ansprechpartnerLieferadresseDto.getIId());
 		}
 
 		if (anfordererDto != null) {
-			getTabbedPaneBestellung().getBesDto().setPersonalIIdAnforderer(
-					anfordererDto.getIId());
+			getTabbedPaneBestellung().getBesDto().setPersonalIIdAnforderer(anfordererDto.getIId());
 		}
 
 		if (lieferadresseDto != null) {
-			getTabbedPaneBestellung().getBesDto().setPartnerIIdLieferadresse(
-					lieferadresseDto.getIId());
+			getTabbedPaneBestellung().getBesDto().setPartnerIIdLieferadresse(lieferadresseDto.getIId());
 		} else {
-			getTabbedPaneBestellung().getBesDto().setPartnerIIdLieferadresse(
-					null);
+			getTabbedPaneBestellung().getBesDto().setPartnerIIdLieferadresse(null);
 		}
 		if (abholadresseDto != null) {
-			getTabbedPaneBestellung().getBesDto().setPartnerIIdAbholadresse(
-					abholadresseDto.getIId());
+			getTabbedPaneBestellung().getBesDto().setPartnerIIdAbholadresse(abholadresseDto.getIId());
 		} else {
-			getTabbedPaneBestellung().getBesDto().setPartnerIIdAbholadresse(
-					null);
+			getTabbedPaneBestellung().getBesDto().setPartnerIIdAbholadresse(null);
 		}
 
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 
+		jtpInternerKommentar.setText("");
+		jtpExternerKommentar.setText("");
+		wbuAnfrage.setOKey(null);
 		if (!bNeedNoYouAreSelectedI) {
 			// Neu.
 			Integer oKey = getTabbedPaneBestellung().getBesDto().getIId();
 
 			// setDefaults();
 
-			if (oKey == null || oKey.equals(LPMain.getLockMeForNew())) {
-				// Neu.
-				String cNrMandantenwaehrung = LPMain.getTheClient()
-						.getSMandantenwaehrung();
-				getTabbedPaneBestellung().getBesDto().setWaehrungCNr(
-						cNrMandantenwaehrung);
+			if (oKey == null) {
+				String cNrMandantenwaehrung = LPMain.getTheClient().getSMandantenwaehrung();
+				getTabbedPaneBestellung().getBesDto().setWaehrungCNr(cNrMandantenwaehrung);
 				wcoWaehrungen.setKeyOfSelectedItem(cNrMandantenwaehrung);
 			} else {
 				// Bestehende Bestellung anzeigen.
 				getTabbedPaneBestellung().setBestellungDto(
-						DelegateFactory.getInstance().getBestellungDelegate()
-								.bestellungFindByPrimaryKey(oKey));
+						DelegateFactory.getInstance().getBestellungDelegate().bestellungFindByPrimaryKey(oKey));
 
 				dto2Components();
 
 				if (getBestellungDto().getIId() != null) {
-					nMengePos = DelegateFactory
-							.getInstance()
-							.getBestellungDelegate()
-							.berechneAnzahlMengenbehafteteBestellpositionen(
-									getBestellungDto().getIId());
+					nMengePos = DelegateFactory.getInstance().getBestellungDelegate()
+							.berechneAnzahlMengenbehafteteBestellpositionen(getBestellungDto().getIId());
 				}
 			}
 		}
 
-		getInternalFrameBestellung().getTabbedPaneBestellung().enablePanels(
-				getInternalFrameBestellung().getTabbedPaneBestellung()
-						.getBesDto(), true);
+		getInternalFrameBestellung().getTabbedPaneBestellung()
+				.enablePanels(getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto(), true);
 
 		refreshMyComponents();
+
+		jtpInternerKommentar.setEditable(false);
+		jtpInternerKommentar.showToolBar(false);
+		jtpInternerKommentar.showStatusBar(false);
+		jtpInternerKommentar.showTableItems(false);
+
+		jtpExternerKommentar.setEditable(false);
+		jtpExternerKommentar.showToolBar(false);
+		jtpExternerKommentar.showStatusBar(false);
+		jtpExternerKommentar.showTableItems(false);
+
 	}
 
 	private BestellungDto getBestellungDto() {
@@ -2267,16 +2145,12 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	/**
 	 * behandle ereignis neu.
 	 * 
-	 * @param eventObject
-	 *            Ereignis.
-	 * @param bLockMeI
-	 *            boolean
-	 * @param bNeedNoNewI
-	 *            boolean
+	 * @param eventObject Ereignis.
+	 * @param bLockMeI    boolean
+	 * @param bNeedNoNewI boolean
 	 * @throws Throwable
 	 */
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		if (((ItemChangedEvent) eventObject).getID() == ItemChangedEvent.ACTION_MY_OWN_NEW) {
 			// aus einer RahmBes eine AbrufBes erzeugen
 			erzeugeAbrufbestellung();
@@ -2286,56 +2160,50 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			setDefaults();
 		}
 		super.eventActionNew(eventObject, true, false);
+
 	}
 
 	/**
 	 * Eine neue Abrufbestellung als Clone einer Rahmenbestellung erzeugen und
 	 * anzeigen.
 	 * 
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
 	private void erzeugeAbrufbestellung() throws Throwable {
 
-		getInternalFrameBestellung().getTabbedPaneBestellung().setRahmBesDto(
-				getInternalFrameBestellung().getTabbedPaneBestellung()
-						.getBesDto());
+		getInternalFrameBestellung().getTabbedPaneBestellung()
+				.setRahmBesDto(getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto());
 
-		BestellungDto abrufBesDto = (BestellungDto) getInternalFrameBestellung()
-				.getTabbedPaneBestellung().getRahmBesDto().clone();
+		BestellungDto abrufBesDto = (BestellungDto) getInternalFrameBestellung().getTabbedPaneBestellung()
+				.getRahmBesDto().clone();
 
-		abrufBesDto
-				.setBestellungartCNr(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR);
+		abrufBesDto.setBestellungartCNr(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR);
 
 		// PJ 13245
 		abrufBesDto.setDBelegdatum(new Date(System.currentTimeMillis()));
 		// PJ 17487
 		abrufBesDto.setTAenderungsbestellung(null);
 
-		abrufBesDto
-				.setIBestellungIIdRahmenbestellung(getInternalFrameBestellung()
-						.getTabbedPaneBestellung().getBesDto().getIId());
+		abrufBesDto.setIBestellungIIdRahmenbestellung(
+				getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getIId());
 
-		getInternalFrameBestellung().getTabbedPaneBestellung()
-				.setBestellungDto(abrufBesDto);
+		getInternalFrameBestellung().getTabbedPaneBestellung().setBestellungDto(abrufBesDto);
 
 		if (getBestellungIdforAbruf() != null) {
-			getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto()
-					.setIId(iBestellungAbrufId);
+			getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().setIId(iBestellungAbrufId);
+			setBestellungIdforAbruf(null);
 		}
 
 		// den Clone anzeigen; Vorsicht: dieses Dto ist vorerst temporaer
 		dto2Components();
 	}
 
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
 
 		super.eventActionRefresh(e, bNeedNoRefreshI);
 
-		getInternalFrameBestellung().getTabbedPaneBestellung().enablePanels(
-				getInternalFrameBestellung().getTabbedPaneBestellung()
-						.getBesDto(), true);
+		getInternalFrameBestellung().getTabbedPaneBestellung()
+				.enablePanels(getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto(), true);
 
 		refreshMyComponents();
 	}
@@ -2350,9 +2218,8 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			// 1 Check Mandant2BS
 			sWaehrungVon = LPMain.getTheClient().getSMandantenwaehrung();
 			sWaehrungNach = sWaehrungBSI;
-			bdWechselkursMandant2BS = DelegateFactory.getInstance()
-					.getLocaleDelegate()
-					.getWechselkurs2(sWaehrungVon, sWaehrungNach);
+			bdWechselkursMandant2BS = DelegateFactory.getInstance().getLocaleDelegate().getWechselkurs2(sWaehrungVon,
+					sWaehrungNach);
 
 			try {
 				// 2 Check BS2LF only; use spaeter im BSPOS
@@ -2371,8 +2238,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		}
 
 		if (!bWOK) {
-			MessageFormat mf = new MessageFormat(
-					LPMain.getTextRespectUISPr("bes.wahrung.exit"));
+			MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr("bes.wahrung.exit"));
 			try {
 				mf.setLocale(LPMain.getTheClient().getLocUi());
 			} catch (Throwable tDummy) {
@@ -2382,15 +2248,13 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 			Object pattern[] = { sWaehrungVon + " " + sWaehrungNach };
 			String sMsg = mf.format(pattern);
 
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.hint"), sMsg);
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"), sMsg);
 
 			bdWechselkursMandant2BS = new BigDecimal(1);
 		}
 
 		if (getInternalFrameBestellung().getTabbedPaneBestellung() != null) {
-			getInternalFrameBestellung().getTabbedPaneBestellung()
-					.setbWechselkurseOK(bWOK);
+			getInternalFrameBestellung().getTabbedPaneBestellung().setbWechselkurseOK(bWOK);
 		}
 		return bWOK;
 	}
@@ -2398,8 +2262,7 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	/**
 	 * Drucke Bestllung.
 	 * 
-	 * @param e
-	 *            Ereignis
+	 * @param e Ereignis
 	 * @throws Throwable
 	 */
 	protected void eventActionPrint(ActionEvent e) throws Throwable {
@@ -2408,16 +2271,14 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 		eventYouAreSelected(false);
 
-		getInternalFrameBestellung().getTabbedPaneBestellung().enablePanels(
-				getInternalFrameBestellung().getTabbedPaneBestellung()
-						.getBesDto(), true);
+		getInternalFrameBestellung().getTabbedPaneBestellung()
+				.enablePanels(getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto(), true);
 	}
 
 	/**
 	 * Goto von Bestllung.
 	 * 
-	 * @param e
-	 *            Ereignis
+	 * @param e Ereignis
 	 * @throws Throwable
 	 */
 	public void eventActionGoto(ActionEvent e) throws Throwable {
@@ -2425,73 +2286,71 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		if (getInternalFrameBestellung().getTabbedPaneBestellung()
-				.istAktualisierenBestellungErlaubt()) {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		if (getInternalFrameBestellung().getTabbedPaneBestellung().istAktualisierenBestellungErlaubt(false)) {
 			Integer nWEs = null;
 			if (getBestellungDto().getIId() != null) {
-				nWEs = DelegateFactory.getInstance().getWareneingangDelegate()
-						.getAnzahlWE(getBestellungDto().getIId());
+				nWEs = DelegateFactory.getInstance().getWareneingangDelegate().getAnzahlWE(getBestellungDto().getIId());
 				if (nWEs != null && nWEs.intValue() == 0) {
 					getBestellungDto().setTGedruckt(null);
 					getBestellungDto().setTStorniert(null);
-					getBestellungDto().setStatusCNr(
-							BestellungFac.BESTELLSTATUS_ANGELEGT);
+					getBestellungDto().setStatusCNr(BestellungFac.BESTELLSTATUS_ANGELEGT);
 					getBestellungDto().setTVersandzeitpunkt(null);
-					DelegateFactory.getInstance().getBestellungDelegate()
-							.updateBestellung(getBestellungDto());
+					DelegateFactory.getInstance().getBestellungDelegate().updateBestellung(getBestellungDto());
 				}
 			}
-
-			String cNrBSArt = getInternalFrameBestellung()
-					.getTabbedPaneBestellung().getBesDto()
-					.getBestellungartCNr();
-			if (cNrBSArt
-					.equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
-				BestellpositionDto[] besposDto = DelegateFactory
-						.getInstance()
-						.getBestellungDelegate()
-						.bestellpositionFindByBestellung(
-								getInternalFrameBestellung()
-										.getTabbedPaneBestellung().getBesDto()
-										.getIId());
-				if (besposDto.length != 0) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.error"),
-									LPMain.getTextRespectUISPr("bes.abrufbestellungkopfdatenaendern"));
-					return;
-				}
-			}
-			wechselkurseOKDlg(LPMain.getTheClient().getSMandantenwaehrung(),
-					(String) wcoWaehrungen.getSelectedItem());
-			refreshMyComponents();
+			wechselkurseOKDlg(LPMain.getTheClient().getSMandantenwaehrung(), (String) wcoWaehrungen.getSelectedItem());
 
 			super.eventActionUpdate(aE, false);
+
+			refreshMyComponents();
+
+			String cNrBSArt = getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getBestellungartCNr();
+			if (cNrBSArt.equals(BestellungFac.BESTELLUNGART_ABRUFBESTELLUNG_C_NR)) {
+				BestellpositionDto[] besposDto = DelegateFactory.getInstance().getBestellungDelegate()
+						.bestellpositionFindByBestellung(
+								getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto().getIId());
+				if (besposDto.length != 0) {
+					// SP3441
+					enableAllComponents(this, false);
+					wbuLieferadresse.setEnabled(true);
+					wbuAnsprechpartnerLieferadresse.setEnabled(true);
+					wbuAbholadresse.setEnabled(true);
+					wbuAnsprechpartnerAbholadresse.setEnabled(true);
+					// SP4567
+					wdfLiefertermin.setEnabled(true);
+				}
+			}
+
 		}
+		jtpInternerKommentar.setEditable(false);
+		jtpInternerKommentar.showToolBar(false);
+		jtpInternerKommentar.showStatusBar(false);
+		jtpInternerKommentar.showTableItems(false);
+
+		jtpExternerKommentar.setEditable(false);
+		jtpExternerKommentar.showToolBar(false);
+		jtpExternerKommentar.showStatusBar(false);
+		jtpExternerKommentar.showTableItems(false);
+
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
 		if (getTabbedPaneBestellung().isBSangelegtDlg()) {
-			if (!getTabbedPaneBestellung().getBesDto().getStatusCNr()
-					.equals(BestellungFac.BESTELLSTATUS_ANGELEGT)) {
-				getInternalFrameBestellung().getTabbedPaneBestellung()
-						.showStatusMessage("lp.warning",
-								"bes.warning.beskannnichtstorniertwerden");
-			} else {
-				DelegateFactory
-						.getInstance()
-						.getBestellungDelegate()
-						.stornieren(
-								getTabbedPaneBestellung().getBesDto().getIId());
+			if (getTabbedPaneBestellung().getBesDto().getStatusCNr().equals(BestellungFac.BESTELLSTATUS_ANGELEGT)
+					|| getTabbedPaneBestellung().getBesDto().getStatusCNr().equals(BestellungFac.BESTELLSTATUS_OFFEN)) {
+				DelegateFactory.getInstance().getBestellungDelegate()
+						.stornieren(getTabbedPaneBestellung().getBesDto().getIId());
 				super.eventActionDelete(e, false, false); // die bestellung
 				// existiert
 				// weiterhin!
 				eventYouAreSelected(false);
+
+			} else {
+				getInternalFrameBestellung().getTabbedPaneBestellung().showStatusMessage("lp.warning",
+						"bes.warning.beskannnichtstorniertwerden");
 			}
 		}
 
@@ -2519,26 +2378,17 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	}
 
 	private void refreshStatusbar() throws Throwable {
-		setStatusbarPersonalIIdAnlegen(getTabbedPaneBestellung().getBesDto()
-				.getPersonalIIdAnlegen());
-		setStatusbarTAnlegen(getTabbedPaneBestellung().getBesDto()
-				.getTAnlegen());
-		setStatusbarPersonalIIdAendern(getTabbedPaneBestellung().getBesDto()
-				.getPersonalIIdAendern());
-		setStatusbarTAendern(getTabbedPaneBestellung().getBesDto()
-				.getTAendern());
+		setStatusbarPersonalIIdAnlegen(getTabbedPaneBestellung().getBesDto().getPersonalIIdAnlegen());
+		setStatusbarTAnlegen(getTabbedPaneBestellung().getBesDto().getTAnlegen());
+		setStatusbarPersonalIIdAendern(getTabbedPaneBestellung().getBesDto().getPersonalIIdAendern());
+		setStatusbarTAendern(getTabbedPaneBestellung().getBesDto().getTAendern());
 
-		setStatusbarStatusCNr(getTabbedPaneBestellung().getBesDto()
-				.getStatusCNr());
+		setStatusbarStatusCNr(getTabbedPaneBestellung().getBesDto().getStatusCNr());
 
-		String status = DelegateFactory
-				.getInstance()
-				.getVersandDelegate()
-				.getVersandstatus(LocaleFac.BELEGART_BESTELLUNG,
-						getTabbedPaneBestellung().getBesDto().getIId());
+		String status = DelegateFactory.getInstance().getVersandDelegate()
+				.getVersandstatus(LocaleFac.BELEGART_BESTELLUNG, getTabbedPaneBestellung().getBesDto().getIId());
 		if (status != null) {
-			status = LPMain.getTextRespectUISPr("lp.versandstatus") + ": "
-					+ status;
+			status = LPMain.getTextRespectUISPr("lp.versandstatus") + ": " + status;
 		}
 		setStatusbarSpalte5(status);
 
@@ -2561,15 +2411,13 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	}
 
 	private void dialogQueryAuftrag() throws Throwable {
-		FilterKriterium[] fk = SystemFilterFactory.getInstance()
-				.createFKMandantCNr();
+		FilterKriterium[] fk = SystemFilterFactory.getInstance().createFKMandantCNr();
 		Integer auftragIId = null;
 		if (auftragDto != null) {
 			auftragIId = auftragDto.getIId();
 		}
-		panelQueryFLRAuftrag = AuftragFilterFactory.getInstance()
-				.createPanelFLRAuftrag(getInternalFrame(), true, true, fk,
-						auftragIId);
+		panelQueryFLRAuftrag = AuftragFilterFactory.getInstance().createPanelFLRAuftrag(getInternalFrame(), true, true,
+				fk, auftragIId);
 		new DialogQuery(panelQueryFLRAuftrag);
 	}
 
@@ -2582,34 +2430,31 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 		String cNrStatus = getBestellungDto().getStatusCNr();
 		int lockstate = getLockedstateDetailMainKey().getIState();
 
-		boolean bEnableLoesche = getBestellungDto().getIId() != null
-				&& (DelegateFactory.getInstance().getWareneingangDelegate()
-						.getAnzahlWE(getBestellungDto().getIId()).intValue() <= 0)
-				&& cNrStatus != null
-				&& !cNrStatus.equals(BestellungFac.BESTELLSTATUS_GELIEFERT)
-				&& !cNrStatus.equals(BestellungFac.BESTELLSTATUS_ERLEDIGT)
-				&& lockstate != LOCK_FOR_EMPTY
-				&& lockstate != LOCK_FOR_NEW
-				&& getInternalFrameBestellung().getTabbedPaneBestellung()
-						.isbWechselkurseOK();
+		boolean bEnable = getBestellungDto().getIId() != null
+				&& (DelegateFactory.getInstance().getWareneingangDelegate().getAnzahlWE(getBestellungDto().getIId())
+						.intValue() <= 0)
+				&& cNrStatus != null && !cNrStatus.equals(BestellungFac.BESTELLSTATUS_GELIEFERT)
+				&& !cNrStatus.equals(BestellungFac.BESTELLSTATUS_ERLEDIGT) && lockstate != LOCK_FOR_EMPTY
+				&& lockstate != LOCK_FOR_NEW && lockstate != LOCK_IS_LOCKED_BY_ME
+				&& getInternalFrameBestellung().getTabbedPaneBestellung().isbWechselkurseOK()
+				&& getCachedRights().getValueOfKey(RechteFac.RECHT_BES_BESTELLUNG_CUD);
 
 		// loeschebutton
-		LPButtonAction item = (LPButtonAction) getHmOfButtons().get(
-				PanelBasis.ACTION_DELETE);
-		item.getButton().setEnabled(bEnableLoesche);
+		// LPButtonAction item = (LPButtonAction) getHmOfButtons().get(
+		// PanelBasis.ACTION_DELETE);
+		// item.getButton().setEnabled(bEnable);
+		getHmOfButtons().get(PanelBasis.ACTION_STORNIEREN).shouldBeEnabledTo(bEnable);
 
-		boolean bEnableUpd = bEnableLoesche;
-
-		// updatebutton
-		item = (LPButtonAction) getHmOfButtons().get(PanelBasis.ACTION_UPDATE);
-		item.getButton().setEnabled(bEnableUpd);
+		// item = (LPButtonAction)
+		// getHmOfButtons().get(PanelBasis.ACTION_UPDATE);
+		// item.getButton().setEnabled(bEnable);
+		getHmOfButtons().get(PanelBasis.ACTION_UPDATE).shouldBeEnabledTo(bEnable);
 
 		// statusbar
 		refreshStatusbar();
 
-		boolean bEnableBesArtKombo = (getBestellungDto().getIId() == null || getBestellungDto()
-				.getStatusCNr().equals(BestellungFac.BESTELLSTATUS_ANGELEGT))
-				&& nMengePos == 0;
+		boolean bEnableBesArtKombo = (getBestellungDto().getIId() == null
+				|| getBestellungDto().getStatusCNr().equals(BestellungFac.BESTELLSTATUS_ANGELEGT)) && nMengePos == 0;
 		wcoBestellungsart.setActivatable(bEnableBesArtKombo);
 		wcoBestellungsart.setEnabled(bEnableBesArtKombo);
 
@@ -2621,19 +2466,16 @@ public class PanelBestellungKopfdaten extends PanelBasis {
 	 * Verwerfen der aktuelle Usereingabe und zurueckgehen auf den bestehenden
 	 * Datensatz, wenn einer existiert.
 	 * 
-	 * @param e
-	 *            Ereignis
+	 * @param e Ereignis
 	 * @throws Throwable
-	 * @todo Implement this com.lp.client.frame.component.PanelBasis method PJ
-	 *       4869
+	 * @todo Implement this com.lp.client.frame.component.PanelBasis method PJ 4869
 	 */
 	protected void eventActionDiscard(ActionEvent e) throws Throwable {
 
 		super.eventActionDiscard(e);
 
-		getInternalFrameBestellung().getTabbedPaneBestellung().enablePanels(
-				getInternalFrameBestellung().getTabbedPaneBestellung()
-						.getBesDto(), false);
+		getInternalFrameBestellung().getTabbedPaneBestellung()
+				.enablePanels(getInternalFrameBestellung().getTabbedPaneBestellung().getBesDto(), false);
 
 		wcoBestellungsart.setEnabled(false);
 	}
@@ -2664,12 +2506,10 @@ public class PanelBestellungKopfdaten extends PanelBasis {
  * 
  * @version not attributable Date $Date: 2013/01/23 14:21:12 $
  */
-class PanelBestellungKopfdaten_wcoWaehrungen_actionAdapter implements
-		java.awt.event.ActionListener {
+class PanelBestellungKopfdaten_wcoWaehrungen_actionAdapter implements java.awt.event.ActionListener {
 	private PanelBestellungKopfdaten adaptee = null;
 
-	PanelBestellungKopfdaten_wcoWaehrungen_actionAdapter(
-			PanelBestellungKopfdaten adaptee) {
+	PanelBestellungKopfdaten_wcoWaehrungen_actionAdapter(PanelBestellungKopfdaten adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2677,33 +2517,22 @@ class PanelBestellungKopfdaten_wcoWaehrungen_actionAdapter implements
 		try {
 			if (adaptee.getTabbedPaneBestellung() != null) {
 				if (adaptee.getTabbedPaneBestellung().getLieferantDto() != null
-						&& adaptee.getTabbedPaneBestellung().getLieferantDto()
-								.getIId() != null) {
+						&& adaptee.getTabbedPaneBestellung().getLieferantDto().getIId() != null) {
 					// ein LF wurde ausgewaehlt
 					if (adaptee.wcoWaehrungen.getSelectedItem() != null) {
 						// wir haben Vorschlagswaehrungen
-						if (adaptee.getInternalFrameBestellung()
-								.getTabbedPaneBestellung().getLieferantDto()
+						if (adaptee.getInternalFrameBestellung().getTabbedPaneBestellung().getLieferantDto()
 								.getWaehrungCNr() != null) {
-							if (adaptee.wechselkurseOKDlg(LPMain.getTheClient()
-									.getSMandantenwaehrung(),
-									(String) adaptee.wcoWaehrungen
-											.getSelectedItem())) {
+							if (adaptee.wechselkurseOKDlg(LPMain.getTheClient().getSMandantenwaehrung(),
+									(String) adaptee.wcoWaehrungen.getSelectedItem())) {
 								// Kurs holen
-								BigDecimal bdKurs = DelegateFactory
-										.getInstance()
-										.getLocaleDelegate()
-										.getWechselkurs2(
-												LPMain.getTheClient()
-														.getSMandantenwaehrung(),
-												(String) adaptee.wcoWaehrungen
-														.getSelectedItem());
+								BigDecimal bdKurs = DelegateFactory.getInstance().getLocaleDelegate().getWechselkurs2(
+										LPMain.getTheClient().getSMandantenwaehrung(),
+										(String) adaptee.wcoWaehrungen.getSelectedItem());
 								adaptee.refreshLabelKurs(bdKurs);
 							} else {
-								adaptee.wcoWaehrungen.setSelectedItem(adaptee
-										.getInternalFrameBestellung()
-										.getTabbedPaneBestellung().getBesDto()
-										.getWaehrungCNr());
+								adaptee.wcoWaehrungen.setSelectedItem(adaptee.getInternalFrameBestellung()
+										.getTabbedPaneBestellung().getBesDto().getWaehrungCNr());
 							}
 						}
 					}

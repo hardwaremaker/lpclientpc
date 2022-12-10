@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.lieferschein;
 
-
 import java.util.EventObject;
 
 import javax.swing.ImageIcon;
@@ -48,9 +47,10 @@ import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.lieferschein.service.LieferscheinartDto;
 import com.lp.server.lieferschein.service.LieferscheinpositionartDto;
 import com.lp.server.lieferschein.service.LieferscheintextDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.util.EJBExceptionLP;
 
-@SuppressWarnings("static-access") 
+@SuppressWarnings("static-access")
 /**
  * <p>Rahmenfenster fuer das Modul Lieferschein.</p>
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -59,195 +59,266 @@ import com.lp.util.EJBExceptionLP;
  * @author Uli Walch
  * @version $Revision: 1.4 $
  */
-
-public class InternalFrameLieferschein
-    extends InternalFrame
-{
-  /**
+public class InternalFrameLieferschein extends InternalFrame {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private TabbedPaneLieferschein tpLieferschein = null;
-  private TabbedPaneLieferscheinGrunddaten tpLieferscheingrunddaten = null;
+	private TabbedPaneLieferschein tpLieferschein = null;
+	private TabbedPaneLieferscheinGrunddaten tpLieferscheingrunddaten = null;
+	private TabbedPaneAusliefervorschlag tpAusliefervorschlag = null;
 
-  public static final int IDX_TABBED_PANE_LIEFERSCHEIN = 0;
-  private final int IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN = 1;
+	public static int IDX_TABBED_PANE_LIEFERSCHEIN = -1;
+	public int IDX_TABBED_PANE_AUSLIEFERVORSCHLAG = -1;
+	public int IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN = -1;
 
-  private LieferscheintextDto lieferscheintextDto = new LieferscheintextDto();
-  private LieferscheinartDto lieferscheinartDto = new LieferscheinartDto();
-  private LieferscheinpositionartDto lieferscheinpositionartDto = new LieferscheinpositionartDto();
+	private LieferscheintextDto lieferscheintextDto = new LieferscheintextDto();
+	private LieferscheinartDto lieferscheinartDto = new LieferscheinartDto();
+	private LieferscheinpositionartDto lieferscheinpositionartDto = new LieferscheinpositionartDto();
 
-  // Wenn eine freie Lieferscheinposition bei einem auftragbezogenen Lieferschein
-  // erfasst wird, den Benutzer einmalig warnen
-  public static boolean bWarnungAusgesprochen = false;
+	// Wenn eine freie Lieferscheinposition bei einem auftragbezogenen
+	// Lieferschein
+	// erfasst wird, den Benutzer einmalig warnen
+	public static boolean bWarnungAusgesprochen = false;
 
-  /**
-   * Konstruktor.
-   *
-   * @param title der Titel des Frame
-   * @param belegartCNr der Name des Moduls
-   * @param sRechtModulweitI String
-   * @throws Throwable Ausnahme
-   */
-  public InternalFrameLieferschein(String title,
-                                   String belegartCNr, String sRechtModulweitI)
-      throws Throwable {
-    super(title, belegartCNr, sRechtModulweitI);
-
-    jbInit();
-    initComponents();
-  }
-
-
-  private void jbInit()
-      throws Throwable {
-    // Komponente Lieferschein
-    tabbedPaneRoot.insertTab(
-        LPMain.getInstance().getTextRespectUISPr("ls.modulname"),
-        null,
-        null,
-        LPMain.getInstance().getTextRespectUISPr("ls.modulname.tooltip"),
-        IDX_TABBED_PANE_LIEFERSCHEIN);
-
-    // Komponente Lieferscheingrunddaten
-    // nur anzeigen wenn Benutzer Recht dazu hat
-    if(DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)){
-      tabbedPaneRoot.insertTab(
-          LPMain.getInstance().getTextRespectUISPr("lp.grunddaten"),
-          null,
-          null,
-          LPMain.getInstance().getTextRespectUISPr("lp.tooltip.grunddaten"),
-          IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN);
-    }
-    refreshTabbedPaneLieferschein();
-    tpLieferschein.lPEventObjectChanged(null);
-    tabbedPaneRoot.setSelectedComponent(tpLieferschein);
-
-    // dem frame das icon setzen
-    ImageIcon iicon = new javax.swing.ImageIcon(
-        getClass().getResource("/com/lp/client/res/truck_red16x16.png"));
-    setFrameIcon(iicon);
-
-    // ich selbst moechte informiert werden.
-    addItemChangedListener(this);
-    // listener bin auch ich
-    registerChangeListeners();
-  }
-
-  public void lPStateChanged(EventObject e) throws Throwable {
-    int selectedCur = 0;
-    try {
-      selectedCur = ( (JTabbedPane) e.getSource()).getSelectedIndex();
-    }
-    catch (Exception ex) {
-
-      selectedCur = ( (com.lp.client.pc.Desktop) e.getSource()).getSelectedIndex();
-    }
 	/**
-	 * AGILPRO CHANGES END
+	 * Konstruktor.
+	 * 
+	 * @param title
+	 *            der Titel des Frame
+	 * @param belegartCNr
+	 *            der Name des Moduls
+	 * @param sRechtModulweitI
+	 *            String
+	 * @throws Throwable
+	 *             Ausnahme
 	 */
-    if (selectedCur == IDX_TABBED_PANE_LIEFERSCHEIN) {
-      refreshTabbedPaneLieferschein();
+	public InternalFrameLieferschein(String title, String belegartCNr,
+			String sRechtModulweitI) throws Throwable {
+		super(title, belegartCNr, sRechtModulweitI);
 
-      //Info an Tabbedpane, bist selektiert worden.
-      tpLieferschein.lPEventObjectChanged(null);
-    }
-    else if (selectedCur == IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN) {
-      refreshTabbedPaneLieferscheingrunddaten();
+		jbInit();
+		initComponents();
+	}
 
-      //Info an Tabbedpane, bist selektiert worden.
-      tpLieferscheingrunddaten.lPEventObjectChanged(null);
-    }
-  }
+	private void jbInit() throws Throwable {
+		// Komponente Lieferschein
 
+		int tabIndex = 0;
 
-  private void refreshTabbedPaneLieferschein() throws Throwable {
-    if (tpLieferschein == null) {
-      // lazy loading
-      tpLieferschein = new TabbedPaneLieferschein(this);
-      tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_LIEFERSCHEIN,
-                                    tpLieferschein);
-      initComponents();
-    }
-  }
+		IDX_TABBED_PANE_LIEFERSCHEIN = tabIndex;
 
-  private void refreshTabbedPaneLieferscheingrunddaten()
-      throws Throwable {
-    if (tpLieferscheingrunddaten == null) {
-      tpLieferscheingrunddaten = new TabbedPaneLieferscheinGrunddaten(this);
-      tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN,
-                                    tpLieferscheingrunddaten);
-      initComponents();
-    }
-  }
+		tabbedPaneRoot.insertTab(
+				LPMain.getInstance().getTextRespectUISPr("ls.modulname"), null,
+				null,
+				LPMain.getInstance()
+						.getTextRespectUISPr("ls.modulname.tooltip"),
+				IDX_TABBED_PANE_LIEFERSCHEIN);
 
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_AUSLIEFERVORSCHLAG)) {
+			tabIndex++;
+			IDX_TABBED_PANE_AUSLIEFERVORSCHLAG = tabIndex;
+			tabbedPaneRoot.insertTab(
+					LPMain.getInstance().getTextRespectUISPr(
+							"ls.ausliefervorschlag"),
+					null,
+					null,
+					LPMain.getInstance().getTextRespectUISPr(
+							"ls.ausliefervorschlag"),
+					IDX_TABBED_PANE_AUSLIEFERVORSCHLAG);
+		}
 
-  protected void lPEventItemChanged(ItemChangedEvent eI) {
-    //nothing here.
-  }
+		// Komponente Lieferscheingrunddaten
+		// nur anzeigen wenn Benutzer Recht dazu hat
+		if (DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
 
-  public TabbedPaneLieferschein getTabbedPaneLieferschein() {
-    return (TabbedPaneLieferschein) tpLieferschein;
-  }
+			tabIndex++;
+			IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN = tabIndex;
 
-  public TabbedPaneLieferscheinGrunddaten getTabbedPaneLieferscheingrunddaten() {
-    return (TabbedPaneLieferscheinGrunddaten) tpLieferscheingrunddaten;
-  }
+			tabbedPaneRoot.insertTab(
+					LPMain.getInstance().getTextRespectUISPr("lp.grunddaten"),
+					null,
+					null,
+					LPMain.getInstance().getTextRespectUISPr(
+							"lp.tooltip.grunddaten"),
+					IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN);
+		}
+		refreshTabbedPaneLieferschein();
+		tpLieferschein.lPEventObjectChanged(null);
+		tabbedPaneRoot.setSelectedComponent(tpLieferschein);
 
-  protected boolean handleOwnException(ExceptionLP exfc) {
-    boolean bErrorErkannt = true;
-    int code = exfc.getICode();
+		// dem frame das icon setzen
+		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
+				"/com/lp/client/res/truck_red16x16.png"));
+		setFrameIcon(iicon);
 
-    switch (code) {
-      case EJBExceptionLP.FEHLER_LIEFERSCHEIN_KEINEOFFENENLIEFERSCHEINE:
-        DialogFactory.showModalDialog(
-            LPMain.getInstance().getTextRespectUISPr("lp.warning"),
-            LPMain.getInstance().getTextRespectUISPr(
-                "ls.warning.keineoffenenlieferscheine"));
-        break;
+		// ich selbst moechte informiert werden.
+		addItemChangedListener(this);
+		// listener bin auch ich
+		registerChangeListeners();
+	}
 
-      case EJBExceptionLP.FEHLER_LIEFERSCHEIN_KEINEANGELEGTENLIEFERSCHEINE:
-        DialogFactory.showModalDialog(
-            LPMain.getInstance().getTextRespectUISPr("lp.warning"),
-            LPMain.getInstance().getTextRespectUISPr(
-                "ls.warning.keineangelegtenlieferscheine"));
-        break;
+	public void lPStateChanged(EventObject e) throws Throwable {
+		int selectedCur = 0;
+		try {
+			selectedCur = ((JTabbedPane) e.getSource()).getSelectedIndex();
+		} catch (Exception ex) {
 
-      case EJBExceptionLP.FEHLER_LIEFERSCHEIN_TEXTINKONZERNDATENSPRACHENICHTHINTERLEGT:
-        DialogFactory.showModalDialog(
-            LPMain.getInstance().getTextRespectUISPr("lp.warning"),
-            LPMain.getInstance().getTextRespectUISPr(
-                "ls.warning.textkonzerndatensprache"));
-        break;
+			selectedCur = ((com.lp.client.pc.Desktop) e.getSource())
+					.getSelectedIndex();
+		}
 
-      default:
-        bErrorErkannt = false;
-    }
+		DelegateFactory.getInstance().getAusliefervorschlagDelegate()
+				.removeLockDesAusliefervorschlagesWennIchIhnSperre();
 
-    return bErrorErkannt;
-  }
+		/**
+		 * AGILPRO CHANGES END
+		 */
+		if (selectedCur == IDX_TABBED_PANE_LIEFERSCHEIN) {
+			refreshTabbedPaneLieferschein();
 
-  public LieferscheintextDto getLieferscheintextDto() {
-    return lieferscheintextDto;
-  }
+			// Info an Tabbedpane, bist selektiert worden.
+			tpLieferschein.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_AUSLIEFERVORSCHLAG) {
+			try {
+				DelegateFactory.getInstance().getAusliefervorschlagDelegate()
+						.pruefeBearbeitenDesAusliefervorschlagsErlaubt();
 
-  public void setLieferscheintextDto(LieferscheintextDto lieferscheintextDtoI) {
-    this.lieferscheintextDto = lieferscheintextDtoI;
-  }
+				refreshTabbedPaneausliefervorschlag();
 
-  public LieferscheinartDto getLieferscheinartDto() {
-    return this.lieferscheinartDto;
-  }
+				// Info an Tabbedpane, bist selektiert worden.
+				tpAusliefervorschlag.lPEventObjectChanged(null);
 
-  public void setLieferscheinartDto(LieferscheinartDto lieferscheinartDtoI) {
-    this.lieferscheinartDto = lieferscheinartDtoI;
-  }
+			} catch (ExceptionLP efc) {
+				if (efc != null
+						&& efc.getICode() == EJBExceptionLP.FEHLER_AUSLIEFERVORSCHLAG_IST_GESPERRT) {
+					tabbedPaneRoot.setSelectedComponent(tpLieferschein);
+					// Benutzer der gerade sperrt finden
+					String[] sHelper = efc.getSMsg().split(" ");
+					String sLocker = DelegateFactory
+							.getInstance()
+							.getPersonalDelegate()
+							.personalFindByPrimaryKey(
+									Integer.parseInt(sHelper[sHelper.length - 1]))
+							.getCKurzzeichen();
+					DialogFactory.showModalDialog(
+							LPMain.getTextRespectUISPr("lp.warning"), LPMain
+									.getInstance().getMsg(efc) + sLocker);
+				} else {
+					throw efc;
+				}
+			}
 
-  public LieferscheinpositionartDto getLieferscheinpositionartDto() {
-    return this.lieferscheinpositionartDto;
-  }
+		} else if (selectedCur == IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN) {
+			refreshTabbedPaneLieferscheingrunddaten();
 
-  public void setLieferscheinpositionartDto(LieferscheinpositionartDto lieferscheinpositionartDtoI) {
-    this.lieferscheinpositionartDto = lieferscheinpositionartDtoI;
-  }
+			// Info an Tabbedpane, bist selektiert worden.
+			tpLieferscheingrunddaten.lPEventObjectChanged(null);
+		}
+
+	}
+
+	private void refreshTabbedPaneLieferschein() throws Throwable {
+		if (tpLieferschein == null) {
+			// lazy loading
+			tpLieferschein = new TabbedPaneLieferschein(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_LIEFERSCHEIN,
+					tpLieferschein);
+			initComponents();
+		}
+	}
+
+	private void refreshTabbedPaneLieferscheingrunddaten() throws Throwable {
+		if (tpLieferscheingrunddaten == null) {
+			tpLieferscheingrunddaten = new TabbedPaneLieferscheinGrunddaten(
+					this);
+			tabbedPaneRoot.setComponentAt(
+					IDX_TABBED_PANE_LIEFERSCHEINGRUNDDATEN,
+					tpLieferscheingrunddaten);
+			initComponents();
+		}
+	}
+
+	private void refreshTabbedPaneausliefervorschlag() throws Throwable {
+		if (tpAusliefervorschlag == null) {
+			tpAusliefervorschlag = new TabbedPaneAusliefervorschlag(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_AUSLIEFERVORSCHLAG,
+					tpAusliefervorschlag);
+			initComponents();
+		}
+	}
+
+	protected void lPEventItemChanged(ItemChangedEvent eI) {
+		// nothing here.
+	}
+
+	public TabbedPaneLieferschein getTabbedPaneLieferschein() {
+		return (TabbedPaneLieferschein) tpLieferschein;
+	}
+
+	public TabbedPaneLieferscheinGrunddaten getTabbedPaneLieferscheingrunddaten() {
+		return (TabbedPaneLieferscheinGrunddaten) tpLieferscheingrunddaten;
+	}
+
+	protected boolean handleOwnException(ExceptionLP exfc) {
+		boolean bErrorErkannt = true;
+		int code = exfc.getICode();
+
+		switch (code) {
+		case EJBExceptionLP.FEHLER_LIEFERSCHEIN_KEINEOFFENENLIEFERSCHEINE:
+			DialogFactory.showModalDialog(
+					LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+					LPMain.getInstance().getTextRespectUISPr(
+							"ls.warning.keineoffenenlieferscheine"));
+			break;
+
+		case EJBExceptionLP.FEHLER_LIEFERSCHEIN_KEINEANGELEGTENLIEFERSCHEINE:
+			DialogFactory.showModalDialog(
+					LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+					LPMain.getInstance().getTextRespectUISPr(
+							"ls.warning.keineangelegtenlieferscheine"));
+			break;
+
+		case EJBExceptionLP.FEHLER_LIEFERSCHEIN_TEXTINKONZERNDATENSPRACHENICHTHINTERLEGT:
+			DialogFactory.showModalDialog(LPMain.getInstance()
+					.getTextRespectUISPr("lp.warning"), LPMain.getInstance()
+					.getTextRespectUISPr("ls.warning.textkonzerndatensprache"));
+			break;
+
+		default:
+			bErrorErkannt = false;
+		}
+
+		return bErrorErkannt;
+	}
+
+	public LieferscheintextDto getLieferscheintextDto() {
+		return lieferscheintextDto;
+	}
+
+	public void setLieferscheintextDto(LieferscheintextDto lieferscheintextDtoI) {
+		this.lieferscheintextDto = lieferscheintextDtoI;
+	}
+
+	public LieferscheinartDto getLieferscheinartDto() {
+		return this.lieferscheinartDto;
+	}
+
+	public void setLieferscheinartDto(LieferscheinartDto lieferscheinartDtoI) {
+		this.lieferscheinartDto = lieferscheinartDtoI;
+	}
+
+	public LieferscheinpositionartDto getLieferscheinpositionartDto() {
+		return this.lieferscheinpositionartDto;
+	}
+
+	public void setLieferscheinpositionartDto(
+			LieferscheinpositionartDto lieferscheinpositionartDtoI) {
+		this.lieferscheinpositionartDto = lieferscheinpositionartDtoI;
+	}
 }

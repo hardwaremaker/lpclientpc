@@ -111,8 +111,8 @@ public class ReportFahrzeug extends PanelBasis implements
 		if (wcbPersonalAlle.isSelected()) {
 			fahrzeuglIIdLoc = null;
 		}
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp =Helper.addiereTageZuTimestamp( new java.sql.Timestamp(wdfBis
+				.getTimestamp().getTime()),1);
 		return DelegateFactory
 				.getInstance()
 				.getZeiterfassungReportDelegate()
@@ -209,10 +209,10 @@ public class ReportFahrzeug extends PanelBasis implements
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getSource().equals(wbuGestern)) {
-			wdfVon.setTimestamp(Helper.cutTimestamp(new Timestamp(System
-					.currentTimeMillis() - 24 * 3600000)));
-			wdfBis.setTimestamp(Helper.cutTimestamp(new Timestamp(System
-					.currentTimeMillis() - 24 * 3600000)));
+			wdfVon.setTimestamp(Helper.cutTimestamp(Helper.addiereTageZuTimestamp(new Timestamp(System
+					.currentTimeMillis()),-1)));
+			wdfBis.setTimestamp(Helper.cutTimestamp(Helper.addiereTageZuTimestamp(new Timestamp(System
+					.currentTimeMillis()),-1)));
 		}
 	}
 	public boolean getBErstelleReportSofort() {

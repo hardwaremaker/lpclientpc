@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.auftrag;
 
-
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -55,163 +54,158 @@ import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
 import com.lp.server.auftrag.service.AuftragseriennrnDto;
 
-@SuppressWarnings("static-access") 
+@SuppressWarnings("static-access")
 /**
- * <p> Diese Klasse kuemmert sich ...</p>
+ * <p>
+ * Diese Klasse kuemmert sich ...
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellung: Vorname Nachname; dd.mm.06</p>
+ * <p>
+ * Erstellung: Vorname Nachname; dd.mm.06
+ * </p>
  *
- * <p>@author $Author: valentin $</p>
+ * <p>
+ * 
+ * @author $Author: valentin $
+ *         </p>
  *
  * @version not attributable Date $Date: 2008/08/11 07:36:13 $
  */
-public class PanelAuftragSeriennummern
-    extends PanelBasis
-{
-  /**
+public class PanelAuftragSeriennummern extends PanelBasis {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private final InternalFrameAuftrag intFrame;
-  private final TabbedPaneAuftrag tpAuftrag;
-  private AuftragseriennrnDto auftragseriennrnDto = null;
-  private WrapperSNRField wtfSeriennr = null;
-  private WrapperLabel wlaSeriennr = null;
-  protected JPanel jpaWorkingOn = new JPanel();
+	private final InternalFrameAuftrag intFrame;
+	private final TabbedPaneAuftrag tpAuftrag;
+	private AuftragseriennrnDto auftragseriennrnDto = null;
+	private WrapperSNRField wtfSeriennr = null;
+	private WrapperLabel wlaSeriennr = null;
+	protected JPanel jpaWorkingOn = new JPanel();
 
-  public PanelAuftragSeriennummern(InternalFrame internalFrame, String add2TitleI,
-                             Object key)
-      throws Throwable {
-    super(internalFrame, add2TitleI, key);
-    intFrame = (InternalFrameAuftrag) internalFrame;
-    tpAuftrag = intFrame.getTabbedPaneAuftrag();
-    jbInitPanel();
-    initComponents();
-  }
+	public PanelAuftragSeriennummern(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
+		super(internalFrame, add2TitleI, key);
+		intFrame = (InternalFrameAuftrag) internalFrame;
+		tpAuftrag = intFrame.getTabbedPaneAuftrag();
+		jbInitPanel();
+		initComponents();
+	}
 
+	private void jbInitPanel() throws Throwable {
 
-  private void jbInitPanel()
-      throws Throwable {
+		// zusaetzliche buttons
+		String[] aWhichButtonIUse = {PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
+				PanelBasis.ACTION_DISCARD, // btndiscard: 0 den Button am Panel anbringen
+		};
+		enableToolsPanelButtons(aWhichButtonIUse);
 
-    // zusaetzliche buttons
-    String[] aWhichButtonIUse = {
-        PanelBasis.ACTION_NEW,
-        PanelBasis.ACTION_UPDATE,
-        PanelBasis.ACTION_SAVE,
-        PanelBasis.ACTION_DISCARD, // btndiscard: 0 den Button am Panel anbringen
-    };
-    enableToolsPanelButtons(aWhichButtonIUse);
+		// das Aussenpanel hat immer das Gridbaglayout und einen Rahmen nach innen
+		setLayout(new GridBagLayout());
+		setBorder(BorderFactory.createEmptyBorder(3, 3, 10, 3));
 
-    // das Aussenpanel hat immer das Gridbaglayout und einen Rahmen nach innen
-    setLayout(new GridBagLayout());
-    setBorder(BorderFactory.createEmptyBorder(3, 3, 10, 3));
+		wlaSeriennr = new WrapperLabel();
+		wlaSeriennr.setText(LPMain.getInstance().getTextRespectUISPr("artikel.report.seriennummern"));
+		wlaSeriennr.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaSeriennr.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wtfSeriennr = new WrapperSNRField();
+		wtfSeriennr.setMandatoryField(true);
+		wtfSeriennr.setMinimumSize(new Dimension(200, Defaults.getInstance().getControlHeight()));
+		wtfSeriennr.setPreferredSize(new Dimension(200, Defaults.getInstance().getControlHeight()));
 
-    wlaSeriennr = new WrapperLabel();
-    wlaSeriennr.setText(LPMain.getInstance().getTextRespectUISPr("artikel.report.seriennummern"));
-    wlaSeriennr.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
-    wlaSeriennr.setPreferredSize(new Dimension(100,
-                                               Defaults.getInstance().getControlHeight()));
-    wtfSeriennr = new WrapperSNRField();
-    wtfSeriennr.setMinimumSize(new Dimension(200, Defaults.getInstance().getControlHeight()));
-    wtfSeriennr.setPreferredSize(new Dimension(200, Defaults.getInstance().getControlHeight()));
+		// Zeile - die Toolbar
+		add(getToolsPanel(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
+		iZeile++;
 
-    // Zeile - die Toolbar
-    add(getToolsPanel(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-                                                , GridBagConstraints.NORTHWEST,
-                                                GridBagConstraints.NONE,
-                                                new Insets(0, 0, 0, 0), 0, 0));
+		this.add(wlaSeriennr, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(wtfSeriennr, new GridBagConstraints(1, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 2, 0, 0), 0, 0));
 
-    iZeile++;
+	}
 
-    this.add(wlaSeriennr, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(0, 0, 0, 0), 0, 0));
-    this.add(wtfSeriennr, new GridBagConstraints(1, iZeile, 1, 1, 1.0, 1.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.BOTH,
-                                               new Insets(0, 0, 0, 0), 0, 0));
+	protected String getLockMeWer() {
+		return HelperClient.LOCKME_AUFTRAGSERIENNUMMERN;
+	}
 
-  }
+	private void setDefaults() throws Throwable {
+		auftragseriennrnDto = new AuftragseriennrnDto();
+		leereAlleFelder(this);
+	}
 
-  protected String getLockMeWer() {
-    return HelperClient.LOCKME_AUFTRAGSERIENNUMMERN;
-  }
+	private void dto2Components() throws Throwable {
+		wtfSeriennr.setText(auftragseriennrnDto.getCSeriennr());
+	}
 
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
+		if (eventObject == null) {
+			eventObject = new ItemChangedEvent(this, ItemChangedEvent.ACTION_NEW);
+		}
+		super.eventActionNew(eventObject, true, false);
+		setDefaults();
+	}
 
-  private void setDefaults()
-      throws Throwable {
-    auftragseriennrnDto = new AuftragseriennrnDto();
-    leereAlleFelder(this);
-  }
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
+		if (allMandatoryFieldsSetDlg()) {
+			components2Dto();
+			if (auftragseriennrnDto.getIId() == null) {
+				auftragseriennrnDto.setIId(DelegateFactory.getInstance().getAuftragpositionDelegate()
+						.createAuftragseriennrn(auftragseriennrnDto));
+				setKeyWhenDetailPanel(auftragseriennrnDto.getIId());
+			} else {
+				DelegateFactory.getInstance().getAuftragpositionDelegate().updateAuftragseriennrn(auftragseriennrnDto);
+			}
+			super.eventActionSave(e, true);
+			if (getInternalFrame().getKeyWasForLockMe() == null) {
+				getInternalFrame().setKeyWasForLockMe(auftragseriennrnDto.getIId() + "");
+			}
+			eventYouAreSelected(false);
+		}
 
+	}
 
-  private void dto2Components()
-      throws Throwable {
-  wtfSeriennr.setText(auftragseriennrnDto.getCSeriennr());
- }
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+			throws Throwable {
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false);
+	}
 
+	private void components2Dto() throws Throwable {
+		auftragseriennrnDto.setCSeriennr(wtfSeriennr.getText());
 
-  public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws
-      Throwable {
-    if(eventObject == null){
-       eventObject = new ItemChangedEvent(this, ItemChangedEvent.ACTION_NEW);
-    }
-    super.eventActionNew(eventObject, true, false);
-    setDefaults();
-  }
+		if (tpAuftrag.getAuftragPositionenBottom().getPanelArtikel().getArtikelDto() != null
+				&& tpAuftrag.getAuftragPositionenBottom().getPanelArtikel().getArtikelDto().getIId() != null) {
+			auftragseriennrnDto
+					.setArtikelIId(tpAuftrag.getAuftragPositionenBottom().getPanelArtikel().getArtikelDto().getIId());
+			auftragseriennrnDto.setAuftragpositionIId((Integer) tpAuftrag.getAuftragPositionenTop().getSelectedId());
 
+		}
 
-  public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-      throws Throwable {
-    if (allMandatoryFieldsSetDlg()) {
+	}
 
-    }
+	public void enableNew() {
+		LPButtonAction item = (LPButtonAction) getHmOfButtons().get(PanelBasis.ACTION_NEW);
+		item.getButton().setEnabled(true);
 
-  }
+	}
 
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
+		super.eventYouAreSelected(false);
+		Object key = getKeyWhenDetailPanel();
+		if (key == null || key.equals(LPMain.getLockMeForNew())) {
+			// Neu.
+			leereAlleFelder(this);
 
-  protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI,
-                                   boolean bNeedNoDeleteI)
-      throws Throwable {
-     this.setKeyWhenDetailPanel(null);
-    super.eventActionDelete(e, false, false);
-  }
-
-
-  private void components2Dto()
-      throws Throwable {
-    auftragseriennrnDto.setCSeriennr(wtfSeriennr.getText());
-
-  }
-
-
-  public void enableNew() {
-    LPButtonAction item = (LPButtonAction) getHmOfButtons().get(PanelBasis.ACTION_NEW);
-    item.getButton().setEnabled(true);
-
-  }
-
-  public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-      throws Throwable {
-    super.eventYouAreSelected(false);
-    Object key = getKeyWhenDetailPanel();
-    if (key == null || key.equals(LPMain.getLockMeForNew())) {
-      // Neu.
-      leereAlleFelder(this);
-
-
-    }
-    else {
-      // Update.
-     auftragseriennrnDto = DelegateFactory.getInstance().getAuftragpositionDelegate().
-        auftragseriennrnFindByAuftragpositionIId((Integer) key);
-      dto2Components();
-    }
-  }
+		} else {
+			// Update.
+			auftragseriennrnDto = DelegateFactory.getInstance().getAuftragpositionDelegate()
+					.auftragseriennrnFindByPrimaryKey((Integer) key);
+			dto2Components();
+		}
+	}
 }

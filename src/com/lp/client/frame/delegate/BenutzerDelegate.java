@@ -37,6 +37,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.benutzer.service.ArtgrurolleDto;
 import com.lp.server.benutzer.service.BenutzerDto;
 import com.lp.server.benutzer.service.BenutzerFac;
 import com.lp.server.benutzer.service.BenutzermandantsystemrolleDto;
@@ -56,8 +57,8 @@ public class BenutzerDelegate extends Delegate {
 
 	public BenutzerDelegate() throws Exception {
 		context = new InitialContext();
-		benutzerFac = (BenutzerFac) context
-				.lookup("lpserver/BenutzerFacBean/remote");
+		benutzerFac = lookupFac(context, BenutzerFac.class);
+
 	}
 
 	public Integer createBenutzer(BenutzerDto benutzerDto) throws ExceptionLP {
@@ -93,6 +94,26 @@ public class BenutzerDelegate extends Delegate {
 		}
 	}
 
+	public JasperPrintLP printRollenundrechte() throws Throwable {
+		try {
+			return benutzerFac.printRollenundrechte(LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printLogin(String benutzer, String password)
+			throws Throwable {
+		try {
+			return benutzerFac.printLogin(benutzer, password,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
 	public Integer createThemarolle(ThemarolleDto themarolleDto)
 			throws ExceptionLP {
 
@@ -109,8 +130,18 @@ public class BenutzerDelegate extends Delegate {
 			throws ExceptionLP {
 
 		try {
-			return benutzerFac
-					.createFertigungsgrupperolle(fertigungsgrupperolleDto);
+			return benutzerFac.createFertigungsgrupperolle(
+					fertigungsgrupperolleDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer createArtgrurolle(ArtgrurolleDto dto) throws ExceptionLP {
+
+		try {
+			return benutzerFac.createArtgrurolle(dto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -121,7 +152,8 @@ public class BenutzerDelegate extends Delegate {
 			throws ExceptionLP {
 
 		try {
-			return benutzerFac.createLagerrolle(lagerrolleDto);
+			return benutzerFac.createLagerrolle(lagerrolleDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -145,29 +177,29 @@ public class BenutzerDelegate extends Delegate {
 			throws ExceptionLP {
 
 		try {
-			return benutzerFac.createSystemrolle(systemrolleDto);
+			return benutzerFac.createSystemrolle(systemrolleDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
+	public void kopiereLagerRechteEinerRolle(Integer systemrolleIIdQuelle,
+			Integer systemrolleIIdZiel) throws ExceptionLP {
 
-	  public void kopiereLagerRechteEinerRolle(Integer systemrolleIIdQuelle,Integer systemrolleIIdZiel)
-	      throws ExceptionLP {
+		try {
+			benutzerFac.kopiereLagerRechteEinerRolle(systemrolleIIdQuelle,
+					systemrolleIIdZiel, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
-	    try {
-	    	benutzerFac.kopiereLagerRechteEinerRolle(systemrolleIIdQuelle,systemrolleIIdZiel, LPMain.getTheClient());
-	    }
-	    catch (Throwable ex) {
-	      handleThrowable(ex);
-	    }
-	  }
-	
 	public void removeBenutzer(Integer iId) throws ExceptionLP {
 
 		try {
-			benutzerFac.removeBenutzer(iId);
+			benutzerFac.removeBenutzer(iId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -186,7 +218,8 @@ public class BenutzerDelegate extends Delegate {
 			throws ExceptionLP {
 
 		try {
-			benutzerFac.removeBenutzermandantsystemrolle(iId);
+			benutzerFac.removeBenutzermandantsystemrolle(iId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -195,7 +228,7 @@ public class BenutzerDelegate extends Delegate {
 	public void removeSystemrolle(Integer iId) throws ExceptionLP {
 
 		try {
-			benutzerFac.removeSystemrolle(iId);
+			benutzerFac.removeSystemrolle(iId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -213,7 +246,7 @@ public class BenutzerDelegate extends Delegate {
 	public void removeLagerrolle(Integer iId) throws ExceptionLP {
 
 		try {
-			benutzerFac.removeLagerrolle(iId);
+			benutzerFac.removeLagerrolle(iId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -222,7 +255,16 @@ public class BenutzerDelegate extends Delegate {
 	public void removeFertigungsgrupperolle(Integer iId) throws ExceptionLP {
 
 		try {
-			benutzerFac.removeFertigungsgrupperolle(iId);
+			benutzerFac.removeFertigungsgrupperolle(iId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeArtgrurolle(Integer iId) throws ExceptionLP {
+
+		try {
+			benutzerFac.removeArtgrurolle(iId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -241,7 +283,8 @@ public class BenutzerDelegate extends Delegate {
 			throws ExceptionLP {
 
 		try {
-			benutzerFac.updateSystemrolle(systemrolleDto);
+			benutzerFac
+					.updateSystemrolle(systemrolleDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -273,7 +316,7 @@ public class BenutzerDelegate extends Delegate {
 			throws ExceptionLP {
 
 		try {
-			benutzerFac.updateLagerrolle(lagerrolleDto);
+			benutzerFac.updateLagerrolle(lagerrolleDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -284,7 +327,17 @@ public class BenutzerDelegate extends Delegate {
 			throws ExceptionLP {
 
 		try {
-			benutzerFac.updateFertigungsgrupperolle(fertigungsgrupperolleDto);
+			benutzerFac.updateFertigungsgrupperolle(fertigungsgrupperolleDto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateArtgrurolle(ArtgrurolleDto dto) throws ExceptionLP {
+
+		try {
+			benutzerFac.updateArtgrurolle(dto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -378,7 +431,8 @@ public class BenutzerDelegate extends Delegate {
 		}
 	}
 
-	public Integer[] getBerechtigteLagerIIdsEinerSystemrolle(Integer systemrolleIId) throws ExceptionLP {
+	public Integer[] getBerechtigteLagerIIdsEinerSystemrolle(
+			Integer systemrolleIId) throws ExceptionLP {
 		try {
 			return benutzerFac
 					.getBerechtigteLagerIIdsEinerSystemrolle(systemrolleIId);
@@ -387,7 +441,7 @@ public class BenutzerDelegate extends Delegate {
 			return null;
 		}
 	}
-	
+
 	public int getAnzahlDerNochNichtErledigtenAberNochZuBearbeitendenMeldungen()
 			throws ExceptionLP {
 
@@ -485,6 +539,17 @@ public class BenutzerDelegate extends Delegate {
 
 		try {
 			return benutzerFac.fertigungsgrupperolleFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public ArtgrurolleDto artgrurolleFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+
+		try {
+			return benutzerFac.artgrurolleFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;

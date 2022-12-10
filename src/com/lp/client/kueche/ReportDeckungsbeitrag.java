@@ -61,6 +61,7 @@ import com.lp.server.kueche.service.KuecheReportFac;
 import com.lp.server.system.service.KostenstelleDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class ReportDeckungsbeitrag extends PanelBasis implements
@@ -119,10 +120,10 @@ public class ReportDeckungsbeitrag extends PanelBasis implements
 		wbuKostenstelle.setActionCommand(ACTION_SPECIAL_KOSTENSTELLE);
 		wbuKostenstelle.addActionListener(this);
 		wtfKostenstelle.setActivatable(false);
-		wdfDatumVon.setTimestamp(new java.sql.Timestamp(System
-				.currentTimeMillis() - 24 * 3600000));
-		wdfDatumBis.setTimestamp(new java.sql.Timestamp(System
-				.currentTimeMillis() - 24 * 3600000));
+		wdfDatumVon.setTimestamp(Helper.addiereTageZuTimestamp(new java.sql.Timestamp(System
+				.currentTimeMillis()),-1));
+		wdfDatumBis.setTimestamp(Helper.addiereTageZuTimestamp(new java.sql.Timestamp(System
+				.currentTimeMillis()),-1));
 
 		wdrBereich = new WrapperDateRangeController(wdfDatumVon, wdfDatumBis);
 

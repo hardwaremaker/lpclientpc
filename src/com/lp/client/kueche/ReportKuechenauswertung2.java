@@ -171,7 +171,7 @@ protected JPanel jpaWorkingOn = new JPanel();
       throws Throwable {
   
     return DelegateFactory.getInstance().getKuecheReportDelegate().
-        printKuechenauswertung2(wdfDatumVon.getTimestamp(),wdfDatumBis.getTimestamp());
+        printKuechenauswertung2(wdrBereich.getTimestampVon(),wdrBereich.getTimestampBis());
   }
 
 

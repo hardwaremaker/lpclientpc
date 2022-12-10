@@ -57,7 +57,6 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-@SuppressWarnings("static-access")
 /*
  * <p> Diese Klasse ist ein Singleton und kuemmert sich um alle Filter im
  * Lieferschein.</p>
@@ -97,38 +96,27 @@ public class LieferscheinFilterFactory {
 	 * geliefert.
 	 * 
 	 * @return FilterKriterium[] Filter Kriterien
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public FilterKriterium[] createFKPanelQueryFLRAuftragAuswahl()
-			throws Throwable {
+	public FilterKriterium[] createFKPanelQueryFLRAuftragAuswahl() throws Throwable {
 		return createFKPanelQueryFLRAuftragAuswahl(false);
 	}
 
-	public FilterKriterium[] createFKPanelQueryFLRAuftragAuswahl(
-			boolean bMitRahmenauftraegen) throws Throwable {
-		FilterKriterium krit1 = new FilterKriterium(
-				AuftragFac.FLR_AUFTRAG_MANDANT_C_NR, true, "'"
-						+ LPMain.getInstance().getTheClient().getMandant()
-						+ "'", FilterKriterium.OPERATOR_EQUAL, false);
+	public FilterKriterium[] createFKPanelQueryFLRAuftragAuswahl(boolean bMitRahmenauftraegen) throws Throwable {
+		FilterKriterium krit1 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_MANDANT_C_NR, true,
+				"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 
 		// unser FilterBlock verknuepft alle Kriterien mit AND, daher bedeutet
 		// OFFEN oder TEILERLIDGT : nicht ANGELEGT und nicht ERLEDIGT und nicht
 		// STORNIERT
-		FilterKriterium krit2 = new FilterKriterium(
-				AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "'"
-						+ AuftragServiceFac.AUFTRAGSTATUS_ANGELEGT + "'",
-				FilterKriterium.OPERATOR_NOT_EQUAL, false);
+		FilterKriterium krit2 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true,
+				"'" + AuftragServiceFac.AUFTRAGSTATUS_ANGELEGT + "'", FilterKriterium.OPERATOR_NOT_EQUAL, false);
 
-		FilterKriterium krit3 = new FilterKriterium(
-				AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "'"
-						+ AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT + "'",
-				FilterKriterium.OPERATOR_NOT_EQUAL, false);
+		FilterKriterium krit3 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true,
+				"'" + AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT + "'", FilterKriterium.OPERATOR_NOT_EQUAL, false);
 
-		FilterKriterium krit4 = new FilterKriterium(
-				AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "'"
-						+ AuftragServiceFac.AUFTRAGSTATUS_STORNIERT + "'",
-				FilterKriterium.OPERATOR_NOT_EQUAL, false);
+		FilterKriterium krit4 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true,
+				"'" + AuftragServiceFac.AUFTRAGSTATUS_STORNIERT + "'", FilterKriterium.OPERATOR_NOT_EQUAL, false);
 		FilterKriterium[] kriterien = null;
 		if (bMitRahmenauftraegen == true) {
 
@@ -140,10 +128,8 @@ public class LieferscheinFilterFactory {
 			kriterien[3] = krit4;
 
 		} else {
-			FilterKriterium krit5 = new FilterKriterium(
-					AuftragFac.FLR_AUFTRAG_AUFTRAGART_C_NR, true, "('"
-							+ AuftragServiceFac.AUFTRAGART_RAHMEN + "')",
-					FilterKriterium.OPERATOR_NOT_IN, false);
+			FilterKriterium krit5 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_AUFTRAGART_C_NR, true,
+					"('" + AuftragServiceFac.AUFTRAGART_RAHMEN + "')", FilterKriterium.OPERATOR_NOT_IN, false);
 
 			kriterien = new FilterKriterium[5];
 
@@ -157,88 +143,86 @@ public class LieferscheinFilterFactory {
 		return kriterien;
 	}
 
-	public FilterKriterium[] createFKLieferscheinKey(Integer artikelIId)
+	public FilterKriterium[] createFKPanelQueryFLRAuftragAuswahlNurAngelegte(boolean bMitRahmenauftraegen)
 			throws Throwable {
-		// Handartikel nicht anzeigen
-		FilterKriterium[] kriterien = new FilterKriterium[1];
-		kriterien[0] = new FilterKriterium("i_id", true, artikelIId + "",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_MANDANT_C_NR, true,
+				"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
+
+		FilterKriterium krit2 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true,
+				"'" + AuftragServiceFac.AUFTRAGSTATUS_ANGELEGT + "'", FilterKriterium.OPERATOR_EQUAL, false);
+
+		FilterKriterium[] kriterien = new FilterKriterium[2];
+
+		kriterien[0] = krit1;
+		kriterien[1] = krit2;
 
 		return kriterien;
 	}
 
-	public FilterKriterium[] createFKPanelQueryFLRAuftragAuswahl(
-			Integer kundeIIdLieferadresse, Integer kundeIIdRechnungsadresse,
-			Integer kundeIIdAuftragsadresse, Integer[] auftragIIdNichtAnzeigen)
+	public FilterKriterium[] createFKLieferscheinKey(Integer artikelIId) throws Throwable {
+		// Handartikel nicht anzeigen
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		kriterien[0] = new FilterKriterium("i_id", true, artikelIId + "", FilterKriterium.OPERATOR_EQUAL, false);
+
+		return kriterien;
+	}
+
+	public FilterKriterium[] createFKPanelQueryFLRAuftragAuswahl(Integer kundeIIdLieferadresse,
+			Integer kundeIIdRechnungsadresse, Integer kundeIIdAuftragsadresse, Integer[] auftragIIdNichtAnzeigen)
 			throws Throwable {
 		FilterKriterium[] basiskrit = createFKPanelQueryFLRAuftragAuswahl();
-		FilterKriterium[] krit = new FilterKriterium[basiskrit.length + 3
-				+ auftragIIdNichtAnzeigen.length];
+		FilterKriterium[] krit = new FilterKriterium[basiskrit.length + 3 + auftragIIdNichtAnzeigen.length];
 		for (int i = 0; i < basiskrit.length; i++) {
 			krit[i] = basiskrit[i];
 		}
 		// Zusaetzliche Kriterien
-		FilterKriterium krit1 = new FilterKriterium(
-				AuftragFac.FLR_AUFTRAG_KUNDE_I_ID_LIEFERADRESSE, true, "'"
-						+ kundeIIdLieferadresse + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
-		FilterKriterium krit2 = new FilterKriterium(
-				AuftragFac.FLR_AUFTRAG_KUNDE_I_ID_AUFTRAGSADRESSE, true, "'"
-						+ kundeIIdAuftragsadresse + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
-		FilterKriterium krit3 = new FilterKriterium(
-				AuftragFac.FLR_AUFTRAG_KUNDE_I_ID_RECHNUNGSADRESSE, true, "'"
-						+ kundeIIdRechnungsadresse + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_KUNDE_I_ID_LIEFERADRESSE, true,
+				"'" + kundeIIdLieferadresse + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit2 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_KUNDE_I_ID_AUFTRAGSADRESSE, true,
+				"'" + kundeIIdAuftragsadresse + "'", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit3 = new FilterKriterium(AuftragFac.FLR_AUFTRAG_KUNDE_I_ID_RECHNUNGSADRESSE, true,
+				"'" + kundeIIdRechnungsadresse + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		krit[basiskrit.length + 0] = krit1;
 		krit[basiskrit.length + 1] = krit2;
 		krit[basiskrit.length + 2] = krit3;
 		// nicht anzuzeigende auftraege
 		for (int i = 0; i < auftragIIdNichtAnzeigen.length; i++) {
-			FilterKriterium kritNA = new FilterKriterium(
-					AuftragFac.FLR_AUFTRAG_I_ID, true, "'"
-							+ auftragIIdNichtAnzeigen[i] + "'",
-					FilterKriterium.OPERATOR_NOT_EQUAL, false);
+			FilterKriterium kritNA = new FilterKriterium(AuftragFac.FLR_AUFTRAG_I_ID, true,
+					"'" + auftragIIdNichtAnzeigen[i] + "'", FilterKriterium.OPERATOR_NOT_EQUAL, false);
 			krit[basiskrit.length + 3 + i] = kritNA;
 		}
 		return krit;
 	}
 
 	/**
-	 * Einschraenken der 1:n Listen im Lieferschein auf den aktuellen
-	 * Lieferschein.
+	 * Einschraenken der 1:n Listen im Lieferschein auf den aktuellen Lieferschein.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
+	 * @param iIdLieferscheinI PK des Lieferscheins
 	 * @return FilterKriterium[] die Kriterien
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public FilterKriterium[] createFKFlrlieferscheiniid(Integer iIdLieferscheinI)
-			throws Throwable {
+	public FilterKriterium[] createFKFlrlieferscheiniid(Integer iIdLieferscheinI) throws Throwable {
 		FilterKriterium[] kriterien = null;
 
 		if (iIdLieferscheinI != null) {
 			kriterien = new FilterKriterium[1];
 
 			kriterien[0] = new FilterKriterium(
-					LieferscheinpositionFac.FLR_LIEFERSCHEINPOSITION_FLRLIEFERSCHEIN
-							+ "." + LieferscheinFac.FLR_LIEFERSCHEIN_I_ID,
-					true, iIdLieferscheinI.toString(),
-					FilterKriterium.OPERATOR_EQUAL, false);
+					LieferscheinpositionFac.FLR_LIEFERSCHEINPOSITION_FLRLIEFERSCHEIN + "."
+							+ LieferscheinFac.FLR_LIEFERSCHEIN_I_ID,
+					true, iIdLieferscheinI.toString(), FilterKriterium.OPERATOR_EQUAL, false);
 		}
 
 		return kriterien;
 	}
-	public FilterKriterium[] createFKVerkettet(Integer iIdLieferscheinI)
-			throws Throwable {
+
+	public FilterKriterium[] createFKVerkettet(Integer iIdLieferscheinI) throws Throwable {
 		FilterKriterium[] kriterien = null;
 
 		if (iIdLieferscheinI != null) {
 			kriterien = new FilterKriterium[1];
 
-			kriterien[0] = new FilterKriterium("lieferschein_i_id",
-					true, iIdLieferscheinI.toString(),
+			kriterien[0] = new FilterKriterium("lieferschein_i_id", true, iIdLieferscheinI.toString(),
 					FilterKriterium.OPERATOR_EQUAL, false);
 		}
 
@@ -254,42 +238,35 @@ public class LieferscheinFilterFactory {
 	protected QueryType[] createQTPanelLieferscheinauswahl() {
 		QueryType[] types = new QueryType[4];
 
-		FilterKriterium f1 = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_C_NR, true, "",
+		FilterKriterium f1 = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_C_NR, true, "",
 				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"label.lieferscheinnummer"), f1,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+		types[0] = new QueryType(LPMain.getTextRespectUISPr("label.lieferscheinnummer"), f1,
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
 		FilterKriterium f2 = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE + "."
-						+ KundeFac.FLR_PARTNER + "."
+				LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE + "." + KundeFac.FLR_PARTNER + "."
 						+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
 				true, "", FilterKriterium.OPERATOR_LIKE, false);
 
-		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"label.kunde"), f2,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+		types[1] = new QueryType(LPMain.getTextRespectUISPr("ls.lieferadresse"), f2,
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
-		FilterKriterium f3 = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_D_BELEGDATUM, true, "",
+		FilterKriterium f3 = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_D_BELEGDATUM, true, "",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
-		types[2] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"label.belegdatum"), f3, new String[] {
-				FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_GTE,
-				FilterKriterium.OPERATOR_LTE }, true, // eingabeformat
+		types[2] = new QueryType(LPMain.getTextRespectUISPr("label.belegdatum"), f3,
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_GTE,
+						FilterKriterium.OPERATOR_LTE, FilterKriterium.OPERATOR_NOT_EQUAL },
+				true, // eingabeformat
 				// 10.12.2004
 				false, false);
 
-		FilterKriterium f4 = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_FLRKOSTENSTELLE + ".c_nr",
-				true, "", FilterKriterium.OPERATOR_LIKE, false);
+		FilterKriterium f4 = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_FLRKOSTENSTELLE + ".c_nr", true, "",
+				FilterKriterium.OPERATOR_LIKE, false);
 
-		types[3] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
-				"label.kostenstelle"), f4,
-				new String[] { FilterKriterium.OPERATOR_LIKE }, true, // eingabeformat
+		types[3] = new QueryType(LPMain.getTextRespectUISPr("label.kostenstelle"), f4,
+				new String[] { FilterKriterium.OPERATOR_LIKE, FilterKriterium.OPERATOR_NOT_LIKE }, true, // eingabeformat
 				// 10.12.2004
 				true, false);
 
@@ -299,8 +276,8 @@ public class LieferscheinFilterFactory {
 		 * FilterKriterium.OPERATOR_LIKE, false);
 		 * 
 		 * types[3] = new QueryType(
-		 * LPMain.getInstance().getTextRespectUISPr("label.projekt"), f4, new
-		 * String[] {FilterKriterium.OPERATOR_EQUAL} , true, true);
+		 * LPMain.getInstance().getTextRespectUISPr("label.projekt"), f4, new String[]
+		 * {FilterKriterium.OPERATOR_EQUAL} , true, true);
 		 */
 
 		return types;
@@ -311,10 +288,8 @@ public class LieferscheinFilterFactory {
 	 * Es sollen alle Positionen angzeigt werden. Wenn eine Position den Status
 	 * 'erledigt' hat, muss die offene Menge mit 0 angezeigt werden.
 	 * 
-	 * @param oLieferscheinDtoI
-	 *            der aktuelle Lieferschein
-	 * @param iIdAuftragI
-	 *            Integer
+	 * @param oLieferscheinDtoI der aktuelle Lieferschein
+	 * @param iIdAuftragI       Integer
 	 * @return FilterKriterium[] die default Filter Kriterien
 	 */
 
@@ -322,15 +297,14 @@ public class LieferscheinFilterFactory {
 
 		FilterKriterium[] fk = new FilterKriterium[1];
 
-		fk[0] = new FilterKriterium(
-				AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAGPOSITIONSTATUS_C_NR,
-				true, "'" + AuftragServiceFac.AUFTRAGPOSITIONSTATUS_ERLEDIGT
-						+ "'", FilterKriterium.OPERATOR_NOT_EQUAL, false);
+		fk[0] = new FilterKriterium(AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAGPOSITIONSTATUS_C_NR, true,
+				"'" + AuftragServiceFac.AUFTRAGPOSITIONSTATUS_ERLEDIGT + "'", FilterKriterium.OPERATOR_NOT_EQUAL,
+				false);
 		return fk;
 	}
 
-	protected FilterKriterium[] createFKLieferscheinSichtAuftrag(
-			LieferscheinDto oLieferscheinDtoI, Integer iIdAuftragI) {
+	protected FilterKriterium[] createFKLieferscheinSichtAuftrag(LieferscheinDto oLieferscheinDtoI,
+			Integer iIdAuftragI) {
 		FilterKriterium[] kriterien = null;
 
 		if (oLieferscheinDtoI != null && oLieferscheinDtoI.getIId() != null) {
@@ -338,16 +312,13 @@ public class LieferscheinFilterFactory {
 				kriterien = new FilterKriterium[1];
 
 				FilterKriterium krit1 = new FilterKriterium(
-						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID,
-						true, iIdAuftragI.toString(),
+						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID, true, iIdAuftragI.toString(),
 						FilterKriterium.OPERATOR_EQUAL, false);
 
 				/*
-				 * FilterKriterium krit3 = new FilterKriterium(
-				 * AuftragpositionFac
-				 * .FLR_AUFTRAGPOSITIONSICHTAUFTRAG_N_OFFENE_MENGE, true,
-				 * String.valueOf(0), FilterKriterium.OPERATOR_NOT_EQUAL,
-				 * false);
+				 * FilterKriterium krit3 = new FilterKriterium( AuftragpositionFac
+				 * .FLR_AUFTRAGPOSITIONSICHTAUFTRAG_N_OFFENE_MENGE, true, String.valueOf(0),
+				 * FilterKriterium.OPERATOR_NOT_EQUAL, false);
 				 */
 				kriterien[0] = krit1;
 
@@ -356,8 +327,7 @@ public class LieferscheinFilterFactory {
 				kriterien = new FilterKriterium[1];
 
 				FilterKriterium krit1 = new FilterKriterium(
-						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID,
-						true, String.valueOf(-1),
+						AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_AUFTRAG_I_ID, true, String.valueOf(-1),
 						FilterKriterium.OPERATOR_EQUAL, false);
 
 				kriterien[0] = krit1;
@@ -371,21 +341,17 @@ public class LieferscheinFilterFactory {
 	 * Default Filter Kriterien fuer eine Liste von Lieferscheintexten
 	 * 
 	 * @return FilterKriterium[] Default Filter Kriterien
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
 	public FilterKriterium[] createFKLieferscheintext() throws Throwable {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
 
-		FilterKriterium krit1 = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit1 = new FilterKriterium("mandant_c_nr", true,
+				"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
-		FilterKriterium krit2 = new FilterKriterium(
-				LieferscheinServiceFac.FLR_LIEFERSCHEINTEXT_LOCALE_C_NR, true,
-				"'" + LPMain.getInstance().getTheClient().getLocUiAsString()
-						+ "'", FilterKriterium.OPERATOR_EQUAL, false);
+		FilterKriterium krit2 = new FilterKriterium(LieferscheinServiceFac.FLR_LIEFERSCHEINTEXT_LOCALE_C_NR, true,
+				"'" + LPMain.getTheClient().getLocUiAsString() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
 		kriterien[1] = krit2;
@@ -400,35 +366,29 @@ public class LieferscheinFilterFactory {
 	 * @throws Throwable
 	 */
 	public FilterKriteriumDirekt createFKDLieferscheinnummer() throws Throwable {
-		return new FilterKriteriumDirekt("c_nr", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("ls.lieferscheinnummershort"),
-				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
+		return new FilterKriteriumDirekt("c_nr", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("ls.lieferscheinnummershort"), FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung
+																													// als
+																													// '%XX'
 				true, // wrapWithSingleQuotes
-				false, Facade.MAX_UNBESCHRAENKT); // ignore case
+				true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
-	public FilterKriteriumDirekt createFKDArtikelnummer()
-			throws Throwable {
+	public FilterKriteriumDirekt createFKDArtikelnummer() throws Throwable {
 
 		int iLaenge = ArtikelFac.MAX_ARTIKEL_ARTIKELNUMMER;
 
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
-						ParameterFac.KATEGORIE_ARTIKEL,
-						LPMain.getInstance().getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_ARTIKELNUMMER,
+						ParameterFac.KATEGORIE_ARTIKEL, LPMain.getTheClient().getMandant());
 
 		if (parameter.getCWertAsObject() != null) {
 			iLaenge = ((Integer) parameter.getCWertAsObject()).intValue();
 		}
 
-		return new FilterKriteriumDirekt("flrartikel.c_nr", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("artikel.artikelnummer"),
-				FilterKriteriumDirekt.PROZENT_TRAILING, true, true, iLaenge);
+		return new FilterKriteriumDirekt("flrartikel.c_nr", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("artikel.artikelnummer"), FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
+				iLaenge);
 
 	}
 
@@ -439,21 +399,17 @@ public class LieferscheinFilterFactory {
 	 * @throws Throwable
 	 */
 	public FilterKriteriumDirekt createFKDProjekt() throws Throwable {
-		return new FilterKriteriumDirekt("c_bez_projektbezeichnung", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.projekt"),
-				FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als '%XX'
-				true, // wrapWithSingleQuotes
-				false, Facade.MAX_UNBESCHRAENKT); // ignore case
+		return new FilterKriteriumDirekt("c_bez_projektbezeichnung", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("label.projektbestellnr"), FilterKriteriumDirekt.EXTENDED_SEARCH, false, // wrapWithSingleQuotes
+				true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
 	public FilterKriteriumDirekt createFKDAuftragsnummmer() throws Throwable {
-		return new FilterKriteriumDirekt("flrauftrag.c_nr", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.auftragnummer"),
-				FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als '%XX'
+		return new FilterKriteriumDirekt("flrauftrag.c_nr", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("label.auftragnummer"), FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als
+																										// '%XX'
 				true, // wrapWithSingleQuotes
-				false, Facade.MAX_UNBESCHRAENKT); // ignore case
+				true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
 	/**
@@ -461,67 +417,81 @@ public class LieferscheinFilterFactory {
 	 * 
 	 * @return FilterKriteriumDirekt
 	 */
-	public FilterKriteriumDirekt createFKDKundenname() throws Throwable {
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
-						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getInstance().getTheClient().getMandant());
+	public FilterKriteriumDirekt createFKDKundeLieferadresse() throws Throwable {
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
+						ParameterFac.KATEGORIE_PARTNER, LPMain.getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
 			return new FilterKriteriumDirekt(
-					LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE + "."
-							+ KundeFac.FLR_PARTNER + "."
+					LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE + "." + KundeFac.FLR_PARTNER + "."
 							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
-					"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("label.kunde"),
-					FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als 'XX%'
+					"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("ls.lieferadresse"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH, // Auswertung
+																	// als 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
 		} else {
 			return new FilterKriteriumDirekt(
-					LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE + "."
-							+ KundeFac.FLR_PARTNER + "."
+					LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE + "." + KundeFac.FLR_PARTNER + "."
 							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
-					"", FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("label.kunde"),
-					FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als
-															// 'XX%'
+					"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("ls.lieferadresse"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING, // Auswertung
+																		// als
+					// 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
 		}
 	}
 
-	public FilterKriterium[] createFKGelieferteLieferscheineEinesKunden(
-			Integer kundeIId) throws Throwable {
+	public FilterKriteriumDirekt createFKDKundeRechnungsadresse() throws Throwable {
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
+						ParameterFac.KATEGORIE_PARTNER, LPMain.getTheClient().getMandant());
+		if (((Boolean) parameter.getCWertAsObject() == true)) {
+			return new FilterKriteriumDirekt(
+					LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDERECHNUNGSADRESSE + "." + KundeFac.FLR_PARTNER + "."
+							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+					"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.rechnungsadresse"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH, // Auswertung
+																	// als 'XX%'
+					true, // wrapWithSingleQuotes
+					true, Facade.MAX_UNBESCHRAENKT); // ignore case
+		} else {
+			return new FilterKriteriumDirekt(
+					LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDERECHNUNGSADRESSE + "." + KundeFac.FLR_PARTNER + "."
+							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+					"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("lp.rechnungsadresse"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING, // Auswertung
+																		// als
+					// 'XX%'
+					true, // wrapWithSingleQuotes
+					true, Facade.MAX_UNBESCHRAENKT); // ignore case
+		}
+	}
+
+	public FilterKriterium[] createFKGelieferteLieferscheineEinesKunden(Integer kundeIId) throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[3];
 		filters[0] = createFKGelieferteLieferscheine()[0];
 		filters[1] = createFKGelieferteLieferscheine()[1];
-		filters[2] = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_KUNDE_I_ID_RECHNUNGSADRESSE,
-				true, kundeIId.toString(), FilterKriterium.OPERATOR_EQUAL,
-				false);
+		filters[2] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_KUNDE_I_ID_RECHNUNGSADRESSE, true,
+				kundeIId.toString(), FilterKriterium.OPERATOR_EQUAL, false);
 		/** @todo nur verrechenbare PJ 4759 */
 		return filters;
 	}
 
-	public FilterKriterium[] createFKGelieferteLieferscheineEinesKundenInland(
-			Integer kundeIId, Integer landIId) throws Throwable {
+	public FilterKriterium[] createFKGelieferteLieferscheineEinesKundenInland(Integer kundeIId, Integer landIId)
+			throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[4];
 		filters[0] = createFKGelieferteLieferscheine()[0];
 		filters[1] = createFKGelieferteLieferscheine()[1];
-		filters[2] = new FilterKriterium(/*
-										 * LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE
-										 */"flrkunderechnungsadresse" + "."
-				+ KundeFac.FLR_PARTNER + "."
-				+ PartnerFac.FLR_PARTNER_FLRLANDPLZORT + "."
-				+ SystemFac.FLR_LP_FLRLAND + "." + SystemFac.FLR_LP_LANDID,
+		filters[2] = new FilterKriterium(
+				/*
+				 * LieferscheinFac.FLR_LIEFERSCHEIN_FLRKUNDE
+				 */"flrkunderechnungsadresse" + "." + KundeFac.FLR_PARTNER + "." + PartnerFac.FLR_PARTNER_FLRLANDPLZORT
+						+ "." + SystemFac.FLR_LP_FLRLAND + "." + SystemFac.FLR_LP_LANDID,
 				true, landIId.toString(), FilterKriterium.OPERATOR_EQUAL, false);
-		filters[3] = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_KUNDE_I_ID_RECHNUNGSADRESSE,
-				true, kundeIId.toString(), FilterKriterium.OPERATOR_EQUAL,
-				false);
+		filters[3] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_KUNDE_I_ID_RECHNUNGSADRESSE, true,
+				kundeIId.toString(), FilterKriterium.OPERATOR_EQUAL, false);
 
 		return filters;
 	}
@@ -529,20 +499,15 @@ public class LieferscheinFilterFactory {
 	public FilterKriterium[] createFKGelieferteLieferscheine() throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[2];
 		filters[0] = SystemFilterFactory.getInstance().createFKMandantCNr()[0];
-		filters[1] = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_LIEFERSCHEINSTATUS_STATUS_C_NR,
-				true, "'" + LieferscheinFac.LSSTATUS_GELIEFERT + "'",
-				FilterKriterium.OPERATOR_EQUAL, false);
+		filters[1] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_LIEFERSCHEINSTATUS_STATUS_C_NR, true,
+				"'" + LieferscheinFac.LSSTATUS_GELIEFERT + "'", FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
 
-	public FilterKriterium[] createFKLieferscheineSchnellansicht()
-			throws Throwable {
+	public FilterKriterium[] createFKLieferscheineSchnellansicht() throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_LIEFERSCHEINSTATUS_STATUS_C_NR,
-				true, "('" + LieferscheinFac.LSSTATUS_STORNIERT + "','"
-						+ LieferscheinFac.LSSTATUS_ERLEDIGT + "','"
+		filters[0] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_LIEFERSCHEINSTATUS_STATUS_C_NR, true,
+				"('" + LieferscheinFac.LSSTATUS_STORNIERT + "','" + LieferscheinFac.LSSTATUS_ERLEDIGT + "','"
 						+ LieferscheinFac.LSSTATUS_VERRECHNET + "')",
 				FilterKriterium.OPERATOR_NOT_IN, false);
 
@@ -550,78 +515,97 @@ public class LieferscheinFilterFactory {
 	}
 
 	/**
-	 * Einschraenken der 1:n Listen im Lieferschein auf den aktuellen
-	 * Lieferschein.
+	 * Einschraenken der 1:n Listen im Lieferschein auf den aktuellen Lieferschein.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
+	 * @param iIdLieferscheinI PK des Lieferscheins
 	 * @return FilterKriterium[] die Kriterien
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public FilterKriterium[] createFKAuftraegeEinesLieferscheins(
-			Integer iIdLieferscheinI) throws Throwable {
+	public FilterKriterium[] createFKAuftraegeEinesLieferscheins(Integer iIdLieferscheinI) throws Throwable {
 		FilterKriterium[] kriterien = null;
 
 		if (iIdLieferscheinI != null) {
 			kriterien = new FilterKriterium[1];
 
 			kriterien[0] = new FilterKriterium(
-					LieferscheinpositionFac.FLR_LIEFERSCHEINPOSITION_FLRLIEFERSCHEIN
-							+ "." + LieferscheinFac.FLR_LIEFERSCHEIN_I_ID,
-					true, iIdLieferscheinI.toString(),
-					FilterKriterium.OPERATOR_EQUAL, false);
+					LieferscheinpositionFac.FLR_LIEFERSCHEINPOSITION_FLRLIEFERSCHEIN + "."
+							+ LieferscheinFac.FLR_LIEFERSCHEIN_I_ID,
+					true, iIdLieferscheinI.toString(), FilterKriterium.OPERATOR_EQUAL, false);
 		}
 
 		return kriterien;
 	}
 
-	public FilterKriterium[] createFKAuftrag(Integer auftragIId)
-			throws Throwable {
+	public FilterKriterium[] createFKAuftrag(Integer auftragIId) throws Throwable {
 		FilterKriterium[] filters = new FilterKriterium[1];
-		filters[0] = new FilterKriterium(
-				LieferscheinFac.FLR_LIEFERSCHEIN_AUFTRAG_I_ID, true, ""
-						+ auftragIId, FilterKriterium.OPERATOR_EQUAL, false);
+		filters[0] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_AUFTRAG_I_ID, true, "" + auftragIId,
+				FilterKriterium.OPERATOR_EQUAL, false);
 		return filters;
 	}
 
-	public PanelQueryFLR createPanelFLRBegruendung(
-			InternalFrame internalFrameI, Integer selectedId,
+	public PanelQueryFLR createPanelFLRBegruendung(InternalFrame internalFrameI, Integer selectedId,
 			boolean bMitLeerenButton) throws Throwable {
 
 		String[] aWhichButtonIUse = null;
 		if (bMitLeerenButton) {
-			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH,
-					PanelBasis.ACTION_LEEREN };
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 		} else {
 			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH };
 		}
-		PanelQueryFLR panelQueryFLRBegruendung = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_BEGRUENDUNG, aWhichButtonIUse,
-				internalFrameI, LPMain.getTextRespectUISPr("ls.begruendung"));
+		PanelQueryFLR panelQueryFLRBegruendung = new PanelQueryFLR(null, null, QueryParameters.UC_ID_BEGRUENDUNG,
+				aWhichButtonIUse, internalFrameI, LPMain.getTextRespectUISPr("ls.begruendung"));
 
 		panelQueryFLRBegruendung.setSelectedId(selectedId);
 		return panelQueryFLRBegruendung;
 	}
 
-	public PanelQueryFLR createPanelQueryFLRLieferschein(
-			InternalFrame internalFrameI, FilterKriterium[] fk, String sTitle, FilterKriterium fkVersteckt)
-			throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, };
+	public PanelQueryFLR createPanelQueryFLRLieferschein(InternalFrame internalFrameI, FilterKriterium[] fk,
+			String sTitle, FilterKriterium fkVersteckt) throws Throwable {
+		return createPanelQueryFLRLieferschein(internalFrameI, fk, sTitle, fkVersteckt, false);
+	}
+
+	public PanelQueryFLR createPanelQueryFLRLieferschein(InternalFrame internalFrameI, FilterKriterium[] fk,
+			String sTitle, FilterKriterium fkVersteckt, boolean bMitLeerenButton) throws Throwable {
+		String[] aWhichButtonIUse = null;
+
+		if (bMitLeerenButton) {
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
+		} else {
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_REFRESH, };
+		}
 
 		QueryType[] qt = null;
-		PanelQueryFLR panelQueryFLRLieferschein = new PanelQueryFLR(qt, fk,
-				QueryParameters.UC_ID_LIEFERSCHEIN, aWhichButtonIUse,
-				internalFrameI, sTitle,fkVersteckt,null);
-		panelQueryFLRLieferschein.befuellePanelFilterkriterienDirekt(
-				createFKDLieferscheinnummer(), createFKDKundenname());
-		panelQueryFLRLieferschein.addDirektFilter(LieferscheinFilterFactory
-				.getInstance().createFKDProjekt());
+		PanelQueryFLR panelQueryFLRLieferschein = new PanelQueryFLR(qt, fk, QueryParameters.UC_ID_LIEFERSCHEIN,
+				aWhichButtonIUse, internalFrameI, sTitle, fkVersteckt, null);
+		panelQueryFLRLieferschein.befuellePanelFilterkriterienDirekt(createFKDLieferscheinnummer(),
+				createFKDKundeLieferadresse());
+		panelQueryFLRLieferschein.addDirektFilter(createFKDProjekt());
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_LIEFERSCHEIN,
+				ParameterFac.PARAMETER_RECHNUNGSADRESSE_IN_LIEFERSCHEINAUSWAHL);
 
-		panelQueryFLRLieferschein.addDirektFilter(LieferscheinFilterFactory
-				.getInstance().createFKDAuftragsnummmer());
+		if ((Boolean) parameter.getCWertAsObject()) {
+			panelQueryFLRLieferschein
+					.addDirektFilter(LieferscheinFilterFactory.getInstance().createFKDKundeRechnungsadresse());
+		}
+		panelQueryFLRLieferschein.addDirektFilter(createFKDAuftragsnummmer());
+		panelQueryFLRLieferschein.addDirektFilter(createFKDTextSuchen());
 
 		return panelQueryFLRLieferschein;
 
 	}
+
+	/**
+	 * Direktes Filter Kriterium TextSuche PanelLieferscheinAuswahl.
+	 * 
+	 * @return FilterKriteriumDirekt
+	 * @throws Throwable
+	 */
+	public FilterKriteriumDirekt createFKDTextSuchen() throws Throwable {
+
+		return new FilterKriteriumDirekt("c_suche", "", FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("lp.textsuche"), FilterKriteriumDirekt.EXTENDED_SEARCH, false, // wrapWithSingleQuotes
+				true, Facade.MAX_UNBESCHRAENKT); // ignore case
+	}
+
 }

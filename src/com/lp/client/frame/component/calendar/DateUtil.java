@@ -74,7 +74,8 @@ public class DateUtil {
 	protected Date defaultMinSelectableDate;
 
 	protected Date defaultMaxSelectableDate;
-
+	
+	
 	public DateUtil() {
 		Calendar tmpCalendar = Calendar.getInstance();
 		tmpCalendar.set(1, 0, 1, 1, 1);
@@ -83,6 +84,7 @@ public class DateUtil {
 		tmpCalendar.set(9999, 0, 1, 1, 1);
 		defaultMaxSelectableDate = tmpCalendar.getTime();
 		maxSelectableDate = defaultMaxSelectableDate;
+		
 	}
 
 	/**
@@ -172,28 +174,7 @@ public class DateUtil {
 	 *         maxSelectableDate
 	 */
 	public boolean checkDate(Date date) {
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(date);
-		calendar.set(Calendar.HOUR_OF_DAY, 0);
-		calendar.set(Calendar.MINUTE, 0);
-		calendar.set(Calendar.SECOND, 0);
-		calendar.set(Calendar.MILLISECOND, 0);
-
-		Calendar minCal = Calendar.getInstance();
-		minCal.setTime(minSelectableDate);
-		minCal.set(Calendar.HOUR_OF_DAY, 0);
-		minCal.set(Calendar.MINUTE, 0);
-		minCal.set(Calendar.SECOND, 0);
-		minCal.set(Calendar.MILLISECOND, 0);
-
-		Calendar maxCal = Calendar.getInstance();
-		maxCal.setTime(maxSelectableDate);
-		maxCal.set(Calendar.HOUR_OF_DAY, 0);
-		maxCal.set(Calendar.MINUTE, 0);
-		maxCal.set(Calendar.SECOND, 0);
-		maxCal.set(Calendar.MILLISECOND, 0);
-
-		return !(calendar.before(minCal) || calendar.after(maxCal));
+		return !(date.before(minSelectableDate) || date.after(maxSelectableDate));
 	}
 
 	/**

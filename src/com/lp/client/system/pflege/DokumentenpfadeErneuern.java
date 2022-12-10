@@ -359,7 +359,7 @@ public class DokumentenpfadeErneuern extends PflegefunktionSupportsProgressBar
 		dtoSelectionList = new JList();
 
 		gotoButton = new WrapperGotoButton(
-				WrapperGotoButton.GOTO_PARTNER_AUSWAHL);
+				com.lp.util.GotoHelper.GOTO_PARTNER_AUSWAHL);
 		gotoButton.setText(LPMain.getTextRespectUISPr("button.partner"));
 		gotoButton.setEnabled(false);
 
@@ -1041,15 +1041,15 @@ public class DokumentenpfadeErneuern extends PflegefunktionSupportsProgressBar
 			}
 			
 			int countDelete = 0;
-			if (!cancelPressed) {
-				lbLookingFor.setText("L\u00F6sche leere Pfade...");
-				try {
-					countDelete = DelegateFactory.getInstance().getJCRDocDelegate()
-							.removeEmptyNodes();
-				} catch (Throwable e) {
-					e.printStackTrace();
-				}
-			}
+//			if (!cancelPressed) {
+//				lbLookingFor.setText("L\u00F6sche leere Pfade...");
+//				try {
+//					countDelete = DelegateFactory.getInstance().getJCRDocDelegate()
+//							.removeEmptyNodes();
+//				} catch (Throwable e) {
+//					e.printStackTrace();
+//				}
+//			}
 
 			if (!cancelPressed && selectedBelegarten.size() > 1) {
 				lbLookingFor

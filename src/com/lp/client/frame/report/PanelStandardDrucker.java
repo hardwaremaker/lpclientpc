@@ -50,7 +50,6 @@ import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.pc.LPMain;
 import com.lp.util.EJBExceptionLP;
 
-@SuppressWarnings("static-access")
 class PanelStandardDrucker extends JPanel {
 	/**
 	 * 
@@ -82,8 +81,7 @@ class PanelStandardDrucker extends JPanel {
 		wcoVariante = new WrapperComboBox();
 		wcoVariante.setMandatoryField(true);
 	
-		wlaDrucker.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.drucker"));
+		wlaDrucker.setText(LPMain.getTextRespectUISPr("label.drucker"));
 		wlaDrucker.setMinimumSize(new Dimension(100, Defaults.getInstance()
 				.getControlHeight()));
 		wlaDrucker.setPreferredSize(new Dimension(100, Defaults.getInstance()
@@ -93,18 +91,16 @@ class PanelStandardDrucker extends JPanel {
 				.getControlHeight()));
 		wbuSpeichern.setPreferredSize(new Dimension(100, Defaults.getInstance()
 				.getControlHeight()));
-		wbuSpeichern.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.speichern"));
-		wbuSpeichern.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
+		wbuSpeichern.setText(LPMain.getTextRespectUISPr("lp.speichern"));
+		wbuSpeichern.setToolTipText(LPMain.getTextRespectUISPr(
 				"lp.speichern.reportkonf.tooltip"));
 		wbuLoeschen = new WrapperButton();
 		wbuLoeschen.setMinimumSize(new Dimension(100, Defaults.getInstance()
 				.getControlHeight()));
 		wbuLoeschen.setPreferredSize(new Dimension(100, Defaults.getInstance()
 				.getControlHeight()));
-		wbuLoeschen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.loeschen"));
-		wbuLoeschen.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
+		wbuLoeschen.setText(LPMain.getTextRespectUISPr("lp.loeschen"));
+		wbuLoeschen.setToolTipText(LPMain.getTextRespectUISPr(
 				"lp.loeschen.reportkonf.tooltip"));
 
 	//	wcoVariante
@@ -146,10 +142,8 @@ class PanelStandardDrucker extends JPanel {
 		for (int i = 0; i < printServicesAlle.length; i++) {
 			String sName = printServicesAlle[i].getName();
 			if (printServiceDefault != null && sName.equals(printServiceDefault.getName())) {
-				sName = sName
-						+ " ("
-						+ LPMain.getInstance().getTextRespectUISPr(
-								"lp.drucken.standarddrucker") + ")";
+				sName = sName + " (" + LPMain.getTextRespectUISPr(
+						"lp.drucken.standarddrucker") + ")";
 			}
 			mapPrintServices.put(printServicesAlle[i].getName(), sName);
 		}

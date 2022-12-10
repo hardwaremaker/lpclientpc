@@ -61,12 +61,16 @@ public class ReportLoseAktualisiert extends PanelBasis implements
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 	private TreeMap<String, Object[]> tmAktualisierteLose = null;
-
-	public ReportLoseAktualisiert(InternalFrame internalFrame,
+	private Integer stuecklisteIId=null;
+	private boolean bInclAusgegebenUndInProduktion=false;
+	
+	public ReportLoseAktualisiert(InternalFrame internalFrame,Integer stuecklisteIId,boolean bInclAusgegebenUndInProduktion,
 			TreeMap<String, Object[]> tmAktualisierteLose) throws Throwable {
 		super(internalFrame, LPMain.getInstance().getTextRespectUISPr(
 				"artikel.report.freiinfertigung"));
+		this.stuecklisteIId=stuecklisteIId;
 		this.tmAktualisierteLose = tmAktualisierteLose;
+		this.bInclAusgegebenUndInProduktion=bInclAusgegebenUndInProduktion;
 		jbInit();
 		initComponents();
 
@@ -96,7 +100,7 @@ public class ReportLoseAktualisiert extends PanelBasis implements
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		return DelegateFactory.getInstance().getStuecklisteReportDelegate()
-				.printLoseAktualisiert(tmAktualisierteLose);
+				.printLoseAktualisiert(tmAktualisierteLose, stuecklisteIId, bInclAusgegebenUndInProduktion);
 	}
 
 	public boolean getBErstelleReportSofort() {

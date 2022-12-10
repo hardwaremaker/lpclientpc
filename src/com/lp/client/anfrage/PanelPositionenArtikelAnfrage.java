@@ -104,7 +104,8 @@ public class PanelPositionenArtikelAnfrage extends
 	public PanelPositionenArtikelAnfrage(InternalFrame internalFrame,
 			String add2TitleI, Object key, String sLockMeWer,
 			int iSpaltenbreite1I) throws Throwable {
-		super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I);
+		super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I,
+				null);
 		tPAnfrage = ((InternalFrameAnfrage) internalFrame)
 				.getTabbedPaneAnfrage();
 		wcoEinheit.setActivatable(false);
@@ -121,7 +122,7 @@ public class PanelPositionenArtikelAnfrage extends
 			e1.printStackTrace();
 		}
 	}
-	
+
 	protected void wnfEinzelpreis_focusLost(FocusEvent e) throws Throwable {
 		super.wnfEinzelpreis_focusLost(e);
 
@@ -151,7 +152,7 @@ public class PanelPositionenArtikelAnfrage extends
 									Defaults.getInstance()
 											.getIUINachkommastellenPreiseEK(),
 									BigDecimal.ROUND_HALF_EVEN));
-					
+
 					BigDecimal nPreisPerEinheit = wnfEinzelpreis
 							.getBigDecimal().multiply(umrechnungsfaktor);
 
@@ -228,7 +229,7 @@ public class PanelPositionenArtikelAnfrage extends
 			wlaGewichtWaehrung.setVisible(false);
 		}
 	}
-	
+
 	public void setArtikelDto(ArtikelDto artikelDto) throws Throwable {
 		super.setArtikelDto(artikelDto);
 		boolean bGewichtVisible = false;
@@ -278,8 +279,7 @@ public class PanelPositionenArtikelAnfrage extends
 
 				wnfGewichtPreis.setBigDecimal(null);
 			}
-			
-			
+
 			if (getArtikelDto().getEinheitCNrBestellung() != null) {
 				wlaGewichtmengeEinheit.setText(getArtikelDto()
 						.getEinheitCNrBestellung().trim());
@@ -291,8 +291,9 @@ public class PanelPositionenArtikelAnfrage extends
 				wlaGewichtmengeEinheit.setText(wlaGewichtmengeEinheit.getText()
 						+ "  \u00E0");
 			}
-			wlaGewichtWaehrung.setText(tPAnfrage.getAnfrageDto().getWaehrungCNr());
-			
+			wlaGewichtWaehrung.setText(tPAnfrage.getAnfrageDto()
+					.getWaehrungCNr());
+
 		} else {
 			wnfGewichtbestellmenge.setBigDecimal(null);
 			wnfGewichtPreis.setBigDecimal(null);
@@ -313,7 +314,7 @@ public class PanelPositionenArtikelAnfrage extends
 		}
 
 	}
-	
+
 }
 
 class FocusAdapterGewichtPreisArtikel implements FocusListener {

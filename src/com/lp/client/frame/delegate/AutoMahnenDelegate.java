@@ -37,6 +37,7 @@ import java.rmi.RemoteException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
+import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.system.service.AutoMahnenDto;
 import com.lp.server.system.service.AutoMahnenFac;
 
@@ -47,7 +48,7 @@ public class AutoMahnenDelegate extends Delegate {
 	  
 	  public AutoMahnenDelegate() throws Throwable{
 		  context = new InitialContext();
-		  autoMahnenFac = (AutoMahnenFac) context.lookup("lpserver/AutoMahnenFacBean/remote");
+		  autoMahnenFac = lookupFac(context, AutoMahnenFac.class);
 	  }
 	  
 	  public void createAutoMahnen(

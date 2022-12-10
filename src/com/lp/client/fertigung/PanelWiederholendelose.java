@@ -128,7 +128,7 @@ public class PanelWiederholendelose
   private PanelQueryFLR panelQueryFLRFertigungsort = null;
   private PanelQueryFLR panelQueryFLRFertigungsgruppe = null;
   private WrapperButton wbuKostenstelle = new WrapperButton();
-  private WrapperGotoButton wbuStueckliste = new WrapperGotoButton(WrapperGotoButton.
+  private WrapperGotoButton wbuStueckliste = new WrapperGotoButton(com.lp.util.GotoHelper.
       GOTO_STUECKLISTE_AUSWAHL);
   private WrapperLabel wlaTage = new WrapperLabel();
   private WrapperTextField wtfStuecklisteNummer = new WrapperTextField();
@@ -267,14 +267,12 @@ public class PanelWiederholendelose
       key = internalFrameFertigung.getWiederholendeloseDto().getIId();
     }
 
-    if (key == null
-        || (key.equals(LPMain.getLockMeForNew()))) {
+    if (key == null) {
       leereAlleFelder(this);
       clearStatusbar();
       wnfVorauseilend.setInteger(5);
       wcbVersteckt.setSelected(true);
-    }
-    else {
+    } else {
       internalFrameFertigung.setWiederholendeloseDto(DelegateFactory.getInstance().
           getFertigungDelegate().
           wiederholendeloseFindByPrimaryKey(internalFrameFertigung.

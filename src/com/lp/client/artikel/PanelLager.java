@@ -44,18 +44,29 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.DialogQuery;
+import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.LagerDto;
+import com.lp.server.partner.service.PartnerDto;
+import com.lp.server.system.service.MandantDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.util.Facade;
+import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
 public class PanelLager extends PanelBasis {
@@ -83,6 +94,14 @@ public class PanelLager extends PanelBasis {
 	private WrapperCheckBox wcbBestellvorschlag = new WrapperCheckBox();
 	private WrapperCheckBox wcbVersteckt = new WrapperCheckBox();
 	private WrapperCheckBox wcbKonsignationslager = new WrapperCheckBox();
+	
+	private WrapperCheckBox wcbLagerstandBei0Anzeigen = new WrapperCheckBox();
+
+	private WrapperSelectField wsfStandort = new WrapperSelectField(
+			WrapperSelectField.PARTNER, getInternalFrame(), true);
+
+	private WrapperSelectField wsfPartnerLadeadresse = new WrapperSelectField(
+			WrapperSelectField.PARTNER, getInternalFrame(), true);
 
 	public PanelLager(InternalFrame internalFrame, String add2TitleI, Object pk)
 			throws Throwable {
@@ -109,7 +128,7 @@ public class PanelLager extends PanelBasis {
 		leereAlleFelder(this);
 	}
 
-	protected void dto2Components() {
+	protected void dto2Components() throws Throwable {
 		wtfLager.setText(lagerDto.getCNr());
 		wcoLagerart.setKeyOfSelectedItem(lagerDto.getLagerartCNr());
 		wcbInternebestellung.setShort(lagerDto.getBInternebestellung());
@@ -117,6 +136,10 @@ public class PanelLager extends PanelBasis {
 		wcbVersteckt.setShort(lagerDto.getBVersteckt());
 		wcbKonsignationslager.setShort(lagerDto.getBKonsignationslager());
 		wnfSortierung.setInteger(lagerDto.getILoslagersort());
+		wsfStandort.setKey(lagerDto.getPartnerIIdStandort());
+		wsfPartnerLadeadresse.setKey(lagerDto.getPartnerIId());
+		wcbLagerstandBei0Anzeigen.setShort(lagerDto.getBLagerstandBei0Anzeigen());
+
 	}
 
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
@@ -128,7 +151,7 @@ public class PanelLager extends PanelBasis {
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
 
 			leereAlleFelder(this);
-
+			wcbLagerstandBei0Anzeigen.setSelected(true);
 			clearStatusbar();
 		} else {
 			lagerDto = DelegateFactory.getInstance().getLagerDelegate()
@@ -145,6 +168,9 @@ public class PanelLager extends PanelBasis {
 		lagerDto.setBVersteckt(wcbVersteckt.getShort());
 		lagerDto.setBKonsignationslager(wcbKonsignationslager.getShort());
 		lagerDto.setILoslagersort(wnfSortierung.getInteger());
+		lagerDto.setPartnerIIdStandort(wsfStandort.getIKey());
+		lagerDto.setPartnerIId(wsfPartnerLadeadresse.getIKey());
+		lagerDto.setBLagerstandBei0Anzeigen(wcbLagerstandBei0Anzeigen.getShort());
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -170,6 +196,10 @@ public class PanelLager extends PanelBasis {
 		}
 	}
 
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+
+	}
+
 	protected void eventActionDelete(ActionEvent e,
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
@@ -179,7 +209,8 @@ public class PanelLager extends PanelBasis {
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
-//		eI = (ItemChangedEvent) eI;
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+
 	}
 
 	private void jbInit() throws Throwable {
@@ -194,6 +225,14 @@ public class PanelLager extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_LAGERMIN_JE_LAGER,
+						ParameterFac.KATEGORIE_ARTIKEL,
+						LPMain.getTheClient().getMandant());
+		boolean bLagerminJeLager = (Boolean) parameter.getCWertAsObject();
+
 		wlaLager.setText(LPMain.getInstance()
 				.getTextRespectUISPr("label.lager"));
 		wtfLager.setColumnsMax(ArtikelFac.MAX_LAGER_NAME);
@@ -203,7 +242,16 @@ public class PanelLager extends PanelBasis {
 		wlaSort.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.lager.sortierunglosausgabe"));
 
+		wcbLagerstandBei0Anzeigen.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.lager.lagerstandbei0anzeigen"));
+		
 		wnfSortierung.setFractionDigits(0);
+		wsfStandort.setText(LPMain.getInstance().getTextRespectUISPr(
+				"system.standort"));
+		wsfPartnerLadeadresse.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.lager.ladeadresse"));
+		
+		
 
 		wcbInternebestellung.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.lager.beiinternebestellungberuecksichtigen"));
@@ -265,7 +313,39 @@ public class PanelLager extends PanelBasis {
 		jpaWorkingOn.add(wcbKonsignationslager, new GridBagConstraints(1, 3, 1,
 				1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wcbLagerstandBei0Anzeigen, new GridBagConstraints(3, 3, 1,
+				1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+	
+
+		jpaWorkingOn.add(wsfPartnerLadeadresse.getWrapperGotoButton(),
+				new GridBagConstraints(0, 4, 1, 1, 0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						60, 0));
+		jpaWorkingOn.add(wsfPartnerLadeadresse.getWrapperTextField(),
+				new GridBagConstraints(1, 4, 1, 1, 0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
+
+		
+		if (bLagerminJeLager) {
+			wsfStandort.setMandatoryField(true);
+			jpaWorkingOn.add(wsfStandort.getWrapperGotoButton(),
+					new GridBagConstraints(2, 4, 1, 1, 0.1, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+			jpaWorkingOn.add(wsfStandort.getWrapperTextField(),
+					new GridBagConstraints(3, 4, 1, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
+		
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
 

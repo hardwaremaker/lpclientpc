@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.personal;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -48,6 +47,7 @@ import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
@@ -57,235 +57,217 @@ import com.lp.server.personal.service.EintrittaustrittDto;
 import com.lp.server.personal.service.PersonalFac;
 
 @SuppressWarnings("static-access")
-public class PanelEintrittaustritt
-    extends PanelBasis
-{
+public class PanelEintrittaustritt extends PanelBasis {
 
-  /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-//von hier ...
-  private GridBagLayout gridBagLayoutAll = null;
-  private JPanel jpaWorkingOn = new JPanel();
-  private JPanel jpaButtonAction = null;
-  private Border border = null;
-  private GridBagLayout gridBagLayoutWorkingPanel = null;
-  private InternalFramePersonal internalFramePersonal = null;
-  private WrapperLabel wlaEintritt = new WrapperLabel();
-  private WrapperDateField wdfEintritt = new WrapperDateField();
-  private EintrittaustrittDto eintrittaustrittDto = null;
-  private WrapperLabel wlaAustritt = new WrapperLabel();
-  private WrapperDateField wdfAustritt = new WrapperDateField();
-  private WrapperLabel wrapperLabel1 = new WrapperLabel();
-  private WrapperTextField wtfAustrittsgrund = new WrapperTextField();
+	// von hier ...
+	private GridBagLayout gridBagLayoutAll = null;
+	private JPanel jpaWorkingOn = new JPanel();
+	private JPanel jpaButtonAction = null;
+	private Border border = null;
+	private GridBagLayout gridBagLayoutWorkingPanel = null;
+	private InternalFramePersonal internalFramePersonal = null;
+	private WrapperLabel wlaEintritt = new WrapperLabel();
+	private WrapperDateField wdfEintritt = new WrapperDateField();
+	private EintrittaustrittDto eintrittaustrittDto = null;
+	private WrapperLabel wlaAustritt = new WrapperLabel();
+	private WrapperDateField wdfAustritt = new WrapperDateField();
+	private WrapperLabel wrapperLabel1 = new WrapperLabel();
+	private WrapperTextField wtfAustrittsgrund = new WrapperTextField();
 
-  public PanelEintrittaustritt(InternalFrame internalFrame, String add2TitleI,
-                               Object pk)
-      throws Throwable {
-    super(internalFrame, add2TitleI, pk);
-    internalFramePersonal = (InternalFramePersonal) internalFrame;
-    jbInit();
-    setDefaults();
-    initComponents();
-    enableAllComponents(this, false);
-  }
+	private WrapperCheckBox wcbWiedereintritt = new WrapperCheckBox();
 
+	public PanelEintrittaustritt(InternalFrame internalFrame,
+			String add2TitleI, Object pk) throws Throwable {
+		super(internalFrame, add2TitleI, pk);
+		internalFramePersonal = (InternalFramePersonal) internalFrame;
+		jbInit();
+		setDefaults();
+		initComponents();
+		enableAllComponents(this, false);
+	}
 
-  protected void setDefaults() {
-  }
+	protected void setDefaults() {
+	}
 
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return (JComponent) wdfEintritt.getDateEditor();
+	}
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wtfAustrittsgrund;
-  }
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
+			boolean bNeedNoNewI) throws Throwable {
+		super.eventActionNew(eventObject, true, false);
+		eintrittaustrittDto = new EintrittaustrittDto();
+		// getInternalFrame().setKeyWasForLockMe(LPMain.getLockMeForNew());
 
+		leereAlleFelder(this);
+	}
 
-  public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws Throwable {
-    super.eventActionNew(eventObject, true, false);
-    eintrittaustrittDto = new EintrittaustrittDto();
-    // getInternalFrame().setKeyWasForLockMe(LPMain.getLockMeForNew());
+	/**
+	 * Hier kommen die events meiner speziellen Buttons an.
+	 * 
+	 * @param e
+	 *            ActionEvent
+	 * @throws Throwable
+	 */
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+	}
 
-    leereAlleFelder(this);
-  }
+	protected void eventActionDelete(ActionEvent e,
+			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+			throws Throwable {
+		DelegateFactory.getInstance().getPersonalDelegate()
+				.removeEintrittaustritt(eintrittaustrittDto.getIId());
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false);
+	}
 
+	protected void components2Dto() {
+		eintrittaustrittDto.setPersonalIId(internalFramePersonal
+				.getPersonalDto().getIId());
+		eintrittaustrittDto.setTEintritt(wdfEintritt.getTimestamp());
+		eintrittaustrittDto.setTAustritt(wdfAustritt.getTimestamp());
+		eintrittaustrittDto.setCAustrittsgrund(wtfAustrittsgrund.getText());
+		 eintrittaustrittDto.setBWiedereintritt(wcbWiedereintritt.getShort());
 
-  /**
-   * Hier kommen die events meiner speziellen Buttons an.
-   *
-   * @param e ActionEvent
-   * @throws Throwable
-   */
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-  }
+	}
 
+	protected void dto2Components() {
+		wtfAustrittsgrund.setText(eintrittaustrittDto.getCAustrittsgrund());
+		wcbWiedereintritt.setShort(eintrittaustrittDto.getBWiedereintritt());
+		wdfEintritt.setTimestamp(eintrittaustrittDto.getTEintritt());
+		wdfAustritt.setTimestamp(eintrittaustrittDto.getTAustritt());
+		
 
-  protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI,
-                                   boolean bNeedNoDeleteI)
-      throws Throwable {
-    DelegateFactory.getInstance().getPersonalDelegate().removeEintrittaustritt(
-        eintrittaustrittDto.getIId());
-    this.setKeyWhenDetailPanel(null);
-    super.eventActionDelete(e, false, false);
-  }
+	}
 
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
+			throws Throwable {
+		if (allMandatoryFieldsSetDlg()) {
+			components2Dto();
+			if (eintrittaustrittDto.getIId() == null) {
+				components2Dto();
+				eintrittaustrittDto.setIId(DelegateFactory.getInstance()
+						.getPersonalDelegate()
+						.createEintrittaustritt(eintrittaustrittDto));
+				setKeyWhenDetailPanel(eintrittaustrittDto.getIId());
+			} else {
+				DelegateFactory.getInstance().getPersonalDelegate()
+						.updateEintrittaustritt(eintrittaustrittDto);
+			}
+			super.eventActionSave(e, true);
 
-  protected void components2Dto() {
-    eintrittaustrittDto.setPersonalIId(internalFramePersonal.getPersonalDto().
-                                       getIId());
-    eintrittaustrittDto.setTEintritt(wdfEintritt.getTimestamp());
-    eintrittaustrittDto.setTAustritt(wdfAustritt.getTimestamp());
-    eintrittaustrittDto.setCAustrittsgrund(wtfAustrittsgrund.getText());
+			if (getInternalFrame().getKeyWasForLockMe() == null) {
+				getInternalFrame().setKeyWasForLockMe(
+						internalFramePersonal.getPersonalDto().getIId() + "");
+			}
+			eventYouAreSelected(false);
+		}
+	}
 
-  }
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+	}
 
+	private void jbInit() throws Throwable {
+		// von hier ...
+		border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+		setBorder(border);
+		// das Aussenpanel hat immer das Gridbaglayout.
+		gridBagLayoutAll = new GridBagLayout();
+		this.setLayout(gridBagLayoutAll);
 
-  protected void dto2Components() {
-    wdfEintritt.setTimestamp(eintrittaustrittDto.getTEintritt());
-    wdfAustritt.setTimestamp(eintrittaustrittDto.getTAustritt());
-    wtfAustrittsgrund.setText(eintrittaustrittDto.getCAustrittsgrund());
+		// Actionpanel von Oberklasse holen und anhaengen.
+		jpaButtonAction = getToolsPanel();
+		this.setActionMap(null);
 
-  }
+		wlaEintritt.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.eintrittaustritt.eintritt"));
+		wcbWiedereintritt.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.eintrittaustritt.wiedereintritt"));
 
+		wtfAustrittsgrund
+				.setColumnsMax(PersonalFac.MAX_EINTRITTAUSTRITT_AUSTRITTSGRUND);
+		wdfEintritt.setMandatoryField(true);
 
-  public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-      throws Throwable {
-    if (allMandatoryFieldsSetDlg()) {
-      components2Dto();
-      if (eintrittaustrittDto.getIId() == null) {
-        components2Dto();
-        eintrittaustrittDto.setIId(DelegateFactory.getInstance().getPersonalDelegate().
-                                   createEintrittaustritt(eintrittaustrittDto));
-        setKeyWhenDetailPanel(eintrittaustrittDto.getIId());
-      }
-      else {
-        DelegateFactory.getInstance().getPersonalDelegate().updateEintrittaustritt(
-            eintrittaustrittDto);
-      }
-      super.eventActionSave(e, true);
+		wlaAustritt.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.eintrittaustritt.austritt"));
+		wdfAustritt.setToolTipText("");
+		getInternalFrame().addItemChangedListener(this);
+		wrapperLabel1.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.eintrittaustritt.austrittsgrund"));
+		wtfAustrittsgrund.setText("");
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
+						0, 0, 0), 0, 0));
 
-      if (getInternalFrame().getKeyWasForLockMe() == null) {
-        getInternalFrame().setKeyWasForLockMe(internalFramePersonal.getPersonalDto().
-                                              getIId() + "");
-      }
-      eventYouAreSelected(false);
-    }
-  }
+		// jetzt meine felder
+		jpaWorkingOn = new JPanel();
+		gridBagLayoutWorkingPanel = new GridBagLayout();
+		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
+				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaEintritt, new GridBagConstraints(0, 0, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfEintritt, new GridBagConstraints(1, 0, 1, 1, 0.2,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wlaAustritt, new GridBagConstraints(2, 0, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfAustritt, new GridBagConstraints(3, 0, 1, 1, 0.2,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    ItemChangedEvent e = (ItemChangedEvent) eI;
-  }
+		jpaWorkingOn.add(wcbWiedereintritt, new GridBagConstraints(1, 1, 1, 1,
+				0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wrapperLabel1, new GridBagConstraints(0, 2, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wtfAustrittsgrund, new GridBagConstraints(1, 2, 3, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
+				ACTION_DELETE, ACTION_DISCARD, };
 
-  private void jbInit()
-      throws Throwable {
-    //von hier ...
-    border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-    setBorder(border);
-    //das Aussenpanel hat immer das Gridbaglayout.
-    gridBagLayoutAll = new GridBagLayout();
-    this.setLayout(gridBagLayoutAll);
+		enableToolsPanelButtons(aWhichButtonIUse);
 
-    //Actionpanel von Oberklasse holen und anhaengen.
-    jpaButtonAction = getToolsPanel();
-    this.setActionMap(null);
+	}
 
-    wlaEintritt.setText(LPMain.getInstance().getTextRespectUISPr(
-        "pers.eintrittaustritt.eintritt"));
-    wtfAustrittsgrund.setColumnsMax(PersonalFac.MAX_EINTRITTAUSTRITT_AUSTRITTSGRUND);
-    wdfEintritt.setMandatoryField(true);
+	protected String getLockMeWer() throws Exception {
+		return HelperClient.LOCKME_PERSONAL;
+	}
 
-    wlaAustritt.setText(LPMain.getInstance().getTextRespectUISPr(
-        "pers.eintrittaustritt.austritt"));
-    wdfAustritt.setToolTipText("");
-    getInternalFrame().addItemChangedListener(this);
-    wrapperLabel1.setText(LPMain.getInstance().getTextRespectUISPr(
-        "pers.eintrittaustritt.austrittsgrund"));
-    wtfAustrittsgrund.setText("");
-    this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.NONE,
-        new Insets(0, 0, 0, 0), 0, 0));
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
+			throws Throwable {
 
-    //jetzt meine felder
-    jpaWorkingOn = new JPanel();
-    gridBagLayoutWorkingPanel = new GridBagLayout();
-    jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-    this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0
-        , GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    jpaWorkingOn.add(wlaEintritt,
-                        new GridBagConstraints(0, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wdfEintritt,
-                        new GridBagConstraints(1, 0, 1, 1, 0.2, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wlaAustritt,
-                        new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wdfAustritt,
-                        new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wrapperLabel1, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        0, 0));
-    jpaWorkingOn.add(wtfAustrittsgrund, new GridBagConstraints(1, 1, 3, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    String[] aWhichButtonIUse = {
-        ACTION_UPDATE,
-        ACTION_SAVE,
-        ACTION_DELETE,
-        ACTION_DISCARD,
-    };
+		super.eventYouAreSelected(false);
+		Object key = getKeyWhenDetailPanel();
 
-    enableToolsPanelButtons(aWhichButtonIUse);
+		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
 
-  }
+			leereAlleFelder(this);
 
+			clearStatusbar();
+		} else {
+			eintrittaustrittDto = DelegateFactory.getInstance()
+					.getPersonalDelegate()
+					.eintrittaustrittFindByPrimaryKey((Integer) key);
 
-  protected String getLockMeWer()
-      throws Exception {
-    return HelperClient.LOCKME_PERSONAL;
-  }
+			dto2Components();
 
-
-  public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-      throws Throwable {
-
-    super.eventYouAreSelected(false);
-    Object key = getKeyWhenDetailPanel();
-
-    if (key == null
-        || (key.equals(LPMain.getLockMeForNew()))) {
-
-      leereAlleFelder(this);
-
-      clearStatusbar();
-    }
-    else {
-      eintrittaustrittDto = DelegateFactory.getInstance().getPersonalDelegate().
-          eintrittaustrittFindByPrimaryKey( (Integer) key);
-
-      dto2Components();
-
-    }
-  }
+		}
+	}
 
 }

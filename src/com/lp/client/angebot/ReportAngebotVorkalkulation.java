@@ -32,11 +32,19 @@
  ******************************************************************************/
 package com.lp.client.angebot;
 
-
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.util.Date;
 import java.util.Locale;
+
+import javax.swing.JPanel;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -49,92 +57,104 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
+import net.miginfocom.layout.LC;
+import net.miginfocom.swing.MigLayout;
+
 @SuppressWarnings("static-access")
 /**
- * <p>Report Angebot.
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 20.07.05</p>
- * <p> </p>
+ * <p>
+ * Report Angebot.
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 20.07.05
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.5 $
  */
-public class ReportAngebotVorkalkulation
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+public class ReportAngebotVorkalkulation extends PanelBasis implements PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private AngebotDto angebotDto = null;
-  private KundeDto kundeDto = null;
+	private AngebotDto angebotDto = null;
+	private KundeDto kundeDto = null;
 
-  public ReportAngebotVorkalkulation(
-      InternalFrame internalFrame,
-      Integer iIdAngebotI,
-      String add2Title)
-      throws Throwable {
-    super(
-        internalFrame,
-        add2Title);
+	private WrapperLabel wlaPreisGueltig;
+	private WrapperDateField wdfPreisGueltig;
 
-    angebotDto = DelegateFactory.getInstance().getAngebotDelegate().
-        angebotFindByPrimaryKey(
-            iIdAngebotI);
+	public ReportAngebotVorkalkulation(InternalFrame internalFrame, Integer iIdAngebotI, String add2Title)
+			throws Throwable {
+		super(internalFrame, add2Title);
 
-    kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(
-        angebotDto.getKundeIIdAngebotsadresse());
-  }
+		angebotDto = DelegateFactory.getInstance().getAngebotDelegate().angebotFindByPrimaryKey(iIdAngebotI);
 
+		kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+				.kundeFindByPrimaryKey(angebotDto.getKundeIIdAngebotsadresse());
 
-  public String getModul() {
-    return AngebotReportFac.REPORT_MODUL;
-  }
+		jbInit();
+	}
 
+	private void jbInit() {
+		wlaPreisGueltig = new WrapperLabel(LPMain.getTextRespectUISPr("angebot.vorkalk.preisgueltig"));
+		wlaPreisGueltig.setPrefferedSizeAutomatically();
+		wdfPreisGueltig = new WrapperDateField();
+		if (angebotDto.getTRealisierungstermin() != null) {
+			wdfPreisGueltig.setDate(new Date(angebotDto.getTRealisierungstermin().getTime()));
+		} else {
+			wdfPreisGueltig.setDate(new Date());
+		}
 
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    JasperPrintLP jasperPrint = DelegateFactory.getInstance().getAngebotReportDelegate().
-        printAngebotVorkalkulation(angebotDto.getIId());
-    return jasperPrint;
-  }
+		this.setLayout(new MigLayout("", "10[][]"));
+		this.add(wlaPreisGueltig);
+		this.add(wdfPreisGueltig);
+	}
 
+	public String getModul() {
+		return AngebotReportFac.REPORT_MODUL;
+	}
 
-  public boolean getBErstelleReportSofort() {
-    return true;
-  }
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		JasperPrintLP jasperPrint = DelegateFactory.getInstance().getAngebotReportDelegate()
+				.printAngebotVorkalkulation(angebotDto.getIId(), wdfPreisGueltig.getDate());
+		return jasperPrint;
+	}
 
+	public boolean getBErstelleReportSofort() {
+		return false;
+	}
 
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 
-    if (angebotDto != null) {
-      Locale locKunde =
-          Helper.string2Locale(kundeDto.getPartnerDto().getLocaleCNrKommunikation());
+		if (angebotDto != null) {
+			Locale locKunde = Helper.string2Locale(kundeDto.getPartnerDto().getLocaleCNrKommunikation());
 
-      mailtextDto.setMailPartnerIId(kundeDto.getPartnerIId());
-      mailtextDto.setMailAnprechpartnerIId(angebotDto.getAnsprechpartnerIIdKunde());
-      // MB 13.07.06 IMS 2104
-      PersonalDto personalDtoBearbeiter = DelegateFactory.getInstance().
-          getPersonalDelegate().
-          personalFindByPrimaryKey(angebotDto.getPersonalIIdVertreter());
-      mailtextDto.setMailVertreter(personalDtoBearbeiter);
-      mailtextDto.setMailBelegdatum(Helper.extractDate(angebotDto.getTBelegdatum()));
-      mailtextDto.setMailBelegnummer(angebotDto.getCNr());
-      mailtextDto.setMailBezeichnung(LPMain.getInstance().getTextRespectUISPr(
-          "angb.mailbezeichnung"));
-      // MB 13.07.06 IMS 2104
-      mailtextDto.setMailProjekt(angebotDto.getCBez());
-      mailtextDto.setMailFusstext(angebotDto.getXFusstextuebersteuert());
-      mailtextDto.setMailText(null); // UW: kommt noch
-      mailtextDto.setParamLocale(locKunde);
-    }
+			mailtextDto.setMailPartnerIId(kundeDto.getPartnerIId());
+			mailtextDto.setMailAnprechpartnerIId(angebotDto.getAnsprechpartnerIIdKunde());
+			// MB 13.07.06 IMS 2104
+			PersonalDto personalDtoBearbeiter = DelegateFactory.getInstance().getPersonalDelegate()
+					.personalFindByPrimaryKey(angebotDto.getPersonalIIdVertreter());
+			mailtextDto.setMailVertreter(personalDtoBearbeiter);
+			mailtextDto.setMailBelegdatum(Helper.extractDate(angebotDto.getTBelegdatum()));
+			mailtextDto.setMailBelegnummer(angebotDto.getCNr());
+			mailtextDto.setMailBezeichnung(LPMain.getInstance().getTextRespectUISPr("angb.mailbezeichnung"));
+			// MB 13.07.06 IMS 2104
+			mailtextDto.setMailProjekt(angebotDto.getCBez());
+			mailtextDto.setMailFusstext(angebotDto.getXFusstextuebersteuert());
+			mailtextDto.setMailText(null); // UW: kommt noch
+			mailtextDto.setParamLocale(locKunde);
+			mailtextDto.setAngebotAnfragenummer(angebotDto.getCKundenanfrage());
+		}
 
-    return mailtextDto;
-  }
+		return mailtextDto;
+	}
 
-
-  public String getReportname() {
-    return AngebotReportFac.REPORT_VORKALKULATION;
-  }
+	public String getReportname() {
+		return AngebotReportFac.REPORT_VORKALKULATION;
+	}
 }

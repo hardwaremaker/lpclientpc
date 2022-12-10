@@ -60,20 +60,29 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 
 @SuppressWarnings("static-access")
 /**
- * <p><I>Dialog zur Eingabe der Kriterien fuer den Bestellvorschlag.</I></p>
- * <p>Dieser Dialog wird aus den folgenden Modulen aufgerufen:</p>
+ * <p>
+ * <I>Dialog zur Eingabe der Kriterien fuer den Bestellvorschlag.</I>
+ * </p>
+ * <p>
+ * Dieser Dialog wird aus den folgenden Modulen aufgerufen:
+ * </p>
  * <ul>
  * <li>Bestellung/Bestellvorschlag
  * <li>Anfrage/Anfragevorschlag
  * </ul>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>22.11.05</I></p>
- * <p> </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>22.11.05</I>
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.9 $
  */
-public class PanelDialogKriterienBestellvorschlagAnhandStuecklistenmindestlagerstand
-		extends PanelDialogKriterien {
+public class PanelDialogKriterienBestellvorschlagAnhandStuecklistenmindestlagerstand extends PanelDialogKriterien {
 	/**
 	 * 
 	 */
@@ -83,11 +92,13 @@ public class PanelDialogKriterienBestellvorschlagAnhandStuecklistenmindestlagers
 	private WrapperDateField wdfLiefertermin = null;
 	private WrapperCheckBox wcbVormerklisteLoeschen = null;
 
+	private WrapperLabel wlaStandort = null;
+	private WrapperComboBox wcbStandort = null;
+
 	private static final String ACTION_SPECIAL_LEEREN = "action_special_leeren";
 
-	public PanelDialogKriterienBestellvorschlagAnhandStuecklistenmindestlagerstand(
-			InternalFrame oInternalFrameI, String title)
-			throws HeadlessException, Throwable {
+	public PanelDialogKriterienBestellvorschlagAnhandStuecklistenmindestlagerstand(InternalFrame oInternalFrameI,
+			String title) throws HeadlessException, Throwable {
 		super(oInternalFrameI, title);
 
 		try {
@@ -102,39 +113,46 @@ public class PanelDialogKriterienBestellvorschlagAnhandStuecklistenmindestlagers
 	private void jbInit() throws Throwable {
 
 		wlaLiefertermin = new WrapperLabel();
-		wlaLiefertermin.setText(LPMain.getInstance()
-				.getTextRespectUISPr(
-						"label.liefertermin"));
+		wlaLiefertermin.setText(LPMain.getInstance().getTextRespectUISPr("label.liefertermin"));
 		wdfLiefertermin = new WrapperDateField();
 
-		wcbVormerklisteLoeschen = new WrapperCheckBox(LPMain
-				.getInstance().getTextRespectUISPr(
-						"bes.vormerklisteLoeschen"));
-		
-		iZeile++;
-		jpaWorkingOn.add(wlaLiefertermin,
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 100, 0));
+		wcbVormerklisteLoeschen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.vormerklisteLoeschen"));
 
-		jpaWorkingOn.add(wdfLiefertermin,
-				new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		
+		wlaStandort = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("system.standort"));
+
+		wcbStandort = new WrapperComboBox();
+		wcbStandort.setEmptyEntry(LPMain.getInstance().getTextRespectUISPr("lp.alle"));
+		wcbStandort.setMap(DelegateFactory.getInstance().getLagerDelegate().getAlleStandorte());
+
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+				ParameterFac.PARAMETER_LAGERMIN_JE_LAGER);
+		boolean lagerminjelager = (Boolean) parameter.getCWertAsObject();
+		if (lagerminjelager) {
+
+			iZeile++;
+			jpaWorkingOn.add(wlaStandort, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+
+			jpaWorkingOn.add(wcbStandort, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
 		iZeile++;
-		jpaWorkingOn.add(wcbVormerklisteLoeschen,
-				new GridBagConstraints(2, iZeile,2, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
-		
+		jpaWorkingOn.add(wlaLiefertermin, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+
+		jpaWorkingOn.add(wdfLiefertermin, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbVormerklisteLoeschen, new GridBagConstraints(2, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
 
 	}
 
 	private void setDefaults() throws Throwable {
 
-		wdfLiefertermin.setDate(new Date(System
-				.currentTimeMillis()));
+		wdfLiefertermin.setDate(new Date(System.currentTimeMillis()));
 
 	}
 
@@ -145,7 +163,11 @@ public class PanelDialogKriterienBestellvorschlagAnhandStuecklistenmindestlagers
 	public boolean isbVormerklisteLoeschen() {
 		return wcbVormerklisteLoeschen.isSelected();
 	}
-	
+
+	public Integer getPartnerIIdStandort() {
+		return (Integer) wcbStandort.getKeyOfSelectedItem();
+	}
+
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
 		if (e.getActionCommand().equals(ACTION_SPECIAL_LEEREN)) {

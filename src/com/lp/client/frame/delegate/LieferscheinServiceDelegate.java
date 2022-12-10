@@ -41,6 +41,7 @@ import javax.naming.InitialContext;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.lieferschein.service.BegruendungDto;
+import com.lp.server.lieferschein.service.LieferscheinReportFac;
 import com.lp.server.lieferschein.service.LieferscheinServiceFac;
 import com.lp.server.lieferschein.service.LieferscheinartDto;
 import com.lp.server.lieferschein.service.LieferscheinpositionartDto;
@@ -68,8 +69,7 @@ public class LieferscheinServiceDelegate extends Delegate {
 	public LieferscheinServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			lsServiceFac = (LieferscheinServiceFac) context
-					.lookup("lpserver/LieferscheinServiceFacBean/remote");
+			lsServiceFac = lookupFac(context, LieferscheinServiceFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

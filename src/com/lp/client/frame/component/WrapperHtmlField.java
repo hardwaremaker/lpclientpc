@@ -40,12 +40,32 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+
+import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.PersonalFormatter;
+import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.editor.PanelHtmlEditor;
+import com.lp.client.pc.LPMain;
+import com.lp.client.system.AuswahlTextbaustein;
+import com.lp.client.util.IconFactory;
+import com.lp.client.util.logger.LpLogger;
+import com.lp.editor.util.StyledTextConverter;
+import com.lp.editor.util.TextBlockOverflowException;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -62,22 +82,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
-
-import javax.swing.JComponent;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-
-import com.lp.client.frame.HelperClient;
-import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.editor.PanelHtmlEditor;
-import com.lp.client.pc.LPMain;
-import com.lp.client.util.IconFactory;
-import com.lp.client.util.logger.LpLogger;
-import com.lp.editor.util.TextBlockOverflowException;
+import netscape.javascript.JSObject;
 
 public class WrapperHtmlField extends PanelBasis implements IControl {
 	private static final long serialVersionUID = 7656269773690098160L;
@@ -91,13 +96,13 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 //	private JPanel jpaWorkingOn = new JPanel();
 	private WrapperButton wbuEdit = new WrapperButton();
-	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private WrapperButton wbuDefault = new WrapperButton();
 	private boolean bWithoutButtons = false;
 	private boolean isEditMode = false ;
 	
 //	private JPanel installPanel = new JPanel() ;
 	private JPanel installPanel = this ;
+	private String defaultText = null;
 	
 	public WrapperHtmlField(
 			InternalFrame internalFrame, String addTitleI) throws Throwable {
@@ -137,15 +142,24 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 			}
 		});
 		webPanel = new WebPanelInstaller(installPanel) ;
-		SwingUtilities.invokeLater(webPanel);
+		webPanel.run();
+//		SwingUtilities.invokeLater(webPanel);
+//	    myLogger.info("webBrowser awaited");
 	}
 		
-	public WrapperHtmlField(JPanel parentPanel) {
+	/**
+	 * @deprecated Funktioniert nicht, weil WrapperHTMLField einen InternalFrame braucht!!!
+	 * @param parentPanel
+	 * @throws InterruptedException
+	 */
+	public WrapperHtmlField(JPanel parentPanel) throws InterruptedException {
 		if(parentPanel == null) throw new IllegalArgumentException("null") ;
 		
 		jbInit() ;
 		webPanel = new WebPanelInstaller(installPanel) ;
-		SwingUtilities.invokeLater(webPanel);
+		webPanel.run() ;
+//		SwingUtilities.invokeLater(webPanel);
+//		webPanel.await(); 
 	}
 	
 	@Override
@@ -291,17 +305,13 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 //				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
 //						0, 0, 0, 0), 0, 0));
 		if (!bWithoutButtons) {
-			setLayout(gridBagLayout1) ;
 			JPanel jpaWorkingOn = new JPanel() ;
-			add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-			GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-					0, 0, 0, 0), 0, 0));
 			
 			wbuEdit.setMinimumSize(new Dimension(23, 23));
 			wbuEdit.setPreferredSize(new Dimension(23, 23));
 			wbuEdit.setActionCommand(ACTION_SPECIAL_EDITORFIELD_EDIT);
 			wbuEdit.setToolTipText(LPMain.getTextRespectUISPr("text.bearbeiten"));
-			wbuEdit.setIcon(IconFactory.getEdit());
+			wbuEdit.setIcon(IconFactory.getEditorEdit());
 			wbuEdit.addActionListener(this);
 			wbuEdit.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
 					.put(KeyStroke.getKeyStroke('T',
@@ -317,7 +327,8 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 			wbuDefault.setIcon(IconFactory.getReset());
 			wbuDefault.addActionListener(this);
 
-			jpaWorkingOn.setLayout(gridBagLayout2);
+			setLayout(new BorderLayout());
+			jpaWorkingOn.setLayout(gridBagLayout1);
 			jpaWorkingOn.add(wbuEdit,
 					new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
 							GridBagConstraints.CENTER,
@@ -329,11 +340,7 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 							GridBagConstraints.HORIZONTAL, new Insets(0, 2, 0,
 									0), 0, 0));
 
-			JScrollPane scrollPane = new JScrollPane(installPanel) ;
-			scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-			jpaWorkingOn.add(scrollPane, new GridBagConstraints(0, 0, 1, 2, 1.0,
-					1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-					new Insets(0, 0, 0, 2), 0, 0));
+			add(jpaWorkingOn, BorderLayout.LINE_END);
 		} else {
 //			setLayout(new FlowLayout());
 //			add(installPanel) ;
@@ -349,7 +356,7 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_EDITORFIELD_DEFAULT)) {
-			// TODO: set Default Text
+			setText(defaultText);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_EDITORFIELD_EDIT)) {
 			
 			getInternalFrame().showPanelDialog(
@@ -363,6 +370,9 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 		return installPanel ;
 	}
 	
+	public void setDefaultText(String defaultText) {
+		this.defaultText = defaultText;
+	}
 	
 	private class WebPanelInstaller implements Runnable {
 		private JPanel theParentPanel ;
@@ -373,11 +383,13 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 //		private WebView webView = null ;
 		
 		private String queuedContent = null ;
+		private CountDownLatch latch = null ;
 		
 		public WebPanelInstaller(JPanel parentPanel) {
 			theParentPanel = parentPanel ;
+			latch = new CountDownLatch(1) ;
 		}
-
+		
 		@Override
 		public void run() {
 			installWebPanel() ;
@@ -406,27 +418,45 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 		}
 		
 		public void setContent(String webContent) {
-			myLogger.info("setContent (" + (webBrowser != null) + ") + setContent" + webContent + ".");
-			if(webBrowser != null) {
-				webBrowser.setContent(webContent);
+			Browser browser = getWebBrowser() ;
+			myLogger.info("setContent (browser:" + (browser != null) + "): '" + webContent + "'.");
+			if(browser != null) {
+				setContent(browser, webContent) ;
 				queuedContent = null ;
 			} else {
+				myLogger.info("queuing content.");
 				queuedContent = webContent ;
 			}
 		}
 		
+		protected void setContent(Browser browser, String webContent) {
+			browser.setContent(webContent);
+		}
+		
 		public String storeAndRetrieveContent() {
-			return webBrowser.storeAndRetrieveContent() ;
+			return getWebBrowser().storeAndRetrieveContent() ;
 		}
 		
 		public String getContent() {
-			return webBrowser.getContent() ;
+			return getWebBrowser().getContent() ;
 		}
 		
 		public void activateEditMode() {
-			webBrowser.activateEditMode() ;
+			getWebBrowser().activateEditMode() ;
 		}
 
+		private Browser getWebBrowser() {
+			if(webBrowser == null) {
+				try {
+					myLogger.info("Waiting for webbrowser is completly initialized");
+					latch.await();
+				} catch(InterruptedException e) {
+				}				
+			}
+			
+			return webBrowser ;
+		}
+		
 		private void installWebPanel() {
 			webPanel = new JFXPanel();
 			Platform.setImplicitExit(false);
@@ -459,14 +489,25 @@ public class WrapperHtmlField extends PanelBasis implements IControl {
 //				                    }
 //				                });
 
-				     webBrowser = b ;
 				     if(queuedContent != null) {
 				    	 myLogger.info(">>> Setting queued content: " + queuedContent);
-				    	 setContent(queuedContent) ;
+				    	 setContent(b, queuedContent) ;				    	 
 				     } else {
-				    	 myLogger.info(">>> Setting empty content");
-				    	 setContent("") ;
+				    	 setContent(b, "") ;
 				     }
+				     
+				     webBrowser = b ;
+				     myLogger.info("webBrowser installed.");
+				     latch.countDown();
+				     myLogger.info("webBrowser signaled, content was set.");
+//				     if(queuedContent != null) {
+//				    	 myLogger.info(">>> Setting queued content: " + queuedContent);
+//				    	 setContent(queuedContent) ;
+//				     } else {
+//				    	 myLogger.info(">>> Setting empty content");
+//				    	 setContent("") ;
+//				     }
+//				     myLogger.info("webBrowser content was set.");
 				}
 			});
 		}	
@@ -484,6 +525,7 @@ class Browser extends Region {
 	private String cachedScriptName ;
 	private InternalFrame hvInternalFrame ;
 	private JComponent hvWrappingComponent ;
+	private JSBridge jsBridge;
 	
 	public Browser(InternalFrame internalFrame, JComponent wrappingComponent) {
 		hvInternalFrame = internalFrame ;
@@ -495,16 +537,18 @@ class Browser extends Region {
 		webEngine.setJavaScriptEnabled(true);
 //		webEngine.load("http://www.oracle.com/products/index.html");
 		// add the web view to the scene
+		jsBridge = new JSBridge();
 		webEngine.getLoadWorker().stateProperty().addListener(new ChangeListener<State>() {
 		    @Override
 		    public void changed(ObservableValue<? extends State> arg0, State oldState, State newState) {
 		        if (newState == State.SUCCEEDED) {
 		            adjustHeight();
+		            initBridge();
 		        }    
 		    }
 		});
 		
-		webEngine.getLoadWorker().exceptionProperty().addListener(new ChangeListener<Throwable>() {
+	webEngine.getLoadWorker().exceptionProperty().addListener(new ChangeListener<Throwable>() {
 
 			public void changed(
 					ObservableValue<? extends Throwable> o,
@@ -636,21 +680,38 @@ class Browser extends Region {
 			"<script src=\"" + getCachedScriptName() + "\"></script>" +
 			getCssStyle() +
 			"<script>" +
+			"var regularPaste = false; " +
 			"tinymce.init({" + 
 /*			"language:\"de\", width:\"" + (w - 10) + "\", height:\"" + (h - 10) + "\", selector:\"textarea\"," + */
 			"language:\"de\", width:\"100%\", height:\"100%\", selector:\"textarea\"," +
 			"mode : \"textareas\"," +
 			"plugins: [" +
-			"\"advlist autolink lists link image charmap print preview anchor\"," +
+			"\"advlist autolink lists link image imagetools charmap print preview anchor\"," +
 			"\"searchreplace visualblocks code fullscreen\"," +
 			"\"insertdatetime media table contextmenu paste textcolor \"" +
 			"]," +
 			"menubar: \"edit insert view format table tools\"," + 
-//			"toolbar_items_size: 'small', " + 
+			"toolbar_items_size: \"small\", " + 
 			"resize: \"both\"," +
 			"theme_advanced_resizing: \"true\"," +
 			"theme_advanced_sesizing_use_cookie: \"false\"," +
-			"toolbar: \"undo redo | searchreplace | styleselect | fontselect fontsizeselect forecolor backcolor bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image \"" + 
+			"paste_data_images: true, " +
+			"toolbar: \"undo redo | searchreplace | styleselect | fontselect fontsizeselect forecolor backcolor bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image \"," +
+			"contextmenu: \"link image inserttable | cell row column deletetable\"," +
+			"imagetools_toolbar: \"rotateleft rotateright | flipv fliph | editimage imageoptions\"" +
+			", paste_preprocess : function(plugin, args) { " +
+			"  if(!regularPaste) { " + 
+			"    regularPaste = true; " + 
+			"    var clipboardData = window.bridge.getClipboardData(); " + 
+			"    plugin.clipboard.pasteHtml(clipboardData); " + 
+			"    args.content = \"\"; " + 
+			"  }" + 
+			"  regularPaste = false; " + 
+			"}" +
+			", setup: function(editor) { " +
+			getJSMenuItemInsertDatumUhrzeitBearbeiter() +
+			getJSMenuItemInsertTextbaustein() +
+			"}" + 
 			"});" +
 			"function formSubmit() {" +
 			"document.getElementById('mceform').submit() ; " +
@@ -660,6 +721,15 @@ class Browser extends Region {
 			"tinymce.triggerSave();" +
 			"var ed = tinymce.get('mcedata') ;" +
 			"return ed.getContent();" +
+			"}" +
+			"function addContent(content) { " +
+			"   var currentContent = tinymce.activeEditor.getContent(); " + 
+			"	tinymce.activeEditor.setContent(currentContent + content); " +
+			"   tinymce.activeEditor.focus(); " +
+			"}" +
+			"function insertContent(content) { " +
+			"	tinymce.activeEditor.insertContent(content); " +
+			"   tinymce.activeEditor.focus(); " +
 			"}" +
 			"</script>" +
 			"</head>" +
@@ -672,7 +742,31 @@ class Browser extends Region {
 		return content ;
 	}
 	
-
+	private String getJSMenuItemInsert(String itemId, String desc, String onClickActionCode) {
+		return "editor.addMenuItem('" + itemId + "', {"
+				+ " text: '" + desc + "',"
+				+ " context: 'insert',"
+				+ " onclick: function () { " + onClickActionCode + " }"
+				+ "});";
+	}
+	
+	private String getJSMenuItemInsertTextbaustein() {
+		return getJSMenuItemInsert("itemTextbaustein", 
+				LPMain.getTextRespectUISPr("lp.textbaustein"), 
+				"insertContent(window.bridge.getTextbaustein());");
+	}
+	
+	private String getJSMenuItemInsertDatumUhrzeitBearbeiter() {
+		return getJSMenuItemInsert("itemDatumUhrzeitBearbeiter", 
+				LPMain.getTextRespectUISPr("lp.editor.einfuegen.datumuhrzeitbearbeiter"), 
+				"insertContent(window.bridge.getDatumUhrzeitBearbeiter());");
+	}
+	
+	private void initBridge() {
+		JSObject window = (JSObject) webEngine.executeScript("window");
+		window.setMember("bridge", jsBridge);
+	}
+	
 	public void adjustHeight() {
 	    Platform.runLater(new Runnable(){
 	        @Override                                
@@ -799,5 +893,50 @@ class Browser extends Region {
 		String result = getCachedText() ;
 		return result ;
 	}
-	
+
+	public class JSBridge {
+		
+		public String getTextbaustein() {
+			AuswahlTextbaustein auswahlText = new AuswahlTextbaustein(hvInternalFrame);
+			try {
+				auswahlText.choose();
+				String text = auswahlText.getTextbausteinText();
+				if (text != null) {
+					StyledTextConverter converter = new StyledTextConverter();
+					return converter.toHtml(text);
+				}
+			} catch (Throwable e) {
+			}
+			
+			return "";
+		}
+		
+		public String getDatumUhrzeitBearbeiter() {
+			PersonalFormatter personalFormatter = new PersonalFormatter();
+			return personalFormatter.formatNowUserShortSign();
+		}
+
+		public String getClipboardData() {
+			// SP9453 Workaround Copy+Paste Problem TinyMCE
+		    javafx.scene.input.Clipboard clipboardFx = javafx.scene.input.Clipboard.getSystemClipboard();
+
+		    String data = "";
+		    try {
+		    	if (clipboardFx.hasHtml()) {
+		    		data = clipboardFx.getHtml();
+		    	} else {
+		    		// We use the AWT clipboard if we want to retreive text because the FX implementation delivers funky characters
+		    		// when pasting from e.g. Command Prompt
+				    java.awt.datatransfer.Clipboard clipboardAwt = Toolkit.getDefaultToolkit().getSystemClipboard();
+		    		data = (String) clipboardAwt.getData(DataFlavor.stringFlavor);
+		    		data = data.replaceAll("(\n|\r|\n\r|\r\n)", "<br />");
+		    	}
+		    } catch (Exception e) {
+		    	System.out.println("Failed getting clipboard data");
+		    }
+
+		    return data;
+		}	
+	}
+
 }

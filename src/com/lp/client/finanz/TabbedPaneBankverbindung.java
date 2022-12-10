@@ -34,7 +34,10 @@ package com.lp.client.finanz;
 
 import javax.swing.event.ChangeEvent;
 
+import com.lp.client.finanz.sepaimportassistent.SepaImportController;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.assistent.view.AssistentView;
+import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
@@ -49,8 +52,12 @@ import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.finanz.service.BankverbindungDto;
 import com.lp.server.finanz.service.BuchungdetailDto;
+import com.lp.server.finanz.service.SepaImportFac;
+import com.lp.server.finanz.service.SepakontoauszugDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
@@ -73,14 +80,26 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 	private PanelSplit panelSplit3 = null;
 	private PanelQuery panelQueryBuchungen = null;
 	private PanelFinanzBuchungDetails panelDetailBuchung = null;
+	private PanelQuery panelQuerySepakontoauszug = null;
+	
+	private static final String ACTION_SPECIAL_SEPAIMPORT = "action_special_import_sepa";
+	private static final String ACTION_SPECIAL_SEPAVERBUCHEN = "action_special_verbuche_sepa";
+	private static final String ACTION_SEPAKONTOAUSZUG_DELETE = "action_special_storniere_sepa";
+	
+	private final String BUTTON_SEPAIMPORT = PanelBasis.LEAVEALONE + ACTION_SPECIAL_SEPAIMPORT;
+	private final String BUTTON_SEPAVERBUCHEN = PanelBasis.LEAVEALONE + ACTION_SPECIAL_SEPAVERBUCHEN;
+	private final String BUTTON_SEPAKONTOAUSZUG_DELETE = PanelBasis.LEAVEALONE + ACTION_SEPAKONTOAUSZUG_DELETE;
 
-	private final static int IDX_BANKVERBINDUGEN = 0;
-	private final static int IDX_KOPFDATEN = 1;
-	private final static int IDX_BUCHUNGEN = 2;
+	private int IDX_BANKVERBINDUGEN = -1;
+	public int IDX_KOPFDATEN = -1;
+	private int IDX_BUCHUNGEN = -1;
+	private int IDX_SEPAKONTOAUSZUG = -1;
 
 	private BankverbindungDto bankverbindungDto = null;
+	private SepakontoauszugDto sepakontoauszugDto = null;
 
 	private boolean bVollversion = false;
+	private Boolean bZusatzfunktionSepa = null;
 
 	public TabbedPaneBankverbindung(InternalFrame internalFrameI)
 			throws Throwable {
@@ -110,7 +129,9 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 		bVollversion = ((InternalFrameFinanz) getInternalFrame())
 				.getBVollversion();
 
+		int index = 0;
 		// Tab 1: Liste der Bankverbindungen
+		IDX_BANKVERBINDUGEN = index;
 		insertTab(
 				LPMain.getInstance().getTextRespectUISPr(
 						"finanz.bankverbindung"),
@@ -119,11 +140,20 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 				LPMain.getInstance().getTextRespectUISPr(
 						"finanz.bankverbindung"), IDX_BANKVERBINDUGEN);
 		// Tab 2: Kopfdaten
+		IDX_KOPFDATEN = ++index;
 		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"),
 				null, null,
 				LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"),
 				IDX_KOPFDATEN);
 
+		if (hatZusatzfunktionSepa()) {
+			// Tab Sepakontoauszug
+			IDX_SEPAKONTOAUSZUG = ++index;
+			insertTab(LPMain.getInstance().getTextRespectUISPr("finanz.sepakontoauszug"),
+					null, null,
+					LPMain.getInstance().getTextRespectUISPr("finanz.sepakontoauszug"),
+					IDX_SEPAKONTOAUSZUG);
+		}
 		// Defaults
 		setSelectedComponent(getPanelTop1QueryBankverbindung());
 		// refresh
@@ -163,11 +193,14 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 				} else {
 					getInternalFrame().enableAllOberePanelsExceptMe(this,
 							IDX_BANKVERBINDUGEN, true);
+					enableTabSepaKontoauszug();
 				}
 				getPanelTop1QueryBankverbindung().updateButtons();
 			} else if (e.getSource() == panelQueryBuchungen) {
 				panelDetailBuchung.changed(e);
 				panelQueryBuchungen.updateButtons();
+			} else if (e.getSource() == panelQuerySepakontoauszug) {
+				getPanelQuerySepakontoauszug().updateButtons();
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (e.getSource() == getPanelTop1QueryBankverbindung()) {
@@ -197,7 +230,20 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 				getPanelTop1QueryBankverbindung().setSelectedId(key);
 				getPanelTop1QueryBankverbindung().eventYouAreSelected(false);
 			}
-		}
+		} else if (e.getID() == ItemChangedEvent.ACTION_SPECIAL_BUTTON) {
+			String sAspectInfo = ((ISourceEvent) e.getSource()).getAspect();
+			if (sAspectInfo.equals(BUTTON_SEPAIMPORT) && hatZusatzfunktionSepa()) {
+				actionImportSepaKontoauszug();
+			} else if (sAspectInfo.equals(BUTTON_SEPAVERBUCHEN) && hatZusatzfunktionSepa()) {
+				actionVerbucheSepaKontoauszug();
+			} else if (sAspectInfo.equals(BUTTON_SEPAKONTOAUSZUG_DELETE) && hatZusatzfunktionSepa()) {
+				actionStorniereSepakontoauszug();
+			}
+		} else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
+			if (e.getSource() instanceof AssistentView) {
+				getAktuellesPanel().eventYouAreSelected(false);
+			}
+		} 
 	}
 
 	/**
@@ -212,7 +258,7 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 			BankverbindungDto kassenbuchDto = getFinanzDelegate()
 					.bankverbindungFindByPrimaryKey((Integer) key);
 			setBankverbindungDto(kassenbuchDto);
-			getInternalFrame().setKeyWasForLockMe(key.toString());
+//			getInternalFrame().setKeyWasForLockMe(key.toString());
 			getPanelDetailBankverbindungKopfdaten().setKeyWhenDetailPanel(key);
 		} else {
 			setBankverbindungDto(null);
@@ -230,6 +276,10 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 			getPanelSplit3();
 			panelQueryBuchungen.setDefaultFilter(buildFiltersBuchungen());
 			panelQueryBuchungen.eventYouAreSelected(false);
+		} else if (selectedIndex == IDX_SEPAKONTOAUSZUG) {
+			getPanelQuerySepakontoauszug().setDefaultFilter(
+					FinanzFilterFactory.getInstance().createFKSepakontoauszugBankverbindung(getBankverbindungDto().getIId()));
+			getPanelQuerySepakontoauszug().eventYouAreSelected(false);
 		}
 	}
 
@@ -322,8 +372,7 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 		return DelegateFactory.getInstance().getFinanzDelegate();
 	}
 
-	protected void lPActionEvent(java.awt.event.ActionEvent e) {
-
+	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
 	}
 
 	private PanelQuery getPanelTop1QueryBankverbindung() throws Throwable {
@@ -357,4 +406,125 @@ public class TabbedPaneBankverbindung extends TabbedPane {
 	public Object getDto() {
 		return bankverbindungDto;
 	}
+	
+	private boolean hatZusatzfunktionSepa() {
+		if (bZusatzfunktionSepa == null) {
+			bZusatzfunktionSepa = LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SEPA);
+		}
+		return bZusatzfunktionSepa;
+	}
+	
+	private PanelQuery getPanelQuerySepakontoauszug() throws Throwable {
+		if (panelQuerySepakontoauszug == null) {
+			String[] aWhichButtonIUse = new String[] { };
+			panelQuerySepakontoauszug = new PanelQuery(
+					null, 
+					new FilterKriterium[] {}, 
+					QueryParameters.UC_ID_SEPAKONTOAUSZUG, 
+					aWhichButtonIUse,
+					getInternalFrame(), 
+					LPMain.getInstance().getTextRespectUISPr("finanz.sepakontoauszug"), 
+					true);
+			
+			panelQuerySepakontoauszug.addDirektFilter(FinanzFilterFactory.getInstance().createFKDAuszugnummer());
+			panelQuerySepakontoauszug.befuelleFilterkriteriumSchnellansicht(
+					FinanzFilterFactory.getInstance().createFKSchnellansichtSepaKontoauszug());
+			
+			panelQuerySepakontoauszug.createAndSaveAndShowButton(
+					PanelBasis.ICON_PATH_STORNIEREN,
+					LPMain.getInstance().getTextRespectUISPr("lp.delete"),
+					BUTTON_SEPAKONTOAUSZUG_DELETE, RechteFac.RECHT_FB_FINANZ_CUD);
+			panelQuerySepakontoauszug.setHmButtonEnabled(BUTTON_SEPAKONTOAUSZUG_DELETE, true);
+			panelQuerySepakontoauszug.createAndSaveAndShowButton(
+					"/com/lp/client/res/document_into.png",
+					LPMain.getInstance().getTextRespectUISPr("finanz.sepakontoauszug.import.button"),
+					BUTTON_SEPAIMPORT, RechteFac.RECHT_FB_FINANZ_CUD);
+			panelQuerySepakontoauszug.setHmButtonEnabled(BUTTON_SEPAIMPORT, true);
+			panelQuerySepakontoauszug.createAndSaveAndShowButton(
+					"/com/lp/client/res/sepa16x16.png",
+					LPMain.getInstance().getTextRespectUISPr("finanz.sepakontoauszug.verbuchen.button"),
+					BUTTON_SEPAVERBUCHEN, RechteFac.RECHT_FB_FINANZ_CUD);
+			panelQuerySepakontoauszug.setHmButtonEnabled(BUTTON_SEPAVERBUCHEN, true);
+			
+			setComponentAt(IDX_SEPAKONTOAUSZUG, panelQuerySepakontoauszug);
+		}
+		
+		return panelQuerySepakontoauszug;
+	}
+
+	private void holeSepakontoauszugDto(Integer iId) throws Throwable {
+		if (iId != null) {
+			setSepakontoauszugDto(getFinanzDelegate().sepakontoauszugFindByPrimaryKeySmall(iId));
+		} else {
+			setSepakontoauszugDto(null);
+		}
+	}
+	
+	private void setSepakontoauszugDto(SepakontoauszugDto sepakontoauszugDto) {
+		this.sepakontoauszugDto = sepakontoauszugDto;
+	}
+
+	private SepakontoauszugDto getSepakontoauszugDto() {
+		return sepakontoauszugDto;
+	}
+	
+	private void actionStorniereSepakontoauszug() throws Throwable {
+		holeSepakontoauszugDto((Integer) panelQuerySepakontoauszug.getSelectedId());
+		
+		if (SepaImportFac.SepakontoauszugStatus.STORNIERT.equals(getSepakontoauszugDto().getStatusCNr())) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"), 
+					LPMain.getTextRespectUISPr("finanz.sepakontoauszug.bereitsstorniert"));
+			return;
+		}
+		
+		boolean doStornieren = DialogFactory.showModalJaNeinDialog(getInternalFrame(), 
+				LPMain.getMessageTextRespectUISPr("finanz.sepakontoauszug.stornieren", 
+						getSepakontoauszugDto().getIAuszug().toString()),
+				LPMain.getTextRespectUISPr("lp.frage"));
+		
+		if (doStornieren) {
+			getFinanzDelegate().storniereSepakontoauszug(getSepakontoauszugDto().getIId());
+			refreshAktuellesPanel();
+		}
+	}
+
+	private void actionImportSepaKontoauszug() throws Throwable {
+		if (getBankverbindungDto().getCSepaVerzeichnis() == null) {
+			DialogFactory.showModalDialog(
+					LPMain.getInstance().getTextRespectUISPr("lp.error"),
+					LPMain.getInstance().getTextRespectUISPr("finanz.sepakontoauszug.import.error.sepaverzeichnis"));
+			return;
+		}
+		
+		ISepakontoauszugImportController sepaImportController = new SepakontoauszugImportController(getInternalFrame(), getBankverbindungDto());
+		DialogSepakontoauszugImport sepaImportDialog = new DialogSepakontoauszugImport(
+				LPMain.getInstance().getDesktop(), 
+				LPMain.getTextRespectUISPr("finanz.sepakontoauszug.import.button"), 
+				true, sepaImportController);
+		sepaImportDialog.setVisible(true);
+		getPanelQuerySepakontoauszug().eventYouAreSelected(false);
+	}
+
+	private void actionVerbucheSepaKontoauszug() throws Throwable {
+		SepakontoauszugDto dto = DelegateFactory.getInstance().getFinanzDelegate()
+				.getSepakontoauszugNiedrigsteAuszugsnummer(getBankverbindungDto().getIId());
+		
+		DelegateFactory.getInstance().getFinanzDelegate().pruefeSepakontoauszugAufVerbuchung(dto.getIId());
+		
+		AssistentView av = new AssistentView(getInternalFrame(),
+				LPMain.getTextRespectUISPr("fb.menu.sepaimport"),
+				new SepaImportController(getInternalFrame(), getBankverbindungDto(), dto, bVollversion));
+		getInternalFrame().showPanelDialog(av);
+		getPanelQuerySepakontoauszug().eventYouAreSelected(false);
+		
+	}
+
+	protected void enableTabSepaKontoauszug() {
+		if(IDX_SEPAKONTOAUSZUG < 0) return;
+		
+		setEnabledAt(IDX_SEPAKONTOAUSZUG, getBankverbindungDto() != null ? 
+				getBankverbindungDto().getCSepaVerzeichnis() != null : false);
+	}
+
 }

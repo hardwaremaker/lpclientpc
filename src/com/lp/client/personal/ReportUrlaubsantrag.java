@@ -66,6 +66,10 @@ public class ReportUrlaubsantrag extends PanelBasis implements
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 
 	private Integer personalIId = null;
+	public Integer getPersonalIId() {
+		return personalIId;
+	}
+
 	private Integer[] integerIIds = null;
 	private String sVoraussetzung = null;
 	private boolean bGenehmigt;

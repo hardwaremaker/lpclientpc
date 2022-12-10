@@ -45,6 +45,7 @@ import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelPositionen2;
 import com.lp.client.frame.component.PanelPositionenArtikelVerkauf;
+import com.lp.client.frame.component.PanelPositionenPreiseingabe;
 import com.lp.client.frame.component.PositionNumberHelperAuftrag;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
@@ -52,15 +53,18 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.MwstsatzChangedInfo;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.VerkaufspreisDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.AuftragpositionDto;
+import com.lp.server.partner.service.KundeDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MwstsatzDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.service.BelegpositionVerkaufDto;
 import com.lp.util.Helper;
 
 /**
@@ -102,24 +106,18 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 	private WrapperTextField wtfAuftragNummer = null;
 	private WrapperTextField wtfAuftragProjekt = null;
 	private WrapperTextField wtfAuftragBestellnummer = null;
-	public boolean bOffeneMengeVorschlagen = true;
+	public int bOffeneMengeVorschlagen = 1;
 
 	/**
 	 * Konstruktor.
 	 * 
-	 * @param internalFrame
-	 *            der InternalFrame auf dem das Panel sitzt
-	 * @param add2TitleI
-	 *            der default Titel des Panels
-	 * @param key
-	 *            PK des Auftrags
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param internalFrame der InternalFrame auf dem das Panel sitzt
+	 * @param add2TitleI    der default Titel des Panels
+	 * @param key           PK des Auftrags
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public PanelPositionenSichtAuftrag(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
-		super(internalFrame, add2TitleI, key,
-				PanelPositionen2.TYP_PANELPREISEINGABE_ARTIKELVERKAUFSNR); // VKPF
+	public PanelPositionenSichtAuftrag(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
+		super(internalFrame, add2TitleI, key, PanelPositionen2.TYP_PANELPREISEINGABE_ARTIKELVERKAUFSNR); // VKPF
 
 		zwController.setPositionNumberHelper(new PositionNumberHelperAuftrag());
 
@@ -136,132 +134,103 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 		resetToolsPanel();
 
 		// zusaetzliche buttons
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		// zusaetzliche Felder am PanelArtikel
-		panelArtikel.wlaMenge.setText(LPMain
-				.getTextRespectUISPr("ls.label.mengels"));
+		panelArtikel.wlaMenge.setText(LPMain.getTextRespectUISPr("ls.label.mengels"));
 
 		// panelArtikel.wnfMenge.setMinimumValue(1); // Eingabe muss > 0 sein
 
 		wlaGeliefertArtikel = new WrapperLabel();
-		wlaGeliefertArtikel.setText(LPMain
-				.getTextRespectUISPr("label.geliefert"));
+		wlaGeliefertArtikel.setText(LPMain.getTextRespectUISPr("label.geliefert"));
 
 		wlaOffenimauftragArtikel = new WrapperLabel();
-		wlaOffenimauftragArtikel.setText(LPMain
-				.getTextRespectUISPr("label.offenimauftrag"));
+		wlaOffenimauftragArtikel.setText(LPMain.getTextRespectUISPr("label.offenimauftrag"));
 
 		wnfGeliefertArtikel = new WrapperNumberField();
 
 		wnfOffenimauftragArtikel = new WrapperNumberField();
 
-		wnfGeliefertArtikel.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenMenge());
-		wnfOffenimauftragArtikel.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenMenge());
+		wnfGeliefertArtikel.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		wnfOffenimauftragArtikel.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
 
-		panelArtikel.add(wlaGeliefertArtikel, new GridBagConstraints(0, 4, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelArtikel.add(wlaGeliefertArtikel, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelArtikel.add(wlaOffenimauftragArtikel, new GridBagConstraints(0, 3,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelArtikel.add(wlaOffenimauftragArtikel, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelArtikel.add(wnfGeliefertArtikel, new GridBagConstraints(1, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelArtikel.add(wnfGeliefertArtikel, new GridBagConstraints(1, 4, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelArtikel.add(wnfOffenimauftragArtikel, new GridBagConstraints(1, 3,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelArtikel.add(wnfOffenimauftragArtikel, new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// zusaetzliche Felder am PanelHandeingabe
-		panelHandeingabe.wlaMenge.setText(LPMain
-				.getTextRespectUISPr("ls.label.mengels"));
+		panelHandeingabe.wlaMenge.setText(LPMain.getTextRespectUISPr("ls.label.mengels"));
 
 		wlaGeliefertHand = new WrapperLabel();
 		wlaGeliefertHand.setText(LPMain.getTextRespectUISPr("label.geliefert"));
 
 		wlaOffenimauftragHand = new WrapperLabel();
-		wlaOffenimauftragHand.setText(LPMain
-				.getTextRespectUISPr("label.offenimauftrag"));
+		wlaOffenimauftragHand.setText(LPMain.getTextRespectUISPr("label.offenimauftrag"));
 
 		wnfGeliefertHand = new WrapperNumberField();
 
 		wnfOffenimauftragHand = new WrapperNumberField();
 
-		wnfGeliefertHand.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenMenge());
-		wnfOffenimauftragHand.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenMenge());
+		wnfGeliefertHand.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		wnfOffenimauftragHand.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
 
-		panelHandeingabe.add(wlaOffenimauftragHand, new GridBagConstraints(0,
-				3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelHandeingabe.add(wlaOffenimauftragHand, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelHandeingabe.add(wlaGeliefertHand, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelHandeingabe.add(wlaGeliefertHand, new GridBagConstraints(0, 4, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelHandeingabe.add(wnfGeliefertHand, new GridBagConstraints(1, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelHandeingabe.add(wnfGeliefertHand, new GridBagConstraints(1, 4, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelHandeingabe.add(wnfOffenimauftragHand, new GridBagConstraints(1,
-				3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelHandeingabe.add(wnfOffenimauftragHand, new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// UW 21.06.06 keine VKPF
-		panelArtikel.wnfMenge
-				.removeFocusListener(((PanelPositionenArtikelVerkauf) panelArtikel).wnfMengeFocusListener);
+		panelArtikel.wnfMenge.removeFocusListener(((PanelPositionenArtikelVerkauf) panelArtikel).wnfMengeFocusListener);
+		if (panelArtikel.pa != null) {
+			panelArtikel.pa.setVisible(false);
+		}
 
 		// zusaetzliche Felder fuer den Auftrag beim Artikel
 		iZeile++;
-		WrapperLabel wlaAuftrag = new WrapperLabel(
-				LPMain.getTextRespectUISPr("auft.auftrag"));
-		wlaAuftrag.setMinimumSize(new Dimension(iSpaltenbreiteArtikelMitGoto,
-				Defaults.getInstance().getControlHeight()));
-		wlaAuftrag.setPreferredSize(new Dimension(iSpaltenbreiteArtikelMitGoto,
-				Defaults.getInstance().getControlHeight()));
+		WrapperLabel wlaAuftrag = new WrapperLabel(LPMain.getTextRespectUISPr("auft.auftrag"));
+		wlaAuftrag
+				.setMinimumSize(new Dimension(iSpaltenbreiteArtikelMitGoto, Defaults.getInstance().getControlHeight()));
+		wlaAuftrag.setPreferredSize(
+				new Dimension(iSpaltenbreiteArtikelMitGoto, Defaults.getInstance().getControlHeight()));
 		wtfAuftragNummer = new WrapperTextField();
 		wtfAuftragNummer.setActivatable(false);
-		wtfAuftragNummer.setMinimumSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
-		wtfAuftragNummer.setPreferredSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
+		wtfAuftragNummer.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
+		wtfAuftragNummer.setPreferredSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
 		wtfAuftragProjekt = new WrapperTextField();
 		wtfAuftragProjekt.setActivatable(false);
 		wtfAuftragBestellnummer = new WrapperTextField();
 		wtfAuftragBestellnummer.setActivatable(false);
 		JPanel jpaAuftrag = new JPanel(new GridBagLayout());
-		jpaAuftrag.add(wlaAuftrag, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		jpaAuftrag.add(wtfAuftragNummer, new GridBagConstraints(1, 0, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaAuftrag.add(wtfAuftragProjekt, new GridBagConstraints(2, 0, 1, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaAuftrag.add(wtfAuftragBestellnummer, new GridBagConstraints(3, 0, 1,
-				1, 1.0, 0.0, GridBagConstraints.CENTER,
+		jpaAuftrag.add(wlaAuftrag, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		add(jpaAuftrag, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		jpaAuftrag.add(wtfAuftragNummer, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaAuftrag.add(wtfAuftragProjekt, new GridBagConstraints(2, 0, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaAuftrag.add(wtfAuftragBestellnummer, new GridBagConstraints(3, 0, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		add(jpaAuftrag, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	private void initPanel() throws Throwable {
 		// combobox Positionen in der UI Sprache des Benutzers fuellen
-		setPositionsarten(DelegateFactory.getInstance()
-				.getAuftragServiceDelegate()
+		setPositionsarten(DelegateFactory.getInstance().getAuftragServiceDelegate()
 				.auftragpositionartFindAll(LPMain.getTheClient().getLocUi()));
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_OFFENE_MENGE_IN_SICHT_AUFTRAG_VORSCHLAGEN,
-						ParameterFac.KATEGORIE_LIEFERSCHEIN,
-						LPMain.getTheClient().getMandant());
-		bOffeneMengeVorschlagen = ((Boolean) parameter.getCWertAsObject());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_OFFENE_MENGE_IN_SICHT_AUFTRAG_VORSCHLAGEN,
+						ParameterFac.KATEGORIE_LIEFERSCHEIN, LPMain.getTheClient().getMandant());
+		bOffeneMengeVorschlagen = ((Integer) parameter.getCWertAsObject());
 
 	}
 
@@ -273,8 +242,7 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 		wcoPositionsart.setActivatable(false);
 
 		// default Positionsart ist Ident in der UI Sprache des Benutzers
-		wcoPositionsart
-				.setKeyOfSelectedItem(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT);
+		wcoPositionsart.setKeyOfSelectedItem(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT);
 
 		// in dieser Ansicht kann nur die Menge geaendert werden
 		panelArtikel.wnfEinzelpreis.setActivatable(false);
@@ -284,8 +252,7 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 		panelArtikel.wnfMwstsumme.setActivatable(false);
 		panelArtikel.wnfBruttopreis.setActivatable(false);
 		panelArtikel.wbuArtikelauswahl.setActivatable(false);
-		panelArtikel.wbuArtikelauswahl.getWrapperButtonGoTo().setActivatable(
-				true);
+		panelArtikel.wbuArtikelauswahl.getWrapperButtonGoTo().setActivatable(true);
 		panelArtikel.wbuArtikelauswahl.getWrapperButtonGoTo().setEnabled(true);
 		panelArtikel.getWtfArtikel().setActivatable(false);
 		// panelArtikel.wtfArtikel.setMandatoryField(false);
@@ -318,8 +285,7 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 		wnfOffenimauftragHand.setActivatable(false);
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false); // buttons schalten
 
 		// zuerst alles zuruecksetzen, ausloeser war ev. ein discard
@@ -329,8 +295,7 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 		Object oKey = getKeyWhenDetailPanel();
 
 		if (oKey != null && !oKey.equals(LPMain.getLockMeForNew())) {
-			oAuftragpositionDto = DelegateFactory.getInstance()
-					.getAuftragpositionDelegate()
+			oAuftragpositionDto = DelegateFactory.getInstance().getAuftragpositionDelegate()
 					.auftragpositionFindByPrimaryKey((Integer) oKey);
 			auftragpositionDto2Components();
 		}
@@ -340,251 +305,206 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 	 * Anzeige saemtlicher Felder der Auftragposition. <br>
 	 * Es kann nichts veraendert werden, ausser die Menge im Lieferschein.
 	 * 
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
 	protected void auftragpositionDto2Components() throws Throwable {
-		wcoPositionsart.setKeyOfSelectedItem(oAuftragpositionDto
-				.getPositionsartCNr());
+		wcoPositionsart.setKeyOfSelectedItem(oAuftragpositionDto.getPositionsartCNr());
 		// Falls Auftrags- und Lieferscheinwaehrung unterschiedlich sind, den
 		// Kurs bestimmen
-		AuftragDto auftragDto = DelegateFactory.getInstance()
-				.getAuftragDelegate()
+		AuftragDto auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
 				.auftragFindByPrimaryKey(oAuftragpositionDto.getBelegIId());
 		String sBelegwaehrung = getWaehrungCNrBeleg();
-		BigDecimal bdKurs = DelegateFactory
-				.getInstance()
-				.getLocaleDelegate()
-				.getWechselkurs2(auftragDto.getCAuftragswaehrung(),
-						sBelegwaehrung);
-		panelArtikel.wbuArtikelauswahl.setOKey(oAuftragpositionDto
-				.getArtikelIId());
-		//SP2881
+		BigDecimal bdKurs = DelegateFactory.getInstance().getLocaleDelegate()
+				.getWechselkurs2(auftragDto.getCAuftragswaehrung(), sBelegwaehrung);
+		panelArtikel.wbuArtikelauswahl.setOKey(oAuftragpositionDto.getArtikelIId());
+		// SP2881
 		panelArtikel.setUebersteuertesLagerIId(null);
 		// wenn der Wechselkurs zwischen Auftragwaehrung und
 		// Lieferscheinwaehrung nicht hinterlegt ist .
 		if (bdKurs == null) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							"Zwischen "
-									+ auftragDto.getCAuftragswaehrung()
-									+ " und "
-									+ sBelegwaehrung
-									+ " ist kein Kurs hinterlegt\nBitte tragen Sie diesen nach");
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					"Zwischen " + auftragDto.getCAuftragswaehrung() + " und " + sBelegwaehrung
+							+ " ist kein Kurs hinterlegt\nBitte tragen Sie diesen nach");
 			LPMain.getInstance().exitFrame(getInternalFrame());
 		}
-		if (oAuftragpositionDto.getPositionsartCNr().equalsIgnoreCase(
-				AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
+		if (oAuftragpositionDto.getPositionsartCNr().equalsIgnoreCase(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
 
-			ArtikelDto artikelDto = DelegateFactory
-					.getInstance()
-					.getArtikelDelegate()
-					.artikelFindByPrimaryKey(
-							oAuftragpositionDto.getArtikelIId());
+			ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(oAuftragpositionDto.getArtikelIId());
 			panelArtikel.setArtikelDto(artikelDto);
 
 			// die Artikelbezeichnung oder die Artikelzusatzbezeichnung kann
 			// uebersteuert sein
-			if (Helper.short2boolean(oAuftragpositionDto
-					.getBArtikelbezeichnunguebersteuert()) == false) {
-				if (artikelDto.getArtikelsprDto() != null) {
-					panelArtikel.wtfBezeichnung.setText(artikelDto
-							.getArtikelsprDto().getCBez());
-					panelArtikel.wtfZusatzbezeichnung.setText(artikelDto
-							.getArtikelsprDto().getCZbez());
+			if (oAuftragpositionDto.getCBez() == null) {
+				if (panelArtikel.getArtikelDto().getArtikelsprDto() != null) {
+					panelArtikel.wtfBezeichnung.setText(panelArtikel.getArtikelDto().getArtikelsprDto().getCBez());
+
 				}
+				panelArtikel.wkvRevision.setValue(panelArtikel.getArtikelDto().getCRevision());
+				panelArtikel.wkvIndex.setValue(panelArtikel.getArtikelDto().getCIndex());
+
 			} else {
-				panelArtikel.wtfBezeichnung.setText(oAuftragpositionDto
-						.getCBez());
-				panelArtikel.wtfZusatzbezeichnung.setText(oAuftragpositionDto
-						.getCZusatzbez());
+				panelArtikel.wtfBezeichnung.setText(oAuftragpositionDto.getCBez());
 			}
 
-			boolean bAktuell = DelegateFactory
-					.getInstance()
-					.getMandantDelegate()
-					.pruefeObMwstsatzNochAktuell(oAuftragpositionDto,
-							panelArtikel.getTBelegdatumMwstsatz());
+			// die Artikelzusatzbezeichnung kann uebersteuert sein
+			if (oAuftragpositionDto.getCZusatzbez() == null) {
+				if (panelArtikel.getArtikelDto().getArtikelsprDto() != null) {
+					panelArtikel.wtfZusatzbezeichnung
+							.setText(panelArtikel.getArtikelDto().getArtikelsprDto().getCZbez());
+				}
+			} else {
+				panelArtikel.wtfZusatzbezeichnung.setText(oAuftragpositionDto.getCZusatzbez());
+			}
 
-			if (bAktuell == false) {
+//			boolean bAktuell = DelegateFactory.mandant()
+//					.pruefeObMwstsatzNochAktuell(oAuftragpositionDto,
+//							panelArtikel.getTBelegdatumMwstsatz());
+//			if (bAktuell == false) {
+			MwstsatzChangedInfo mwstInfo = DelegateFactory.mandant().pruefeObMwstsatzNochAktuell(oAuftragpositionDto,
+					panelArtikel.getTBelegdatumMwstsatz());
+			if (mwstInfo.isChanged()) {
 				// Mwstbetrag neu berechnen
-				MwstsatzDto mwstSatzDto = DelegateFactory
-						.getInstance()
-						.getMandantDelegate()
-						.mwstsatzFindByPrimaryKey(
-								oAuftragpositionDto.getMwstsatzIId());
-				BigDecimal mwstBetrag = Helper
-						.getProzentWert(oAuftragpositionDto
-								.getNNettoeinzelpreis(), new BigDecimal(
-								mwstSatzDto.getFMwstsatz()), Defaults
-								.getInstance().getIUINachkommastellenPreiseVK());
+				MwstsatzDto mwstSatzDto = mwstInfo.getMwstsatz().get();
+//				DelegateFactory
+//						.getInstance()
+//						.getMandantDelegate()
+//						.mwstsatzFindByPrimaryKey(
+////								oAuftragpositionDto.getMwstsatzIId());
+//								mwstInfo.getMwstsatz().get().getIId());
+				BigDecimal mwstBetrag = Helper.getProzentWert(oAuftragpositionDto.getNNettoeinzelpreis(),
+						new BigDecimal(mwstSatzDto.getFMwstsatz()),
+						Defaults.getInstance().getIUINachkommastellenPreiseVK());
 
 				oAuftragpositionDto.setNMwstbetrag(mwstBetrag);
-				oAuftragpositionDto.setNBruttoeinzelpreis(oAuftragpositionDto
-						.getNNettoeinzelpreis().add(mwstBetrag));
+				oAuftragpositionDto.setNBruttoeinzelpreis(oAuftragpositionDto.getNNettoeinzelpreis().add(mwstBetrag));
 			}
 
 			panelArtikel.wnfMenge.setBigDecimal(new BigDecimal(0));
-			wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto
-					.getNOffeneMenge());
-			wnfGeliefertArtikel.setBigDecimal(oAuftragpositionDto.getNMenge()
-					.subtract(oAuftragpositionDto.getNMenge()));
+			wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto.getNOffeneMenge());
+			wnfGeliefertArtikel
+					.setBigDecimal(oAuftragpositionDto.getNMenge().subtract(oAuftragpositionDto.getNMenge()));
 
-			panelArtikel.wcoEinheit.setKeyOfSelectedItem(oAuftragpositionDto
-					.getEinheitCNr());
-			panelArtikel.wsfKostentraeger.setKey(oAuftragpositionDto
-					.getKostentraegerIId());
-			panelArtikel.wtfLVPosition.setText(oAuftragpositionDto
-					.getCLvposition());
+			panelArtikel.wcoEinheit.setKeyOfSelectedItem(oAuftragpositionDto.getEinheitCNr());
+			panelArtikel.wsfKostentraeger.setKey(oAuftragpositionDto.getKostentraegerIId());
+			panelArtikel.wtfLVPosition.setText(oAuftragpositionDto.getCLvposition());
 			if (panelArtikel.wnfMaterialzuschlag != null) {
-				panelArtikel.wnfMaterialzuschlag
-						.setBigDecimal(oAuftragpositionDto
-								.getNMaterialzuschlag());
+				panelArtikel.wnfMaterialzuschlag.setBigDecimal(oAuftragpositionDto.getNMaterialzuschlag());
 			}
 
 			PanelPositionenArtikelVerkauf panel = (PanelPositionenArtikelVerkauf) panelArtikel;
 			// den Verkaufspreis hinterlegen und anzeigen
 			panel.verkaufspreisDtoInZielwaehrung = new VerkaufspreisDto();
 
-			panel.verkaufspreisDtoInZielwaehrung.einzelpreis = oAuftragpositionDto
-					.getNEinzelpreis().multiply(bdKurs);
-			panel.verkaufspreisDtoInZielwaehrung.rabattsumme = oAuftragpositionDto
-					.getNRabattbetrag().multiply(bdKurs);
+			KundeDto kdDto = DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(auftragDto.getKundeIIdRechnungsadresse());
+			if (Helper.short2boolean(kdDto.getBVkpreisAnhandLSDatum())) {
+
+				oAuftragpositionDto = (AuftragpositionDto) DelegateFactory.getInstance().getAuftragpositionDelegate()
+						.befuellePreisfelderAnhandVKPreisfindung(oAuftragpositionDto,
+								panelArtikel.getTBelegdatumMwstsatz(), kdDto.getIId(), getWaehrungCNrBeleg());
+			}
+
+			panel.verkaufspreisDtoInZielwaehrung.einzelpreis = oAuftragpositionDto.getNEinzelpreis().multiply(bdKurs);
+			panel.verkaufspreisDtoInZielwaehrung.rabattsumme = oAuftragpositionDto.getNRabattbetrag().multiply(bdKurs);
 			if (oAuftragpositionDto.getNNettoeinzelpreis() != null) {
-				panel.verkaufspreisDtoInZielwaehrung.nettopreis = oAuftragpositionDto
-						.getNNettoeinzelpreis().multiply(bdKurs);
+				panel.verkaufspreisDtoInZielwaehrung.nettopreis = oAuftragpositionDto.getNNettoeinzelpreis()
+						.multiply(bdKurs);
 			}
 			if (oAuftragpositionDto.getNMaterialzuschlag() != null) {
-				panel.verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag = oAuftragpositionDto
-						.getNMaterialzuschlag().multiply(bdKurs);
+				panel.verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag = oAuftragpositionDto.getNMaterialzuschlag()
+						.multiply(bdKurs);
 			} else {
-				panel.verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag = new BigDecimal(
-						0);
+				panel.verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag = new BigDecimal(0);
 			}
-			panel.verkaufspreisDtoInZielwaehrung.mwstsumme = oAuftragpositionDto
-					.getNMwstbetrag().multiply(bdKurs);
-			panel.verkaufspreisDtoInZielwaehrung.bruttopreis = oAuftragpositionDto
-					.getNBruttoeinzelpreis().multiply(bdKurs);
-			panel.verkaufspreisDtoInZielwaehrung.rabattsatz = oAuftragpositionDto
-					.getFRabattsatz();
+			panel.verkaufspreisDtoInZielwaehrung.mwstsumme = oAuftragpositionDto.getNMwstbetrag().multiply(bdKurs);
+			panel.verkaufspreisDtoInZielwaehrung.bruttopreis = oAuftragpositionDto.getNBruttoeinzelpreis()
+					.multiply(bdKurs);
+			panel.verkaufspreisDtoInZielwaehrung.rabattsatz = oAuftragpositionDto.getFRabattsatz();
 
-			panel.verkaufspreisDtoInZielwaehrung
-					.setDdZusatzrabattsatz(oAuftragpositionDto
-							.getFZusatzrabattsatz());
+			panel.verkaufspreisDtoInZielwaehrung.setDdZusatzrabattsatz(oAuftragpositionDto.getFZusatzrabattsatz());
 
-			BigDecimal nZusatzrabattsumme = oAuftragpositionDto
-					.getNEinzelpreis()
+			BigDecimal nZusatzrabattsumme = oAuftragpositionDto.getNEinzelpreis()
 					.subtract(oAuftragpositionDto.getNRabattbetrag())
-					.multiply(
-							new BigDecimal(oAuftragpositionDto
-									.getFZusatzrabattsatz().doubleValue()))
+					.multiply(new BigDecimal(oAuftragpositionDto.getFZusatzrabattsatz().doubleValue()))
 					.movePointLeft(2);
 
-			panel.verkaufspreisDtoInZielwaehrung
-					.setNZusatzrabattsumme(nZusatzrabattsumme.multiply(bdKurs));
+			panel.verkaufspreisDtoInZielwaehrung.setNZusatzrabattsumme(nZusatzrabattsumme.multiply(bdKurs));
 
-			panel.verkaufspreisDtoInZielwaehrung.mwstsatzIId = oAuftragpositionDto
-					.getMwstsatzIId();
+			panel.verkaufspreisDtoInZielwaehrung.mwstsatzIId = oAuftragpositionDto.getMwstsatzIId();
 
 			panel.verkaufspreisDto2components();
-			if (Helper.short2boolean(oAuftragpositionDto
-					.getBNettopreisuebersteuert()))
+			if (Helper.short2boolean(oAuftragpositionDto.getBNettopreisuebersteuert()))
 				panelArtikel.wnfNettopreis.getWrbFixNumber().setSelected(true);
 			// in dieser Sicht gilt immer der Mwstsatz der Auftragposition
-			panelArtikel.wcoMwstsatz.setKeyOfSelectedItem(oAuftragpositionDto
-					.getMwstsatzIId());
+			panelArtikel.wcoMwstsatz.setKeyOfSelectedItem(oAuftragpositionDto.getMwstsatzIId());
 			if (panelArtikel.wcoVerleih != null) {
-				panelArtikel.wcoVerleih
-						.setKeyOfSelectedItem(oAuftragpositionDto
-								.getVerleihIId());
+				panelArtikel.wcoVerleih.setKeyOfSelectedItem(oAuftragpositionDto.getVerleihIId());
 			}
-		} else if (oAuftragpositionDto.getPositionsartCNr()
-				.equalsIgnoreCase(LocaleFac.POSITIONSART_HANDEINGABE)) {
 
-			ArtikelDto artikelDto = DelegateFactory
-					.getInstance()
-					.getArtikelDelegate()
-					.artikelFindByPrimaryKey(
-							oAuftragpositionDto.getArtikelIId());
+// SP8360 Der Farbwechsel duerfte etwas unpraktisch sein:
+// Ein "alter" Auftrag wird - in der aktuellen Zeit - einfach einen
+// anderen Steuersatz haben. D.h. es wuerde dann immer gewarnt
+//			
+//			Color c = mwstInfo.isChanged() ? Color.ORANGE 
+//					: HelperClient.getDependenceFieldBackgroundColor();				
+//			panelArtikel.wnfMwstsumme.setBackground(c);
+
+		} else if (oAuftragpositionDto.getPositionsartCNr().equalsIgnoreCase(LocaleFac.POSITIONSART_HANDEINGABE)) {
+
+			ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(oAuftragpositionDto.getArtikelIId());
 			panelHandeingabe.setArtikelDto(artikelDto);
 
 			if (artikelDto.getArtikelsprDto() != null) {
-				panelHandeingabe.wtfBezeichnung.setText(artikelDto
-						.getArtikelsprDto().getCBez());
+				panelHandeingabe.wtfBezeichnung.setText(artikelDto.getArtikelsprDto().getCBez());
 			}
 
 			if (artikelDto.getArtikelsprDto() != null) {
-				panelHandeingabe.wtfZusatzbezeichnung.setText(artikelDto
-						.getArtikelsprDto().getCZbez());
+				panelHandeingabe.wtfZusatzbezeichnung.setText(artikelDto.getArtikelsprDto().getCZbez());
 			}
 
 			// panelArtikel.wnfMenge.setBigDecimal(oAuftragpositionDto.getNMenge(
 			// ));
-			wnfOffenimauftragHand.setBigDecimal(oAuftragpositionDto
-					.getNOffeneMenge());
-			wnfGeliefertHand.setBigDecimal(oAuftragpositionDto.getNMenge()
-					.subtract(oAuftragpositionDto.getNMenge()));
+			wnfOffenimauftragHand.setBigDecimal(oAuftragpositionDto.getNOffeneMenge());
+			wnfGeliefertHand.setBigDecimal(oAuftragpositionDto.getNMenge().subtract(oAuftragpositionDto.getNMenge()));
 
-			panelHandeingabe.wcoEinheit
-					.setKeyOfSelectedItem(oAuftragpositionDto.getEinheitCNr());
-			panelHandeingabe.wtfLVPosition.setText(oAuftragpositionDto
-					.getCLvposition());
+			panelHandeingabe.wcoEinheit.setKeyOfSelectedItem(oAuftragpositionDto.getEinheitCNr());
+			panelHandeingabe.wtfLVPosition.setText(oAuftragpositionDto.getCLvposition());
 			// den Verkaufspreis anzeigen
-			panelHandeingabe.wnfEinzelpreis.setBigDecimal(oAuftragpositionDto
-					.getNEinzelpreis().multiply(bdKurs));
-			panelHandeingabe.wnfRabattsumme.setBigDecimal(oAuftragpositionDto
-					.getNRabattbetrag().multiply(bdKurs));
-			panelHandeingabe.wnfNettopreis.setBigDecimal(oAuftragpositionDto
-					.getNNettoeinzelpreis().multiply(bdKurs));
-			panelHandeingabe.wnfMwstsumme.setBigDecimal(oAuftragpositionDto
-					.getNMwstbetrag().multiply(bdKurs));
-			panelHandeingabe.wnfBruttopreis.setBigDecimal(oAuftragpositionDto
-					.getNBruttoeinzelpreis().multiply(bdKurs));
+			panelHandeingabe.wnfEinzelpreis.setBigDecimal(oAuftragpositionDto.getNEinzelpreis().multiply(bdKurs));
+			panelHandeingabe.wnfRabattsumme.setBigDecimal(oAuftragpositionDto.getNRabattbetrag().multiply(bdKurs));
+			panelHandeingabe.wnfNettopreis.setBigDecimal(oAuftragpositionDto.getNNettoeinzelpreis().multiply(bdKurs));
+			panelHandeingabe.wnfMwstsumme.setBigDecimal(oAuftragpositionDto.getNMwstbetrag().multiply(bdKurs));
+			panelHandeingabe.wnfBruttopreis.setBigDecimal(oAuftragpositionDto.getNBruttoeinzelpreis().multiply(bdKurs));
 
-			panelHandeingabe.getWnfRabattsatz().setDouble(
-					oAuftragpositionDto.getFRabattsatz());
-			panelHandeingabe.wcoMwstsatz
-					.setKeyOfSelectedItem(oAuftragpositionDto.getMwstsatzIId());
+			panelHandeingabe.getWnfRabattsatz().setDouble(oAuftragpositionDto.getFRabattsatz());
+			panelHandeingabe.wcoMwstsatz.setKeyOfSelectedItem(oAuftragpositionDto.getMwstsatzIId());
 
 			// den Zusatzrabattsatz setzen
 			if (oAuftragpositionDto.getFZusatzrabattsatz() != null) {
-				panelHandeingabe.wnfZusatzrabattsatz
-						.setDouble(oAuftragpositionDto.getFZusatzrabattsatz());
+				panelHandeingabe.wnfZusatzrabattsatz.setDouble(oAuftragpositionDto.getFZusatzrabattsatz());
 
-				BigDecimal nZusatzrabattsumme = oAuftragpositionDto
-						.getNEinzelpreis()
+				BigDecimal nZusatzrabattsumme = oAuftragpositionDto.getNEinzelpreis()
 						.subtract(oAuftragpositionDto.getNRabattbetrag())
-						.multiply(
-								new BigDecimal(oAuftragpositionDto
-										.getFZusatzrabattsatz().doubleValue()))
+						.multiply(new BigDecimal(oAuftragpositionDto.getFZusatzrabattsatz().doubleValue()))
 						.movePointLeft(2);
 
-				panelHandeingabe.wnfZusatzrabattsumme
-						.setBigDecimal(nZusatzrabattsumme.multiply(bdKurs));
+				panelHandeingabe.wnfZusatzrabattsumme.setBigDecimal(nZusatzrabattsumme.multiply(bdKurs));
 			}
-		} else if (oAuftragpositionDto.getPositionsartCNr().equals(
-				LocaleFac.POSITIONSART_BETRIFFT)) {
+		} else if (oAuftragpositionDto.getPositionsartCNr().equals(LocaleFac.POSITIONSART_BETRIFFT)) {
 			panelBetreff.wtfBetreff.setText(oAuftragpositionDto.getCBez());
-		} else if (oAuftragpositionDto.getPositionsartCNr().equals(
-				LocaleFac.POSITIONSART_URSPRUNGSLAND)) {
+		} else if (oAuftragpositionDto.getPositionsartCNr().equals(LocaleFac.POSITIONSART_URSPRUNGSLAND)) {
 			panelUrsprung.wtfUrsprung.setText(oAuftragpositionDto.getCBez());
-		} else if (oAuftragpositionDto.getPositionsartCNr()
-				.equalsIgnoreCase(LocaleFac.POSITIONSART_TEXTEINGABE)) {
-			panelTexteingabe.setText(
-					oAuftragpositionDto.getXTextinhalt());
+		} else if (oAuftragpositionDto.getPositionsartCNr().equalsIgnoreCase(LocaleFac.POSITIONSART_TEXTEINGABE)) {
+			panelTexteingabe.setText(oAuftragpositionDto.getXTextinhalt());
 			panelTexteingabe.setEditable(false);
-		} else if (oAuftragpositionDto.getPositionsartCNr()
-				.equalsIgnoreCase(LocaleFac.POSITIONSART_TEXTBAUSTEIN)) {
-			panelTextbaustein.oMediastandardDto = DelegateFactory
-					.getInstance()
-					.getMediaDelegate()
-					.mediastandardFindByPrimaryKey(
-							oAuftragpositionDto.getMediastandardIId());
+		} else if (oAuftragpositionDto.getPositionsartCNr().equalsIgnoreCase(LocaleFac.POSITIONSART_TEXTBAUSTEIN)) {
+			panelTextbaustein.oMediastandardDto = DelegateFactory.getInstance().getMediaDelegate()
+					.mediastandardFindByPrimaryKey(oAuftragpositionDto.getMediastandardIId());
 			panelTextbaustein.dto2Components();
 		} else if (oAuftragpositionDto.getPositionsartCNr()
-				.equalsIgnoreCase(
-						LocaleFac.POSITIONSART_INTELLIGENTE_ZWISCHENSUMME)) {
+				.equalsIgnoreCase(LocaleFac.POSITIONSART_INTELLIGENTE_ZWISCHENSUMME)) {
 			panelIntZwischensumme.dto2Components(oAuftragpositionDto);
 		}
 
@@ -607,6 +527,37 @@ public abstract class PanelPositionenSichtAuftrag extends PanelPositionen2 {
 
 	public AuftragpositionDto getAuftragpositionDto() {
 		return oAuftragpositionDto;
+	}
+
+	/**
+	 * Die von einem Steuersatz abh&auml;ngigen Felder aktualisieren</br>
+	 * <p>
+	 * Dies sind mwstsatzId, mwstbetrag und NBruttoeinzelpreis. Zur Ermittlung des
+	 * richtigen Steuersatzes wird das Belegdatum aus dem Preispanel verwendet. Dies
+	 * kann Lieferschein oder Rechnung sein.
+	 * </p>
+	 * 
+	 * @param positionDto
+	 * @param panelPreis
+	 * @throws Throwable
+	 */
+	protected void setupSteuerFelder(BelegpositionVerkaufDto positionDto, PanelPositionenPreiseingabe panelPreis)
+			throws Throwable {
+		MwstsatzChangedInfo mwstInfo = DelegateFactory.mandant().pruefeObMwstsatzNochAktuell(oAuftragpositionDto,
+				panelPreis.getTBelegdatumMwstsatz());
+		if (mwstInfo.isChanged()) {
+			MwstsatzDto mwstsatzDto = mwstInfo.getMwstsatz().get();
+			positionDto.setMwstsatzIId(mwstsatzDto.getIId());
+			BigDecimal mwstBetrag = Helper.getProzentWert(positionDto.getNEinzelpreis(),
+					new BigDecimal(mwstsatzDto.getFMwstsatz()),
+					Defaults.getInstance().getIUINachkommastellenPreiseVK());
+			positionDto.setNMwstbetrag(mwstBetrag);
+			positionDto.setNBruttoeinzelpreis(positionDto.getNEinzelpreis().add(mwstBetrag));
+		} else {
+			positionDto.setMwstsatzIId(oAuftragpositionDto.getMwstsatzIId());
+			positionDto.setNMwstbetrag(panelPreis.wnfMwstsumme.getBigDecimal());
+			positionDto.setNBruttoeinzelpreis(panelPreis.wnfBruttopreis.getBigDecimal());
+		}
 	}
 
 	// @todo ich muss auch den zugehoerigen Auftrag locken PJ 5058

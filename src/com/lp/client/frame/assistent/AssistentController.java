@@ -39,7 +39,7 @@ import java.util.List;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.assistent.view.AssistentPageView;
 
-public abstract class AssistentController implements IPageNavigationUpdateListener{
+public abstract class AssistentController implements IPageNavigationUpdateListener, IGotoPages, IAssistentCanceler {
 	
 	private List<AssistentPageView> pages = new ArrayList<AssistentPageView>();
 	

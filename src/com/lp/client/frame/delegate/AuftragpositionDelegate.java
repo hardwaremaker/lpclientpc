@@ -34,6 +34,7 @@ package com.lp.client.frame.delegate;
 
 import java.math.BigDecimal;
 import java.rmi.RemoteException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,21 +44,32 @@ import javax.swing.table.TableModel;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.auftrag.service.AuftragFac;
 import com.lp.server.auftrag.service.AuftragpositionDto;
 import com.lp.server.auftrag.service.AuftragpositionFac;
 import com.lp.server.auftrag.service.AuftragseriennrnDto;
+import com.lp.server.system.service.TheClientDto;
 import com.lp.service.Artikelset;
+import com.lp.service.BelegpositionVerkaufDto;
 import com.lp.util.EJBExceptionLP;
 
 @SuppressWarnings("static-access")
 /**
- * <p>Delegate fuer Auftragpositionen.</p>
+ * <p>
+ * Delegate fuer Auftragpositionen.
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellung: Uli Walch, 27. 04. 2005</p>
+ * <p>
+ * Erstellung: Uli Walch, 27. 04. 2005
+ * </p>
  *
- * <p>@author Uli Walch</p>
+ * <p>
+ * @author Uli Walch
+ * </p>
  *
  * @version 1.0
  *
@@ -70,16 +82,14 @@ public class AuftragpositionDelegate extends Delegate {
 	public AuftragpositionDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			auftragpositionFac = (AuftragpositionFac) context
-					.lookup("lpserver/AuftragpositionFacBean/remote");
+			auftragpositionFac = lookupFac(context, AuftragpositionFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 
 	}
 
-	public void vertauscheAuftragpositionMinus(Integer rowIndex,
-			TableModel tableModel) throws ExceptionLP {
+	public void vertauscheAuftragpositionMinus(Integer rowIndex, TableModel tableModel) throws ExceptionLP {
 		try {
 			// int pageCount = 0 ;
 
@@ -90,15 +100,13 @@ public class AuftragpositionDelegate extends Delegate {
 				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
 			}
 
-			auftragpositionFac.vertauscheAuftragpositionenMinus(baseIId,
-					iidList, LPMain.getTheClient());
+			auftragpositionFac.vertauscheAuftragpositionenMinus(baseIId, iidList, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void vertauscheAuftragpositionPlus(Integer rowIndex,
-			TableModel tableModel) throws ExceptionLP {
+	public void vertauscheAuftragpositionPlus(Integer rowIndex, TableModel tableModel) throws ExceptionLP {
 		try {
 			Integer baseIId = (Integer) tableModel.getValueAt(rowIndex, 0);
 			List<Integer> iidList = new ArrayList<Integer>();
@@ -108,8 +116,7 @@ public class AuftragpositionDelegate extends Delegate {
 				iidList.add((Integer) tableModel.getValueAt(rowIndex, 0));
 			}
 
-			auftragpositionFac
-					.vertauscheAuftragpositionenPlus(baseIId, iidList, LPMain.getTheClient());
+			auftragpositionFac.vertauscheAuftragpositionenPlus(baseIId, iidList, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -122,20 +129,23 @@ public class AuftragpositionDelegate extends Delegate {
 	 * Diese Methode wird am Client aufgerufen, bevor die neue Position
 	 * abgespeichert wird.
 	 * 
-	 * @param iIdAuftragI
-	 *            der aktuelle Auftrag
-	 * @param iSortierungNeuePositionI
-	 *            die Stelle, an der eingefuegt werden soll
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAuftragI              der aktuelle Auftrag
+	 * @param iSortierungNeuePositionI die Stelle, an der eingefuegt werden soll
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-			Integer iIdAuftragI, int iSortierungNeuePositionI)
-			throws ExceptionLP {
+	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer iIdAuftragI,
+			int iSortierungNeuePositionI) throws ExceptionLP {
 		try {
-			auftragpositionFac
-					.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-							iIdAuftragI, iSortierungNeuePositionI);
+			auftragpositionFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(iIdAuftragI,
+					iSortierungNeuePositionI);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void sortiereNachArtikelnummer(Integer auftragIId) throws ExceptionLP {
+		try {
+			auftragpositionFac.sortiereNachArtikelnummer(auftragIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -144,19 +154,15 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Anzahl der Positionen zu einem Auftrag bestimmen.
 	 * 
-	 * @param iIdAuftragI
-	 *            pk des Auftrags
+	 * @param iIdAuftragI pk des Auftrags
 	 * @return int Anzahl der Positionen
 	 * @throws ExceptionLP
 	 */
-	public int getAnzahlMengenbehafteteAuftragpositionen(Integer iIdAuftragI)
-			throws ExceptionLP {
+	public int getAnzahlMengenbehafteteAuftragpositionen(Integer iIdAuftragI) throws ExceptionLP {
 		int anzahl = -1;
 
 		try {
-			anzahl = auftragpositionFac
-					.getAnzahlMengenbehafteteAuftragpositionen(iIdAuftragI,
-							LPMain.getTheClient());
+			anzahl = auftragpositionFac.getAnzahlMengenbehafteteAuftragpositionen(iIdAuftragI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -167,32 +173,39 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Anlegen einer neuen Auftragsposition.
 	 * 
-	 * @param pPos
-	 *            die Daten der neuen Position
+	 * @param pPos die Daten der neuen Position
 	 * @return Integer PK der neuen Position
 	 * @throws ExceptionLP
 	 */
-	public Integer createAuftragposition(AuftragpositionDto pPos)
-			throws ExceptionLP {
+	public Integer createAuftragposition(AuftragpositionDto pPos) throws ExceptionLP {
 		Integer pkPosition = null;
 
 		try {
-			pkPosition = auftragpositionFac.createAuftragposition(pPos,
-					LPMain.getTheClient());
+			pkPosition = auftragpositionFac.createAuftragposition(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 
 		return pkPosition;
 	}
+	
+	public BelegpositionVerkaufDto befuellePreisfelderAnhandVKPreisfindung(BelegpositionVerkaufDto bvDto,
+			java.sql.Timestamp tBelegdatum, Integer kundeIId, String waehrungCNr) throws ExceptionLP {
+		
+		try {
+			bvDto = auftragpositionFac.befuellePreisfelderAnhandVKPreisfindung(bvDto,tBelegdatum,kundeIId,waehrungCNr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-	public Integer createAuftragseriennrn(AuftragseriennrnDto pPos)
-			throws ExceptionLP {
+		return bvDto;
+	}
+
+	public Integer createAuftragseriennrn(AuftragseriennrnDto pPos) throws ExceptionLP {
 		Integer pkPosition = null;
 
 		try {
-			pkPosition = auftragpositionFac.createAuftragseriennrn(pPos,
-					LPMain.getTheClient());
+			pkPosition = auftragpositionFac.createAuftragseriennrn(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -203,13 +216,11 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Holen einer Auftragsposition.
 	 * 
-	 * @param pKey
-	 *            Integer
+	 * @param pKey Integer
 	 * @throws ExceptionLP
 	 * @return AuftragpositionDto
 	 */
-	public AuftragpositionDto auftragpositionFindByPrimaryKey(Integer pKey)
-			throws ExceptionLP {
+	public AuftragpositionDto auftragpositionFindByPrimaryKey(Integer pKey) throws ExceptionLP {
 		AuftragpositionDto dto = null;
 
 		try {
@@ -220,8 +231,8 @@ public class AuftragpositionDelegate extends Delegate {
 
 		return dto;
 	}
-	public AuftragpositionDto auftragpositionFindByPrimaryKeyOhneExc(Integer pKey)
-			throws ExceptionLP {
+
+	public AuftragpositionDto auftragpositionFindByPrimaryKeyOhneExc(Integer pKey) throws ExceptionLP {
 		AuftragpositionDto dto = null;
 
 		try {
@@ -233,13 +244,11 @@ public class AuftragpositionDelegate extends Delegate {
 		return dto;
 	}
 
-	public AuftragseriennrnDto auftragseriennrnFindByPrimaryKey(Integer pKey)
-			throws ExceptionLP {
+	public AuftragseriennrnDto auftragseriennrnFindByPrimaryKey(Integer pKey) throws ExceptionLP {
 		AuftragseriennrnDto dto = null;
 
 		try {
-			dto = this.auftragpositionFac.auftragseriennrnFindByPrimaryKey(
-					pKey, LPMain.getTheClient());
+			dto = this.auftragpositionFac.auftragseriennrnFindByPrimaryKey(pKey, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -247,13 +256,11 @@ public class AuftragpositionDelegate extends Delegate {
 		return dto;
 	}
 
-	public AuftragseriennrnDto auftragseriennrnFindByAuftragpositionIId(
-			Integer pKey) throws ExceptionLP {
+	public AuftragseriennrnDto auftragseriennrnFindByAuftragpositionIId(Integer pKey) throws ExceptionLP {
 		AuftragseriennrnDto dto = null;
 
 		try {
-			dto = auftragpositionFac.auftragseriennrnFindByAuftragpsotionIId(
-					pKey, LPMain.getTheClient());
+			dto = auftragpositionFac.auftragseriennrnFindByAuftragpsotionIId(pKey, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -264,35 +271,28 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Aktualisieren einer bestehenden Auftragsposition.
 	 * 
-	 * @param pPos
-	 *            AuftragpositionDto
+	 * @param pPos AuftragpositionDto
 	 * @throws ExceptionLP
 	 */
-	public void updateAuftragposition(AuftragpositionDto pPos)
-			throws ExceptionLP {
+	public void updateAuftragposition(AuftragpositionDto pPos) throws ExceptionLP {
 		try {
-			auftragpositionFac.updateAuftragposition(pPos,
-					LPMain.getTheClient());
+			auftragpositionFac.updateAuftragposition(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void updateAuftragseriennrn(AuftragseriennrnDto auftragseriennrnDto)
-			throws ExceptionLP {
+	public void updateAuftragseriennrn(AuftragseriennrnDto auftragseriennrnDto) throws ExceptionLP {
 		try {
-			auftragpositionFac.updateAuftragseriennrn(auftragseriennrnDto,
-					LPMain.getTheClient());
+			auftragpositionFac.updateAuftragseriennrn(auftragseriennrnDto, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void removeAuftragseriennrn(AuftragseriennrnDto auftragseriennrnDto)
-			throws ExceptionLP {
+	public void removeAuftragseriennrn(AuftragseriennrnDto auftragseriennrnDto) throws ExceptionLP {
 		try {
-			auftragpositionFac.removeAuftragseriennrn(auftragseriennrnDto,
-					LPMain.getTheClient());
+			auftragpositionFac.removeAuftragseriennrn(auftragseriennrnDto, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -301,15 +301,12 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Aktualisieren einer bestehenden Auftragsposition.
 	 * 
-	 * @param pPos
-	 *            AuftragpositionDto
+	 * @param pPos AuftragpositionDto
 	 * @throws ExceptionLP
 	 */
-	public void updateAuftragpositionOhneWeitereAktion(AuftragpositionDto pPos)
-			throws ExceptionLP {
+	public void updateAuftragpositionOhneWeitereAktion(AuftragpositionDto pPos) throws ExceptionLP {
 		try {
-			auftragpositionFac.updateAuftragpositionOhneWeitereAktion(pPos,
-					LPMain.getTheClient());
+			auftragpositionFac.updateAuftragpositionOhneWeitereAktion(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -318,15 +315,12 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * L&ouml;schen einer bestehendenreat Auftragsposition.
 	 * 
-	 * @param pPos
-	 *            AuftragpositionDto
+	 * @param pPos AuftragpositionDto
 	 * @throws ExceptionLP
 	 */
-	public void removeAuftragposition(AuftragpositionDto pPos)
-			throws ExceptionLP {
+	public void removeAuftragposition(AuftragpositionDto pPos) throws ExceptionLP {
 		try {
-			auftragpositionFac.removeAuftragposition(pPos,
-					LPMain.getTheClient());
+			auftragpositionFac.removeAuftragposition(pPos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -335,23 +329,17 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Die Anzahl von Artikelpositionen in einem Auftrag berechnen.
 	 * 
-	 * @param iIdAuftragI
-	 *            PK des Auftrags
-	 * @param sStatusI
-	 *            der Status der gesuchten Positionen, wenn NULL alle
-	 *            Artikelpositionen
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAuftragI PK des Auftrags
+	 * @param sStatusI    der Status der gesuchten Positionen, wenn NULL alle
+	 *                    Artikelpositionen
+	 * @throws ExceptionLP Ausnahme
 	 * @return int die Anzahl der Artikelpositionen mit diesem Status
 	 */
-	public int berechneAnzahlArtikelpositionenMitStatus(Integer iIdAuftragI,
-			String sStatusI) throws ExceptionLP {
+	public int berechneAnzahlArtikelpositionenMitStatus(Integer iIdAuftragI, String sStatusI) throws ExceptionLP {
 		int iAnzahlO = 0;
 
 		try {
-			iAnzahlO = auftragpositionFac
-					.berechneAnzahlArtikelpositionenMitStatus(iIdAuftragI,
-							sStatusI);
+			iAnzahlO = auftragpositionFac.berechneAnzahlArtikelpositionenMitStatus(iIdAuftragI, sStatusI);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -359,11 +347,9 @@ public class AuftragpositionDelegate extends Delegate {
 		return iAnzahlO;
 	}
 
-	public void berechnePauschalposition(BigDecimal wert, Integer positionIId,
-			Integer IId) throws ExceptionLP {
+	public void berechnePauschalposition(BigDecimal wert, Integer positionIId, Integer IId) throws ExceptionLP {
 		try {
-			auftragpositionFac.berechnePauschalposition(wert, positionIId, IId,
-					LPMain.getTheClient());
+			auftragpositionFac.berechnePauschalposition(wert, positionIId, IId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -372,21 +358,16 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Die Auftragposition an einer bestimmten Position im Auftrag bestimmen.
 	 * 
-	 * @param iIdAuftrag
-	 *            PK des Auftrags
-	 * @param iSort
-	 *            die Position der Position
+	 * @param iIdAuftrag PK des Auftrags
+	 * @param iSort      die Position der Position
 	 * @return AuftragpositionDto die Position
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public AuftragpositionDto auftragpositionFindByAuftragISort(
-			Integer iIdAuftrag, Integer iSort) throws ExceptionLP {
+	public AuftragpositionDto auftragpositionFindByAuftragISort(Integer iIdAuftrag, Integer iSort) throws ExceptionLP {
 		AuftragpositionDto oAuftragpositionDtoO = null;
 
 		try {
-			oAuftragpositionDtoO = auftragpositionFac
-					.auftragpositionFindByAuftragISort(iIdAuftrag, iSort);
+			oAuftragpositionDtoO = auftragpositionFac.auftragpositionFindByAuftragISort(iIdAuftrag, iSort);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -394,11 +375,19 @@ public class AuftragpositionDelegate extends Delegate {
 		return oAuftragpositionDtoO;
 	}
 
-	public void manuellErledigungAufgeben(Integer iIdPositionI)
-			throws ExceptionLP {
+	public String getAuftragZuAuftragseriennummer(Integer artikelIId, String cSnr) throws ExceptionLP {
+
 		try {
-			auftragpositionFac.manuellErledigungAufgeben(iIdPositionI,
-					LPMain.getTheClient());
+			return auftragpositionFac.getAuftragZuAuftragseriennummer(artikelIId, cSnr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public void manuellErledigungAufgeben(Integer iIdPositionI) throws ExceptionLP {
+		try {
+			auftragpositionFac.manuellErledigungAufgeben(iIdPositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -408,8 +397,7 @@ public class AuftragpositionDelegate extends Delegate {
 	public String getNextSeriennr(Integer iIdArtikelI) throws ExceptionLP {
 		String snr = null;
 		try {
-			snr = auftragpositionFac.getNextSeriennr(iIdArtikelI,
-					LPMain.getTheClient());
+			snr = auftragpositionFac.getNextSeriennr(iIdArtikelI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -418,19 +406,32 @@ public class AuftragpositionDelegate extends Delegate {
 
 	public void manuellErledigen(Integer iIdPositionI) throws ExceptionLP {
 		try {
-			auftragpositionFac.manuellErledigen(iIdPositionI,
-					LPMain.getTheClient());
+			auftragpositionFac.manuellErledigen(iIdPositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public String getSeriennummmern(Integer iIdAuftragpositionI)
-			throws ExceptionLP {
+	public void toggleGesehen(Integer auftragspositionIId) throws ExceptionLP {
+		try {
+			auftragpositionFac.toggleGesehen(auftragspositionIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void toggleHvmauebertragen(Integer auftragspositionIId) throws ExceptionLP {
+		try {
+			auftragpositionFac.toggleHvmauebertragen(auftragspositionIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public String getSeriennummmern(Integer iIdAuftragpositionI) throws ExceptionLP {
 		String snr = null;
 		try {
-			snr = auftragpositionFac.getSeriennummmern(iIdAuftragpositionI,
-					LPMain.getInstance().getTheClient());
+			snr = auftragpositionFac.getSeriennummmern(iIdAuftragpositionI, LPMain.getInstance().getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -440,19 +441,15 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Alle Auftragpositionen eines bestimmten Auftrags holen.
 	 * 
-	 * @param iIdAuftragI
-	 *            PK des Auftrags
+	 * @param iIdAuftragI PK des Auftrags
 	 * @return AuftragpositionDto[] die Positionen
-	 * @throws ExceptionLP
-	 *             Ausanahme
+	 * @throws ExceptionLP Ausanahme
 	 */
-	public AuftragpositionDto[] auftragpositionFindByAuftrag(Integer iIdAuftragI)
-			throws ExceptionLP {
+	public AuftragpositionDto[] auftragpositionFindByAuftrag(Integer iIdAuftragI) throws ExceptionLP {
 		AuftragpositionDto[] aAuftragpositionDto = null;
 
 		try {
-			aAuftragpositionDto = auftragpositionFac
-					.auftragpositionFindByAuftrag(iIdAuftragI);
+			aAuftragpositionDto = auftragpositionFac.auftragpositionFindByAuftrag(iIdAuftragI);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -460,12 +457,10 @@ public class AuftragpositionDelegate extends Delegate {
 		return aAuftragpositionDto;
 	}
 
-	public Object[][] isAuftragseriennrnVorhanden(String[] cSerienNr,
-			Integer artikelIId) throws ExceptionLP {
+	public Object[][] isAuftragseriennrnVorhanden(String[] cSerienNr, Integer artikelIId) throws ExceptionLP {
 		Object[][] data = null;
 		try {
-			data = auftragpositionFac.isAuftragseriennrnVorhanden(cSerienNr,
-					artikelIId, LPMain.getTheClient());
+			data = auftragpositionFac.isAuftragseriennrnVorhanden(cSerienNr, artikelIId, LPMain.getTheClient());
 
 		} catch (Throwable t) {
 			handleThrowable(t);
@@ -474,21 +469,18 @@ public class AuftragpositionDelegate extends Delegate {
 	}
 
 	/**
-	 * Zu einem bestimmten Auftrag alle Positionen holen, bei denen die offene
-	 * Menge nicht NULL und nicht 0 ist.
+	 * Zu einem bestimmten Auftrag alle Positionen holen, bei denen die offene Menge
+	 * nicht NULL und nicht 0 ist.
 	 * 
-	 * @param iIdAuftragI
-	 *            PK des Auftrags
+	 * @param iIdAuftragI PK des Auftrags
 	 * @return AuftragpositionDto[]
 	 * @throws ExceptionLP
 	 */
-	public AuftragpositionDto[] auftragpositionFindByAuftragOffeneMenge(
-			Integer iIdAuftragI) throws ExceptionLP {
+	public AuftragpositionDto[] auftragpositionFindByAuftragOffeneMenge(Integer iIdAuftragI) throws ExceptionLP {
 		AuftragpositionDto[] aAuftragpositionDto = null;
 
 		try {
-			aAuftragpositionDto = auftragpositionFac
-					.auftragpositionFindByAuftragOffeneMenge(iIdAuftragI);
+			aAuftragpositionDto = auftragpositionFac.auftragpositionFindByAuftragOffeneMenge(iIdAuftragI);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -497,26 +489,22 @@ public class AuftragpositionDelegate extends Delegate {
 	}
 
 	/**
-	 * Alle Auftragpositionen suchen, die zu einem bestimmten Auftrag gehoeren
-	 * und eine bestimmte Rahmenposition referenzieren.
+	 * Alle Auftragpositionen suchen, die zu einem bestimmten Auftrag gehoeren und
+	 * eine bestimmte Rahmenposition referenzieren.
 	 * 
-	 * @param iIdAuftragI
-	 *            PK des Auftrags
-	 * @param iIdRahmenpositionI
-	 *            PK der Rahmenposition
+	 * @param iIdAuftragI        PK des Auftrags
+	 * @param iIdRahmenpositionI PK der Rahmenposition
 	 * @return AuftragpositionDto die Liste der Positionen
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public AuftragpositionDto auftragpositionFindByAuftragIIdAuftragpositionIIdRahmenposition(
-			Integer iIdAuftragI, Integer iIdRahmenpositionI) throws ExceptionLP {
+	public AuftragpositionDto auftragpositionFindByAuftragIIdAuftragpositionIIdRahmenposition(Integer iIdAuftragI,
+			Integer iIdRahmenpositionI) throws ExceptionLP {
 		AuftragpositionDto auftragpositionDto = null;
 
 		try {
 			auftragpositionDto = auftragpositionFac
-					.auftragpositionFindByAuftragIIdAuftragpositionIIdRahmenpositionOhneExc(
-							iIdAuftragI, iIdRahmenpositionI,
-							LPMain.getTheClient());
+					.auftragpositionFindByAuftragIIdAuftragpositionIIdRahmenpositionOhneExc(iIdAuftragI,
+							iIdRahmenpositionI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -528,20 +516,17 @@ public class AuftragpositionDelegate extends Delegate {
 	 * Alle Auftragpositionen suchen, die eine bestimmte Rahmenposition
 	 * referenzieren.
 	 * 
-	 * @param iIdRahmenpositionII
-	 *            PK der Rahmenposition
+	 * @param iIdRahmenpositionII PK der Rahmenposition
 	 * @return AuftragpositionDto die Auftragposition, null moeglich
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public AuftragpositionDto[] auftragpositionFindByAuftragpositionIIdRahmenpositionOhneExc(
 			Integer iIdRahmenpositionII) throws ExceptionLP {
 		AuftragpositionDto[] aAuftragpositionDto = null;
 
 		try {
-			aAuftragpositionDto = auftragpositionFac
-					.auftragpositionFindByAuftragpositionIIdRahmenpositionOhneExc(
-							iIdRahmenpositionII, LPMain.getTheClient());
+			aAuftragpositionDto = auftragpositionFac.auftragpositionFindByAuftragpositionIIdRahmenpositionOhneExc(
+					iIdRahmenpositionII, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -569,25 +554,21 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Ermittelt die erf&uuml;llbare Menge/Anzahl eines Artikelsets. Es wird davon
 	 * ausgegangen, dass die erste Position (positions[0]) den Kopfartikel
-	 * enth&auml;lt und somit auch die Sollmenge (Satzgr&ouml;&szlig;e). Die noch offene Menge
-	 * wird ber&uuml;cksichtigt.
+	 * enth&auml;lt und somit auch die Sollmenge (Satzgr&ouml;&szlig;e). Die noch
+	 * offene Menge wird ber&uuml;cksichtigt.
 	 * 
-	 * @param positions
-	 *            enth&auml;lt alle jene Auftragspositionen die f&uuml;r das ArtikelSet
-	 *            relevant sind
-	 * @param lagerIId
-	 *            die Lager-IId von der die Ware entnommen werden soll.
+	 * @param positions    enth&auml;lt alle jene Auftragspositionen die f&uuml;r
+	 *                     das ArtikelSet relevant sind
+	 * @param lagerIId     die Lager-IId von der die Ware entnommen werden soll.
 	 * @param theClientDto
 	 * @return die erfuellbare Menge fuer dieses Artikelset
 	 * 
 	 * @throws RemoteException
 	 */
-	public BigDecimal getErfuellbareMengeArtikelset(
-			AuftragpositionDto[] positions, Integer lagerIId)
+	public BigDecimal getErfuellbareMengeArtikelset(AuftragpositionDto[] positions, Integer lagerIId)
 			throws ExceptionLP {
 		try {
-			return auftragpositionFac.getErfuellbareMengeArtikelset(positions,
-					lagerIId, LPMain.getTheClient());
+			return auftragpositionFac.getErfuellbareMengeArtikelset(positions, lagerIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -595,11 +576,9 @@ public class AuftragpositionDelegate extends Delegate {
 		return BigDecimal.ZERO;
 	}
 
-	public Double berechneArbeitszeitSoll(Integer iIdAuftragI)
-			throws ExceptionLP {
+	public Double berechneArbeitszeitSoll(Integer iIdAuftragI) throws ExceptionLP {
 		try {
-			return auftragpositionFac.berechneArbeitszeitSoll(iIdAuftragI,
-					LPMain.getTheClient());
+			return auftragpositionFac.berechneArbeitszeitSoll(iIdAuftragI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -610,18 +589,16 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Alle Artikelsets mit noch offenen Mengen liefern
 	 * 
-	 * @param positions
-	 *            sind alle Auftragspositionen
+	 * @param positions    sind alle Auftragspositionen
 	 * @param theClientDto
 	 * @return eine Liste jene Artikelsets f&uuml;r die es noch offene Mengen im
 	 *         Kopfartikel gibt. Es wird das komplette Artikelset des Auftrags
 	 *         geliefert.
 	 */
-	public List<Artikelset> getOffeneAuftragpositionDtoMitArtikelset(
-			AuftragpositionDto[] positions) throws ExceptionLP {
+	public List<Artikelset> getOffeneAuftragpositionDtoMitArtikelset(AuftragpositionDto[] positions)
+			throws ExceptionLP {
 		try {
-			return auftragpositionFac.getOffeneAuftragpositionDtoMitArtikelset(
-					positions, LPMain.getTheClient());
+			return auftragpositionFac.getOffeneAuftragpositionDtoMitArtikelset(positions, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -633,15 +610,13 @@ public class AuftragpositionDelegate extends Delegate {
 	 * Liefert die IId der Position fuer die angegebene Positionsnummer zurueck
 	 * 
 	 * @param rechnungIId
-	 * @param position
-	 *            die Positionsnummer f&uuml;r die die IId ermittelt werden soll
+	 * @param position    die Positionsnummer f&uuml;r die die IId ermittelt werden
+	 *                    soll
 	 * @return null wenn es position nicht gibt, ansonsten die IId
 	 */
-	public Integer getPositionIIdFromPositionNummer(Integer rechnungIId,
-			Integer position) throws ExceptionLP {
+	public Integer getPositionIIdFromPositionNummer(Integer rechnungIId, Integer position) throws ExceptionLP {
 		try {
-			return auftragpositionFac.getPositionIIdFromPositionNummer(
-					rechnungIId, position);
+			return auftragpositionFac.getPositionIIdFromPositionNummer(rechnungIId, position);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -660,9 +635,9 @@ public class AuftragpositionDelegate extends Delegate {
 	}
 
 	/**
-	 * Liefert die Positionsnummer der angegebenen Position-IId. Sollte die
-	 * Position selbst keine Nummer haben, wird die unmittelbar vor dieser
-	 * Position liegende letztg&uuml;ltige Nummer geliefert.
+	 * Liefert die Positionsnummer der angegebenen Position-IId. Sollte die Position
+	 * selbst keine Nummer haben, wird die unmittelbar vor dieser Position liegende
+	 * letztg&uuml;ltige Nummer geliefert.
 	 * 
 	 * @param reposIId
 	 * @return Die Positionsnummer (1 - n), oder null wenn die Position nicht
@@ -681,14 +656,12 @@ public class AuftragpositionDelegate extends Delegate {
 	/**
 	 * Die hoechste/letzte in einem Auftrag bestehende Positionsnummer ermitteln
 	 * 
-	 * @param rechnungIId
-	 *            die RechnungsIId fuer die die hoechste Pos.Nummer ermittelt
-	 *            werden soll.
+	 * @param rechnungIId die RechnungsIId fuer die die hoechste Pos.Nummer
+	 *                    ermittelt werden soll.
 	 * 
 	 * @return 0 ... n
 	 */
-	public Integer getHighestPositionNumber(Integer rechnungIId)
-			throws ExceptionLP {
+	public Integer getHighestPositionNumber(Integer rechnungIId) throws ExceptionLP {
 		try {
 			return auftragpositionFac.getHighestPositionNumber(rechnungIId);
 		} catch (Throwable t) {
@@ -708,16 +681,52 @@ public class AuftragpositionDelegate extends Delegate {
 	 * @return true wenn alle Positionen den gleichen Mehrwertsteuersatz haben.
 	 * @throws EJBExceptionLP
 	 */
-	public boolean pruefeAufGleichenMwstSatz(Integer rechnungIId,
-			Integer vonPositionNumber, Integer bisPositionNumber)
+	public boolean pruefeAufGleichenMwstSatz(Integer rechnungIId, Integer vonPositionNumber, Integer bisPositionNumber)
 			throws ExceptionLP {
 		try {
-			return auftragpositionFac.pruefeAufGleichenMwstSatz(rechnungIId,
-					vonPositionNumber, bisPositionNumber);
+			return auftragpositionFac.pruefeAufGleichenMwstSatz(rechnungIId, vonPositionNumber, bisPositionNumber);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 
 		return false;
 	}
+
+	public Artikelset getArtikelsetFromKopfpositionOffen(Integer auftragpositionKopfId) throws ExceptionLP {
+		try {
+			return auftragpositionFac.getArtikelsetFromKopfpositionOffen(auftragpositionKopfId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return null;
+	}
+	
+	public Integer auftragpositionSplitten(Integer auftragpositionIId, BigDecimal bdMengeNeu,
+			Timestamp dLieferterminNeu) throws ExceptionLP {
+		
+		try {
+			return auftragpositionFac.auftragpositionSplitten(auftragpositionIId, bdMengeNeu,
+					dLieferterminNeu, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	
+	}
+
+	
+	public boolean istRahmenMengeUeberschritten(Integer auftragpositionIId_Abruf, BigDecimal bdMengeNeu) throws ExceptionLP {
+		
+		try {
+			return auftragpositionFac.istRahmenMengeUeberschritten(auftragpositionIId_Abruf, bdMengeNeu, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return true;
+		}
+
+	
+	}
+
 }

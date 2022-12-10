@@ -191,6 +191,9 @@ public class ReportAngebotAlle extends PanelReportJournalVerkauf implements
 		jpaWorkingOn.add(getPanelVertreter(), new GridBagConstraints(2, iZeile,
 				4, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		
+		addProvisionsempfaenger();
+		
 		iZeile++;
 		jpaWorkingOn.add(wcbMitDetails, new GridBagConstraints(0, iZeile, 4, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
@@ -272,7 +275,7 @@ public class ReportAngebotAlle extends PanelReportJournalVerkauf implements
 
 		if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_EINER)) {
 			// wenn noch keiner gewaehlt ist, dann geht der Dialog auf
-			if (vertreterDto.getIId() == null) {
+			if (vertreterDto.getIId() == null && isInitialized()) {
 				wbuVertreter.doClick();
 			}
 

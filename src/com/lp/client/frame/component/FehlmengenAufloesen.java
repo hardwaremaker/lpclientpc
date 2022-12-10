@@ -76,7 +76,6 @@ import com.lp.util.Helper;
  * @version not attributable Date $Date: 2012/09/18 12:09:04 $
  */
 public class FehlmengenAufloesen {
-	private static TreeMap<String, ArrayList<AufgeloesteFehlmengenDto>> tmAufgeloesteFehlmengen = new TreeMap<String, ArrayList<AufgeloesteFehlmengenDto>>();
 
 	public static void fehlmengenAufloesen(InternalFrame internalframe,
 			Integer artikelIId, Integer lagerIId, String[] sSeriennummernArray,
@@ -95,17 +94,15 @@ public class FehlmengenAufloesen {
 				bdVerfuegbaremenge = new BigDecimal(sSeriennummernArray.length);
 			}
 
-			BigDecimal bdfehlmenge = DelegateFactory.getInstance()
-					.getFehlmengeDelegate()
-					.getAnzahlderPositivenFehlmengenEinesArtikels(artikelIId);
-
-			if (bdfehlmenge.doubleValue() > 0) {
+			// SP4632
+			if (dialogAnzeigen(artikelIId)) {
 				DialogFehlmengen d = new DialogFehlmengen(artikelDto, lagerIId,
 						sSeriennummernArray, bdVerfuegbaremenge, internalframe);
 				LPMain.getInstance().getDesktop()
 						.platziereDialogInDerMitteDesFensters(d);
 				d.setVisible(true);
 			}
+
 		}
 	}
 
@@ -125,9 +122,11 @@ public class FehlmengenAufloesen {
 					.darfAnwenderAufZusatzfunktionZugreifen(
 							MandantFac.ZUSATZFUNKTION_RESERVIERUNGEN_AUFLOESEN)) {
 
+				// PJ19009 Nicht anzeigen, wenn nur Los-Reservierungen vorhanden
+				// sind
 				BigDecimal bdreservierungen = DelegateFactory.getInstance()
 						.getReservierungDelegate()
-						.getAnzahlReservierungen(artikelIId);
+						.getAnzahlAuftragsReservierungen(artikelIId);
 				if (bdreservierungen.doubleValue() > 0) {
 					return true;
 				} else {
@@ -270,10 +269,6 @@ public class FehlmengenAufloesen {
 		}
 	}
 
-	public static void loescheAufgeloesteFehlmengen() {
-		tmAufgeloesteFehlmengen = new TreeMap<String, ArrayList<AufgeloesteFehlmengenDto>>();
-	}
-
 	public static void addAufgeloesteFehlmenge(ArtikelDto artikelDto,
 			LagerDto lagerDto, String[] sSeriennrChnr, LosDto losDto,
 			BigDecimal aufgeloesteMenge) throws Throwable {
@@ -289,22 +284,15 @@ public class FehlmengenAufloesen {
 		aufgeloesteFehlmengenDto.setLosDto(losDto);
 		aufgeloesteFehlmengenDto.setLosCNr(losDto.getCNr());
 
-		if (tmAufgeloesteFehlmengen.containsKey("L" + losDto.getCNr())) {
-			ArrayList<AufgeloesteFehlmengenDto> al = (ArrayList<AufgeloesteFehlmengenDto>) tmAufgeloesteFehlmengen
-					.get("L" + losDto.getCNr());
-			al.add(aufgeloesteFehlmengenDto);
-			tmAufgeloesteFehlmengen.put("L" + losDto.getCNr(), al);
-		} else {
-			ArrayList<AufgeloesteFehlmengenDto> al = new ArrayList<AufgeloesteFehlmengenDto>();
-			al.add(aufgeloesteFehlmengenDto);
-			tmAufgeloesteFehlmengen.put("L" + losDto.getCNr(), al);
-		}
+		DelegateFactory.getInstance().getFehlmengeDelegate()
+				.addAufgeloesteFehlmengeZuSession(aufgeloesteFehlmengenDto);
 
 	}
 
 	public static void addAufgeloesteReservierung(ArtikelDto artikelDto,
-			LagerDto lagerDto, String[] sSeriennrChnr, AuftragDto auftragDto, LieferscheinDto lieferscheinDto,
-			BigDecimal aufgeloesteMenge) throws Throwable {
+			LagerDto lagerDto, String[] sSeriennrChnr, AuftragDto auftragDto,
+			LieferscheinDto lieferscheinDto, BigDecimal aufgeloesteMenge)
+			throws Throwable {
 
 		AufgeloesteFehlmengenDto aufgeloesteFehlmengenDto = new AufgeloesteFehlmengenDto();
 		aufgeloesteFehlmengenDto.setArtikelDto(artikelDto);
@@ -317,21 +305,9 @@ public class FehlmengenAufloesen {
 		aufgeloesteFehlmengenDto.setAuftagDto(auftragDto);
 		aufgeloesteFehlmengenDto.setLieferscheinDto(lieferscheinDto);
 
-		if (tmAufgeloesteFehlmengen.containsKey("A" + auftragDto.getCNr())) {
-			ArrayList<AufgeloesteFehlmengenDto> al = (ArrayList<AufgeloesteFehlmengenDto>) tmAufgeloesteFehlmengen
-					.get("A" + auftragDto.getCNr());
-			al.add(aufgeloesteFehlmengenDto);
-			tmAufgeloesteFehlmengen.put("A" + auftragDto.getCNr(), al);
-		} else {
-			ArrayList<AufgeloesteFehlmengenDto> al = new ArrayList<AufgeloesteFehlmengenDto>();
-			al.add(aufgeloesteFehlmengenDto);
-			tmAufgeloesteFehlmengen.put("A" + auftragDto.getCNr(), al);
-		}
+		DelegateFactory.getInstance().getFehlmengeDelegate()
+				.addAufgeloesteFehlmengeZuSession(aufgeloesteFehlmengenDto);
 
-	}
-
-	public static TreeMap<String, ArrayList<AufgeloesteFehlmengenDto>> getAufgeloesteFehlmengen() {
-		return tmAufgeloesteFehlmengen;
 	}
 
 }

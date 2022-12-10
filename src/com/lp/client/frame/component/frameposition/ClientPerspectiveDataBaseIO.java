@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.lp.client.angebot.AGSchnellerfassungPositionData;
 import com.lp.server.system.service.TheClientDto;
 import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
 
@@ -76,7 +77,12 @@ public class ClientPerspectiveDataBaseIO implements IClientPerspectiveIO {
 		// TODO Auto-generated method stub
 
 	}
+	@Override
+	public void persistAGSchnellerfassungPositionData(AGSchnellerfassungPositionData positionData)
+			throws Exception {
+		// TODO Auto-generated method stub
 
+	}
 	@Override
 	public boolean doSavedSettingsExist() {
 		// TODO Auto-generated method stub
@@ -90,7 +96,19 @@ public class ClientPerspectiveDataBaseIO implements IClientPerspectiveIO {
 	}
 
 	@Override
+	public List<Integer> readQueryColumnPositions(int usecaseId) throws Exception{
+		return null;
+	}
+	
+	@Override
 	public void persistQueryColumnWidth(int usecaseId, List<Integer> widths)
+			throws Exception {
+		// TODO Auto-generated method stub
+
+	}
+	
+	@Override
+	public void persistQueryColumnPosition(int usecaseId, List<Integer> position)
 			throws Exception {
 		// TODO Auto-generated method stub
 
@@ -130,6 +148,40 @@ public class ClientPerspectiveDataBaseIO implements IClientPerspectiveIO {
 	}
 	@Override
 	public HashMap<String, String> readPropertyMap() throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public void persistDetailHeight(int usecaseId, int detailHeight) throws Exception {
+	}
+	
+	@Override
+	public Integer readDetailHeight(int usecaseId) throws Exception {
+		return null;
+	}
+	@Override
+	public void removeQueryColumnPositions(int usecaseId) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void removeQueryColumnWidth(int usecaseId) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void removeQueryDetailHeight(int usecaseId) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void removeQueryColumnSorting(int usecaseId) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public AGSchnellerfassungPositionData readAGSchnellerfassungPositionData() throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}

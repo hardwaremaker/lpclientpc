@@ -53,13 +53,21 @@ import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.angebot.service.AngebotServiceFac;
 import com.lp.util.EJBExceptionLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /**
- * <p>In diesem Fenster werden Konditionen zum Angebot erfasst.
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 12.07.05</p>
- * <p> </p>
+ * <p>
+ * In diesem Fenster werden Konditionen zum Angebot erfasst.
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 12.07.05
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version 1.0
  */
@@ -90,10 +98,11 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 
 	private WrapperCheckBox wcbMitZusammenfassung = new WrapperCheckBox();
 
+	protected WrapperCheckBox wcbMindermengenzuschlag = new WrapperCheckBox();
+
 	private PanelAngebotAkquisedaten panelAngebotAkquisedaten = null;
 
-	public PanelAngebotKonditionen(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
+	public PanelAngebotKonditionen(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 
 		intFrame = (InternalFrameAngebot) internalFrame;
@@ -101,6 +110,7 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 
 		jbInit();
 		initComponents();
+		setDarfPreiseSehenSichtbarkeit();
 	}
 
 	private void jbInit() throws Throwable {
@@ -108,38 +118,34 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 		wtfZahlungsziel.setMandatoryField(true);
 		wtfSpedition.setMandatoryField(true);
 
-		wlaVersteckterAufschlag = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.versteckteraufschlag"));
+		wlaVersteckterAufschlag = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("label.versteckteraufschlag"));
 		wnfVersteckterAufschlag = new WrapperNumberField();
-		wlaProzent3 = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.prozent"));
+		wlaProzent3 = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.prozent"));
 		wlaProzent3.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wlaProjektierungsrabatt = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("kond.label.projektRabatt"));
+		wlaProjektierungsrabatt = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("kond.label.projektRabatt"));
 		wnfProjektierungsrabatt = new WrapperNumberField();
-		wlaProzent4 = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.prozent"));
+		wlaProzent4 = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.prozent"));
 		wlaProzent4.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wcbMitZusammenfassung.setText(LPMain
-				.getTextRespectUISPr("angebot.mitzusammmenfassung"));
+		wcbMindermengenzuschlag.setText(LPMain.getInstance().getTextRespectUISPr("label.mindermengenzuschlag"));
 
-		wlaAngebotswertinangebotswaehrung = new WrapperLabel(LPMain
-				.getInstance().getTextRespectUISPr("angb.angebotswert"));
+		wcbMitZusammenfassung.setText(LPMain.getTextRespectUISPr("angebot.mitzusammmenfassung"));
+
+		wlaAngebotswertinangebotswaehrung = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("angb.angebotswert"));
 		wnfAngebotswertinangebotswaehrung = new WrapperNumberField();
 
-		wnfAngebotswertinangebotswaehrung.setFractionDigits(Defaults
-				.getInstance().getIUINachkommastellenPreiseVK());
+		wnfAngebotswertinangebotswaehrung.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
 
 		wnfKorrekturbetrag = new WrapperNumberField();
 
-		wnfKorrekturbetrag.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK());
+		wnfKorrekturbetrag.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
 		wnfKorrekturbetrag.setActivatable(false);
 
-		wlaKorrekturbetrag = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.korrekturbetrag"));
+		wlaKorrekturbetrag = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.korrekturbetrag"));
 
 		wnfAngebotswertinangebotswaehrung.addFocusListener(this);
 		wlaAngebotswaehrung1 = new WrapperLabel();
@@ -149,59 +155,44 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 		iZeile = 4; // mein eigener Teil beginnt nach den ersten drei Zeilen des
 					// BasisPanel
 
-		jPanelWorkingOn.add(wlaVersteckterAufschlag, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaVersteckterAufschlag, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfVersteckterAufschlag, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaProzent3, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfVersteckterAufschlag, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaProzent3, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wcbMitZusammenfassung, new GridBagConstraints(3,
-				iZeile, 1, 1, 0.5, 0.0, GridBagConstraints.EAST,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wcbMitZusammenfassung, new GridBagConstraints(3, iZeile, 1, 1, 0.5, 0.0,
+				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jPanelWorkingOn.add(wlaAllgemeinerRabatt, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaAllgemeinerRabatt, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfAllgemeinerRabatt, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaProzent2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfAllgemeinerRabatt, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaProzent2, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wcbMindermengenzuschlag, new GridBagConstraints(3, iZeile, 1, 1, 0.5, 0.0,
+				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jPanelWorkingOn.add(wlaProjektierungsrabatt, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfProjektierungsrabatt, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaProzent4, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaProjektierungsrabatt, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfProjektierungsrabatt, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaProzent4, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jPanelWorkingOn.add(wlaAngebotswertinangebotswaehrung,
-				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(10, 2, 10, 2), 0, 0));
-		jPanelWorkingOn.add(wnfAngebotswertinangebotswaehrung,
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(10, 2, 10, 2), 0, 0));
-		jPanelWorkingOn.add(wlaAngebotswaehrung1, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 10, 2), 0, 0));
-		jPanelWorkingOn.add(wlaKorrekturbetrag, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 10, 2), 0, 0));
+		jPanelWorkingOn.add(wlaAngebotswertinangebotswaehrung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 10, 2), 0, 0));
+		jPanelWorkingOn.add(wnfAngebotswertinangebotswaehrung, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 10, 2), 0, 0));
+		jPanelWorkingOn.add(wlaAngebotswaehrung1, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 10, 2), 0, 0));
+		jPanelWorkingOn.add(wlaKorrekturbetrag, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 10, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfKorrekturbetrag, new GridBagConstraints(3,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfKorrekturbetrag, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		// review JO
 		iZeile++;
@@ -216,13 +207,36 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 
 		panelAngebotAkquisedaten.setDefaults();
 
-		wlaAngebotswaehrung1
-				.setText(tpAngebot.getAngebotDto().getWaehrungCNr());
-		wlaAngebotswaehrung1
-				.setText(tpAngebot.getAngebotDto().getWaehrungCNr());
+		wlaAngebotswaehrung1.setText(tpAngebot.getAngebotDto().getWaehrungCNr());
+		wlaAngebotswaehrung1.setText(tpAngebot.getAngebotDto().getWaehrungCNr());
 
 		wefKopftext.setDefaultText(tpAngebot.getKopftextDto().getXTextinhalt());
 		wefFusstext.setDefaultText(tpAngebot.getFusstextDto().getXTextinhalt());
+	}
+
+	private void setDarfPreiseSehenSichtbarkeit() {
+
+		// Darf Preise Sehen Recht
+		if (!getInternalFrame().bRechtDarfPreiseSehenVerkauf) {
+			this.setVisibleAllgemeinerRabatt(false);
+
+			wlaVersteckterAufschlag.setVisible(false);
+			wnfVersteckterAufschlag.setVisible(false);
+			wlaProzent3.setVisible(false);
+
+			wlaProjektierungsrabatt.setVisible(false);
+			wnfProjektierungsrabatt.setVisible(false);
+			wlaProzent4.setVisible(false);
+
+			wlaAngebotswertinangebotswaehrung.setVisible(false);
+			wnfAngebotswertinangebotswaehrung.setVisible(false);
+			wlaAngebotswaehrung1.setVisible(false);
+
+			wnfKorrekturbetrag.setVisible(false);
+			wlaKorrekturbetrag.setVisible(false);
+
+		}
+
 	}
 
 	protected String getLockMeWer() {
@@ -234,24 +248,22 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 		holeZahlungsziel(tpAngebot.getAngebotDto().getZahlungszielIId());
 		holeSpediteur(tpAngebot.getAngebotDto().getSpediteurIId());
 
-		wnfVersteckterAufschlag.setDouble(tpAngebot.getAngebotDto()
-				.getFVersteckterAufschlag());
-		wnfAllgemeinerRabatt.setDouble(tpAngebot.getAngebotDto()
-				.getFAllgemeinerRabattsatz());
-		wnfProjektierungsrabatt.setDouble(tpAngebot.getAngebotDto()
-				.getFProjektierungsrabattsatz());
-		wcbMitZusammenfassung.setShort(tpAngebot.getAngebotDto()
-				.getBMitzusammenfassung());
+		
+		setKundeIId_FuerKundepediteur(tpAngebot.getAngebotDto().getKundeIIdLieferadresse());
+		
+		wnfVersteckterAufschlag.setDouble(tpAngebot.getAngebotDto().getFVersteckterAufschlag());
+		wnfAllgemeinerRabatt.setDouble(tpAngebot.getAngebotDto().getFAllgemeinerRabattsatz());
+		wnfProjektierungsrabatt.setDouble(tpAngebot.getAngebotDto().getFProjektierungsrabattsatz());
+		wcbMitZusammenfassung.setShort(tpAngebot.getAngebotDto().getBMitzusammenfassung());
+
+		wcbMindermengenzuschlag.setSelected(Helper.short2boolean(tpAngebot.getAngebotDto().getBMindermengenzuschlag()));
+
 		// die Werte des Angebots anzeigen
-		BigDecimal bdAngebotswertinanfragewaehrung = tpAngebot.getAngebotDto()
-				.getNGesamtwertinbelegwaehrung();
+		BigDecimal bdAngebotswertinanfragewaehrung = tpAngebot.getAngebotDto().getNGesamtwertinbelegwaehrung();
 
 		if (bdAngebotswertinanfragewaehrung == null
-				|| tpAngebot.getAngebotDto().getStatusCNr()
-						.equals(AngebotServiceFac.ANGEBOTSTATUS_STORNIERT)) {
-			bdAngebotswertinanfragewaehrung = DelegateFactory
-					.getInstance()
-					.getAngebotDelegate()
+				|| tpAngebot.getAngebotDto().getStatusCNr().equals(AngebotServiceFac.ANGEBOTSTATUS_STORNIERT)) {
+			bdAngebotswertinanfragewaehrung = DelegateFactory.getInstance().getAngebotDelegate()
 					.berechneNettowertGesamt(tpAngebot.getAngebotDto().getIId());
 			if (tpAngebot.getAngebotDto().getNKorrekturbetrag() != null) {
 				bdAngebotswertinanfragewaehrung = bdAngebotswertinanfragewaehrung
@@ -259,48 +271,32 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 			}
 		}
 
-		wnfAngebotswertinangebotswaehrung
-				.setBigDecimal(bdAngebotswertinanfragewaehrung);
-		wnfKorrekturbetrag.setBigDecimal(tpAngebot.getAngebotDto()
-				.getNKorrekturbetrag());
+		wnfAngebotswertinangebotswaehrung.setBigDecimal(bdAngebotswertinanfragewaehrung);
+		wnfKorrekturbetrag.setBigDecimal(tpAngebot.getAngebotDto().getNKorrekturbetrag());
 
 		wtfLieferartort.setText(tpAngebot.getAngebotDto().getCLieferartort());
 
-		panelAngebotAkquisedaten.wdfNachfasstermin.setDate(tpAngebot
-				.getAngebotDto().getTNachfasstermin());
-		panelAngebotAkquisedaten.wdfRealisierungstermin.setDate(tpAngebot
-				.getAngebotDto().getTRealisierungstermin());
+		panelAngebotAkquisedaten.wdfNachfasstermin.setDate(tpAngebot.getAngebotDto().getTNachfasstermin());
+		panelAngebotAkquisedaten.wdfRealisierungstermin.setDate(tpAngebot.getAngebotDto().getTRealisierungstermin());
 		panelAngebotAkquisedaten.wnfAuftragswahrscheinlichkeit
-				.setDouble(tpAngebot.getAngebotDto()
-						.getFAuftragswahrscheinlichkeit());
-		panelAngebotAkquisedaten.wtfAblageort.setText(tpAngebot.getAngebotDto()
-				.getXAblageort());
+				.setDouble(tpAngebot.getAngebotDto().getFAuftragswahrscheinlichkeit());
+		panelAngebotAkquisedaten.wtfAblageort.setText(tpAngebot.getAngebotDto().getXAblageort());
 
 		// Kopftext fuer dieses Angebot in der Sprache des Kunden anzeigen
 		if (tpAngebot.getAngebotDto().getXKopftextuebersteuert() != null) {
-			wefKopftext.setText(tpAngebot.getAngebotDto()
-					.getXKopftextuebersteuert());
+			wefKopftext.setText(tpAngebot.getAngebotDto().getXKopftextuebersteuert());
 		} else {
-			wefKopftext.setText(DelegateFactory
-					.getInstance()
-					.getAngebotServiceDelegate()
-					.getAngebotkopfDefault(
-							tpAngebot.getKundeDto().getPartnerDto()
-									.getLocaleCNrKommunikation())
+			wefKopftext.setText(DelegateFactory.getInstance().getAngebotServiceDelegate()
+					.getAngebotkopfDefault(tpAngebot.getKundeDto().getPartnerDto().getLocaleCNrKommunikation())
 					.getXTextinhalt());
 		}
 
 		// Fusstext fuer dieses Angebot in der Sprache des Lieferante anzeigen
 		if (tpAngebot.getAngebotDto().getXFusstextuebersteuert() != null) {
-			wefFusstext.setText(tpAngebot.getAngebotDto()
-					.getXFusstextuebersteuert());
+			wefFusstext.setText(tpAngebot.getAngebotDto().getXFusstextuebersteuert());
 		} else {
-			wefFusstext.setText(DelegateFactory
-					.getInstance()
-					.getAngebotServiceDelegate()
-					.getAngebotfussDefault(
-							tpAngebot.getKundeDto().getPartnerDto()
-									.getLocaleCNrKommunikation())
+			wefFusstext.setText(DelegateFactory.getInstance().getAngebotServiceDelegate()
+					.getAngebotfussDefault(tpAngebot.getKundeDto().getPartnerDto().getLocaleCNrKommunikation())
 					.getXTextinhalt());
 		}
 
@@ -314,75 +310,52 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 	public void focusLost(FocusEvent e) {
 
 		try {
-			BigDecimal bdAngebotswertinanfragewaehrungVorhanden = DelegateFactory
-					.getInstance()
-					.getAngebotDelegate()
+			BigDecimal bdAngebotswertinanfragewaehrungVorhanden = DelegateFactory.getInstance().getAngebotDelegate()
 					.berechneNettowertGesamt(tpAngebot.getAngebotDto().getIId());
 
 			if (wnfAngebotswertinangebotswaehrung.getBigDecimal() != null
-					&& bdAngebotswertinanfragewaehrungVorhanden != null
-					&& !bdAngebotswertinanfragewaehrungVorhanden
-							.equals(wnfAngebotswertinangebotswaehrung
-									.getBigDecimal())) {
+					&& bdAngebotswertinanfragewaehrungVorhanden != null && !bdAngebotswertinanfragewaehrungVorhanden
+							.equals(wnfAngebotswertinangebotswaehrung.getBigDecimal())) {
 				// Versteckten Aufschlag neu berechnen, wenn im editieren-Modus
 
-				BigDecimal bdFaktor = new BigDecimal(1 + (tpAngebot
-						.getAngebotDto().getFVersteckterAufschlag() / 100));
+				BigDecimal bdFaktor = new BigDecimal(1 + (tpAngebot.getAngebotDto().getFVersteckterAufschlag() / 100));
 				if (bdFaktor.doubleValue() == 0) {
 
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.error"),
-									LPMain.getInstance()
-											.getTextRespectUISPr(
-													"lp.error.berechnung.versteckter.aufschlag"));
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+							LPMain.getInstance().getTextRespectUISPr("lp.error.berechnung.versteckter.aufschlag"));
 				} else {
 
-					BigDecimal bdWertOhneVerstAufschlag = bdAngebotswertinanfragewaehrungVorhanden
-							.divide(bdFaktor, BigDecimal.ROUND_HALF_EVEN,
-									Defaults.getInstance()
-											.getIUINachkommastellenPreiseVK());
+					BigDecimal bdWertOhneVerstAufschlag = bdAngebotswertinanfragewaehrungVorhanden.divide(bdFaktor,
+							BigDecimal.ROUND_HALF_EVEN, Defaults.getInstance().getIUINachkommastellenPreiseVK());
 					if (bdWertOhneVerstAufschlag.doubleValue() != 0) {
 						BigDecimal bd = bdWertOhneVerstAufschlag
-								.subtract(wnfAngebotswertinangebotswaehrung
-										.getBigDecimal());
+								.subtract(wnfAngebotswertinangebotswaehrung.getBigDecimal());
 
-						bd = bd.divide(bdWertOhneVerstAufschlag,
-								BigDecimal.ROUND_HALF_EVEN, Defaults
-										.getInstance()
-										.getIUINachkommastellenPreiseVK());
+						bd = bd.divide(bdWertOhneVerstAufschlag, BigDecimal.ROUND_HALF_EVEN,
+								Defaults.getInstance().getIUINachkommastellenPreiseVK());
 						bd = bd.multiply(new BigDecimal(100));
 
 						wnfVersteckterAufschlag.setBigDecimal(bd.negate());
 
 						// Eigentlich muss nun das Angebot gespeichert werden ->
 						tpAngebot.getAngebotDto().setNKorrekturbetrag(null);
-						tpAngebot.getAngebotDto().setFVersteckterAufschlag(
-								wnfVersteckterAufschlag.getDouble());
+						tpAngebot.getAngebotDto().setFVersteckterAufschlag(wnfVersteckterAufschlag.getDouble());
+						DelegateFactory.getInstance().getAngebotDelegate().updateAngebot(tpAngebot.getAngebotDto(),
+								null);
 						DelegateFactory.getInstance().getAngebotDelegate()
-								.updateAngebot(tpAngebot.getAngebotDto(), null);
-						DelegateFactory
-								.getInstance()
-								.getAngebotDelegate()
-								.updateAngebotKonditionen(
-										tpAngebot.getAngebotDto().getIId());
+								.updateAngebotKonditionen(tpAngebot.getAngebotDto().getIId());
 
-						BigDecimal bdWertBerechnetNeu = DelegateFactory
-								.getInstance()
-								.getAngebotDelegate()
-								.berechneNettowertGesamt(
-										tpAngebot.getAngebotDto().getIId());
+						BigDecimal bdWertBerechnetNeu = DelegateFactory.getInstance().getAngebotDelegate()
+								.berechneNettowertGesamt(tpAngebot.getAngebotDto().getIId());
 
 						// Korrekturbetrag
-						BigDecimal bdKorrektur = wnfAngebotswertinangebotswaehrung
-								.getBigDecimal().subtract(bdWertBerechnetNeu);
+						BigDecimal bdKorrektur = wnfAngebotswertinangebotswaehrung.getBigDecimal()
+								.subtract(bdWertBerechnetNeu);
 						wnfKorrekturbetrag.setBigDecimal(bdKorrektur);
 
-						tpAngebot.getAngebotDto().setNKorrekturbetrag(
-								bdKorrektur);
-						DelegateFactory.getInstance().getAngebotDelegate()
-								.updateAngebot(tpAngebot.getAngebotDto(), null);
+						tpAngebot.getAngebotDto().setNKorrekturbetrag(bdKorrektur);
+						DelegateFactory.getInstance().getAngebotDelegate().updateAngebot(tpAngebot.getAngebotDto(),
+								null);
 
 					}
 				}
@@ -399,84 +372,59 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 		tpAngebot.getAngebotDto().setZahlungszielIId(zahlungszielDto.getIId());
 		tpAngebot.getAngebotDto().setSpediteurIId(spediteurDto.getIId());
 
-		tpAngebot.getAngebotDto().setFVersteckterAufschlag(
-				wnfVersteckterAufschlag.getDouble());
-		tpAngebot.getAngebotDto().setFAllgemeinerRabattsatz(
-				wnfAllgemeinerRabatt.getDouble());
-		tpAngebot.getAngebotDto().setFProjektierungsrabattsatz(
-				wnfProjektierungsrabatt.getDouble());
+		tpAngebot.getAngebotDto().setBMindermengenzuschlag(Helper.boolean2Short(wcbMindermengenzuschlag.isSelected()));
+
+		tpAngebot.getAngebotDto().setFVersteckterAufschlag(wnfVersteckterAufschlag.getDouble());
+		tpAngebot.getAngebotDto().setFAllgemeinerRabattsatz(wnfAllgemeinerRabatt.getDouble());
+		tpAngebot.getAngebotDto().setFProjektierungsrabattsatz(wnfProjektierungsrabatt.getDouble());
 		tpAngebot.getAngebotDto().setCLieferartort(wtfLieferartort.getText());
 
-		tpAngebot.getAngebotDto().setBMitzusammenfassung(
-				wcbMitZusammenfassung.getShort());
+		tpAngebot.getAngebotDto().setBMitzusammenfassung(wcbMitZusammenfassung.getShort());
 		// Angebotswert wird nur angezeigt, aber nicht eingegeben und
 		// abgespeichert
 
-		tpAngebot.getAngebotDto().setTNachfasstermin(
-				panelAngebotAkquisedaten.wdfNachfasstermin.getTimestamp());
-		tpAngebot.getAngebotDto().setTRealisierungstermin(
-				panelAngebotAkquisedaten.wdfRealisierungstermin.getTimestamp());
-		tpAngebot.getAngebotDto().setFAuftragswahrscheinlichkeit(
-				panelAngebotAkquisedaten.wnfAuftragswahrscheinlichkeit
-						.getDouble());
-		tpAngebot.getAngebotDto().setXAblageort(
-				panelAngebotAkquisedaten.wtfAblageort.getText());
+		tpAngebot.getAngebotDto().setTNachfasstermin(panelAngebotAkquisedaten.wdfNachfasstermin.getTimestamp());
+		tpAngebot.getAngebotDto()
+				.setTRealisierungstermin(panelAngebotAkquisedaten.wdfRealisierungstermin.getTimestamp());
+		tpAngebot.getAngebotDto()
+				.setFAuftragswahrscheinlichkeit(panelAngebotAkquisedaten.wnfAuftragswahrscheinlichkeit.getDouble());
+		tpAngebot.getAngebotDto().setXAblageort(panelAngebotAkquisedaten.wtfAblageort.getText());
 
-		tpAngebot.getAngebotDto().setBelegtextIIdKopftext(
-				tpAngebot.getKopftextDto().getIId());
+		tpAngebot.getAngebotDto().setBelegtextIIdKopftext(tpAngebot.getKopftextDto().getIId());
 
-		tpAngebot.getAngebotDto().setNKorrekturbetrag(
-				wnfKorrekturbetrag.getBigDecimal());
+		tpAngebot.getAngebotDto().setNKorrekturbetrag(wnfKorrekturbetrag.getBigDecimal());
 		// wenn der Kopftext nicht ueberschrieben wurde -> null setzen
-		if (wefKopftext.getText() != null
-				&& wefKopftext.getText().equals(
-						DelegateFactory
-								.getInstance()
-								.getAngebotServiceDelegate()
-								.getAngebotkopfDefault(
-										tpAngebot.getKundeDto().getPartnerDto()
-												.getLocaleCNrKommunikation())
-								.getXTextinhalt())) {
+		if (wefKopftext.getText() != null && wefKopftext.getText()
+				.equals(DelegateFactory.getInstance().getAngebotServiceDelegate()
+						.getAngebotkopfDefault(tpAngebot.getKundeDto().getPartnerDto().getLocaleCNrKommunikation())
+						.getXTextinhalt())) {
 			tpAngebot.getAngebotDto().setXKopftextuebersteuert(null);
 		} else {
-			tpAngebot.getAngebotDto().setXKopftextuebersteuert(
-					wefKopftext.getText());
+			tpAngebot.getAngebotDto().setXKopftextuebersteuert(wefKopftext.getText());
 		}
 
-		tpAngebot.getAngebotDto().setBelegtextIIdFusstext(
-				tpAngebot.getFusstextDto().getIId());
+		tpAngebot.getAngebotDto().setBelegtextIIdFusstext(tpAngebot.getFusstextDto().getIId());
 
 		// wenn der Fusstext nicht ueberschrieben wurde -> null setzen
-		if (wefFusstext.getText() != null
-				&& wefFusstext.getText().equals(
-						DelegateFactory
-								.getInstance()
-								.getAngebotServiceDelegate()
-								.getAngebotkopfDefault(
-										tpAngebot.getKundeDto().getPartnerDto()
-												.getLocaleCNrKommunikation())
-								.getXTextinhalt())) {
+		if (wefFusstext.getText() != null && wefFusstext.getText()
+				.equals(DelegateFactory.getInstance().getAngebotServiceDelegate()
+						.getAngebotkopfDefault(tpAngebot.getKundeDto().getPartnerDto().getLocaleCNrKommunikation())
+						.getXTextinhalt())) {
 			tpAngebot.getAngebotDto().setXFusstextuebersteuert(null);
 		} else {
-			tpAngebot.getAngebotDto().setXFusstextuebersteuert(
-					wefFusstext.getText());
+			tpAngebot.getAngebotDto().setXFusstextuebersteuert(wefFusstext.getText());
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
 			components2Dto();
 
-			DelegateFactory.getInstance().getAngebotDelegate()
-					.updateAngebot(tpAngebot.getAngebotDto(), null);
+			DelegateFactory.getInstance().getAngebotDelegate().updateAngebot(tpAngebot.getAngebotDto(), null);
 
-			DelegateFactory
-					.getInstance()
-					.getAngebotDelegate()
-					.updateAngebotKonditionen(
-							tpAngebot.getAngebotDto().getIId());
+			DelegateFactory.getInstance().getAngebotDelegate()
+					.updateAngebotKonditionen(tpAngebot.getAngebotDto().getIId());
 
 			super.eventActionSave(e, false); // buttons schalten
 
@@ -484,16 +432,14 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 		}
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		if (tpAngebot.istAktualisierenAngebotErlaubt()) {
 			super.eventActionUpdate(aE, false);
 		}
 
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 
 		// neu einlesen, ausloeser war ev. ein refresh oder discard
@@ -502,20 +448,17 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 		// zuerst alles zuruecksetzen, ausloeser war ev. ein discard
 		setDefaults();
 
-		tpAngebot.setAngebotDto(DelegateFactory.getInstance()
-				.getAngebotDelegate().angebotFindByPrimaryKey((Integer) oKey));
+		tpAngebot.setAngebotDto(
+				DelegateFactory.getInstance().getAngebotDelegate().angebotFindByPrimaryKey((Integer) oKey));
 		dto2Components();
 
-		tpAngebot.setTitleAngebot(LPMain.getInstance().getTextRespectUISPr(
-				"angb.panel.konditionen"));
+		tpAngebot.setTitleAngebot(LPMain.getInstance().getTextRespectUISPr("angb.panel.konditionen"));
 	}
 
 	private void aktualisiereStatusbar() throws Throwable {
-		setStatusbarPersonalIIdAnlegen(tpAngebot.getAngebotDto()
-				.getPersonalIIdAnlegen());
+		setStatusbarPersonalIIdAnlegen(tpAngebot.getAngebotDto().getPersonalIIdAnlegen());
 		setStatusbarTAnlegen(tpAngebot.getAngebotDto().getTAnlegen());
-		setStatusbarPersonalIIdAendern(tpAngebot.getAngebotDto()
-				.getPersonalIIdAendern());
+		setStatusbarPersonalIIdAendern(tpAngebot.getAngebotDto().getPersonalIIdAendern());
 		setStatusbarTAendern(tpAngebot.getAngebotDto().getTAendern());
 		setStatusbarStatusCNr(tpAngebot.getAngebotStatus());
 	}
@@ -526,9 +469,8 @@ public class PanelAngebotKonditionen extends PanelKonditionen {
 
 		switch (code) {
 		case EJBExceptionLP.FEHLER_FORMAT_NUMBER:
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-					.getTextRespectUISPr("lp.error.belegwerte"));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+					LPMain.getInstance().getTextRespectUISPr("lp.error.belegwerte"));
 			break;
 
 		default:

@@ -52,7 +52,6 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelfehlmengeDto;
 
-@SuppressWarnings("static-access")
 /**
  * <p>Panel zum Bearbeiten der Laeger eines Loses</p>
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -121,6 +120,11 @@ public class PanelLosFehlmengen extends PanelBasis {
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
+		
+		jPanelWorkingOn.add(wifArtikel.getWtfZusatzBezeichnung(),
+				new GridBagConstraints(1, iZeile, 1, 1, 1.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 

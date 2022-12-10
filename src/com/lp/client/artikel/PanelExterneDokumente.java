@@ -43,9 +43,7 @@ import java.net.URISyntaxException;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JPanel;
-import javax.swing.border.Border;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
@@ -56,12 +54,15 @@ import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.ChooserOpenDialog;
+import com.lp.client.frame.filechooser.FileChooserBuilder;
+import com.lp.client.frame.filechooser.open.DirectoryFile;
 import com.lp.client.pc.LPMain;
-import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.server.system.service.ArbeitsplatzparameterDto;
 import com.lp.server.system.service.DokumentenlinkbelegDto;
+import com.lp.server.system.service.ParameterFac;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 public class PanelExterneDokumente extends PanelBasis {
 	/**
 	 * 
@@ -90,6 +91,10 @@ public class PanelExterneDokumente extends PanelBasis {
 		enableAllComponents(this, false);
 	}
 
+	public void setBelegartIId(Integer belegartIId) {
+		this.belegartIId = belegartIId;
+	}
+
 	protected String getLockMeWer() throws Exception {
 		return HelperClient.LOCKME_ARTIKEL;
 	}
@@ -98,17 +103,7 @@ public class PanelExterneDokumente extends PanelBasis {
 
 		for (int i = 0; i < wbuFileDialog.length; i++) {
 			if (e.getSource().equals(wbuFileDialog[i])) {
-				JFileChooser fc = new JFileChooser();
-				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-				if (wtfPfad[i].getText() != null) {
-					fc.setCurrentDirectory(new File(wtfPfad[i].getText()));
-				}
-
-				int returnVal = fc.showOpenDialog(null);
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					wtfPfad[i].setText(fc.getSelectedFile().getAbsolutePath());
-				}
-
+				onActionOpenFileDialog(i);
 			} else if (e.getSource().equals(wbuGoto[i])) {
 				if (wtfPfad[i].getText() != null) {
 
@@ -131,8 +126,33 @@ public class PanelExterneDokumente extends PanelBasis {
 					} else {
 						try {
 
-							java.io.File f = new File(wtfPfad[i].getText());
-							java.awt.Desktop.getDesktop().open(f);
+							if (Helper.short2boolean(dokumentenlinkbelegDtos[i]
+									.getDokumentenlinkDto()
+									.getBPfadAusArbeitsplatzparameter())) {
+
+								ArbeitsplatzparameterDto pfadDto = DelegateFactory
+										.getInstance()
+										.getParameterDelegate()
+										.holeArbeitsplatzparameter(
+												ParameterFac.ARBEITSPLATZPARAMETER_PROGRAMMPFAD_FUER_DOKUMENTENLINK);
+
+								if (pfadDto == null || pfadDto.getCWert() != null
+										&& pfadDto.getCWert().trim().length() == 0) {
+									DialogFactory
+											.showModalDialog(
+													LPMain.getTextRespectUISPr("lp.error"),
+													LPMain.getTextRespectUISPr("lp.dokumentenlink.pfadausparameter.nichtdefiniert"));
+								} else {
+									Runtime runtime = Runtime.getRuntime();
+									runtime.exec(pfadDto.getCWert() + " "
+											+ wtfPfad[i].getText());
+								}
+
+							} else {
+								java.io.File f = new File(wtfPfad[i].getText());
+								java.awt.Desktop.getDesktop().open(f);
+							}
+
 						} catch (java.lang.IllegalArgumentException e1) {
 							DialogFactory.showModalDialog(
 									LPMain.getTextRespectUISPr("lp.error"),
@@ -148,9 +168,37 @@ public class PanelExterneDokumente extends PanelBasis {
 
 	}
 
+	private void onActionOpenFileDialog(int row) {
+		ChooserOpenDialog openDialog = FileChooserBuilder.createOpenDialog(this);
+		setChooserDirectory(openDialog, row);
+		DirectoryFile chosenDirectory = openDialog.addDirectoryFilter().openSingle();
+		if (chosenDirectory.hasDirectory()) {
+			wtfPfad[row].setText(chosenDirectory.getDirectory().getAbsolutePath());
+		}
+	}
+
+	private void setChooserDirectory(ChooserOpenDialog openDialog, int row) {
+		String basePath = wtfPfad[row].getText() != null 
+				? wtfPfad[row].getText() 
+				: (dokumentenlinkbelegDtos != null && dokumentenlinkbelegDtos.length > row
+						? dokumentenlinkbelegDtos[row].getDokumentenlinkDto().getCBasispfad()
+						: null);
+		if (basePath == null) {
+			return;
+		}
+		openDialog.directory(new File(basePath));
+	}
+
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
 			throws Throwable {
 		leereAlleFelder(this);
+		
+		dokumentenlinkbelegDtos = DelegateFactory
+				.getInstance()
+				.getMandantDelegate()
+				.getDokumentenlinkbelegs(getInternalFrame().getBelegartCNr(),
+						belegartIId);
+		
 		super.eventYouAreSelected(false);
 		dto2Components();
 
@@ -213,17 +261,14 @@ public class PanelExterneDokumente extends PanelBasis {
 						.getDokumentenlinkDto().getCMenuetext()),
 						new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
 								GridBagConstraints.CENTER,
-								GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0,
-										0), 0, 0));
+								GridBagConstraints.HORIZONTAL, new Insets(0, 0,
+										0, 0), 0, 0));
 			} else {
-				jpaWorkingOn.add(wbuFileDialog[i],
-						new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
-								GridBagConstraints.CENTER,
-								GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0,
-										0), 0, 0));
+				jpaWorkingOn.add(wbuFileDialog[i], new GridBagConstraints(0,
+						iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
+						0, 0));
 			}
-			
-			
 
 			jpaWorkingOn.add(wtfPfad[i],
 					new GridBagConstraints(1, iZeile, 1, 1, 0.2, 0.0,
@@ -245,6 +290,10 @@ public class PanelExterneDokumente extends PanelBasis {
 	protected void setDefaults() {
 	}
 
+	protected void eventActionNext(boolean next) throws Throwable{
+		super.eventActionNext(next);
+	}
+	
 	protected void dto2Components() throws Throwable {
 		for (int i = 0; i < dokumentenlinkbelegDtos.length; i++) {
 			wtfPfad[i].setText(dokumentenlinkbelegDtos[i].getCPfad());

@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.angebot;
 
-
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -69,307 +68,269 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.system.service.ReportJournalKriterienDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-
-public class ReportAngebotOffene
-    extends PanelReportJournalVerkauf implements PanelReportIfJRDS
-{
-  /**
+public class ReportAngebotOffene extends PanelReportJournalVerkauf implements
+		PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-/**
-   * @todo den Vertreter in die Superklasse.
-   * warum bauen wir immer alles 17 mal????
-   */
-  private ButtonGroup jbgVertreter = new ButtonGroup();
-  private WrapperRadioButton wrbVertreterAlle = new WrapperRadioButton();
-  private WrapperRadioButton wrbVertreterEiner = new WrapperRadioButton();
+	/**
+	 * @todo den Vertreter in die Superklasse. warum bauen wir immer alles 17
+	 *       mal????
+	 */
+	private ButtonGroup jbgVertreter = new ButtonGroup();
+	private WrapperRadioButton wrbVertreterAlle = new WrapperRadioButton();
+	private WrapperRadioButton wrbVertreterEiner = new WrapperRadioButton();
 
-  private WrapperLabel wlaStichtag = new WrapperLabel();
-  private WrapperDateField wdfStichtag = new WrapperDateField();
+	private WrapperLabel wlaStichtag = new WrapperLabel();
+	private WrapperDateField wdfStichtag = new WrapperDateField();
 
-  private WrapperRadioButton wrbSortierungVertreter = new WrapperRadioButton();
-  private WrapperButton wbuVertreter = null;
-  private WrapperTextField wtfVertreter = null;
+	private WrapperRadioButton wrbSortierungVertreter = new WrapperRadioButton();
+	private WrapperButton wbuVertreter = null;
+	private WrapperTextField wtfVertreter = null;
 
-  private JPanel jPanelVertreter = null;
-  private PanelQueryFLR panelQueryFLRVertreter = null;
-  
-  private WrapperCheckBox wcbMitDetails = new WrapperCheckBox();
-  private WrapperCheckBox wcbInternenKommentarDrucken = new WrapperCheckBox();
-  private WrapperCheckBox wcbKundenStammdaten = new WrapperCheckBox();
+	private JPanel jPanelVertreter = null;
+	private PanelQueryFLR panelQueryFLRVertreter = null;
 
+	private WrapperCheckBox wcbMitDetails = new WrapperCheckBox();
+	private WrapperCheckBox wcbInternenKommentarDrucken = new WrapperCheckBox();
+	private WrapperCheckBox wcbKundenStammdaten = new WrapperCheckBox();
+	private WrapperCheckBox wcbSortiereNachNachfasstermin = new WrapperCheckBox();
 
-  private PersonalDto vertreterDto = null;
+	private PersonalDto vertreterDto = null;
 
-  private final static String ACTION_SPECIAL_SORTIERUNG_VERTRETER =
-      "action_special_sortierung_vertreter";
-  private final static String ACTION_SPECIAL_VERTRETER_AUSWAHL =
-      "action_special_vertreter_auswahl";
-  private final static String ACTION_SPECIAL_VERTRETER_ALLE =
-      "action_special_vertreter_alle";
-  private final static String ACTION_SPECIAL_VERTRETER_EINER =
-      "action_special_vertreter_einer";
+	private final static String ACTION_SPECIAL_SORTIERUNG_VERTRETER = "action_special_sortierung_vertreter";
+	private final static String ACTION_SPECIAL_VERTRETER_AUSWAHL = "action_special_vertreter_auswahl";
+	private final static String ACTION_SPECIAL_VERTRETER_ALLE = "action_special_vertreter_alle";
+	private final static String ACTION_SPECIAL_VERTRETER_EINER = "action_special_vertreter_einer";
 
-  public ReportAngebotOffene(InternalFrame internalFrame, String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    jbInitPanel();
-    setDefaultsPanel();
-    initComponents();
-  }
+	public ReportAngebotOffene(InternalFrame internalFrame, String add2Title)
+			throws Throwable {
+		super(internalFrame, add2Title);
+		jbInitPanel();
+		setDefaultsPanel();
+		initComponents();
+	}
 
+	private void jbInitPanel() throws Exception {
+		wrbSortierungVertreter = new WrapperRadioButton(
+				LPMain.getTextRespectUISPr("label.vertreter"));
+		wrbSortierungVertreter
+				.setActionCommand(ACTION_SPECIAL_SORTIERUNG_VERTRETER);
+		wrbSortierungVertreter.addActionListener(this);
+		buttonGroupSortierung.add(wrbSortierungVertreter);
 
-  private void jbInitPanel()
-      throws Exception {
-    wrbSortierungVertreter = new WrapperRadioButton(LPMain.getTextRespectUISPr(
-        "label.vertreter"));
-    wrbSortierungVertreter.setActionCommand(ACTION_SPECIAL_SORTIERUNG_VERTRETER);
-    wrbSortierungVertreter.addActionListener(this);
-    buttonGroupSortierung.add(wrbSortierungVertreter);
+		wlaStichtag.setText(LPMain.getTextRespectUISPr("lp.stichtag"));
+		wdfStichtag.setMandatoryField(true);
+		wdfStichtag.setDate(new Date(System.currentTimeMillis()));
 
-    wlaStichtag.setText(LPMain.getTextRespectUISPr("lp.stichtag"));
-    wdfStichtag.setMandatoryField(true);
-    wdfStichtag.setDate(new Date(System.currentTimeMillis()));
+		wrbVertreterAlle.setText(LPMain.getTextRespectUISPr("label.alle"));
+		wrbVertreterAlle.setActionCommand(ACTION_SPECIAL_VERTRETER_ALLE);
+		wrbVertreterAlle.addActionListener(this);
 
-    wrbVertreterAlle.setText(LPMain.getTextRespectUISPr("label.alle"));
-    wrbVertreterAlle.setActionCommand(ACTION_SPECIAL_VERTRETER_ALLE);
-    wrbVertreterAlle.addActionListener(this);
+		wrbVertreterEiner.setText(LPMain.getTextRespectUISPr("label.einer"));
+		wrbVertreterEiner.setActionCommand(ACTION_SPECIAL_VERTRETER_EINER);
+		wrbVertreterEiner.addActionListener(this);
 
-    wrbVertreterEiner.setText(LPMain.getTextRespectUISPr("label.einer"));
-    wrbVertreterEiner.setActionCommand(ACTION_SPECIAL_VERTRETER_EINER);
-    wrbVertreterEiner.addActionListener(this);
+		wcbSortiereNachNachfasstermin
+				.setText(LPMain
+						.getTextRespectUISPr("angebot.journal.offene.sortnachfasstermin"));
 
-    jbgVertreter = new ButtonGroup();
-    jbgVertreter.add(wrbVertreterAlle);
-    jbgVertreter.add(wrbVertreterEiner);
+		jbgVertreter = new ButtonGroup();
+		jbgVertreter.add(wrbVertreterAlle);
+		jbgVertreter.add(wrbVertreterEiner);
 
-    wbuVertreter = new WrapperButton(LPMain.getTextRespectUISPr("button.vertreter"));
-    wbuVertreter.setToolTipText(LPMain.getTextRespectUISPr("button.vertreter.tooltip"));
-    wbuVertreter.setActionCommand(ACTION_SPECIAL_VERTRETER_AUSWAHL);
-    wbuVertreter.addActionListener(this);
+		wbuVertreter = new WrapperButton(
+				LPMain.getTextRespectUISPr("button.vertreter"));
+		wbuVertreter.setToolTipText(LPMain
+				.getTextRespectUISPr("button.vertreter.tooltip"));
+		wbuVertreter.setActionCommand(ACTION_SPECIAL_VERTRETER_AUSWAHL);
+		wbuVertreter.addActionListener(this);
 
-    wbuVertreter.setMinimumSize(new Dimension(BREITE_BUTTONS,
-                                              Defaults.getInstance().getControlHeight()));
-    wbuVertreter.setPreferredSize(new Dimension(BREITE_BUTTONS,
-                                                Defaults.getInstance().getControlHeight()));
-    wtfVertreter = new WrapperTextField();
-    wtfVertreter.setEditable(false);
-    wtfVertreter.setMinimumSize(new Dimension(50,
-                                              Defaults.getInstance().getControlHeight()));
-    wtfVertreter.setPreferredSize(new Dimension(50,
-                                                Defaults.getInstance().getControlHeight()));
-    
-    wcbMitDetails.setText(LPMain.getInstance().getTextRespectUISPr(
-    "auft.offenemitdetaildrucken"));
+		wbuVertreter.setMinimumSize(new Dimension(BREITE_BUTTONS, Defaults
+				.getInstance().getControlHeight()));
+		wbuVertreter.setPreferredSize(new Dimension(BREITE_BUTTONS, Defaults
+				.getInstance().getControlHeight()));
+		wtfVertreter = new WrapperTextField();
+		wtfVertreter.setEditable(false);
+		wtfVertreter.setMinimumSize(new Dimension(50, Defaults.getInstance()
+				.getControlHeight()));
+		wtfVertreter.setPreferredSize(new Dimension(50, Defaults.getInstance()
+				.getControlHeight()));
 
-    wcbInternenKommentarDrucken.setText(LPMain.getInstance().getTextRespectUISPr(
-    "auft.internenkommentarmitdrucken"));
-   
-    wcbKundenStammdaten.setText(LPMain.getInstance().getTextRespectUISPr(
-    "lp.kundenstammdaten"));
-    
-   
+		wcbMitDetails.setText(LPMain.getInstance().getTextRespectUISPr(
+				"auft.offenemitdetaildrucken"));
 
+		wcbInternenKommentarDrucken.setText(LPMain.getInstance()
+				.getTextRespectUISPr("auft.internenkommentarmitdrucken"));
 
-    iZeile++;
-    jpaWorkingOn.add(wrbSortierungVertreter,
-                     new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
-    jpaWorkingOn.add(wrbVertreterAlle,
-                     new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wrbVertreterEiner,
-                     new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
-    jpaWorkingOn.add(getPanelVertreter(),
-                     new GridBagConstraints(2, iZeile, 4, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(0, 0, 0, 0),
-                                            0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wlaStichtag,
-                     new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
-    jpaWorkingOn.add(wdfStichtag,
-                     new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wcbMitDetails,
-                     new GridBagConstraints(0, iZeile, 6, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
-    
-    iZeile++;
-    jpaWorkingOn.add(wcbInternenKommentarDrucken,
-                     new GridBagConstraints(0, iZeile, 6, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
-    iZeile++;
-    jpaWorkingOn.add(wcbKundenStammdaten,
-                     new GridBagConstraints(0, iZeile, 6, 1, 0.0, 0.0,
-                                            GridBagConstraints.WEST,
-                                            GridBagConstraints.BOTH,
-                                            new Insets(2, 2, 2, 2),
-                                            0, 0));
+		wcbKundenStammdaten.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.kundenstammdaten"));
 
+		iZeile++;
+		jpaWorkingOn.add(wrbSortierungVertreter, new GridBagConstraints(0,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbVertreterAlle, new GridBagConstraints(1, iZeile, 1,
+				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wrbVertreterEiner, new GridBagConstraints(1, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(getPanelVertreter(), new GridBagConstraints(2, iZeile,
+				4, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaStichtag, new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfStichtag, new GridBagConstraints(1, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbMitDetails, new GridBagConstraints(0, iZeile, 2, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbSortiereNachNachfasstermin, new GridBagConstraints(2, iZeile, 6, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbInternenKommentarDrucken, new GridBagConstraints(0,
+				iZeile, 6, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbKundenStammdaten, new GridBagConstraints(0, iZeile,
+				6, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-    setEinschraenkungDatumBelegnummerSichtbar(false);
-  }
+		setEinschraenkungDatumBelegnummerSichtbar(false);
+	}
 
+	private void setDefaultsPanel() {
+		vertreterDto = new PersonalDto();
 
-  private void setDefaultsPanel() {
-    vertreterDto = new PersonalDto();
+		// alle Vertreter
+		wrbVertreterAlle.setSelected(true);
+		wbuVertreter.setVisible(false);
+		wtfVertreter.setVisible(false);
+	}
 
-    // alle Vertreter
-    wrbVertreterAlle.setSelected(true);
-    wbuVertreter.setVisible(false);
-    wtfVertreter.setVisible(false);
-  }
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		super.eventActionSpecial(e);
 
+		if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_EINER)) {
+			// wenn noch keiner gewaehlt ist, dann geht der Dialog auf
+			if (vertreterDto.getIId() == null && isInitialized()) {
+				wbuVertreter.doClick();
+			}
 
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-    super.eventActionSpecial(e);
+			wbuVertreter.setVisible(true);
+			wtfVertreter.setVisible(true);
+			wtfVertreter.setMandatoryField(true);
+		} else if (e.getActionCommand()
+				.equals(ACTION_SPECIAL_VERTRETER_AUSWAHL)) {
+			dialogQueryVertreter(e);
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_ALLE)) {
+			wbuVertreter.setVisible(false);
+			wtfVertreter.setVisible(false);
+			wtfVertreter.setMandatoryField(false);
 
-    if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_EINER)) {
-      // wenn noch keiner gewaehlt ist, dann geht der Dialog auf
-      if (vertreterDto.getIId() == null) {
-        wbuVertreter.doClick();
-      }
+			vertreterDto = new PersonalDto();
+		}
+	}
 
-      wbuVertreter.setVisible(true);
-      wtfVertreter.setVisible(true);
-      wtfVertreter.setMandatoryField(true);
-    }
-    else if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_AUSWAHL)) {
-      dialogQueryVertreter(e);
-    }
-    else if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_ALLE)) {
-      wbuVertreter.setVisible(false);
-      wtfVertreter.setVisible(false);
-      wtfVertreter.setMandatoryField(false);
+	private JPanel getPanelVertreter() {
+		if (jPanelVertreter == null) {
+			jPanelVertreter = new JPanel(new GridBagLayout());
 
-      vertreterDto = new PersonalDto();
-    }
-  }
+			jPanelVertreter.add(wbuVertreter, new GridBagConstraints(0, 0, 1,
+					1, 0.0, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jPanelVertreter.add(wtfVertreter, new GridBagConstraints(1, 0, 1,
+					1, 1.0, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
 
+		return jPanelVertreter;
+	}
 
-  private JPanel getPanelVertreter() {
-    if (jPanelVertreter == null) {
-      jPanelVertreter = new JPanel(new GridBagLayout());
+	private void dialogQueryVertreter(ActionEvent e) throws Throwable {
+		panelQueryFLRVertreter = PersonalFilterFactory.getInstance()
+				.createPanelFLRPersonal(getInternalFrame(), true, false,
+						vertreterDto.getIId());
 
-      jPanelVertreter.add(wbuVertreter,
-                          new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-                                                 GridBagConstraints.WEST,
-                                                 GridBagConstraints.BOTH,
-                                                 new Insets(2, 2, 2, 2),
-                                                 0, 0));
-      jPanelVertreter.add(wtfVertreter,
-                          new GridBagConstraints(1, 0, 1, 1, 1.0, 0.0,
-                                                 GridBagConstraints.WEST,
-                                                 GridBagConstraints.BOTH,
-                                                 new Insets(2, 2, 2, 2),
-                                                 0, 0));
-    }
+		new DialogQuery(panelQueryFLRVertreter);
+	}
 
-    return jPanelVertreter;
-  }
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		super.eventItemchanged(eI);
 
+		ItemChangedEvent e = (ItemChangedEvent) eI;
 
-  private void dialogQueryVertreter(ActionEvent e)
-      throws Throwable {
-    panelQueryFLRVertreter = PersonalFilterFactory.getInstance().createPanelFLRPersonal(
-        getInternalFrame(),
-        true,
-        false,
-        vertreterDto.getIId());
+		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
+			if (e.getSource() == panelQueryFLRVertreter) {
 
-    new DialogQuery(panelQueryFLRVertreter);
-  }
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 
+				if (key != null) {
+					vertreterDto = DelegateFactory.getInstance()
+							.getPersonalDelegate()
+							.personalFindByPrimaryKey((Integer) key);
 
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    super.eventItemchanged(eI);
+					wtfVertreter.setText(vertreterDto.getPartnerDto()
+							.formatFixName2Name1());
+				}
+			}
+		}
+	}
 
-    ItemChangedEvent e = (ItemChangedEvent) eI;
+	public String getModul() {
+		return AngebotReportFac.REPORT_MODUL;
+	}
 
-    if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
-      if (e.getSource() == panelQueryFLRVertreter) {
+	public String getReportname() {
+		return AngebotReportFac.REPORT_ANGEBOT_JOURNAL;
+	}
 
-        Object key = ( (ISourceEvent) e.getSource()).getIdSelected();
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		ReportAngebotJournalKriterienDto kritDto = new ReportAngebotJournalKriterienDto();
+		befuelleKriterien(kritDto);
+		kritDto.dStichtag = wdfStichtag.getDate();
+		kritDto.setBSortiertNachNachfassterminNachrangig(wcbSortiereNachNachfasstermin
+				.isSelected());
 
-        if (key != null) {
-          vertreterDto = DelegateFactory.getInstance().getPersonalDelegate().
-              personalFindByPrimaryKey( (Integer) key);
+		if (wrbSortierungVertreter.isSelected()) {
+			kritDto.iSortierung = ReportJournalKriterienDto.KRIT_SORT_NACH_VERTRETER;
+		}
+		if (wrbVertreterAlle.isSelected()) {
+			kritDto.vertreterIId = null;
+		} else {
+			kritDto.vertreterIId = vertreterDto.getIId();
+		}
 
-          wtfVertreter.setText(vertreterDto.getPartnerDto().formatFixName2Name1());
-        }
-      }
-    }
-  }
+		if (wcbMitDetails.isSelected()) {
+			kritDto.setBMitDetails(true);
+		} else {
+			kritDto.setBMitDetails(false);
+		}
+		
+		return DelegateFactory
+				.getInstance()
+				.getAngebotReportDelegate()
+				.printAngebotOffene(kritDto,
+						new Boolean(wcbInternenKommentarDrucken.isSelected()),
+						new Boolean(wcbMitDetails.isSelected()),
+						new Boolean(wcbKundenStammdaten.isSelected()));
+	}
 
+	public boolean getBErstelleReportSofort() {
+		return false;
+	}
 
-  public String getModul() {
-    return AngebotReportFac.REPORT_MODUL;
-  }
-
-
-  public String getReportname() {
-    return AngebotReportFac.REPORT_ANGEBOT_JOURNAL;
-  }
-
-
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    ReportAngebotJournalKriterienDto kritDto = new ReportAngebotJournalKriterienDto();
-    befuelleKriterien(kritDto);
-    if (wrbSortierungVertreter.isSelected()) {
-      kritDto.iSortierung = ReportJournalKriterienDto.KRIT_SORT_NACH_VERTRETER;
-    }
-    if (wrbVertreterAlle.isSelected()) {
-      kritDto.vertreterIId = null;
-    }
-    else {
-      kritDto.vertreterIId = vertreterDto.getIId();
-    }
-
-    return DelegateFactory.getInstance().getAngebotReportDelegate().printAngebotOffene(
-        kritDto,new Boolean(wcbInternenKommentarDrucken.isSelected()),new Boolean(wcbMitDetails.isSelected()),
-        new Boolean(wcbKundenStammdaten.isSelected()));
-  }
-
-
-  public boolean getBErstelleReportSofort() {
-    return false;
-  }
-
-
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien
+				.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

@@ -76,6 +76,7 @@ import com.lp.server.bestellung.service.BestellpositionFac;
 import com.lp.server.bestellung.service.BestellungDto;
 import com.lp.server.bestellung.service.WareneingangDto;
 import com.lp.server.bestellung.service.WareneingangspositionDto;
+import com.lp.server.system.service.KeyvalueDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
@@ -111,7 +112,7 @@ public class PanelOffeneWEPos extends PanelBasis {
 
 	private WrapperGotoButton wbtBestellung = new WrapperGotoButton(LPMain
 			.getInstance().getTextRespectUISPr("button.bestellung"),
-			WrapperGotoButton.GOTO_BESTELLUNG_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_BESTELLUNG_AUSWAHL);
 	private WrapperTextField wtfBestellung = new WrapperTextField();
 
 	private WrapperLabel wlaChargennr = new WrapperLabel();
@@ -491,17 +492,17 @@ public class PanelOffeneWEPos extends PanelBasis {
 
 		if (besposDto != null && besposDto.getArtikelIId() != null) {
 
-			String[] hinweise = DelegateFactory
+			ArrayList<KeyvalueDto> hinweise = DelegateFactory
 					.getInstance()
 					.getArtikelkommentarDelegate()
 					.getArtikelhinweise(besposDto.getArtikelIId(),
 							LocaleFac.BELEGART_WARENEINGANG);
 
 			if (hinweise != null) {
-				for (int i = 0; i < hinweise.length; i++) {
+				for (int i = 0; i < hinweise.size(); i++) {
 					DialogFactory.showModalDialog(LPMain.getInstance()
-							.getTextRespectUISPr("lp.hinweis"), Helper
-							.strippHTML(hinweise[i]));
+							.getTextRespectUISPr("lp.hinweis")+": "+hinweise.get(i).getCKey(), Helper
+							.strippHTML(hinweise.get(i).getCValue()));
 				}
 			}
 			ArrayList<byte[]> bilder = DelegateFactory

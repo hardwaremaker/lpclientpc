@@ -108,19 +108,26 @@ public abstract class PanelReportJournalEinkauf extends PanelReportJournal {
 	private void dialogQueryLieferant() throws Throwable {
 
 		if (this instanceof ReportBestellVorschlag) {
-			panelQueryFLRLieferant = BestellungFilterFactory.getInstance()
-					.createPanelFLRBestellvorschlagAlleLieferanten(
-							getInternalFrame());
+			panelQueryFLRLieferant = PartnerFilterFactory.getInstance()
+					.createPanelFLRLieferant(
+							getInternalFrame(),
+							null,
+							true,
+							true,
+							DelegateFactory.getInstance()
+									.getBestellvorschlagDelegate()
+									.getAllLieferantenDesBestellvorschlages(),
+									LPMain.getTextRespectUISPr("title.lieferantenauswahlliste"));
 			new DialogQuery(panelQueryFLRLieferant);
 		} else {
 			panelQueryFLRLieferant = PartnerFilterFactory.getInstance()
-					.createPanelFLRLieferantGoto(
+					.createPanelFLRLieferant(
 							getInternalFrame(),
 							(lieferantDto != null) ? lieferantDto.getIId()
 									: null, true, false);
 			new DialogQuery(panelQueryFLRLieferant);
 		}
-	
+
 	}
 
 	/**

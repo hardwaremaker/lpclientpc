@@ -60,8 +60,12 @@ import com.lp.server.lieferschein.service.LieferscheinDto;
 import com.lp.server.projekt.service.ProjektVerlaufHelperDto;
 import com.lp.server.rechnung.service.RechnungDto;
 import com.lp.server.rechnung.service.RechnungFac;
+import com.lp.server.reklamation.service.ReklamationDto;
+import com.lp.server.system.jcr.service.docnode.DocNodeProformarechnung;
+import com.lp.server.system.jcr.service.docnode.DocPath;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
+import com.lp.util.GotoHelper;
 
 public class PanelProjektverlauf extends PanelTabelle {
 
@@ -70,21 +74,18 @@ public class PanelProjektverlauf extends PanelTabelle {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	static final public String NACHKALKULATION_PRINT = LEAVEALONE
-			+ "NACHKALKULATION_PRINT";
+	static final public String NACHKALKULATION_PRINT = LEAVEALONE + "NACHKALKULATION_PRINT";
 
 	static final public String GOTO_BELEG = LEAVEALONE + "GOTO_BELEG";
 
-	public final static String MY_OWN_NEW_AUFTRAG = PanelBasis.ACTION_MY_OWN_NEW
-			+ "MY_OWN_NEW_AUFTRAG";
+	public final static String MY_OWN_NEW_AUFTRAG = PanelBasis.ACTION_MY_OWN_NEW + "MY_OWN_NEW_AUFTRAG";
 
-	WrapperGotoButton wbuGoto = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_STUECKLISTE_DETAIL);
+	WrapperGotoButton wbuGoto = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_STUECKLISTE_DETAIL);
 
 	InternalFrameProjekt internalFrameProjekt = null;
 
-	public PanelProjektverlauf(int iUsecaseIdI, String sTitelTabbedPaneI,
-			InternalFrameProjekt oInternalFrameI) throws Throwable {
+	public PanelProjektverlauf(int iUsecaseIdI, String sTitelTabbedPaneI, InternalFrameProjekt oInternalFrameI)
+			throws Throwable {
 
 		super(iUsecaseIdI, sTitelTabbedPaneI, oInternalFrameI);
 		internalFrameProjekt = oInternalFrameI;
@@ -98,37 +99,21 @@ public class PanelProjektverlauf extends PanelTabelle {
 		setColumnWidth(0, 0);
 		this.table.setRowSelectionAllowed(true);
 
-		getToolBar()
-				.addButtonLeft(
-						"/com/lp/client/res/printer.png",
-						LPMain.getTextRespectUISPr("lp.printer"),
-						NACHKALKULATION_PRINT,
-						KeyStroke.getKeyStroke('P',
-								java.awt.event.InputEvent.CTRL_MASK), null);
+		getToolBar().addButtonLeft("/com/lp/client/res/printer.png", LPMain.getTextRespectUISPr("lp.printer"),
+				NACHKALKULATION_PRINT, KeyStroke.getKeyStroke('P', java.awt.event.InputEvent.CTRL_MASK), null);
 
 		enableToolsPanelButtons(true, NACHKALKULATION_PRINT);
-		getToolBar()
-				.addButtonLeft(
-						"/com/lp/client/res/data_into.png",
-						LPMain.getTextRespectUISPr("proj.projektverlauf.gehezubeleg"),
-						GOTO_BELEG,
-						KeyStroke.getKeyStroke('G',
-								java.awt.event.InputEvent.CTRL_MASK), null);
+		getToolBar().addButtonLeft("/com/lp/client/res/data_into.png",
+				LPMain.getTextRespectUISPr("proj.projektverlauf.gehezubeleg"), GOTO_BELEG,
+				KeyStroke.getKeyStroke('G', java.awt.event.InputEvent.CTRL_MASK), null);
 		enableToolsPanelButtons(true, GOTO_BELEG);
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
 
-			if (LPMain.getInstance().getDesktop()
-					.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_AUFTRAG)) {
-				getToolBar()
-						.addButtonLeft(
-								"/com/lp/client/res/auftrag16x16.png",
-								LPMain.getTextRespectUISPr("proj.neuer.auftragausangebot"),
-								MY_OWN_NEW_AUFTRAG, null, null);
+			if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_AUFTRAG)) {
+				getToolBar().addButtonLeft("/com/lp/client/res/auftrag16x16.png",
+						LPMain.getTextRespectUISPr("proj.neuer.auftragausangebot"), MY_OWN_NEW_AUFTRAG, null, null);
 			}
 		}
 
@@ -137,14 +122,11 @@ public class PanelProjektverlauf extends PanelTabelle {
 	/**
 	 * eventActionRefresh
 	 * 
-	 * @param e
-	 *            ActionEvent
-	 * @param bNeedNoRefreshI
-	 *            boolean
+	 * @param e               ActionEvent
+	 * @param bNeedNoRefreshI boolean
 	 * @throws Throwable
 	 */
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
 
 		super.eventActionRefresh(e, bNeedNoRefreshI);
 	}
@@ -153,41 +135,31 @@ public class PanelProjektverlauf extends PanelTabelle {
 		super.eventActionSpecial(e);
 		if (e.getActionCommand().equals(NACHKALKULATION_PRINT)) {
 			String add2Title = "";
-			getInternalFrame()
-					.showReportKriterien(
-							new ReportProjektstatistik(internalFrameProjekt,
-									add2Title));
+			getInternalFrame().showReportKriterien(new ReportProjektverlauf(internalFrameProjekt, add2Title));
 		} else if (e.getActionCommand().equals(MY_OWN_NEW_AUFTRAG)) {
-			int iZeileCursor = table.getSelectionModel()
-					.getAnchorSelectionIndex();
+			int iZeileCursor = table.getSelectionModel().getAnchorSelectionIndex();
 			Object key = table.getValueAt(iZeileCursor, 0);
 			if (key != null && key instanceof ProjektVerlaufHelperDto) {
 				ProjektVerlaufHelperDto pvDto = (ProjektVerlaufHelperDto) key;
 
 				if (pvDto.getBelegDto() != null) {
 					if (pvDto.getBelegDto() instanceof AngebotDto) {
-						Integer iKey = ((AngebotDto) pvDto.getBelegDto())
-								.getIId();
-						DelegateFactory.getInstance().getAngebotDelegate()
-								.erzeugeAuftragAusAngebot(iKey, false, false,getInternalFrame());
-						internalFrameProjekt.getTabbedPaneProjekt()
-								.projektverlauf
-								.eventYouAreSelected(false);
-						internalFrameProjekt.getTabbedPaneProjekt()
-						.projektverlauf.updateButtons(new LockStateValue(PanelBasis.LOCK_IS_NOT_LOCKED));
+						Integer iKey = ((AngebotDto) pvDto.getBelegDto()).getIId();
+						DelegateFactory.getInstance().getAngebotDelegate().erzeugeAuftragAusAngebot(iKey, false, false,
+								true, getInternalFrame());
+						internalFrameProjekt.getTabbedPaneProjekt().projektverlauf.eventYouAreSelected(false);
+						internalFrameProjekt.getTabbedPaneProjekt().projektverlauf
+								.updateButtons(new LockStateValue(PanelBasis.LOCK_IS_NOT_LOCKED));
 					} else {
 
-						DialogFactory
-								.showModalDialog(
-										LPMain.getTextRespectUISPr("lp.info"),
-										LPMain.getTextRespectUISPr("proj.neuer.auftrag.nurbeiangebotmoeglich"));
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+								LPMain.getTextRespectUISPr("proj.neuer.auftrag.nurbeiangebotmoeglich"));
 					}
 				}
 			}
 		}
 		if (e.getActionCommand().equals(GOTO_BELEG)) {
-			int iZeileCursor = table.getSelectionModel()
-					.getAnchorSelectionIndex();
+			int iZeileCursor = table.getSelectionModel().getAnchorSelectionIndex();
 			Object key = table.getValueAt(iZeileCursor, 0);
 			if (key != null && key instanceof ProjektVerlaufHelperDto) {
 				ProjektVerlaufHelperDto pvDto = (ProjektVerlaufHelperDto) key;
@@ -197,45 +169,48 @@ public class PanelProjektverlauf extends PanelTabelle {
 					Integer iKey = null;
 					if (pvDto.getBelegDto() instanceof AngebotDto) {
 						iKey = ((AngebotDto) pvDto.getBelegDto()).getIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_ANGEBOT_AUSWAHL);
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_ANGEBOT_AUSWAHL);
 					} else if (pvDto.getBelegDto() instanceof AuftragDto) {
 						iKey = ((AuftragDto) pvDto.getBelegDto()).getIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_AUFTRAG_AUSWAHL);
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_AUFTRAG_AUSWAHL);
 					} else if (pvDto.getBelegDto() instanceof LieferscheinDto) {
 						iKey = ((LieferscheinDto) pvDto.getBelegDto()).getIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_LIEFERSCHEIN_AUSWAHL);
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_LIEFERSCHEIN_AUSWAHL);
 					} else if (pvDto.getBelegDto() instanceof RechnungDto) {
 						RechnungDto rDto = (RechnungDto) pvDto.getBelegDto();
 						iKey = rDto.getIId();
 
-						if (rDto.getRechnungartCNr().equals(
-								RechnungFac.RECHNUNGART_GUTSCHRIFT)) {
-							wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_GUTSCHRIFT_AUSWAHL);
+						if (rDto.getRechnungartCNr().equals(RechnungFac.RECHNUNGART_GUTSCHRIFT)) {
+							wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_GUTSCHRIFT_AUSWAHL);
+						} else if (rDto.getRechnungartCNr().equals(RechnungFac.RECHNUNGART_PROFORMARECHNUNG)) {
+							wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_PROFORMARECHNUNG_AUSWAHL);
 						} else {
-							wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_RECHNUNG_AUSWAHL);
+							wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_RECHNUNG_AUSWAHL);
 						}
 
 					} else if (pvDto.getBelegDto() instanceof LosDto) {
 						iKey = ((LosDto) pvDto.getBelegDto()).getIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_FERTIGUNG_AUSWAHL);
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_FERTIGUNG_AUSWAHL);
 					} else if (pvDto.getBelegDto() instanceof BestellungDto) {
 						iKey = ((BestellungDto) pvDto.getBelegDto()).getIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_BESTELLUNG_AUSWAHL);
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_BESTELLUNG_AUSWAHL);
 					} else if (pvDto.getBelegDto() instanceof AnfrageDto) {
 						iKey = ((AnfrageDto) pvDto.getBelegDto()).getIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_ANFRAGE_AUSWAHL);
-					}else if (pvDto.getBelegDto() instanceof EingangsrechnungAuftragszuordnungDto) {
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_ANFRAGE_AUSWAHL);
+					} else if (pvDto.getBelegDto() instanceof EingangsrechnungAuftragszuordnungDto) {
 						iKey = ((EingangsrechnungAuftragszuordnungDto) pvDto.getBelegDto()).getEingangsrechnungIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_EINGANGSRECHNUNG_AUSWAHL);
-					}else if (pvDto.getBelegDto() instanceof AgstklDto) {
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_EINGANGSRECHNUNG_AUSWAHL);
+					} else if (pvDto.getBelegDto() instanceof AgstklDto) {
 						iKey = ((AgstklDto) pvDto.getBelegDto()).getIId();
-						wbuGoto.setWhereToGo(WrapperGotoButton.GOTO_ANGEBOTSTKL_AUSWAHL);
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_ANGEBOTSTKL_AUSWAHL);
+					} else if (pvDto.getBelegDto() instanceof ReklamationDto) {
+						iKey = ((ReklamationDto) pvDto.getBelegDto()).getIId();
+						wbuGoto.setWhereToGo(com.lp.util.GotoHelper.GOTO_REKLAMATION_AUSWAHL);
 					}
 
 					if (iKey != null) {
 						wbuGoto.setOKey(iKey);
-						wbuGoto.actionPerformed(new ActionEvent(wbuGoto, 0,
-								WrapperGotoButton.ACTION_GOTO));
+						wbuGoto.actionPerformed(new ActionEvent(wbuGoto, 0, WrapperGotoButton.ACTION_GOTO));
 					}
 
 				}
@@ -244,8 +219,7 @@ public class PanelProjektverlauf extends PanelTabelle {
 		}
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 

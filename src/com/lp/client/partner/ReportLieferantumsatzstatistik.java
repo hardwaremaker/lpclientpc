@@ -46,6 +46,7 @@ import javax.swing.JRadioButton;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperDateRangeController;
 import com.lp.client.frame.component.WrapperLabel;
@@ -94,6 +95,8 @@ public class ReportLieferantumsatzstatistik extends PanelBasis implements
 	private JRadioButton wrbGruppierungJahre = new JRadioButton();
 	private JRadioButton wrbGruppierungMonate = new JRadioButton();
 
+	private WrapperCheckBox wcbNurHauptgruppeKlasse = new WrapperCheckBox();
+	
 	private WrapperLabel wlaSortierung = new WrapperLabel();
 	private WrapperLabel wlaGruppierung = new WrapperLabel();
 
@@ -177,6 +180,12 @@ public class ReportLieferantumsatzstatistik extends PanelBasis implements
 		wrbGruppierungJahre.addActionListener(this);
 		wrbGruppierungMonate.addActionListener(this);
 		
+		wrbGruppierungArtikelgruppen.addActionListener(this);
+		wrbGruppierungArtikelklassen.addActionListener(this);
+		wcbNurHauptgruppeKlasse
+		.setText(LPMain
+				.getTextRespectUISPr("kunde.umsatzstatistik.nurhauptgruppeklasse"));
+		
 		wrbSortName
 				.setText(LPMain.getInstance().getTextRespectUISPr("lp.name"));
 		wrbSortUmsatz.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -219,6 +228,9 @@ public class ReportLieferantumsatzstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wrbGruppierungArtikelklassen, new GridBagConstraints(
 				1, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		
+		
 		jpaWorkingOn.add(wrbGruppierungArtikelgruppen, new GridBagConstraints(
 				2, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
@@ -229,26 +241,31 @@ public class ReportLieferantumsatzstatistik extends PanelBasis implements
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 3, 1, 1, 0.0,
+		
+		jpaWorkingOn.add(wcbNurHauptgruppeKlasse, new GridBagConstraints(
+				1, 3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 4, 1, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortUmsatz, new GridBagConstraints(1, 3, 1, 1, 0.0,
+		jpaWorkingOn.add(wrbSortUmsatz, new GridBagConstraints(1, 4, 1, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortName, new GridBagConstraints(2, 3, 1, 1, 0.0,
+		jpaWorkingOn.add(wrbSortName, new GridBagConstraints(2, 4, 1, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
 		jpaWorkingOn.add(wlaLieferantengruppierung, new GridBagConstraints(0,
-				4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
-		jpaWorkingOn.add(wrbKundGruppBranche, new GridBagConstraints(1, 4, 1,
+		jpaWorkingOn.add(wrbKundGruppBranche, new GridBagConstraints(1, 5, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wrbKundGruppPartnerklasse, new GridBagConstraints(2,
-				4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbKundGruppKeine, new GridBagConstraints(3, 4, 1, 1,
+		jpaWorkingOn.add(wrbKundGruppKeine, new GridBagConstraints(3, 5, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
@@ -265,6 +282,7 @@ public class ReportLieferantumsatzstatistik extends PanelBasis implements
 	
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		wcbNurHauptgruppeKlasse.setVisible(false);
 		if (e.getSource().equals(wrbGruppierungJahre)) {
 			if (wrbGruppierungJahre.isSelected()) {
 				wdfBis.setDate(new java.sql.Date(System.currentTimeMillis()));
@@ -287,6 +305,12 @@ public class ReportLieferantumsatzstatistik extends PanelBasis implements
 				wdfBis.setTimestamp(new Timestamp(c.getTimeInMillis()));
 			}
 		}
+		
+		
+		if(wrbGruppierungArtikelgruppen.isSelected() || wrbGruppierungArtikelklassen.isSelected()){
+			wcbNurHauptgruppeKlasse.setVisible(true);
+		}
+		
 	}
 	
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
@@ -330,10 +354,10 @@ public class ReportLieferantumsatzstatistik extends PanelBasis implements
 		return DelegateFactory
 				.getInstance()
 				.getLagerReportDelegate()
-				.printLieferantUmsatzstatistik(wdfVon.getTimestamp(),
-						wdfBis.getTimestamp(), iOptionKundeGruppierung,
+				.printLieferantUmsatzstatistik(wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), iOptionKundeGruppierung,
 						wrbWEPos.isSelected(), iOptionGruppierung,
-						iOptionSortierung);
+						iOptionSortierung,wcbNurHauptgruppeKlasse.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.system;
@@ -44,6 +44,7 @@ import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.stammdatencrud.PanelStammdatenCRUD;
+import com.lp.client.partner.IPartnerDtoService;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.partner.service.PartnerDto;
@@ -64,12 +65,12 @@ import com.lp.util.Helper;
  * 
  * @version $Revision: 1.12 $
  */
-public class TabbedPaneMandant extends TabbedPane {
+public class TabbedPaneMandant extends TabbedPane implements IPartnerDtoService {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
-	private static int IDX_PANEL_QP1 = -1;
+	public static int IDX_PANEL_QP1 = -1;
 	private static int IDX_PANEL_KOPFDATEN_D2 = -1;
 	private static int IDX_PANEL_VORBELEGUNGEN = -1;
 	private static int IDX_PANEL_VORBELEGUNGEN2 = -1;
@@ -81,12 +82,15 @@ public class TabbedPaneMandant extends TabbedPane {
 	private static int IDX_PANEL_MWSTBEZ_SP9 = -1;
 	private static int IDX_PANEL_DOKUMENTENLINK = -1;
 	private static int IDX_PANEL_KOSTENTRAEGER = -1;
+	private static int IDX_PANEL_AGB = -1;
 
 	private PanelQuery panelMandantQP1 = null;
 
 	private PanelBasis panelMandantkopfdatenD2 = null;
 
 	private PanelBasis panelMandantKonditionenD3 = null;
+
+	private PanelBasis panelMandantAGB = null;
 
 	private PanelBasis panelMandantVorbelegungen2 = null;
 
@@ -127,8 +131,7 @@ public class TabbedPaneMandant extends TabbedPane {
 	private boolean warnungEingeloggterMandant = true;
 
 	public TabbedPaneMandant(InternalFrame internalFrameI) throws Throwable {
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"lp.mandant"));
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr("lp.mandant"));
 		jbInit();
 		initComponents();
 	}
@@ -137,109 +140,72 @@ public class TabbedPaneMandant extends TabbedPane {
 		int tabIndex = 0;
 		IDX_PANEL_QP1 = tabIndex;
 		// 1 tab oben: QP1 MandantFLR; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_QP1);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), IDX_PANEL_QP1);
 		tabIndex++;
 		IDX_PANEL_KOPFDATEN_D2 = tabIndex;
 		// 2 tab oben: D2 Mandantkopfdaten; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"),
-				IDX_PANEL_KOPFDATEN_D2);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"), IDX_PANEL_KOPFDATEN_D2);
 		tabIndex++;
 		IDX_PANEL_VORBELEGUNGEN = tabIndex;
 		// 3 tab oben: D3 Mandantdetail; lazy loading
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"sys.panel.vorbelegungen"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"sys.panel.vorbelegungen"), IDX_PANEL_VORBELEGUNGEN);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("sys.panel.vorbelegungen"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("sys.panel.vorbelegungen"), IDX_PANEL_VORBELEGUNGEN);
 		tabIndex++;
 		IDX_PANEL_VORBELEGUNGEN2 = tabIndex;
 		// 3 tab oben: D3 Mandantdetail; lazy loading
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"sys.panel.vorbelegungen")
-						+ " 2", null, null, LPMain.getInstance()
-						.getTextRespectUISPr("sys.panel.vorbelegungen") + " 2",
-				IDX_PANEL_VORBELEGUNGEN2);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("sys.panel.vorbelegungen") + " 2", null, null,
+				LPMain.getInstance().getTextRespectUISPr("sys.panel.vorbelegungen") + " 2", IDX_PANEL_VORBELEGUNGEN2);
 		tabIndex++;
 		IDX_PANEL_SPEDITEUR_SP4 = tabIndex;
 		// 4 tab oben: SP4 Spediteur; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.spediteur"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.spediteur"),
-				IDX_PANEL_SPEDITEUR_SP4);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.spediteur"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.spediteur"), IDX_PANEL_SPEDITEUR_SP4);
 		tabIndex++;
 		IDX_PANEL_ZAHLUNGSZIEL_SP5 = tabIndex;
 		// 5 tab oben: SP5 Zahlungsziel; lazy loading
-		insertTab(LPMain.getInstance()
-				.getTextRespectUISPr("label.zahlungsziel"), null, null, LPMain
-				.getInstance().getTextRespectUISPr("label.zahlungsziel"),
-				IDX_PANEL_ZAHLUNGSZIEL_SP5);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("label.zahlungsziel"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("label.zahlungsziel"), IDX_PANEL_ZAHLUNGSZIEL_SP5);
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_KOSTENSTELLEN)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_KOSTENSTELLEN)) {
 			tabIndex++;
 			IDX_PANEL_KOSTENSTELLE_SP6 = tabIndex;
 			// 7 tab oben: SP7 Kostenstelle; lazy loading
-			insertTab(
-					LPMain.getInstance().getTextRespectUISPr(
-							"label.kostenstelle"),
-					null,
-					null,
-					LPMain.getInstance().getTextRespectUISPr(
-							"label.kostenstelle"), IDX_PANEL_KOSTENSTELLE_SP6);
+			insertTab(LPMain.getInstance().getTextRespectUISPr("label.kostenstelle"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("label.kostenstelle"), IDX_PANEL_KOSTENSTELLE_SP6);
 		}
 		tabIndex++;
 		IDX_PANEL_LIEFERART7 = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("label.lieferart"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("label.lieferart"),
-				IDX_PANEL_LIEFERART7);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("label.lieferart"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("label.lieferart"), IDX_PANEL_LIEFERART7);
 		tabIndex++;
 		IDX_PANEL_MWST_SP8 = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.mwstshort"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.mwstshort"),
-				IDX_PANEL_MWST_SP8);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.mwstshort"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.mwstshort"), IDX_PANEL_MWST_SP8);
 		tabIndex++;
 		IDX_PANEL_MWSTBEZ_SP9 = tabIndex;
-		insertTab(LPMain.getInstance()
-				.getTextRespectUISPr("lp.mwstbezeichnung"), null, null, LPMain
-				.getInstance().getTextRespectUISPr("lp.mwstbezeichnung"),
-				IDX_PANEL_MWSTBEZ_SP9);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.mwstbezeichnung"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.mwstbezeichnung"), IDX_PANEL_MWSTBEZ_SP9);
 		tabIndex++;
 		IDX_PANEL_DOKUMENTENLINK = tabIndex;
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"system.dokumentenlink"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"system.dokumentenlink"), IDX_PANEL_DOKUMENTENLINK);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("system.dokumentenlink"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("system.dokumentenlink"), IDX_PANEL_DOKUMENTENLINK);
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_KOSTENTRAEGER)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_KOSTENTRAEGER)) {
 			tabIndex++;
 			IDX_PANEL_KOSTENTRAEGER = tabIndex;
-			insertTab(
-					LPMain.getInstance()
-							.getTextRespectUISPr("lp.kostentraeger"), null,
-					null,
-					LPMain.getInstance()
-							.getTextRespectUISPr("lp.kostentraeger"),
-					IDX_PANEL_KOSTENTRAEGER);
+			insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kostentraeger"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("lp.kostentraeger"), IDX_PANEL_KOSTENTRAEGER);
 		}
+		tabIndex++;
+		IDX_PANEL_AGB = tabIndex;
+		// 3 tab oben: D3 Mandantdetail; lazy loading
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.mandant.agb"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.mandant.agb"), IDX_PANEL_AGB);
+		
 
 		// Defaults ...
 		// QP1 ist default.
@@ -248,12 +214,10 @@ public class TabbedPaneMandant extends TabbedPane {
 		panelMandantQP1.eventYouAreSelected(false);
 		// Beim ersten Einstieg auf diesen Tab sollte immer der aktuelle
 		// Mandante selektiert sein
-		panelMandantQP1.setSelectedId(LPMain.getInstance().getTheClient()
-				.getMandant());
+		panelMandantQP1.setSelectedId(LPMain.getInstance().getTheClient().getMandant());
 
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelMandantQP1,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelMandantQP1, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		addChangeListener(this);
@@ -282,13 +246,11 @@ public class TabbedPaneMandant extends TabbedPane {
 				getInternalFrameSystem().getMandantDto().setCNr(cNr);
 				getInternalFrame().setKeyWasForLockMe(cNr);
 
-				getInternalFrame().setLpTitle(
-						InternalFrame.TITLE_IDX_AS_I_LIKE,
+				getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
 						getInternalFrameSystem().getMandantDto().getCNr());
 
 				// im QP die Buttons in den Zustand nolocking/save setzen.
-				panelMandantQP1.updateButtons(panelMandantQP1
-						.getLockedstateDetailMainKey());
+				panelMandantQP1.updateButtons(panelMandantQP1.getLockedstateDetailMainKey());
 			} else if (eI.getSource() == panelSpediteurQP4) {
 				Integer iId = (Integer) panelSpediteurQP4.getSelectedId();
 				getInternalFrame().setKeyWasForLockMe(iId + "");
@@ -296,16 +258,12 @@ public class TabbedPaneMandant extends TabbedPane {
 				panelSpediteurBottomD4.eventYouAreSelected(false);
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 					// im QP die Buttons setzen.
-					this.panelSpediteurQP4
-							.updateButtons(this.panelSpediteurBottomD4
-									.getLockedstateDetailMainKey());
+					this.panelSpediteurQP4.updateButtons(this.panelSpediteurBottomD4.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelSpediteurQP4.updateButtons(l);
 				}
 			} else if (eI.getSource() == panelZahlungszielQP5) {
@@ -315,16 +273,12 @@ public class TabbedPaneMandant extends TabbedPane {
 				panelZahlungszielBottomD5.eventYouAreSelected(false);
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 					// im QP die Buttons in den Zustand nolocking/save setzen.
-					panelZahlungszielQP5
-							.updateButtons(panelZahlungszielBottomD5
-									.getLockedstateDetailMainKey());
+					panelZahlungszielQP5.updateButtons(panelZahlungszielBottomD5.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelZahlungszielQP5.updateButtons(l);
 				}
 			} else if (eI.getSource() == panelMwstQP6) {
@@ -334,15 +288,12 @@ public class TabbedPaneMandant extends TabbedPane {
 				panelMwstBottom.eventYouAreSelected(false);
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 					// 1 im QP die Buttons in den Zustand nolocking/save setzen.
-					panelMwstQP6.updateButtons(panelMwstBottom
-							.getLockedstateDetailMainKey());
+					panelMwstQP6.updateButtons(panelMwstBottom.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelMwstQP6.updateButtons(l);
 				}
 			} else if (eI.getSource() == panelMwstbezQP) {
@@ -352,15 +303,12 @@ public class TabbedPaneMandant extends TabbedPane {
 				panelMwstbezBottom.eventYouAreSelected(false);
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 					// 1 im QP die Buttons in den Zustand nolocking/save setzen.
-					panelMwstbezQP.updateButtons(panelMwstbezBottom
-							.getLockedstateDetailMainKey());
+					panelMwstbezQP.updateButtons(panelMwstbezBottom.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelMwstbezQP.updateButtons(l);
 				}
 			}
@@ -372,16 +320,12 @@ public class TabbedPaneMandant extends TabbedPane {
 				panelKostenstelleBottomD7.eventYouAreSelected(false);
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 					// im QP die Buttons in den Zustand nolocking/save setzen.
-					panelKostenstelleQP7
-							.updateButtons(panelKostenstelleBottomD7
-									.getLockedstateDetailMainKey());
+					panelKostenstelleQP7.updateButtons(panelKostenstelleBottomD7.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelKostenstelleQP7.updateButtons(l);
 				}
 			} else if (eI.getSource() == panelQueryLieferart) {
@@ -392,38 +336,30 @@ public class TabbedPaneMandant extends TabbedPane {
 
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 
 					// im QP die Buttons in den Zustand nolocking/save setzen.
-					panelQueryLieferart.updateButtons(panelBottomLieferart
-							.getLockedstateDetailMainKey());
+					panelQueryLieferart.updateButtons(panelBottomLieferart.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelQueryLieferart.updateButtons(l);
 				}
 			} else if (eI.getSource() == panelQueryDokumentenlink) {
-				Integer iId = (Integer) panelQueryDokumentenlink
-						.getSelectedId();
+				Integer iId = (Integer) panelQueryDokumentenlink.getSelectedId();
 				getInternalFrame().setKeyWasForLockMe(iId + "");
 				panelBottomDokumentenlink.setKeyWhenDetailPanel(iId);
 				panelBottomDokumentenlink.eventYouAreSelected(false);
 
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 
 					// im QP die Buttons in den Zustand nolocking/save setzen.
-					panelQueryDokumentenlink
-							.updateButtons(panelBottomDokumentenlink
-									.getLockedstateDetailMainKey());
+					panelQueryDokumentenlink.updateButtons(panelBottomDokumentenlink.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelQueryDokumentenlink.updateButtons(l);
 				}
 			} else if (eI.getSource() == panelQueryKostentraeger) {
@@ -434,17 +370,13 @@ public class TabbedPaneMandant extends TabbedPane {
 
 				// wenn Mandanten ungleich werden alle Buttons ausser refresh
 				// weggeschalten
-				if (LPMain.getInstance().getTheClient().getMandant()
-						.equals(this.getMandantCNr())) {
+				if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 
 					// im QP die Buttons in den Zustand nolocking/save setzen.
-					panelQueryKostentraeger
-							.updateButtons(panelBottomKostentraeger
-									.getLockedstateDetailMainKey());
+					panelQueryKostentraeger.updateButtons(panelBottomKostentraeger.getLockedstateDetailMainKey());
 				} else {
 					// im QP die Buttons setzen.
-					LockStateValue l = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 					panelQueryKostentraeger.updateButtons(l);
 				}
 			}
@@ -454,48 +386,39 @@ public class TabbedPaneMandant extends TabbedPane {
 			// hier kommt man nach upd im D bei einem 1:n hin.
 			if (eI.getSource() == panelMwstBottom) {
 				// 2 im QP die Buttons in den Zustand neu setzen.
-				panelMwstQP6.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelMwstQP6.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			}
 			if (eI.getSource() == panelMwstbezBottom) {
 				// 2 im QP die Buttons in den Zustand neu setzen.
-				panelMwstbezQP.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelMwstbezQP.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == this.panelZahlungszielBottomD5) {
 				// im QP die Buttons in den Zustand neu setzen.
-				this.panelZahlungszielQP5.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				this.panelZahlungszielQP5.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (eI.getSource() == panelMandantkopfdatenD2) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelMandantQP1.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelMandantQP1.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelBottomLieferart) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelQueryLieferart.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryLieferart.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelBottomDokumentenlink) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelQueryDokumentenlink.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryDokumentenlink.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelKostenstelleBottomD7) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelKostenstelleQP7.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelKostenstelleQP7.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelSpediteurBottomD4) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelSpediteurQP4.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelSpediteurQP4.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelBottomKostentraeger) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelQueryKostentraeger.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryKostentraeger.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			}
 		}
@@ -591,8 +514,7 @@ public class TabbedPaneMandant extends TabbedPane {
 				Object oKey = panelMandantKonditionenD3.getKeyWhenDetailPanel();
 				panelMandantQP1.setSelectedId(oKey);
 			} else if (eI.getSource() == panelMandantVorbelegungen2) {
-				Object oKey = panelMandantVorbelegungen2
-						.getKeyWhenDetailPanel();
+				Object oKey = panelMandantVorbelegungen2.getKeyWhenDetailPanel();
 				panelMandantQP1.setSelectedId(oKey);
 			} else if (eI.getSource() == panelBottomLieferart) {
 				Object oKey = panelBottomLieferart.getKeyWhenDetailPanel();
@@ -689,27 +611,27 @@ public class TabbedPaneMandant extends TabbedPane {
 			panelMandantQP1.eventYouAreSelected(false);
 
 			// im QP die Buttons setzen.
-			panelMandantQP1.updateButtons(panelMandantQP1
-					.getLockedstateDetailMainKey());
+			panelMandantQP1.updateButtons(panelMandantQP1.getLockedstateDetailMainKey());
 		}
 
 		else if (selectedCur == IDX_PANEL_KOPFDATEN_D2) {
-			String cNrMandant = getInternalFrameSystem().getMandantDto()
-					.getCNr();
+			String cNrMandant = getInternalFrameSystem().getMandantDto().getCNr();
 			refreshMandantkopfdatenD2(cNrMandant);
 			panelMandantkopfdatenD2.eventYouAreSelected(false);
 		}
 
 		else if (selectedCur == IDX_PANEL_VORBELEGUNGEN) {
-			String cNrMandant = getInternalFrameSystem().getMandantDto()
-					.getCNr();
+			String cNrMandant = getInternalFrameSystem().getMandantDto().getCNr();
 			refreshMandantKonditionenD3(cNrMandant);
 			panelMandantKonditionenD3.eventYouAreSelected(false);
+		} else if (selectedCur == IDX_PANEL_AGB) {
+			String cNrMandant = getInternalFrameSystem().getMandantDto().getCNr();
+			refreshMandantAGB(cNrMandant);
+			panelMandantAGB.eventYouAreSelected(false);
 		}
 
 		else if (selectedCur == IDX_PANEL_VORBELEGUNGEN2) {
-			String cNrMandant = getInternalFrameSystem().getMandantDto()
-					.getCNr();
+			String cNrMandant = getInternalFrameSystem().getMandantDto().getCNr();
 			refreshMandantVorbelegungen2(cNrMandant);
 			panelMandantVorbelegungen2.eventYouAreSelected(false);
 		}
@@ -720,17 +642,13 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 
 				// im QP die Buttons setzen.
-				this.panelSpediteurQP4
-						.updateButtons(this.panelSpediteurBottomD4
-								.getLockedstateDetailMainKey());
+				this.panelSpediteurQP4.updateButtons(this.panelSpediteurBottomD4.getLockedstateDetailMainKey());
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelSpediteurQP4.updateButtons(l);
 
 			}
@@ -743,18 +661,14 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 
 				// im QP die Buttons setzen.
-				this.panelZahlungszielQP5
-						.updateButtons(this.panelZahlungszielBottomD5
-								.getLockedstateDetailMainKey());
+				this.panelZahlungszielQP5.updateButtons(this.panelZahlungszielBottomD5.getLockedstateDetailMainKey());
 
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelZahlungszielQP5.updateButtons(l);
 			}
 		}
@@ -765,15 +679,12 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 				// im QP die Buttons setzen.
-				panelMwstQP6.updateButtons(panelMwstBottom
-						.getLockedstateDetailMainKey());
+				panelMwstQP6.updateButtons(panelMwstBottom.getLockedstateDetailMainKey());
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelMwstQP6.updateButtons(l);
 			}
 		} else if (selectedCur == IDX_PANEL_MWSTBEZ_SP9) {
@@ -782,15 +693,12 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 				// im QP die Buttons setzen.
-				panelMwstbezQP.updateButtons(panelMwstbezBottom
-						.getLockedstateDetailMainKey());
+				panelMwstbezQP.updateButtons(panelMwstbezBottom.getLockedstateDetailMainKey());
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelMwstbezQP.updateButtons(l);
 			}
 		}
@@ -801,15 +709,12 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 				// im QP die Buttons setzen.
-				panelKostenstelleQP7.updateButtons(panelKostenstelleBottomD7
-						.getLockedstateDetailMainKey());
+				panelKostenstelleQP7.updateButtons(panelKostenstelleBottomD7.getLockedstateDetailMainKey());
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelKostenstelleQP7.updateButtons(l);
 			}
 		}
@@ -827,16 +732,13 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 				// im QP die Buttons setzen.
-				panelQueryLieferart.updateButtons(panelQueryLieferart
-						.getLockedstateDetailMainKey());
+				panelQueryLieferart.updateButtons(panelQueryLieferart.getLockedstateDetailMainKey());
 
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelQueryLieferart.updateButtons(l);
 			}
 		} else if (selectedCur == IDX_PANEL_DOKUMENTENLINK) {
@@ -845,16 +747,13 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 				// im QP die Buttons setzen.
-				panelQueryDokumentenlink.updateButtons(panelQueryDokumentenlink
-						.getLockedstateDetailMainKey());
+				panelQueryDokumentenlink.updateButtons(panelQueryDokumentenlink.getLockedstateDetailMainKey());
 
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelQueryDokumentenlink.updateButtons(l);
 			}
 		} else if (selectedCur == IDX_PANEL_KOSTENTRAEGER) {
@@ -863,16 +762,13 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// wenn Mandanten ungleich werden alle Buttons ausser refresh
 			// weggeschalten
-			if (LPMain.getInstance().getTheClient().getMandant()
-					.equals(this.getMandantCNr())) {
+			if (LPMain.getInstance().getTheClient().getMandant().equals(this.getMandantCNr())) {
 				// im QP die Buttons setzen.
-				panelQueryKostentraeger.updateButtons(panelQueryKostentraeger
-						.getLockedstateDetailMainKey());
+				panelQueryKostentraeger.updateButtons(panelQueryKostentraeger.getLockedstateDetailMainKey());
 
 			} else {
 				// im QP die Buttons setzen.
-				LockStateValue l = new LockStateValue(
-						PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+				LockStateValue l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
 				panelQueryKostentraeger.updateButtons(l);
 			}
 		}
@@ -882,34 +778,22 @@ public class TabbedPaneMandant extends TabbedPane {
 		if (panelSplitLieferart == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
-			panelQueryLieferart = new PanelQuery(null, null,
-					QueryParameters.UC_ID_LIEFERART, aWhichStandardButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.lieferart"), true);
+			panelQueryLieferart = new PanelQuery(null, null, QueryParameters.UC_ID_LIEFERART, aWhichStandardButtonIUse,
+					getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("label.lieferart"), true);
 
-			panelBottomLieferart = new PanelSCRUDMandant(
-					getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr("label.lieferart"),
-					null, HelperClient.SCRUD_LIEFERART_FILE,
-					getInternalFrame(), HelperClient.LOCKME_LIEFERART);
+			panelBottomLieferart = new PanelLieferart(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("label.lieferart"), null);
 
-			panelSplitLieferart = new PanelSplit(getInternalFrame(),
-					panelBottomLieferart, panelQueryLieferart,
-					400 - ((PanelStammdatenCRUD) panelBottomLieferart)
-							.getAnzahlControls() * 30);
+			panelSplitLieferart = new PanelSplit(getInternalFrame(), panelBottomLieferart, panelQueryLieferart, 200);
 			setComponentAt(IDX_PANEL_LIEFERART7, panelSplitLieferart);
 
-			panelQueryLieferart
-					.befuellePanelFilterkriterienDirektUndVersteckte(
-							SystemFilterFactory.getInstance()
-									.createFKDKennung(), null,
-							SystemFilterFactory.getInstance()
-									.createFKVLieferart());
+			panelQueryLieferart.befuellePanelFilterkriterienDirektUndVersteckte(
+					SystemFilterFactory.getInstance().createFKDKennung(), null,
+					SystemFilterFactory.getInstance().createFKVLieferart());
 
 		}
 		// filter refreshen
-		panelQueryLieferart.setDefaultFilter(SystemFilterFactory.getInstance()
-				.createFKMandantCNr(getMandantCNr()));
+		panelQueryLieferart.setDefaultFilter(SystemFilterFactory.getInstance().createFKMandantCNr(getMandantCNr()));
 
 		// liste soll sofort angezeigt werden
 		panelQueryLieferart.eventYouAreSelected(true);
@@ -919,23 +803,20 @@ public class TabbedPaneMandant extends TabbedPane {
 		if (panelSplitDokumentenlink == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
-			panelQueryDokumentenlink = new PanelQuery(null, null,
-					QueryParameters.UC_ID_DOKUMENTENLINK,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"system.dokumentenlink"), true);
+			panelQueryDokumentenlink = new PanelQuery(null, null, QueryParameters.UC_ID_DOKUMENTENLINK,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("system.dokumentenlink"), true);
 
-			panelBottomDokumentenlink = new PanelDokumentenlink(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("system.dokumentenlink"), null);
+			panelBottomDokumentenlink = new PanelDokumentenlink(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("system.dokumentenlink"), null);
 
-			panelSplitDokumentenlink = new PanelSplit(getInternalFrame(),
-					panelBottomDokumentenlink, panelQueryDokumentenlink, 270);
+			panelSplitDokumentenlink = new PanelSplit(getInternalFrame(), panelBottomDokumentenlink,
+					panelQueryDokumentenlink, 220);
 			setComponentAt(IDX_PANEL_DOKUMENTENLINK, panelSplitDokumentenlink);
 		}
 		// filter refreshen
-		panelQueryDokumentenlink.setDefaultFilter(SystemFilterFactory
-				.getInstance().createFKMandantCNr(getMandantCNr()));
+		panelQueryDokumentenlink
+				.setDefaultFilter(SystemFilterFactory.getInstance().createFKMandantCNr(getMandantCNr()));
 
 		// liste soll sofort angezeigt werden
 		panelQueryDokumentenlink.eventYouAreSelected(true);
@@ -945,23 +826,19 @@ public class TabbedPaneMandant extends TabbedPane {
 		if (panelSplitKostentraeger == null) {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
-			panelQueryKostentraeger = new PanelQuery(null, null,
-					QueryParameters.UC_ID_KOSTENTRAEGER,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"lp.kostentraeger"), true);
+			panelQueryKostentraeger = new PanelQuery(null, null, QueryParameters.UC_ID_KOSTENTRAEGER,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.kostentraeger"), true);
 
-			panelBottomKostentraeger = new PanelKostentraeger(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.kostentraeger"), null);
+			panelBottomKostentraeger = new PanelKostentraeger(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.kostentraeger"), null);
 
-			panelSplitKostentraeger = new PanelSplit(getInternalFrame(),
-					panelBottomKostentraeger, panelQueryKostentraeger, 270);
+			panelSplitKostentraeger = new PanelSplit(getInternalFrame(), panelBottomKostentraeger,
+					panelQueryKostentraeger, 270);
 			setComponentAt(IDX_PANEL_KOSTENTRAEGER, panelSplitKostentraeger);
 		}
 		// filter refreshen
-		panelQueryKostentraeger.setDefaultFilter(SystemFilterFactory
-				.getInstance().createFKMandantCNr(getMandantCNr()));
+		panelQueryKostentraeger.setDefaultFilter(SystemFilterFactory.getInstance().createFKMandantCNr(getMandantCNr()));
 
 		// liste soll sofort angezeigt werden
 		panelQueryKostentraeger.eventYouAreSelected(true);
@@ -972,11 +849,9 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// Buttons.
 			String[] aButton = { PanelBasis.ACTION_NEW };
-			panelMwstQP6 = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_MWSTSATZ, aButton,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.mwst"), true); // liste
+			panelMwstQP6 = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_MWSTSATZ, aButton, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.mwst"), true); // liste
 			// refresh
 			// wenn
 			// lasche
@@ -986,8 +861,7 @@ public class TabbedPaneMandant extends TabbedPane {
 			panelMwstBottom = new PanelMehrwertsteuer(getInternalFrame(),
 					LPMain.getInstance().getTextRespectUISPr("lp.mwst"), null);
 
-			panelMwstSP6 = new PanelSplit(getInternalFrame(), panelMwstBottom,
-					panelMwstQP6, 200);
+			panelMwstSP6 = new PanelSplit(getInternalFrame(), panelMwstBottom, panelMwstQP6, 200);
 			setComponentAt(IDX_PANEL_MWST_SP8, panelMwstSP6);
 		}
 		// filter refreshen
@@ -1003,11 +877,9 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// Buttons.
 			String[] aButton = { PanelBasis.ACTION_NEW };
-			panelMwstbezQP = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_MWSTSATZBEZ, aButton,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.mwst"), true); // liste
+			panelMwstbezQP = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_MWSTSATZBEZ, aButton, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.mwst"), true); // liste
 			// refresh
 			// wenn
 			// lasche
@@ -1017,8 +889,7 @@ public class TabbedPaneMandant extends TabbedPane {
 			panelMwstbezBottom = new PanelMwstsatzbez(getInternalFrame(),
 					LPMain.getInstance().getTextRespectUISPr("lp.mwst"), null);
 
-			panelMwstbezSP = new PanelSplit(getInternalFrame(),
-					panelMwstbezBottom, panelMwstbezQP, 200);
+			panelMwstbezSP = new PanelSplit(getInternalFrame(), panelMwstbezBottom, panelMwstbezQP, 200);
 			setComponentAt(IDX_PANEL_MWSTBEZ_SP9, panelMwstbezSP);
 		}
 		// filter refreshen
@@ -1033,37 +904,30 @@ public class TabbedPaneMandant extends TabbedPane {
 		if (panelKostenstelleSP7 == null) {
 			// Buttons.
 			String[] aButton = { PanelBasis.ACTION_NEW };
-			panelKostenstelleQP7 = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_KOSTENSTELLE, aButton,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.kostenstelle"), true); // liste
+			panelKostenstelleQP7 = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_KOSTENSTELLE, aButton, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("label.kostenstelle"), true); // liste
 			// refresh
 			// wenn
 			// lasche
 			// geklickt
 			// wurde
 
-			panelKostenstelleBottomD7 = new PanelKostenstelle(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.kostenstelle"), null);
+			panelKostenstelleBottomD7 = new PanelKostenstelle(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("label.kostenstelle"), null);
 
-			panelKostenstelleQP7
-					.befuellePanelFilterkriterienDirektUndVersteckte(
-							SystemFilterFactory.getInstance()
-									.createFKDKennung(), SystemFilterFactory
-									.getInstance().createFKDBezeichnung(),
-							SystemFilterFactory.getInstance()
-									.createFKVKostenstelle());
+			panelKostenstelleQP7.befuellePanelFilterkriterienDirektUndVersteckte(
+					SystemFilterFactory.getInstance().createFKDKennung(),
+					SystemFilterFactory.getInstance().createFKDBezeichnung(),
+					SystemFilterFactory.getInstance().createFKVKostenstelle());
 
-			panelKostenstelleSP7 = new PanelSplit(getInternalFrame(),
-					panelKostenstelleBottomD7, panelKostenstelleQP7, 200);
+			panelKostenstelleSP7 = new PanelSplit(getInternalFrame(), panelKostenstelleBottomD7, panelKostenstelleQP7,
+					200);
 			setComponentAt(IDX_PANEL_KOSTENSTELLE_SP6, panelKostenstelleSP7);
 		}
 
 		// filter refreshen
-		panelKostenstelleQP7.setDefaultFilter(SystemFilterFactory.getInstance()
-				.createFKMandantCNr(getMandantCNr()));
+		panelKostenstelleQP7.setDefaultFilter(SystemFilterFactory.getInstance().createFKMandantCNr(getMandantCNr()));
 
 		// liste soll sofort angezeigt werden
 		panelKostenstelleQP7.eventYouAreSelected(true);
@@ -1087,10 +951,9 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			FilterKriterium[] filters = null;
 
-			panelMandantQP1 = new PanelQuery(querytypes, filters,
-					QueryParameters.UC_ID_MANDANT, aWhichStandardButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.uebersicht.detail"), true);
+			panelMandantQP1 = new PanelQuery(querytypes, filters, QueryParameters.UC_ID_MANDANT,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.uebersicht.detail"), true);
 
 			setComponentAt(IDX_PANEL_QP1, panelMandantQP1);
 		}
@@ -1098,31 +961,35 @@ public class TabbedPaneMandant extends TabbedPane {
 
 	private void refreshMandantkopfdatenD2(String cNrMandantI) throws Throwable {
 		if (panelMandantkopfdatenD2 == null) {
-			panelMandantkopfdatenD2 = new PanelMandantkopfdaten(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.kopfdaten"), cNrMandantI);
+			// panelMandantkopfdatenD2 = new PanelMandantkopfdaten(
+			// getInternalFrame(), LPMain.getInstance()
+			// .getTextRespectUISPr("lp.kopfdaten"), cNrMandantI);
+			panelMandantkopfdatenD2 = new PanelMandantkopfdaten(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"), cNrMandantI, this);
 			setComponentAt(IDX_PANEL_KOPFDATEN_D2, panelMandantkopfdatenD2);
 		}
 	}
 
-	private void refreshMandantKonditionenD3(String cNrMandantI)
-			throws Throwable {
+	private void refreshMandantKonditionenD3(String cNrMandantI) throws Throwable {
 		if (panelMandantKonditionenD3 == null) {
-			panelMandantKonditionenD3 = new PanelMandantKonditionen(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("sys.panel.vorbelegungen"),
-					cNrMandantI);
+			panelMandantKonditionenD3 = new PanelMandantKonditionen(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("sys.panel.vorbelegungen"), cNrMandantI);
 			setComponentAt(IDX_PANEL_VORBELEGUNGEN, panelMandantKonditionenD3);
 		}
 	}
 
-	private void refreshMandantVorbelegungen2(String cNrMandantI)
-			throws Throwable {
+	private void refreshMandantAGB(String cNrMandantI) throws Throwable {
+		if (panelMandantAGB == null) {
+			panelMandantAGB = new PanelMandantAgb(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.mandant.agb"), cNrMandantI);
+			setComponentAt(IDX_PANEL_AGB, panelMandantAGB);
+		}
+	}
+
+	private void refreshMandantVorbelegungen2(String cNrMandantI) throws Throwable {
 		if (panelMandantVorbelegungen2 == null) {
-			panelMandantVorbelegungen2 = new PanelMandantVorbelegungen2(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("sys.panel.vorbelegungen")
-							+ " 2", cNrMandantI);
+			panelMandantVorbelegungen2 = new PanelMandantVorbelegungen2(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("sys.panel.vorbelegungen") + " 2", cNrMandantI);
 			setComponentAt(IDX_PANEL_VORBELEGUNGEN2, panelMandantVorbelegungen2);
 		}
 	}
@@ -1133,11 +1000,9 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// Buttons.
 			String[] aButton = { PanelBasis.ACTION_NEW };
-			panelSpediteurQP4 = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_SPEDITEUR, aButton,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.spediteur"), true); // liste
+			panelSpediteurQP4 = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_SPEDITEUR, aButton, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.spediteur"), true); // liste
 			// refresh
 			// wenn
 			// lasche
@@ -1145,22 +1010,18 @@ public class TabbedPaneMandant extends TabbedPane {
 			// wurde
 
 			panelSpediteurBottomD4 = new PanelSpediteur(getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr("lp.spediteur"),
-					null);
+					LPMain.getInstance().getTextRespectUISPr("lp.spediteur"), null);
 
-			panelSpediteurSP4 = new PanelSplit(getInternalFrame(),
-					panelSpediteurBottomD4, panelSpediteurQP4, 200);
+			panelSpediteurSP4 = new PanelSplit(getInternalFrame(), panelSpediteurBottomD4, panelSpediteurQP4, 200);
 
-			panelSpediteurQP4.befuellePanelFilterkriterienDirektUndVersteckte(
-					null, null, SystemFilterFactory.getInstance()
-							.createFKVSpediteur());
+			panelSpediteurQP4.befuellePanelFilterkriterienDirektUndVersteckte(null, null,
+					SystemFilterFactory.getInstance().createFKVSpediteur());
 
 			setComponentAt(IDX_PANEL_SPEDITEUR_SP4, panelSpediteurSP4);
 
 		}
 		// filter refreshen.
-		panelSpediteurQP4.setDefaultFilter(SystemFilterFactory.getInstance()
-				.createFKMandantCNr(getMandantCNr()));
+		panelSpediteurQP4.setDefaultFilter(SystemFilterFactory.getInstance().createFKMandantCNr(getMandantCNr()));
 
 		// liste soll sofort angezeigt werden
 		panelSpediteurQP4.eventYouAreSelected(true);
@@ -1172,44 +1033,33 @@ public class TabbedPaneMandant extends TabbedPane {
 
 			// Buttons.
 			String[] aButton = { PanelBasis.ACTION_NEW };
-			panelZahlungszielQP5 = new PanelQuery(null, SystemFilterFactory
-					.getInstance().createFKMandantCNr(),
-					QueryParameters.UC_ID_ZAHLUNGSZIEL, aButton,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.zahlungsziel"), true); // liste
+			panelZahlungszielQP5 = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_ZAHLUNGSZIEL, aButton, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("label.zahlungsziel"), true); // liste
 			// refresh
 			// wenn
 			// lasche
 			// geklickt
 			// wurde
 
-			panelZahlungszielBottomD5 = new PanelZahlungsziel(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.zahlungsziel"), null);
+			panelZahlungszielBottomD5 = new PanelZahlungsziel(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("label.zahlungsziel"), null);
 
-			panelZahlungszielSP5 = new PanelSplit(getInternalFrame(),
-					panelZahlungszielBottomD5, panelZahlungszielQP5, 180);
-			panelZahlungszielQP5
-					.befuellePanelFilterkriterienDirektUndVersteckte(
-							SystemFilterFactory.getInstance()
-									.createFKDBezeichnung(), null,
-							SystemFilterFactory.getInstance()
-									.createFKVZahlungsziel());
+			panelZahlungszielSP5 = new PanelSplit(getInternalFrame(), panelZahlungszielBottomD5, panelZahlungszielQP5,
+					180);
+			panelZahlungszielQP5.befuellePanelFilterkriterienDirektUndVersteckte(
+					SystemFilterFactory.getInstance().createFKDBezeichnung(), null,
+					SystemFilterFactory.getInstance().createFKVZahlungsziel());
 
 			setComponentAt(IDX_PANEL_ZAHLUNGSZIEL_SP5, panelZahlungszielSP5);
 		}
 
 		// filter refreshen.
-		panelZahlungszielQP5.setDefaultFilter(SystemFilterFactory.getInstance()
-				.createFKMandantCNr(getMandantCNr()));
+		panelZahlungszielQP5.setDefaultFilter(SystemFilterFactory.getInstance().createFKMandantCNr(getMandantCNr()));
 
 		// liste soll sofort angezeigt werden
 		panelZahlungszielQP5.eventYouAreSelected(true);
 
-	}
-
-	protected PartnerDto getPartnerDto() {
-		return getInternalFrameSystem().getMandantDto().getPartnerDto();
 	}
 
 	/**
@@ -1221,11 +1071,25 @@ public class TabbedPaneMandant extends TabbedPane {
 		return (InternalFrameSystem) getInternalFrame();
 	}
 
-	protected void setPartnerDto(PartnerDto partnerDto) {
-		getInternalFrameSystem().getMandantDto().setPartnerDto(partnerDto);
-	}
+	// protected PartnerDto getPartnerDto() {
+	// return getInternalFrameSystem().getMandantDto().getPartnerDto();
+	// }
+
+	// protected void setPartnerDto(PartnerDto partnerDto) {
+	// getInternalFrameSystem().getMandantDto().setPartnerDto(partnerDto);
+	// }
 
 	protected javax.swing.JMenuBar getJMenuBar() throws Throwable {
 		return new WrapperMenuBar(this);
+	}
+
+	@Override
+	public void setServicePartnerDto(PartnerDto partnerDto) {
+		getInternalFrameSystem().getMandantDto().setPartnerDto(partnerDto);
+	}
+
+	@Override
+	public PartnerDto getServicePartnerDto() {
+		return getInternalFrameSystem().getMandantDto().getPartnerDto();
 	}
 }

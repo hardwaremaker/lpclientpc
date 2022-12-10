@@ -37,7 +37,7 @@ public interface INeedArtikelAuswahlListener {
 
 	/**
 	 * wird aufgerufen wenn eine Artikelauswahl aus allen Artikeln ben&ouml;tigt wird.
-	 * Der gew&auml;hlte Artikel wird mit {@link StklImportPage3Ctrl#setChoosenArtikelIId(Integer)}
+	 * Der gew&auml;hlte Artikel wird mit {@link StklImportPage3Ctrl#setChosenArtikelIId(Integer)}
 	 * gesetzt.
 	 */
 	void waehleArtikelAus();

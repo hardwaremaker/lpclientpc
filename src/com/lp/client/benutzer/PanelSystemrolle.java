@@ -127,7 +127,7 @@ public class PanelSystemrolle extends PanelBasis {
 			// getKeyWhenDetailPanel();
 		}
 
-		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
+		if (key == null) {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {

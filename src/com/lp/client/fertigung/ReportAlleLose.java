@@ -38,6 +38,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -89,6 +90,9 @@ protected WrapperCheckBox wcbNichtAusgegebene = new WrapperCheckBox();
                                          ACTION_SPECIAL_FERTIGUNGSGRUPPE_FROM_LISTE);
     wbuFertigungsgruppe.addActionListener(this);
     wtfFertigungsgruppe.setActivatable(false);
+    
+    HelperClient.setMinimumAndPreferredSize(wcbNichtAusgegebene, HelperClient.getSizeFactoredDimension(160));
+    HelperClient.setMinimumAndPreferredSize(wbuFertigungsgruppe, HelperClient.getSizeFactoredDimension(150));
 
     jpaWorkingOn.add(wcbNichtAusgegebene,
                      new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0,
@@ -102,7 +106,7 @@ protected WrapperCheckBox wcbNichtAusgegebene = new WrapperCheckBox();
                                             GridBagConstraints.WEST,
                                             GridBagConstraints.BOTH,
                                             new Insets(2, 2, 2, 2),
-                                            150, 0));
+                                            0, 0));
     jpaWorkingOn.add(wtfFertigungsgruppe,
                       new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
                                              GridBagConstraints.WEST,

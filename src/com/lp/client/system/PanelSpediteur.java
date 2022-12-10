@@ -54,15 +54,17 @@ import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperLabel;
-import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.PartnerDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.SpediteurDto;
 import com.lp.server.util.Facade;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class PanelSpediteur extends PanelBasis {
@@ -71,7 +73,7 @@ public class PanelSpediteur extends PanelBasis {
 	private static final String ACTION_SPECIAL_ANSPRECHPARTNER = "action_special_ansprechpartner";
 
 	private WrapperGotoButton wbuPartner = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_PARTNER_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_PARTNER_AUSWAHL);
 	private WrapperTextField wtfPartner = null;
 	private PanelQueryFLR panelQueryFLRPartner = null;
 	private PanelQueryFLR panelQueryFLRAnsprechpartner = null;
@@ -91,11 +93,18 @@ public class PanelSpediteur extends PanelBasis {
 	private WrapperLabel wlaEmail = new WrapperLabel();
 	private WrapperTextField wtfEmail = new WrapperTextField();
 	private WrapperCheckBox wcbVersteckt = new WrapperCheckBox();
-
+	private WrapperLabel wlaVerkehrszweig = new WrapperLabel();
+	private WrapperTextNumberField wnfVerkehrszweig = new WrapperTextNumberField();
+	
+	private boolean hasIntrastat = false;
+	
 	public PanelSpediteur(InternalFrame internalFrame, String add2TitleI,
 			Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFramePersonal = (InternalFrameSystem) internalFrame;
+		
+		hasIntrastat = DelegateFactory.getInstance().getMandantDelegate().hatZusatzfunktionIntrastat();
+		
 		jbInit();
 		setDefaults();
 		initComponents();
@@ -152,7 +161,9 @@ public class PanelSpediteur extends PanelBasis {
 		spediteurDto.setCNamedesspediteurs(wtfSpediteur.getText());
 		spediteurDto.setCEmail(wtfEmail.getText());
 		spediteurDto.setBVersteckt(wcbVersteckt.getShort());
-		
+	
+		spediteurDto.setCVerkehrszweig(
+				Helper.emptyString(wnfVerkehrszweig.getText()));
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -166,6 +177,7 @@ public class PanelSpediteur extends PanelBasis {
 					.partnerFindByPrimaryKey(spediteurDto.getPartnerIId());
 
 			wtfPartner.setText(partnerDto.formatFixTitelName1Name2());
+			wbuPartner.setOKey(spediteurDto.getPartnerIId());
 		} else {
 			wtfPartner.setText(null);
 		}
@@ -182,7 +194,7 @@ public class PanelSpediteur extends PanelBasis {
 		}
 
 		wcbVersteckt.setShort(spediteurDto.getBVersteckt());
-
+		wnfVerkehrszweig.setText(Helper.emptyString(spediteurDto.getCVerkehrszweig()));
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -271,7 +283,7 @@ public class PanelSpediteur extends PanelBasis {
 				"lp.spediteur"));
 
 		wtfSpediteur.setMandatoryField(true);
-		wtfSpediteur.setColumnsMax(40);
+		wtfSpediteur.setColumnsMax(MandantFac.MAX_SPEDITEUR_C_NAMEDESSPEDITEURS);
 
 		wlaEmail.setText(LPMain.getInstance().getTextRespectUISPr("lp.email"));
 		wtfEmail.setColumnsMax(80);
@@ -300,6 +312,11 @@ public class PanelSpediteur extends PanelBasis {
 		wtfPartner.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 		
 		wtfPartner.setActivatable(false);
+
+		wlaVerkehrszweig.setText(LPMain.getTextRespectUISPr("lp.verkehrszweig"));
+		wnfVerkehrszweig.setActivatable(hasIntrastat);
+		wnfVerkehrszweig.setMaximumDigits(1);
+		wnfVerkehrszweig.setToolTipText(LPMain.getTextRespectUISPr("lp.verkehrszweig.tooltip"));
 
 		getInternalFrame().addItemChangedListener(this);
 
@@ -352,6 +369,16 @@ public class PanelSpediteur extends PanelBasis {
 		jpaWorkingOn.add(wtfEmail, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
+
+		if (hasIntrastat) {
+			iZeile++;
+			jpaWorkingOn.add(wlaVerkehrszweig, new GridBagConstraints(0, iZeile, 1, 1, 0.1,
+					0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+					new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wnfVerkehrszweig, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
+					0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+					new Insets(2, 2, 2, 2), 0, 0));
+		}
 
 		iZeile++;
 		jpaWorkingOn.add(wcbVersteckt, new GridBagConstraints(1, iZeile, 1, 1,

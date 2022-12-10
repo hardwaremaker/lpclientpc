@@ -37,6 +37,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
@@ -49,9 +50,11 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.PanelAdditiveVerpackungsmengen;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperSNRField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -59,6 +62,8 @@ import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.InventurDto;
 import com.lp.server.artikel.service.InventurlisteDto;
 import com.lp.server.artikel.service.LagerDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
@@ -76,6 +81,8 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 	JTextField wtfArtikelnummer = new JTextField();
 	WrapperLabel wlaBezeichnung = new WrapperLabel();
 	JTextField wtfBezeichnung = new JTextField();
+	WrapperLabel wlaLagerplatz = new WrapperLabel();
+	JTextField wtfLagerplatz = new JTextField();
 	WrapperLabel wlaSerienChargennummer = new WrapperLabel();
 	JTextField wtfSerienChargennummer = new JTextField();
 	WrapperLabel wlaMenge = new WrapperLabel();
@@ -88,6 +95,8 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 	ArtikelDto artikelDto = null;
 	Integer inventurIId = null;
 	PanelInventurliste panelInventurliste = null;
+
+	PanelAdditiveVerpackungsmengen pa = null;
 
 	public DialogInventurlisteQuickInsert(
 			PanelInventurliste panelInventurliste, Integer inventurIId)
@@ -146,14 +155,20 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 		wnfMenge.addKeyListener(this);
 		wcoLager.setMandatoryField(true);
 
+		wlaLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.inventurliste.lagerplaetze"));
+		wtfLagerplatz.setText(null);
+		wtfLagerplatz.setEnabled(false);
+
 		InventurDto inventurDto = DelegateFactory.getInstance()
 				.getInventurDelegate().inventurFindByPrimaryKey(inventurIId);
 
 		if (inventurDto.getLagerIId() != null) {
-			LagerDto lDto=DelegateFactory.getInstance().getLagerDelegate().lagerFindByPrimaryKey(inventurDto.getLagerIId());
-			Map m=new HashMap();
+			LagerDto lDto = DelegateFactory.getInstance().getLagerDelegate()
+					.lagerFindByPrimaryKey(inventurDto.getLagerIId());
+			Map m = new HashMap();
 			m.put(lDto.getIId(), lDto.getCNr());
-			
+
 			wcoLager.setMap(m);
 		} else {
 
@@ -198,23 +213,54 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+		panelUrlaubsanspruch.add(wlaLagerplatz, new GridBagConstraints(0, 3, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wtfLagerplatz, new GridBagConstraints(2, 3, 1,
+				1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		panelUrlaubsanspruch.add(wlaSerienChargennummer,
-				new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
+				new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
 						0, 0));
 		panelUrlaubsanspruch.add(wtfSerienChargennummer,
-				new GridBagConstraints(2, 3, 1, 1, 0.0, 0.0,
+				new GridBagConstraints(2, 4, 1, 1, 0.0, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
 						0, 0));
-		panelUrlaubsanspruch.add(wlaMenge, new GridBagConstraints(0, 4, 1, 1,
+		panelUrlaubsanspruch.add(wlaMenge, new GridBagConstraints(0, 5, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfMenge, new GridBagConstraints(2, 4, 1, 1,
+		panelUrlaubsanspruch.add(wnfMenge, new GridBagConstraints(2, 5, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wbuFertig, new GridBagConstraints(2, 5, 1, 1,
+
+		pa = new PanelAdditiveVerpackungsmengen(
+				panelInventurliste.getInternalFrame(), wnfMenge);
+
+		pa.getWnfEinzelmenge().addKeyListener(this);
+		pa.getWnfVerpackungen().addKeyListener(this);
+
+		ParametermandantDto parameter = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(
+						LPMain.getInstance().getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_ALLGEMEIN,
+						ParameterFac.PARAMETER_VERPACKUNGSMENGEN_EINGABE);
+		int bVerpackungsmengeneingabe = (Integer) parameter.getCWertAsObject();
+
+		if (bVerpackungsmengeneingabe > 0) {
+			panelUrlaubsanspruch.add(pa,
+					new GridBagConstraints(0, 6, 3, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0,
+									0), 0, 0));
+		}
+
+		panelUrlaubsanspruch.add(wbuFertig, new GridBagConstraints(2, 7, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
@@ -230,17 +276,19 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 			if (e.getSource() == wtfArtikelnummer) {
 
-				//SP2056 Uppercase
-				String artikelnummer=wtfArtikelnummer.getText();
-				if(artikelnummer!=null){
-					artikelnummer=artikelnummer.toUpperCase();
+				// SP2056 Uppercase
+				String artikelnummer = wtfArtikelnummer.getText();
+				if (artikelnummer != null) {
+					artikelnummer = artikelnummer.toUpperCase();
 					wtfArtikelnummer.setText(artikelnummer);
 				}
-				
+
 				try {
 					artikelDto = DelegateFactory.getInstance()
 							.getArtikelDelegate()
 							.artikelFindByCNr(wtfArtikelnummer.getText());
+
+					pa.setVerpackungsmenge(artikelDto.getFVerpackungsmenge());
 
 				} catch (Throwable ex) {
 					if (ex instanceof ExceptionLP) {
@@ -251,6 +299,12 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 									"Artikel konnte nicht gefunden werden.");
 							artikelDto = null;
 							wtfArtikelnummer.setText(null);
+							try {
+								pa.setVerpackungsmenge(null);
+							} catch (Throwable e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
 							wtfBezeichnung.setText(null);
 							wtfArtikelnummer.requestFocus();
 						} else {
@@ -295,6 +349,25 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 						wnfMenge.requestFocus();
 					}
 				}
+
+				if (artikelDto != null) {
+					try {
+						String s = DelegateFactory
+								.getInstance()
+								.getLagerDelegate()
+								.getLagerplaezteEinesArtikels(
+										artikelDto.getIId(),
+										(Integer) wcoLager
+												.getKeyOfSelectedItem());
+
+						wtfLagerplatz.setText(s);
+					} catch (Throwable ex2) {
+						// wird hoffentlich gehen
+					}
+				} else {
+					wtfLagerplatz.setText(null);
+				}
+
 			} else if (e.getSource() == wtfSerienChargennummer) {
 				if (Helper.short2boolean(artikelDto.getBSeriennrtragend())) {
 
@@ -317,18 +390,37 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 									wtfSerienChargennummer.getText(), null,
 									false);
 
+							
+							//SP8451
+							for(int i=0;i<snrs.length;i++) {
+								if(!snrs[i].matches("^[a-zA-Z_0-9\\.\\-/,|]*$")) {
+									DialogFactory.showModalDialog(LPMain
+											.getInstance()
+											.getTextRespectUISPr("lp.error"), LPMain
+											.getInstance()
+											.getMessageTextRespectUISPr(
+													"artikel.inventur.unguelige.snr",snrs[i]));
+									return;
+								}
+							}
+							
+							
+							
+							
+							
+							
 							if (snrs.length == 1) {
 
 								inventurlisteDto
 										.setCSeriennrchargennr(wtfSerienChargennummer
 												.getText());
 
-								InventurlisteDto dto = null;
+								InventurlisteDto[] dto = null;
 								try {
 									dto = DelegateFactory
 											.getInstance()
 											.getInventurDelegate()
-											.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennr(
+											.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennrOhneExc(
 													inventurIId,
 													artikelDto.getIId(),
 													(Integer) wcoLager
@@ -336,7 +428,7 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 													wtfSerienChargennummer
 															.getText());
 
-									if (dto != null) {
+									if (dto != null && dto.length>0) {
 										DialogInventurlisteArtikelDoppelt d = new DialogInventurlisteArtikelDoppelt();
 										LPMain.getInstance()
 												.getDesktop()
@@ -365,6 +457,7 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 									wtfBezeichnung.setText(null);
 									wtfSerienChargennummer.setText(null);
 									wnfMenge.setDouble(null);
+									wtfLagerplatz.setText(null);
 									wtfArtikelnummer.requestFocus();
 
 									letzter_gebuchter_artikelDto = artikelDto;
@@ -373,6 +466,7 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 								wtfArtikelnummer.setText(null);
 								wtfBezeichnung.setText(null);
 								wtfSerienChargennummer.setText(null);
+								wtfLagerplatz.setText(null);
 
 								wnfMenge.setDouble(null);
 							} else {
@@ -438,6 +532,7 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 												inventurlisteDto, snrs);
 
 								wtfArtikelnummer.setText(null);
+								wtfLagerplatz.setText(null);
 								wtfBezeichnung.setText(null);
 								wtfSerienChargennummer.setText(null);
 								wnfMenge.setDouble(null);
@@ -473,8 +568,16 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 						.getBChargennrtragend())) {
 					wnfMenge.requestFocus();
 				}
-			} else if (e.getSource() == wnfMenge) {
+			} else if (e.getSource() == wnfMenge
+					|| e.getSource() == pa.getWnfEinzelmenge()
+					|| e.getSource() == pa.getWnfVerpackungen()) {
 				try {
+
+					if (e.getSource() == pa.getWnfEinzelmenge()
+							|| e.getSource() == pa.getWnfVerpackungen()) {
+						pa.focusLost(new FocusEvent(pa.getWnfEinzelmenge(), -1));
+					}
+
 					InventurlisteDto inventurlisteDto = new InventurlisteDto();
 
 					inventurlisteDto.setArtikelIId(artikelDto.getIId());
@@ -489,8 +592,15 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 					if (wtfSerienChargennummer.getText() != null
 							&& !wtfSerienChargennummer.getText().equals("")) {
 
-						String[] snrs = Helper.erzeugeSeriennummernArray(
-								wtfSerienChargennummer.getText(), null, false);
+						String[] snrs = null;
+						if (artikelDto.isSeriennrtragend()) {
+							snrs = Helper.erzeugeSeriennummernArray(
+									wtfSerienChargennummer.getText(), null,
+									false);
+						} else {
+							snrs = new String[] { wtfSerienChargennummer
+									.getText() };
+						}
 
 						if (snrs.length == 1) {
 
@@ -498,12 +608,12 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 									.setCSeriennrchargennr(wtfSerienChargennummer
 											.getText());
 
-							InventurlisteDto dto = null;
+							InventurlisteDto[] dto = null;
 							try {
 								dto = DelegateFactory
 										.getInstance()
 										.getInventurDelegate()
-										.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennr(
+										.inventurlisteFindByInventurIIdLagerIIdArtikelIIdCSeriennrchargennrOhneExc(
 												inventurIId,
 												artikelDto.getIId(),
 												(Integer) wcoLager
@@ -511,7 +621,7 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 												wtfSerienChargennummer
 														.getText());
 
-								if (dto != null) {
+								if (dto != null  && dto.length>0) {
 									DialogInventurlisteArtikelDoppelt d = new DialogInventurlisteArtikelDoppelt();
 									LPMain.getInstance()
 											.getDesktop()
@@ -574,9 +684,11 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 
 								if (i != iOptionDurchfuehren) {
 									wtfArtikelnummer.setText(null);
+									wtfLagerplatz.setText(null);
 									wtfBezeichnung.setText(null);
 									wtfSerienChargennummer.setText(null);
 									wnfMenge.setDouble(null);
+									pa.setVerpackungsmenge(null);
 									wtfArtikelnummer.requestFocus();
 
 									letzter_gebuchter_artikelDto = artikelDto;
@@ -591,9 +703,11 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 									.mehrereSeriennumernInventieren(
 											inventurlisteDto, snrs);
 							wtfArtikelnummer.setText(null);
+							wtfLagerplatz.setText(null);
 							wtfBezeichnung.setText(null);
 							wtfSerienChargennummer.setText(null);
 							wnfMenge.setDouble(null);
+							pa.setVerpackungsmenge(null);
 							wtfArtikelnummer.requestFocus();
 
 							letzter_gebuchter_artikelDto = artikelDto;
@@ -629,13 +743,18 @@ public class DialogInventurlisteQuickInsert extends JDialog implements
 										inventurlisteDto, bKorrekturbuchung);
 
 						wtfArtikelnummer.setText(null);
+						wtfLagerplatz.setText(null);
 						wtfBezeichnung.setText(null);
 						wtfSerienChargennummer.setText(null);
 						wnfMenge.setDouble(null);
+						pa.setVerpackungsmenge(null);
 						wtfArtikelnummer.requestFocus();
 
 						letzter_gebuchter_artikelDto = artikelDto;
 					}
+				} catch (EJBExceptionLP ex) {
+					panelInventurliste.handleException(
+							new ExceptionLP(ex.getCode(), ex), false);
 				} catch (Throwable ex) {
 					panelInventurliste.handleException(ex, false);
 				}

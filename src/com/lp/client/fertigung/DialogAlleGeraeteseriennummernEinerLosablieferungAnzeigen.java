@@ -76,7 +76,7 @@ public class DialogAlleGeraeteseriennummernEinerLosablieferungAnzeigen extends
 	public DialogAlleGeraeteseriennummernEinerLosablieferungAnzeigen(Integer losablieferungIId,
 			List<SeriennrChargennrMitMengeDto> list) throws Throwable {
 		super(LPMain.getInstance().getDesktop(), LPMain.getInstance()
-				.getTextRespectUISPr("fert.ablieferung.geraetesnrs"), true);
+				.getTextRespectUISPr("fert.geraeteseriennummern"), true);
 		
 		try {
 			jbInit();
@@ -148,9 +148,9 @@ public class DialogAlleGeraeteseriennummernEinerLosablieferungAnzeigen extends
 
 		String[] colNames = new String[] {
 				LPMain.getInstance()
-						.getTextRespectUISPr("fert.ablieferung.geraetesnrs.snr"),
+						.getTextRespectUISPr("fert.ablieferung.geraetesnrs"),
 				LPMain.getInstance().getTextRespectUISPr(
-						"fert.ablieferung.geraetesnrs") };
+						"fert.ablieferung.geraetesnrs.snr") };
 		jTableSnrChnrs = new JTable(data, colNames);
 		jTableSnrChnrs.setRowSelectionAllowed(true);
 

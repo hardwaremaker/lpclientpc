@@ -37,6 +37,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.kueche.service.KuecheFac;
 import com.lp.server.kueche.service.KuecheReportFac;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -46,8 +47,8 @@ public class KuecheReportDelegate extends Delegate {
 
 	public KuecheReportDelegate() throws Exception {
 		context = new InitialContext();
-		kuecheReportFac = (KuecheReportFac) context
-				.lookup("lpserver/KuecheReportFacBean/remote");
+		kuecheReportFac = lookupFac(context, KuecheReportFac.class);
+
 	}
 
 	public JasperPrintLP printKuechenauswertung1(java.sql.Timestamp tVon,

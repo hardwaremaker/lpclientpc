@@ -34,6 +34,7 @@ package com.lp.client.angebot;
 
 import javax.swing.event.ChangeEvent;
 
+import com.lp.client.fertigung.PanelZusatzstatus;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.InternalFrame;
@@ -46,18 +47,26 @@ import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.stammdatencrud.PanelStammdatenCRUD;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.system.service.MediaFac;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
 /**
- * <p><I>Diese Klasse kuemmert sich um die Wartung der Grunddaten des Angebots.</I> </p>
+ * <p>
+ * <I>Diese Klasse kuemmert sich um die Wartung der Grunddaten des Angebots.</I>
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellungsdatum <I>04.07.05</I></p>
+ * <p>
+ * Erstellungsdatum <I>04.07.05</I>
+ * </p>
  *
- * <p> </p>
+ * <p>
+ * </p>
  *
  * @author Uli Walch
  * @version $Revision: 1.4 $
@@ -79,6 +88,10 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 	private PanelSplit panelAngeboterledigungsgrundSP1 = null;
 	private PanelBasis panelAngeboterledigungsgrundBottomD1 = null;
 
+	private PanelQuery panelAkquisestatusTopQP1 = null;
+	private PanelSplit panelAkquisestatusSP1 = null;
+	private PanelBasis panelAkquisestatusBottomD1 = null;
+
 	private PanelQuery panelAngebottextTopQP;
 	private PanelSplit panelAngebottextSP;
 	private PanelStammdatenCRUD panelAngebottextBottomD;
@@ -87,9 +100,9 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 	private static final int IDX_PANEL_ANGEBOTPOSITIONART = 1;
 	private static final int IDX_PANEL_ANGEBOTERLEDIGUNGSGRUND = 2;
 	private static final int IDX_PANEL_ANGEBOTTEXT = 3;
+	private static final int IDX_PANEL_AKQUISESTATUS = 4;
 
-	public TabbedPaneAngebotGrunddaten(InternalFrame internalFrameI)
-			throws Throwable {
+	public TabbedPaneAngebotGrunddaten(InternalFrame internalFrameI) throws Throwable {
 		super(internalFrameI, LPMain.getTextRespectUISPr("lp.grunddaten"));
 		jbInit();
 		initComponents();
@@ -100,34 +113,21 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 	}
 
 	private void jbInit() throws Throwable {
-		insertTab(LPMain.getInstance().getTextRespectUISPr("angb.angebotart"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("angb.angebotart"),
-				IDX_PANEL_ANGEBOTART);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("angb.angebotart"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("angb.angebotart"), IDX_PANEL_ANGEBOTART);
 
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"angb.angebotpositionart"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"angb.angebotpositionart"),
-				IDX_PANEL_ANGEBOTPOSITIONART);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("angb.angebotpositionart"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("angb.angebotpositionart"), IDX_PANEL_ANGEBOTPOSITIONART);
 
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"angb.angeboterledigungsgrund"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"angb.angeboterledigungsgrund"),
+		insertTab(LPMain.getInstance().getTextRespectUISPr("angb.angeboterledigungsgrund"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("angb.angeboterledigungsgrund"),
 				IDX_PANEL_ANGEBOTERLEDIGUNGSGRUND);
 
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr("angb.angebotstext"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("angb.angebotstext"),
-				IDX_PANEL_ANGEBOTTEXT);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("angb.angebotstext"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("angb.angebotstext"), IDX_PANEL_ANGEBOTTEXT);
+
+		insertTab(LPMain.getInstance().getTextRespectUISPr("angb.akquisestatus"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("angb.akquisestatus"), IDX_PANEL_AKQUISESTATUS);
 
 		// default
 		refreshPanelAngebotart();
@@ -136,8 +136,7 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 
 		panelAngebotartTopQP1.eventYouAreSelected(false);
 
-		getInternalFrameAngebot().getAngebotartDto().setCNr(
-				panelAngebotartTopQP1.getSelectedId() + "");
+		getInternalFrameAngebot().getAngebotartDto().setCNr(panelAngebotartTopQP1.getSelectedId() + "");
 
 		addChangeListener(this);
 		getInternalFrame().addItemChangedListener(this);
@@ -154,55 +153,55 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 				panelAngebotartBottomD1.setKeyWhenDetailPanel(cNr);
 				panelAngebotartBottomD1.eventYouAreSelected(false);
 
-				panelAngebotartTopQP1.updateButtons(panelAngebotartBottomD1
-						.getLockedstateDetailMainKey());
+				panelAngebotartTopQP1.updateButtons(panelAngebotartBottomD1.getLockedstateDetailMainKey());
 			} else if (e.getSource() == panelAngebotpositionartTopQP1) {
-				String cNr = (String) panelAngebotpositionartTopQP1
-						.getSelectedId();
+				String cNr = (String) panelAngebotpositionartTopQP1.getSelectedId();
 				getInternalFrame().setKeyWasForLockMe(cNr);
 				panelAngebotpositionartBottomD1.setKeyWhenDetailPanel(cNr);
 				panelAngebotpositionartBottomD1.eventYouAreSelected(false);
 
 				panelAngebotpositionartTopQP1.updateButtons();
 			} else if (e.getSource() == panelAngeboterledigungsgrundTopQP1) {
-				String cNr = (String) panelAngeboterledigungsgrundTopQP1
-						.getSelectedId();
+				String cNr = (String) panelAngeboterledigungsgrundTopQP1.getSelectedId();
 				getInternalFrame().setKeyWasForLockMe(cNr);
 				panelAngeboterledigungsgrundBottomD1.setKeyWhenDetailPanel(cNr);
 				panelAngeboterledigungsgrundBottomD1.eventYouAreSelected(false);
 
 				panelAngeboterledigungsgrundTopQP1
-						.updateButtons(panelAngeboterledigungsgrundBottomD1
-								.getLockedstateDetailMainKey());
+						.updateButtons(panelAngeboterledigungsgrundBottomD1.getLockedstateDetailMainKey());
 			} else if (eI.getSource() == panelAngebottextTopQP) {
 				Integer iId = (Integer) panelAngebottextTopQP.getSelectedId();
 				getInternalFrame().setKeyWasForLockMe(iId + "");
 				panelAngebottextBottomD.setKeyWhenDetailPanel(iId);
 				panelAngebottextBottomD.eventYouAreSelected(false);
 
-				panelAngebottextTopQP.updateButtons(panelAngebottextBottomD
-						.getLockedstateDetailMainKey());
+				panelAngebottextTopQP.updateButtons(panelAngebottextBottomD.getLockedstateDetailMainKey());
+			}else if (eI.getSource() == panelAkquisestatusTopQP1) {
+				Integer iId = (Integer) panelAkquisestatusTopQP1.getSelectedId();
+				getInternalFrame().setKeyWasForLockMe(iId + "");
+				panelAkquisestatusBottomD1.setKeyWhenDetailPanel(iId);
+				panelAkquisestatusBottomD1.eventYouAreSelected(false);
+
+				panelAkquisestatusTopQP1.updateButtons(panelAkquisestatusBottomD1.getLockedstateDetailMainKey());
 			}
 		}
 
 		else if (eI.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			// hier kommt man nach upd im D bei einem 1:n hin.
 			if (eI.getSource() == panelAngebotartBottomD1) {
-				panelAngebotartTopQP1.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelAngebotartTopQP1.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelAngebotpositionartBottomD1) {
-				panelAngebotpositionartTopQP1.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelAngebotpositionartTopQP1.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelAngeboterledigungsgrundBottomD1) {
-				panelAngeboterledigungsgrundTopQP1
-						.updateButtons(new LockStateValue(
-								PanelBasis.LOCK_FOR_NEW));
+				panelAngeboterledigungsgrundTopQP1.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelAngebottextBottomD) {
-				panelAngebottextTopQP.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelAngebottextTopQP.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+				;
+			}else if (eI.getSource() == panelAkquisestatusBottomD1) {
+				panelAkquisestatusTopQP1.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			}
 		}
@@ -216,6 +215,8 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 				panelAngeboterledigungsgrundSP1.eventYouAreSelected(false);
 			} else if (e.getSource() == panelAngebottextBottomD) {
 				panelAngebottextSP.eventYouAreSelected(false);
+			}else if (e.getSource() == panelAkquisestatusBottomD1) {
+				panelAkquisestatusSP1.eventYouAreSelected(false);
 			}
 		}
 
@@ -226,14 +227,12 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 				panelAngebotartTopQP1.setSelectedId(oKey);
 				panelAngebotartSP1.eventYouAreSelected(false);
 			} else if (e.getSource() == panelAngebotpositionartBottomD1) {
-				Object oKey = panelAngebotpositionartBottomD1
-						.getKeyWhenDetailPanel();
+				Object oKey = panelAngebotpositionartBottomD1.getKeyWhenDetailPanel();
 				panelAngebotpositionartTopQP1.eventYouAreSelected(false);
 				panelAngebotpositionartTopQP1.setSelectedId(oKey);
 				panelAngebotpositionartSP1.eventYouAreSelected(false);
 			} else if (e.getSource() == panelAngeboterledigungsgrundBottomD1) {
-				Object oKey = panelAngeboterledigungsgrundBottomD1
-						.getKeyWhenDetailPanel();
+				Object oKey = panelAngeboterledigungsgrundBottomD1.getKeyWhenDetailPanel();
 				panelAngeboterledigungsgrundTopQP1.eventYouAreSelected(false);
 				panelAngeboterledigungsgrundTopQP1.setSelectedId(oKey);
 				panelAngeboterledigungsgrundSP1.eventYouAreSelected(false);
@@ -242,6 +241,11 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 				panelAngebottextTopQP.eventYouAreSelected(false);
 				panelAngebottextTopQP.setSelectedId(oKey);
 				panelAngebottextSP.eventYouAreSelected(false);
+			} else if (e.getSource() == panelAkquisestatusBottomD1) {
+				Object oKey = panelAkquisestatusBottomD1.getKeyWhenDetailPanel();
+				panelAkquisestatusTopQP1.eventYouAreSelected(false);
+				panelAkquisestatusTopQP1.setSelectedId(oKey);
+				panelAkquisestatusSP1.eventYouAreSelected(false);
 			}
 		}
 
@@ -268,7 +272,11 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 				panelAngebottextSP.eventYouAreSelected(false); // refresh auf
 																// das gesamte
 																// 1:n panel
-			}
+			}else if (e.getSource() == panelAkquisestatusBottomD1) {
+				panelAkquisestatusSP1.eventYouAreSelected(false); // refresh auf
+				// das gesamte
+				// 1:n panel
+}
 		}
 
 		else if (eI.getID() == ItemChangedEvent.ACTION_NEW) {
@@ -290,8 +298,7 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 				if (panelAngeboterledigungsgrundTopQP1.getSelectedId() == null) {
 					getInternalFrame().enableAllPanelsExcept(true);
 				}
-				panelAngeboterledigungsgrundBottomD1.eventActionNew(eI, true,
-						false);
+				panelAngeboterledigungsgrundBottomD1.eventActionNew(eI, true, false);
 				panelAngeboterledigungsgrundBottomD1.eventYouAreSelected(false);
 				setSelectedComponent(panelAngeboterledigungsgrundSP1);
 			} else if (eI.getSource() == panelAngebottextTopQP) {
@@ -301,6 +308,62 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 				panelAngebottextBottomD.eventActionNew(eI, true, false);
 				panelAngebottextBottomD.eventYouAreSelected(false);
 				setSelectedComponent(panelAngebottextSP);
+			}else if (eI.getSource() == panelAkquisestatusTopQP1) {
+				if (panelAkquisestatusTopQP1.getSelectedId() == null) {
+					getInternalFrame().enableAllPanelsExcept(true);
+				}
+				panelAkquisestatusBottomD1.eventActionNew(eI, true, false);
+				panelAkquisestatusBottomD1.eventYouAreSelected(false);
+				setSelectedComponent(panelAkquisestatusSP1);
+			}
+		} else if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
+			
+			if (e.getSource() == panelAkquisestatusTopQP1) {
+				int iPos = panelAkquisestatusTopQP1.getTable().getSelectedRow();
+
+				// wenn die Position nicht die erste ist
+				if (iPos > 0) {
+					Integer iIdPosition = (Integer) panelAkquisestatusTopQP1
+							.getSelectedId();
+
+					Integer iIdPositionMinus1 = (Integer) panelAkquisestatusTopQP1
+							.getTable().getValueAt(iPos - 1, 0);
+					DelegateFactory
+							.getInstance()
+							.getAngebotServiceDelegate()
+							.vertauscheAkquisestatus(iIdPosition,
+									iIdPositionMinus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+
+					panelAkquisestatusTopQP1.setSelectedId(iIdPosition);
+				}
+			}
+		}
+		if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
+			
+			
+			if (e.getSource() == panelAkquisestatusTopQP1) {
+				int iPos = panelAkquisestatusTopQP1.getTable().getSelectedRow();
+
+				// wenn die Position nicht die letzte ist
+				if (iPos < panelAkquisestatusTopQP1.getTable().getRowCount() - 1) {
+					Integer iIdPosition = (Integer) panelAkquisestatusTopQP1
+							.getSelectedId();
+
+					Integer iIdPositionPlus1 = (Integer) panelAkquisestatusTopQP1
+							.getTable().getValueAt(iPos + 1, 0);
+					DelegateFactory
+							.getInstance()
+							.getAngebotServiceDelegate()
+							.vertauscheAkquisestatus(iIdPosition,
+									iIdPositionPlus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelAkquisestatusTopQP1.setSelectedId(iIdPosition);
+				}
 			}
 		}
 	}
@@ -314,69 +377,59 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 		case IDX_PANEL_ANGEBOTART:
 			refreshPanelAngebotart();
 			panelAngebotartTopQP1.eventYouAreSelected(false);
-			setTitle(LPMain.getInstance()
-					.getTextRespectUISPr("angb.angebotart"));
+			setTitle(LPMain.getInstance().getTextRespectUISPr("angb.angebotart"));
 
-			panelAngebotartTopQP1.updateButtons(panelAngebotartBottomD1
-					.getLockedstateDetailMainKey());
+			panelAngebotartTopQP1.updateButtons(panelAngebotartBottomD1.getLockedstateDetailMainKey());
 
 			// wenn es fuer das tabbed pane noch keinen Eintrag gibt,
 			// die restlichen oberen Laschen deaktivieren, ausser ...
 			if (panelAngebotartTopQP1.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_ANGEBOTART, false);
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_ANGEBOTART, false);
 			}
 			break;
 
 		case IDX_PANEL_ANGEBOTPOSITIONART:
 			refreshPanelAngebotpositionart();
 			panelAngebotpositionartTopQP1.eventYouAreSelected(false);
-			setTitle(LPMain.getInstance().getTextRespectUISPr(
-					"angb.angebotpositionart"));
+			setTitle(LPMain.getInstance().getTextRespectUISPr("angb.angebotpositionart"));
 
-			panelAngebotpositionartTopQP1
-					.updateButtons(panelAngebotpositionartBottomD1
-							.getLockedstateDetailMainKey());
+			panelAngebotpositionartTopQP1.updateButtons(panelAngebotpositionartBottomD1.getLockedstateDetailMainKey());
 
 			// wenn es fuer das tabbed pane noch keinen Eintrag gibt,
 			// die restlichen oberen Laschen deaktivieren, ausser ...
 			if (panelAngebotpositionartTopQP1.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_ANGEBOTPOSITIONART, false);
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_ANGEBOTPOSITIONART, false);
 			}
 			break;
 
 		case IDX_PANEL_ANGEBOTERLEDIGUNGSGRUND:
 			refreshPanelAngeboterledigungsgrund();
 			panelAngeboterledigungsgrundTopQP1.eventYouAreSelected(false);
-			setTitle(LPMain.getInstance().getTextRespectUISPr(
-					"angb.angeboterledigungsgrund"));
+			setTitle(LPMain.getInstance().getTextRespectUISPr("angb.angeboterledigungsgrund"));
 
 			panelAngeboterledigungsgrundTopQP1
-					.updateButtons(panelAngeboterledigungsgrundBottomD1
-							.getLockedstateDetailMainKey());
+					.updateButtons(panelAngeboterledigungsgrundBottomD1.getLockedstateDetailMainKey());
 
-	
 			break;
 
 		case IDX_PANEL_ANGEBOTTEXT:
 			refreshPanelAngebottext();
 
-			panelAngebottextTopQP.setDefaultFilter(AngebotFilterFactory
-					.getInstance().createFKAngebottext());
+			panelAngebottextTopQP.setDefaultFilter(AngebotFilterFactory.getInstance().createFKAngebottext());
 			panelAngebottextTopQP.eventYouAreSelected(false);
-			setTitle(LPMain.getInstance().getTextRespectUISPr(
-					"angb.angebotstext"));
+			setTitle(LPMain.getInstance().getTextRespectUISPr("angb.angebotstext"));
 
-			panelAngebottextTopQP.updateButtons(panelAngebottextBottomD
-					.getLockedstateDetailMainKey());
+			panelAngebottextTopQP.updateButtons(panelAngebottextBottomD.getLockedstateDetailMainKey());
 
 			// wenn es fuer das tabbed pane noch keinen Eintrag gibt,
 			// die restlichen oberen Laschen deaktivieren, ausser ...
 			if (panelAngebottextTopQP.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_ANGEBOTTEXT, false);
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_ANGEBOTTEXT, false);
 			}
+			break;
+		case IDX_PANEL_AKQUISESTATUS:
+			refreshAkquisestatus();
+			panelAkquisestatusSP1.eventYouAreSelected(false);
 			break;
 		}
 	}
@@ -388,19 +441,16 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 		String[] aWhichStandardButtonIUse = {};
 
 		if (panelAngebotartSP1 == null) {
-			panelAngebotartTopQP1 = new PanelQuery(null, null,
-					QueryParameters.UC_ID_ANGEBOTART, aWhichStandardButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.angebotart"), true);
+			panelAngebotartTopQP1 = new PanelQuery(null, null, QueryParameters.UC_ID_ANGEBOTART,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angebotart"), true);
 
-			panelAngebotartBottomD1 = new PanelStammdatenCRUD(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.angebotart"), null,
-					HelperClient.SCRUD_ANGEBOTART_FILE,
-					getInternalFrameAngebot(), HelperClient.LOCKME_ANGEBOTART);
+			panelAngebotartBottomD1 = new PanelStammdatenCRUD(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angebotart"), null,
+					HelperClient.SCRUD_ANGEBOTART_FILE, getInternalFrameAngebot(), HelperClient.LOCKME_ANGEBOTART);
 
-			panelAngebotartSP1 = new PanelSplit(getInternalFrame(),
-					panelAngebotartBottomD1, panelAngebotartTopQP1, 200);
+			panelAngebotartSP1 = new PanelSplit(getInternalFrame(), panelAngebotartBottomD1, panelAngebotartTopQP1,
+					200);
 
 			setComponentAt(IDX_PANEL_ANGEBOTART, panelAngebotartSP1);
 		}
@@ -410,25 +460,19 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 		String[] aWhichStandardButtonIUse = {};
 
 		if (panelAngebotpositionartSP1 == null) {
-			panelAngebotpositionartTopQP1 = new PanelQuery(null, null,
-					QueryParameters.UC_ID_ANGEBOTPOSITIONART,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"angb.angebotpositionart"), true);
+			panelAngebotpositionartTopQP1 = new PanelQuery(null, null, QueryParameters.UC_ID_ANGEBOTPOSITIONART,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angebotpositionart"), true);
 
-			panelAngebotpositionartBottomD1 = new PanelStammdatenCRUD(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.angebotpositionart"),
-					null, HelperClient.SCRUD_ANGEBOTPOSITIONART_FILE,
-					getInternalFrameAngebot(),
+			panelAngebotpositionartBottomD1 = new PanelStammdatenCRUD(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angebotpositionart"), null,
+					HelperClient.SCRUD_ANGEBOTPOSITIONART_FILE, getInternalFrameAngebot(),
 					HelperClient.LOCKME_ANGEBOTPOSITIONART);
 
-			panelAngebotpositionartSP1 = new PanelSplit(getInternalFrame(),
-					panelAngebotpositionartBottomD1,
+			panelAngebotpositionartSP1 = new PanelSplit(getInternalFrame(), panelAngebotpositionartBottomD1,
 					panelAngebotpositionartTopQP1, 200);
 
-			setComponentAt(IDX_PANEL_ANGEBOTPOSITIONART,
-					panelAngebotpositionartSP1);
+			setComponentAt(IDX_PANEL_ANGEBOTPOSITIONART, panelAngebotpositionartSP1);
 
 			// liste soll sofort angezeigt werden
 			panelAngebotpositionartTopQP1.eventYouAreSelected(true);
@@ -440,27 +484,19 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 
 		if (panelAngeboterledigungsgrundSP1 == null) {
 			panelAngeboterledigungsgrundTopQP1 = new PanelQuery(null,
-					AngebotFilterFactory.getInstance()
-							.createFKAngeboterledigungsgrund(),
-					QueryParameters.UC_ID_ANGEBOTERLEDIGUNGSGRUND,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"angb.angeboterledigungsgrund"), true);
+					AngebotFilterFactory.getInstance().createFKAngeboterledigungsgrund(),
+					QueryParameters.UC_ID_ANGEBOTERLEDIGUNGSGRUND, aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angeboterledigungsgrund"), true);
 
-			panelAngeboterledigungsgrundBottomD1 = new PanelStammdatenCRUD(
-					getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr(
-							"angb.angeboterledigungsgrund"), null,
-					HelperClient.SCRUD_ANGEBOTERLEDIGUNGSGRUND_FILE,
-					getInternalFrameAngebot(),
+			panelAngeboterledigungsgrundBottomD1 = new PanelStammdatenCRUD(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angeboterledigungsgrund"), null,
+					HelperClient.SCRUD_ANGEBOTERLEDIGUNGSGRUND_FILE, getInternalFrameAngebot(),
 					HelperClient.LOCKME_ANGEBOTERLEDIGUNGSGRUND);
 
-			panelAngeboterledigungsgrundSP1 = new PanelSplit(
-					getInternalFrame(), panelAngeboterledigungsgrundBottomD1,
+			panelAngeboterledigungsgrundSP1 = new PanelSplit(getInternalFrame(), panelAngeboterledigungsgrundBottomD1,
 					panelAngeboterledigungsgrundTopQP1, 200);
 
-			setComponentAt(IDX_PANEL_ANGEBOTERLEDIGUNGSGRUND,
-					panelAngeboterledigungsgrundSP1);
+			setComponentAt(IDX_PANEL_ANGEBOTERLEDIGUNGSGRUND, panelAngeboterledigungsgrundSP1);
 		}
 	}
 
@@ -469,49 +505,55 @@ public class TabbedPaneAngebotGrunddaten extends TabbedPane {
 
 			// der Kopftext muss in der Konzerndatensprache hinterlegt sein oder
 			// werden
-			DelegateFactory
-					.getInstance()
-					.getAngebotServiceDelegate()
-					.angebottextFindByMandantCNrLocaleCNrCNr(
-							LPMain.getInstance().getTheClient()
-									.getLocUiAsString(),
-							MediaFac.MEDIAART_KOPFTEXT);
+			DelegateFactory.getInstance().getAngebotServiceDelegate().angebottextFindByMandantCNrLocaleCNrCNr(
+					LPMain.getInstance().getTheClient().getLocUiAsString(), MediaFac.MEDIAART_KOPFTEXT);
 			// der Fusstext muss in der Konzerndatensprache hinterlegt sein oder
 			// werden
-			DelegateFactory
-					.getInstance()
-					.getAngebotServiceDelegate()
-					.angebottextFindByMandantCNrLocaleCNrCNr(
-							LPMain.getInstance().getTheClient()
-									.getLocUiAsString(),
-							MediaFac.MEDIAART_FUSSTEXT);
+			DelegateFactory.getInstance().getAngebotServiceDelegate().angebottextFindByMandantCNrLocaleCNrCNr(
+					LPMain.getInstance().getTheClient().getLocUiAsString(), MediaFac.MEDIAART_FUSSTEXT);
 
 			String[] aWhichStandardButtonIUse = null;
 
-			panelAngebottextTopQP = new PanelQuery(null, null,
-					QueryParameters.UC_ID_ANGEBOTTEXT,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"angb.angebotstext"), true);
+			panelAngebottextTopQP = new PanelQuery(null, null, QueryParameters.UC_ID_ANGEBOTTEXT,
+					aWhichStandardButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angebotstext"), true);
 
-			panelAngebottextBottomD = new PanelStammdatenCRUD(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.angebotstext"), null,
-					HelperClient.SCRUD_ANGEBOTTEXT_FILE,
-					getInternalFrameAngebot(), HelperClient.LOCKME_ANGEBOTEXT);
+			panelAngebottextBottomD = new PanelStammdatenCRUD(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.angebotstext"), null,
+					HelperClient.SCRUD_ANGEBOTTEXT_FILE, getInternalFrameAngebot(), HelperClient.LOCKME_ANGEBOTEXT);
 
-			panelAngebottextSP = new PanelSplit(getInternalFrame(),
-					panelAngebottextBottomD, panelAngebottextTopQP,
-					400 - ((PanelStammdatenCRUD) panelAngebottextBottomD)
-							.getAnzahlControls() * 30);
+			panelAngebottextSP = new PanelSplit(getInternalFrame(), panelAngebottextBottomD, panelAngebottextTopQP,
+					400 - ((PanelStammdatenCRUD) panelAngebottextBottomD).getAnzahlControls() * 30);
 
 			setComponentAt(IDX_PANEL_ANGEBOTTEXT, panelAngebottextSP);
 		}
 	}
 
+	private void refreshAkquisestatus() throws Throwable {
+
+		if (panelAkquisestatusSP1 == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
+					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1 };
+			panelAkquisestatusTopQP1 = new PanelQuery(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_AKQUISESTATUS, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.akquisestatus"), true); // liste refresh wenn lasche
+																							// geklickt wurde
+
+			panelAkquisestatusBottomD1 = new PanelAkquisestatus(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.detail"), null);
+
+			panelAkquisestatusSP1 = new PanelSplit(getInternalFrame(), panelAkquisestatusBottomD1,
+					panelAkquisestatusTopQP1, 200);
+			setComponentAt(IDX_PANEL_AKQUISESTATUS, panelAkquisestatusSP1);
+
+			// liste soll sofort angezeigt werden
+			panelAkquisestatusTopQP1.eventYouAreSelected(true);
+		}
+	}
+
 	private void setTitle(String cTitleI) {
-		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
-				cTitleI);
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN, cTitleI);
 		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
 	}
 

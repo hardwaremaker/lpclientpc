@@ -283,4 +283,15 @@ private TabbedPaneAnfrage tpAnfrage = null;
   public void setAnfrageartDto(AnfrageartDto anfrageartDto) {
     this.anfrageartDto = anfrageartDto;
   }
+  
+  @Override
+	public void enableAllPanelsExcept(boolean enableI) {
+		super.enableAllPanelsExcept(enableI);
+		
+		try {
+			getTabbedPaneAnfrage().disableOnlyTabs();
+		} catch (Throwable e) {
+			myLogger.error("Fehler beim Disablen von Tabs im Modul Anfrage", e);
+		}
+	}
 }

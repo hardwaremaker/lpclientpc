@@ -316,7 +316,7 @@ private Integer mahnlaufIId = null;
 
     if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_EINER)) {
       // wenn noch keiner gewaehlt ist, dann geht der Dialog auf
-      if (vertreterDto.getIId() == null) {
+      if (vertreterDto.getIId() == null && isInitialized()) {
         wbuVertreter.doClick();
       }
 

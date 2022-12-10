@@ -65,6 +65,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.client.stueckliste.StuecklisteFilterFactory;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.fertigung.service.FertigungReportFac;
+import com.lp.server.fertigung.service.LosDto;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.stueckliste.service.FertigungsgruppeDto;
 import com.lp.server.system.service.KostenstelleDto;
@@ -84,11 +85,18 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 	static final public String ACTION_SPECIAL_KOSTENSTELLE_FROM_LISTE = "ACTION_SPECIAL_KOSTENSTELLE_FROM_LISTE";
 	static final public String ACTION_SPECIAL_KUNDE_FROM_LISTE = "ACTION_SPECIAL_KUNDE_FROM_LISTE";
 	static final public String ACTION_SPECIAL_FERTIGUNGSGRUPPE_FROM_LISTE = "ACTION_SPECIAL_FERTIGUNGSGRUPPE_FROM_LISTE";
+
+	static final public String ACTION_SPECIAL_LOS_VON_FROM_LISTE = "ACTION_SPECIAL_LOS_VON_FROM_LISTE";
+	static final public String ACTION_SPECIAL_LOS_BIS_FROM_LISTE = "ACTION_SPECIAL_LOS_BIS_FROM_LISTE";
+
 	private WrapperSelectField wsfArtikelgruppe = null;
 
 	private PanelQueryFLR panelQueryFLRKunde = null;
 	private PanelQueryFLR panelQueryFLRKostenstelle = null;
 	private PanelQueryFLR panelQueryFLRFertigungsgruppe = null;
+
+	private PanelQueryFLR panelQueryFLRLos_von = null;
+	private PanelQueryFLR panelQueryFLRLos_bis = null;
 
 	private Integer kundeIId = null;
 	private Integer fertigungsgruppeIId = null;
@@ -96,7 +104,10 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 	private WrapperButton wbuKunde = new WrapperButton();
 	private WrapperTextField wtfKunde = new WrapperTextField();
 	private WrapperButton wbuKostenstelle = new WrapperButton();
-	private WrapperTextField wtfKostenstelle = new WrapperTextField();
+	private WrapperTextField wtfKostenstelle = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
+
+	private Integer losIIdVon = null;
+	private Integer losIIdBis = null;
 
 	private WrapperCheckBox wcbSollstundenbetrachtung = new WrapperCheckBox();
 
@@ -105,9 +116,9 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 
 	private WrapperDateField wdfStichtag = new WrapperDateField();
 
-	private WrapperLabel wlaBelegnrvon = new WrapperLabel();
+	private WrapperButton wbuBelegnrvon = new WrapperButton();
 	private WrapperTextField wtfBelegnrvon = new WrapperTextField();
-	private WrapperLabel wlaBelegnrbis = new WrapperLabel();
+	private WrapperButton wbuBelegnrbis = new WrapperButton();
 	private WrapperTextField wtfBelegnrbis = new WrapperTextField();
 	private WrapperSelectField wsfMaschine = new WrapperSelectField(
 			WrapperSelectField.MASCHINE, getInternalFrame(), true);
@@ -131,11 +142,18 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 
-		wlaBelegnrvon.setText(LPMain.getInstance().getTextRespectUISPr(
+		wbuBelegnrvon.setText(LPMain.getInstance().getTextRespectUISPr(
 				"label.losnummer")
 				+ " von");
-		wlaBelegnrbis.setText(LPMain.getInstance()
+		wbuBelegnrbis.setText(LPMain.getInstance()
 				.getTextRespectUISPr("lp.bis"));
+		wbuBelegnrbis.addActionListener(this);
+		wbuBelegnrbis.setActionCommand(this.ACTION_SPECIAL_LOS_BIS_FROM_LISTE);
+		wtfBelegnrbis.setActivatable(false);
+		
+		wbuBelegnrvon.addActionListener(this);
+		wbuBelegnrvon.setActionCommand(this.ACTION_SPECIAL_LOS_VON_FROM_LISTE);
+		wtfBelegnrvon.setActivatable(false);
 
 		wcbOptionStichtag.setMandatoryField(true);
 
@@ -209,8 +227,8 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 		jpaWorkingOn.add(wtfKostenstelle, new GridBagConstraints(1, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbSollstundenbetrachtung, new GridBagConstraints(2, iZeile,
-				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbSollstundenbetrachtung, new GridBagConstraints(2,
+				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wbuFertigungsgruppe, new GridBagConstraints(0, iZeile,
@@ -243,14 +261,14 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 						0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaBelegnrvon, new GridBagConstraints(0, iZeile, 1, 1,
+		jpaWorkingOn.add(wbuBelegnrvon, new GridBagConstraints(0, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfBelegnrvon, new GridBagConstraints(1, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wlaBelegnrbis, new GridBagConstraints(2, iZeile, 1, 1,
+		jpaWorkingOn.add(wbuBelegnrbis, new GridBagConstraints(2, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfBelegnrbis, new GridBagConstraints(3, iZeile, 1, 1,
@@ -267,6 +285,24 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 
 	public String getReportname() {
 		return FertigungReportFac.REPORT_OFFENE_AG;
+	}
+
+	private void dialogQueryLosVon(ActionEvent e) throws Throwable {
+		panelQueryFLRLos_von = FertigungFilterFactory.getInstance()
+				.createPanelFLRLose(getInternalFrame(), null, true);
+		if (losIIdVon != null) {
+			panelQueryFLRLos_von.setSelectedId(losIIdVon);
+		}
+		new DialogQuery(panelQueryFLRLos_von);
+	}
+
+	private void dialogQueryLosBis(ActionEvent e) throws Throwable {
+		panelQueryFLRLos_bis = FertigungFilterFactory.getInstance()
+				.createPanelFLRLose(getInternalFrame(), null, true);
+		if (losIIdBis != null) {
+			panelQueryFLRLos_bis.setSelectedId(losIIdBis);
+		}
+		new DialogQuery(panelQueryFLRLos_bis);
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
@@ -299,6 +335,20 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 						.fertigungsgruppeFindByPrimaryKey(key);
 				fertigungsgruppeIId = fertigungsgruppeDto.getIId();
 				wtfFertigungsgruppe.setText(fertigungsgruppeDto.getCBez());
+			} else if (e.getSource() == panelQueryFLRLos_von) {
+				Integer key = (Integer) ((ISourceEvent) e.getSource())
+						.getIdSelected();
+				LosDto losDto = DelegateFactory.getInstance()
+						.getFertigungDelegate().losFindByPrimaryKey(key);
+				losIIdVon = key;
+				wtfBelegnrvon.setText(losDto.getCNr());
+			} else if (e.getSource() == panelQueryFLRLos_bis) {
+				Integer key = (Integer) ((ISourceEvent) e.getSource())
+						.getIdSelected();
+				LosDto losDto = DelegateFactory.getInstance()
+						.getFertigungDelegate().losFindByPrimaryKey(key);
+				losIIdBis = key;
+				wtfBelegnrbis.setText(losDto.getCNr());
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
 			if (e.getSource() == panelQueryFLRKostenstelle) {
@@ -310,6 +360,12 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 			} else if (e.getSource() == panelQueryFLRFertigungsgruppe) {
 				wtfFertigungsgruppe.setText(null);
 				fertigungsgruppeIId = null;
+			} else if (e.getSource() == panelQueryFLRLos_von) {
+				wtfBelegnrvon.setText(null);
+				losIIdVon = null;
+			} else if (e.getSource() == panelQueryFLRLos_bis) {
+				wtfBelegnrbis.setText(null);
+				losIIdBis = null;
 			}
 
 		}
@@ -343,6 +399,12 @@ public class ReportOffeneAg extends PanelBasis implements PanelReportIfJRDS {
 		} else if (e.getActionCommand().equals(
 				ACTION_SPECIAL_FERTIGUNGSGRUPPE_FROM_LISTE)) {
 			dialogQueryFertigungsgruppeFromListe(e);
+		} else if (e.getActionCommand().equals(
+				ACTION_SPECIAL_LOS_VON_FROM_LISTE)) {
+			dialogQueryLosVon(e);
+		} else if (e.getActionCommand().equals(
+				ACTION_SPECIAL_LOS_BIS_FROM_LISTE)) {
+			dialogQueryLosBis(e);
 		}
 	}
 

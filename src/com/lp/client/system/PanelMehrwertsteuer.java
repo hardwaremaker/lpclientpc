@@ -42,9 +42,12 @@ import java.util.EventObject;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -61,6 +64,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.system.service.MwstsatzDto;
 import com.lp.server.system.service.MwstsatzbezDto;
+import com.lp.server.util.MwstsatzId;
 
 @SuppressWarnings("static-access")
 public class PanelMehrwertsteuer extends PanelBasis {
@@ -74,7 +78,6 @@ public class PanelMehrwertsteuer extends PanelBasis {
 	private JPanel jpaWorkingOn = new JPanel();
 	private JPanel jpaButtonAction = null;
 	private Border border = null;
-	private GridBagLayout gridBagLayoutWorkingPanel = null;
 	private WrapperLabel wlaBezeichnung = new WrapperLabel();
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 	private MwstsatzDto mwstsatzDto = null;
@@ -83,13 +86,13 @@ public class PanelMehrwertsteuer extends PanelBasis {
 	private WrapperDateField wdfGueltigab = null;
 	private WrapperLabel wlaGueltigab = null;
 	private WrapperLabel wlaFibucode = new WrapperLabel();
-	private WrapperNumberField wtfFibucode = new WrapperNumberField();
 
 	private PanelQueryFLR panelQueryFLRMwstbez = null;
 	private WrapperButton wbuMwstbez = null;
 
 	private Date currentDate = null;
 	private final String ACTION_SPECIAL_MWSTBEZ = "ACTION_SPECIAL_MWSTBEZ";
+	private PanelMwstsatzCodes panelSteuercodes;
 
 	public PanelMehrwertsteuer(InternalFrame internalFrame, String add2TitleI,
 			Object pk) throws Throwable {
@@ -113,6 +116,7 @@ public class PanelMehrwertsteuer extends PanelBasis {
 		super.eventActionNew(eventObject, true, false);
 		leereAlleFelder(this);
 		mwstsatzDto = new MwstsatzDto();
+		panelSteuercodes.resetData();
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -120,16 +124,12 @@ public class PanelMehrwertsteuer extends PanelBasis {
 		wtfBezeichnung.setText(mwstsatzDto.getMwstsatzbezDto()
 				.getCBezeichnung());
 		wdfGueltigab.setDate(mwstsatzDto.getDGueltigab());
-		wtfFibucode.setInteger(mwstsatzDto.getIFibumwstcode());
 	}
 
 	protected void components2Dto() throws Throwable {
 		mwstsatzDto.setIIMwstsatzbezId(mwstsatzDto.getIIMwstsatzbezId());
 		mwstsatzDto.setFMwstsatz(wtfMwst.getDouble());
 		mwstsatzDto.setDGueltigab(wdfGueltigab.getTimestamp());
-		if (wtfFibucode.getText() != null) {
-			mwstsatzDto.setIFibumwstcode(wtfFibucode.getInteger());
-		}
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
@@ -163,7 +163,7 @@ public class PanelMehrwertsteuer extends PanelBasis {
 		this.setActionMap(null);
 
 		wbuMwstbez = new WrapperButton();
-		wbuMwstbez.setText(LPMain.getInstance().getTextRespectUISPr("lp.mwst"));
+		wbuMwstbez.setText(LPMain.getInstance().getTextRespectUISPr("lp.mwstbezeichnung"));
 		wbuMwstbez.setActionCommand(this.ACTION_SPECIAL_MWSTBEZ);
 		wbuMwstbez.addActionListener(this);
 		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -187,46 +187,58 @@ public class PanelMehrwertsteuer extends PanelBasis {
 
 		wlaMwst.setText(LPMain.getInstance().getTextRespectUISPr("lp.mwst"));
 		wtfMwst.setMandatoryField(true);
+		
+		panelSteuercodes = new PanelMwstsatzCodes(getInternalFrame(), "");
 
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
-		gridBagLayoutWorkingPanel = new GridBagLayout();
-		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+//		gridBagLayoutWorkingPanel = new GridBagLayout();
+//		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+//		jpaWorkingOn.add(wbuMwstbez, new GridBagConstraints(0, 0, 1, 1, 0.05,
+//				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+//		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, 0, 1, 1,
+//				0.1, 0.0, GridBagConstraints.CENTER,
+//				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+//		jpaWorkingOn.add(wlaMwst, new GridBagConstraints(0, 1, 1, 1, 0.05, 0.0,
+//				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+//		jpaWorkingOn.add(wtfMwst, new GridBagConstraints(1, 1, 1, 1, 0.1, 0.0,
+//				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+//		jpaWorkingOn.add(wlaGueltigab, new GridBagConstraints(0, 2, 1, 1, 0.05,
+//				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+//		jpaWorkingOn.add(wdfGueltigab, new GridBagConstraints(1, 2, 1, 1, 0.1,
+//				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+//		jpaWorkingOn.add(wlaFibucode, new GridBagConstraints(0, 3, 1, 1, 0.05,
+//				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+//		jpaWorkingOn.add(panelSteuercodes, new GridBagConstraints(1, 3, 1, 1, 0.1,
+//				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+		
+		JScrollPane scrollPaneSteuercodes = new JScrollPane(panelSteuercodes);
+		scrollPaneSteuercodes.setBorder(BorderFactory.createTitledBorder(""));
+		HvLayout layout = HvLayoutFactory.create(jpaWorkingOn, "", "[5%,fill|20%,fill|70%,fill|5%,fill]", "10[|||]10");
+		layout
+			.add(wbuMwstbez).skip(1).add(wtfBezeichnung).wrap()
+			.add(wlaMwst).skip(1).add(wtfMwst).wrap()
+			.add(wlaGueltigab).skip(1).add(wdfGueltigab).wrap()
+			.add(wlaFibucode, "skip 1, aligny top").add(scrollPaneSteuercodes).wrap();
+		
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
+						0, 0, 0), 0, 0));
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
 				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
 		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wbuMwstbez, new GridBagConstraints(0, 0, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, 0, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaMwst, new GridBagConstraints(0, 1, 1, 1, 0.05, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfMwst, new GridBagConstraints(1, 1, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaGueltigab, new GridBagConstraints(0, 2, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfGueltigab, new GridBagConstraints(1, 2, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaFibucode, new GridBagConstraints(0, 3, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfFibucode, new GridBagConstraints(1, 3, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
+		
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
 
@@ -266,12 +278,12 @@ public class PanelMehrwertsteuer extends PanelBasis {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {
-			mwstsatzDto = DelegateFactory.getInstance().getMandantDelegate()
-					.mwstsatzFindByPrimaryKey((Integer) key);
+			mwstsatzDto = DelegateFactory.mandant().mwstsatzFindByPrimaryKey((Integer) key);
+			panelSteuercodes.loadData(new MwstsatzId(mwstsatzDto.getIId()));
 			dto2Components();
 		}
 	}
-
+	
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
 		super.eventActionUpdate(aE, false);
@@ -282,14 +294,12 @@ public class PanelMehrwertsteuer extends PanelBasis {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (mwstsatzDto.getIId() == null) {
-
-				mwstsatzDto.setIId(DelegateFactory.getInstance()
-						.getMandantDelegate().createMwstsatz(mwstsatzDto));
+				mwstsatzDto.setIId(DelegateFactory.mandant().createMwstsatz(mwstsatzDto));
 				setKeyWhenDetailPanel(mwstsatzDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getMandantDelegate()
-						.updateMwstsatz(mwstsatzDto);
+				DelegateFactory.mandant().updateMwstsatz(mwstsatzDto);
 			}
+			panelSteuercodes.saveData(new MwstsatzId(mwstsatzDto.getIId()));
 			super.eventActionSave(e, true);
 
 			eventYouAreSelected(false);

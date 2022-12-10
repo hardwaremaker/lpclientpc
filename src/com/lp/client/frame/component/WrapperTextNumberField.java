@@ -41,6 +41,8 @@ import java.util.regex.Pattern;
 
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -70,8 +72,7 @@ import com.lp.util.EJBExceptionLP;
  * @author Martin Bluehweis
  * @version $Revision: 1.9 $
  */
-public class WrapperTextNumberField extends JTextField implements IControl,
-		IDirektHilfe {
+public class WrapperTextNumberField extends JTextField implements IControl, IDirektHilfe, DocumentListener {
 
 	/**
 	 * 
@@ -97,7 +98,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 		this.setMask(buildMask());
 		this.setHorizontalAlignment(SwingConstants.RIGHT);
 		this.addFocusListener(new WrapperTextNumberField_focusAdapter(this));
-
+		this.getDocument().addDocumentListener(this);
 		new FocusHighlighter(this);
 		cib = new CornerInfoButton(this);
 	}
@@ -119,8 +120,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 															// sein kann
 			regExp = "\\d{0," + mask.length() + "}";
 		} else {
-			LpLogger.getInstance(this.getClass()).warn(
-					"Mask=\"" + mask + "\" is not correct");
+			LpLogger.getInstance(this.getClass()).warn("Mask=\"" + mask + "\" is not correct");
 			this.regPattern = null;
 			return;
 		}
@@ -143,8 +143,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 	}
 
 	/**
-	 * @param text
-	 *            String
+	 * @param text String
 	 */
 	public void setText(String text) {
 		// Ignorieren des vom Designer generierten Codes
@@ -155,6 +154,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 		} else {
 			super.setText("");
 		}
+		setForeground(Defaults.getInstance().getDefaultTextColor());
 	}
 
 	public String getText() {
@@ -242,8 +242,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 	/**
 	 * setMandatoryField
 	 * 
-	 * @param isMandatoryField
-	 *            boolean
+	 * @param isMandatoryField boolean
 	 */
 	public void setMandatoryField(boolean isMandatoryField) {
 		if (isMandatoryFieldDB == false || isMandatoryField == true) {
@@ -266,13 +265,12 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 	/**
 	 * setActivatable
 	 * 
-	 * @param isActivatable
-	 *            boolean
+	 * @param isActivatable boolean
 	 */
 	public void setActivatable(boolean isActivatable) {
-		this.isActivatable = isActivatable;		
-		if(!isActivatable) {
-			setEditable(false) ;
+		this.isActivatable = isActivatable;
+		if (!isActivatable) {
+			setEditable(false);
 		}
 	}
 
@@ -301,15 +299,14 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 	protected class NumberDocument extends PlainDocument {
 
 		/**
-	 * 
-	 */
+		* 
+		*/
 		private static final long serialVersionUID = 1L;
 
 		public void remove(int offs, int len) throws BadLocationException {
 			if (regPattern != null) {
 				String text = WrapperTextNumberField.this.getText();
-				StringBuffer stringBuffer = new StringBuffer(
-						(text == null) ? "" : text);
+				StringBuffer stringBuffer = new StringBuffer((text == null) ? "" : text);
 
 				stringBuffer.delete(offs, offs + len);
 				if (!regPattern.matcher(stringBuffer).matches()) {
@@ -320,8 +317,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 			super.remove(offs, len);
 		}
 
-		public void insertString(int offs, String str, AttributeSet a)
-				throws BadLocationException {
+		public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
 			if (str != null && str.length() > maximumDigits) {
 				str = str.substring(0, maximumDigits);
 				setBackground(HelperClient.getInvalidDataColor());
@@ -332,8 +328,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 				if (regPattern != null) {
 					StringBuffer stringBuffer = new StringBuffer("");
 					if (WrapperTextNumberField.this.getText() != null) {
-						stringBuffer = new StringBuffer(
-								WrapperTextNumberField.this.getText());
+						stringBuffer = new StringBuffer(WrapperTextNumberField.this.getText());
 					}
 					stringBuffer.insert(offs, strInsert.toString());
 					if (!regPattern.matcher(stringBuffer).matches()) {
@@ -347,6 +342,7 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 	}
 
 	public void setInteger(Integer iWert) {
+		setForeground(Defaults.getInstance().getDefaultTextColor());
 		if (iWert != null) {
 			this.setText(iWert.toString());
 		} else {
@@ -361,19 +357,53 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 			BigDecimal bd = new BigDecimal(sText);
 			if (bd.intValue() > Integer.MAX_VALUE) {
 				// MB: dd.mm.05 dieses printStackTrace ist absichtlich!
-				new IllegalArgumentException(
-						"bd.intValue() > Integer.MAX_VALUE").printStackTrace();
+				new IllegalArgumentException("bd.intValue() > Integer.MAX_VALUE").printStackTrace();
 				iWert = new Integer(-1);
 			} else {
 				try {
 					iWert = new Integer(Integer.parseInt(sText));
 				} catch (NumberFormatException ex) {
-					throw new ExceptionLP(
-							EJBExceptionLP.FEHLER_UNGUELTIGE_ZAHLENEINGABE, ex);
+					throw new ExceptionLP(EJBExceptionLP.FEHLER_UNGUELTIGE_ZAHLENEINGABE, ex);
 				}
 			}
 		}
 		return iWert;
+	}
+
+	private void validateInteger() {
+		setForeground(Defaults.getInstance().getDefaultTextColor());
+		try {
+
+			if (this.getInteger() != null) {
+
+				if ((this.minimumValue != null && this.getInteger().intValue() < this.minimumValue.intValue())
+						|| (this.maximumValue != null && this.getInteger().intValue() > this.maximumValue.intValue())) {
+
+					setForeground(Defaults.getInstance().getInvalidTextColor());
+				} else {
+					setForeground(Defaults.getInstance().getValidTextColor());
+				}
+			}
+
+		} catch (
+
+		ExceptionLP e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+
+	public void insertUpdate(DocumentEvent e) {
+		validateInteger();
+	}
+
+	public void removeUpdate(DocumentEvent e) {
+		validateInteger();
+	}
+
+	public void changedUpdate(DocumentEvent e) {
+		validateInteger();
+
 	}
 
 	public void setMinimumValue(Integer minimumValue) {
@@ -385,24 +415,20 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 	}
 
 	public void setMinimumSize(Dimension d) {
-		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setMaximumSize(Dimension d) {
-		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setPreferredSize(Dimension d) {
-		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	/**
 	 * @deprecated don't use this method
-	 * @param bEnabled
-	 *            boolean
+	 * @param bEnabled boolean
 	 */
 	public void setEnabled(boolean bEnabled) {
 		super.setEnabled(bEnabled);
@@ -422,18 +448,19 @@ public class WrapperTextNumberField extends JTextField implements IControl,
 	public void removeCib() {
 		cib = null;
 	}
+
 	@Override
 	public String getToken() {
 		return cib.getToolTipToken();
 	}
+
 	@Override
 	public boolean hasContent() throws Throwable {
 		return getText() != null && !getText().trim().isEmpty();
 	}
 }
 
-class WrapperTextNumberField_focusAdapter implements
-		java.awt.event.FocusListener {
+class WrapperTextNumberField_focusAdapter implements java.awt.event.FocusListener {
 	private WrapperTextNumberField adaptee;
 
 	WrapperTextNumberField_focusAdapter(WrapperTextNumberField adaptee) {

@@ -68,6 +68,7 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class ReportKuechenauswertung1 extends PanelBasis implements
@@ -129,11 +130,10 @@ public class ReportKuechenauswertung1 extends PanelBasis implements
 
 		wlaDatumVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
 		wlaDatumBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
-		wdfDatumVon.setTimestamp(new java.sql.Timestamp(System
-				.currentTimeMillis() - 24 * 3600000));
-		wdfDatumBis.setTimestamp(new java.sql.Timestamp(System
-				.currentTimeMillis() - 24 * 3600000));
-
+		wdfDatumVon.setTimestamp(Helper.addiereTageZuTimestamp(new java.sql.Timestamp(System
+				.currentTimeMillis()),-1));
+		wdfDatumBis.setTimestamp(Helper.addiereTageZuTimestamp(new java.sql.Timestamp(System
+				.currentTimeMillis()),-1));
 		wdrBereich = new WrapperDateRangeController(wdfDatumVon, wdfDatumBis);
 
 		wdfDatumVon.setMandatoryField(true);
@@ -329,8 +329,8 @@ public class ReportKuechenauswertung1 extends PanelBasis implements
 		return DelegateFactory
 				.getInstance()
 				.getKuecheReportDelegate()
-				.printKuechenauswertung1(wdfDatumVon.getTimestamp(),
-						wdfDatumBis.getTimestamp(), wtfArtikelnrVon.getText(),
+				.printKuechenauswertung1(wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), wtfArtikelnrVon.getText(),
 						wtfArtikelnrBis.getText(), brancheIId,
 						wsfArtikelklasse.getIKey());
 	}

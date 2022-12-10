@@ -94,7 +94,8 @@ public class DialogLoseEinesTechnikers extends JDialog implements
 
 	public DialogLoseEinesTechnikers(InternalFrame internalFrame,
 			boolean bAufErledigteBuchbar, Integer selectedId,
-			Integer personalIIdTechniker,boolean bAufAngelegteBuchbar) throws Throwable {
+			Integer personalIIdTechniker, boolean bAufAngelegteBuchbar)
+			throws Throwable {
 		super(LPMain.getInstance().getDesktop(), LPMain.getInstance()
 				.getTextRespectUISPr("lp.auswahl"), true);
 		this.internalFrame = internalFrame;
@@ -121,7 +122,8 @@ public class DialogLoseEinesTechnikers extends JDialog implements
 	private void jbInit() throws Throwable {
 
 		FilterKriterium[] kriterien = FertigungFilterFactory.getInstance()
-				.createFKBebuchbareLose(bAufErledigteBuchbar, true, bAufAngelegteBuchbar);
+				.createFKBebuchbareLose(bAufErledigteBuchbar, true,
+						bAufAngelegteBuchbar);
 
 		kriterien = addFilter(kriterien, new FilterKriterium(
 				"technikerset.personal_i_id", true, personalIIdTechniker + "",
@@ -133,45 +135,14 @@ public class DialogLoseEinesTechnikers extends JDialog implements
 
 		FilterKriteriumDirekt fkDirekt1 = FertigungFilterFactory.getInstance()
 				.createFKDLosnummer();
-		FilterKriteriumDirekt fkDirekt2 = null;
+		FilterKriteriumDirekt fkDirekt2 = FertigungFilterFactory.getInstance()
+				.createFKDVolltextsucheArtikel();
 
-		ParametermandantDto parameterAuftragStattbezeichnung = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_AUFTRAG_STATT_ARTIKEL_IN_AUSWAHLLISTE,
-						ParameterFac.KATEGORIE_FERTIGUNG,
-						LPMain.getTheClient().getMandant());
-		if ((Boolean) parameterAuftragStattbezeichnung.getCWertAsObject()) {
-			fkDirekt2 = FertigungFilterFactory.getInstance()
-					.createFKDProjektDesLoses();
-		} else {
-			fkDirekt2 = FertigungFilterFactory.getInstance()
-					.createFKDArtikelnummer();
-		}
 		panelQueryLose.befuellePanelFilterkriterienDirekt(fkDirekt1, fkDirekt2);
 
-		ParametermandantDto parameterLo = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(
-						LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_FERTIGUNG,
-						ParameterFac.PARAMETER_LOSNUMMER_AUFTRAGSBEZOGEN);
+		panelQueryLose.addDirektFilter(FertigungFilterFactory.getInstance()
+				.createFKDLosAuftagsnummer());
 
-		int iLosnummerAuftragsbezogen = (Integer) parameterLo
-				.getCWertAsObject();
-
-		if (iLosnummerAuftragsbezogen >= 1) {
-			panelQueryLose.addDirektFilter(FertigungFilterFactory
-					.getInstance().createFKDVolltextsucheArtikel());
-		} else {
-			panelQueryLose.addDirektFilter(FertigungFilterFactory.getInstance()
-					.createFKDLosAuftagsnummer());
-		}
-		
-		
-		
 		panelQueryLose.addDirektFilter(FertigungFilterFactory.getInstance()
 				.createFKDLosKunde());
 
@@ -192,13 +163,15 @@ public class DialogLoseEinesTechnikers extends JDialog implements
 		wcbTechnikerfilter.setMap(m);
 
 		wcbTechnikerfilter.addActionListener(this);
-		wcbTechnikerfilter.setPreferredSize(new Dimension(Defaults.getInstance().bySizeFactor(200), 0));
+		wcbTechnikerfilter.setPreferredSize(new Dimension(Defaults
+				.getInstance().bySizeFactor(200), 0));
 		wcbTechnikerfilter.setLightWeightPopupEnabled(false);
 
 		panelQueryLose.eventYouAreSelected(false);
 		panelQueryLose.setSelectedId(selectedId);
 
-		panelQueryLose.getToolBar().getToolsPanelCenter().add(wcbTechnikerfilter);
+		panelQueryLose.getToolBar().getToolsPanelCenter()
+				.add(wcbTechnikerfilter);
 
 		this.getContentPane().setLayout(gridBagLayout2);
 
@@ -234,7 +207,8 @@ public class DialogLoseEinesTechnikers extends JDialog implements
 		FilterKriterium[] kriterien = null;
 		try {
 			kriterien = FertigungFilterFactory.getInstance()
-					.createFKBebuchbareLose(bAufErledigteBuchbar, true, bAufAngelegteBuchbar);
+					.createFKBebuchbareLose(bAufErledigteBuchbar, true,
+							bAufAngelegteBuchbar);
 
 			if (wcbTechnikerfilter.getKeyOfSelectedItem().equals(
 					FILTER_TECHNIKER)) {

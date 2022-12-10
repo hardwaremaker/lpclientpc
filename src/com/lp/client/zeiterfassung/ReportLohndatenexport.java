@@ -35,6 +35,7 @@ package com.lp.client.zeiterfassung;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
 import java.rmi.RemoteException;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DateFormatSymbols;
 import java.text.DecimalFormat;
@@ -42,6 +43,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -68,15 +70,14 @@ import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
-public class ReportLohndatenexport extends ReportZeiterfassung implements
-		PanelReportIfJRDS {
+public class ReportLohndatenexport extends ReportZeiterfassung implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private WrapperLabel wlaJahr = new WrapperLabel();
-	private WrapperSpinner wspJahr = new WrapperSpinner(new Integer(0),
-			new Integer(0), new Integer(9999), new Integer(1));
+	private WrapperSpinner wspJahr = new WrapperSpinner(new Integer(0), new Integer(0), new Integer(9999),
+			new Integer(1));
 	private WrapperLabel wlaMonat = new WrapperLabel();
 	private WrapperComboBox wcoMonat = new WrapperComboBox();
 	JasperPrintLP jasperPrint = null;
@@ -89,15 +90,12 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 
 	private String exportprogram = null;
 
-	public ReportLohndatenexport(InternalFrameZeiterfassung internalFrame,
-			String add2Title) throws Throwable {
-		super(internalFrame, internalFrame.getPersonalDto().getIId(),
-				add2Title);
+	public ReportLohndatenexport(InternalFrameZeiterfassung internalFrame, String add2Title) throws Throwable {
+		super(internalFrame, internalFrame.getPersonalDto().getIId(), add2Title);
 		jbInit();
 		initComponents();
 
-		DateFormatSymbols symbols = new DateFormatSymbols(LPMain.getInstance()
-				.getUISprLocale());
+		DateFormatSymbols symbols = new DateFormatSymbols(LPMain.getInstance().getUISprLocale());
 		String[] defaultMonths = symbols.getMonths();
 		Map<Integer, String> m = new TreeMap<Integer, String>();
 		for (int i = 0; i < defaultMonths.length - 1; i++) {
@@ -127,10 +125,8 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 		} else {
 			if (wcbBisHeute.isSelected()) {
 				wcoMonat.setEnabled(false);
-				wcoMonat.setKeyOfSelectedItem(new Integer(Calendar
-						.getInstance().get(Calendar.MONTH)));
-				wspJahr.setValue(new Integer(Calendar.getInstance().get(
-						Calendar.YEAR)));
+				wcoMonat.setKeyOfSelectedItem(new Integer(Calendar.getInstance().get(Calendar.MONTH)));
+				wspJahr.setValue(new Integer(Calendar.getInstance().get(Calendar.YEAR)));
 			} else {
 				wcoMonat.setEnabled(true);
 			}
@@ -142,22 +138,16 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 		wlaMonat.setText(LPMain.getTextRespectUISPr("lp.monat1"));
 		wcoMonat.setMandatoryField(true);
 
-		wcbBisHeute.setText(LPMain
-				.getTextRespectUISPr("pers.monatsabrechnung.nurbisheute"));
+		wcbBisHeute.setText(LPMain.getTextRespectUISPr("pers.monatsabrechnung.nurbisheute"));
 		wcbBisHeute.addActionListener(this);
-
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_ZIELPROGRAMM,
-						ParameterFac.KATEGORIE_PERSONAL,
-						LPMain.getTheClient().getMandant());
+		wcbNurAnwesende.setVisible(false);
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_ZIELPROGRAMM,
+						ParameterFac.KATEGORIE_PERSONAL, LPMain.getTheClient().getMandant());
 
 		exportprogram = parameter.getCWert();
 
-		wbuExport.setText(parameter.getCWert() + "-"
-				+ LPMain.getTextRespectUISPr("pers.zeitdaten.export"));
+		wbuExport.setText(parameter.getCWert() + "-" + LPMain.getTextRespectUISPr("pers.zeitdaten.export"));
 
 		wbuExport.setActionCommand(ACTION_EXPORT);
 		wbuExport.addActionListener(this);
@@ -186,13 +176,9 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 
 	private void exportiereReportNachZielprogramm() throws Throwable {
 		byte[] CRLFAscii = { 13, 10 };
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_FIRMENNUMMER,
-						ParameterFac.KATEGORIE_PERSONAL,
-						LPMain.getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_FIRMENNUMMER,
+						ParameterFac.KATEGORIE_PERSONAL, LPMain.getTheClient().getMandant());
 		String firmennummer = parameter.getCWert();
 
 		String s = "";
@@ -206,13 +192,9 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 			int iVersatz = 0;
 
 			try {
-				parameter = (ParametermandantDto) DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getParametermandant(
-								ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_PERIODENVERSATZ,
-								ParameterFac.KATEGORIE_PERSONAL,
-								LPMain.getTheClient().getMandant());
+				parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+						.getParametermandant(ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_PERIODENVERSATZ,
+								ParameterFac.KATEGORIE_PERSONAL, LPMain.getTheClient().getMandant());
 
 				iVersatz = ((Integer) parameter.getCWertAsObject()).intValue();
 
@@ -225,8 +207,7 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 
 			if (iVersatz > 0) {
 
-				c.set(Calendar.MONTH, (Integer) wcoMonat.getKeyOfSelectedItem()
-						+ iVersatz);
+				c.set(Calendar.MONTH, (Integer) wcoMonat.getKeyOfSelectedItem() + iVersatz);
 
 			}
 
@@ -236,6 +217,7 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 			int spaltePersonalNummer = 0;
 			int spalteLohnart = 0;
 			int spalteStunden = 0;
+			int spalteArrayListVonBis = 0;
 
 			for (int i = 0; i < daten[0].length; i++) {
 
@@ -250,6 +232,9 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 				if (ueberschrift.equals("Stunden")) {
 					spalteStunden = i;
 				}
+				if (ueberschrift.equals("F_ARRAY_LIST_VON_BIS")) {
+					spalteArrayListVonBis = i;
+				}
 
 			}
 			if (exportprogram.equals("VARIAL")) {
@@ -261,38 +246,29 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 				int i = 1;
 				while (immer == true && daten.length > 1) {
 
-					String aktuellePeronalLohnart = daten[i][spaltePersonalNummer]
-							+ " " + daten[i][spalteLohnart];
+					String aktuellePeronalLohnart = daten[i][spaltePersonalNummer] + " " + daten[i][spalteLohnart];
 
-					if (!aktuellePeronalLohnart
-							.equals(sLetztePersonalNummerLohnart)
-							|| i >= daten.length - 1) {
-						if (i > 1) {
+					stunden = stunden.add((BigDecimal) daten[i][spalteStunden]);
+
+					if (!aktuellePeronalLohnart.equals(sLetztePersonalNummerLohnart) || i >= daten.length - 1) {
+						if (i >= 1) {
 
 							String sZeile = "";
-							sZeile += Helper.fitString2Length(firmennummer, 6,
-									' ');
+							sZeile += Helper.fitString2Length(firmennummer, 6, ' ');
 
-							sZeile += Helper.fitString2Length(iJahr + "", 4,
-									' ');
-							sZeile += Helper.fitString2LengthAlignRight(
-									(iMonat + 1) + "", 2, '0');
-							sZeile += Helper.fitString2LengthAlignRight(
-									daten[i - 1][spaltePersonalNummer] + "", 7,
+							sZeile += Helper.fitString2Length(iJahr + "", 4, ' ');
+							sZeile += Helper.fitString2LengthAlignRight((iMonat + 1) + "", 2, '0');
+							sZeile += Helper.fitString2LengthAlignRight(daten[i - 1][spaltePersonalNummer] + "", 7,
 									'0');
-							sZeile += Helper.fitString2LengthAlignRight("", 6,
-									'0');
-							sZeile += Helper.fitString2LengthAlignRight(
-									daten[i - 1][spalteLohnart] + "", 3, '0');
+							sZeile += Helper.fitString2LengthAlignRight("", 6, '0');
+							sZeile += Helper.fitString2LengthAlignRight(daten[i - 1][spalteLohnart] + "", 3, '0');
 
 							// Leezeichen
 							sZeile += "                                                                                                       ";
 
-							stunden = Helper.rundeKaufmaennisch(stunden, 2)
-									.multiply(new BigDecimal(100));
+							stunden = Helper.rundeKaufmaennisch(stunden, 2).multiply(new BigDecimal(100));
 
-							sZeile += Helper.fitString2LengthAlignRight(
-									stunden.intValue() + "", 9, '0');
+							sZeile += Helper.fitString2LengthAlignRight(stunden.intValue() + "", 9, '0');
 							sZeile += "+";
 
 							sZeile = Helper.fitString2Length(sZeile, 170, ' ');
@@ -310,14 +286,13 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 						}
 
 					}
-					stunden = stunden.add((BigDecimal) daten[i][spalteStunden]);
+
 					sLetztePersonalNummerLohnart = aktuellePeronalLohnart;
 					i++;
 				}
 			} else if (exportprogram.equals("EGECKO")) {
 
-				c.set(Calendar.DAY_OF_MONTH,
-						c.getActualMaximum(Calendar.DAY_OF_MONTH));
+				c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
 
 				DateFormat dfmt = new SimpleDateFormat("dd.MM.yyyy");
 				String datum = dfmt.format(c.getTime());
@@ -340,8 +315,7 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 						stundenLohnart = tmLohnarten.get(lohnart);
 					}
 
-					stundenLohnart = stundenLohnart
-							.add((BigDecimal) daten[i][spalteStunden]);
+					stundenLohnart = stundenLohnart.add((BigDecimal) daten[i][spalteStunden]);
 					tmLohnarten.put(lohnart, stundenLohnart);
 					tmPersonen.put(persnr, tmLohnarten);
 
@@ -353,8 +327,7 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 				while (it.hasNext()) {
 					String persNr = it.next();
 
-					TreeMap<Integer, BigDecimal> tmLohnarten = tmPersonen
-							.get(persNr);
+					TreeMap<Integer, BigDecimal> tmLohnarten = tmPersonen.get(persNr);
 					Iterator<Integer> itLohn = tmLohnarten.keySet().iterator();
 					while (itLohn.hasNext()) {
 						Integer lohnart = itLohn.next();
@@ -370,9 +343,7 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 						DecimalFormat df = new DecimalFormat("0.00");
 						df.format(bdStunden.doubleValue());
 
-						sZeile += "+"
-								+ df.format(bdStunden.doubleValue())
-										.replaceAll(",", ".") + "^";// Stunden
+						sZeile += "+" + df.format(bdStunden.doubleValue()).replaceAll(",", ".") + "^";// Stunden
 						sZeile += "^^^";// Platzhalter
 						sZeile += new String(CRLFAscii);
 
@@ -382,15 +353,118 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 
 				}
 
+			} else if (exportprogram.equals("TEXT")) {
+
+				c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
+
+				DateFormat dfmt = new SimpleDateFormat("dd.MM.yyyy");
+				String datum = dfmt.format(c.getTime());
+
+				String ueberschrift = "Firmennummer" + "\t" + "Personalnummer" + "\t" + "Abrechnungsperiode" + "\t"
+						+ "Lohnart" + "\t" + "Datum" + "\t" + "Stunden" + "\t" + "Von" + "\t" + "Bis"
+						+ new String(CRLFAscii);
+				s += ueberschrift;
+
+				for (int i = 1; i < daten.length; i++) {
+					String persnr = (String) daten[i][spaltePersonalNummer];
+					Integer lohnart = (Integer) daten[i][spalteLohnart];
+
+					BigDecimal stunden = (BigDecimal) daten[i][spalteStunden];
+
+					ArrayList<Timestamp[]> vonbis = (ArrayList<Timestamp[]>) daten[i][spalteArrayListVonBis];
+
+					String sZeile = firmennummer + "\t";// Firmennummer
+					sZeile += persnr + "\t";// Personalnummer
+					sZeile += datum + "\t";// Abrechnungsperiode
+					sZeile += lohnart + "\t";// Lohnart
+					sZeile += datum + "\t";// Datum
+
+					BigDecimal bdStunden = stunden;
+					DecimalFormat df = new DecimalFormat("00000,00");
+					df.format(bdStunden.doubleValue());
+
+					sZeile += Helper.formatZahl(bdStunden, 2, LPMain.getTheClient().getLocUi());
+					sZeile += new String(CRLFAscii);
+					s += sZeile;
+
+					if (vonbis != null && vonbis.size() > 0) {
+						for (int g = 0; g < vonbis.size(); g++) {
+							sZeile = firmennummer + "\t";// Firmennummer
+							sZeile += persnr + "\t";// Personalnummer
+							sZeile += datum + "\t";// Abrechnungsperiode
+							sZeile += lohnart + "\t";// Lohnart
+							sZeile += datum + "\t";// Datum
+
+							sZeile += "0" + "\t";
+
+							String von = dfmt.format(vonbis.get(g)[0].getTime());
+							String bis = dfmt.format(vonbis.get(g)[1].getTime());
+
+							sZeile += von + "\t";
+							sZeile += bis;
+
+							sZeile += new String(CRLFAscii);
+							s += sZeile;
+						}
+					}
+
+				}
+
+			} else if (exportprogram.equals("CPU-LOHN")) {
+
+				c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
+
+				DateFormat dfmt = new SimpleDateFormat("ddMMyyyy");
+				String datum = dfmt.format(c.getTime());
+
+				String ueberschrift = "Firma;Personalnummer;Kostenstelle;Lohnart;Anzahl;Satz;Betrag;SV-Gruppe;Jahr;Monat;Lohnartentext;Kostenträger;von;bis;Gemeinde;Exekution;Teiler;Aliquotierung;Folgelohnart;keinFixbezug;Baustelle"
+						+ new String(CRLFAscii);
+				s += ueberschrift;
+
+				for (int i = 1; i < daten.length; i++) {
+					String persnr = (String) daten[i][spaltePersonalNummer];
+					Integer lohnart = (Integer) daten[i][spalteLohnart];
+
+					BigDecimal stunden = (BigDecimal) daten[i][spalteStunden];
+
+					ArrayList<Timestamp[]> vonbis = (ArrayList<Timestamp[]>) daten[i][spalteArrayListVonBis];
+
+					String sZeileBisKostentraeger = firmennummer + ";";// Firmennummer
+					sZeileBisKostentraeger += persnr + ";;";// Personalnummer
+					sZeileBisKostentraeger += lohnart + ";";// Lohnart
+					BigDecimal bdStunden = stunden;
+					DecimalFormat df = new DecimalFormat("#####,##");
+					df.format(bdStunden.doubleValue());
+
+					sZeileBisKostentraeger += Helper.formatZahl(bdStunden, 2, LPMain.getTheClient().getLocUi())
+							+ ";;;;";
+
+					sZeileBisKostentraeger += c.get(Calendar.YEAR) + ";";
+					sZeileBisKostentraeger += (c.get(Calendar.MONTH) + 1) + ";;0;";
+
+					c.set(Calendar.DAY_OF_MONTH, c.getActualMinimum(Calendar.DAY_OF_MONTH));
+
+					s += sZeileBisKostentraeger + dfmt.format(c.getTime()) + ";" + datum + ";;;;;;;";
+					s += new String(CRLFAscii);
+
+					if (vonbis != null && vonbis.size() > 0) {
+						for (int g = 0; g < vonbis.size(); g++) {
+
+							String von = dfmt.format(vonbis.get(g)[0].getTime());
+							String bis = dfmt.format(vonbis.get(g)[1].getTime());
+
+							s += sZeileBisKostentraeger + von + ";" + bis + ";;;;;;;";
+							s += new String(CRLFAscii);
+						}
+					}
+
+				}
+
 			}
 
-			parameter = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_ZIEL,
-							ParameterFac.KATEGORIE_PERSONAL,
-							LPMain.getTheClient().getMandant());
+			parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate().getParametermandant(
+					ParameterFac.PARAMETER_PERSONALZEITDATENEXPORT_ZIEL, ParameterFac.KATEGORIE_PERSONAL,
+					LPMain.getTheClient().getMandant());
 			String dateiname = parameter.getCWert();
 
 			java.io.File ausgabedatei = new java.io.File(dateiname);
@@ -399,10 +473,8 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 
 			if (ausgabedatei.exists()) {
 				// Hinweis
-				b = DialogFactory
-						.showModalJaNeinDialog(
-								getInternalFrame(),
-								LPMain.getTextRespectUISPr("pers.lohndatenexport.fileexists"));
+				b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("pers.lohndatenexport.fileexists"));
 			}
 
 			if (b == true) {
@@ -414,15 +486,10 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 					bw.close();
 
 					// SP1604
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.hint"),
-									LPMain.getTextRespectUISPr("pers.lohndatenexport.datenexportiert")
-											+ " " + ausgabedatei);
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+							LPMain.getTextRespectUISPr("pers.lohndatenexport.datenexportiert") + " " + ausgabedatei);
 				} catch (Exception e) {
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							e.getMessage());
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), e.getMessage());
 				}
 			}
 
@@ -433,6 +500,12 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 
 		try {
 
+			boolean bVerdichtet = false;
+
+			if (exportprogram.equals("CPU-LOHN")) {
+				bVerdichtet = true;
+			}
+
 			Integer iSortierung = ZeiterfassungFacAll.REPORT_MONATSABRECHNUNG_OPTION_SORTIERUNG_PERSONALNUMMER;
 			if (wrbSortAbteilungNameVorname.isSelected()) {
 				iSortierung = ZeiterfassungFacAll.REPORT_MONATSABRECHNUNG_OPTION_SORTIERUNG_ABTEILUNG_NAME_VORNAME;
@@ -441,25 +514,14 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 			}
 
 			if (wcbBisHeute.isSelected()) {
-				jasperPrint = DelegateFactory
-						.getInstance()
-						.getZeiterfassungDelegate()
-						.printLohndatenexport(getPersonalIId(),
-								(Integer) wspJahr.getValue(),
-								(Integer) wcoMonat.getKeyOfSelectedItem(),
-								false,
-								new java.sql.Date(System.currentTimeMillis()),
-								getPersonAuswahl(), iSortierung,
-								mitVersteckten(), nurAnwesende());
+				jasperPrint = DelegateFactory.getInstance().getZeiterfassungDelegate().printLohndatenexport(
+						getPersonalIId(), (Integer) wspJahr.getValue(), (Integer) wcoMonat.getKeyOfSelectedItem(),
+						false, new java.sql.Date(System.currentTimeMillis()), getPersonAuswahl(),getKostenstelleIIdAbteilung(), iSortierung,
+						mitVersteckten(), bVerdichtet);
 			} else {
-				jasperPrint = DelegateFactory
-						.getInstance()
-						.getZeiterfassungDelegate()
-						.printLohndatenexport(getPersonalIId(),
-								(Integer) wspJahr.getValue(),
-								(Integer) wcoMonat.getKeyOfSelectedItem(),
-								true, null, getPersonAuswahl(), iSortierung,
-								mitVersteckten(),nurAnwesende());
+				jasperPrint = DelegateFactory.getInstance().getZeiterfassungDelegate().printLohndatenexport(
+						getPersonalIId(), (Integer) wspJahr.getValue(), (Integer) wcoMonat.getKeyOfSelectedItem(), true,
+						null, getPersonAuswahl(),getKostenstelleIIdAbteilung(), iSortierung, mitVersteckten(), bVerdichtet);
 			}
 
 			wbuExport.setEnabled(true);
@@ -467,23 +529,20 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 		} catch (ExceptionLP ex) {
 
 			if (ex.getICode() == com.lp.util.EJBExceptionLP.FEHLER_PERSONAL_FEHLER_BEI_EINTRITTSDATUM) {
-				ArrayList<?> al = ex.getAlInfoForTheClient();
+				List<?> al = ex.getAlInfoForTheClient();
 				String sZusatz = null;
 				if (al.get(0) instanceof Integer) {
 
 					Integer personalIId = (Integer) al.get(0);
 
 					try {
-						sZusatz = new PersonalDelegate()
-								.personalFindByPrimaryKey(personalIId)
-								.formatAnrede();
+						sZusatz = new PersonalDelegate().personalFindByPrimaryKey(personalIId).formatAnrede();
 					} catch (ExceptionLP ex1) {
 						handleException(ex1, false);
 					}
 				}
 
-				DialogFactory.showModalDialog("Fehler", sZusatz
-						+ " hat kein g\u00FCltiges Eintrittsdatum");
+				DialogFactory.showModalDialog("Fehler", sZusatz + " hat kein g\u00FCltiges Eintrittsdatum");
 			} else {
 				// brauche ich
 				handleException(ex, false);
@@ -497,8 +556,7 @@ public class ReportLohndatenexport extends ReportZeiterfassung implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

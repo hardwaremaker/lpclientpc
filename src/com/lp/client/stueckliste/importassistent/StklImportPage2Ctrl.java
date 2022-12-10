@@ -48,9 +48,17 @@ import javax.swing.table.TableModel;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.assistent.AssistentPageController;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.server.stueckliste.service.MontageartDto;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.XlsFile;
 import com.lp.server.stueckliste.service.FertigungsStklImportSpezifikation;
+import com.lp.server.stueckliste.service.MontageartDto;
 import com.lp.service.StklImportSpezifikation;
+
+import jxl.Cell;
+import jxl.Sheet;
+import jxl.Workbook;
+import jxl.WorkbookSettings;
+import jxl.read.biff.BiffException;
 
 public class StklImportPage2Ctrl extends AssistentPageController {
 	
@@ -97,8 +105,8 @@ public class StklImportPage2Ctrl extends AssistentPageController {
 	@Override
 	public void activateByNext() throws Throwable {
 		model.getSelectedSpezifikation().setStklIId(model.getStklIId());
-		if(!model.isKundeGesetzt()) {
-			model.getSelectedSpezifikation().removeKundenartikelnrColumnType();
+		if(!showMappingColumnType()) {
+			model.getSelectedSpezifikation().removeMappingColumnType();
 		}
 		if(model.isStuecklisteTypeOf(StklImportSpezifikation.SpezifikationsTyp.FERTIGUNGSSTKL_SPEZ) 
 				&& ((FertigungsStklImportSpezifikation) model.getSelectedSpezifikation()).getMontageartIId() == 0
@@ -108,9 +116,53 @@ public class StklImportPage2Ctrl extends AssistentPageController {
 			((FertigungsStklImportSpezifikation) model.getSelectedSpezifikation())
 				.setMontageartIId(getMontagearten()[0].getIId());
 		}
+		
+		if (model.getXlsFile() != null) {
+			model.getSelectedSpezifikation().setSeparator("\\t");
+			model.getSelectedSpezifikation().setFixedWidth(false);
+		}
+
+		readImportFile();
+		updateTableModel();
+	}
+	
+	private boolean showMappingColumnType() {
+		return model.getSelectedSpezifikation().isStuecklisteMitBezugVerkauf()
+				? model.isBezugsobjektGesetzt() && model.hasZusatzfunktionKundeSoko()
+				: model.isBezugsobjektGesetzt();
+	}
+	
+	private void readImportFile() throws BiffException, IOException {
+		if (model.getCsvFile() != null) {
+			read(model.getCsvFile());
+		} else if (model.getXlsFile() != null) {
+			read(model.getXlsFile());
+		}
+	}
+
+	private void read(XlsFile xlsFile) throws BiffException, IOException {
+		WorkbookSettings ws = new WorkbookSettings();
+		ws.setEncoding("Cp1252");
+		Workbook workbook = xlsFile.getWorkbook(ws);
+
+		Sheet sheet = workbook.getSheet(0);
+
+		List<String> lines = new ArrayList<String>();
+		for (int row = 0; row < sheet.getRows(); row++) {
+			Cell[] sZeile = sheet.getRow(row);
+			String line = "";
+			for (int i = 0; i < sZeile.length; i++) {
+				line = line + "\t" + sZeile[i].getContents();
+			}
+			lines.add(line);
+		}
+		model.setImportLines(lines);
+	}
+
+	private void read(CsvFile csvFile) {
 		BufferedReader reader = null;
 		try {
-			reader = new BufferedReader(new FileReader(model.getImportFile()));
+			reader = new BufferedReader(new FileReader(csvFile.getFile()));
 			String line;
 			List<String> lines = new ArrayList<String>();
 			while((line = reader.readLine()) != null) {
@@ -131,9 +183,8 @@ public class StklImportPage2Ctrl extends AssistentPageController {
 				}
 			}
 		}
-		updateTableModel();
 	}
-	
+
 	protected void updateTableModel() {
 		List<String> lines = model.getImportLines();
 		final StklImportSpezifikation spez = model.getSelectedSpezifikation();
@@ -330,5 +381,9 @@ public class StklImportPage2Ctrl extends AssistentPageController {
 			return true;
 		
 		return false;
+	}
+
+	public void setWithHiddenArticles(boolean selected) {
+		model.getSelectedSpezifikation().setWithHiddenArticles(selected);
 	}
 }

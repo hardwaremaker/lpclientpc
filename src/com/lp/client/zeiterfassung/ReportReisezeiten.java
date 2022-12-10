@@ -37,9 +37,11 @@ import javax.swing.JComponent;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
+import com.lp.server.personal.service.ReisekostenFac;
 import com.lp.server.personal.service.ZeiterfassungReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 public class ReportReisezeiten extends ReportZeiterfassung implements
 		PanelReportIfJRDS {
@@ -77,19 +79,19 @@ public class ReportReisezeiten extends ReportZeiterfassung implements
 	}
 
 	public String getReportname() {
-		return ZeiterfassungReportFac.REPORT_REISEZEITEN;
+		return ReisekostenFac.REPORT_REISEZEITEN;
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		JasperPrintLP jasperPrint = null;
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp =Helper.addiereTageZuTimestamp(new java.sql.Timestamp(wdfBis
+				.getTimestamp().getTime()),1);
 		jasperPrint = DelegateFactory
 				.getInstance()
-				.getZeiterfassungReportDelegate()
+				.getReisekostenDelegate()
 				.printReisezeiten(getPersonalIId(), wdfVon.getTimestamp(),
-						wdfBisTemp, mitVersteckten(), nurAnwesende(), getPersonAuswahl());
+						wdfBisTemp, mitVersteckten(), nurAnwesende(), getPersonAuswahl(),getKostenstelleIIdAbteilung());
 		return jasperPrint;
 
 	}

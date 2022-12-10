@@ -42,6 +42,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -49,19 +50,21 @@ import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportEtikett;
 import com.lp.client.pc.LPMain;
 import com.lp.server.angebotstkl.service.AngebotstklFac;
+import com.lp.server.angebotstkl.service.AngebotstklreportFac;
+import com.lp.server.angebotstkl.service.EinkaufsangebotDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-public class ReportEinkaufsangebot extends ReportEtikett implements
-		PanelReportIfJRDS {
+public class ReportEinkaufsangebot extends ReportEtikett implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	// protected JPanel jpaWorkingOn = new JPanel();
-	// private GridBagLayout gridBagLayout1 = new GridBagLayout();
-	// private GridBagLayout gridBagLayout2 = new GridBagLayout();
-	private Integer einkaufsangebotIId = null;
+
+	private EinkaufsangebotDto einkaufsangebotDto = null;
+
+	private WrapperLabel wlaFertigungsterminGeplant = new WrapperLabel();
+	private WrapperDateField wdfFertigungsterminGeplant = new WrapperDateField();
 
 	private WrapperComboBox wcoSortierung1 = new WrapperComboBox();
 
@@ -70,52 +73,55 @@ public class ReportEinkaufsangebot extends ReportEtikett implements
 	private static int SORT_BEMERKUNG = 2;
 	private static int SORT_SORT = 3;
 
-	public ReportEinkaufsangebot(InternalFrameAngebotstkl internalFrame,
-			String add2Title, Integer einkaufsangebotIId) throws Throwable {
+	public ReportEinkaufsangebot(InternalFrameAngebotstkl internalFrame, String add2Title,
+			EinkaufsangebotDto einkaufsangebotDto) throws Throwable {
 		super(internalFrame, add2Title);
+		this.einkaufsangebotDto = einkaufsangebotDto;
 		jbInit();
 		initComponents();
-		this.einkaufsangebotIId = einkaufsangebotIId;
 	}
 
 	private void jbInit() throws Exception {
 
-		
 		wcoSortierung1.setMandatoryField(true);
-		
+
 		Map<Integer, String> mSortierung = new LinkedHashMap<Integer, String>();
 		mSortierung.put(new Integer(SORT_ARTIKELNUMMER), "Artikelnummer");
 		mSortierung.put(new Integer(SORT_POSITION), "Position");
 		mSortierung.put(new Integer(SORT_BEMERKUNG), "Bemerkung");
 		mSortierung.put(new Integer(SORT_SORT), "Sortierung");
 		wcoSortierung1.setMap(mSortierung);
-		
 
-		// /this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-		// GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-		// 0, 0, 0), 0, 0));
+		wlaFertigungsterminGeplant = new WrapperLabel(
+				LPMain.getTextRespectUISPr("agstkl.einkaufsangebot.fertigungstermin.geplant"));
+
+		wdfFertigungsterminGeplant.setTimestamp(einkaufsangebotDto.getTFertigungstermin());
 
 		iZeile++;
-		WrapperLabel wlaSortierung = new WrapperLabel(LPMain
-				.getTextRespectUISPr("lp.sortierung")
-				+ ":");
-		wlaSortierung.setHorizontalAlignment(SwingConstants.LEFT);
+		WrapperLabel wlaSortierung = new WrapperLabel(LPMain.getTextRespectUISPr("lp.sortierung") + ":");
+		//wlaSortierung.setHorizontalAlignment(SwingConstants.LEFT);
 
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		
+		jpaWorkingOn.add(wlaFertigungsterminGeplant, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 130, 0));
+		jpaWorkingOn.add(wdfFertigungsterminGeplant, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
+
+		iZeile++;
+		
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcoSortierung1, new GridBagConstraints(1, iZeile, 2,
-				1, 0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wcoSortierung1, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
 
 	}
 
 	public String getModul() {
-		return AngebotstklFac.REPORT_MODUL;
+		return AngebotstklreportFac.REPORT_MODUL;
 	}
 
 	public String getReportname() {
-		return AngebotstklFac.REPORT_EINKAUFSANGEBOT;
+		return AngebotstklreportFac.REPORT_EINKAUFSANGEBOT;
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
@@ -132,8 +138,8 @@ public class ReportEinkaufsangebot extends ReportEtikett implements
 			iSortierung = AngebotstklFac.REPORT_AGSTKL_OPTION_SORTIERUNG_SORT;
 		}
 
-		return DelegateFactory.getInstance().getAngebotstklDelegate()
-				.printEinkaufsangebot(einkaufsangebotIId, iSortierung);
+		return DelegateFactory.getInstance().getAngebotstklDelegate().printEinkaufsangebot(einkaufsangebotDto.getIId(),
+				 iSortierung, wdfFertigungsterminGeplant.getTimestamp());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -141,8 +147,7 @@ public class ReportEinkaufsangebot extends ReportEtikett implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

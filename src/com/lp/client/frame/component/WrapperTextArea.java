@@ -33,12 +33,15 @@
 package com.lp.client.frame.component;
 
 import java.awt.Point;
+import java.util.Locale;
 
 import javax.swing.JTextArea;
 import javax.swing.text.Document;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.rechtschreibung.IRechtschreibPruefbar;
+import com.lp.client.rechtschreibung.SwingRechtschreibAdapter;
 
 /**
  * <p>
@@ -52,8 +55,7 @@ import com.lp.client.frame.HelperClient;
  * @author Martin Bluehweis
  * @version $Revision: 1.6 $
  */
-public class WrapperTextArea extends JTextArea implements IControl,
-		IDirektHilfe {
+public class WrapperTextArea extends JTextArea implements IControl, IDirektHilfe, IRechtschreibPruefbar {
 
 	/**
 	 * 
@@ -63,35 +65,41 @@ public class WrapperTextArea extends JTextArea implements IControl,
 	private boolean isMandatoryFieldDB = false;
 	private boolean isActivatable = true;
 	private CornerInfoButton cib = null;
+	private SwingRechtschreibAdapter rechtschreibAdapter;
 
 	public WrapperTextArea() {
-		cib = new CornerInfoButton(this);
+		init();
 	}
 
 	public WrapperTextArea(int p0, int p1) {
 		super(p0, p1);
-		cib = new CornerInfoButton(this);
+		init();
 	}
 
 	public WrapperTextArea(String p0) {
 		super(p0);
-		cib = new CornerInfoButton(this);
+		init();
 	}
 
 	public WrapperTextArea(String p0, int p1, int p2) {
 		super(p0, p1, p2);
 		this.setName(null);
-		cib = new CornerInfoButton(this);
+		init();
 	}
 
 	public WrapperTextArea(Document p0) {
 		super(p0);
-		cib = new CornerInfoButton(this);
+		init();
 	}
 
 	public WrapperTextArea(Document p0, String p1, int p2, int p3) {
 		super(p0, p1, p2, p3);
+		init();
+	}
+
+	private void init() {
 		cib = new CornerInfoButton(this);
+		rechtschreibAdapter = new SwingRechtschreibAdapter(this);
 	}
 
 	/**
@@ -124,8 +132,7 @@ public class WrapperTextArea extends JTextArea implements IControl,
 	/**
 	 * setMandatoryField
 	 * 
-	 * @param isMandatoryField
-	 *            boolean
+	 * @param isMandatoryField boolean
 	 */
 	public void setMandatoryField(boolean isMandatoryField) {
 		if (isMandatoryFieldDB == false || isMandatoryField == true) {
@@ -148,8 +155,7 @@ public class WrapperTextArea extends JTextArea implements IControl,
 	/**
 	 * setActivatable
 	 * 
-	 * @param isActivatable
-	 *            boolean
+	 * @param isActivatable boolean
 	 */
 	public void setActivatable(boolean isActivatable) {
 		this.isActivatable = isActivatable;
@@ -182,8 +188,7 @@ public class WrapperTextArea extends JTextArea implements IControl,
 	/**
 	 * setText ueberschreiben
 	 * 
-	 * @param text
-	 *            String
+	 * @param text String
 	 */
 	public void setText(String text) {
 		if (text != null) {
@@ -218,6 +223,7 @@ public class WrapperTextArea extends JTextArea implements IControl,
 	public void removeCib() {
 		cib = null;
 	}
+
 	@Override
 	public String getToken() {
 		return cib.getToolTipToken();
@@ -226,5 +232,20 @@ public class WrapperTextArea extends JTextArea implements IControl,
 	@Override
 	public boolean hasContent() throws Throwable {
 		return getText() != null && !getText().trim().isEmpty();
+	}
+
+	@Override
+	public void aktiviereRechtschreibpruefung() {
+		rechtschreibAdapter.aktiviereRechtschreibpruefung();
+	}
+
+	@Override
+	public void deaktiviereRechtschreibpruefung() {
+		rechtschreibAdapter.deaktiviereRechtschreibpruefung();
+	}
+
+	@Override
+	public void setRechtschreibpruefungLocale(Locale loc) {
+		rechtschreibAdapter.setRechtschreibpruefungLocale(loc);
 	}
 }

@@ -39,6 +39,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.*;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.*;
 import com.lp.client.frame.delegate.*;
 import com.lp.client.frame.report.*;
@@ -134,6 +135,8 @@ public class ReportGestpreisUeberMinVK extends PanelBasis implements
 		wlaAusgehendVon.setText(LPMain
 				.getTextRespectUISPr("artikel.report.ausgehendvon"));
 		
+		HelperClient.setMinimumAndPreferredSize(wlaAusgehendVon, HelperClient.getSizeFactoredDimension(100));
+		
 		wcbVersteckte = new WrapperCheckBox(LPMain
 				.getTextRespectUISPr("lp.versteckte"));
 
@@ -151,7 +154,7 @@ public class ReportGestpreisUeberMinVK extends PanelBasis implements
 		jpaWorkingOn.add(wsfLager.getWrapperTextField(),
 				new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						new Insets(2, 2, 2, 2), 200, 0));
+						new Insets(2, 2, 2, 2), 100, 0));
 		jpaWorkingOn.add(wsfLager, new GridBagConstraints(0, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 100, 0));
@@ -160,7 +163,7 @@ public class ReportGestpreisUeberMinVK extends PanelBasis implements
 				RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
 			jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(3, iZeile,
 					1, 1, 0, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100,
 					0));
 		}
 
@@ -181,7 +184,7 @@ public class ReportGestpreisUeberMinVK extends PanelBasis implements
 		
 		jpaWorkingOn.add(wcbMitStuecklisten, new GridBagConstraints(3, iZeile,
 				1, 1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 150,
 				0));
 		
 		iZeile++;
@@ -194,10 +197,10 @@ public class ReportGestpreisUeberMinVK extends PanelBasis implements
 						new Insets(2, 2, 2, 2), 200, 0));
 		jpaWorkingOn.add(wrbPreisVKPreisliste, new GridBagConstraints(2,
 				iZeile, 1, 1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wrbPreisPreisbasis, new GridBagConstraints(3, iZeile,
 				1, 1, 0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 

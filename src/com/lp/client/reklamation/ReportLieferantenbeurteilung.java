@@ -55,6 +55,7 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperDateRangeController;
 import com.lp.client.frame.component.WrapperLabel;
@@ -73,7 +74,13 @@ import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.reklamation.service.ReklamationReportFac;
+import com.lp.server.system.jcr.service.JCRDocDto;
+import com.lp.server.system.jcr.service.JCRDocFac;
+import com.lp.server.system.jcr.service.PrintInfoDto;
+import com.lp.server.system.jcr.service.docnode.DocNodeFile;
+import com.lp.server.system.jcr.service.docnode.DocPath;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.VersandauftragDto;
 import com.lp.server.util.Facade;
@@ -84,8 +91,7 @@ import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class ReportLieferantenbeurteilung extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportLieferantenbeurteilung extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -99,19 +105,25 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 
 	static final public String ACTION_SPECIAL_ALS_EMAIL_VERSENDEN = "ACTION_SPECIAL_ALS_EMAIL_VERSENDEN";
 
+	static final public String ACTION_SPECIAL_BEURTEILUNG_SPEICHERN = "ACTION_SPECIAL_BEURTEILUNG_SPEICHERN";
+
 	Integer brancheIId = null;
 	private Integer lieferantIId = null;
 	protected WrapperButton wbuBranche = null;
 	protected WrapperTextField wtfBranche = null;
 
-	private WrapperSelectField wsfLiefergruppe = new WrapperSelectField(
-			WrapperSelectField.LIEFERGRUPPE, getInternalFrame(), true);
+	private WrapperSelectField wsfLiefergruppe = new WrapperSelectField(WrapperSelectField.LIEFERGRUPPE,
+			getInternalFrame(), true);
 
+	WrapperSelectField wsfPartnerklasse = new WrapperSelectField(WrapperSelectField.PARTNERKLASSE, getInternalFrame(), true);
+	
 	private WrapperLabel wlaDatumVon = new WrapperLabel();
 	private WrapperDateField wdfDatumVon = new WrapperDateField();
 
 	private WrapperLabel wlaDatumBis = new WrapperLabel();
 	private WrapperDateField wdfDatumBis = new WrapperDateField();
+
+	private WrapperCheckBox wcbVerdichtet = new WrapperCheckBox();
 
 	private PanelQueryFLR panelQueryFLRLieferant = null;
 	protected PanelQueryFLR panelQueryFLRBranche = null;
@@ -121,14 +133,13 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 	private WrapperButton wbuLieferant = new WrapperButton();
 
 	private WrapperButton wbuAlsEmailVersenden = new WrapperButton();
+	private WrapperButton wbuBeurteilungSpeichern = new WrapperButton();
 
 	private WrapperTextField wtfLieferant = new WrapperTextField();
 
-	public ReportLieferantenbeurteilung(InternalFrame internalFrame,
-			String add2Title) throws Throwable {
+	public ReportLieferantenbeurteilung(InternalFrame internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
-		LPMain.getInstance()
-				.getTextRespectUISPr("rekla.lieferantenbeurteilung");
+		LPMain.getInstance().getTextRespectUISPr("rekla.lieferantenbeurteilung");
 		jbInit();
 		initComponents();
 	}
@@ -168,17 +179,20 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 
 		wdfDatumVon.setTimestamp(new Timestamp(c.getTimeInMillis()));
 
-		wbuLieferant.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.lieferant"));
+		wbuLieferant.setText(LPMain.getInstance().getTextRespectUISPr("button.lieferant"));
 
 		wbuLieferant.setActionCommand(ACTION_SPECIAL_LIEFERANT_FROM_LISTE);
 		wbuLieferant.addActionListener(this);
 
-		wbuAlsEmailVersenden.setText(LPMain.getInstance().getTextRespectUISPr(
-				"rekla.lieferantenbeurteilung.alsemailversenden"));
 		wbuAlsEmailVersenden
-				.setActionCommand(ACTION_SPECIAL_ALS_EMAIL_VERSENDEN);
+				.setText(LPMain.getInstance().getTextRespectUISPr("rekla.lieferantenbeurteilung.alsemailversenden"));
+		wbuAlsEmailVersenden.setActionCommand(ACTION_SPECIAL_ALS_EMAIL_VERSENDEN);
 		wbuAlsEmailVersenden.addActionListener(this);
+
+		wbuBeurteilungSpeichern
+				.setText(LPMain.getInstance().getTextRespectUISPr("rekla.lieferantenbeurteilung.speichern"));
+		wbuBeurteilungSpeichern.setActionCommand(ACTION_SPECIAL_BEURTEILUNG_SPEICHERN);
+		wbuBeurteilungSpeichern.addActionListener(this);
 
 		wtfLieferant.setActivatable(false);
 		wtfLieferant.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
@@ -188,72 +202,66 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 
 		wbuBranche.addActionListener(this);
 
-		wbuBranche.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.branche"));
+		wbuBranche.setText(LPMain.getInstance().getTextRespectUISPr("button.branche"));
+
+		wcbVerdichtet.setText(LPMain.getInstance().getTextRespectUISPr("lp.verdichtet"));
 
 		wtfBranche = new WrapperTextField(PartnerFac.MAX_BRANCHE);
 		wtfBranche.setActivatable(false);
 
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		int iZeile = 0;
 
-		jpaWorkingOn.add(wlaDatumVon, new GridBagConstraints(0, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaDatumVon, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfDatumVon, new GridBagConstraints(1, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wdfDatumVon, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaDatumBis, new GridBagConstraints(2, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaDatumBis, new GridBagConstraints(2, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfDatumBis, new GridBagConstraints(3, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wdfDatumBis, new GridBagConstraints(3, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdrBereich, new GridBagConstraints(4, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdrBereich, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wbuLieferant, new GridBagConstraints(0, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuLieferant, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfLieferant, new GridBagConstraints(1, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfLieferant, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_EMAILVERSAND)) {
-			jpaWorkingOn.add(wbuAlsEmailVersenden,
-					new GridBagConstraints(3, iZeile, 2, 1, 0.1, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_EMAILVERSAND)) {
+			jpaWorkingOn.add(wbuAlsEmailVersenden, new GridBagConstraints(3, iZeile, 2, 1, 0.1, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		}
 
 		iZeile++;
 
-		jpaWorkingOn.add(wbuBranche, new GridBagConstraints(0, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuBranche, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBranche, new GridBagConstraints(1, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfBranche, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wbuBeurteilungSpeichern, new GridBagConstraints(3, iZeile, 2, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
-		jpaWorkingOn.add(wsfLiefergruppe.getWrapperButton(),
-				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wsfLiefergruppe.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfLiefergruppe.getWrapperButton(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfLiefergruppe.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbVerdichtet, new GridBagConstraints(3, iZeile, 2, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		iZeile++;
+		jpaWorkingOn.add(wsfPartnerklasse.getWrapperButton(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfPartnerklasse.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		
 
 	}
 
@@ -270,24 +278,20 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryFLRLieferant) {
 				try {
-					Integer key = (Integer) ((ISourceEvent) e.getSource())
-							.getIdSelected();
+					Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 
-					LieferantDto lieferantDto = DelegateFactory.getInstance()
-							.getLieferantDelegate()
+					LieferantDto lieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
 							.lieferantFindByPrimaryKey(key);
-					wtfLieferant.setText(lieferantDto.getPartnerDto()
-							.formatFixTitelName1Name2());
+					wtfLieferant.setText(lieferantDto.getPartnerDto().formatFixTitelName1Name2());
 					lieferantIId = lieferantDto.getIId();
 				} catch (Throwable ex) {
 					LPMain.getInstance().exitFrame(getInternalFrame(), ex);
 				}
 			} else if (e.getSource() == panelQueryFLRBranche) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
-					BrancheDto brancheDto = DelegateFactory.getInstance()
-							.getPartnerDelegate().brancheFindByPrimaryKey(key);
+					BrancheDto brancheDto = DelegateFactory.getInstance().getPartnerDelegate()
+							.brancheFindByPrimaryKey(key);
 					brancheIId = key;
 					wtfBranche.setText(brancheDto.getCNr());
 				}
@@ -304,9 +308,8 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 	}
 
 	private void dialogQueryLieferant() throws Throwable {
-		panelQueryFLRLieferant = PartnerFilterFactory.getInstance()
-				.createPanelFLRLieferantGoto(getInternalFrame(), lieferantIId,
-						true, true);
+		panelQueryFLRLieferant = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(),
+				lieferantIId, true, true);
 		new DialogQuery(panelQueryFLRLieferant);
 	}
 
@@ -314,26 +317,21 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 		if (e.getActionCommand().equals(ACTION_SPECIAL_LIEFERANT_FROM_LISTE)) {
 			dialogQueryLieferant();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_BRANCHE)) {
-			String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-					.createButtonArray(false, true);
+			String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(false, true);
 
 			final QueryType[] querytypes = null;
 			final FilterKriterium[] filters = null;
-			panelQueryFLRBranche = new PanelQueryFLR(querytypes, filters,
-					QueryParameters.UC_ID_BRANCHE, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.branche"));
+			panelQueryFLRBranche = new PanelQueryFLR(querytypes, filters, QueryParameters.UC_ID_BRANCHE,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("lp.branche"));
 
 			if (brancheIId != null) {
 				panelQueryFLRBranche.setSelectedId(brancheIId);
 			}
 			new DialogQuery(panelQueryFLRBranche);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ALS_EMAIL_VERSENDEN)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ALS_EMAIL_VERSENDEN)) {
 
 			JasperPrintLP lpreport = getReport(null);
-			Integer[] lieferantenIdsFuerEmailVersand = (Integer[]) lpreport
-					.getAdditionalInformation("LIEFERANTEN");
+			Integer[] lieferantenIdsFuerEmailVersand = (Integer[]) lpreport.getAdditionalInformation("LIEFERANTEN");
 
 			Integer lieferantIIdVorher = null;
 			if (lieferantIId != null) {
@@ -342,68 +340,56 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 
 			TreeMap<String, String> hmLieferantenNichtVersandt = new TreeMap<String, String>();
 			int iEmailsVersandt = 0;
-			if (lieferantenIdsFuerEmailVersand != null
-					&& lieferantenIdsFuerEmailVersand.length > 0) {
+			if (lieferantenIdsFuerEmailVersand != null && lieferantenIdsFuerEmailVersand.length > 0) {
 				String sAbsenderadresse = null;
-				PersonalDto personalDto = DelegateFactory
-						.getInstance()
-						.getPersonalDelegate()
-						.personalFindByPrimaryKey(
-								LPMain.getInstance().getTheClient()
-										.getIDPersonal());
+				PersonalDto personalDto = DelegateFactory.getInstance().getPersonalDelegate()
+						.personalFindByPrimaryKey(LPMain.getInstance().getTheClient().getIDPersonal());
 				if (personalDto.getCEmail() != null) {
 					sAbsenderadresse = personalDto.getCEmail();
 					if (sAbsenderadresse == null) {
 
-						throw new ExceptionLP(
-								EJBExceptionLP.FEHLER_MAHNUNGSVERSAND_KEINE_ABSENDERADRESSE,
+						throw new ExceptionLP(EJBExceptionLP.FEHLER_MAHNUNGSVERSAND_KEINE_ABSENDERADRESSE,
 								new Exception(
 										LPMain.getTextRespectUISPr("bestellung.fehler.keinemailadressedefiniert")));
 					}
 					if (!Helper.validateEmailadresse(sAbsenderadresse)) {
-						throw new ExceptionLP(
-								EJBExceptionLP.FEHLER_UNGUELTIGE_EMAILADRESSE,
-								new Exception(
-										LPMain.getTextRespectUISPr("bestellung.fehler.ungueltigemailadressedefiniert")));
+						throw new ExceptionLP(EJBExceptionLP.FEHLER_UNGUELTIGE_EMAILADRESSE, new Exception(
+								LPMain.getTextRespectUISPr("bestellung.fehler.ungueltigemailadressedefiniert")));
 					}
 				} else {
-					throw new ExceptionLP(
-							EJBExceptionLP.FEHLER_MAHNUNGSVERSAND_KEINE_ABSENDERADRESSE,
-							new Exception(
-									LPMain.getTextRespectUISPr("bestellung.fehler.keinemailadressedefiniert")));
+					throw new ExceptionLP(EJBExceptionLP.FEHLER_MAHNUNGSVERSAND_KEINE_ABSENDERADRESSE,
+							new Exception(LPMain.getTextRespectUISPr("bestellung.fehler.keinemailadressedefiniert")));
 				}
 
 				for (int i = 0; i < lieferantenIdsFuerEmailVersand.length; i++) {
 					lieferantIId = lieferantenIdsFuerEmailVersand[i];
 					JasperPrintLP reportEinesLieferanten = getReport(null);
 					// Email aus Kopfdaten holen
-					LieferantDto lfDto = DelegateFactory.getInstance()
-							.getLieferantDelegate()
+					LieferantDto lfDto = DelegateFactory.getInstance().getLieferantDelegate()
 							.lieferantFindByPrimaryKey(lieferantIId);
-					if (lfDto.getPartnerDto().getCEmail() != null
-							&& lfDto.getPartnerDto().getCEmail().length() > 0) {
+					if (lfDto.getPartnerDto().getCEmail() != null && lfDto.getPartnerDto().getCEmail().length() > 0) {
 						String email = lfDto.getPartnerDto().getCEmail();
 
 						VersandauftragDto versDto = new VersandauftragDto();
 						versDto.setCEmpfaenger(email);
 						versDto.setCAbsenderadresse(sAbsenderadresse);
-						String sText = LPMain
-								.getTextRespectUISPr("rekla.lieferantenbeurteilung.mailversand.betreff");
+						String sText = LPMain.getTextRespectUISPr("rekla.lieferantenbeurteilung.mailversand.betreff");
 						versDto.setCDateiname(sText + ".pdf");
 						lfDto.getPartnerDto().getLocaleCNrKommunikation();
 						versDto.setCBetreff(sText);
-						versDto.setOInhalt(JasperExportManager
-								.exportReportToPdf(reportEinesLieferanten
-										.getPrint()));
-						DelegateFactory.getInstance().getVersandDelegate()
-								.updateVersandauftrag(versDto, false);
+						versDto.setOInhalt(JasperExportManager.exportReportToPdf(reportEinesLieferanten.getPrint()));
+						//SP7338
+						String sDefaulttext = DelegateFactory.getInstance().getVersandDelegate()
+								.getDefaultTextForBelegEmail(getMailtextDto());
+						versDto.setCText(sDefaulttext);
+						
+						DelegateFactory.getInstance().getVersandDelegate().updateVersandauftrag(versDto, false);
 
 						iEmailsVersandt++;
 
 					} else {
 						// Liste von nicht vorhandenen Lieferanten ausgeben
-						hmLieferantenNichtVersandt.put(lfDto.getPartnerDto()
-								.formatFixTitelName1Name2(), "");
+						hmLieferantenNichtVersandt.put(lfDto.getPartnerDto().formatFixTitelName1Name2(), "");
 					}
 
 				}
@@ -415,28 +401,105 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 
 			if (hmLieferantenNichtVersandt.size() > 0) {
 				s += "\r\n\r\nFolgende Lieferanten haben jedoch keine E-Mail Adresse hinterlegt:\r\n";
-				Iterator<String> it = hmLieferantenNichtVersandt.keySet()
-						.iterator();
+				Iterator<String> it = hmLieferantenNichtVersandt.keySet().iterator();
 				while (it.hasNext()) {
 					String key = it.next();
 					s += key + "\r\n";
 				}
 			}
 
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.info"), s);
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"), s);
+
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_BEURTEILUNG_SPEICHERN)) {
+
+			JasperPrintLP lpreport = getReport(null);
+			Integer[] lieferantenIdsFuerDokuemntenablage = (Integer[]) lpreport.getAdditionalInformation("LIEFERANTEN");
+
+			Integer lieferantIIdVorher = null;
+			if (lieferantIId != null) {
+				lieferantIIdVorher = new Integer(lieferantIId);
+			}
+
+			int iDokumenteAbgelegt = 0;
+			if (lieferantenIdsFuerDokuemntenablage != null && lieferantenIdsFuerDokuemntenablage.length > 0) {
+
+				for (int i = 0; i < lieferantenIdsFuerDokuemntenablage.length; i++) {
+					lieferantIId = lieferantenIdsFuerDokuemntenablage[i];
+					JasperPrintLP reportEinesLieferanten = getReportDokumentenablage(null);
+					// Email aus Kopfdaten holen
+					LieferantDto lfDto = DelegateFactory.getInstance().getLieferantDelegate()
+							.lieferantFindByPrimaryKey(lieferantIId);
+
+					PrintInfoDto oInfo = DelegateFactory.getInstance().getJCRDocDelegate()
+							.getPathAndPartnerAndTable(lieferantIId, QueryParameters.UC_ID_LIEFERANTEN);
+					DocPath docPath = null;
+					if (oInfo != null) {
+						docPath = oInfo.getDocPath();
+					}
+
+					String sName = "Beurteilung";
+
+					JCRDocDto jcrDocDto = new JCRDocDto();
+
+					Integer iPartnerIId = null;
+					MandantDto mandantDto = DelegateFactory.getInstance().getMandantDelegate()
+							.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant());
+					iPartnerIId = mandantDto.getPartnerIId();
+
+					Helper.setJcrDocBinaryData(jcrDocDto, reportEinesLieferanten.getPrint());
+
+					jcrDocDto.setDocPath(docPath.add(new DocNodeFile(sName)));
+					jcrDocDto.setlPartner(iPartnerIId);
+					jcrDocDto.setsBelegnummer("");
+					jcrDocDto.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
+					jcrDocDto.setlAnleger(LPMain.getTheClient().getIDPersonal());
+					jcrDocDto.setlZeitpunkt(System.currentTimeMillis());
+					jcrDocDto.setsSchlagworte(" ");
+					jcrDocDto.setsName(sName);
+					jcrDocDto.setsFilename(sName + ".jrprint");
+					if (oInfo.getTable() != null) {
+						jcrDocDto.setsTable(oInfo.getTable());
+					} else {
+						jcrDocDto.setsTable(" ");
+					}
+					jcrDocDto.setsRow(" ");
+
+					jcrDocDto.setsMIME(".jrprint");
+					jcrDocDto.setlSicherheitsstufe(JCRDocFac.SECURITY_ARCHIV);
+					jcrDocDto.setsGruppierung(JCRDocFac.DEFAULT_ARCHIV_GRUPPE);
+					jcrDocDto.setbVersteckt(false);
+					jcrDocDto.setlVersion(
+							DelegateFactory.getInstance().getJCRDocDelegate().getNextVersionNumer(jcrDocDto));
+					DelegateFactory.getInstance().getJCRDocDelegate().addNewDocumentOrNewVersionOfDocument(jcrDocDto);
+
+					iDokumenteAbgelegt++;
+
+				}
+
+			}
+			lieferantIId = lieferantIIdVorher;
+
+			String s = "Es wurden " + iDokumenteAbgelegt + " Dokumente abgelegt.";
+
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"), s);
 
 		}
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 
-		JasperPrintLP lpreport = DelegateFactory
-				.getInstance()
-				.getReklamationReportDelegate()
-				.printLieferantenbeurteilung(wdfDatumVon.getTimestamp(),
-						wdfDatumBis.getTimestamp(), brancheIId, lieferantIId,
-						wsfLiefergruppe.getIKey());
+		JasperPrintLP lpreport = DelegateFactory.getInstance().getReklamationReportDelegate()
+				.printLieferantenbeurteilung(wdrBereich.getTimestampVon(), wdrBereich.getTimestampBis(), brancheIId,
+						lieferantIId, wsfLiefergruppe.getIKey(), wsfPartnerklasse.getIKey(), wcbVerdichtet.isSelected(),false);
+
+		return lpreport;
+	}
+	
+	public JasperPrintLP getReportDokumentenablage(String sDrucktype) throws Throwable {
+
+		JasperPrintLP lpreport = DelegateFactory.getInstance().getReklamationReportDelegate()
+				.printLieferantenbeurteilung(wdrBereich.getTimestampVon(), wdrBereich.getTimestampBis(), brancheIId,
+						lieferantIId, wsfLiefergruppe.getIKey(), wsfPartnerklasse.getIKey(), wcbVerdichtet.isSelected(),true);
 
 		return lpreport;
 	}
@@ -446,8 +509,7 @@ public class ReportLieferantenbeurteilung extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

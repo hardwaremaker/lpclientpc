@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.partner;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -45,7 +46,10 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
+import com.lp.client.cockpit.InternalFrameCockpit;
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -71,6 +75,7 @@ import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /*
@@ -94,8 +99,8 @@ abstract public class PanelKontakt extends PanelBasis {
 	private JPanel panelButtonAction = null;
 	private WrapperLabel wlaKontaktVon = null;
 	private WrapperTimestampField wtfKontaktVon = null;
-	private WrapperButton wbuAnsprechpartner = null;
-	private WrapperTextField wtfAnsprechpartner = null;
+	protected WrapperButton wbuAnsprechpartner = null;
+	protected WrapperTextField wtfAnsprechpartner = null;
 
 	protected KontaktDto kontaktDto = null;
 	private PanelQueryFLR panelQueryFLRAnsprechpartnerAuswahl = null;
@@ -121,6 +126,7 @@ abstract public class PanelKontakt extends PanelBasis {
 	private WrapperEditorField wefKommentar = null;
 
 	private WrapperTelefonField wtfTelefon = null;
+	private WrapperTelefonField wtfHandy = null;
 
 	private WrapperLabel wlaWiedervorlage = new WrapperLabel();
 	private WrapperTimestampField wtfWiedervorlage = new WrapperTimestampField();
@@ -219,6 +225,9 @@ abstract public class PanelKontakt extends PanelBasis {
 		wtfTelefon = new WrapperTelefonField(PartnerFac.MAX_KOMMART_INHALT);
 		wtfTelefon.setActivatable(false);
 
+		wtfHandy = new WrapperTelefonField(PartnerFac.MAX_KOMMART_INHALT);
+		wtfHandy.setActivatable(false);
+
 		wbuZugewiesener.setActionCommand(ACTION_SPECIAL_FLR_PERSON);
 		wbuZugewiesener.addActionListener(this);
 
@@ -237,17 +246,22 @@ abstract public class PanelKontakt extends PanelBasis {
 		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.kommentar"));
 
-		wefKommentar = new WrapperEditorFieldKommentar(getInternalFrame(), LPMain
-				.getInstance().getTextRespectUISPr("lp.kommentar"));
+		wefKommentar = new WrapperEditorFieldKommentar(getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("lp.kommentar"));
+
+		Dimension dimension = HelperClient.getSizeFactoredDimension(210);
+		HelperClient.setMinimumAndPreferredSize(wtfKontaktBis, dimension);
+		HelperClient.setMinimumAndPreferredSize(wtfKontaktVon, dimension);
+		HelperClient.setMinimumAndPreferredSize(wtfWiedervorlage, dimension);
 
 		// Ab hier einhaengen.
 		// Zeile
 		iZeile++;
 		jpaWorkingOn.add(wlaTitel, new GridBagConstraints(0, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+				new Insets(2, 2, 2, 2), 110, 0));
 
-		jpaWorkingOn.add(wtfTitel, new GridBagConstraints(1, iZeile, 3, 1, 0,
+		jpaWorkingOn.add(wtfTitel, new GridBagConstraints(1, iZeile, 5, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -256,24 +270,29 @@ abstract public class PanelKontakt extends PanelBasis {
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		jpaWorkingOn.add(wtfAnsprechpartner, new GridBagConstraints(1, iZeile,
-				2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				3, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfTelefon, new GridBagConstraints(3, iZeile, 1, 1, 0,
+		jpaWorkingOn.add(wtfTelefon, new GridBagConstraints(5, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+				new Insets(2, 2, 2, 2), 150, 0));
 		iZeile++;
 		jpaWorkingOn.add(wlaKontaktVon, new GridBagConstraints(0, iZeile, 1, 1,
 				1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 50, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfKontaktVon, new GridBagConstraints(1, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 200, 0));
+				new Insets(2, 2, 2, 2), -40, 0));
 		jpaWorkingOn.add(wlaKontaktBis, new GridBagConstraints(2, iZeile, 1, 1,
 				1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 50, 0));
+				new Insets(2, 2, 2, 2), 20, 0));
 		jpaWorkingOn.add(wtfKontaktBis, new GridBagConstraints(3, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 200, 0));
+				new Insets(2, 2, 2, 2), -40, 0));
+
+		jpaWorkingOn.add(wtfHandy, new GridBagConstraints(5, iZeile, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+
 		jpaWorkingOn.add(wbuJetzt, new GridBagConstraints(4, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(2, 2, 2, 2), 20, 0));
@@ -283,7 +302,7 @@ abstract public class PanelKontakt extends PanelBasis {
 				0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wtfKontaktart, new GridBagConstraints(1, iZeile, 3, 1,
+		jpaWorkingOn.add(wtfKontaktart, new GridBagConstraints(1, iZeile, 5, 1,
 				0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -291,7 +310,7 @@ abstract public class PanelKontakt extends PanelBasis {
 				1, 0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wtfZugewiesener, new GridBagConstraints(1, iZeile, 3,
+		jpaWorkingOn.add(wtfZugewiesener, new GridBagConstraints(1, iZeile, 5,
 				1, 0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 
@@ -301,12 +320,12 @@ abstract public class PanelKontakt extends PanelBasis {
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfWiedervorlage, new GridBagConstraints(1, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 200, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1, 1,
 				1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wefKommentar, new GridBagConstraints(1, iZeile, 3, 1,
+		jpaWorkingOn.add(wefKommentar, new GridBagConstraints(1, iZeile, 5, 1,
 				0, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 
@@ -337,7 +356,7 @@ abstract public class PanelKontakt extends PanelBasis {
 		}
 	}
 
-	final public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
 			throws Throwable {
 
 		super.eventYouAreSelected(true);
@@ -396,7 +415,8 @@ abstract public class PanelKontakt extends PanelBasis {
 		if (kontaktDto.getTErledigt() != null) {
 
 			boolean b = DialogFactory
-					.showModalJaNeinDialog(getInternalFrame(),
+					.showModalJaNeinDialog(
+							getInternalFrame(),
 							"Der Kontakt ist bereits erledigt. Wollen sie die Erledigung zur\u00FCcknehmen?");
 
 			if (b == true) {
@@ -436,8 +456,11 @@ abstract public class PanelKontakt extends PanelBasis {
 					PartnerFilterFactory.getInstance().createFKAnsprechpartner(
 							getPartnerDto().getIId()),
 					QueryParameters.UC_ID_ANSPRECHPARTNER, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("button.ansprechpartner.long"));
+					getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr(
+							"button.ansprechpartner.long"),
+					PartnerFilterFactory.getInstance()
+							.createFKVAnsprechpartner(), null);
 
 			panelQueryFLRAnsprechpartnerAuswahl
 					.befuellePanelFilterkriterienDirekt(PartnerFilterFactory
@@ -487,7 +510,11 @@ abstract public class PanelKontakt extends PanelBasis {
 				} else if (getInternalFrame() instanceof InternalFrameKunde) {
 					((InternalFrameKunde) getInternalFrame()).getTpKunde().panelQueryKontakt
 							.eventYouAreSelected(true);
-				}
+				}else if (getInternalFrame() instanceof InternalFrameCockpit) {
+					((InternalFrameCockpit) getInternalFrame()).getTpCockpit().panelQueryKontakt
+					.eventYouAreSelected(true);
+		}
+				
 
 			}
 
@@ -568,35 +595,42 @@ abstract public class PanelKontakt extends PanelBasis {
 			wtfAnsprechpartner.setText(partnerDto.formatTitelAnrede());
 
 			if (ansprechpartnerDto.getCTelefon() == null) {
+
 				wtfTelefon.setPartnerKommunikationDto(partnerDtoZugehoerig,
-						ansprechpartnerDto.getCTelefon());
+						partnerDtoZugehoerig.getCTelefon());
 			} else {
 
 				String cTelefon = DelegateFactory
 						.getInstance()
 						.getPartnerDelegate()
-						.enrichNumber(
-								ansprechpartnerDto.getPartnerIId(),
+						.enrichNumber(ansprechpartnerDto.getPartnerIId(),
 								PartnerFac.KOMMUNIKATIONSART_TELEFON,
-								ansprechpartnerDto
-										.getCTelefon(),
-								true);
+								ansprechpartnerDto.getCTelefon(), true);
 
-				ansprechpartnerDto
-						.setCTelefon(cTelefon
-										+ " "
-										+ ansprechpartnerDto
-												.getCTelefon());
+				if (Helper.short2boolean(ansprechpartnerDto.getBDurchwahl())) {
+					ansprechpartnerDto.setCTelefon(cTelefon + " "
+							+ ansprechpartnerDto.getCTelefon());
+				}
 
 				wtfTelefon.setPartnerKommunikationDto(getPartnerDto(),
 						ansprechpartnerDto.getCTelefon());
+			}
+
+			if (ansprechpartnerDto.getCHandy() != null) {
+				wtfHandy.setPartnerKommunikationDto(
+						ansprechpartnerDto.getPartnerDto(),
+						ansprechpartnerDto.getCHandy());
+				// wtfDurchwahl.setIstAnsprechpartner(true);
+			} else {
+				wtfHandy.setPartnerKommunikationDto(null, null);
 			}
 
 		} else {
 			wtfAnsprechpartner.setText(null);
 
 			if (getPartnerDto().getCTelefon() != null) {
-				wtfTelefon.setPartnerKommunikationDto(getPartnerDto(),getPartnerDto().getCTelefon());
+				wtfTelefon.setPartnerKommunikationDto(getPartnerDto(),
+						getPartnerDto().getCTelefon());
 			} else {
 				wtfTelefon.setPartnerKommunikationDto(null, null);
 			}

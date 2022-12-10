@@ -36,29 +36,32 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.math.BigDecimal;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
-import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperComboBoxPeriode;
 import com.lp.client.frame.component.WrapperLabel;
-import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IPanelReportAction;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
 import com.lp.server.finanz.service.FinanzFac;
 import com.lp.server.finanz.service.FinanzReportFac;
 import com.lp.server.finanz.service.ReportErfolgsrechnungKriterienDto;
+import com.lp.server.system.service.GeschaeftsjahrMandantDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -83,7 +86,7 @@ import com.lp.server.util.report.JasperPrintLP;
  * @version not attributable Date $Date: 2012/04/13 14:19:03 $
  */
 public class ReportErfolgsrechnung extends PanelBasis implements
-		PanelReportIfJRDS {
+		PanelReportIfJRDS,IPanelReportAction {
 	/**
 	 * 
 	 */
@@ -98,6 +101,8 @@ public class ReportErfolgsrechnung extends PanelBasis implements
 
 	private WrapperCheckBox wcbDetail = new WrapperCheckBox();
 
+	private Map<String, Object> mapParameters = null;
+	
 	private final static int BREITE_SPALTE2 = 80;
 
 	protected JPanel jpaWorkingOn = new JPanel();
@@ -125,6 +130,7 @@ public class ReportErfolgsrechnung extends PanelBasis implements
 
 		wlaGeschaeftsjahr = new WrapperLabel("Gesch\u00E4ftsjahr");
 		wcoGeschaeftsjahr = new WrapperComboBox();
+		wcoGeschaeftsjahr.addActionListener(this);
 
 		wlaPeriode = new WrapperLabel("Periode");
 		wcoPeriode = new WrapperComboBoxPeriode(DelegateFactory.getInstance()
@@ -134,14 +140,13 @@ public class ReportErfolgsrechnung extends PanelBasis implements
 		wcbDetail.setText(LPMain
 				.getTextRespectUISPr("fb.erfolgsrechnung.detail"));
 
-		wlaGeschaeftsjahr.setPreferredSize(new Dimension(BREITE_SPALTE2,
-				Defaults.getInstance().getControlHeight()));
-		wlaPeriode.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
-		wcoGeschaeftsjahr.setPreferredSize(new Dimension(BREITE_SPALTE2,
-				Defaults.getInstance().getControlHeight()));
-		wcbDetail.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
+		Dimension radioButtonDimension = HelperClient.getSizeFactoredDimension(BREITE_SPALTE2);
+		HelperClient.setMinimumAndPreferredSize(wcoGeschaeftsjahr, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wcbDetail, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wlaGeschaeftsjahr, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wlaPeriode, radioButtonDimension);
+		
+		
 		iZeile++;
 		jpaWorkingOn.add(wlaGeschaeftsjahr, new GridBagConstraints(0, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
@@ -199,11 +204,13 @@ public class ReportErfolgsrechnung extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
+		JasperPrintLP print = DelegateFactory
 				.getInstance()
 				.getFinanzReportDelegate()
 				.printErfolgsrechnung(this.getKriterien(), false,
-						wcbDetail.isSelected());
+						wcbDetail.isSelected(), false);
+		this.mapParameters = print.getMapParameters();
+		return print;
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
@@ -225,6 +232,48 @@ public class ReportErfolgsrechnung extends PanelBasis implements
 		krit.setIPeriode(wcoPeriode.getPeriode());
 
 		return krit;
+	}
+
+	@Override
+	public void eventActionPrint(ActionEvent e) throws Throwable {
+		eventActionSave(e, false) ;
+	}
+
+	  
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if(e.getSource().equals(wcoGeschaeftsjahr)) {
+			if(wcoGeschaeftsjahr
+					.getSelectedItem()!=null && wcoGeschaeftsjahr
+					.getSelectedItem()!=wcoGeschaeftsjahr.emptyEntry)
+			wcoPeriode.setGeschaeftsjahr(wcoGeschaeftsjahr
+					.getSelectedItem().toString(),
+				FinanzFac.UVA_ABRECHNUNGSZEITRAUM_MONAT, true);
+		}
+	}
+	
+	@Override
+	public void eventActionSave(ActionEvent e) throws Throwable {
+		eventActionSave(e, false) ;
+	}
+
+	@Override
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
+		// jetzt wenn erforderlich die Jahresgewinn-Buchung machen
+		GeschaeftsjahrMandantDto gj = DelegateFactory.getInstance().getSystemDelegate().geschaeftsjahrFindByPrimaryKey(this.getKriterien().getIGeschaeftsjahr());
+		if (gj.getTSperre() == null) {
+			// SP7774 nur wenn Jahr nicht gesperrt
+			System.out.println("Jahresgewinn-Buchung");
+			System.out.println(" Konten: " + this.mapParameters.get("P_KONTO_I_ID_GEWINNVORTRAG") + " " 
+					+ this.mapParameters.get("P_KONTO_I_ID_JAHRESGEWINN"));
+			System.out.println(" Saldo: " + this.mapParameters.get("P_JAHRESGEWINN_PERIODE"));
+		
+			if (this.mapParameters.get("P_KONTO_I_ID_GEWINNVORTRAG") != null && this.mapParameters.get("P_KONTO_I_ID_JAHRESGEWINN") != null) {
+				DelegateFactory.getInstance().getFinanzServiceDelegate().createGewinnbuchungen(
+					(int)this.mapParameters.get("P_GESCHAEFTSJAHR"), 
+					(int)this.mapParameters.get("P_PERIODE"),  
+					(BigDecimal)this.mapParameters.get("P_JAHRESGEWINN_PERIODE"));
+			}
+		}
 	}
 
 }

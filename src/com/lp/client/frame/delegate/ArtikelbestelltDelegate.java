@@ -42,6 +42,7 @@ import javax.naming.InitialContext;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelbestelltFac;
+import com.lp.server.fertigung.service.FertigungFac;
 
 
 public class ArtikelbestelltDelegate
@@ -52,7 +53,8 @@ public class ArtikelbestelltDelegate
   public ArtikelbestelltDelegate()
       throws Exception {
 	  context = new InitialContext();
-	  artikelbestelltFac = (ArtikelbestelltFac) context.lookup("lpserver/ArtikelbestelltFacBean/remote");
+	  artikelbestelltFac = lookupFac(context, ArtikelbestelltFac.class);	
+	  
   }
 
   public BigDecimal getAnzahlBestellt(Integer artikelIId)
@@ -67,13 +69,36 @@ public class ArtikelbestelltDelegate
     }
   }
 
+  public BigDecimal getAnzahlInternBestellt(Integer artikelIId)
+      throws
+      ExceptionLP  {
+    try {
+      return artikelbestelltFac.getAnzahlInternBestellt(artikelIId);
+    }
+    catch (Throwable ex) {
+      handleThrowable(ex);
+      return null;
+    }
+  }
+  public BigDecimal getWareUnterwegsEinesArtikels(Integer artikelIId)
+	      throws
+	      ExceptionLP  {
+	    try {
+	      return artikelbestelltFac.getWareUnterwegsEinesArtikels(artikelIId, LPMain.getTheClient());
+	    }
+	    catch (Throwable ex) {
+	      handleThrowable(ex);
+	      return null;
+	    }
+	  }
+
 
   public Hashtable<?, ?> getAnzahlRahmenbestellt(Integer artikelIId)
       throws
       ExceptionLP {
     try {
       return artikelbestelltFac.getAnzahlRahmenbestellt(artikelIId,
-           LPMain.getInstance().getTheClient());
+           LPMain.getTheClient());
     }
     catch (Throwable ex) {
       handleThrowable(ex);

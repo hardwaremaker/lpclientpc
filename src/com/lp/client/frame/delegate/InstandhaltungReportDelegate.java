@@ -37,6 +37,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.instandhaltung.service.InstandhaltungFac;
 import com.lp.server.instandhaltung.service.InstandhaltungReportFac;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -46,8 +47,7 @@ public class InstandhaltungReportDelegate extends Delegate {
 
 	public InstandhaltungReportDelegate() throws Exception {
 		context = new InitialContext();
-		instandhaltungReportFac = (InstandhaltungReportFac) context
-				.lookup("lpserver/InstandhaltungReportFacBean/remote");
+		instandhaltungReportFac = lookupFac(context, InstandhaltungReportFac.class);
 	}
 
 	public JasperPrintLP printWartungsplan(java.sql.Timestamp tBis,

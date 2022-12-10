@@ -72,7 +72,8 @@ public class TabbedPaneGesperrt extends TabbedPane {
 
 	private final static int IDX_LOCKME = 0;
 	private final static int IDX_THECLIENT = 1;
-
+	private final static int IDX_CONCURRENT_USERS = 2;
+	
 	private PanelQuery panelLockMeQP1 = null;
 	private PanelLockMe panelLockMeBottomD1 = null;
 	private PanelSplit panelLockMeSP1 = null;
@@ -82,6 +83,8 @@ public class TabbedPaneGesperrt extends TabbedPane {
 	private PanelSplit panelTheClientSP2 = null;
 
 	private WrapperCheckBox wcbNurAngemeldete = null ;
+	
+	private PanelQuery panelConcurrentUsers = null;
 	
 	public TabbedPaneGesperrt(InternalFrame internalFrameI) throws Throwable {
 		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
@@ -93,16 +96,20 @@ public class TabbedPaneGesperrt extends TabbedPane {
 	private void jbInit() throws Throwable {
 		// Tab 1: Rechte
 		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"pers.benutzer.gesperrt"),
+				textFromToken("pers.benutzer.gesperrt"),
 				null,
 				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"pers.benutzer.gesperrt"), IDX_LOCKME);
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.loggedin"),
+				textFromToken("pers.benutzer.gesperrt"), IDX_LOCKME);
+		insertTab(
+				textFromToken("lp.loggedin"),
 				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.loggedin"),
+				textFromToken("lp.loggedin"),
 				IDX_THECLIENT);
+		insertTab(
+				textFromToken("lp.concurrentusers"),
+				null, null, 
+				textFromToken("lp.concurrentusers"), IDX_CONCURRENT_USERS);
+				
 		setSelectedComponent(getPanelQueryTheJudge());
 		// refresh
 		getPanelQueryTheJudge().eventYouAreSelected(false);
@@ -151,6 +158,7 @@ public class TabbedPaneGesperrt extends TabbedPane {
 				panelTheClientBottomD2.setKeyWhenDetailPanel(key);
 				panelTheClientBottomD2.eventYouAreSelected(false);
 				panelTheClientQP2.updateButtons();
+			} else if (e.getSource() == panelConcurrentUsers) {
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			if (e.getSource() == panelLockMeBottomD1) {
@@ -168,6 +176,11 @@ public class TabbedPaneGesperrt extends TabbedPane {
 				panelTheClientSP2.eventYouAreSelected(false); // refresh auf das
 																// gesamte 1:n
 																// panel
+			} else if (e.getSource() == panelConcurrentUsers) {
+				Object oKey = panelConcurrentUsers.getSelectedId();
+				getInternalFrame().setKeyWasForLockMe(
+						oKey == null ? null : oKey + "");
+				panelConcurrentUsers.eventYouAreSelected(false);		
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			// hier kommt man nach upd im D bei einem 1:n hin.
@@ -212,6 +225,13 @@ public class TabbedPaneGesperrt extends TabbedPane {
 			// im QP die Buttons setzen.
 			panelTheClientQP2.updateButtons();
 
+			break;
+		}
+		
+		case IDX_CONCURRENT_USERS: {
+			refreshConcurrentUsers();
+			panelConcurrentUsers.eventYouAreSelected(false);
+			panelConcurrentUsers.updateButtons();
 			break;
 		}
 		}
@@ -316,6 +336,18 @@ public class TabbedPaneGesperrt extends TabbedPane {
 		}
 	}
 
+	private void refreshConcurrentUsers() throws Throwable {
+		if(panelConcurrentUsers == null) {
+			String[] buttons =  { PanelBasis.ACTION_REFRESH };
+			panelConcurrentUsers = new PanelQuery(null, 
+					new FilterKriterium[] {},
+					QueryParameters.UC_ID_CONCURRENTUSER, buttons,
+					getInternalFrame(), textFromToken("lp.concurrentusers"), true);
+			setComponentAt(IDX_CONCURRENT_USERS, panelConcurrentUsers);
+//			panelConcurrentUsers.eventYouAreSelected(true);
+		}
+	}
+	
 	protected javax.swing.JMenuBar getJMenuBar() throws Throwable {
 		return new WrapperMenuBar(this);
 	}

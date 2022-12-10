@@ -71,7 +71,7 @@ public PanelPartnerpartnerbank(InternalFrame internalFrame,
 
 
   protected PartnerDto getPartnerDto(){
-    return ((InternalFramePartner)getInternalFrame()).getTpPartner().getPartnerDto();
+    return ((InternalFramePartner)getInternalFrame()).getTpPartner().getServicePartnerDto();
   }
 
 

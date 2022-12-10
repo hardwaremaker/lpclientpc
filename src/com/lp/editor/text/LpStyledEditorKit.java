@@ -32,7 +32,9 @@
  ******************************************************************************/
 package com.lp.editor.text;
 
-import java.awt.Container;
+import static java.awt.RenderingHints.KEY_TEXT_ANTIALIASING;
+import static java.awt.RenderingHints.KEY_TEXT_LCD_CONTRAST;
+
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -41,13 +43,13 @@ import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
-import java.awt.Toolkit;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.util.Hashtable;
 
 import javax.swing.Action;
+import javax.swing.JComponent;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.BoxView;
@@ -69,7 +71,6 @@ import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 
 import com.lp.editor.ui.LpDecoratedTextPane;
-
 /**
  * <p>
  * Ueberschrift: Logistik Pur Editor
@@ -95,28 +96,30 @@ public class LpStyledEditorKit extends StyledEditorKit {
 	 */
 	private static final long serialVersionUID = 1L;
 	private static Hashtable<Object, Action> actions;
-	private int tabsize ;
+	private int tabsize;
 	
+	private final ViewFactory hvDefaultFactory = new StyledViewFactory();
+
 	public LpStyledEditorKit() {
 		super();
-		tabsize = 72 ; // Default Size Java
+		tabsize = 72; // Default Size Java
 		createActionsHashTable();
 	}
 
 	public int getTabsize() {
-		return tabsize ;
+		return tabsize;
 	}
-	
+
 	public void setTabsize(int newTabsize) {
-		tabsize = newTabsize ;
+		tabsize = newTabsize;
 	}
-	
+
 	/**
 	 * Erzeugen einer Hashtable, um auf die Actions spaeter ueber den Namen
-	 * zugreifen zu koennen. Es werden aus dem uebergebenen
-	 * <code>EditorKit</code> alle vorhanden Actions ausgelesen und in eine
-	 * Hashtable geschrieben, mit dem Namen als Key. Diese koennen dann mithilfe
-	 * von {@link #getActionByName} ausgelesen werden.
+	 * zugreifen zu koennen. Es werden aus dem uebergebenen <code>EditorKit</code>
+	 * alle vorhanden Actions ausgelesen und in eine Hashtable geschrieben, mit dem
+	 * Namen als Key. Diese koennen dann mithilfe von {@link #getActionByName}
+	 * ausgelesen werden.
 	 * 
 	 * @see #getActionByName
 	 * 
@@ -137,10 +140,9 @@ public class LpStyledEditorKit extends StyledEditorKit {
 	/**
 	 * Zugriff auf die Actions in der Hashtable ueber den Namen.
 	 * 
-	 * @param sActionName
-	 *            Der Name der Action, die aus der Hastable gelesen werden soll.
-	 * @return Die Action aus der Hashtable, die ueber den Namen spezifiziert
-	 *         wurde.
+	 * @param sActionName Der Name der Action, die aus der Hastable gelesen werden
+	 *                    soll.
+	 * @return Die Action aus der Hashtable, die ueber den Namen spezifiziert wurde.
 	 */
 	public Action getActionByName(String sActionName) {
 		return (Action) (actions.get(sActionName));
@@ -154,28 +156,25 @@ public class LpStyledEditorKit extends StyledEditorKit {
 	 */
 	public Document createDefaultDocument() {
 		Document doc = super.createDefaultDocument();
-		doc.putProperty(LpDecoratedTextPane.DimensionProperty,
-				LpDecoratedTextPane.FORMAT_A4);
-		doc.putProperty(LpDecoratedTextPane.MarginProperty, new Insets(5, 5, 5,
-				5));
+		doc.putProperty(LpDecoratedTextPane.DimensionProperty, LpDecoratedTextPane.FORMAT_A4);
+		doc.putProperty(LpDecoratedTextPane.MarginProperty, new Insets(5, 5, 5, 5));
 		doc.putProperty(Document.TitleProperty, "Untitled");
 		return doc;
 	}
 
 	public ViewFactory getViewFactory() {
-		return new StyledViewFactory();
+		return hvDefaultFactory;
 	}
 
-	class StyledViewFactory implements ViewFactory {
+	private class StyledViewFactory implements ViewFactory {
 
 		public View create(Element elem) {
 			String kind = elem.getName();
 			if (kind != null) {
-				if (kind.equals(AbstractDocument.ContentElementName)){
+				if (kind.equals(AbstractDocument.ContentElementName)) {
 					return new ScaledLableView(elem);
 				} else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-//					return new ParagraphView(elem);
-					return new LpParagraphView(elem) ;
+					return new LpParagraphView(elem);
 				} else if (kind.equals(AbstractDocument.SectionElementName)) {
 					return new ScaledView(elem, View.Y_AXIS);
 				} else if (kind.equals(StyleConstants.ComponentElementName)) {
@@ -190,21 +189,20 @@ public class LpStyledEditorKit extends StyledEditorKit {
 		}
 
 	}
-	
 
-	class LpParagraphView extends ParagraphView	{
+	private class LpParagraphView extends ParagraphView {
 		public LpParagraphView(Element element) {
-			super(element) ;
+			super(element);
 		}
-		
+
 		@Override
 		public float nextTabStop(float x, int tabOffset) {
-	        TabSet tabs = getTabSet();
-	        if(tabs == null) {
-	            return (float)(getTabBase() + (((int)x / getTabsize() + 1) * getTabsize()));
-	        }
+			TabSet tabs = getTabSet();
+			if (tabs == null) {
+				return (float) (getTabBase() + (((int) x / getTabsize() + 1) * getTabsize()));
+			}
 
-	        return super.nextTabStop(x, tabOffset);
+			return super.nextTabStop(x, tabOffset);
 		}
 	}
 }
@@ -219,28 +217,26 @@ class ScaledView extends BoxView {
 	}
 
 	public double getZoomFactor() {
-		Double scale = (Double) getDocument().getProperty(
-				LpDecoratedTextPane.ZoomfactorProperty);
+		Double scale = (Double) getDocument().getProperty(LpDecoratedTextPane.ZoomfactorProperty);
 		if (scale != null) {
 			return scale.doubleValue();
 		}
 
 		return 1;
-	}	
+	}
 
 	public void paint(Graphics g, Shape allocation) {
-		Graphics2D g2d = (Graphics2D) g;
-		RenderingHints hints = new RenderingHints(
-				RenderingHints.KEY_FRACTIONALMETRICS,
+		Graphics2D g2d = (Graphics2D) g.create();
+		RenderingHints hints = new RenderingHints(RenderingHints.KEY_FRACTIONALMETRICS,
 				RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-		hints.put(RenderingHints.KEY_TEXT_ANTIALIASING,
-				RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+		hints.put(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 		g2d.setRenderingHints(hints);
 		double zoomFactor = getZoomFactor();
 		AffineTransform old = g2d.getTransform();
 		g2d.scale(zoomFactor, zoomFactor);
 		super.paint(g2d, allocation);
 		g2d.setTransform(old);
+		g2d.dispose();
 	}
 
 	public float getMinimumSpan(int axis) {
@@ -260,18 +256,17 @@ class ScaledView extends BoxView {
 		f *= getZoomFactor();
 		return f;
 	}
-	
+
 	protected void layout(int width, int height) {
-		super.layout(new Double(width / getZoomFactor()).intValue(),
-				new Double(height / getZoomFactor()).intValue());
+		super.layout(Double.valueOf(width / getZoomFactor()).intValue(),
+				Double.valueOf(height / getZoomFactor()).intValue());
 	}
 
-	public Shape modelToView(int pos, Shape a, Position.Bias b)
-			throws BadLocationException {
-		Rectangle alloc;
-		alloc = a.getBounds();
-		Shape s = super.modelToView(pos, alloc, b);
-		alloc = s.getBounds();
+	public Shape modelToView(int pos, Shape a, Position.Bias b) throws BadLocationException {
+//		Rectangle alloc;
+//		alloc = a.getBounds();
+		Shape s = super.modelToView(pos, a, b);
+		Rectangle alloc = s.getBounds();
 		alloc.x = multiplyByZoomfactor(alloc.x);
 		alloc.y = multiplyByZoomfactor(alloc.y);
 		alloc.width = multiplyByZoomfactor(alloc.width);
@@ -293,448 +288,503 @@ class ScaledView extends BoxView {
 	}
 
 	private int divideByZoomfactor(int x) {
-		return (int)Math.round(x / getZoomFactor());
+		return (int) Math.round(x / getZoomFactor());
 	}
-	
+
 	private int multiplyByZoomfactor(int x) {
-		return (int)Math.round(x * getZoomFactor());
+		return (int) Math.round(x * getZoomFactor());
 	}
 
 }
 
 class ScaledGlyphPainter extends GlyphView.GlyphPainter {
-    static ScaledGlyphPainter instance=new ScaledGlyphPainter();
-    public static ScaledGlyphPainter getInstance() {
-        return instance;
-    }
+	static ScaledGlyphPainter instance = new ScaledGlyphPainter();
 
-    static Graphics2D painterGr;
+	public static ScaledGlyphPainter getInstance() {
+		return instance;
+	}
 
-    static {
-        BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
-        painterGr = (Graphics2D) img.getGraphics();
-        painterGr.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-    }
+	static Graphics2D painterGr;
 
-    /**
-     * Determine the span the glyphs given a start location
-     * (for tab expansion).
-     */
-    public float getSpan(GlyphView v, int p0, int p1,
-                         TabExpander e, float x) {
-        sync(v);
-        Segment text = getText(v, p0,p1);
-        int[] justificationData = getJustificationData(v);
-        float width = getTabbedTextWidth(v, text, metrics, x, e, p0, justificationData);
-        return width;
-    }
+	static {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		painterGr = (Graphics2D) img.getGraphics();
 
-    public float getHeight(GlyphView v) {
-        sync(v);
-        return metrics.getHeight();
-    }
+		RenderingHints hints = new RenderingHints(RenderingHints.KEY_FRACTIONALMETRICS,
+				RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+		hints.put(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+		painterGr.setRenderingHints(hints);
+//        painterGr.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+	}
 
-    /**
-     * Fetches the ascent above the baseline for the glyphs
-     * corresponding to the given range in the model.
-     */
-    public float getAscent(GlyphView v) {
-        sync(v);
-        return metrics.getAscent();
-    }
+	/**
+	 * Determine the span the glyphs given a start location (for tab expansion).
+	 */
+	public float getSpan(GlyphView v, int p0, int p1, TabExpander e, float x) {
+		sync(v);
+		Segment text = getText(v, p0, p1);
+		int[] justificationData = getJustificationData(v);
+		float width = getTabbedTextWidth(v, text, metrics, x, e, p0, justificationData);
+		return width;
+	}
 
-    /**
-     * Fetches the descent below the baseline for the glyphs
-     * corresponding to the given range in the model.
-     */
-    public float getDescent(GlyphView v) {
-        sync(v);
-        return metrics.getDescent();
-    }
+	public float getHeight(GlyphView v) {
+		sync(v);
+		return metrics.getHeight();
+	}
 
-    /**
-     * Paints the glyphs representing the given range.
-     */
-    public void paint(GlyphView v, Graphics g, Shape a, int p0, int p1) {
-        sync(v);
-        Segment text;
-        TabExpander expander = v.getTabExpander();
-        Rectangle alloc = (a instanceof Rectangle) ? (Rectangle)a : a.getBounds();
+	/**
+	 * Fetches the ascent above the baseline for the glyphs corresponding to the
+	 * given range in the model.
+	 */
+	public float getAscent(GlyphView v) {
+		sync(v);
+		return metrics.getAscent();
+	}
 
-        // determine the x coordinate to render the glyphs
-        int x = alloc.x;
-        int p = v.getStartOffset();
-        int[] justificationData = getJustificationData(v);
-        if (p != p0) {
-            text = getText(v, p, p0);
-            float width = getTabbedTextWidth(v, text, metrics, x, expander, p, justificationData);
-            x += width;
+	/**
+	 * Fetches the descent below the baseline for the glyphs corresponding to the
+	 * given range in the model.
+	 */
+	public float getDescent(GlyphView v) {
+		sync(v);
+		return metrics.getDescent();
+	}
+
+	/**
+	 * Paints the glyphs representing the given range.
+	 */
+	public void paint(GlyphView v, Graphics g, Shape a, int p0, int p1) {
+		sync(v);
+		Segment text;
+		TabExpander expander = v.getTabExpander();
+		Rectangle alloc = (a instanceof Rectangle) ? (Rectangle) a : a.getBounds();
+
+		// determine the x coordinate to render the glyphs
+		int x = alloc.x;
+		int p = v.getStartOffset();
+		int[] justificationData = getJustificationData(v);
+		if (p != p0) {
+			text = getText(v, p, p0);
+			float width = getTabbedTextWidth(v, text, metrics, x, expander, p, justificationData);
+			x += width;
+		}
+
+		// determine the y coordinate to render the glyphs
+		int y = alloc.y + metrics.getHeight() - metrics.getDescent();
+
+		// render the glyphs
+		text = getText(v, p0, p1);
+		g.setFont(metrics.getFont());
+
+//		newDrawTabbedText(v, text, x, y, g, expander, p0, justificationData, true);
+		drawTabbedText(v, text, x, y, g, expander, p0, justificationData);
+	}
+
+	public Shape modelToView(GlyphView v, int pos, Position.Bias bias, Shape a) throws BadLocationException {
+		sync(v);
+		Rectangle alloc = (a instanceof Rectangle) ? (Rectangle) a : a.getBounds();
+		int p0 = v.getStartOffset();
+		int p1 = v.getEndOffset();
+		TabExpander expander = v.getTabExpander();
+		Segment text;
+
+		if (pos == p1) {
+			// The caller of this is left to right and borders a right to
+			// left view, return our end location.
+			return new Rectangle(alloc.x + alloc.width, alloc.y, 0, metrics.getHeight());
+		}
+		if ((pos >= p0) && (pos <= p1)) {
+			// determine range to the left of the position
+			text = getText(v, p0, pos);
+			int[] justificationData = getJustificationData(v);
+			int width = (int) getTabbedTextWidth(v, text, metrics, alloc.x, expander, p0, justificationData);
+			return new Rectangle(alloc.x + width, alloc.y, 0, metrics.getHeight());
+		}
+		throw new BadLocationException("modelToView - can't convert", p1);
+	}
+
+	/**
+	 * Provides a mapping from the view coordinate space to the logical coordinate
+	 * space of the model.
+	 *
+	 * @param v          the view containing the view coordinates
+	 * @param x          the X coordinate
+	 * @param y          the Y coordinate
+	 * @param a          the allocated region to render into
+	 * @param biasReturn always returns <code>Position.Bias.Forward</code> as the
+	 *                   zero-th element of this array
+	 * @return the location within the model that best represents the given point in
+	 *         the view
+	 * @see View#viewToModel
+	 */
+	public int viewToModel(GlyphView v, float x, float y, Shape a, Position.Bias[] biasReturn) {
+		sync(v);
+		Rectangle alloc = (a instanceof Rectangle) ? (Rectangle) a : a.getBounds();
+		int p0 = v.getStartOffset();
+		int p1 = v.getEndOffset();
+		TabExpander expander = v.getTabExpander();
+		Segment text = getText(v, p0, p1);
+		int[] justificationData = getJustificationData(v);
+		int offs = getTabbedTextOffset(v, text, metrics, alloc.x, (int) x, expander, p0, true, justificationData);
+		int retValue = p0 + offs;
+		if (retValue == p1) {
+			// No need to return backward bias as GlyphPainter1 is used for
+			// ltr text only.
+			retValue--;
+		}
+		biasReturn[0] = Position.Bias.Forward;
+		return retValue;
+	}
+
+	/**
+	 * Determines the best location (in the model) to break the given view. This
+	 * method attempts to break on a whitespace location. If a whitespace location
+	 * can't be found, the nearest character location is returned.
+	 *
+	 * @param v   the view
+	 * @param p0  the location in the model where the fragment should start its
+	 *            representation >= 0
+	 * @param x   the graphic location along the axis that the broken view would
+	 *            occupy >= 0; this may be useful for things like tab calculations
+	 * @param len specifies the distance into the view where a potential break is
+	 *            desired >= 0
+	 * @return the model location desired for a break
+	 * @see View#breakView
+	 */
+	public int getBoundedPosition(GlyphView v, int p0, float x, float len) {
+		sync(v);
+		TabExpander expander = v.getTabExpander();
+		Segment s = getText(v, p0, v.getEndOffset());
+		int[] justificationData = getJustificationData(v);
+		int index = getTabbedTextOffset(v, s, metrics, (int) x, (int) (x + len), expander, p0, false,
+				justificationData);
+		int p1 = p0 + index;
+		return p1;
+	}
+
+	void sync(GlyphView v) {
+		Font f = v.getFont();
+		if ((metrics == null) || (!f.equals(metrics.getFont()))) {
+
+			// fetch a new FontMetrics
+//          Container c = v.getContainer();
+//          metrics = (c != null) ? c.getFontMetrics(f) : Toolkit.getDefaultToolkit().getFontMetrics(f);
+
+//        	System.out.println("Using new metrics for '" + f.getFontName() + "'.");
+// Der "Trick" liegt darin, dass graphics2d.getFontMetrics() FontMetrics
+// mit float Werten zurueckliefert. Die oben auskommentieren haben das flag fuer
+// float-Werte nutzen auf false.        
+			metrics = painterGr.getFontMetrics(f);
+		}
+	}
+
+	private int[] getJustificationData(GlyphView v) {
+		View parent = v.getParent();
+		int[] ret = null;
+
+		// use reflection to get the data
+		Class<? extends View> pClass = parent.getClass();
+		if (pClass.isAssignableFrom(ParagraphView.class.getDeclaredClasses()[0])) { // if (parent instanceof
+																					// ParagraphView.Row) {
+			try {
+				Field f = pClass.getDeclaredField("justificationData");
+				if (f != null) {
+					f.setAccessible(true);
+					ret = (int[]) f.get(parent);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		return ret;
+	}
+
+	// --- variables ---------------------------------------------
+
+	FontMetrics metrics;
+	static char[] SPACE_CHAR = new char[] { ' ' };
+
+	static Segment getText(View v, int start, int end) {
+		Segment s = new Segment();
+		try {
+			s.array = v.getDocument().getText(start, end - start).toCharArray();
+			s.offset = 0;
+			s.count = end - start;
+		} catch (BadLocationException e) {
+			e.printStackTrace();
+		}
+		return s;
+	}
+
+	float getTabbedTextWidth(View view, Segment s, FontMetrics metrics, float x, TabExpander e, int startOffset,
+			int[] justificationData) {
+		float nextX = x;
+		char[] txt = s.array;
+		String txtStr = new String(txt);
+		int txtOffset = s.offset;
+		int n = s.offset + s.count;
+		int charCount = 0;
+		int spaceAddon = 0;
+		int spaceAddonLeftoverEnd = -1;
+		int startJustifiableContent = 0;
+		int endJustifiableContent = 0;
+		if (justificationData != null) {
+			int offset = -startOffset + txtOffset;
+			View parent = null;
+			if (view != null && (parent = view.getParent()) != null) {
+				offset += parent.getStartOffset();
+			}
+			spaceAddon = justificationData[0];
+			spaceAddonLeftoverEnd = justificationData[1] + offset;
+			startJustifiableContent = justificationData[2] + offset;
+			endJustifiableContent = justificationData[3] + offset;
+		}
+
+		for (int i = txtOffset; i < n; i++) {
+			if (txt[i] == '\t' || ((spaceAddon != 0 || i <= spaceAddonLeftoverEnd) && (txt[i] == ' ')
+					&& startJustifiableContent <= i && i <= endJustifiableContent)) {
+				nextX += metrics.getStringBounds(txtStr, i - charCount, i, painterGr).getWidth();
+				charCount = 0;
+				if (txt[i] == '\t') {
+					if (e != null) {
+						nextX = e.nextTabStop((float) nextX, startOffset + i - txtOffset);
+					} else {
+						nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth();
+						nextX = (int) nextX;
+					}
+				} else if (txt[i] == ' ') {
+					nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth() + spaceAddon;
+					nextX = (int) nextX;
+					if (i <= spaceAddonLeftoverEnd) {
+						nextX++;
+					}
+				}
+			} else if (txt[i] == '\n') {
+				// Ignore newlines, they take up space and we shouldn't be
+				// counting them.
+				nextX += (float) metrics.getStringBounds(txtStr, i - charCount, i, painterGr).getWidth();
+				charCount = 0;
+			} else {
+				charCount++;
+			}
+		}
+
+		nextX += metrics.getStringBounds(txtStr, n - charCount, n, painterGr).getWidth();
+		return nextX - x;
+	}
+
+	float drawTabbedText(View view, Segment s, float x, float y, Graphics g, TabExpander e, int startOffset,
+			int[] justificationData) {
+		/** Der JComponent, zu dem das View gehoert. ist null, wenn das View nicht zu einem JCompoenent gehoert*/
+		JComponent component = null;
+		if(view.getContainer() instanceof JComponent) {
+			component = (JComponent) view.getContainer();
+		}
+		float nextX = x;
+		char[] txt = s.array;
+		String txtStr = new String(txt);
+		int txtOffset = s.offset;
+		int flushLen = 0;
+		int flushIndex = s.offset;
+		int spaceAddon = 0;
+		int spaceAddonLeftoverEnd = -1;
+		int startJustifiableContent = 0;
+		int endJustifiableContent = 0;
+		if (justificationData != null) {
+			int offset = -startOffset + txtOffset;
+			View parent = null;
+			if (view != null && (parent = view.getParent()) != null) {
+				offset += parent.getStartOffset();
+			}
+			spaceAddon = justificationData[0];
+			spaceAddonLeftoverEnd = justificationData[1] + offset;
+			startJustifiableContent = justificationData[2] + offset;
+			endJustifiableContent = justificationData[3] + offset;
+		}
+		int n = s.offset + s.count;
+		for (int i = txtOffset; i < n; i++) {
+			if (txt[i] == '\t' || ((spaceAddon != 0 || i <= spaceAddonLeftoverEnd) && (txt[i] == ' ')
+					&& startJustifiableContent <= i && i <= endJustifiableContent)) {
+				if (flushLen > 0) {
+					drawChars(component, g, txt, flushIndex, flushLen, x, y);
+					// corrected position
+					nextX += metrics.getStringBounds(txtStr, flushIndex, flushIndex + flushLen, painterGr).getWidth();
+					flushLen = 0;
+				}
+				flushIndex = i + 1;
+				if (txt[i] == '\t') {
+					if (e != null) {
+						nextX = e.nextTabStop((float) nextX, startOffset + i - txtOffset);
+					} else {
+						nextX += (float) metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth();
+						nextX = (int) nextX;
+					}
+				} else if (txt[i] == ' ') {
+					nextX += (float) metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth() + spaceAddon;
+					if (i <= spaceAddonLeftoverEnd) {
+						nextX++;
+					}
+				}
+				x = nextX;
+			} else if ((txt[i] == '\n') || (txt[i] == '\r')) {
+				if (flushLen > 0) {
+//					((Graphics2D) g).drawString(txtStr.substring(flushIndex, flushIndex + flushLen), x, y);
+					drawChars(component, g, txt, flushIndex, flushLen, x, y);
+					// corrected
+					nextX += metrics.getStringBounds(txtStr, flushIndex, flushIndex + flushLen, painterGr).getWidth();
+					flushLen = 0;
+				}
+				flushIndex = i + 1;
+				x = nextX;
+			} else {
+				flushLen += 1;
+			}
+		}
+		if (flushLen > 0) {
+			drawChars(component, g, txt, flushIndex, flushLen, x, y);
+			// corrected
+			nextX += metrics.getStringBounds(txtStr, flushIndex, flushIndex + flushLen, painterGr).getWidth();
+		}
+		return nextX;
+	}
+
+	/**
+	 * Teilweise kopiert aus JDK 11 Bibliothek {@link SwingUtilities2#drawChars(JComponent, Graphics, char[], int, int, float, float, boolean)}
+	 * <br>
+	 * Ist kompatibel mit Java 8, wenn keine Java 8 kompatibilitaet mehr benoetigt wird, bitte auf die Standard Methode umstellen
+	 * @param c
+	 * @param g
+	 * @param data
+	 * @param offset
+	 * @param length
+	 * @param x
+	 * @param y
+	 */
+	private static void drawChars(JComponent c, Graphics g, char[] data, int offset, int length, float x, float y) {
+        // Assume we're not printing if we get here, or that we are invoked
+        // via Swing text printing which is laid out for the printer.
+        Object aaHint = (c == null)
+                            ? null
+                            : c.getClientProperty(KEY_TEXT_ANTIALIASING);
+
+        if (!(g instanceof Graphics2D)) {
+            g.drawChars(data, offset, length, (int) x, (int) y);
         }
 
-        // determine the y coordinate to render the glyphs
-        int y = alloc.y + metrics.getHeight() - metrics.getDescent();
-
-        // render the glyphs
-        text = getText(v, p0, p1);
-        g.setFont(metrics.getFont());
-
-        drawTabbedText(v, text, x, y, g, expander,p0, justificationData);
-    }
-
-    public Shape modelToView(GlyphView v, int pos, Position.Bias bias,
-                             Shape a) throws BadLocationException {
-        sync(v);
-        Rectangle alloc = (a instanceof Rectangle) ? (Rectangle)a : a.getBounds();
-        int p0 = v.getStartOffset();
-        int p1 = v.getEndOffset();
-        TabExpander expander = v.getTabExpander();
-        Segment text;
-
-        if(pos == p1) {
-            // The caller of this is left to right and borders a right to
-            // left view, return our end location.
-            return new Rectangle(alloc.x + alloc.width, alloc.y, 0, metrics.getHeight());
-        }
-        if ((pos >= p0) && (pos <= p1)) {
-            // determine range to the left of the position
-            text = getText(v, p0, pos);
-            int[] justificationData = getJustificationData(v);
-            int width = (int)getTabbedTextWidth(v, text, metrics, alloc.x, expander, p0, justificationData);
-            return new Rectangle(alloc.x + width, alloc.y, 0, metrics.getHeight());
-        }
-        throw new BadLocationException("modelToView - can't convert", p1);
-    }
-
-    /**
-     * Provides a mapping from the view coordinate space to the logical
-     * coordinate space of the model.
-     *
-     * @param v the view containing the view coordinates
-     * @param x the X coordinate
-     * @param y the Y coordinate
-     * @param a the allocated region to render into
-     * @param biasReturn always returns <code>Position.Bias.Forward</code>
-     *   as the zero-th element of this array
-     * @return the location within the model that best represents the
-     *  given point in the view
-     * @see View#viewToModel
-     */
-    public int viewToModel(GlyphView v, float x, float y, Shape a,
-                           Position.Bias[] biasReturn) {
-        sync(v);
-        Rectangle alloc = (a instanceof Rectangle) ? (Rectangle)a : a.getBounds();
-        int p0 = v.getStartOffset();
-        int p1 = v.getEndOffset();
-        TabExpander expander = v.getTabExpander();
-        Segment text = getText(v, p0, p1);
-        int[] justificationData = getJustificationData(v);
-        int offs = getTabbedTextOffset(v, text, metrics, alloc.x, (int) x, expander, p0, true,justificationData);
-        int retValue = p0 + offs;
-        if(retValue == p1) {
-            // No need to return backward bias as GlyphPainter1 is used for
-            // ltr text only.
-            retValue--;
-        }
-        biasReturn[0] = Position.Bias.Forward;
-        return retValue;
-    }
-
-    /**
-     * Determines the best location (in the model) to break
-     * the given view.
-     * This method attempts to break on a whitespace
-     * location.  If a whitespace location can't be found, the
-     * nearest character location is returned.
-     *
-     * @param v the view
-     * @param p0 the location in the model where the
-     *  fragment should start its representation >= 0
-     * @param x the graphic location along the axis that the
-     *  broken view would occupy >= 0; this may be useful for
-     *  things like tab calculations
-     * @param len specifies the distance into the view
-     *  where a potential break is desired >= 0
-     * @return the model location desired for a break
-     * @see View#breakView
-     */
-    public int getBoundedPosition(GlyphView v, int p0, float x, float len) {
-        sync(v);
-        TabExpander expander = v.getTabExpander();
-        Segment s = getText(v, p0, v.getEndOffset());
-        int[] justificationData = getJustificationData(v);
-        int index = getTabbedTextOffset(v,s, metrics, (int)x, (int)(x+len), expander, p0, false, justificationData);
-        int p1 = p0 + index;
-        return p1;
-    }
-
-    void sync(GlyphView v) {
-        Font f = v.getFont();
-        if ((metrics == null) || (! f.equals(metrics.getFont()))) {
-            // fetch a new FontMetrics
-            Container c = v.getContainer();
-            metrics = (c != null) ? c.getFontMetrics(f) : Toolkit.getDefaultToolkit().getFontMetrics(f);
-        }
-    }
-
-    private int[] getJustificationData(GlyphView v) {
-        View parent = v.getParent();
-        int [] ret = null;
-
-        //use reflection to get the data
-        Class pClass=parent.getClass();
-        if (pClass.isAssignableFrom(ParagraphView.class.getDeclaredClasses()[0])) { //if (parent instanceof ParagraphView.Row) {
-            try {
-                Field f=pClass.getDeclaredField("justificationData");
-                if (f!=null) {
-                    f.setAccessible(true);
-                    ret=(int[])f.get(parent);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        return ret;
-    }
-
-    // --- variables ---------------------------------------------
-
-    FontMetrics metrics;
-    static char[] SPACE_CHAR=new char[] {' '};
-
-    static Segment getText(View v, int start, int end){
-        Segment s=new Segment();
-        try {
-            s.array=v.getDocument().getText(start, end-start).toCharArray();
-            s.offset=0;
-            s.count=end-start;
-        } catch (BadLocationException e) {
-            e.printStackTrace();
-        }
-        return s;
-    }
-
-    float getTabbedTextWidth(View view, Segment s, FontMetrics metrics, float x,
-                             TabExpander e, int startOffset,
-                             int[] justificationData) {
-        float nextX = x;
-        char[] txt = s.array;
-        String txtStr=new String(txt);
-        int txtOffset = s.offset;
-        int n = s.offset + s.count;
-        int charCount = 0;
-        int spaceAddon = 0;
-        int spaceAddonLeftoverEnd = -1;
-        int startJustifiableContent = 0;
-        int endJustifiableContent = 0;
-        if (justificationData != null) {
-            int offset = - startOffset + txtOffset;
-            View parent = null;
-            if (view != null && (parent = view.getParent()) != null) {
-                offset += parent.getStartOffset();
-            }
-            spaceAddon =justificationData[0];
-            spaceAddonLeftoverEnd =justificationData[1] + offset;
-            startJustifiableContent =justificationData[2] + offset;
-            endJustifiableContent =justificationData[3] + offset;
-        }
-
-        for (int i = txtOffset; i < n; i++) {
-            if (txt[i] == '\t'
-                    || ((spaceAddon != 0 || i <= spaceAddonLeftoverEnd)
-                    && (txt[i] == ' ')
-                    && startJustifiableContent <= i
-                    && i <= endJustifiableContent
-            )) {
-                nextX += metrics.getStringBounds(txtStr,i-charCount, i, painterGr).getWidth();
-                charCount = 0;
-                if (txt[i] == '\t') {
-                    if (e != null) {
-                        nextX = e.nextTabStop((float) nextX, startOffset + i - txtOffset);
-                    } else {
-                        nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth();
-                        nextX =(int)nextX;
-                    }
-                } else if (txt[i] == ' ') {
-                    nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth() + spaceAddon;
-                    nextX =(int)nextX;
-                    if (i <= spaceAddonLeftoverEnd) {
-                        nextX++;
-                    }
-                }
-            } else if(txt[i] == '\n') {
-                // Ignore newlines, they take up space and we shouldn't be
-                // counting them.
-                nextX += (float) metrics.getStringBounds(txtStr,i-charCount, i, painterGr).getWidth();
-                charCount = 0;
+        Graphics2D g2 = (Graphics2D) g;
+        if (aaHint != null) {
+            Object oldContrast = null;
+            Object oldAAValue = g2.getRenderingHint(KEY_TEXT_ANTIALIASING);
+            if (aaHint != null && aaHint != oldAAValue) {
+                g2.setRenderingHint(KEY_TEXT_ANTIALIASING, aaHint);
             } else {
-                charCount++;
+                oldAAValue = null;
             }
-        }
 
-        nextX += metrics.getStringBounds(txtStr,n-charCount, n, painterGr).getWidth();
-        return nextX - x;
-    }
-
-    float drawTabbedText(View view, Segment s, float x, float y, Graphics g,
-                         TabExpander e, int startOffset, int [] justificationData) {
-        float nextX = x;
-        char[] txt = s.array;
-        String txtStr=new String(txt);
-        int txtOffset = s.offset;
-        int flushLen = 0;
-        int flushIndex = s.offset;
-        int spaceAddon = 0;
-        int spaceAddonLeftoverEnd = -1;
-        int startJustifiableContent = 0;
-        int endJustifiableContent = 0;
-        if (justificationData != null) {
-            int offset = - startOffset + txtOffset;
-            View parent = null;
-            if (view != null && (parent = view.getParent()) != null) {
-                offset += parent.getStartOffset();
-            }
-            spaceAddon =justificationData[0];
-            spaceAddonLeftoverEnd =justificationData[1] + offset;
-            startJustifiableContent =justificationData[2] + offset;
-            endJustifiableContent =justificationData[3] + offset;
-        }
-        int n = s.offset + s.count;
-        for (int i = txtOffset; i < n; i++) {
-            if (txt[i] == '\t'
-                    || ((spaceAddon != 0 || i <= spaceAddonLeftoverEnd)
-                    && (txt[i] == ' ')
-                    && startJustifiableContent <= i
-                    && i <= endJustifiableContent
-            )) {
-                if (flushLen > 0) {
-                    ((Graphics2D)g).drawString(txtStr.substring(flushIndex, flushIndex+flushLen), x, y);
-                    //corrected position
-                    nextX += metrics.getStringBounds(txtStr,flushIndex, flushIndex+flushLen, painterGr).getWidth();
-                    flushLen = 0;
-                }
-                flushIndex = i + 1;
-                if (txt[i] == '\t') {
-                    if (e != null) {
-                        nextX = e.nextTabStop((float) nextX, startOffset + i - txtOffset);
-                    } else {
-                        nextX += (float) metrics.getStringBounds(SPACE_CHAR, 0,1, painterGr).getWidth();
-                        nextX =(int)nextX;
-                    }
-                } else if (txt[i] == ' ') {
-                    nextX += (float) metrics.getStringBounds(SPACE_CHAR, 0,1, painterGr).getWidth()+spaceAddon;
-                    if (i <= spaceAddonLeftoverEnd) {
-                        nextX++;
-                    }
-                }
-                x = nextX;
-            } else if ((txt[i] == '\n') || (txt[i] == '\r')) {
-                if (flushLen > 0) {
-                    ((Graphics2D)g).drawString(txtStr.substring(flushIndex, flushIndex+flushLen), x, y);
-                    //corrected
-                    nextX += metrics.getStringBounds(txtStr,flushIndex, flushIndex+flushLen, painterGr).getWidth();
-                    flushLen = 0;
-                }
-                flushIndex = i + 1;
-                x = nextX;
-            } else {
-                flushLen += 1;
-            }
-        }
-        if (flushLen > 0) {
-            ((Graphics2D)g).drawString(txtStr.substring(flushIndex, flushIndex+flushLen), x, y);
-            //corrected
-            nextX += metrics.getStringBounds(txtStr,flushIndex, flushIndex+flushLen, painterGr).getWidth();
-        }
-        return nextX;
-    }
-
-    int getTabbedTextOffset(View view,
-                             Segment s,
-                             FontMetrics metrics,
-                             int x0, int x, TabExpander e,
-                             int startOffset,
-                             boolean round,
-                             int[] justificationData) {
-        if (x0 >= x) {
-            // x before x0, return.
-            return 0;
-        }
-        float currX = x0;
-        float nextX = currX;
-        // s may be a shared segment, so it is copied prior to calling
-        // the tab expander
-        char[] txt = s.array;
-        int txtOffset = s.offset;
-        int txtCount = s.count;
-        int spaceAddon = 0 ;
-        int spaceAddonLeftoverEnd = -1;
-        int startJustifiableContent = 0 ;
-        int endJustifiableContent = 0;
-        if (justificationData != null) {
-            int offset = - startOffset + txtOffset;
-            View parent = null;
-            if (view != null && (parent = view.getParent()) != null) {
-                offset += parent.getStartOffset();
-            }
-            spaceAddon =justificationData[0];
-            spaceAddonLeftoverEnd =justificationData[1] + offset;
-            startJustifiableContent =justificationData[2] + offset;
-            endJustifiableContent =justificationData[3] + offset;
-        }
-        int n = s.offset + s.count;
-        for (int i = s.offset; i < n; i++) {
-            if (txt[i] == '\t'
-                    || ((spaceAddon != 0 || i <= spaceAddonLeftoverEnd)
-                    && (txt[i] == ' ')
-                    && startJustifiableContent <= i
-                    && i <= endJustifiableContent
-            )){
-                if (txt[i] == '\t') {
-                    if (e != null) {
-                        nextX = (int) e.nextTabStop((float) nextX,
-                                startOffset + i - txtOffset);
-                    } else {
-                        nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth();
-                    }
-                } else if (txt[i] == ' ') {
-                    nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth()+spaceAddon;
-                    nextX =(int)nextX;
-
-                    if (i <= spaceAddonLeftoverEnd) {
-                        nextX++;
-                    }
-                }
-            } else {
-                nextX += metrics.getStringBounds(txt, i, i+1,painterGr).getWidth();
-            }
-            if ((x >= currX) && (x < nextX)) {
-                // found the hit position... return the appropriate side
-                if ((round == false) || ((x - currX) < (nextX - x))) {
-                    return i - txtOffset;
+            Object lcdContrastHint = c.getClientProperty(KEY_TEXT_LCD_CONTRAST);
+            if (lcdContrastHint != null) {
+                oldContrast = g2.getRenderingHint(KEY_TEXT_LCD_CONTRAST);
+                if (lcdContrastHint.equals(oldContrast)) {
+                    oldContrast = null;
                 } else {
-                    return i + 1 - txtOffset;
+                    g2.setRenderingHint(KEY_TEXT_LCD_CONTRAST,
+                                        lcdContrastHint);
                 }
             }
-            currX = nextX;
-        }
 
-        // didn't find, return end offset
-        return txtCount;
-    }
-}
-class ScaledLableView extends LabelView {
-    static GlyphPainter defaultPainter;
-    public ScaledLableView(Element elem) {
-        super(elem);
-    }
+            g2.drawString(new String(data, offset, length), x, y);
 
-    protected void checkPainter() {
-        if (getGlyphPainter() == null) {
-            if (defaultPainter == null) {
-                defaultPainter = new ScaledGlyphPainter();
+            if (oldAAValue != null) {
+                g2.setRenderingHint(KEY_TEXT_ANTIALIASING, oldAAValue);
             }
-            setGlyphPainter(defaultPainter.getPainter(this, getStartOffset(), getEndOffset()));
+            if (oldContrast != null) {
+                g2.setRenderingHint(KEY_TEXT_LCD_CONTRAST, oldContrast);
+            }
         }
-    }
+        else {
+            g2.drawString(new String(data, offset, length), x, y);
+        }
+	}
+
+	int getTabbedTextOffset(View view, Segment s, FontMetrics metrics, int x0, int x, TabExpander e, int startOffset,
+			boolean round, int[] justificationData) {
+		if (x0 >= x) {
+			// x before x0, return.
+			return 0;
+		}
+		float currX = x0;
+		float nextX = currX;
+		char[] txt = s.array;
+		int txtOffset = s.offset;
+		int txtCount = s.count;
+		int spaceAddon = 0;
+		int spaceAddonLeftoverEnd = -1;
+		int startJustifiableContent = 0;
+		int endJustifiableContent = 0;
+		if (justificationData != null) {
+			int offset = -startOffset + txtOffset;
+			View parent = null;
+			if (view != null && (parent = view.getParent()) != null) {
+				offset += parent.getStartOffset();
+			}
+			spaceAddon = justificationData[0];
+			spaceAddonLeftoverEnd = justificationData[1] + offset;
+			startJustifiableContent = justificationData[2] + offset;
+			endJustifiableContent = justificationData[3] + offset;
+		}
+		int n = s.offset + s.count;
+		for (int i = s.offset; i < n; i++) {
+			if (txt[i] == '\t' || ((spaceAddon != 0 || i <= spaceAddonLeftoverEnd) && (txt[i] == ' ')
+					&& startJustifiableContent <= i && i <= endJustifiableContent)) {
+				if (txt[i] == '\t') {
+					if (e != null) {
+						nextX = (int) e.nextTabStop((float) nextX, startOffset + i - txtOffset);
+					} else {
+						nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth();
+					}
+				} else if (txt[i] == ' ') {
+					nextX += metrics.getStringBounds(SPACE_CHAR, 0, 1, painterGr).getWidth() + spaceAddon;
+					nextX = (int) nextX;
+
+					if (i <= spaceAddonLeftoverEnd) {
+						nextX++;
+					}
+				}
+			} else {
+				nextX += metrics.getStringBounds(txt, i, i + 1, painterGr).getWidth();
+			}
+			if ((x >= currX) && (x < nextX)) {
+				// found the hit position... return the appropriate side
+				if ((round == false) || ((x - currX) < (nextX - x))) {
+					return i - txtOffset;
+				} else {
+					return i + 1 - txtOffset;
+				}
+			}
+			currX = nextX;
+		}
+
+		// didn't find, return end offset
+		return txtCount;
+	}
+}
+
+class ScaledLableView extends LabelView {
+	static GlyphPainter defaultPainter;
+
+	public ScaledLableView(Element elem) {
+		super(elem);
+	}
+
+	protected void checkPainter() {
+		if (getGlyphPainter() == null) {
+			if (defaultPainter == null) {
+				defaultPainter = new ScaledGlyphPainter();
+			}
+			setGlyphPainter(defaultPainter.getPainter(this, getStartOffset(), getEndOffset()));
+		}
+//    	super.checkPainter();
+	}
 }

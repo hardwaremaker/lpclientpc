@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.partner;
@@ -41,6 +41,7 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.component.WrapperBICField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -54,6 +55,7 @@ import com.lp.server.partner.service.PartnerbankDto;
 import com.lp.server.system.service.LockMeDto;
 import com.lp.server.system.service.MandantFac;
 import com.lp.util.EJBExceptionLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /**
@@ -68,7 +70,7 @@ import com.lp.util.EJBExceptionLP;
  */
 public class PanelBank extends PanelPartnerDetail {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 
@@ -77,28 +79,45 @@ public class PanelBank extends PanelPartnerDetail {
 	private WrapperLabel wlaBLZ = null;
 	private WrapperTextField wtfBLZ = null;
 	private WrapperLabel wlaBIC = null; // Bank Identifier Code
-	private WrapperTextField wtfBIC = null;
+	private WrapperBICField wtfBIC = null;
 	private LockMeDto lockMePartner = null;
+	private Boolean hasZusatzfunktionSepa = null;
+	
+//	public PanelBank(InternalFrame internalFrame, String add2TitleI,
+//			Object keyI, TabbedPaneBank tpBank) throws Throwable {
+//
+//		super(internalFrame, add2TitleI, keyI);
+//		this.tpBank = tpBank;
+//		jbInit();
+//		initComponents();
+//	}
 
 	public PanelBank(InternalFrame internalFrame, String add2TitleI,
-			Object keyI, TabbedPaneBank tpBank) throws Throwable {
-
-		super(internalFrame, add2TitleI, keyI);
+			Object keyI, IPartnerDtoService partnerDtoService, TabbedPaneBank tpBank) throws Throwable {
+		super(internalFrame, add2TitleI, keyI, partnerDtoService);
 		this.tpBank = tpBank;
 		jbInit();
 		initComponents();
 	}
 
+
 	void jbInit() throws Exception {
 
+		
+		wcoPartnerart.setActivatable(false);
+		
 		wlaBLZ = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
 				"lp.blz"));
 		wtfBLZ = new WrapperTextField(BankFac.MAX_BLZ);
 
 		wlaBIC = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
 				"lp.bic"));
-		wtfBIC = new WrapperTextField(BankFac.MAX_BIC);
-
+		wtfBIC = new WrapperBICField();
+		if (Boolean.TRUE.equals(hasZusatzfunktionSepa())) {
+			//SP4912
+			wtfBIC.setMandatoryField(true);
+		}
+		
 		if (LPMain
 				.getInstance()
 				.getDesktop()
@@ -123,6 +142,7 @@ public class PanelBank extends PanelPartnerDetail {
 		jpaWorkingOn.add(wtfBIC, new GridBagConstraints(4, iZeile, 4, 1, 1.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
+	
 
 	}
 
@@ -137,6 +157,7 @@ public class PanelBank extends PanelPartnerDetail {
 		getPartnerDto().setPartnerartCNr(PartnerFac.PARTNERART_SONSTIGES);
 		getBankDto().setCBlz(wtfBLZ.getText());
 		getBankDto().setCBic(wtfBIC.getText());
+		
 	}
 
 	private BankDto getBankDto() {
@@ -149,8 +170,15 @@ public class PanelBank extends PanelPartnerDetail {
 
 		wtfBLZ.setText(getBankDto().getCBlz());
 		wtfBIC.setText(getBankDto().getCBic());
+		
 	}
 
+	protected void setDefaults() throws Throwable {
+		super.setDefaults();
+		wcoPartnerart.setActivatable(false);
+	}
+
+	
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
 			throws Throwable {
 
@@ -224,15 +252,15 @@ public class PanelBank extends PanelPartnerDetail {
 	}
 
 	protected void setStatusbar() throws Throwable {
-		setStatusbarPersonalIIdAnlegen(getPartnerDto().getPersonalAnlegenIId());
-		setStatusbarPersonalIIdAendern(getPartnerDto().getPersonalAendernIId());
+		setStatusbarPersonalIIdAnlegen(getPartnerDto().getPersonalIIdAnlegen());
+		setStatusbarPersonalIIdAendern(getPartnerDto().getPersonalIIdAendern());
 		setStatusbarTAendern(getPartnerDto().getTAendern());
 		setStatusbarTAnlegen(getPartnerDto().getTAnlegen());
 	}
 
 	/**
 	 * eventActionNew
-	 * 
+	 *
 	 * @param eventObject
 	 *            der event
 	 * @param bLockMeI
@@ -271,7 +299,7 @@ public class PanelBank extends PanelPartnerDetail {
 
 	/**
 	 * Behandle Ereignis Save.
-	 * 
+	 *
 	 * @param e
 	 *            Ereignis
 	 * @param bNeedNoSaveI
@@ -282,11 +310,18 @@ public class PanelBank extends PanelPartnerDetail {
 			throws Throwable {
 
 		if (allMandatoryFieldsSetDlg()) {
-			if (wtfBLZ.getText() == null && wtfBIC.getText() == null) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-						.getTextRespectUISPr("part.blzbic.error"));
-				return;
+			//SP4912
+//			if (wtfBLZ.getText() == null && wtfBIC.getText() == null) {
+//				DialogFactory.showModalDialog(LPMain.getInstance()
+//						.getTextRespectUISPr("lp.error"), LPMain.getInstance()
+//						.getTextRespectUISPr("part.blzbic.error"));
+//				return;
+//			}
+			if (!wtfBIC.pruefeBic()) {
+				boolean bicOk = DialogFactory.showModalJaNeinDialog(getInternalFrame(), 
+						LPMain.getMessageTextRespectUISPr("part.bank.bicungueltigtrotzdemspeichern", wtfBIC.getText()), 
+						LPMain.getTextRespectUISPr("lp.hint"));
+				if (!bicOk) return;
 			}
 
 			checkLockedDlg();
@@ -331,14 +366,14 @@ public class PanelBank extends PanelPartnerDetail {
 		}
 	}
 
-	protected void setPartnerDto(PartnerDto partnerDto) {
+/*	protected void setPartnerDto(PartnerDto partnerDto) {
 		getTabbedPaneBank().getBankDto().setPartnerDto(partnerDto);
 	}
 
 	protected PartnerDto getPartnerDto() {
 		return getTabbedPaneBank().getBankDto().getPartnerDto();
 	}
-
+*/
 	private TabbedPaneBank getTabbedPaneBank() {
 		return tpBank;
 	}
@@ -380,5 +415,15 @@ public class PanelBank extends PanelPartnerDetail {
 			// Zugehoerigen Partner unlocken.
 			super.unlock(lockMePartner);
 		}
+	}
+	
+	private Boolean hasZusatzfunktionSepa() {
+		if (hasZusatzfunktionSepa == null) {
+			hasZusatzfunktionSepa = LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SEPA_LASTSCHRIFT)
+				|| LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SEPA);
+		}
+		return hasZusatzfunktionSepa;
 	}
 }

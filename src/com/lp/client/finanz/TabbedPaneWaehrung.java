@@ -222,7 +222,7 @@ public class TabbedPaneWaehrung extends TabbedPane {
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
-			if (e.getSource() == getPanelWaehrung(true)) {
+			if (e.getSource() == getPanelWaehrung(false)) {
 				getPanelSplitWaehrung(true).eventYouAreSelected(false);
 			} else if (e.getSource() == getPanelWechselkurs(false)) {
 				getPanelSplitWechselkurs(true).eventYouAreSelected(false);

@@ -39,6 +39,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.personal.service.NachrichtenFac;
 import com.lp.server.personal.service.ZeitabschlussDto;
 import com.lp.server.system.service.DruckerFac;
 import com.lp.server.system.service.ReportkonfDto;
@@ -61,14 +62,10 @@ public class DruckerDelegate extends Delegate {
 	private Context context;
 	private DruckerFac druckerFac;
 
-	public DruckerDelegate() throws ExceptionLP {
-		try {
-			context = new InitialContext();
-			druckerFac = (DruckerFac) context
-					.lookup("lpserver/DruckerFacBean/remote");
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
+	public DruckerDelegate() throws Exception {
+		context = new InitialContext();
+		druckerFac = lookupFac(context, DruckerFac.class);
+
 	}
 
 	public Integer updateStandarddrucker(StandarddruckerDto standarddruckerDto)
@@ -207,6 +204,18 @@ public class DruckerDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			return druckerFac.reportvarianteFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public ReportvarianteDto reportvarianteFindByCReportnameCReportnameVariante(
+			String cReportname, String cReportnameVariante) throws ExceptionLP {
+		try {
+			return druckerFac
+					.reportvarianteFindByCReportnameCReportnameVariante(
+							cReportname, cReportnameVariante);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;

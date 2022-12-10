@@ -46,7 +46,6 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
-
 import com.lp.client.auftrag.AuftragFilterFactory;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
@@ -58,6 +57,8 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
@@ -69,16 +70,26 @@ import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungAuftragszuordnungDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.GotoHelper;
 
 @SuppressWarnings("static-access")
 /**
- * <p>Panel zum Bearbeiten der Auftragszuordnungen einer ER</p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>20. 02. 2005</I></p>
- * <p> </p>
- * @author  Martin Bluehweis
+ * <p>
+ * Panel zum Bearbeiten der Auftragszuordnungen einer ER
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>20. 02. 2005</I>
+ * </p>
+ * <p>
+ * </p>
+ * 
+ * @author Martin Bluehweis
  * @version $Revision: 1.7 $
  */
 public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
@@ -96,7 +107,7 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 	private WrapperTextField wtfAuftragNummer = new WrapperTextField();
 	private WrapperTextField wtfAuftragBezeichnung = new WrapperTextField();
-	private WrapperButton wbuAuftrag = new WrapperButton();
+	private WrapperGotoButton wbuAuftrag = new WrapperGotoButton(GotoHelper.GOTO_AUFTRAG_AUSWAHL);
 	private WrapperNumberField wnfBetrag = new WrapperNumberField();
 	private WrapperNumberField wnfBetragOffen = new WrapperNumberField();
 	private JPanel jpaWorkingOn = new JPanel();
@@ -114,10 +125,10 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 	private WrapperCheckBox wcbKeineAuftragswertung = new WrapperCheckBox();
 	private Border border1;
 
-	public PanelEingangsrechnungAuftragszuordnung(InternalFrame internalFrame,
-			String add2TitleI, Object key,
-			TabbedPaneEingangsrechnung tabbedPaneEingangsrechnung)
-			throws Throwable {
+	private WrapperComboBox wcbVerrechenbar = createWcbVerrechenbar();
+
+	public PanelEingangsrechnungAuftragszuordnung(InternalFrame internalFrame, String add2TitleI, Object key,
+			TabbedPaneEingangsrechnung tabbedPaneEingangsrechnung) throws Throwable {
 		super(internalFrame, add2TitleI);
 		this.tabbedPaneEingangsrechnung = tabbedPaneEingangsrechnung;
 		jbInit();
@@ -134,8 +145,7 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 	 * @throws Throwable
 	 */
 	private void jbInit() throws Throwable {
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD };
 		this.enableToolsPanelButtons(aWhichButtonIUse);
 		JPanel panelButtonAction = getToolsPanel();
 		// wegen Dialogauswahl auf FLR events hoeren
@@ -144,123 +154,105 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 		border1 = BorderFactory.createEmptyBorder(10, 10, 10, 10);
 		this.setLayout(gridBagLayout1);
 		wtfAuftragNummer.setMandatoryField(true);
-		wbuAuftrag.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.auftrag"));
-		wbuAuftrag.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-				"button.auftrag.tooltip"));
-		wbuRest.setText(LPMain.getInstance().getTextRespectUISPr(
-				"er.button.rest"));
-		wbuRest.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-				"er.button.rest.tooltip"));
+		wbuAuftrag.setText(LPMain.getInstance().getTextRespectUISPr("button.auftrag"));
+		wbuAuftrag.setToolTipText(LPMain.getInstance().getTextRespectUISPr("button.auftrag.tooltip"));
+		wbuRest.setText(LPMain.getInstance().getTextRespectUISPr("er.button.rest"));
+		wbuRest.setToolTipText(LPMain.getInstance().getTextRespectUISPr("er.button.rest.tooltip"));
 		wnfBetrag.setMandatoryField(true);
 		wnfBetragOffen.setActivatable(false);
 
-		wlaBetrag.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.betrag"));
-		wlaBetragOffen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.offen"));
+		wlaBetrag.setText(LPMain.getInstance().getTextRespectUISPr("label.betrag"));
+		wlaBetragOffen.setText(LPMain.getInstance().getTextRespectUISPr("label.offen"));
 		wlaText.setText(LPMain.getInstance().getTextRespectUISPr("label.text"));
-		
-		wcbKeineAuftragswertung.setText(LPMain.getInstance().getTextRespectUISPr("er.auftragszuordnung.keineauftragswertung"));
-		
-		
+
+		wcbKeineAuftragswertung
+				.setText(LPMain.getInstance().getTextRespectUISPr("er.auftragszuordnung.keineauftragswertung"));
+
 		jpaWorkingOn.setLayout(gridBagLayout3);
-		wlaAbstand1.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaAbstand1.setPreferredSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaAbstand2.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaAbstand2.setPreferredSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaAbstand3.setMinimumSize(new Dimension(40, Defaults.getInstance()
-				.getControlHeight()));
-		wlaAbstand3.setPreferredSize(new Dimension(40, Defaults.getInstance()
-				.getControlHeight()));
+		wlaAbstand1.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaAbstand1.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaAbstand2.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaAbstand2.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaAbstand3.setMinimumSize(new Dimension(40, Defaults.getInstance().getControlHeight()));
+		wlaAbstand3.setPreferredSize(new Dimension(40, Defaults.getInstance().getControlHeight()));
 		jpaWorkingOn.setBorder(border1);
 		wtfAuftragBezeichnung.setActivatable(false);
 		wtfAuftragNummer.setActivatable(false);
 		wlaWaehrung1.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaWaehrung2.setHorizontalAlignment(SwingConstants.LEFT);
-		wnfBetrag.setMinimumValue(new BigDecimal(0));
+
+		// Aufgrund von PJ20571 auskommentiert
+		// wnfBetrag.setMinimumValue(new BigDecimal(0));
 
 		wtfAuftragBezeichnung.setMandatoryField(false);
 		wbuAuftrag.setActionCommand(ACTION_SPECIAL_AUFTRAG);
 		wbuRest.setActionCommand(ACTION_SPECIAL_REST);
 		wbuAuftrag.addActionListener(this);
 		wbuRest.addActionListener(this);
-		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wbuAuftrag, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfAuftragNummer, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wbuAuftrag, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfAuftragBezeichnung, new GridBagConstraints(2,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfAuftragNummer, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfAuftragBezeichnung, new GridBagConstraints(2, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaBetrag, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfBetrag, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaWaehrung1, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbKeineAuftragswertung, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 40, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wbuRest, new GridBagConstraints(3, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaBetrag, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfBetrag, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaWaehrung1, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		
-		jpaWorkingOn.add(wcbKeineAuftragswertung, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 40, 2, 2), 0, 0));
-		
-		jpaWorkingOn.add(wbuRest, new GridBagConstraints(3, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaBetragOffen, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaBetragOffen, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfBetragOffen, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wnfBetragOffen, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaWaehrung2, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaWaehrung2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaText, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfText, new GridBagConstraints(1, iZeile, 3, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaText, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfText, new GridBagConstraints(1, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 
-		jpaWorkingOn.add(wlaAbstand1, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wlaAbstand2, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wlaAbstand3, new GridBagConstraints(2, iZeile, 1, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ABRECHNUNGSVORSCHLAG)) {
+			iZeile++;
+			jpaWorkingOn.add(
+					new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("pers.zeiterfassung.verrechenbar")),
+					new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wcbVerrechenbar, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			wcbVerrechenbar.setKeyOfSelectedItem(100D);
+		}
+
+		jpaWorkingOn.add(wlaAbstand1, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaAbstand2, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaAbstand3, new GridBagConstraints(2, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	public String getLockMeWer() {
 		return HelperClient.LOCKME_EINGANGSRECHNUNG;
 	}
 
-	public void eventActionNew(EventObject e, boolean bChangeKeyLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject e, boolean bChangeKeyLockMeI, boolean bNeedNoNewI) throws Throwable {
 		// locknew: 1 hier muss dafuer gesorgt werden, dass der Framework lockt
 		super.eventActionNew(e, true, false);
 		clearStatusbar();
@@ -269,27 +261,23 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 		leereAlleFelder(this);
 
 		Integer iId = getTabbedPane().getEingangsrechnungDto().getIId();
-		BigDecimal betrag = DelegateFactory.getInstance()
-				.getEingangsrechnungDelegate()
+		BigDecimal betrag = DelegateFactory.getInstance().getEingangsrechnungDelegate()
 				.getWertNochNichtZuAuftraegenZugeordnet(iId);
-		wnfBetrag.setMaximumValue(betrag);
 		// Restwert vorschlagen
 		wnfBetrag.setBigDecimal(betrag);
+		wnfBetrag.setMaximumValue(betrag);
+		wcbVerrechenbar.setKeyOfSelectedItem(100D);
 	}
 
 	/**
 	 * Loeschen einer Rechnungsposition
 	 * 
-	 * @param e
-	 *            ActionEvent
-	 * @param bAdministrateLockKeyI
-	 *            boolean
-	 * @param bNeedNoDeleteI
-	 *            boolean
+	 * @param e                     ActionEvent
+	 * @param bAdministrateLockKeyI boolean
+	 * @param bNeedNoDeleteI        boolean
 	 * @throws Throwable
 	 */
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 		if (this.erAzDto != null) {
 			if (erAzDto.getIId() != null) {
@@ -306,37 +294,34 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 		}
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		super.eventActionUpdate(aE, bNeedNoUpdateI);
-		wnfBetrag.setMaximumValue(erAzDto.getNBetrag().add(
-				DelegateFactory
-						.getInstance()
-						.getEingangsrechnungDelegate()
-						.getWertNochNichtZuAuftraegenZugeordnet(
-								erAzDto.getEingangsrechnungIId())));
+		wnfBetrag.setMaximumValue(erAzDto.getNBetrag().add(DelegateFactory.getInstance().getEingangsrechnungDelegate()
+				.getWertNochNichtZuAuftraegenZugeordnet(erAzDto.getEingangsrechnungIId())));
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (erAzDto != null) {
-				EingangsrechnungAuftragszuordnungDto savedDto = DelegateFactory
-						.getInstance().getEingangsrechnungDelegate()
-						.updateEingangsrechnungAuftragszuordnung(erAzDto);
+
+				// PJ20571
+				if (erAzDto.getNBetrag().doubleValue() < 0) {
+					boolean eintragSpeichern = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							LPMain.getInstance().getTextRespectUISPr("er.auftragszuordnung.betragkleinernull"));
+					if (!eintragSpeichern) {
+						return;
+					}
+				}
+
+				EingangsrechnungAuftragszuordnungDto savedDto = DelegateFactory.getInstance()
+						.getEingangsrechnungDelegate().updateEingangsrechnungAuftragszuordnung(erAzDto);
 				this.erAzDto = savedDto;
 				setKeyWhenDetailPanel(erAzDto.getIId());
 
-				// muss den hoechstwert fuer den betrag wieder wegtun
-				wnfBetrag.setMaximumValue(getTabbedPane()
-						.getEingangsrechnungDto().getNBetragfw());
-
 				super.eventActionSave(e, true);
 				if (getInternalFrame().getKeyWasForLockMe() == null) {
-					getInternalFrame().setKeyWasForLockMe(
-							getTabbedPane().getEingangsrechnungDto().getIId()
-									.toString());
+					getInternalFrame().setKeyWasForLockMe(getTabbedPane().getEingangsrechnungDto().getIId().toString());
 				}
 				// jetz den anzeigen
 				eventYouAreSelected(false);
@@ -347,8 +332,7 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 	private void components2Dto() throws Throwable {
 		if (erAzDto == null) {
 			erAzDto = new EingangsrechnungAuftragszuordnungDto();
-			erAzDto.setEingangsrechnungIId(getTabbedPane()
-					.getEingangsrechnungDto().getIId());
+			erAzDto.setEingangsrechnungIId(getTabbedPane().getEingangsrechnungDto().getIId());
 		}
 		if (auftragDto != null) {
 			erAzDto.setAuftragIId(auftragDto.getIId());
@@ -358,44 +342,42 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 		erAzDto.setNBetrag(wnfBetrag.getBigDecimal());
 		erAzDto.setCText(wtfText.getText());
 		erAzDto.setBKeineAuftragswertung(wcbKeineAuftragswertung.getShort());
+		erAzDto.setFVerrechenbar((Double) wcbVerrechenbar.getKeyOfSelectedItem());
 
 	}
 
 	private void dto2Components() throws Throwable {
 		if (getKeyWhenDetailPanel() != null) {
-			erAzDto = DelegateFactory
-					.getInstance()
-					.getEingangsrechnungDelegate()
-					.eingangsrechnungAuftragszuordnungFindByPrimaryKey(
-							(Integer) getKeyWhenDetailPanel());
+			erAzDto = DelegateFactory.er()
+					.eingangsrechnungAuftragszuordnungFindByPrimaryKey((Integer) getKeyWhenDetailPanel());
 		}
 
-		if (getTabbedPane().getEingangsrechnungDto().getNBetragfw()
-				.doubleValue() < 0) {
-			wnfBetrag.setMaximumValue(0);
-			wnfBetrag.setMinimumValue(getTabbedPane().getEingangsrechnungDto()
-					.getNBetragfw());
-		} else {
-			wnfBetrag.setMaximumValue(getTabbedPane().getEingangsrechnungDto()
-					.getNBetragfw());
-			wnfBetrag.setMinimumValue(0);
-		}
+		// aufgrund von PJ20571 auskommentiert
+		/*
+		 * if (getTabbedPane().getEingangsrechnungDto().getNBetragfw() .doubleValue() <
+		 * 0) { wnfBetrag.setMaximumValue(0);
+		 * wnfBetrag.setMinimumValue(getTabbedPane().getEingangsrechnungDto()
+		 * .getNBetragfw()); } else {
+		 * wnfBetrag.setMaximumValue(getTabbedPane().getEingangsrechnungDto()
+		 * .getNBetragfw()); wnfBetrag.setMinimumValue(0); }
+		 */
 
 		if (erAzDto != null) {
 			holeAuftrag(erAzDto.getAuftragIId());
 			dto2ComponentsAuftrag();
 			// den maximalwert setzen, denn der ist ja 0, wenn alles zugeordnet
 			// ist
-
+			BigDecimal betragOffen = DelegateFactory.er()
+					.getWertNochNichtZuAuftraegenZugeordnet(erAzDto.getEingangsrechnungIId());
+			wnfBetrag.setMaximumValue(null);
 			wnfBetrag.setBigDecimal(erAzDto.getNBetrag());
 			wtfText.setText(erAzDto.getCText());
-			wnfBetragOffen.setBigDecimal(DelegateFactory
-					.getInstance()
-					.getEingangsrechnungDelegate()
-					.getWertNochNichtZuAuftraegenZugeordnet(
-							getTabbedPane().getEingangsrechnungDto().getIId()));
-			wcbKeineAuftragswertung
-					.setShort(erAzDto.getBKeineAuftragswertung());
+			wnfBetragOffen.setBigDecimal(betragOffen);
+			wcbKeineAuftragswertung.setShort(erAzDto.getBKeineAuftragswertung());
+
+			wcbVerrechenbar.setKeyOfSelectedItem(erAzDto.getFVerrechenbar());
+			
+
 			this.setStatusbarPersonalIIdAnlegen(erAzDto.getPersonalIIdAnlegen());
 			this.setStatusbarTAnlegen(erAzDto.getTAnlegen());
 			this.setStatusbarPersonalIIdAendern(erAzDto.getPersonalIIdAendern());
@@ -409,11 +391,12 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 	private void dto2ComponentsAuftrag() {
 		if (auftragDto != null) {
 			wtfAuftragNummer.setText(auftragDto.getCNr());
-			wtfAuftragBezeichnung.setText(auftragDto
-					.getCBezProjektbezeichnung());
+			wtfAuftragBezeichnung.setText(auftragDto.getCBezProjektbezeichnung());
+			wbuAuftrag.setOKey(auftragDto.getIId());
 		} else {
 			wtfAuftragNummer.setText(null);
 			wtfAuftragBezeichnung.setText(null);
+			wbuAuftrag.setOKey(null);
 		}
 	}
 
@@ -429,13 +412,10 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH };
 
 		QueryType[] qt = null;
-		FilterKriterium[] fk = SystemFilterFactory.getInstance()
-				.createFKMandantCNr();
+		FilterKriterium[] fk = SystemFilterFactory.getInstance().createFKMandantCNr();
 
-		panelQueryFLRAuftrag = new PanelQueryFLR(qt, fk,
-				QueryParameters.UC_ID_AUFTRAG, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"title.auftragauswahlliste"));
+		panelQueryFLRAuftrag = new PanelQueryFLR(qt, fk, QueryParameters.UC_ID_AUFTRAG, aWhichButtonIUse,
+				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("title.auftragauswahlliste"));
 		panelQueryFLRAuftrag.befuellePanelFilterkriterienDirektUndVersteckte(
 				AuftragFilterFactory.getInstance().createFKDAuftragnummer(),
 				AuftragFilterFactory.getInstance().createFKDKundenname(),
@@ -449,35 +429,23 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 			if (e.getSource() == panelQueryFLRAuftrag) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 
-				auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
-						.auftragFindByPrimaryKey((Integer) key);
+				auftragDto = DelegateFactory.getInstance().getAuftragDelegate().auftragFindByPrimaryKey((Integer) key);
 
-				if (auftragDto.getStatusCNr().equals(
-						AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
-					if (DelegateFactory
-							.getInstance()
-							.getTheJudgeDelegate()
-							.hatRecht(
-									com.lp.server.benutzer.service.RechteFac.RECHT_AUFT_DARF_AUFTRAG_ERLEDIGEN)) {
+				wcbVerrechenbar.setKeyOfSelectedItem(100D);
 
-						boolean b = DialogFactory
-								.showModalJaNeinDialog(
-										getInternalFrame(),
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"er.auftragszuordnung.frage.erleidgte"));
+				if (auftragDto.getStatusCNr().equals(AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
+					if (DelegateFactory.getInstance().getTheJudgeDelegate()
+							.hatRecht(com.lp.server.benutzer.service.RechteFac.RECHT_AUFT_DARF_AUFTRAG_ERLEDIGEN)) {
+
+						boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+								LPMain.getInstance().getTextRespectUISPr("er.auftragszuordnung.frage.erleidgte"));
 						if (b == true) {
 							holeAuftrag(key);
 						}
 
 					} else {
-						DialogFactory
-								.showModalDialog(
-										LPMain.getInstance()
-												.getTextRespectUISPr("lp.error"),
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"er.auftragszuordnung.error.auftragerledigt"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance().getTextRespectUISPr("er.auftragszuordnung.error.auftragerledigt"));
 					}
 
 				} else {
@@ -490,54 +458,42 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 
 	private void holeAuftrag(Object key) throws Throwable {
 		if (key != null) {
-			auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
-					.auftragFindByPrimaryKey((Integer) key);
+			auftragDto = DelegateFactory.getInstance().getAuftragDelegate().auftragFindByPrimaryKey((Integer) key);
 		} else {
 			auftragDto = null;
 		}
 		dto2ComponentsAuftrag();
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 
-		if (getTabbedPane().getEingangsrechnungDto().getNBetragfw()
-				.doubleValue() < 0) {
-			wnfBetrag.setMaximumValue(0);
-			wnfBetrag.setMinimumValue(getTabbedPane().getEingangsrechnungDto()
-					.getNBetragfw());
-		} else {
-			wnfBetrag.setMaximumValue(getTabbedPane().getEingangsrechnungDto()
-					.getNBetragfw());
-			wnfBetrag.setMinimumValue(0);
-		}
-		wlaWaehrung1.setText(getTabbedPane().getEingangsrechnungDto()
-				.getWaehrungCNr());
-		wlaWaehrung2.setText(getTabbedPane().getEingangsrechnungDto()
-				.getWaehrungCNr());
-		if (key == null
-				|| (key != null && key.equals(LPMain.getLockMeForNew()))) {
+		// aufgrund von PJ20571 auskommentiert
+		/*
+		 * if (getTabbedPane().getEingangsrechnungDto().getNBetragfw() .doubleValue() <
+		 * 0) { wnfBetrag.setMaximumValue(0);
+		 * wnfBetrag.setMinimumValue(getTabbedPane().getEingangsrechnungDto()
+		 * .getNBetragfw()); } else {
+		 * wnfBetrag.setMaximumValue(getTabbedPane().getEingangsrechnungDto()
+		 * .getNBetragfw()); wnfBetrag.setMinimumValue(0); }
+		 */
+		wlaWaehrung1.setText(getTabbedPane().getEingangsrechnungDto().getWaehrungCNr());
+		wlaWaehrung2.setText(getTabbedPane().getEingangsrechnungDto().getWaehrungCNr());
+		if (key == null || (key != null && key.equals(LPMain.getLockMeForNew()))) {
 			// einen neuen Eintrag anlegen oder die letzte Position wurde
 			// geloescht.
 
 			leereAlleFelder(this);
-			
 
-			wnfBetragOffen.setBigDecimal(DelegateFactory
-					.getInstance()
-					.getEingangsrechnungDelegate()
-					.getWertNochNichtZuAuftraegenZugeordnet(
-							getTabbedPane().getEingangsrechnungDto().getIId()));
+			wnfBetragOffen.setBigDecimal(DelegateFactory.getInstance().getEingangsrechnungDelegate()
+					.getWertNochNichtZuAuftraegenZugeordnet(getTabbedPane().getEingangsrechnungDto().getIId()));
 			clearStatusbar();
+			wcbVerrechenbar.setKeyOfSelectedItem(100D);
 		} else {
 			// einen alten Eintrag laden.
-			erAzDto = DelegateFactory
-					.getInstance()
-					.getEingangsrechnungDelegate()
-					.eingangsrechnungAuftragszuordnungFindByPrimaryKey(
-							(Integer) key);
+			erAzDto = DelegateFactory.getInstance().getEingangsrechnungDelegate()
+					.eingangsrechnungAuftragszuordnungFindByPrimaryKey((Integer) key);
 			dto2Components();
 			getTabbedPane().enablePanels();
 		}
@@ -551,8 +507,7 @@ public class PanelEingangsrechnungAuftragszuordnung extends PanelBasis {
 		return wbuAuftrag;
 	}
 
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
 		super.eventActionRefresh(e, bNeedNoRefreshI);
 		getTabbedPane().enablePanels();
 	}

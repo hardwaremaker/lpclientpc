@@ -225,6 +225,7 @@ public class PanelPersonalgruppekosten
                                                 getTheClient().getMandant()).
                         getWaehrungCNr());
     ;
+    HelperClient.setMinimumAndPreferredSize(wlaWaehrung, HelperClient.getSizeFactoredDimension(30));
     wdfGueltigab.setMandatoryField(true);
     wnfStundensatz.setMandatoryField(true);
     this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
@@ -268,7 +269,7 @@ public class PanelPersonalgruppekosten
                      new GridBagConstraints(5, 1, 1, 1, 0, 0.0
                                             , GridBagConstraints.CENTER,
                                             GridBagConstraints.HORIZONTAL,
-                                            new Insets(0, 0, 0, 0), 20, 0));
+                                            new Insets(0, 0, 0, 0), 0, 0));
     String[] aWhichButtonIUse = {
         ACTION_UPDATE,
         ACTION_SAVE,

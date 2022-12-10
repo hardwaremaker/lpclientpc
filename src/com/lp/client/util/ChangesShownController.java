@@ -48,12 +48,15 @@ import com.lp.client.pc.LPMain;
 
 public class ChangesShownController {
 	public static final String FILENAME_SHOWN_CHANGES = "changes.shown";
-	public static final String URL_CHANGELOG = "http://demo.heliumv.at/public/HeliumV/AenderungsProtokoll/";
+	public static final String URL_CHANGELOG = "https://data.heliumv.org/HeliumV/AenderungsProtokoll/";
 
 	public void dialogChangeLogIfNeeded(Component parent) throws IOException {		
 		if (!hasChanged()) return;
-		if (!wantToViewChanges(parent)) return;
-		Desktop.browseURI(URL_CHANGELOG);
+
+		//SP9223
+		if(wantToViewChanges(parent)) {
+			Desktop.browseURI(URL_CHANGELOG);
+		} 
 		saveChangesViewed();
 	}
 	

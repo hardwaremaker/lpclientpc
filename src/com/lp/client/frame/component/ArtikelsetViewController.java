@@ -186,6 +186,27 @@ public class ArtikelsetViewController {
 		return handleArtikelsetSeriennummern(true, lagerIId, belegPositionDto, bekannteSnrs) ;		
 	}
 	
+	public List<SeriennrChargennrMitMengeDto> handleArtikelsetSeriennummernSichtAuftrag (
+			Integer lagerId, Integer auftragpositionId,
+			BigDecimal gewuenschteMenge, String artikelCnr) throws Throwable {
+		Artikelset artikelSet = DelegateFactory.getInstance().getAuftragpositionDelegate()
+				.getArtikelsetFromKopfpositionOffen(auftragpositionId);
+		if(artikelSet == null) return null;
+		artikelSet.setAvailableAmount(gewuenschteMenge);
+	
+		BigDecimal snrCount = getSnrTotalCountForArtikelset(artikelSet);
+		if(snrCount.signum() != 0) {
+			return inputArtikelsetSeriennummern(
+					"Seriennummernerfassung f\u00FCr ["
+							+ artikelCnr
+							+ "]", lagerId, artikelSet);
+			
+		} else {
+			return null;
+		}
+	}
+	
+	
 	public List<SeriennrChargennrMitMengeDto> handleArtikelsetSeriennummern(
 			Integer lagerIId, AuftragpositionDto[] auftragPositionen, 
 			List<SeriennrChargennrMitMengeDto> bekannteSeriennummern) throws Throwable {
@@ -233,26 +254,31 @@ public class ArtikelsetViewController {
 	
 	
 	public BigDecimal getSnrTotalCountForArtikelset(Artikelset artikelset) throws Throwable {
-		BigDecimal sollsatzGroesse = artikelset.getSlipAmount() ;
-		BigDecimal oldSollsatzGroesse = artikelset.getPreviousSlipAmount() ;
-		if(null == oldSollsatzGroesse) {
-			oldSollsatzGroesse = sollsatzGroesse ;
-		}
+		BigDecimal sollsatzGroesse = artikelset.getHead().getNMenge();
+//		BigDecimal sollsatzGroesse = artikelset.getSlipAmount() ;
+//		BigDecimal oldSollsatzGroesse = artikelset.getPreviousSlipAmount() ;
+//		if(null == oldSollsatzGroesse) {
+//			oldSollsatzGroesse = sollsatzGroesse ;
+//		}
 
 		BigDecimal total = BigDecimal.ZERO ;
 		List<BelegpositionVerkaufDto> positions = artikelset.getPositions() ;
-		for (BelegpositionVerkaufDto auftragpositionDto : positions) {
+		for (BelegpositionVerkaufDto positionDto : positions) {
 			ArtikelDto artikelDto = DelegateFactory.getInstance()
-					.getArtikelDelegate().artikelFindByPrimaryKey(auftragpositionDto.getArtikelIId()) ;
+					.getArtikelDelegate().artikelFindByPrimaryKey(positionDto.getArtikelIId()) ;
 			if(artikelDto.isSeriennrtragend()) {				
 //				BigDecimal sollMenge = auftragpositionDto.getNMenge().divide(sollsatzGroesse).multiply(artikelset.getAvailableAmount()) ;
 
-				BigDecimal offeneMenge = auftragpositionDto.getNMenge() ;
-				if(auftragpositionDto instanceof AuftragpositionDto) {
-					offeneMenge = ((AuftragpositionDto) auftragpositionDto).getNOffeneMenge() ;
+				BigDecimal sollMenge = positionDto.getNMenge().multiply(artikelset.getAvailableAmount()).divide(sollsatzGroesse);
+				BigDecimal offeneMenge = positionDto.getNMenge() ;
+				if(positionDto instanceof AuftragpositionDto) {
+					offeneMenge = ((AuftragpositionDto) positionDto).getNOffeneMenge() ;
 				}
-				
-				BigDecimal sollMenge = offeneMenge.divide(oldSollsatzGroesse).multiply(artikelset.getAvailableAmount()) ;
+				if(offeneMenge.compareTo(sollMenge) < 0) {
+					sollMenge = offeneMenge;
+				}
+//// 				BigDecimal sollMenge = offeneMenge.divide(oldSollsatzGroesse).multiply(artikelset.getAvailableAmount()) ;
+//				BigDecimal sollMenge = offeneMenge;
 				total = total.add(sollMenge)  ;
 			}
 		}

@@ -32,15 +32,16 @@
  ******************************************************************************/
 package com.lp.client.fertigung;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -50,73 +51,78 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
-public class ReportMaterialliste
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+public class ReportMaterialliste extends PanelBasis implements
+		PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	ArrayList<Integer> selektiertePositionen = null;
 
-  private Integer losIId = null;
-  public ReportMaterialliste(InternalFrameFertigung internalFrame, String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    LPMain.getInstance().getTextRespectUISPr("fert.report.materialliste");
-    jbInit();
-    initComponents();
+	private WrapperCheckBox wcbSortiertNachOriginalArtikelnummer = new WrapperCheckBox();
+	
+	private Integer losIId = null;
 
-    if (internalFrame.getTabbedPaneLos().getLosDto() != null) {
-    	losIId = internalFrame.getTabbedPaneLos().getLosDto().getIId();
-    }
-  }
+	public ReportMaterialliste(InternalFrameFertigung internalFrame,
+			ArrayList<Integer> selektiertePositionen, String add2Title)
+			throws Throwable {
+		super(internalFrame, add2Title);
+		LPMain.getInstance().getTextRespectUISPr("fert.report.materialliste");
+		jbInit();
+		initComponents();
 
+		if (selektiertePositionen != null && selektiertePositionen.size() > 1) {
+			this.selektiertePositionen = selektiertePositionen;
+		}
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return NO_VALUE_THATS_OK_JCOMPONENT;
-  }
+		if (internalFrame.getTabbedPaneLos().getLosDto() != null) {
+			losIId = internalFrame.getTabbedPaneLos().getLosDto().getIId();
+		}
+	}
 
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return NO_VALUE_THATS_OK_JCOMPONENT;
+	}
 
-  private void jbInit()
-      throws Exception {
-    this.setLayout(gridBagLayout1);
-    jpaWorkingOn.setLayout(gridBagLayout2);
- 
-    this.add(jpaWorkingOn,
-             new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
-                                    GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+	private void jbInit() throws Exception {
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
 
-   }
+		wcbSortiertNachOriginalArtikelnummer
+		.setText(LPMain.getTextRespectUISPr("fert.materialiste.report.sortiertnachoriginalartikelnummer"));
 
+		jpaWorkingOn.add(wcbSortiertNachOriginalArtikelnummer, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 300, 0));
+		
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
+						0, 0, 0), 0, 0));
 
-  public String getModul() {
-    return FertigungReportFac.REPORT_MODUL;
-  }
+	}
 
+	public String getModul() {
+		return FertigungReportFac.REPORT_MODUL;
+	}
 
-  public String getReportname() {
-    return FertigungReportFac.REPORT_MATERIALLISTE;
-  }
+	public String getReportname() {
+		return FertigungReportFac.REPORT_MATERIALLISTE;
+	}
 
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		return DelegateFactory.getInstance().getFertigungDelegate()
+				.printMaterialliste(losIId, selektiertePositionen, wcbSortiertNachOriginalArtikelnummer.isSelected());
+	}
 
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    return DelegateFactory.getInstance().getFertigungDelegate().printMaterialliste(losIId);
-  }
+	public boolean getBErstelleReportSofort() {
+		return true;
+	}
 
-
-  public boolean getBErstelleReportSofort() {
-    return true;
-  }
-
-
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien
+				.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

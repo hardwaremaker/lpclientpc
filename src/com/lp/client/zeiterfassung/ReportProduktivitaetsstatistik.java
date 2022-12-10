@@ -50,8 +50,7 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
-public class ReportProduktivitaetsstatistik extends ReportZeiterfassung
-		implements PanelReportIfJRDS {
+public class ReportProduktivitaetsstatistik extends ReportZeiterfassung implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -61,10 +60,9 @@ public class ReportProduktivitaetsstatistik extends ReportZeiterfassung
 
 	private WrapperCheckBox wcbVerdichtet = new WrapperCheckBox();
 	private WrapperCheckBox wcbMonatsstatstik = new WrapperCheckBox();
+	private WrapperCheckBox wcbProjekteZusammengefasst = new WrapperCheckBox();
 
-	public ReportProduktivitaetsstatistik(
-			InternalFrameZeiterfassung internalFrame, String add2Title)
-			throws Throwable {
+	public ReportProduktivitaetsstatistik(InternalFrameZeiterfassung internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, internalFrame.getPersonalDto().getIId(), add2Title);
 		jbInit();
 		initComponents();
@@ -72,7 +70,7 @@ public class ReportProduktivitaetsstatistik extends ReportZeiterfassung
 		wdrBereich.doClickUp();
 
 	}
-	
+
 	@Override
 	protected boolean showSorting() {
 		return false;
@@ -85,21 +83,23 @@ public class ReportProduktivitaetsstatistik extends ReportZeiterfassung
 	private void jbInit() throws Throwable {
 		wcbVerdichtet.setText(LPMain.getTextRespectUISPr("lp.verdichtet"));
 		wcbMonatsstatstik.setText(LPMain.getTextRespectUISPr("pers.report.produktivitaetsstatistik.monatsbetrachtung"));
+		wcbProjekteZusammengefasst.setText(LPMain.getTextRespectUISPr("pers.report.produktivitaetsstatistik.projektezusammengefasst"));
 
-		wbuGestern = new JButton(new ImageIcon(getClass().getResource(
-				"/com/lp/client/res/table_selection_cell.png")));
-		wbuGestern
-				.setToolTipText(LPMain
-						.getTextRespectUISPr("pers.zeiterfassung.produktivitaetsstatistik.datummitgesternvorbesetzen"));
+		
+		
+		wbuGestern = new JButton(new ImageIcon(getClass().getResource("/com/lp/client/res/table_selection_cell.png")));
+		wbuGestern.setToolTipText(
+				LPMain.getTextRespectUISPr("pers.zeiterfassung.produktivitaetsstatistik.datummitgesternvorbesetzen"));
 		wbuGestern.addActionListener(this);
 
 		wcbVerdichtet.setSelected(true);
 
 		jpaWorkingOn.add(wcbVerdichtet, "cell 1 5");
-		jpaWorkingOn.add(wcbMonatsstatstik, "cell 2 5, wrap");
-		
+		jpaWorkingOn.add(wcbMonatsstatstik, "cell 2 5");
+		jpaWorkingOn.add(wcbProjekteZusammengefasst, "cell 3 5, wrap");
+
 		addZeitraumAuswahl();
-		
+
 		jpaWorkingOn.add(wbuGestern, "growy");
 
 	}
@@ -107,10 +107,10 @@ public class ReportProduktivitaetsstatistik extends ReportZeiterfassung
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		super.eventActionSpecial(e);
 		if (e.getSource().equals(wbuGestern)) {
-			wdfVon.setTimestamp(Helper.cutTimestamp(new Timestamp(System
-					.currentTimeMillis() - 24 * 3600000)));
-			wdfBis.setTimestamp(Helper.cutTimestamp(new Timestamp(System
-					.currentTimeMillis() - 24 * 3600000)));
+			wdfVon.setTimestamp(
+					Helper.cutTimestamp(Helper.addiereTageZuTimestamp(new Timestamp(System.currentTimeMillis()), -1)));
+			wdfBis.setTimestamp(
+					Helper.cutTimestamp(Helper.addiereTageZuTimestamp(new Timestamp(System.currentTimeMillis()), -1)));
 		}
 	}
 
@@ -125,13 +125,12 @@ public class ReportProduktivitaetsstatistik extends ReportZeiterfassung
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		JasperPrintLP jasperPrint = null;
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp = Helper.addiereTageZuTimestamp(wdfBis.getTimestamp(), 1);
 
-		jasperPrint = DelegateFactory.getInstance().getZeiterfassungDelegate()
-				.printProduktivitaetsstatistik(getPersonalIId(),
-						wdfVon.getTimestamp(), wdfBisTemp, mitVersteckten(), nurAnwesende(),
-						wcbVerdichtet.isSelected(),wcbMonatsstatstik.isSelected(), getPersonAuswahl());
+		jasperPrint = DelegateFactory.getInstance().getZeiterfassungDelegate().printProduktivitaetsstatistik(
+				getPersonalIId(), wdfVon.getTimestamp(), wdfBisTemp, mitVersteckten(), nurAnwesende(),
+				wcbVerdichtet.isSelected(), wcbMonatsstatstik.isSelected(), wcbProjekteZusammengefasst.isSelected(),
+				getPersonAuswahl(),getKostenstelleIIdAbteilung());
 
 		return jasperPrint;
 
@@ -142,8 +141,7 @@ public class ReportProduktivitaetsstatistik extends ReportZeiterfassung
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

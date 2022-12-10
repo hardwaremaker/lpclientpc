@@ -53,22 +53,26 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
-import com.lp.server.finanz.service.FLRKontolaenderartPK;
+import com.lp.server.finanz.service.FinanzFac;
+import com.lp.server.finanz.service.FinanzServiceFac;
 import com.lp.server.finanz.service.FinanzamtDto;
 import com.lp.server.finanz.service.KontoDto;
 import com.lp.server.finanz.service.KontolaenderartDto;
 import com.lp.server.finanz.service.LaenderartDto;
+import com.lp.server.finanz.service.ReversechargeartDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 /*
  * * <p> Diese Klasse kuemmert sich um die Kontolaenderart</p>
  * 
@@ -102,19 +106,28 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 	private WrapperButton wbuFinanzamt = null;
 	private WrapperTextField wtfFinanzamt = null;
 
+	private WrapperButton wbuReversechargeart = null ;
+	private WrapperTextField wtfReversechargeart = null ;
+	
+	private WrapperLabel wlaGueltigab = new WrapperLabel();
+	private WrapperDateField wdfGueltigab = new WrapperDateField();
+	
 	private final static String ACTION_SPECIAL_LAENDERART = "action_special_laenderart";
 	private final static String ACTION_SPECIAL_KONTO = "action_special_konto";
 	private final static String ACTION_SPECIAL_FINANZAMT = "action_special_finanzamt";
-
-	private PanelQueryFLR panelQueryFLRLaenderart = null;
+	private final static String ACTION_SPECIAL_REVERSECHARGEART = "action_special_reversechargeart" ;
+	
+ 	private PanelQueryFLR panelQueryFLRLaenderart = null;
 	private PanelQueryFLR panelQueryFLRKonto = null;
 	private PanelQueryFLR panelQueryFLRFinanzamt = null;
+	private PanelQueryFLR panelQueryFLRReversechargeart = null ;
 
 	private KontolaenderartDto klDto = null;
 	private KontoDto kontoDto = null;
 	private LaenderartDto laenderartDto = null;
 	private FinanzamtDto finanzamtDto = null;
-
+	private ReversechargeartDto reversechargeartDto = null ;
+	
 	private TabbedPaneKonten tabbedPaneKonten = null;
 
 	public PanelFinanzKontolaenderart(InternalFrame internalFrame,
@@ -144,6 +157,8 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 			holeLaenderart(klDto.getLaenderartCNr());
 			holeKonto(klDto.getKontoIIdUebersetzt());
 			holeFinanzamt(klDto.getFinanzamtIId(), klDto.getMandantCNr());
+			holeReversechargeart(klDto.getReversechargeartIId());
+			wdfGueltigab.setTimestamp(klDto.getTGueltigAb());
 			// StatusBar
 			this.setStatusbarPersonalIIdAnlegen(klDto.getPersonalIIdAnlegen());
 			this.setStatusbarTAnlegen(klDto.getTAnlegen());
@@ -163,13 +178,18 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {
+/*			
 			FLRKontolaenderartPK kontolaenderartPK = (FLRKontolaenderartPK) key;
 			klDto = DelegateFactory.getInstance().getFinanzDelegate()
 					.kontolaenderartFindByPrimaryKey(
 							kontolaenderartPK.getKonto_i_id(),
+							kontolaenderartPK.getReversechargeart_i_id(),
 							kontolaenderartPK.getLaenderart_c_nr(),
 							kontolaenderartPK.getFinanzamt_i_id(),
 							kontolaenderartPK.getMandant_c_nr());
+*/
+			Integer pk = (Integer) key;
+			klDto = DelegateFactory.finanz().kontolaenderartFindByPrimaryKey(pk);
 			dto2Components();
 		}
 	}
@@ -183,6 +203,8 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 		klDto.setKontoIIdUebersetzt(kontoDto.getIId());
 		klDto.setFinanzamtIId(finanzamtDto.getPartnerIId());
 		klDto.setMandantCNr(finanzamtDto.getMandantCNr());
+		klDto.setReversechargeartIId(reversechargeartDto.getIId());
+		klDto.setTGueltigAb(Helper.cutTimestamp(wdfGueltigab.getTimestamp()));
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -191,9 +213,12 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 			components2Dto();
 			DelegateFactory.getInstance().getFinanzDelegate()
 					.updateKontolaenderart(klDto);
+/*			
 			setKeyWhenDetailPanel(new FLRKontolaenderartPK(klDto.getKontoIId(),
 					klDto.getLaenderartCNr(), klDto.getFinanzamtIId(), klDto
-							.getMandantCNr()));
+							.getMandantCNr(), klDto.getReversechargeartIId()));
+*/
+			setKeyWhenDetailPanel(klDto.getIId());
 			super.eventActionSave(e, true);
 			eventYouAreSelected(false);
 		}
@@ -219,6 +244,9 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 			} else if (e.getSource() == panelQueryFLRFinanzamt) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				holeFinanzamt((Integer) key, LPMain.getTheClient().getMandant());
+			} else if (e.getSource() == panelQueryFLRReversechargeart) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected() ;
+				holeReversechargeart((Integer) key);
 			}
 		}
 	}
@@ -237,49 +265,58 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 
 		getInternalFrame().addItemChangedListener(this);
 
+		wbuFinanzamt = new WrapperButton();
+		wbuReversechargeart = new WrapperButton() ;
 		wbuKonto = new WrapperButton();
 		wbuLaenderart = new WrapperButton();
 		wtfKontobezeichnung = new WrapperTextField();
-		wtfLaenderart = new WrapperTextField();
+		wtfLaenderart = new WrapperTextField(FinanzFac.MAX_KONTOLAENDERART_BEZEICHNUNG);
 		wtnfKontonummer = new WrapperTextNumberField();
-		wbuFinanzamt = new WrapperButton();
 		wtfFinanzamt = new WrapperTextField();
-
+		wtfReversechargeart = new WrapperTextField(FinanzServiceFac.MAX_REVERSECHARGEART_BEZEICHNUNG) ;
+		
 		wtfKontobezeichnung.setActivatable(false);
 		wtfLaenderart.setActivatable(false);
 		wtnfKontonummer.setActivatable(false);
 		wtfFinanzamt.setActivatable(false);
-
+		wtfReversechargeart.setActivatable(false);
+		
 		wtnfKontonummer.setMandatoryFieldDB(true);
 		wtfLaenderart.setMandatoryFieldDB(true);
 		wtfFinanzamt.setMandatoryFieldDB(true);
-
+		wtfReversechargeart.setMandatoryFieldDB(true);
+		
 		wbuKonto.addActionListener(this);
 		wbuLaenderart.addActionListener(this);
 		wbuFinanzamt.addActionListener(this);
+		wbuReversechargeart.addActionListener(this);
 		wbuKonto.setActionCommand(ACTION_SPECIAL_KONTO);
 		wbuLaenderart.setActionCommand(ACTION_SPECIAL_LAENDERART);
 		wbuFinanzamt.setActionCommand(ACTION_SPECIAL_FINANZAMT);
-
-		wbuLaenderart.setText(LPMain.getInstance().getTextRespectUISPr(
+		wbuReversechargeart.setActionCommand(ACTION_SPECIAL_REVERSECHARGEART);
+		
+		wbuLaenderart.setText(LPMain.getTextRespectUISPr(
 				"button.laenderart"));
-		wbuLaenderart.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
+		wbuLaenderart.setToolTipText(LPMain.getTextRespectUISPr(
 				"button.laenderart.tooltip"));
 
-		wbuKonto.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.konto"));
-		wbuKonto.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-				"button.konto.tooltip"));
+		wbuKonto.setText(LPMain.getTextRespectUISPr("button.konto"));
+		wbuKonto.setToolTipText(LPMain.getTextRespectUISPr("button.konto.tooltip"));
 		wbuKonto.setMinimumSize(new Dimension(120, Defaults.getInstance()
 				.getControlHeight()));
 		wbuKonto.setPreferredSize(new Dimension(120, Defaults.getInstance()
 				.getControlHeight()));
 
-		wbuFinanzamt.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.finanzamt"));
-		wbuFinanzamt.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-				"button.finanzamt.tooltip"));
+		wbuFinanzamt.setText(LPMain.getTextRespectUISPr("button.finanzamt"));
+		wbuFinanzamt.setToolTipText(LPMain.getTextRespectUISPr("button.finanzamt.tooltip"));
 
+		wbuReversechargeart.setText(LPMain.getTextRespectUISPr("button.reversechargeart")) ;
+		wbuReversechargeart.setToolTipText(LPMain.getTextRespectUISPr("button.reversechargeart.tooltip"));
+		
+		wlaGueltigab.setText(LPMain.getTextRespectUISPr("lp.gueltigab"));
+		
+		wdfGueltigab.setMandatoryField(true);
+		
 		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
 						0, 0, 0), 0, 0));
@@ -304,6 +341,20 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfLaenderart, new GridBagConstraints(1, iZeile, 2, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wbuReversechargeart, new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfReversechargeart, new GridBagConstraints(1, iZeile, 2, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaGueltigab, new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfGueltigab, new GridBagConstraints(1, iZeile, 2, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -372,6 +423,14 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 		}
 	}
 
+	private void holeReversechargeart(Integer reversechargeartId) throws Throwable {
+		if(reversechargeartId != null) {
+			reversechargeartDto = DelegateFactory.getInstance().getFinanzServiceDelegate()
+					.reversechargeartFindByPrimaryKey(reversechargeartId) ;
+			dto2ComponentsReversechargeart() ;
+		}
+	}
+	
 	private void dto2ComponentsKonto() {
 		if (kontoDto != null) {
 			wtnfKontonummer.setText(kontoDto.getCNr());
@@ -398,6 +457,15 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 		}
 	}
 
+	private void dto2ComponentsReversechargeart() {
+		if(reversechargeartDto != null) {
+			wtfReversechargeart.setText(reversechargeartDto.getSprDto().getcBez()) ;
+		} else {
+			wtfReversechargeart.setText(null) ;
+		}
+	}
+	
+	
 	private void dialogQueryKonto(ActionEvent e) throws Throwable {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH };
 		QueryType[] qt = null;
@@ -407,7 +475,7 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 
 		panelQueryFLRKonto = new PanelQueryFLR(qt, filters,
 				QueryParameters.UC_ID_FINANZKONTEN, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
+				getInternalFrame(), LPMain.getTextRespectUISPr(
 						"finanz.liste.konten"));
 		FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance()
 				.createFKDKontonummer();
@@ -433,7 +501,7 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 		FilterKriterium[] filters = null;
 		panelQueryFLRLaenderart = new PanelQueryFLR(qt, filters,
 				QueryParameters.UC_ID_LAENDERART, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
+				getInternalFrame(), LPMain.getTextRespectUISPr(
 						"finanz.tab.oben.laenderart.title"));
 		if (laenderartDto != null) {
 			panelQueryFLRLaenderart.setSelectedId(laenderartDto.getCNr());
@@ -450,7 +518,7 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 
 		panelQueryFLRFinanzamt = new PanelQueryFLR(qt, filters,
 				QueryParameters.UC_ID_FINANZAMT, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
+				getInternalFrame(), LPMain.getTextRespectUISPr(
 						"finanz.liste.finanzaemter"));
 		if (klDto != null) {
 			if (klDto.getFinanzamtIId() != null) {
@@ -460,6 +528,25 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 		new DialogQuery(panelQueryFLRFinanzamt);
 	}
 
+	private void dialogQueryReversechargeart(ActionEvent e) throws Throwable {
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH };
+		QueryType[] qt = null;
+		// Filter nach Mandant
+		FilterKriterium[] filters = SystemFilterFactory.getInstance()
+				.createFKMandantCNr();
+
+		panelQueryFLRReversechargeart = new PanelQueryFLR(qt, filters,
+				QueryParameters.UC_ID_REVERSECHARGEART, aWhichButtonIUse,
+				getInternalFrame(), LPMain.getTextRespectUISPr(
+						"finanz.liste.reversechargeart"));
+		if (klDto != null) {
+			if (klDto.getReversechargeartIId() != null) {
+				panelQueryFLRReversechargeart.setSelectedId(klDto.getReversechargeartIId());
+			}
+		}
+		new DialogQuery(panelQueryFLRReversechargeart);
+	}
+	
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_KONTO)) {
 			dialogQueryKonto(e);
@@ -467,6 +554,8 @@ public class PanelFinanzKontolaenderart extends PanelBasis {
 			dialogQueryLaenderart(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FINANZAMT)) {
 			dialogQueryFinanzamt(e);
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_REVERSECHARGEART)) {
+			dialogQueryReversechargeart(e) ;
 		}
 	}
 

@@ -35,7 +35,6 @@ package com.lp.client.jms;
 import javax.jms.InvalidClientIDException;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.TopicSubscriber;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 

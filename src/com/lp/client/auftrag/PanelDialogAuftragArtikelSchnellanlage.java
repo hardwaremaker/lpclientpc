@@ -168,9 +168,13 @@ public class PanelDialogAuftragArtikelSchnellanlage extends
 
 		wtfKurzbezeichnung
 				.setColumnsMax(ArtikelFac.MAX_ARTIKEL_KURZBEZEICHNUNG);
-		wtfBezeichnung.setColumnsMax(ArtikelFac.MAX_ARTIKEL_ARTIKELBEZEICHNUNG);
-		wtfZusatzbez.setColumnsMax(ArtikelFac.MAX_ARTIKEL_ZUSATZBEZEICHNUNG);
-		wtfZusatzbez2.setColumnsMax(ArtikelFac.MAX_ARTIKEL_ZUSATZBEZEICHNUNG2);
+		
+		int iLaengenBezeichung=DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
+		
+		
+		wtfBezeichnung.setColumnsMax(iLaengenBezeichung);
+		wtfZusatzbez.setColumnsMax(iLaengenBezeichung);
+		wtfZusatzbez2.setColumnsMax(iLaengenBezeichung);
 
 		wtfRevision.setText(artikelDto.getCRevision());
 

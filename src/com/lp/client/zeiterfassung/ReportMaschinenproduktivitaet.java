@@ -54,6 +54,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.ZeiterfassungReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 
 public class ReportMaschinenproduktivitaet
@@ -85,12 +86,12 @@ protected JPanel jpaWorkingOn = new JPanel();
                                         String add2Title)
       throws Throwable {
     super(internalFrame, add2Title);
-    LPMain.getInstance().getTextRespectUISPr(
+    LPMain.getTextRespectUISPr(
         "zeiterfassung.report.produktivitaetsstatistik");
 
     jbInit();
     initComponents();
-    if (internalFrame.getPersonalDto() != null) {
+    if (internalFrame.getMaschineDto() != null) {
       wtfMaschine.setText(internalFrame.getMaschineDto().getBezeichnung());
       maschineIId = internalFrame.getMaschineDto().getIId();
     }
@@ -181,8 +182,8 @@ protected JPanel jpaWorkingOn = new JPanel();
       throws Throwable {
     JasperPrintLP jasperPrint = null;
 
-    java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis.getTimestamp().getTime() +
-        24 * 3600000);
+    java.sql.Timestamp wdfBisTemp =Helper.addiereTageZuTimestamp(new java.sql.Timestamp(wdfBis
+			.getTimestamp().getTime()),1);
 
     if (wrbSekektiertemaschine.isSelected()) {
       jasperPrint = DelegateFactory.getInstance().getZeiterfassungReportDelegate().

@@ -65,6 +65,7 @@ import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.reklamation.service.ReklamationReportFac;
 import com.lp.server.system.service.KostenstelleDto;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
@@ -85,7 +86,7 @@ protected JPanel jpaWorkingOn = new JPanel();
 
   private Integer kostenstelleIId = null;
   private WrapperButton wbuKostenstelle = new WrapperButton();
-  private WrapperTextField wtfKostenstelle = new WrapperTextField();
+  private WrapperTextField wtfKostenstelle = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
 
   private WrapperLabel wlaSortierung = new WrapperLabel();
 
@@ -305,7 +306,7 @@ protected JPanel jpaWorkingOn = new JPanel();
       iOptionSortierung = ReklamationReportFac.SORTIERGUN_REKLAMATIONSJOURNAL_BELEGNR;
     }
     return DelegateFactory.getInstance().getReklamationReportDelegate().
-        printReklamationsjournal(kostenstelleIId, wdfDatumVon.getTimestamp(), wdfDatumBis.getTimestamp(), wcbKunde.isSelected(), wcbLieferant.isSelected(), wcbLos.isSelected(), wcbNurOffene.isSelected(),
+        printReklamationsjournal(kostenstelleIId, wdrBereich.getTimestampVon(), wdrBereich.getTimestampBis(), wcbKunde.isSelected(), wcbLieferant.isSelected(), wcbLos.isSelected(), wcbNurOffene.isSelected(),
                                  iOptionSortierung);
   }
 

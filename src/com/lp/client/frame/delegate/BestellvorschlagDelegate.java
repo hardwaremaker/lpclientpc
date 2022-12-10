@@ -33,7 +33,9 @@
 package com.lp.client.frame.delegate;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.naming.Context;
@@ -43,8 +45,13 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.bestellung.service.BestellungDto;
+import com.lp.server.bestellung.service.BestellungServiceFac;
 import com.lp.server.bestellung.service.BestellvorschlagDto;
 import com.lp.server.bestellung.service.BestellvorschlagFac;
+import com.lp.server.bestellung.service.RueckgabeUeberleitungDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.system.service.TheClientDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
 
@@ -54,17 +61,24 @@ public class BestellvorschlagDelegate extends Delegate {
 
 	public BestellvorschlagDelegate() throws Throwable {
 		context = new InitialContext();
-		bestellvorschlagFac = (BestellvorschlagFac) context
-				.lookup("lpserver/BestellvorschlagFacBean/remote");
+		bestellvorschlagFac = lookupFac(context, BestellvorschlagFac.class);
 
 	}
 
-	public Integer createBestellvorschlag(
-			BestellvorschlagDto bestellvorschlagDto) throws ExceptionLP {
+	public String getKEYVALUE_EINSTELLUNGEN_LETZTER_BESTELLVORSCHLAG() throws ExceptionLP {
+		try {
+			return bestellvorschlagFac.getKEYVALUE_EINSTELLUNGEN_LETZTER_BESTELLVORSCHLAG(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public Integer createBestellvorschlag(BestellvorschlagDto bestellvorschlagDto) throws ExceptionLP {
 		Integer iIdBestellvorschlag = null;
 		try {
-			iIdBestellvorschlag = bestellvorschlagFac.createBestellvorschlag(
-					bestellvorschlagDto, LPMain.getTheClient());
+			iIdBestellvorschlag = bestellvorschlagFac.createBestellvorschlag(bestellvorschlagDto,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -79,8 +93,7 @@ public class BestellvorschlagDelegate extends Delegate {
 		}
 	}
 
-	public void removeBestellvorschlag(BestellvorschlagDto bestellvorschlagDto)
-			throws ExceptionLP {
+	public void removeBestellvorschlag(BestellvorschlagDto bestellvorschlagDto) throws ExceptionLP {
 		try {
 			bestellvorschlagFac.removeBestellvorschlag(bestellvorschlagDto);
 		} catch (Throwable t) {
@@ -88,34 +101,28 @@ public class BestellvorschlagDelegate extends Delegate {
 		}
 	}
 
-	public void updateBestellvorschlag(BestellvorschlagDto bestellvorschlagDto)
-			throws ExceptionLP {
+	public void updateBestellvorschlag(BestellvorschlagDto bestellvorschlagDto) throws ExceptionLP {
 		try {
-			bestellvorschlagFac.updateBestellvorschlag(bestellvorschlagDto,
-					LPMain.getTheClient());
+			bestellvorschlagFac.updateBestellvorschlag(bestellvorschlagDto, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 
 	}
 
-	public void updateBestellvorschlags(
-			BestellvorschlagDto[] bestellvorschlagDtos) throws ExceptionLP {
+	public void updateBestellvorschlags(BestellvorschlagDto[] bestellvorschlagDtos) throws ExceptionLP {
 		try {
-			bestellvorschlagFac.updateBestellvorschlags(bestellvorschlagDtos,
-					LPMain.getTheClient());
+			bestellvorschlagFac.updateBestellvorschlags(bestellvorschlagDtos, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 
 	}
 
-	public BestellvorschlagDto bestellvorschlagFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public BestellvorschlagDto bestellvorschlagFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		BestellvorschlagDto besvosDto = null;
 		try {
-			besvosDto = bestellvorschlagFac
-					.bestellvorschlagFindByPrimaryKey(iId);
+			besvosDto = bestellvorschlagFac.bestellvorschlagFindByPrimaryKey(iId);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -125,24 +132,21 @@ public class BestellvorschlagDelegate extends Delegate {
 	/**
 	 * leitet Bestellvorschlaege in Bestellungen ueber
 	 * 
-	 * @param fk
-	 *            FilterKriterium
-	 * @param ski
-	 *            String
-	 * @param kostenstelleIId
-	 *            KostenstelleDto
+	 * @param fk              FilterKriterium
+	 * @param ski             String
+	 * @param kostenstelleIId KostenstelleDto
 	 * @return Boolean
 	 * @throws ExceptionLP
 	 */
-	public Boolean createBESausBVjeLieferant(FilterKriterium[] fk,
-			SortierKriterium[] ski, Integer kostenstelleIId,
-			boolean bProjektklammerberuecksichtigen) throws ExceptionLP {
-		Boolean ok = null;
+	public RueckgabeUeberleitungDto createBESausBVjeLieferant(FilterKriterium[] fk, SortierKriterium[] ski,
+			Integer kostenstelleIId, boolean bProjektklammerberuecksichtigen, boolean gemeinsameArtikelBestellen,
+			Integer standortIId, boolean bRahmenbestellungErzeugen, boolean bInklGesperrteArtikel) throws ExceptionLP {
+		RueckgabeUeberleitungDto ok = null;
 
 		try {
-			ok = bestellvorschlagFac.createBESausBVjeLieferant(fk, ski,
-					LPMain.getTheClient(), kostenstelleIId,
-					bProjektklammerberuecksichtigen);
+			ok = bestellvorschlagFac.createBESausBVjeLieferant(fk, ski, LPMain.getTheClient(), kostenstelleIId,
+					bProjektklammerberuecksichtigen, gemeinsameArtikelBestellen, standortIId,
+					bRahmenbestellungErzeugen, bInklGesperrteArtikel);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -153,24 +157,21 @@ public class BestellvorschlagDelegate extends Delegate {
 	/**
 	 * leitet Bestellvorschlaege in Bestellungen ueber
 	 * 
-	 * @param fk
-	 *            FilterKriterium
-	 * @param ski
-	 *            String
-	 * @param kostenstelleIId
-	 *            kostenstelleIId
+	 * @param fk              FilterKriterium
+	 * @param ski             String
+	 * @param kostenstelleIId kostenstelleIId
 	 * @return Boolean
 	 * @throws ExceptionLP
 	 */
-	public Boolean createBESausBVfueBestimmtenLieferant(FilterKriterium[] fk,
-			SortierKriterium[] ski, Integer kostenstelleIId,
-			boolean bProjektklammerberuecksichtigen) throws ExceptionLP {
-		Boolean ok = null;
+	public RueckgabeUeberleitungDto createBESausBVfueBestimmtenLieferant(FilterKriterium[] fk, SortierKriterium[] ski,
+			Integer kostenstelleIId, boolean bProjektklammerberuecksichtigen, boolean gemeinsameArtikelBestellen,
+			Integer standortIId, boolean bRahmenbestellungErzeugen, boolean bInklGesperrteArtikel) throws ExceptionLP {
+		RueckgabeUeberleitungDto ok = null;
 
 		try {
-			ok = bestellvorschlagFac.createBESausBVfueBestimmtenLieferant(fk,
-					ski, LPMain.getTheClient(), kostenstelleIId,
-					bProjektklammerberuecksichtigen);
+			ok = bestellvorschlagFac.createBESausBVfueBestimmtenLieferant(fk, ski, LPMain.getTheClient(),
+					kostenstelleIId, bProjektklammerberuecksichtigen, gemeinsameArtikelBestellen, standortIId,
+					bRahmenbestellungErzeugen, bInklGesperrteArtikel);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -181,26 +182,22 @@ public class BestellvorschlagDelegate extends Delegate {
 	/**
 	 * leitet Bestellvorschlaege in Bestellungen ueber
 	 * 
-	 * @param fk
-	 *            FilterKriterium
-	 * @param ski
-	 *            String
-	 * @param kostenstelleIId
-	 *            kostenstelleIId
+	 * @param fk              FilterKriterium
+	 * @param ski             String
+	 * @param kostenstelleIId kostenstelleIId
 	 * @return Boolean
 	 * @throws ExceptionLP
 	 */
-	public Boolean createBESausBVfuerBestimmtenLieferantUndTermin(
-			FilterKriterium[] fk, SortierKriterium[] ski,
-			Integer kostenstelleIId, boolean bProjektklammerberuecksichtigen)
+	public RueckgabeUeberleitungDto createBESausBVfuerBestimmtenLieferantUndTermin(FilterKriterium[] fk,
+			SortierKriterium[] ski, Integer kostenstelleIId, boolean bProjektklammerberuecksichtigen,
+			boolean gemeinsameArtikelBestellen, Integer standortIId, boolean bRahmenbestellungErzeugen, boolean bInklGesperrteArtikel)
 			throws ExceptionLP {
-		Boolean ok = null;
+		RueckgabeUeberleitungDto ok = null;
 
 		try {
-			ok = bestellvorschlagFac
-					.createBESausBVfuerBestimmtenLieferantUndTermin(fk, ski,
-							LPMain.getTheClient(), kostenstelleIId,
-							bProjektklammerberuecksichtigen);
+			ok = bestellvorschlagFac.createBESausBVfuerBestimmtenLieferantUndTermin(fk, ski, LPMain.getTheClient(),
+					kostenstelleIId, bProjektklammerberuecksichtigen, gemeinsameArtikelBestellen, standortIId,
+					bRahmenbestellungErzeugen, bInklGesperrteArtikel);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -211,26 +208,22 @@ public class BestellvorschlagDelegate extends Delegate {
 	/**
 	 * leitet Bestellvorschlaege in Bestellungen ueber
 	 * 
-	 * @param fk
-	 *            FilterKriterium
-	 * @param ski
-	 *            String
-	 * @param kostenstelleIId
-	 *            kostenstelleIId
+	 * @param fk              FilterKriterium
+	 * @param ski             String
+	 * @param kostenstelleIId kostenstelleIId
 	 * @return Boolean
 	 * @throws ExceptionLP
 	 */
-	public Boolean createBESausBVfuerAlleLieferantenMitGleichenTermin(
-			FilterKriterium[] fk, SortierKriterium[] ski,
-			Integer kostenstelleIId, boolean bProjektklammerberuecksichtigen)
+	public RueckgabeUeberleitungDto createBESausBVfuerAlleLieferantenMitGleichenTermin(FilterKriterium[] fk,
+			SortierKriterium[] ski, Integer kostenstelleIId, boolean bProjektklammerberuecksichtigen,
+			boolean gemeinsameArtikelBestellen, Integer standortIId, boolean bRahmenbestellungErzeugen, boolean bInklGesperrteArtikel)
 			throws ExceptionLP {
-		Boolean ok = null;
+		RueckgabeUeberleitungDto ok = null;
 
 		try {
-			ok = bestellvorschlagFac
-					.createBESausBVfuerAlleLieferantenMitGleichenTermin(fk,
-							ski, LPMain.getTheClient(), kostenstelleIId,
-							bProjektklammerberuecksichtigen);
+			ok = bestellvorschlagFac.createBESausBVfuerAlleLieferantenMitGleichenTermin(fk, ski, LPMain.getTheClient(),
+					kostenstelleIId, bProjektklammerberuecksichtigen, gemeinsameArtikelBestellen, standortIId,
+					bRahmenbestellungErzeugen, bInklGesperrteArtikel);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -246,9 +239,7 @@ public class BestellvorschlagDelegate extends Delegate {
 	 */
 	public long getAnzahlBestellvorschlagDesMandanten() throws ExceptionLP {
 		try {
-			return bestellvorschlagFac
-					.getAnzahlBestellvorschlagDesMandanten(LPMain
-							.getTheClient());
+			return bestellvorschlagFac.getAnzahlBestellvorschlagDesMandanten(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return 0;
@@ -257,75 +248,151 @@ public class BestellvorschlagDelegate extends Delegate {
 
 	public Map getAllLieferantenDesBestellvorschlages() throws ExceptionLP {
 		try {
-			return bestellvorschlagFac
-					.getAllLieferantenDesBestellvorschlages(LPMain
-							.getTheClient());
+			return bestellvorschlagFac.getAllLieferantenDesBestellvorschlages(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public void erstelleBestellvorschlag(Integer iVorlaufzeit,
-			Integer iToleranz, Date dateFuerEintraegeOhneLiefertermin,
-			ArrayList<Integer> arLosIId, ArrayList<Integer> arAuftragIId,
-			boolean bMitNichtlagerbewirtschafteten,
-			boolean bNurLospositionenBeruecksichtigen,
-			boolean vormerklisteLoeschen) throws ExceptionLP {
+	public void erstelleBestellvorschlag(Integer iVorlaufzeit, Integer iToleranz,
+			Date dateFuerEintraegeOhneLiefertermin, ArrayList<Integer> arLosIId, ArrayList<Integer> arAuftragIId,
+			boolean bMitNichtlagerbewirtschafteten, boolean bNurLospositionenBeruecksichtigen,
+			boolean vormerklisteLoeschen, boolean bNichtFreigegebeneAuftraegeBeruecksichtigen,
+			Integer partnerIIdStandort, boolean bArtikelNurAufAuftraegeIgnorieren, boolean bExakterAuftragsbezug) throws ExceptionLP {
 
 		try {
-			bestellvorschlagFac.erstelleBestellvorschlag(iVorlaufzeit,
-					iToleranz, dateFuerEintraegeOhneLiefertermin, arLosIId,
-					arAuftragIId, bMitNichtlagerbewirtschafteten,
-					bNurLospositionenBeruecksichtigen, vormerklisteLoeschen,
+
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_LAGERMIN_JE_LAGER, ParameterFac.KATEGORIE_ARTIKEL,
+							LPMain.getTheClient().getMandant());
+
+			boolean bLagerMinJeLager = (Boolean) parameter.getCWertAsObject();
+
+			if (bLagerMinJeLager == false) {
+				bestellvorschlagFac.erstelleBestellvorschlag(iVorlaufzeit, iToleranz, dateFuerEintraegeOhneLiefertermin,
+						arLosIId, arAuftragIId, bMitNichtlagerbewirtschafteten, bNurLospositionenBeruecksichtigen,
+						vormerklisteLoeschen, true, bNichtFreigegebeneAuftraegeBeruecksichtigen, LPMain.getTheClient(),
+						null, bArtikelNurAufAuftraegeIgnorieren, bExakterAuftragsbezug);
+			} else {
+
+				if (partnerIIdStandort == null) {
+
+					Map m = DelegateFactory.getInstance().getLagerDelegate().getAlleStandorte();
+
+					Iterator it = m.keySet().iterator();
+
+					// Bei ersten Standort loeschen
+					boolean bBVLoeschen = true;
+
+					while (it.hasNext()) {
+						Integer partnerIIdStandortZeile = (Integer) it.next();
+						bestellvorschlagFac.erstelleBestellvorschlag(iVorlaufzeit, iToleranz,
+								dateFuerEintraegeOhneLiefertermin, arLosIId, arAuftragIId,
+								bMitNichtlagerbewirtschafteten, bNurLospositionenBeruecksichtigen, vormerklisteLoeschen,
+								bBVLoeschen, bNichtFreigegebeneAuftraegeBeruecksichtigen, LPMain.getTheClient(),
+								partnerIIdStandortZeile, bArtikelNurAufAuftraegeIgnorieren, bExakterAuftragsbezug);
+						bBVLoeschen = false;
+					}
+
+				} else {
+					bestellvorschlagFac.erstelleBestellvorschlag(iVorlaufzeit, iToleranz,
+							dateFuerEintraegeOhneLiefertermin, arLosIId, arAuftragIId, bMitNichtlagerbewirtschafteten,
+							bNurLospositionenBeruecksichtigen, vormerklisteLoeschen, true,
+							bNichtFreigegebeneAuftraegeBeruecksichtigen, LPMain.getTheClient(), partnerIIdStandort,
+							bArtikelNurAufAuftraegeIgnorieren, bExakterAuftragsbezug);
+				}
+			}
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void erstelleBestellvorschlagAnhandStuecklistenmindestlagerstand(java.sql.Date dLiefertermin,
+			boolean vormerklisteLoeschen, Integer partnerIIdStandort) throws ExceptionLP {
+
+		try {
+
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_LAGERMIN_JE_LAGER, ParameterFac.KATEGORIE_ARTIKEL,
+							LPMain.getTheClient().getMandant());
+
+			boolean bLagerMinJeLager = (Boolean) parameter.getCWertAsObject();
+
+			if (bLagerMinJeLager == false) {
+				bestellvorschlagFac.erstelleBestellvorschlagAnhandStuecklistenmindestlagerstand(dLiefertermin,
+						vormerklisteLoeschen, LPMain.getTheClient(), null,true);
+			} else {
+
+				if (partnerIIdStandort == null) {
+
+					Map m = DelegateFactory.getInstance().getLagerDelegate().getAlleStandorte();
+
+					Iterator it = m.keySet().iterator();
+
+					// Bei ersten Standort loeschen
+					boolean bBVLoeschen = true;
+					while (it.hasNext()) {
+						Integer partnerIIdStandortZeile = (Integer) it.next();
+						bestellvorschlagFac.erstelleBestellvorschlagAnhandStuecklistenmindestlagerstand(dLiefertermin,
+								vormerklisteLoeschen, LPMain.getTheClient(), partnerIIdStandortZeile,bBVLoeschen);
+						bBVLoeschen = false;
+					}
+
+				} else {
+					bestellvorschlagFac.erstelleBestellvorschlagAnhandStuecklistenmindestlagerstand(dLiefertermin,
+							vormerklisteLoeschen, LPMain.getTheClient(), partnerIIdStandort, true);
+				}
+			}
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void toggleBearbeitet(Integer bestellvorschlagIId) throws ExceptionLP {
+
+		try {
+			bestellvorschlagFac.toggleBearbeitet(bestellvorschlagIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void erstelleBestellvorschlagAnhandEinesAngebots(Integer angebotIId, java.sql.Date dLiefertermin)
+			throws ExceptionLP {
+
+		try {
+			bestellvorschlagFac.erstelleBestellvorschlagAnhandEinesAngebots(angebotIId, dLiefertermin,
 					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void erstelleBestellvorschlagAnhandStuecklistenmindestlagerstand(
-			java.sql.Date dLiefertermin, boolean vormerklisteLoeschen)
-			throws ExceptionLP {
+	public void erstelleBestellvorschlagAnhandEinesEkag(Integer einkaufsangebotIId, int menge,
+			Timestamp tGeplanterFertigungstermin, Integer vorlaufzeit) throws ExceptionLP {
 
 		try {
-			bestellvorschlagFac
-					.erstelleBestellvorschlagAnhandStuecklistenmindestlagerstand(
-							dLiefertermin, vormerklisteLoeschen,
-							LPMain.getTheClient());
+			bestellvorschlagFac.erstelleBestellvorschlagAnhandEkag(einkaufsangebotIId, menge,
+					tGeplanterFertigungstermin, vorlaufzeit, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void erstelleBestellvorschlagAnhandEinesAngebots(Integer angebotIId,
-			java.sql.Date dLiefertermin) throws ExceptionLP {
-
+	public void removeLockDesBestellvorschlagesWennIchIhnSperre() throws ExceptionLP {
 		try {
-			bestellvorschlagFac.erstelleBestellvorschlagAnhandEinesAngebots(
-					angebotIId, dLiefertermin, LPMain.getTheClient());
+			bestellvorschlagFac.removeLockDesBestellvorschlagesWennIchIhnSperre(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void removeLockDesBestellvorschlagesWennIchIhnSperre()
-			throws ExceptionLP {
+	public void pruefeBearbeitenDesBestellvorschlagsErlaubt() throws ExceptionLP {
 		try {
-			bestellvorschlagFac
-					.removeLockDesBestellvorschlagesWennIchIhnSperre(LPMain
-							.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-	}
-
-	public void pruefeBearbeitenDesBestellvorschlagsErlaubt()
-			throws ExceptionLP {
-		try {
-			bestellvorschlagFac
-					.pruefeBearbeitenDesBestellvorschlagsErlaubt(LPMain
-							.getTheClient());
+			bestellvorschlagFac.pruefeBearbeitenDesBestellvorschlagsErlaubt(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -336,13 +403,11 @@ public class BestellvorschlagDelegate extends Delegate {
 	 * 
 	 * @throws ExceptionLP
 	 */
-	public void verdichteBestellvorschlag(Long lVerdichtungszeitraum,
-			boolean bMengenBeruecksichtigen,
-			boolean bBeruecksichtigeProjektklammer) throws ExceptionLP {
+	public void verdichteBestellvorschlag(Long lVerdichtungszeitraum, boolean bMengenBeruecksichtigen,
+			boolean bBeruecksichtigeProjektklammer, boolean bPreiseaktualisieren) throws ExceptionLP {
 		try {
-			bestellvorschlagFac.verdichteBestellvorschlag(
-					lVerdichtungszeitraum, bMengenBeruecksichtigen,
-					bBeruecksichtigeProjektklammer, LPMain.getTheClient());
+			bestellvorschlagFac.verdichteBestellvorschlag(lVerdichtungszeitraum, bMengenBeruecksichtigen,
+					bBeruecksichtigeProjektklammer, bPreiseaktualisieren, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -352,84 +417,86 @@ public class BestellvorschlagDelegate extends Delegate {
 	 * Die spaeter wiederbeschaffbaren Positionen dieses Mandanten loeschen.
 	 * 
 	 * @throws ExceptionLP
-	 * @param tNaechsterBV
-	 *            Date
+	 * @param tNaechsterBV Date
 	 */
-	public void loescheSpaeterWiederbeschaffbarePositionen(
-			java.sql.Date tNaechsterBV) throws ExceptionLP {
+	public void loescheSpaeterWiederbeschaffbarePositionen(java.sql.Date tNaechsterBV) throws ExceptionLP {
 		try {
-			bestellvorschlagFac.loescheSpaeterWiederbeschaffbarePositionen(
-					tNaechsterBV, LPMain.getTheClient());
+			bestellvorschlagFac.loescheSpaeterWiederbeschaffbarePositionen(tNaechsterBV, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void bestellvorschlagInLiefergruppenanfragenUmwandeln(String projekt)
-			throws ExceptionLP {
+	public void bestellvorschlagInLiefergruppenanfragenUmwandeln(String projekt) throws ExceptionLP {
 		try {
-			bestellvorschlagFac
-					.bestellvorschlagInLiefergruppenanfragenUmwandeln(projekt,
-							LPMain.getTheClient());
+			bestellvorschlagFac.bestellvorschlagInLiefergruppenanfragenUmwandeln(projekt, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void loescheBestellvorschlaegeAbTermin(Date dTermin)
+	public void loescheBestellvorschlaegeAbTermin(Date dTermin) throws ExceptionLP {
+		try {
+			bestellvorschlagFac.loescheBestellvorschlaegeAbTermin(dTermin, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void artikellieferantZuruecksetzen(ArrayList<Integer> bestellvorschlagIIds) throws ExceptionLP {
+		try {
+			bestellvorschlagFac.artikellieferantZuruecksetzen(bestellvorschlagIIds, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void gemeinsameArtikelLoeschen() throws ExceptionLP {
+		try {
+			bestellvorschlagFac.gemeinsameArtikelLoeschen(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void uebernimmLieferantAusLieferantOptimieren(Integer bestellvorschlagIId, Integer lieferantIIdNeu)
 			throws ExceptionLP {
 		try {
-			bestellvorschlagFac.loescheBestellvorschlaegeAbTermin(dTermin,
+			bestellvorschlagFac.uebernimmLieferantAusLieferantOptimieren(bestellvorschlagIId, lieferantIIdNeu,
 					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void artikellieferantZuruecksetzen(
-			ArrayList<Integer> bestellvorschlagIIds) throws ExceptionLP {
+	public void pruefeMindestbestellwert(Integer lieferantIId) throws ExceptionLP {
 		try {
-			bestellvorschlagFac.artikellieferantZuruecksetzen(
-					bestellvorschlagIIds, LPMain.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-	}
-
-	public void uebernimmLieferantAusLieferantOptimieren(
-			Integer bestellvorschlagIId, Integer lieferantIIdNeu)
-			throws ExceptionLP {
-		try {
-			bestellvorschlagFac
-					.uebernimmLieferantAusLieferantOptimieren(
-							bestellvorschlagIId, lieferantIIdNeu,
-							LPMain.getTheClient());
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
-	}
-
-	public void pruefeMindestbestellwert(Integer lieferantIId)
-			throws ExceptionLP {
-		try {
-			boolean b = bestellvorschlagFac.mindestbestellwertErreicht(
-					lieferantIId, LPMain.getTheClient());
+			boolean b = bestellvorschlagFac.mindestbestellwertErreicht(lieferantIId, LPMain.getTheClient());
 			if (b == false) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.info"),
-								LPMain.getTextRespectUISPr("bes.warning.mindestbestellwertnichterreicht"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+						LPMain.getTextRespectUISPr("bes.warning.mindestbestellwertnichterreicht"));
 			}
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public BestellungDto[] createBESausBVzuRahmen(FilterKriterium[] fk,
-			SortierKriterium[] ski) throws ExceptionLP {
-		BestellungDto[] toReturn = null;
+	public String pruefeUndImportiereBestellvorschlagXLS(byte[] xlsDatei, java.sql.Timestamp tLiefertermin,
+			boolean bVorhandenenBestellvorschlagLoeschen, boolean bImportierenWennKeinFehler) throws ExceptionLP {
 		try {
-			toReturn = bestellvorschlagFac.createBESausBVzuRahmen(fk, ski,
+			return bestellvorschlagFac.pruefeUndImportiereBestellvorschlagXLS(xlsDatei, tLiefertermin,
+					bVorhandenenBestellvorschlagLoeschen, bImportierenWennKeinFehler, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public RueckgabeUeberleitungDto createBESausBVzuRahmen(FilterKriterium[] fk, SortierKriterium[] ski,
+			Integer standortIId, boolean gemeinsameArtikelBestellen) throws ExceptionLP {
+		RueckgabeUeberleitungDto toReturn = null;
+		try {
+			toReturn = bestellvorschlagFac.createBESausBVzuRahmen(fk, ski, standortIId, gemeinsameArtikelBestellen,
 					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);

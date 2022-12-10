@@ -39,6 +39,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
+import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.system.service.AutoRahmendetailbedarfdruckDto;
 import com.lp.server.system.service.AutoRahmendetailbedarfdruckFac;
 
@@ -49,7 +50,7 @@ public class AutoRahmendetailbedarfdruckDelegate extends Delegate {
 	
 	public AutoRahmendetailbedarfdruckDelegate() throws NamingException{
 		context = new InitialContext();
-		autoRahmendetailbedarfdruckFac = (AutoRahmendetailbedarfdruckFac) context.lookup("lpserver/AutoRahmendetailbedarfdruckFacBean/remote");
+		autoRahmendetailbedarfdruckFac = lookupFac(context, AutoRahmendetailbedarfdruckFac.class);
 	}
 	
 	

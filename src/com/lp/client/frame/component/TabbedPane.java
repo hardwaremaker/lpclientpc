@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame.component;
@@ -54,8 +54,10 @@ import javax.swing.event.ChangeListener;
 
 import com.lp.client.frame.Command;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.DialogError;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvCreatingCachingProvider;
 import com.lp.client.frame.ICommand;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.Desktop;
@@ -67,41 +69,42 @@ import com.lp.util.Helper;
 
 /*
  * <p>Diese Klasse ist die "Mutter" aller TabbedPane(s).</p>
- * 
+ *
  * <p>Beshreibung: </p>
- * 
+ *
  * <p>Copyright: Copyright (c) 2004</p>
- * 
+ *
  * <p>Organisation: </p>
- * 
+ *
  * @author unbekannt
- * 
+ *
  * @version $Revision: 1.10 $
  */
-abstract public class TabbedPane extends JTabbedPane implements
-		ItemChangedListener, // itemevt: 3 jede Tabbedpane kann vom
+abstract public class TabbedPane extends JTabbedPane implements ItemChangedListener, // itemevt: 3 jede Tabbedpane kann
+																						// vom
 		// Internalframe informiert werden.
 		ChangeListener, ActionListener, ITabbedPane, ICommand {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3907266286465212422L;
+
 	private final InternalFrame internalFrame;
-	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this
-			.getClass());
+	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this.getClass());
 	private String sAddTitle = null;
 	protected boolean bDarfPreiseSehen = true;
 
-	int[] keys = { KeyEvent.VK_1, KeyEvent.VK_2, KeyEvent.VK_3, KeyEvent.VK_4,
-			KeyEvent.VK_5, KeyEvent.VK_6, KeyEvent.VK_7, KeyEvent.VK_8,
-			KeyEvent.VK_9, KeyEvent.VK_0, };
+	int tabIndex = 0;
+
+	int[] keys = { KeyEvent.VK_1, KeyEvent.VK_2, KeyEvent.VK_3, KeyEvent.VK_4, KeyEvent.VK_5, KeyEvent.VK_6,
+			KeyEvent.VK_7, KeyEvent.VK_8, KeyEvent.VK_9, KeyEvent.VK_0, };
+
+	HvCreatingCachingProvider<String, Boolean> cachedRights;
 
 	public TabbedPane(InternalFrame internalFrameI, String addTitleI) {
 		internalFrame = internalFrameI;
 		sAddTitle = addTitleI;
-		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
-				sAddTitle);
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN, sAddTitle);
 		// darf Preise sehen.
 		try {
-			bDarfPreiseSehen = DelegateFactory.getInstance()
-					.getTheJudgeDelegate()
+			bDarfPreiseSehen = DelegateFactory.getInstance().getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF);
 		} catch (Throwable e) {
 		}
@@ -110,7 +113,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 	/**
 	 * Initialierungen fuer die Komponenten. Muss zu einem Zeitpunkt aufgerufen
 	 * werden, wenn die Komponenten nicht mehr null sind.
-	 * 
+	 *
 	 */
 	protected final void initComponents() {
 		HelperClient.setComponentNames(this);
@@ -118,7 +121,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * getInternalFrame
-	 * 
+	 *
 	 * @return InternalFrame
 	 */
 	public InternalFrame getInternalFrame() {
@@ -131,7 +134,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 	// LPMain.getTextRespectUISPr("lp.working"));
 	// getInternalFrame().setCursor(
 	// java.awt.Cursor
-	// .getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
+	// .getPredefinedCursor(j ava.awt.Cursor.WAIT_CURSOR));
 	// setEnabled(false);
 	// }
 
@@ -140,14 +143,11 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 		try {
 			// housekeeping
-			myLogger.info("action start: "
-					+ Helper.cutString(e.toString(), Defaults.LOG_LENGTH)
-					+ " in " + this.getClass().getName());
-			getInternalFrame().getFrameProgress().start(
-					LPMain.getTextRespectUISPr("lp.working"));
+			myLogger.info("action start: " + Helper.cutString(e.toString(), Defaults.LOG_LENGTH) + " in "
+					+ this.getClass().getName());
+			getInternalFrame().getFrameProgress().start(LPMain.getTextRespectUISPr("lp.working"));
 			if (Defaults.getInstance().isUseWaitCursor()) {
-				getInternalFrame().setCursor(
-						Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+				getInternalFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			}
 			setEnabled(false);
 
@@ -166,8 +166,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 			// housekeeping
 			getInternalFrame().getFrameProgress().pause();
 			if (Defaults.getInstance().isUseWaitCursor()) {
-				getInternalFrame().setCursor(
-						Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+				getInternalFrame().setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 			}
 			setEnabled(true);
 			long tEnd = System.currentTimeMillis();
@@ -177,9 +176,8 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * stateChanged
-	 * 
-	 * @param e
-	 *            ChangeEvent
+	 *
+	 * @param e ChangeEvent
 	 */
 	final public void stateChanged(ChangeEvent e) {
 		// Umleiten, wegen logging und so.
@@ -188,18 +186,44 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * Behandle ItemChangedEvent; zB in Querypanel auf anderen gewechselt.
-	 * 
-	 * @param e
-	 *            ChangeEvent
+	 *
+	 * @param e ChangeEvent
 	 * @throws Throwable
 	 */
 	public void lPEventItemChanged(ItemChangedEvent e) throws Throwable {
 	}
 
+	/**
+	 * Erstellt die Menuleiste fuer dieses TabbedPane. <br>
+	 * 
+	 * @implNote
+	 * Die JMenuBar sollte jedes mal neu erstellt werden und nicht in einer privaten
+	 * Variable gecached werden, ansonsten kann es zu Problemen durch fehlende
+	 * Menueintraegen kommen.
+	 * 
+	 * @return
+	 * @throws Throwable
+	 */
 	protected abstract JMenuBar getJMenuBar() throws Throwable;
 
-	public void insertTab(String title, Icon icon, Component component,
-			String tip, int index) {
+	public int reiterHinzufuegen(String title,  Component component) {
+		return reiterHinzufuegen(title,null,component,null);
+	}
+	
+	public int reiterHinzufuegen(String title, Icon icon, Component component, String tip) {
+
+		if (getInternalFrame().istPanelGesperrt(sAddTitle, title) && tabIndex > 0) {
+
+			return -1;
+		} else {
+			super.addTab(title, icon, component, tip);
+			tabIndex++;
+			return tabIndex - 1;
+		}
+
+	}
+
+	public void insertTab(String title, Icon icon, Component component, String tip, int index) {
 		super.insertTab(title, icon, component, tip, index);
 
 		if (index < 9) {
@@ -211,10 +235,14 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	}
 
+	public void setComponentAt(int index, Component component) {
+		super.setComponentAt(index, component);
+	}
+
 	/**
 	 * Liefert den aktuell ausgew?hlten Reiter, wenn dieser ein PanelBasis ist,
 	 * sonst null
-	 * 
+	 *
 	 * @return das Aktuelle Panel
 	 */
 	protected PanelBasis getAktuellesPanel() {
@@ -236,18 +264,16 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * Behandle ActionEvent; zB Menue-Klick oben.
-	 * 
-	 * @param e
-	 *            ActionEvent
+	 *
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	abstract protected void lPActionEvent(ActionEvent e) throws Throwable;
 
 	/**
 	 * Behandle ChangeEvent; zB Tabwechsel oben.
-	 * 
-	 * @param e
-	 *            ChangeEvent
+	 *
+	 * @param e ChangeEvent
 	 * @throws Throwable
 	 */
 	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
@@ -257,25 +283,24 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 		/*
 		 * Alle Menuepunkte im System.out anzeigen if (jMenuBar instanceof
-		 * WrapperMenuBar) { WrapperMenuBar mb = (WrapperMenuBar) jMenuBar; for
-		 * (int i = 0; i < mb.getComponents().length; i++) { if
-		 * (mb.getComponents()[i] instanceof JMenu) { JMenu menu = (JMenu)
-		 * mb.getComponents()[i]; // System.out.println(menu.getText());
-		 * 
-		 * for (int j = 0; j < menu.getPopupMenu().getComponents().length; j++)
-		 * {
-		 * 
-		 * if (menu.getPopupMenu().getComponents()[j] instanceof JMenuItem) {
-		 * JMenuItem item = (JMenuItem) menu.getPopupMenu() .getComponents()[j];
-		 * 
+		 * WrapperMenuBar) { WrapperMenuBar mb = (WrapperMenuBar) jMenuBar; for (int i =
+		 * 0; i < mb.getComponents().length; i++) { if (mb.getComponents()[i] instanceof
+		 * JMenu) { JMenu menu = (JMenu) mb.getComponents()[i]; //
+		 * System.out.println(menu.getText());
+		 *
+		 * for (int j = 0; j < menu.getPopupMenu().getComponents().length; j++) {
+		 *
+		 * if (menu.getPopupMenu().getComponents()[j] instanceof JMenuItem) { JMenuItem
+		 * item = (JMenuItem) menu.getPopupMenu() .getComponents()[j];
+		 *
 		 * System.out.println("Modul: " + getInternalFrame().getBelegartCNr() +
 		 * " TabbedPane: " + getSAddTitle() + " Men\u00FC: " + menu.getText() +
 		 * " Item: " + item.getText());
-		 * 
+		 *
 		 * } }
-		 * 
+		 *
 		 * } }
-		 * 
+		 *
 		 * }
 		 */
 
@@ -290,10 +315,20 @@ abstract public class TabbedPane extends JTabbedPane implements
 		}
 		HelperClient.setComponentNamesMenuBar(jMenuBar);
 		getInternalFrame().setJMenuBar(jMenuBar);
-		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
-				sAddTitle);
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN, sAddTitle);
 	}
 
+	
+
+	protected void tryToUpdate()  throws Throwable {
+		 if(getSelectedComponent() instanceof PanelBasis ){
+			 PanelBasis pb=(PanelBasis)getSelectedComponent();
+			 
+			 pb.update();
+		 }
+	}
+	
+	
 	public String getSAddTitle() {
 		return sAddTitle;
 	}
@@ -303,19 +338,18 @@ abstract public class TabbedPane extends JTabbedPane implements
 	}
 
 	/**
-	 * handleex: Behandle Expection t; Meldung fuer den Benutzer; evtl. close
-	 * Frame. Dies ist die zentrale Methode um allgemeine (frameweite)
-	 * Exceptions abzuhandeln.
-	 * 
-	 * @param t
-	 *            Throwable
-	 * @param bHandleHardI
-	 * <br/>
-	 *            true ... Wird die Exception nicht gefunden kommt eine allg.
-	 *            Errormeldung und der Internalframe wird geschlossen.<br/>
-	 *            false ... Es wird versucht die Exception abzuhandeln, wenn
-	 *            nicht moeglich, wird false retourniert; es wird keine Meldung
-	 *            angezeigt
+	 * handleex: Behandle Expection t; Meldung fuer den Benutzer; evtl. close Frame.
+	 * Dies ist die zentrale Methode um allgemeine (frameweite) Exceptions
+	 * abzuhandeln.
+	 *
+	 * @param t            Throwable
+	 * @param bHandleHardI <br/>
+	 *                     true ... Wird die Exception nicht gefunden kommt eine
+	 *                     allg. Errormeldung und der Internalframe wird
+	 *                     geschlossen.<br/>
+	 *                     false ... Es wird versucht die Exception abzuhandeln,
+	 *                     wenn nicht moeglich, wird false retourniert; es wird
+	 *                     keine Meldung angezeigt
 	 * @return boolean
 	 */
 	public boolean handleException(Throwable t, boolean bHandleHardI) {
@@ -324,8 +358,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 		// Alles wird geloggt.
 		if (t != null) {
-			String sLog = t.getClass().getName() + ": "
-					+ t.getLocalizedMessage();
+			String sLog = t.getClass().getName() + ": " + t.getLocalizedMessage();
 			StackTraceElement[] ste = t.getStackTrace();
 			if (ste.length > 0) {
 				sLog = sLog + "\n" + ste[0].toString();
@@ -355,25 +388,24 @@ abstract public class TabbedPane extends JTabbedPane implements
 			bErrorBekannt = (sMsg != null);
 			if (!bErrorBekannt) {
 				// exhc4: Fehlercode wird noch nicht abgefangen
-				sMsg = "ExceptionForLPClients, Fehlercode unbekannt: "
-						+ efc.getICode();
+				sMsg = "ExceptionForLPClients, Fehlercode unbekannt: " + efc.getICode();
 			}
 			if (efc.getICode() == EJBExceptionLP.FEHLER_BEIM_UPDATE) {
-				getInternalFrame().fireItemChanged(this,
-						ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP);
+				getInternalFrame().fireItemChanged(this, ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP);
 			}
 		}
 
 		if (bErrorBekannt) {
-			JOptionPane pane = InternalFrame
-					.getNarrowOptionPane(com.lp.client.pc.Desktop.MAX_CHARACTERS_UNTIL_WORDWRAP);
-			pane.setMessage(sMsg);
-			pane.setMessageType(JOptionPane.ERROR_MESSAGE);
-
-			JDialog dialog = pane.createDialog(LPMain.getInstance()
-					.getDesktop(), LPMain.getTextRespectUISPr("lp.error"));
-
-			dialog.setVisible(true);
+			new DialogError(LPMain.getInstance().getDesktop(), efc, DialogError.TYPE_INFORMATION);
+//			JOptionPane pane = InternalFrame
+//					.getNarrowOptionPane(com.lp.client.pc.Desktop.MAX_CHARACTERS_UNTIL_WORDWRAP);
+//			pane.setMessage(sMsg);
+//			pane.setMessageType(JOptionPane.ERROR_MESSAGE);
+//
+//			JDialog dialog = pane.createDialog(LPMain.getInstance().getDesktop(),
+//					LPMain.getTextRespectUISPr("lp.error"));
+//
+//			dialog.setVisible(true);
 		}
 
 		if (!bErrorBekannt && bHandleHardI) {
@@ -386,11 +418,10 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * Eigene ExceptionForLPClients's verarbeiten.
-	 * 
+	 *
 	 * myexception: 1
-	 * 
-	 * @param exfc
-	 *            ExceptionForLPClients
+	 *
+	 * @param exfc ExceptionForLPClients
 	 * @return boolean
 	 */
 	protected boolean handleOwnException(ExceptionLP exfc) {
@@ -400,10 +431,8 @@ abstract public class TabbedPane extends JTabbedPane implements
 	protected Boolean positionAmEndeEinfuegen() {
 		ButtonGroup group = new javax.swing.ButtonGroup();
 		String msgString1 = LPMain.getTextRespectUISPr("lp.einfuegen.titel");
-		JRadioButton opt1 = new javax.swing.JRadioButton(
-				LPMain.getTextRespectUISPr("lp.einfuegen.voraktuellercursor"));
-		JRadioButton opt2 = new javax.swing.JRadioButton(
-				LPMain.getTextRespectUISPr("lp.einfuegen.amende"));
+		JRadioButton opt1 = new javax.swing.JRadioButton(LPMain.getTextRespectUISPr("lp.einfuegen.voraktuellercursor"));
+		JRadioButton opt2 = new javax.swing.JRadioButton(LPMain.getTextRespectUISPr("lp.einfuegen.amende"));
 
 		if (Desktop.einfuegenAusZwischenablage == 0) {
 			opt1.setSelected(true);
@@ -415,8 +444,8 @@ abstract public class TabbedPane extends JTabbedPane implements
 		group.add(opt2);
 
 		Object[] array = { msgString1, opt1, opt2 };
-		int sel = javax.swing.JOptionPane.showConfirmDialog(null, array, "",
-				JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE);
+		int sel = javax.swing.JOptionPane.showConfirmDialog(null, array, "", JOptionPane.DEFAULT_OPTION,
+				JOptionPane.QUESTION_MESSAGE);
 		if (sel == 0) {
 			if (opt2.isSelected()) {
 				Desktop.einfuegenAusZwischenablage = 1;
@@ -433,10 +462,10 @@ abstract public class TabbedPane extends JTabbedPane implements
 	}
 
 	/**
-	 * evtvet: Event "Vetoable Window close"; wird null zurueckgegeben, so wird
-	 * das Modul via dicard beendet, wird ein PropertyVetoException
-	 * zurueckgegeben, bleibt das Modul "erhalten".
-	 * 
+	 * evtvet: Event "Vetoable Window close"; wird null zurueckgegeben, so wird das
+	 * Modul via dicard beendet, wird ein PropertyVetoException zurueckgegeben,
+	 * bleibt das Modul "erhalten".
+	 *
 	 * @return PropertyVetoException
 	 * @throws Throwable
 	 */
@@ -456,7 +485,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * Setze den Einbgabefocus auf die erste Component.
-	 * 
+	 *
 	 * @throws Exception
 	 */
 	public void setFirstFocusableComponent() throws Exception {
@@ -466,7 +495,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * Setze den Einbgabefocus auf die erste Component.
-	 * 
+	 *
 	 * @throws Exception
 	 * @return JComponent
 	 */
@@ -477,7 +506,7 @@ abstract public class TabbedPane extends JTabbedPane implements
 
 	/**
 	 * Gebe das DTO des TabbedPane zur&uuml;ck
-	 * 
+	 *
 	 * @return das Dto
 	 */
 	public Object getDto() {
@@ -491,5 +520,16 @@ abstract public class TabbedPane extends JTabbedPane implements
 	public void finalize() throws Throwable {
 		// this.removeAll();
 		super.finalize();
+	}
+
+	public HvCreatingCachingProvider<String, Boolean> getCachedRights() throws Throwable {
+		if (cachedRights == null) {
+			cachedRights = DelegateFactory.getInstance().getTheJudgeDelegate().getTheJudgeCache();
+		}
+		return cachedRights;
+	}
+
+	public String textFromToken(String token) {
+		return LPMain.getTextRespectUISPr(token);
 	}
 }

@@ -49,6 +49,8 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
@@ -58,7 +60,6 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperComboBox;
-import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
@@ -81,7 +82,6 @@ public class PanelFeiertag extends PanelBasis {
 	private JPanel jpaWorkingOn = new JPanel();
 	private JPanel jpaButtonAction = null;
 	private Border border = null;
-	private GridBagLayout gridBagLayoutWorkingPanel = null;
 
 	private WrapperComboBox wcoMonat = new WrapperComboBox();
 
@@ -343,63 +343,25 @@ public class PanelFeiertag extends PanelBasis {
 						0, 0, 0), 0, 0));
 
 		// jetzt meine felder
+		
+		JPanel panelDetails = new JPanel();
+		HvLayout layoutDetails = HvLayoutFactory.create(panelDetails, "ins 0", "[200,fill|40,fill|150,fill|grow]", "");
+		layoutDetails.add(wrbDatum).add(wnfTag).add(wcoMonat).wrap()
+			.add(wrbOstern).add(wnfOffsetOstern).spanAndWrap(2)
+			.add(wlaBezeichnung).add(wtfBezeichnung).spanAndWrap(3)
+			.add(wlaTagesart).add(wcbTagesart).spanAndWrap(2)
+			.add(wbuReligion).add(wtfReligion).spanAndWrap(3);
+
 		jpaWorkingOn = new JPanel();
-		gridBagLayoutWorkingPanel = new GridBagLayout();
-		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+		HvLayout layoutWorkingOn = HvLayoutFactory.create(jpaWorkingOn, "ins 0, filly", "fill,grow", "");
+		layoutWorkingOn.add(panelDetails);
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
 				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
 		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
-
-		iZeile++;
-
-		jpaWorkingOn.add(wrbDatum, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfTag, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), -80, 0));
-		jpaWorkingOn.add(wcoMonat, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 45, 2, 2), 80, 0));
-
-		iZeile++;
-
-		jpaWorkingOn.add(wrbOstern, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfOffsetOstern, new GridBagConstraints(1, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-
-		jpaWorkingOn.add(wlaTagesart, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbTagesart, new GridBagConstraints(1, iZeile, 1, 1,
-				0.2, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 150, 0));
-
-		iZeile++;
-
-		jpaWorkingOn.add(wbuReligion, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wtfReligion, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
+		
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
 

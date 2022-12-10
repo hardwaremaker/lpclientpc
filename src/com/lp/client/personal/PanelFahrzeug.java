@@ -37,6 +37,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -46,11 +48,14 @@ import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.FahrzeugDto;
+import com.lp.server.personal.service.PersonalFac;
 
 @SuppressWarnings("static-access")
 public class PanelFahrzeug extends PanelBasis {
@@ -69,10 +74,15 @@ public class PanelFahrzeug extends PanelBasis {
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 	private WrapperLabel wlaKennzeichen = new WrapperLabel();
 	private WrapperTextField wtfKennzeichen = new WrapperTextField();
+
+	private WrapperLabel wlaVerwendungsart = new WrapperLabel();
+	private WrapperComboBox wcoVerwendungsart = new WrapperComboBox();
+
+	private WrapperCheckBox wcbVersteckt = new WrapperCheckBox();
+
 	private FahrzeugDto fahrzeugDto = null;
 
-	public PanelFahrzeug(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	public PanelFahrzeug(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFramePersonal = (InternalFramePersonal) internalFrame;
 		jbInit();
@@ -88,8 +98,7 @@ public class PanelFahrzeug extends PanelBasis {
 		return wtfBezeichnung;
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		fahrzeugDto = new FahrzeugDto();
 		internalFramePersonal.setFahrzeugDto(fahrzeugDto);
@@ -100,11 +109,9 @@ public class PanelFahrzeug extends PanelBasis {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		DelegateFactory.getInstance().getPersonalDelegate()
-				.removeFahrzeug(fahrzeugDto);
+		DelegateFactory.getInstance().getPersonalDelegate().removeFahrzeug(fahrzeugDto);
 		super.eventActionDelete(e, false, false);
 	}
 
@@ -112,34 +119,34 @@ public class PanelFahrzeug extends PanelBasis {
 		fahrzeugDto.setCBez(wtfBezeichnung.getText());
 		fahrzeugDto.setCKennzeichen(wtfKennzeichen.getText());
 		fahrzeugDto.setMandantCNr(LPMain.getTheClient().getMandant());
+		fahrzeugDto.setFahrzeugverwendungsartCNr((String) wcoVerwendungsart.getKeyOfSelectedItem());
+		fahrzeugDto.setBVersteckt(wcbVersteckt.getShort());
 
 	}
 
 	protected void dto2Components() throws ExceptionLP {
 		wtfBezeichnung.setText(fahrzeugDto.getCBez());
 		wtfKennzeichen.setText(fahrzeugDto.getCKennzeichen());
+		wcoVerwendungsart.setKeyOfSelectedItem(fahrzeugDto.getFahrzeugverwendungsartCNr());
+		wcbVersteckt.setShort(fahrzeugDto.getBVersteckt());
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
 			components2Dto();
 			if (fahrzeugDto.getIId() == null) {
 				fahrzeugDto.setCBez(wtfBezeichnung.getText());
-				fahrzeugDto.setIId(DelegateFactory.getInstance()
-						.getPersonalDelegate().createFahrzeug(fahrzeugDto));
+				fahrzeugDto.setIId(DelegateFactory.getInstance().getPersonalDelegate().createFahrzeug(fahrzeugDto));
 				setKeyWhenDetailPanel(fahrzeugDto.getIId());
 
 			} else {
-				DelegateFactory.getInstance().getPersonalDelegate()
-						.updateFahrzeug(fahrzeugDto);
+				DelegateFactory.getInstance().getPersonalDelegate().updateFahrzeug(fahrzeugDto);
 			}
 			super.eventActionSave(e, true);
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
-				getInternalFrame()
-						.setKeyWasForLockMe(fahrzeugDto.getIId() + "");
+				getInternalFrame().setKeyWasForLockMe(fahrzeugDto.getIId() + "");
 			}
 			eventYouAreSelected(false);
 
@@ -161,49 +168,60 @@ public class PanelFahrzeug extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
-		wlaKennzeichen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.fahrzeug.kfzkennzeichen"));
-		
-		
-		
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
+		wlaKennzeichen.setText(LPMain.getInstance().getTextRespectUISPr("pers.fahrzeug.kfzkennzeichen"));
+
+		wlaVerwendungsart.setText(LPMain.getInstance().getTextRespectUISPr("pers.fahrzeug.verwendungsart"));
+
+		wcbVersteckt.setText(LPMain.getInstance().getTextRespectUISPr("lp.versteckt"));
+
 		wtfBezeichnung.setText("");
 		wtfBezeichnung.setMandatoryField(true);
 		wtfKennzeichen.setMandatoryField(true);
 
+		wcoVerwendungsart.setMandatoryField(true);
+		Map<String, String> m = new LinkedHashMap<String, String>();
+		m.put(PersonalFac.FAHRZEUGVERWENDUNGSART_PRIVATFAHRZEUG,
+				PersonalFac.FAHRZEUGVERWENDUNGSART_PRIVATFAHRZEUG.trim());
+		m.put(PersonalFac.FAHRZEUGVERWENDUNGSART_POOLFAHRZEUG, PersonalFac.FAHRZEUGVERWENDUNGSART_POOLFAHRZEUG.trim());
+		m.put(PersonalFac.FAHRZEUGVERWENDUNGSART_FIRMENFAHRZEUG,
+				PersonalFac.FAHRZEUGVERWENDUNGSART_FIRMENFAHRZEUG.trim());
+
+		wcoVerwendungsart.setMap(m, false);
+
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
-				1, 0.2, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1,
-				1, 0.4, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1, 1, 0.4, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaKennzeichen, new GridBagConstraints(0, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaKennzeichen, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKennzeichen, new GridBagConstraints(1, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfKennzeichen, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaVerwendungsart, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoVerwendungsart, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		iZeile++;
+		jpaWorkingOn.add(wcbVersteckt, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -213,19 +231,14 @@ public class PanelFahrzeug extends PanelBasis {
 		return HelperClient.LOCKME_FAHRZEUG;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = internalFramePersonal.getFahrzeugDto().getIId();
 
-		if (key != null && !key.equals(LPMain.getLockMeForNew())) {
-
-			fahrzeugDto = DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
-					.fahrzeugFindByPrimaryKey(
-							internalFramePersonal.getFahrzeugDto().getIId());
+		if (key != null) {
+			fahrzeugDto = DelegateFactory.getInstance().getPersonalDelegate()
+					.fahrzeugFindByPrimaryKey(internalFramePersonal.getFahrzeugDto().getIId());
 
 			dto2Components();
 

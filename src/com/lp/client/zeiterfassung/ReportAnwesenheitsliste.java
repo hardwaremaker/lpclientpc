@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.zeiterfassung;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -44,88 +43,81 @@ import javax.swing.JPanel;
 
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-
-public class ReportAnwesenheitsliste
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+public class ReportAnwesenheitsliste extends PanelBasis implements PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  private InternalFrameZeiterfassung internalFrameZeiterfassung = null;
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	private InternalFrameZeiterfassung internalFrameZeiterfassung = null;
+	private WrapperSelectField wsfKostenstelle = new WrapperSelectField(WrapperSelectField.KOSTENSTELLE,
+			getInternalFrame(), true);
 
-  public ReportAnwesenheitsliste(InternalFrameZeiterfassung internalFrame,
-                                 String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    LPMain.getInstance().getTextRespectUISPr("zeiterfassung.report.anwesenheitsliste");
-    internalFrameZeiterfassung = internalFrame;
-    jbInit();
-    initComponents();
-  }
+	public ReportAnwesenheitsliste(InternalFrameZeiterfassung internalFrame, String add2Title) throws Throwable {
+		super(internalFrame, add2Title);
+		internalFrameZeiterfassung = internalFrame;
+		jbInit();
+		initComponents();
+	}
 
+	private void jbInit() throws Throwable {
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
+		internalFrameZeiterfassung.addItemChangedListener(this);
 
-  private void jbInit()
-      throws Exception {
-    this.setLayout(gridBagLayout1);
-    jpaWorkingOn.setLayout(gridBagLayout2);
-    internalFrameZeiterfassung.addItemChangedListener(this);
-    this.add(jpaWorkingOn,
-             new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
-                                    GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
-  }
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_PERS_SICHTBARKEIT_ALLE)) {
+			iZeile++;
+			jpaWorkingOn.add(wsfKostenstelle.getWrapperButton(), new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 150, 0));
+			jpaWorkingOn.add(wsfKostenstelle.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 1, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		}
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+	}
 
+	public String getModul() {
+		return ZeiterfassungFac.REPORT_MODUL;
+	}
 
-  public String getModul() {
-    return ZeiterfassungFac.REPORT_MODUL;
-  }
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return NO_VALUE_THATS_OK_JCOMPONENT;
-  }
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return NO_VALUE_THATS_OK_JCOMPONENT;
+	}
 
-  public String getReportname() {
-    return ZeiterfassungFac.REPORT_ANWESENHEITSLISTE;
-  }
+	public String getReportname() {
+		return ZeiterfassungFac.REPORT_ANWESENHEITSLISTE;
+	}
 
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
 
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    ItemChangedEvent e = (ItemChangedEvent) eI;
+	}
 
-  }
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+	}
 
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		return DelegateFactory.getInstance().getZeiterfassungDelegate().printAnwesenheitsliste(wsfKostenstelle.getIKey());
+	}
 
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-  }
+	public boolean getBErstelleReportSofort() {
+		return true;
+	}
 
-
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    return DelegateFactory.getInstance().getZeiterfassungDelegate().printAnwesenheitsliste();
-  }
-
-
-  public boolean getBErstelleReportSofort() {
-    return true;
-  }
-
-
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

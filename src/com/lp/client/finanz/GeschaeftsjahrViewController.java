@@ -78,7 +78,9 @@ public class GeschaeftsjahrViewController implements
 			}
 			return menu;
 		}
-	   	menu = new WrapperMenu("fb.menu.geschaeftsjahr", tabbedPane);
+		
+		int aktuellesGJ = DelegateFactory.getInstance().getParameterDelegate().getGeschaeftsjahr() ;
+ 		menu = new WrapperMenu("fb.menu.geschaeftsjahr", tabbedPane);
 		Map<?, ?> mapGJ = getAllGeschaeftsJahre() ;
 		ButtonGroup bgGJ = new ButtonGroup();
 		for (Iterator<?> iter = mapGJ.keySet().iterator(); iter
@@ -89,10 +91,16 @@ public class GeschaeftsjahrViewController implements
 			JRadioButtonMenuItem menueItem = new JRadioButtonMenuItem(itemString);
 			menueItem.addActionListener(actionListener);
 			menueItem.setActionCommand(buildCommand(itemString)) ;
- 			if(iter.hasNext() == false){
+			
+			if(item.equals(aktuellesGJ)) {
 				menueItem.setSelected(true);
-				geschaeftsJahrChanged(itemString) ;
+				geschaeftsJahrChanged(itemString) ;				
 			}
+
+// 			if(iter.hasNext() == false){
+//				menueItem.setSelected(true);
+//				geschaeftsJahrChanged(itemString) ;
+//			}
 
 			menu.add(menueItem, 0);
 			bgGJ.add(menueItem);
@@ -100,6 +108,7 @@ public class GeschaeftsjahrViewController implements
 		
 		return menu ;
 	}
+
 
 	protected String buildCommand(String itemString) {
 		return MENU_ACTION_GESCHAEFTSJAHR_AENDERUNG + itemString ;

@@ -44,6 +44,7 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperComboBox;
@@ -94,7 +95,7 @@ public class ReportSaldenliste extends PanelBasis implements PanelReportIfJRDS
 
 	private String geschaeftsjahr = "";
 	
-	private final static int BREITE_SPALTE2 = 80;
+	private final static int BREITE_SPALTE2 = 90;
 
 	protected JPanel jpaWorkingOn = new JPanel();
 
@@ -132,16 +133,14 @@ throws Throwable {
 	wrbDebitoren = new WrapperRadioButton("Debitoren");
 	wrbKreditoren = new WrapperRadioButton("Kreditoren");
 
-	wlaGeschaeftsjahr.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-	wlaPeriode.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-    wrbSachkonten.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-    wrbDebitoren.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-    wrbKreditoren.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
+	
+	Dimension radioButtonDimension = HelperClient.getSizeFactoredDimension(BREITE_SPALTE2);
+	HelperClient.setMinimumAndPreferredSize(wrbSachkonten, radioButtonDimension);
+	HelperClient.setMinimumAndPreferredSize(wrbKreditoren, radioButtonDimension);
+	HelperClient.setMinimumAndPreferredSize(wrbDebitoren, radioButtonDimension);
+	HelperClient.setMinimumAndPreferredSize(wlaGeschaeftsjahr, radioButtonDimension);
+	HelperClient.setMinimumAndPreferredSize(wlaPeriode, radioButtonDimension);
+
 
 	jbgKontotyp = new ButtonGroup();
 	jbgKontotyp.add(wrbSachkonten);
@@ -176,19 +175,19 @@ throws Throwable {
 					0, 0));
 	iZeile++;
 	jpaWorkingOn.add(wrbSachkonten,
-			new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+			new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
 					GridBagConstraints.WEST,
 					GridBagConstraints.BOTH,
 					new Insets(2, 2, 2, 2),
 					0, 0));
 	jpaWorkingOn.add(wrbDebitoren,
-			new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+			new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
 					GridBagConstraints.WEST,
 					GridBagConstraints.BOTH,
 					new Insets(2, 2, 2, 2),
 					0, 0));
 	jpaWorkingOn.add(wrbKreditoren,
-			new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
+			new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
 					GridBagConstraints.WEST,
 					GridBagConstraints.BOTH,
 					new Insets(2, 2, 2, 2),

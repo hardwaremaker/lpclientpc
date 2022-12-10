@@ -47,6 +47,7 @@ import javax.swing.KeyStroke;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.pc.LPButtonAction;
+import com.lp.client.util.logger.LpLogger;
 
 public class ToolBar {
 
@@ -55,6 +56,9 @@ public class ToolBar {
 	private JPanel panelButtonActionLeft = null;
 	private JPanel panelButtonActionCenter = null;
 	private JPanel panelButtonActionRight = null;
+
+	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this
+			.getClass());
 
 	private HashMap<String, LPButtonAction> hmOfButtons = new HashMap<String, LPButtonAction>();
 
@@ -155,6 +159,10 @@ public class ToolBar {
 				.add(createAndSaveButton(iconPath, tooltip, ac, accelKey,
 						rechtCNrI));
 	}
+	
+	public void addButtonLeft(JButton button){
+		getToolsPanelLeft().add(button);
+	}
 
 	/**
 	 * Mache einen Button und f&uuml;ge ihn mittig im ToolsPanel hinzu.
@@ -252,14 +260,25 @@ public class ToolBar {
 	 *            die ActionCommands der Buttons
 	 */
 	public void enableToolsPanelButtons(boolean enable, String... which) {
-		if (which == null)
-			return;
-		for (String button : which) {
-			LPButtonAction item = getHmOfButtons().get(button);
-			if (item != null)
-				item.getButton().setEnabled(enable);
+	if (which == null)
+		return;
+	for (String button : which) {
+		LPButtonAction item = getHmOfButtons().get(button);
+		if (item != null) {
+			item.shouldBeEnabledTo(enable) ;
 		}
 	}
+}
+
+//	public void enableToolsPanelButtons(boolean enable, String... which) {
+//		if (which == null)
+//			return;
+//		for (String button : which) {
+//			LPButtonAction item = getHmOfButtons().get(button);
+//			if (item != null)
+//				item.getButton().setEnabled(enable);
+//		}
+//	}
 
 	/**
 	 * Enable oder disable der LeaveAlone-Buttons.
@@ -279,7 +298,8 @@ public class ToolBar {
 				item = getHmOfButtons().get(aButtonStringI[i]);
 				if (item.getButton().getActionCommand()
 						.indexOf(PanelBasis.LEAVEALONE) != -1) {
-					item.getButton().setEnabled(bEnableI);
+					item.shouldBeEnabledTo(bEnableI) ;
+//					item.getButton().setEnabled(bEnableI);
 				}
 			} catch (Throwable t) {
 				throw new Exception("Button " + aButtonStringI[i]
@@ -350,7 +370,7 @@ public class ToolBar {
 			String tooltip, String ac) {
 		ImageIcon ii = new ImageIcon(getClass().getResource(iconPath));
 
-		JButton button = HelperClient.createButton(ii, tooltip, ac);
+		JButton button = ButtonFactory.createJButtonNotEnabled(ii, tooltip, ac);
 
 		button.addActionListener(panelBasis);
 		return button;
@@ -360,8 +380,7 @@ public class ToolBar {
 			String tooltip, String ac) {
 		ImageIcon ii = new ImageIcon(getClass().getResource(iconPath));
 
-		WrapperButton button = HelperClient
-				.createWrapperButton(ii, tooltip, ac);
+		WrapperButton button = ButtonFactory.createWrapperButtonNotEnabled(ii, tooltip, ac);
 
 		button.addActionListener(panelBasis);
 		return button;

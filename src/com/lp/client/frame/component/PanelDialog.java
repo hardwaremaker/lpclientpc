@@ -40,7 +40,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 
 import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -49,6 +48,7 @@ import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.util.IconFactory;
 
 
 /**
@@ -71,7 +71,6 @@ abstract public class PanelDialog
   private GridBagLayout gridBagLayoutWorkingOn = null;
   private Border innerBorder = null;
   private JButton wbuExit = null;
-  private ImageIcon imageIconExit = null;
   private boolean bShowExitButton = true;
   private String sOldTitle=null;
 
@@ -185,8 +184,7 @@ abstract public class PanelDialog
   
 	protected void installExitButton(JPanel jpaToolbar) {
 		if (bShowExitButton) {
-			wbuExit = new JButton(getImageIconExit());
-			wbuExit.setActionCommand(ACTION_SPECIAL_CLOSE_PANELDIALOG);
+			wbuExit = ButtonFactory.createJButton(IconFactory.getExit(), ACTION_SPECIAL_CLOSE_PANELDIALOG);
 			// component name f. abbot/qftest
 			if (Defaults.getInstance().isComponentNamingEnabled()
 					|| Defaults.getInstance().isOldComponentNamingEnabled()) {
@@ -214,13 +212,6 @@ abstract public class PanelDialog
 	public JButton getExitButton() {
 		return wbuExit ;
 	}
-
-  private ImageIcon getImageIconExit() {
-    if (imageIconExit == null) {
-      imageIconExit = new ImageIcon(getClass().getResource("/com/lp/client/res/exit.png"));
-    }
-    return imageIconExit;
-  }
 
   public String getOldTitle() {
     return sOldTitle;

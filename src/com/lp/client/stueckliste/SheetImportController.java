@@ -45,6 +45,7 @@ import jxl.Sheet;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.stueckliste.service.StrukturierterImportDto;
 import com.lp.server.system.service.EinheitDto;
 import com.lp.util.EJBExceptionLP;
@@ -212,6 +213,50 @@ public class SheetImportController implements ISheetImportController {
 				row.setDimension2(dDimension2);
 				row.setDimension3(dDimension3);
 
+			}
+
+		}
+
+		// PJ20186
+		if (cells.length > 12) {
+
+			if (cells[12] != null && cells[12].getType() != CellType.EMPTY
+					&& cells[12].getContents().trim().length() > 0) {
+
+				for (int i = 12; i < cells.length; i++) {
+
+					if (cells[i] != null
+							&& cells[i].getType() != CellType.EMPTY
+							&& cells[i].getContents().trim().length() > 0) {
+						String artikelnummerTaetigkeit = cells[i].getContents()
+								.trim();
+
+						ArtikelDto artikelDtoTaetigkeit = DelegateFactory
+								.getInstance()
+								.getArtikelDelegate()
+								.artikelFindByCNrOhneExc(
+										artikelnummerTaetigkeit);
+
+						if (artikelDtoTaetigkeit == null) {
+
+							ArrayList al = new ArrayList();
+							al.add(artikelnummerTaetigkeit);
+							throw new ExceptionLP(
+									EJBExceptionLP.FEHLER_IMPORT_TAETIGKEIT_NICHT_VORHANDEN,
+									"",
+									al,
+									new Exception(
+											"FEHLER_IMPORT_TAETIGKEIT_NICHT_VORHANDEN"));
+
+						} else {
+							row.addArbeitsgang(artikelDtoTaetigkeit.getIId());
+						}
+
+					} else {
+						break;
+					}
+
+				}
 			}
 
 		}

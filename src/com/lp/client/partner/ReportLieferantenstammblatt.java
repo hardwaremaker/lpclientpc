@@ -39,6 +39,7 @@ import java.awt.Insets;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -60,10 +61,10 @@ public class ReportLieferantenstammblatt extends PanelBasis implements
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 	private Integer lieferantIId = null;
 
-	public ReportLieferantenstammblatt(InternalFrameLieferant internalFrame,
+	public ReportLieferantenstammblatt(InternalFrame internalFrame,Integer lieferantIId,
 			String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
-		lieferantIId = internalFrame.getLieferantDto().getIId();
+		this.lieferantIId = lieferantIId;
 		LPMain.getInstance().getTextRespectUISPr("lp.stammblatt");
 		jbInit();
 		initComponents();

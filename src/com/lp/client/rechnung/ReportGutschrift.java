@@ -35,19 +35,27 @@ package com.lp.client.rechnung;
 import java.sql.Timestamp;
 import java.util.Locale;
 
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.delegate.RechnungDelegate;
+import com.lp.client.frame.report.IDruckTypeReport;
+import com.lp.client.frame.report.IZugferdBeleg;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
 import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.personal.service.PersonalDto;
+import com.lp.server.rechnung.service.GutschrifttextDto;
 import com.lp.server.rechnung.service.RechnungDto;
 import com.lp.server.rechnung.service.RechnungReportFac;
+import com.lp.server.rechnung.service.ZugferdResult;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MediaFac;
+import com.lp.server.util.HvOptional;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
@@ -55,41 +63,45 @@ import com.lp.util.Helper;
  * <p>
  * Diese Klasse kuemmert sich um den Gutschriftsdruck
  * </p>
- *
+ * 
  * <p>
  * Copyright Logistik Pur Software GmbH (c) 2004-2008
  * </p>
- *
+ * 
  * <p>
  * Erstellung: Martin Bluehweis; 21.06.05
  * </p>
- *
+ * 
  * <p>
- *
+ * 
  * @author $Author: christian $
  *         </p>
- *
+ * 
  * @version not attributable Date $Date: 2012/05/16 09:09:42 $
  */
-public class ReportGutschrift extends ReportBeleg {
+public class ReportGutschrift extends ReportBeleg implements IZugferdBeleg, IDruckTypeReport {
 
 	private static final long serialVersionUID = 1L;
 	private RechnungDto rechnungDto = null;
 	private KundeDto kundeDto = null;
 
-	public ReportGutschrift(InternalFrame internalFrame, PanelBasis panelToRefresh,
-			RechnungDto rechnungDto, KundeDto kundeDto, String sAdd2Title)
-			throws Throwable {
-		super(internalFrame, panelToRefresh, sAdd2Title, LocaleFac.BELEGART_GUTSCHRIFT,
-				rechnungDto.getIId(), rechnungDto.getKostenstelleIId());
+	public ReportGutschrift(InternalFrame internalFrame,
+			PanelBasis panelToRefresh, RechnungDto rechnungDto,
+			KundeDto kundeDto, String sAdd2Title) throws Throwable {
+		super(internalFrame, panelToRefresh, sAdd2Title,
+				LocaleFac.BELEGART_GUTSCHRIFT, rechnungDto.getIId(),
+				rechnungDto.getKostenstelleIId());
 		this.rechnungDto = rechnungDto;
 		this.kundeDto = kundeDto;
 		// this.setVisible(false);
 		// vorbesetzen
 		if (rechnungDto != null) {
-			super.wnfKopien.setInteger(kundeDto.getIDefaultrekopiendrucken());
+			// super.wnfKopien.setInteger(kundeDto.getIDefaultrekopiendrucken());
+			setKopien(kundeDto.getIDefaultrekopiendrucken());
 		}
-
+		if (kundeDto != null) {
+			setEmpfaengerEmailAdresse(kundeDto.getCEmailRechnungsempfang());
+		}
 	}
 
 	@Override
@@ -117,7 +129,8 @@ public class ReportGutschrift extends ReportBeleg {
 				.getRechnungDelegate()
 				.printGutschrift(rechnungDto.getIId(), locKunde,
 						new Boolean(this.isBPrintLogo()),
-						wnfKopien.getInteger());
+						// wnfKopien.getInteger());
+						getKopien(), sDrucktype);
 		JasperPrintLP print = prints[0];
 		for (int i = 1; i < prints.length; i++) {
 			print = Helper.addReport2Report(print, prints[i].getPrint());
@@ -144,14 +157,18 @@ public class ReportGutschrift extends ReportBeleg {
 			mailtextDto.setMailBelegnummer(rechnungDto.getCNr());
 			mailtextDto.setMailBezeichnung(LPMain
 					.getTextRespectUISPr("gs.mailbezeichnung"));
-			mailtextDto.setMailFusstext(rechnungDto.getCFusstextuebersteuert());
+			mailtextDto.setMailFusstext(getGutschriftFusstext());
 			mailtextDto.setMailPartnerIId(kundeDto.getPartnerIId());
+			mailtextDto.setProjektIId(rechnungDto.getProjektIId());
 			/**
 			 * @todo die restlichen Felder befuellen
 			 */
 			mailtextDto.setMailProjekt(null);
 			mailtextDto.setMailText(null);
 			mailtextDto.setParamLocale(locKunde);
+			
+			mailtextDto.setRechnungsart(rechnungDto.getRechnungartCNr());
+			mailtextDto.setMailKopftext(getGutschriftKopftext());
 		}
 		return mailtextDto;
 	}
@@ -162,16 +179,60 @@ public class ReportGutschrift extends ReportBeleg {
 		DelegateFactory.getInstance().getRechnungDelegate()
 				.aktiviereBelegControlled(rechnungDto.getIId(), t);
 
-		rechnungDto = DelegateFactory.getInstance()
-				.getRechnungDelegate().rechnungFindByPrimaryKey(rechnungDto.getIId());
+		rechnungDto = DelegateFactory.getInstance().getRechnungDelegate()
+				.rechnungFindByPrimaryKey(rechnungDto.getIId());
 
-		((InternalFrameRechnung)getInternalFrame()).getTabbedPaneGutschrift().setRechnungDto(rechnungDto);
+		((InternalFrameRechnung) getInternalFrame()).getTabbedPaneGutschrift()
+				.setRechnungDto(rechnungDto);
 
 	}
 
+	private RechnungDelegate rechnungDelegate() throws Throwable {
+		return DelegateFactory.getInstance().getRechnungDelegate();
+	}
+	
 	@Override
 	protected Timestamp berechneBelegImpl() throws Throwable {
-		return DelegateFactory.getInstance().getRechnungDelegate()
-				.berechneBelegControlled(rechnungDto.getIId());
+		return rechnungDelegate().berechneBelegControlled(rechnungDto.getIId());
+	}
+	
+	@Override
+	public ZugferdResult createZugferdResult() throws Throwable {
+		Locale locKunde = Helper.string2Locale(kundeDto.getPartnerDto()
+				.getLocaleCNrKommunikation());
+		return rechnungDelegate().createZugferdGutschrift(
+				getIIdBeleg(), locKunde, new Boolean(this.isBPrintLogo()), JasperPrintLP.DRUCKTYP_MAIL);
+	}
+	
+	@Override
+	public boolean isZugferdPartner() throws Throwable {
+		return rechnungDelegate().isZugferdPartner(getIIdBeleg());
+	}
+	
+	private String getGutschriftKopftext() throws Throwable {
+		HvOptional<String> kopftext = HvOptional.ofNullable(rechnungDto.getCKopftextuebersteuert());
+		if (kopftext.isPresent()) {
+			return kopftext.get();
+		}
+		
+		return defaultGutschrifttextByMediaart(MediaFac.MEDIAART_KOPFTEXT);
+	}
+	
+	private String getGutschriftFusstext() throws Throwable {
+		HvOptional<String> fusstext = HvOptional.ofNullable(rechnungDto.getCFusstextuebersteuert());
+		if (fusstext.isPresent()) {
+			return fusstext.get();
+		}
+		
+		return defaultGutschrifttextByMediaart(MediaFac.MEDIAART_FUSSTEXT);
+	}
+	
+	private String defaultGutschrifttextByMediaart(String mediaart) throws ExceptionLP, Throwable {
+		HvOptional<GutschrifttextDto> defaultText = HvOptional.ofNullable(
+				DelegateFactory.getInstance().getRechnungServiceDelegate().gutschrifttextFindByMandantLocaleCNr(
+						kundeDto.getPartnerDto().getLocaleCNrKommunikation(), mediaart));
+		return defaultText.isPresent()
+				? defaultText.get().getCTextinhalt()
+				: null;
 	}
 }

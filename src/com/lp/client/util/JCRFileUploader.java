@@ -38,7 +38,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tika.mime.MediaType;
+
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -64,7 +67,7 @@ public class JCRFileUploader {
 		for (File file : files) {
 			if (file.isDirectory())
 				continue;
-			if (checkFileSize(file)) {
+			if (checkFile(file)) {
 				List<JCRDocDto> jcrs = createJCRDoc(file, vorlage);
 				for (JCRDocDto jcr : jcrs) {
 					DelegateFactory.getInstance().getJCRDocDelegate()
@@ -75,14 +78,14 @@ public class JCRFileUploader {
 	}
 
 	/**
-	 * Pr&uuml;ft die gr&ouml;&szlig;e der Datei gegen die Berechtigung.
+	 * Pr&uuml;ft die gr&ouml;&szlig;e der Datei gegen die Berechtigung und warnt, wenn keine Dateeindung vorhanden ist.
 	 * 
 	 * @param file
 	 * @return true wenn gespeichert werden darf, sonst false
 	 * @throws ExceptionLP
 	 * @throws Throwable
 	 */
-	private static boolean checkFileSize(File file) throws ExceptionLP,
+	public static boolean checkFile(File file) throws ExceptionLP,
 			Throwable {
 
 		ParametermandantDto param = DelegateFactory
@@ -132,8 +135,8 @@ public class JCRFileUploader {
 		return bSpeichern;
 	}
 
-	private static FileToJCR getFileToJCRForMime(String mime) {
-		FileToJCR ftj = fileToJCR.get(mime);
+	private static FileToJCR getFileToJCRForMime(MediaType mime) {
+		FileToJCR ftj = fileToJCR.get(mime.toString());
 		if (ftj == null) {
 			return new DefaultFileToJCR();
 		}
@@ -142,6 +145,6 @@ public class JCRFileUploader {
 
 	private static List<JCRDocDto> createJCRDoc(File file, JCRDocDto vorlage)
 			throws IOException {
-		return getFileToJCRForMime(Helper.getMime(file.getName())).createJCR(file, vorlage);
+		return getFileToJCRForMime(HelperClient.getMimeTypeOfFile(file)).createJCR(file, vorlage);
 	}
 }

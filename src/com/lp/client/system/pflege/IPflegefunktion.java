@@ -37,8 +37,11 @@ import javax.swing.JPanel;
 public interface IPflegefunktion {
 	
 	public static final String KATEGORIE_DOKUMENTENABLAGE = "Dokumentenablage";
-	public static final String KATEGORIE_RECHNUNG         = "Rechnung" ;
-	public static final String KATEGORIE_ALLGEMEIN        = "Allgemein" ;
+	public static final String KATEGORIE_RECHNUNG         = "Rechnung";
+	public static final String KATEGORIE_LIEFERSCHEIN     = "Lieferschein";
+	public static final String KATEGORIE_ALLGEMEIN        = "Allgemein";
+	public static final String KATEGORIE_FERTIGUNG        = "Fertigung";
+	public static final String KATEGORIE_AUFTRAG          = "Auftrag";
 	
 	public String getKategorie();
 	

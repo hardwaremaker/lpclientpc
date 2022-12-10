@@ -205,7 +205,7 @@ public class PanelNachrichtarchiv extends PanelBasis {
 						.getPanelNachrichtenarchiv().eventYouAreSelected(false);
 			}
 			
-			LPMain.getInstance().getDesktop().aktualisiereAnzahlJMSMessages();
+			LPMain.getInstance().getDesktop().aktualisiereAnzahlJMSMessages(false);
 			
 		}
 

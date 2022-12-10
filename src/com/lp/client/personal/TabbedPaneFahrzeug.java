@@ -36,6 +36,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.event.ChangeEvent;
 
+import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -68,9 +69,8 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 	private final static int IDX_PANEL_AUSWAHL = 0;
 	private final static int IDX_PANEL_DETAIL = 1;
 	private final static int IDX_PANEL_KOSTEN = 2;
-	
+
 	private final static String MENUE_ACTION_FAHZEUGE = "MENUE_ACTION_FAHZEUGE";
-	
 
 	public TabbedPaneFahrzeug(InternalFrame internalFrameI) throws Throwable {
 		super(internalFrameI, LPMain.getTextRespectUISPr("pers.fahrzeug"));
@@ -86,14 +86,13 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 	private void createAuswahl() throws Throwable {
 		if (panelQueryFahrzeug == null) {
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
-			panelQueryFahrzeug = new PanelQuery(null,PersonalFilterFactory.getInstance().createFKFahrzeug(),
-					QueryParameters.UC_ID_FAHRZEUG, aWhichButtonIUse,
-					getInternalFrame(),
-					LPMain.getTextRespectUISPr("lp.auswahl"), true);
+			panelQueryFahrzeug = new PanelQuery(null, PersonalFilterFactory.getInstance().createFKFahrzeug(),
+					QueryParameters.UC_ID_FAHRZEUG, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.auswahl"), true,
+					new FilterKriterium("b_versteckt", true, "(1)", FilterKriterium.OPERATOR_NOT_IN, false), null);
 
-			panelQueryFahrzeug.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDBezeichnung(),
-					null);
+			panelQueryFahrzeug
+					.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
 			setComponentAt(IDX_PANEL_AUSWAHL, panelQueryFahrzeug);
 
@@ -102,8 +101,7 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 
 	private void createDetail(Integer key) throws Throwable {
 		if (panelDetailFahrzeug == null) {
-			panelDetailFahrzeug = new PanelFahrzeug(getInternalFrame(),
-					LPMain.getTextRespectUISPr("lp.detail"), key);
+			panelDetailFahrzeug = new PanelFahrzeug(getInternalFrame(), LPMain.getTextRespectUISPr("lp.detail"), key);
 			setComponentAt(IDX_PANEL_DETAIL, panelDetailFahrzeug);
 		}
 	}
@@ -113,54 +111,42 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 		if (panelQueryKosten == null) {
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
 
-			FilterKriterium[] filters = PersonalFilterFactory.getInstance()
-					.createFKFahrzeugkosten(key);
+			FilterKriterium[] filters = PersonalFilterFactory.getInstance().createFKFahrzeugkosten(key);
 
-			panelQueryKosten = new PanelQuery(null, filters,
-					QueryParameters.UC_ID_FAHRZEUGKOSTEN, aWhichButtonIUse,
-					getInternalFrame(),
-					LPMain.getTextRespectUISPr("pers.fahrzeug.kosten"), true);
+			panelQueryKosten = new PanelQuery(null, filters, QueryParameters.UC_ID_FAHRZEUGKOSTEN, aWhichButtonIUse,
+					getInternalFrame(), LPMain.getTextRespectUISPr("pers.fahrzeug.kosten"), true);
 
 			panelDetailKosten = new PanelFahrzeugkosten(getInternalFrame(),
 					LPMain.getTextRespectUISPr("pers.fahrzeug.kosten"), null);
 
-			panelSplitKosten = new PanelSplit(getInternalFrame(),
-					panelDetailKosten, panelQueryKosten, 350);
+			panelSplitKosten = new PanelSplit(getInternalFrame(), panelDetailKosten, panelQueryKosten, 350);
 
 			setComponentAt(IDX_PANEL_KOSTEN, panelSplitKosten);
 		} else {
 			// filter refreshen.
-			panelQueryKosten.setDefaultFilter(PersonalFilterFactory
-					.getInstance().createFKFahrzeugkosten(key));
+			panelQueryKosten.setDefaultFilter(PersonalFilterFactory.getInstance().createFKFahrzeugkosten(key));
 		}
 	}
 
 	private void jbInit() throws Throwable {
 
-		insertTab(LPMain.getTextRespectUISPr("lp.auswahl"), null, null,
-				LPMain.getTextRespectUISPr("lp.auswahl"), IDX_PANEL_AUSWAHL);
+		insertTab(LPMain.getTextRespectUISPr("lp.auswahl"), null, null, LPMain.getTextRespectUISPr("lp.auswahl"),
+				IDX_PANEL_AUSWAHL);
 
-		insertTab(LPMain.getTextRespectUISPr("lp.detail"), null, null,
-				LPMain.getTextRespectUISPr("lp.detail"), IDX_PANEL_DETAIL);
-		insertTab(LPMain.getTextRespectUISPr("pers.fahrzeug.kosten"), null,
-				null, LPMain.getTextRespectUISPr("pers.fahrzeug.kosten"),
-				IDX_PANEL_KOSTEN);
+		insertTab(LPMain.getTextRespectUISPr("lp.detail"), null, null, LPMain.getTextRespectUISPr("lp.detail"),
+				IDX_PANEL_DETAIL);
+		insertTab(LPMain.getTextRespectUISPr("pers.fahrzeug.kosten"), null, null,
+				LPMain.getTextRespectUISPr("pers.fahrzeug.kosten"), IDX_PANEL_KOSTEN);
 
 		createAuswahl();
 
 		panelQueryFahrzeug.eventYouAreSelected(false);
 		if ((Integer) panelQueryFahrzeug.getSelectedId() != null) {
-			getInternalFramePersonal().setFahrzeugDto(
-					DelegateFactory
-							.getInstance()
-							.getPersonalDelegate()
-							.fahrzeugFindByPrimaryKey(
-									(Integer) panelQueryFahrzeug
-											.getSelectedId()));
+			getInternalFramePersonal().setFahrzeugDto(DelegateFactory.getInstance().getPersonalDelegate()
+					.fahrzeugFindByPrimaryKey((Integer) panelQueryFahrzeug.getSelectedId()));
 		}
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelQueryFahrzeug,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelQueryFahrzeug, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		this.addChangeListener(this);
@@ -186,8 +172,7 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			if (e.getSource() == panelDetailKosten) {
-				panelQueryKosten.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryKosten.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
@@ -217,20 +202,16 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 
 					getInternalFramePersonal().setKeyWasForLockMe(key + "");
 
-					getInternalFramePersonal().setFahrzeugDto(
-							DelegateFactory.getInstance().getPersonalDelegate()
-									.fahrzeugFindByPrimaryKey((Integer) key));
+					getInternalFramePersonal().setFahrzeugDto(DelegateFactory.getInstance().getPersonalDelegate()
+							.fahrzeugFindByPrimaryKey((Integer) key));
 
 					if (panelQueryFahrzeug.getSelectedId() == null) {
-						getInternalFrame().enableAllOberePanelsExceptMe(this,
-								IDX_PANEL_AUSWAHL, false);
+						getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 					} else {
-						getInternalFrame().enableAllOberePanelsExceptMe(this,
-								IDX_PANEL_AUSWAHL, true);
+						getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, true);
 					}
 				} else {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, false);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 				}
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
@@ -245,8 +226,7 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 			} else if (e.getSource() == panelDetailKosten) {
 				setKeyWasForLockMe();
 				if (panelDetailKosten.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryKosten
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryKosten.getId2SelectAfterDelete();
 					panelQueryKosten.setSelectedId(oNaechster);
 				}
 				panelSplitKosten.eventYouAreSelected(false);
@@ -294,12 +274,8 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 
 		if (getInternalFramePersonal().getFahrzeugDto() != null
 				&& getInternalFramePersonal().getFahrzeugDto().getCBez() != null) {
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_AS_I_LIKE,
-					LPMain.getTextRespectUISPr("pers.fahrzeug")
-							+ ": "
-							+ getInternalFramePersonal().getFahrzeugDto()
-									.getCBez());
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, LPMain.getTextRespectUISPr("pers.fahrzeug")
+					+ ": " + getInternalFramePersonal().getFahrzeugDto().getCBez());
 		}
 
 	}
@@ -313,8 +289,7 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 			createAuswahl();
 			panelQueryFahrzeug.eventYouAreSelected(false);
 			if (panelQueryFahrzeug.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_AUSWAHL, false);
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 			}
 
 			panelQueryFahrzeug.updateButtons();
@@ -337,12 +312,11 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 		refreshTitle();
 	}
 
-	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable  {
+	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(MENUE_ACTION_FAHZEUGE)) {
-			String add2Title = LPMain
-					.getTextRespectUISPr("pers.fahrzeug");
+			String add2Title = LPMain.getTextRespectUISPr("pers.fahrzeug");
 			getInternalFrame().showReportKriterien(
-					new ReportFahrzeug(getInternalFrame(),getInternalFramePersonal().getFahrzeugDto(), add2Title));
+					new ReportFahrzeug(getInternalFrame(), getInternalFramePersonal().getFahrzeugDto(), add2Title));
 
 		}
 	}
@@ -350,13 +324,10 @@ public class TabbedPaneFahrzeug extends TabbedPane {
 	public javax.swing.JMenuBar getJMenuBar() throws Throwable {
 		WrapperMenuBar menuBarFahrzeug = new WrapperMenuBar(this);
 		JMenu menuInfo = new WrapperMenu("lp.info", this);
-		
-		
-		JMenuItem menuItemFahrzeuge = new JMenuItem(
-				LPMain.getTextRespectUISPr("pers.fahrzeug"));
+
+		JMenuItem menuItemFahrzeuge = new JMenuItem(LPMain.getTextRespectUISPr("pers.fahrzeug"));
 		menuItemFahrzeuge.addActionListener(this);
-		menuItemFahrzeuge
-				.setActionCommand(MENUE_ACTION_FAHZEUGE);
+		menuItemFahrzeuge.setActionCommand(MENUE_ACTION_FAHZEUGE);
 		menuInfo.add(menuItemFahrzeuge, 0);
 
 		menuBarFahrzeug.add(menuInfo);

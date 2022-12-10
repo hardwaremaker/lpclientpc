@@ -71,8 +71,7 @@ public class AnfrageDelegate extends Delegate {
 	public AnfrageDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			anfrageFac = (AnfrageFac) context
-					.lookup("lpserver/AnfrageFacBean/remote");
+			anfrageFac = lookupFac(context, AnfrageFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -82,18 +81,15 @@ public class AnfrageDelegate extends Delegate {
 	/**
 	 * Anlegen einer neuen Anfrage.
 	 * 
-	 * @param anfrageDtoI
-	 *            die neue Anfrage
+	 * @param anfrageDtoI die neue Anfrage
 	 * @return Integer PK der neuen Anfrage
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public Integer createAnfrage(AnfrageDto anfrageDtoI) throws ExceptionLP {
 		Integer iIdAnfrage = null;
 
 		try {
-			iIdAnfrage = anfrageFac.createAnfrage(anfrageDtoI,
-					LPMain.getTheClient());
+			iIdAnfrage = anfrageFac.createAnfrage(anfrageDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -104,10 +100,8 @@ public class AnfrageDelegate extends Delegate {
 	/**
 	 * Eine Anfrage stornieren.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Anfrage
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAnfrageI PK der Anfrage
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void storniereAnfrage(Integer iIdAnfrageI) throws ExceptionLP {
 		try {
@@ -120,10 +114,8 @@ public class AnfrageDelegate extends Delegate {
 	/**
 	 * Eine Anfrage mit Status 'Storniert' auf 'Offen' setzen.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Anfrage
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAnfrageI PK der Anfrage
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void stornoAufheben(Integer iIdAnfrageI) throws ExceptionLP {
 		try {
@@ -136,23 +128,18 @@ public class AnfrageDelegate extends Delegate {
 	/**
 	 * Eine Anfrage manuell auf erledigt setzen.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Anfrage
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAnfrageI PK der Anfrage
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void manuellErledigen(Integer iIdAnfrageI,
-			Integer erledigungsgrundIId) throws ExceptionLP {
+	public void manuellErledigen(Integer iIdAnfrageI, Integer erledigungsgrundIId) throws ExceptionLP {
 		try {
-			anfrageFac.manuellErledigen(iIdAnfrageI, erledigungsgrundIId,
-					LPMain.getTheClient());
+			anfrageFac.manuellErledigen(iIdAnfrageI, erledigungsgrundIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void aktiviereBelegControlled(Integer iid, Timestamp t)
-			throws ExceptionLP {
+	public void aktiviereBelegControlled(Integer iid, Timestamp t) throws ExceptionLP {
 		try {
 			anfrageFac.aktiviereBelegControlled(iid, t, LPMain.getTheClient());
 		} catch (Throwable t1) {
@@ -162,8 +149,7 @@ public class AnfrageDelegate extends Delegate {
 
 	public Timestamp berechneBelegControlled(Integer iid) throws ExceptionLP {
 		try {
-			BelegPruefungDto pruefungDto = anfrageFac.berechneBelegControlled(
-					iid, LPMain.getTheClient());
+			BelegPruefungDto pruefungDto = anfrageFac.berechneBelegControlled(iid, LPMain.getTheClient());
 			dialogBelegpruefung(pruefungDto);
 			return pruefungDto.getBerechnungsZeitpunkt();
 		} catch (Throwable t1) {
@@ -172,26 +158,22 @@ public class AnfrageDelegate extends Delegate {
 		return null;
 	}
 
-	public Timestamp berechneAktiviereBelegControlled(Integer iid)
+	public Timestamp berechneAktiviereBelegControlled(Integer iid) throws ExceptionLP {
+		try {
+			BelegPruefungDto pruefungDto = anfrageFac.berechneAktiviereBelegControlled(iid, LPMain.getTheClient());
+			dialogBelegpruefung(pruefungDto);
+			return pruefungDto.getBerechnungsZeitpunkt();
+		} catch (Throwable t1) {
+			handleThrowable(t1);
+		}
+		return null;
+	}
+
+	public ArrayList<Integer> getAngelegteAnfragenNachUmwandlungDerLiefergruppenanfragen(Integer liefergruppeIId)
 			throws ExceptionLP {
 		try {
-			BelegPruefungDto pruefungDto = anfrageFac
-					.berechneAktiviereBelegControlled(iid,
-							LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto);
-			return pruefungDto.getBerechnungsZeitpunkt();
-		} catch (Throwable t1) {
-			handleThrowable(t1);
-		}
-		return null;
-	}
-
-	public ArrayList<Integer> getAngelegteAnfragenNachUmwandlungDerLiefergruppenanfragen(
-			Integer liefergruppeIId) throws ExceptionLP {
-		try {
-			return anfrageFac
-					.getAngelegteAnfragenNachUmwandlungDerLiefergruppenanfragen(
-							liefergruppeIId, LPMain.getTheClient());
+			return anfrageFac.getAngelegteAnfragenNachUmwandlungDerLiefergruppenanfragen(liefergruppeIId,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -201,31 +183,36 @@ public class AnfrageDelegate extends Delegate {
 	/**
 	 * Eine bestehende Anfrage aktualisieren.
 	 * 
-	 * @param anfrageDtoI
-	 *            die aktuelle Anfrage
-	 * @param waehrungOriCNrI
-	 *            die urspruengliche Belegwaehrung
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param anfrageDtoI     die aktuelle Anfrage
+	 * @param waehrungOriCNrI die urspruengliche Belegwaehrung
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateAnfrage(AnfrageDto anfrageDtoI,
-			boolean bAufAngelegtZuruecksetzen, String waehrungOriCNrI)
+	public void updateAnfrage(AnfrageDto anfrageDtoI, boolean bAufAngelegtZuruecksetzen, String waehrungOriCNrI)
 			throws ExceptionLP {
 		try {
-			anfrageFac.updateAnfrage(anfrageDtoI, waehrungOriCNrI,
-					bAufAngelegtZuruecksetzen, LPMain.getTheClient());
+			anfrageFac.updateAnfrage(anfrageDtoI, waehrungOriCNrI, bAufAngelegtZuruecksetzen, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public AnfrageDto anfrageFindByPrimaryKey(Integer iIdAnfrageI)
-			throws ExceptionLP {
+	public AnfrageDto anfrageFindByPrimaryKey(Integer iIdAnfrageI) throws ExceptionLP {
 		AnfrageDto anfrageDto = null;
 
 		try {
-			anfrageDto = anfrageFac.anfrageFindByPrimaryKey(iIdAnfrageI,
-					LPMain.getTheClient());
+			anfrageDto = anfrageFac.anfrageFindByPrimaryKey(iIdAnfrageI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return anfrageDto;
+	}
+
+	public AnfrageDto anfrageFindByCNrMandantCNrOhneExc(String cNr) throws ExceptionLP {
+		AnfrageDto anfrageDto = null;
+
+		try {
+			anfrageDto = anfrageFac.anfrageFindByCNrMandantCNrOhneExc(cNr, LPMain.getTheClient().getMandant());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -242,19 +229,15 @@ public class AnfrageDelegate extends Delegate {
 	 * - Allgemeiner Rabatt <br>
 	 * Beruecksichtigt werden alle mengenbehafteten Positionen.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Anfrage
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAnfrageI PK der Anfrage
+	 * @throws ExceptionLP Ausnahme
 	 * @return BigDecimal der Gesamtwert der Anfrage
 	 */
-	public BigDecimal berechneNettowertGesamt(Integer iIdAnfrageI)
-			throws ExceptionLP {
+	public BigDecimal berechneNettowertGesamt(Integer iIdAnfrageI) throws ExceptionLP {
 		BigDecimal bdNettowertgesamt = null;
 
 		try {
-			bdNettowertgesamt = anfrageFac.berechneNettowertGesamt(iIdAnfrageI,
-					LPMain.getTheClient());
+			bdNettowertgesamt = anfrageFac.berechneNettowertGesamt(iIdAnfrageI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -266,26 +249,20 @@ public class AnfrageDelegate extends Delegate {
 	 * Wenn der Abschlag in den Konditionen geaendert wurde, dann werden im
 	 * Anschluss die davon abhaengigen Werte neu berechnet.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Anfrage
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAnfrageI PK der Anfrage
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateAnfrageKonditionen(AnfrageDto anfrageDto)
-			throws ExceptionLP {
+	public void updateAnfrageKonditionen(AnfrageDto anfrageDto) throws ExceptionLP {
 		try {
-			anfrageFac.updateAnfrageKonditionen(anfrageDto,
-					LPMain.getTheClient());
+			anfrageFac.updateAnfrageKonditionen(anfrageDto, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void updateAnfrageLieferKonditionen(Integer iIdAnfrageI)
-			throws ExceptionLP {
+	public void updateAnfrageLieferKonditionen(Integer iIdAnfrageI) throws ExceptionLP {
 		try {
-			anfrageFac.updateAnfrageLieferKonditionen(iIdAnfrageI,
-					LPMain.getTheClient());
+			anfrageFac.updateAnfrageLieferKonditionen(iIdAnfrageI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -296,8 +273,7 @@ public class AnfrageDelegate extends Delegate {
 	 * Diese Aktion ist nur moeglich, wenn der 'Erledigt' Status manuell gesetzt
 	 * wurde.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Anfrage
+	 * @param iIdAnfrageI PK der Anfrage
 	 * @throws ExceptionLP
 	 */
 	public void erledigungAufheben(Integer iIdAnfrageI) throws ExceptionLP {
@@ -311,20 +287,16 @@ public class AnfrageDelegate extends Delegate {
 	/**
 	 * Alle Anfragen zu einer Liefergruppenanfrage erzeugen.
 	 * 
-	 * @param iIdAnfrageI
-	 *            PK der Liefergruppenanfrage
+	 * @param iIdAnfrageI PK der Liefergruppenanfrage
 	 * @return Integer PK der letzten erzeugten Anfrage
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public ArrayList<Integer> erzeugeAnfragenAusLiefergruppenanfrage(
-			Integer iIdAnfrageI) throws ExceptionLP {
+	public ArrayList<Integer> erzeugeAnfragenAusLiefergruppenanfrage(Integer iIdAnfrageI) throws ExceptionLP {
 		ArrayList<Integer> iIdLetzteErzeugteAnfrage = null;
 
 		try {
-			iIdLetzteErzeugteAnfrage = anfrageFac
-					.erzeugeAnfragenAusLiefergruppenanfrage(iIdAnfrageI, null,
-							LPMain.getTheClient());
+			iIdLetzteErzeugteAnfrage = anfrageFac.erzeugeAnfragenAusLiefergruppenanfrage(iIdAnfrageI, null,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -332,41 +304,37 @@ public class AnfrageDelegate extends Delegate {
 		return iIdLetzteErzeugteAnfrage;
 	}
 
-	public Integer erzeugeAnfrageAusAnfrage(Integer iIdAnfrageI,InternalFrame internalFrame)
-			throws ExceptionLP {
+	public Integer erzeugeAnfrageAusAnfrage(Integer iIdAnfrageI, InternalFrame internalFrame) throws ExceptionLP {
 		try {
-			Integer anfrageIId= anfrageFac.erzeugeAnfrageAusAnfrage(iIdAnfrageI,
-					LPMain.getTheClient());
-			
+			Integer anfrageIId = anfrageFac.erzeugeAnfrageAusAnfrage(iIdAnfrageI, LPMain.getTheClient());
+
 			if (anfrageIId != null) {
 				AnfrageDto afDto = anfrageFindByPrimaryKey(anfrageIId);
-				if(afDto.getLieferantIIdAnfrageadresse()!=null){
-					DelegateFactory
-					.getInstance()
-					.getLieferantDelegate()
-					.pruefeLieferant(
-							afDto.getLieferantIIdAnfrageadresse(),
-							LocaleFac.BELEGART_ANFRAGE, internalFrame);
+				if (afDto.getLieferantIIdAnfrageadresse() != null) {
+					DelegateFactory.getInstance().getLieferantDelegate().pruefeLieferant(
+							afDto.getLieferantIIdAnfrageadresse(), LocaleFac.BELEGART_ANFRAGE, internalFrame);
 				}
-				
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						afDto.getAnsprechpartnerIIdLieferant(), afDto.getAnsprechpartnerIIdLieferadresse());
+
 			}
 			return anfrageIId;
-			
+
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public AnfrageDto[] anfrageFindByAnfrageIIdLiefergruppenanfrage(
-			Integer iIdAnfrageLiefergruppenanfrageI) throws ExceptionLP {
+	public AnfrageDto[] anfrageFindByAnfrageIIdLiefergruppenanfrage(Integer iIdAnfrageLiefergruppenanfrageI)
+			throws ExceptionLP {
 		AnfrageDto[] aAnfrageDto = null;
 
 		try {
-			aAnfrageDto = anfrageFac
-					.anfrageFindByAnfrageIIdLiefergruppenanfrage(
-							iIdAnfrageLiefergruppenanfrageI,
-							LPMain.getTheClient());
+			aAnfrageDto = anfrageFac.anfrageFindByAnfrageIIdLiefergruppenanfrage(iIdAnfrageLiefergruppenanfrageI,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -378,25 +346,21 @@ public class AnfrageDelegate extends Delegate {
 	 * Nach Kriterien, die der Benutzer bestimmt hat, Anfragen aus einem
 	 * existierenden Bestellvorschlag erzeugen.
 	 * 
-	 * @param bestellvorschlagUeberleitungKriterienDtoI
-	 *            die Kriterien des Benutzers
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param bestellvorschlagUeberleitungKriterienDtoI die Kriterien des Benutzers
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void erzeugeAnfragenAusBestellvorschlag(
-			BestellvorschlagUeberleitungKriterienDto bestellvorschlagUeberleitungKriterienDtoI)
+			BestellvorschlagUeberleitungKriterienDto bestellvorschlagUeberleitungKriterienDtoI, Integer standortIId, ArrayList<Integer> alMarkierte)
 			throws ExceptionLP {
 		try {
-			anfrageFac.erzeugeAnfragenAusBestellvorschlag(
-					bestellvorschlagUeberleitungKriterienDtoI,
-					LPMain.getTheClient());
+			anfrageFac.erzeugeAnfragenAusBestellvorschlag(bestellvorschlagUeberleitungKriterienDtoI,
+					LPMain.getTheClient(), standortIId, alMarkierte);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void setzeVersandzeitpunktAufJetzt(Integer iAnfrageIId,
-			String sDruckart) throws ExceptionLP {
+	public void setzeVersandzeitpunktAufJetzt(Integer iAnfrageIId, String sDruckart) throws ExceptionLP {
 		try {
 			anfrageFac.setzeVersandzeitpunktAufJetzt(iAnfrageIId, sDruckart);
 		} catch (Throwable t) {

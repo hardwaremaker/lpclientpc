@@ -35,6 +35,7 @@ package com.lp.client.zeiterfassung;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
 
+import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 
 import com.lp.client.frame.component.DialogQuery;
@@ -43,6 +44,10 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -66,10 +71,16 @@ public class ReportSonderzeitenliste extends ReportZeiterfassung implements
 	static final public String ACTION_SPECIAL_TAETIGKEIT_FROM_LISTE = "action_taetigkeit_from_liste";
 	private PanelQueryFLR panelQueryFLRTaetigkeit = null;
 
+	private ButtonGroup bgSort = new ButtonGroup();
+	private WrapperRadioButton wrbSortPersonalnummer = new WrapperRadioButton();
+	private WrapperRadioButton wrbSortNachnameVorname = new WrapperRadioButton();
+	private WrapperRadioButton wrbSortSondertaetigkeitNachnameVorname = new WrapperRadioButton();
+	private WrapperCheckBox wcbMitDetails = new WrapperCheckBox();
+	
+	
 	public ReportSonderzeitenliste(InternalFrameZeiterfassung internalFrame,
 			String add2Title) throws Throwable {
-		super(internalFrame, internalFrame.getPersonalDto().getIId(),
-				add2Title);
+		super(internalFrame, internalFrame.getPersonalDto().getIId(), add2Title);
 
 		jbInit();
 		initComponents();
@@ -77,7 +88,7 @@ public class ReportSonderzeitenliste extends ReportZeiterfassung implements
 		wdrBereich.doClickUp();
 
 	}
-	
+
 	@Override
 	protected boolean showSorting() {
 		return false;
@@ -133,6 +144,23 @@ public class ReportSonderzeitenliste extends ReportZeiterfassung implements
 
 	private void jbInit() throws Throwable {
 
+		
+		wcbMitDetails.setText(LPMain
+				.getTextRespectUISPr("pers.sonderzeitenliste.mitdetails"));
+		
+		wrbSortPersonalnummer.setText(LPMain
+				.getTextRespectUISPr("pers.sonderzeitenliste.sort1"));
+		wrbSortNachnameVorname.setText(LPMain
+				.getTextRespectUISPr("pers.sonderzeitenliste.sort2"));
+		wrbSortSondertaetigkeitNachnameVorname.setText(LPMain
+				.getTextRespectUISPr("pers.sonderzeitenliste.sort3"));
+
+		wrbSortPersonalnummer.setSelected(true);
+		
+		bgSort.add(wrbSortPersonalnummer);
+		bgSort.add(wrbSortNachnameVorname);
+		bgSort.add(wrbSortSondertaetigkeitNachnameVorname);
+
 		wbuTaetigkeit
 				.setText(LPMain
 						.getTextRespectUISPr("zeiterfassung.zeitdaten.sondertaetigkeit")
@@ -143,8 +171,20 @@ public class ReportSonderzeitenliste extends ReportZeiterfassung implements
 
 		getInternalFrame().addItemChangedListener(this);
 
-		jpaWorkingOn.add(wbuTaetigkeit);
-		jpaWorkingOn.add(wtfTaetigkeit, "span 2");
+		jpaWorkingOn.add(wbuTaetigkeit, "width 150:150:150");
+		jpaWorkingOn.add(wtfTaetigkeit, "span 2, wrap");
+		
+		jpaWorkingOn.add(new WrapperLabel(LPMain
+				.getTextRespectUISPr("label.sortierung")));
+		jpaWorkingOn.add(wrbSortPersonalnummer);
+		
+		jpaWorkingOn.add(wcbMitDetails, "wrap");
+		
+		jpaWorkingOn.add(new WrapperLabel(""));
+		jpaWorkingOn.add(wrbSortNachnameVorname, "wrap");
+		jpaWorkingOn.add(new WrapperLabel(""));
+		jpaWorkingOn.add(wrbSortSondertaetigkeitNachnameVorname, "wrap");
+		
 
 		addZeitraumAuswahl();
 	}
@@ -160,12 +200,22 @@ public class ReportSonderzeitenliste extends ReportZeiterfassung implements
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		JasperPrintLP jasperPrint = null;
 
+		int iSort = -1;
+		if (wrbSortPersonalnummer.isSelected()) {
+			iSort = ZeiterfassungFac.REPORT_SONDERZEITENLISTE_SORTIERUNG_PERSONALNUMMER;
+		} else if (wrbSortNachnameVorname.isSelected()) {
+			iSort = ZeiterfassungFac.REPORT_SONDERZEITENLISTE_SORTIERUNG_NACHNAME_VORNAME;
+		} else if (wrbSortSondertaetigkeitNachnameVorname.isSelected()) {
+			iSort = ZeiterfassungFac.REPORT_SONDERZEITENLISTE_SORTIERUNG_SONDERTAETIGKEIT_VORNAME_NACHNAME;
+		}
+
 		jasperPrint = DelegateFactory
 				.getInstance()
 				.getZeiterfassungDelegate()
 				.printSondertaetigkeitsliste(getPersonalIId(), taetigkeitIId,
 						wdfVon.getTimestamp(), wdfBis.getTimestamp(),
-						mitVersteckten(),nurAnwesende(), getPersonAuswahl());
+						mitVersteckten(), nurAnwesende(), iSort,
+						getPersonAuswahl(),getKostenstelleIIdAbteilung(),wcbMitDetails.isSelected());
 
 		return jasperPrint;
 	}

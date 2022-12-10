@@ -346,7 +346,7 @@ public class PanelReklamationMassnahmen extends PanelBasis {
 						0, 0, 0), 0, 0));
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
 				GridBagConstraints.NORTHEAST, GridBagConstraints.BOTH,
-				new Insets(-9, 0, 9, 0), 0, 0));
+				new Insets(0, 0, 9, 0), 0, 0));
 		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
@@ -380,8 +380,8 @@ public class PanelReklamationMassnahmen extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wefMassnameKurz, new GridBagConstraints(0, iZeile, 4,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 2, 2, 2), 0, 10));
+				1, 0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 2, 10, 2), 0, 10));
 
 		iZeile++;
 		jpaWorkingOn.add(wbuMassnahmeMittel, new GridBagConstraints(0, iZeile,
@@ -412,8 +412,8 @@ public class PanelReklamationMassnahmen extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wefMassnameMittel, new GridBagConstraints(0, iZeile,
-				4, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 2, 2, 2), 0, 10));
+				4, 1, 0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 2, 10, 2), 0, 10));
 		iZeile++;
 		jpaWorkingOn.add(wbuMassnahmeLang, new GridBagConstraints(0, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
@@ -443,8 +443,8 @@ public class PanelReklamationMassnahmen extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wefMassnameLang, new GridBagConstraints(0, iZeile, 4,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 2, 2, 2), 0, 10));
+				1, 0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 2, 10, 2), 0, 10));
 		iZeile++;
 
 		jpaWorkingOn.add(wbuWirksamkeit, new GridBagConstraints(0, iZeile, 1,
@@ -482,8 +482,8 @@ public class PanelReklamationMassnahmen extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wefWirksamkeit, new GridBagConstraints(0, iZeile, 4,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 2, 2, 2), 0, 10));
+				1, 0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 2, 2, 2), 0, 10));
 		iZeile++;
 		jpaWorkingOn.add(wcbBetrifftGelieferte, new GridBagConstraints(0,
 				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,

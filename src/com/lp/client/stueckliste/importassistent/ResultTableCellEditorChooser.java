@@ -32,31 +32,28 @@
  ******************************************************************************/
  package com.lp.client.stueckliste.importassistent;
 
-import java.awt.AWTException;
 import java.awt.Component;
-import java.awt.MouseInfo;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.Robot;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.awt.event.MouseAdapter;
 import java.util.ArrayList;
 import java.util.EventObject;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JTable;
-import javax.swing.SwingUtilities;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import javax.swing.table.TableCellEditor;
 
+import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.stueckliste.service.IStklImportResult;
+import com.lp.service.StklImportSpezifikation;
 
 public class ResultTableCellEditorChooser extends JComboBox implements TableCellEditor {
 	
@@ -132,16 +129,26 @@ public class ResultTableCellEditorChooser extends JComboBox implements TableCell
 		}
 	}
 	
+	public IStklImportResult getResult() {
+		return result;
+	}
+	
 	private class ComboBoxListener implements ItemListener, PopupMenuListener {
 
 		@Override
 		public void itemStateChanged(ItemEvent e) {
 			result.setSelectedIndex(getSelectedIndex());
-			if(result.getSelectedArtikelDto() == StklImportPage3Ctrl.FLR_LISTE) {
+			if(result.getSelectedArtikelDto() == StklImportPage3Ctrl.FLR_LISTE
+					|| result.getSelectedArtikelDto() == StklImportPage3Ctrl.ZUVIELE_ARTIKEL_FLR_LISTE) {
 				removeItemListener(this);
 				setSelectedIndex(-1);
 				addItemListener(this);
+			} else if(result.getSelectedArtikelDto() == StklImportPage3Ctrl.HANDARTIKEL) {
+				Map<String, String> values = new HashMap<String, String>(result.getValues());
+				values.put(StklImportSpezifikation.LIEFPREIS, null);
+				result.setValues(values);
 			}
+			
 			if(getParent() != null) getParent().repaint();
 //			Robot r;
 //			try {

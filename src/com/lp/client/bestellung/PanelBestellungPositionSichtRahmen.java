@@ -518,6 +518,19 @@ public class PanelBestellungPositionSichtRahmen extends PanelPositionen2 {
 			bDiePositionSpeichern = false;
 		}
 
+		if (getPositionsartCNr().equals(
+				BestellpositionFac.BESTELLPOSITIONART_IDENT)) {
+
+			if (panelArtikel.wnfMenge.getDouble().doubleValue() == 0) {
+				DialogFactory.showModalDialog(
+						LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						LPMain.getInstance().getTextRespectUISPr(
+								"bes.sichrahmen.mengenullnichtmoeglich"));
+				return;
+			}
+			
+		}
+
 		if (!bDiePositionSpeichern) {
 			DialogFactory.showModalDialog(
 					LPMain.getInstance().getTextRespectUISPr("lp.warning"),

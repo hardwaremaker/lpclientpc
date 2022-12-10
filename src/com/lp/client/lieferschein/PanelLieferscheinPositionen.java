@@ -40,6 +40,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.InputEvent;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.EventObject;
 import java.util.List;
 
@@ -61,9 +62,14 @@ import com.lp.client.frame.component.PositionNumberHelperLieferschein;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.ArtikelMengenDialogRueckgabe;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
+import com.lp.client.pc.PasteBuffer;
+import com.lp.client.system.DialogEingabeBetrag;
+import com.lp.client.util.HelperTimestamp;
+import com.lp.client.util.IconFactory;
 import com.lp.server.angebot.service.AngebotServiceFac;
 import com.lp.server.artikel.service.ArtgruDto;
 import com.lp.server.artikel.service.ArtikelDto;
@@ -71,6 +77,12 @@ import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.auftrag.service.AuftragpositionDto;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.bestellung.service.BestellungDto;
+import com.lp.server.bestellung.service.WareneingangspositionDto;
+import com.lp.server.forecast.service.FclieferadresseDto;
+import com.lp.server.forecast.service.ForecastDto;
+import com.lp.server.forecast.service.ForecastauftragDto;
+import com.lp.server.forecast.service.ForecastpositionDto;
 import com.lp.server.lieferschein.service.LieferscheinFac;
 import com.lp.server.lieferschein.service.LieferscheinpositionDto;
 import com.lp.server.lieferschein.service.LieferscheinpositionFac;
@@ -91,17 +103,22 @@ import com.lp.util.Helper;
  * @version $Revision: 1.32 $
  */
 public class PanelLieferscheinPositionen extends PanelPositionen2 {
+	private static final long serialVersionUID = 9146937758145057284L;
 
-	private static final long serialVersionUID = 1L;
 	private final InternalFrameLieferschein intFrame;
 	private final TabbedPaneLieferschein tpLieferschein;
 	private LieferscheinpositionDto positionDto = null;
+
+	WrapperLabel wlaAuftrag = null;
 	private WrapperTextField wtfAuftragNummer = null;
 	private WrapperTextField wtfAuftragProjekt = null;
 	private WrapperTextField wtfAuftragBestellnummer = null;
 
 	static final private String ACTION_SPECIAL_ETIKETTDRUCKEN = "action_special_etikettdrucken";
 
+	public final static String MY_OWN_NEW_INT_ZWS_UEBERSTEUERN = PanelBasis.ACTION_MY_OWN_NEW
+			+ "MY_OWN_NEW_INT_ZWS_UEBERSTEUERN";
+	
 	public PanelLieferscheinPositionen(InternalFrame internalFrame,
 			String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key,
@@ -125,13 +142,13 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 
 		// zusaetzliche buttons
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, ACTION_PRINT, ACTION_TEXT };
+				ACTION_DELETE, ACTION_DISCARD, ACTION_PRINT, ACTION_TEXT, ACTION_MEDIA };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		// zusaetzliche Felder fuer den Auftrag beim Artikel
 		iZeile++;
-		WrapperLabel wlaAuftrag = new WrapperLabel(
+		wlaAuftrag = new WrapperLabel(
 				LPMain.getTextRespectUISPr("auft.auftrag"));
 		wlaAuftrag.setMinimumSize(new Dimension(iSpaltenbreiteArtikelMitGoto,
 				Defaults.getInstance().getControlHeight()));
@@ -164,9 +181,11 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
 						0, 0, 0, 0), 0, 0));
 
-		this.createAndSaveAndShowButton("/com/lp/client/res/printer216x16.png",
+		this.createAndSaveAndShowButton(
+				"/com/lp/client/res/printer216x16.png",
 				LPMain.getTextRespectUISPr("artikel.report.etikett.shortcut"),
-				ACTION_SPECIAL_ETIKETTDRUCKEN,KeyStroke.getKeyStroke('P', InputEvent.CTRL_DOWN_MASK
+				ACTION_SPECIAL_ETIKETTDRUCKEN,
+				KeyStroke.getKeyStroke('P', InputEvent.CTRL_DOWN_MASK
 						| InputEvent.SHIFT_DOWN_MASK),
 				RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
 
@@ -188,6 +207,11 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 				iSpaltenbreiteArtikelMitGoto, Defaults.getInstance()
 						.getControlHeight()));
 		panelHandeingabe.setVisibleZeileLieferterminposition(false);
+		
+		getToolBar().addButtonCenter("/com/lp/client/res/numeric_keypad.png",
+				LPMain.getTextRespectUISPr("angb.positionen.intzws.uebersteuern"), MY_OWN_NEW_INT_ZWS_UEBERSTEUERN,
+				null, RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+		
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -195,6 +219,23 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 			if (positionDto != null && positionDto.getIId() != null) {
 				tpLieferschein.printLieferscheinwaetikett(positionDto.getIId());
 			}
+		}else 	if (e.getActionCommand().equals(MY_OWN_NEW_INT_ZWS_UEBERSTEUERN)) {
+
+			DialogEingabeBetrag d = new DialogEingabeBetrag(Defaults.getInstance().getIUINachkommastellenPreiseVK(),
+					tpLieferschein.getLieferscheinDto().getWaehrungCNr(), getInternalFrame());
+			d.setTitle(LPMain.getTextRespectUISPr("angb.positionen.intzws.uebersteuern.zielpreis"));
+			LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+
+			d.setVisible(true);
+
+			if (d.bdBetrag == null) {
+				return;
+			}
+			DelegateFactory.getInstance().getLsDelegate()
+					.uebersteuereIntelligenteZwischensumme(positionDto.getIId(), d.bdBetrag);
+
+			tpLieferschein.getPanelPositionen().eventYouAreSelected(false);
+
 		}
 	}
 
@@ -218,8 +259,7 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		super.setDefaults();
 
 		// der Vorschlagswert fuer eine frei erfasste Position ist 1
-		panelArtikel.wnfMenge.setDouble(new Double(1));
-
+		//panelArtikel.wnfMenge.setDouble(new Double(1));
 
 		panelArtikel.setUebersteuertesLagerIId(null);
 
@@ -250,6 +290,7 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 			// im PanelArtikel alles fuer die VKPF vorbereiten
 			((PanelPositionenArtikelVerkauf) panelArtikel)
 					.setKundeDto(rechnungsadresse);
+		
 			((PanelPositionenArtikelVerkauf) panelArtikel)
 					.setCNrWaehrung(tpLieferschein.getLieferscheinDto()
 							.getWaehrungCNr());
@@ -275,12 +316,37 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 			if (tpLieferschein.getKundeLieferadresseDto() != null
 					&& tpLieferschein.getKundeLieferadresseDto().getIId() != null) {
 				// Aktuellen MWST-Satz uebersetzen.
-				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
-						.getInstance()
-						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(
-								tpLieferschein.getKundeLieferadresseDto()
-										.getMwstsatzbezIId());
+				
+				Timestamp belegDatum = panelHandeingabe.getTBelegdatumMwstsatz();
+				if(belegDatum == null) {
+					belegDatum = HelperTimestamp.cut();
+				}
+				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory.getInstance().getMandantDelegate()
+						.mwstsatzFindZuDatum(tpLieferschein.getKundeLieferadresseDto()
+									.getMwstsatzbezIId(), belegDatum);
+/*				
+				MwstsatzDto mwstsatzDtoAktuell = null;
+				if (panelHandeingabe.getTBelegdatumMwstsatz() != null) {
+					mwstsatzDtoAktuell = DelegateFactory
+							.getInstance()
+							.getMandantDelegate()
+							.mwstsatzFindZuDatum(
+									tpLieferschein.getKundeLieferadresseDto()
+									.getMwstsatzbezIId(),
+									panelHandeingabe
+											.getTBelegdatumMwstsatz());
+				} else {
+
+					mwstsatzDtoAktuell = DelegateFactory
+							.getInstance()
+							.getMandantDelegate()
+							.mwstsatzFindByMwstsatzbezIIdAktuellster(
+									tpLieferschein.getKundeLieferadresseDto()
+									.getMwstsatzbezIId());
+				}
+*/				
+				// TODO SP8308: Ueberpruefung auf null mwstsatzDtoAktuell!
+				
 				panelHandeingabe.wcoMwstsatz
 						.setKeyOfSelectedItem(mwstsatzDtoAktuell.getIId());
 			}
@@ -331,20 +397,26 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 			panelArtikel.setLetzteArtikelCNr();
 		}
 
+		
+		if (panelArtikel instanceof PanelPositionenArtikelVerkauf) {
+			((PanelPositionenArtikelVerkauf) panelArtikel)
+					.setBelegpositionVerkaufDto(positionDto);
+		}
+		
 		// wenn der Lieferschein gerade gelockt ist, die Eingabefelder
 		// freischalten
-		if (getLockedstateDetailMainKey().getIState() == PanelBasis.LOCK_IS_LOCKED_BY_ME) {
+		if (getLockedstateDetailMainKey().getIState() == PanelBasis.LOCK_FOR_NEW) {
 			panelArtikel.setArtikelEingabefelderEditable(true);
 			((PanelPositionenArtikelVerkauf) panelArtikel).wbuPreisauswahl
 					.setEnabled(true);
 			((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-					.zeigeSerienchargennummer(true, false);
+					.zeigeSerienchargennummer(true, false, true);
 		} else {
 			panelArtikel.setArtikelEingabefelderEditable(false);
 			((PanelPositionenArtikelVerkauf) panelArtikel).wbuPreisauswahl
 					.setEnabled(false);
 			((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-					.zeigeSerienchargennummer(false, false);
+					.zeigeSerienchargennummer(false, false, false);
 		}
 
 		setzePositionsartAenderbar(positionDto);
@@ -353,7 +425,8 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		aktualisiereStatusbar();
 		tpLieferschein.enablePanels(tpLieferschein.getLieferscheinDto(), true);
 
-		tpLieferschein.setTitleLieferschein(LPMain.getTextRespectUISPr("ls.title.panel.positionen"));
+		tpLieferschein.setTitleLieferschein(LPMain
+				.getTextRespectUISPr("ls.title.panel.positionen"));
 		LPButtonAction item = null;
 		if (positionDto.getLieferscheinpositionartCNr() != null) {
 			boolean bEnableVerschieben = !positionDto
@@ -368,6 +441,11 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 					.get(PanelBasis.ACTION_POSITION_VONNNACHNPLUS1);
 			item.getButton().setVisible(bEnableVerschieben);
 		}
+
+		setEditorButtonColor();
+
+		refreshMyComponents();
+		
 	}
 
 	protected void eventActionDiscard(ActionEvent e) throws Throwable {
@@ -380,7 +458,7 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 
 	/**
 	 * Alle Positionsdaten aus einem dto ins Panel setzen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void dto2Components() throws Throwable {
@@ -394,7 +472,7 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		if (positionsart.equalsIgnoreCase(LocaleFac.POSITIONSART_IDENT)) {
 			// Serien/Chargennummern.
 			((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-					.zeigeSerienchargennummer(true, false);
+					.zeigeSerienchargennummer(true, false, false);
 			((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
 					.setSeriennummern(positionDto
 							.getSeriennrChargennrMitMenge(), positionDto
@@ -405,6 +483,9 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 			// // zzt. nicht spezifisches.
 		}
 		// Auftrag anzeigen
+
+		wlaAuftrag.setText(LPMain.getTextRespectUISPr("auft.auftrag"));
+
 		if (positionDto.getAuftragpositionIId() != null) {
 			AuftragpositionDto abPos = DelegateFactory
 					.getInstance()
@@ -417,6 +498,10 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 			wtfAuftragNummer.setText(auftragDto.getCNr());
 			wtfAuftragProjekt.setText(auftragDto.getCBezProjektbezeichnung());
 			wtfAuftragBestellnummer.setText(auftragDto.getCBestellnummer());
+		} else if (positionDto.getForecastpositionIId() != null) {
+
+			setzeForecastdaten(positionDto.getForecastpositionIId());
+
 		} else {
 			wtfAuftragNummer.setText(null);
 			wtfAuftragProjekt.setText(null);
@@ -424,8 +509,36 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		}
 	}
 
+	private void setzeForecastdaten(Integer forecastpositionIId)
+			throws ExceptionLP, Throwable {
+		wlaAuftrag.setText(LPMain.getTextRespectUISPr("fc.forecast"));
+
+		ForecastpositionDto forecastpositionDto = DelegateFactory.getInstance()
+				.getForecastDelegate()
+				.forecastpositionFindByPrimaryKey(forecastpositionIId);
+		ForecastauftragDto forecastauftragDto = DelegateFactory
+				.getInstance()
+				.getForecastDelegate()
+				.forecastauftragFindByPrimaryKey(
+						forecastpositionDto.getForecastauftragIId());
+		FclieferadresseDto fclDto = DelegateFactory
+				.getInstance()
+				.getForecastDelegate()
+				.fclieferadresseFindByPrimaryKey(
+						forecastauftragDto.getFclieferadresseIId());
+		ForecastDto forecastDto = DelegateFactory.getInstance()
+				.getForecastDelegate()
+				.forecastFindByPrimaryKey(fclDto.getForecastIId());
+
+		wtfAuftragNummer.setText(forecastDto.getCNr());
+		wtfAuftragProjekt.setText(forecastDto.getCProjekt());
+	}
+
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
 			boolean bNeedNoNewI) throws Throwable {
+
+		resetEditorButton();
+
 		if (tpLieferschein.istAktualisierenLieferscheinErlaubt()) {
 
 			if (tpLieferschein.getLieferscheinDto().getStatusCNr()
@@ -467,35 +580,52 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		}
 	}
 
+	private void refreshMyComponents() throws Throwable {
+
+	// PJ21633
+		if (wcoPositionsart.getKeyOfSelectedItem()
+				.equals(AngebotServiceFac.ANGEBOTPOSITIONART_INTELLIGENTE_ZWISCHENSUMME)
+				&& tpLieferschein.getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ANGELEGT)) {
+
+			getHmOfButtons().get(MY_OWN_NEW_INT_ZWS_UEBERSTEUERN).getButton().setVisible(true);
+		} else {
+			getHmOfButtons().get(MY_OWN_NEW_INT_ZWS_UEBERSTEUERN).getButton().setVisible(false);
+		}
+
+	}
+	
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
+		
+		refreshMyComponents();
+		
 		if (tpLieferschein.istAktualisierenLieferscheinErlaubt()) {
 
-//			if (tpLieferschein.getLieferscheinDto().getStatusCNr()
-//					.equals(LieferscheinFac.LSSTATUS_OFFEN)) {
-//				boolean b = DialogFactory.showModalJaNeinDialog(
-//						getInternalFrame(),
-//						LPMain.getTextRespectUISPr("ls.bereitsoffen"),
-//						LPMain.getTextRespectUISPr("lp.hint"));
-//				if (b == false) {
-//					return;
-//				}
-//
-//			} else if (tpLieferschein.getLieferscheinDto().getStatusCNr()
-//					.equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
-//				boolean b = DialogFactory.showModalJaNeinDialog(
-//						getInternalFrame(),
-//						LPMain.getTextRespectUISPr("ls.bereitsgeliefert"),
-//						LPMain.getTextRespectUISPr("lp.hint"));
-//				if (b == false) {
-//					return;
-//				}
-//			}
+			// if (tpLieferschein.getLieferscheinDto().getStatusCNr()
+			// .equals(LieferscheinFac.LSSTATUS_OFFEN)) {
+			// boolean b = DialogFactory.showModalJaNeinDialog(
+			// getInternalFrame(),
+			// LPMain.getTextRespectUISPr("ls.bereitsoffen"),
+			// LPMain.getTextRespectUISPr("lp.hint"));
+			// if (b == false) {
+			// return;
+			// }
+			//
+			// } else if (tpLieferschein.getLieferscheinDto().getStatusCNr()
+			// .equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
+			// boolean b = DialogFactory.showModalJaNeinDialog(
+			// getInternalFrame(),
+			// LPMain.getTextRespectUISPr("ls.bereitsgeliefert"),
+			// LPMain.getTextRespectUISPr("lp.hint"));
+			// if (b == false) {
+			// return;
+			// }
+			// }
 
 			super.eventActionUpdate(aE, false);
 
 			((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-					.zeigeSerienchargennummer(true, false);
+					.zeigeSerienchargennummer(true, false, false);
 
 			// PJ 14648 Setartikel
 			if (panelArtikel.getArtikelDto().getIId() != null
@@ -516,8 +646,8 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 				}
 			}
 
-
 			panelArtikel.setArtikelEingabefelderEditable(true);
+			
 
 			if (getInternalFrame().bRechtDarfPreiseAendernVerkauf == true) {
 				((PanelPositionenArtikelVerkauf) panelArtikel).wbuPreisauswahl
@@ -529,11 +659,43 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 
 			setzePositionsartAenderbar(positionDto);
 			panelArtikel.setzeEinheitAenderbar();
+			panelArtikel.setzeMengeAenderbar(positionDto);
 			panelArtikel.wbuLager.setEnabled(false);
 			// sobald ich es erlaube, den Artikel der Ident Position umzudrehen,
 			// muss ich
 			// Logik ueberdenken -> ev. kein Bezug zum Auftrag mehr etc.
 			panelArtikel.getWtfArtikel().setEditable(false); // UW 27.04.06
+
+			// PJ20146
+			if (positionDto.getWareneingangspositionIIdAndererMandant() != null) {
+				panelArtikel.wnfMenge.setEditable(false);
+
+				WareneingangspositionDto weposDto = DelegateFactory
+						.getInstance()
+						.getWareneingangDelegate()
+						.wareneingangspositionFindByPrimaryKey(
+								positionDto
+										.getWareneingangspositionIIdAndererMandant());
+
+				BestellungDto bsDto = DelegateFactory
+						.getInstance()
+						.getBestellungDelegate()
+						.bestellungFindByPrimaryKey(
+								DelegateFactory
+										.getInstance()
+										.getBestellungDelegate()
+										.bestellpositionFindByPrimaryKey(
+												weposDto.getBestellpositionIId())
+										.getBestellungIId());
+
+				DialogFactory.showModalDialog(LPMain
+						.getTextRespectUISPr("lp.hint"), LPMain
+						.getMessageTextRespectUISPr(
+								"ls.lspos.bereitsmitweposverknuepft",
+								bsDto.getCNr(), bsDto.getMandantCNr()));
+
+			}
+
 		}
 	}
 
@@ -595,21 +757,21 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 								.getLieferscheinartCNr()
 								.equals(LieferscheinFac.LSART_LIEFERANT)) {
 							if (bAufUnterpreisigkeitPruefen == true) {
-								bDiePositionSpeichern = DialogFactory
-										.pruefeUnterpreisigkeitDlg(
-												getInternalFrame(),
-												panelArtikel.getArtikelDto()
-														.getIId(),
-												tpLieferschein
-														.getLieferscheinDto()
-														.getLagerIId(),
-												panelArtikel.wnfNettopreis
-														.getBigDecimal(),
-												tpLieferschein
-														.getLieferscheinDto()
+								// auf Unterpreisigkeit und Verpackungsmittelmenge pruefen
+								ArtikelMengenDialogRueckgabe bPositionSpeichernUndNMenge = DialogFactory
+										.pruefeUnterpreisigkeitUndMindestVKMengeDlg(getInternalFrame(),
+												panelArtikel.getArtikelDto().getIId(),
+												tpLieferschein.getLieferscheinDto().getLagerIId(),
+												panelArtikel.wnfNettopreis.getBigDecimal(),
+												tpLieferschein.getLieferscheinDto()
 														.getFWechselkursmandantwaehrungzubelegwaehrung(),
-												panelArtikel.wnfMenge
-														.getBigDecimal());
+												panelArtikel.wnfMenge.getBigDecimal());
+
+								bDiePositionSpeichern = bPositionSpeichernUndNMenge.isStore();
+
+								if (bPositionSpeichernUndNMenge.isChanged()) {
+									panelArtikel.wnfMenge.setBigDecimal(bPositionSpeichernUndNMenge.getAmount());
+								}
 							}
 						}
 
@@ -617,24 +779,7 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 				}
 
 				if (bDiePositionSpeichern) {
-					BigDecimal bdAktuelleMengeImLieferschein = panelArtikel.wnfMenge
-							.getBigDecimal();
-					BigDecimal bdBisherigeMengeImLieferschein = positionDto
-							.getNMenge();
-					BigDecimal bdWievielBraucheIchVomLager; // wenn die beiden
-					// Mengen gleich
-					// sind oder die
-					// neue Menge unter
-					// der alten Menge
-					// liegt
-
-					if (bdBisherigeMengeImLieferschein != null
-							&& bdBisherigeMengeImLieferschein.doubleValue() > 0) {
-						bdWievielBraucheIchVomLager = bdAktuelleMengeImLieferschein
-								.subtract(bdBisherigeMengeImLieferschein);
-					} else {
-						bdWievielBraucheIchVomLager = bdAktuelleMengeImLieferschein;
-					}
+					
 
 					// Menge auf Lager pruefen
 					if (getPositionsartCNr().equals(
@@ -642,6 +787,25 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 							&& Helper.short2boolean(panelArtikel
 									.getArtikelDto().getBLagerbewirtschaftet())) {
 
+						BigDecimal bdAktuelleMengeImLieferschein = panelArtikel.wnfMenge
+								.getBigDecimal();
+						BigDecimal bdBisherigeMengeImLieferschein = positionDto
+								.getNMenge();
+						BigDecimal bdWievielBraucheIchVomLager; // wenn die beiden
+						// Mengen gleich
+						// sind oder die
+						// neue Menge unter
+						// der alten Menge
+						// liegt
+
+						if (bdBisherigeMengeImLieferschein != null
+								&& bdBisherigeMengeImLieferschein.doubleValue() > 0) {
+							bdWievielBraucheIchVomLager = bdAktuelleMengeImLieferschein
+									.subtract(bdBisherigeMengeImLieferschein);
+						} else {
+							bdWievielBraucheIchVomLager = bdAktuelleMengeImLieferschein;
+						}
+						
 						if (!Helper.short2boolean(panelArtikel.getArtikelDto()
 								.getBSeriennrtragend())
 								&& !Helper
@@ -712,9 +876,12 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 									LocaleFac.POSITIONSART_IDENT)
 									|| getPositionsartCNr().equals(
 											LocaleFac.POSITIONSART_HANDEINGABE)) {
-								if (tpLieferschein.getLieferscheinDto()
-										.getLieferscheinartCNr()
-										.equals(LieferscheinFac.LSART_AUFTRAG)) {
+								boolean isLSArtAuftrag = LieferscheinFac.LSART_AUFTRAG
+										.equals(tpLieferschein.getLieferscheinDto().getLieferscheinartCNr());						
+								boolean hatFCVerteilung = LPMain.getInstance().getDesktopController()
+										.hatZusatzForecastVerteilen();
+								
+								if(isLSArtAuftrag && !hatFCVerteilung) {
 									// einmalige Warnung aussprechen
 									if (!intFrame.bWarnungAusgesprochen) {
 										if (DialogFactory
@@ -735,8 +902,28 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 									// zugehoerigen Artikel angelegt werden?
 									if (positionDto.getIId() == null) {
 										bPositionFuerZugehoerigenArtikelAnlegen = DialogFactory
-												.pruefeZugehoerigenArtikelAnlegenDlg(panelArtikel
-														.getArtikelDto());
+												.pruefeZugehoerigenArtikelAnlegenDlg(
+														panelArtikel
+																.getArtikelDto(),positionDto.getNMenge(),
+														false, this);
+									}
+
+									// PJ19985
+									if (!hatFCVerteilung && DelegateFactory
+											.getInstance()
+											.getForecastDelegate()
+											.gibtEsDenArtikelIneinemOffenenOderFreigegebenenForecastauftrag(
+													positionDto.getArtikelIId(),
+													tpLieferschein
+															.getLieferscheinDto()
+															.getKundeIIdLieferadresse())) {
+										if (DialogFactory
+												.showMeldung(
+														LPMain.getTextRespectUISPr("ls.warning.fcpositionvorhanden"),
+														LPMain.getTextRespectUISPr("lp.warning"),
+														javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.NO_OPTION) {
+											bDiePositionSpeichern = false;
+										}
 									}
 								}
 							}
@@ -805,7 +992,7 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 									Integer pkPosition = DelegateFactory
 											.getInstance()
 											.getLieferscheinpositionDelegate()
-											.createLieferscheinposition(
+											.createLieferscheinpositionVerteilen(
 													positionDto, snrs, true);
 									positionDto.setIId(pkPosition);
 									setKeyWhenDetailPanel(pkPosition);
@@ -879,7 +1066,16 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 					.artikelFindByPrimaryKey(
 							panelArtikel.getArtikelDto()
 									.getArtikelIIdZugehoerig());
-			BigDecimal nMengeZugehoerig = positionDto.getNMenge();
+			
+			LieferscheinpositionDto lieferscheinpositionDto_Vorgaenger = DelegateFactory
+					.getInstance().getLieferscheinpositionDelegate()
+					.lieferscheinpositionFindByPrimaryKey(positionDto.getIId());
+
+			
+			BigDecimal nMengeZugehoerig = lieferscheinpositionDto_Vorgaenger.getNMenge();
+			BigDecimal preisZugehoerig =panelArtikel.getArtikelDto().getNPreisZugehoerigerartikel();
+			// PJ19312/PJ21370
+						nMengeZugehoerig = multiplikatorZugehoerigerArtikel(nMengeZugehoerig);
 
 			ItemChangedEvent ice = new ItemChangedEvent(this,
 					ItemChangedEvent.ACTION_NEW);
@@ -896,12 +1092,39 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 			panelArtikel.artikelDto2components();
 			panelArtikel.wnfMenge.setBigDecimal(nMengeZugehoerig);
 
+			//PJ21823
+			panelArtikel.preisUebersteuern(preisZugehoerig);
+			
 			panelArtikel.setArtikelEingabefelderEditable(true);
 			((PanelPositionenArtikelVerkauf) panelArtikel).wbuPreisauswahl
 					.setEnabled(true);
 
-			setzePositionsartAenderbar(positionDto);
+			//SP3912
+			wcoPositionsart.setEnabled(false);
+			
+			positionDto.setPositionIIdZugehoerig(lieferscheinpositionDto_Vorgaenger.getIId());
+
+			int iSortNeu = lieferscheinpositionDto_Vorgaenger.getISort() + 1;
+
+			DelegateFactory
+					.getInstance()
+					.getLieferscheinpositionDelegate()
+					.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
+							tpLieferschein.getLieferscheinDto().getIId(), iSortNeu);
+
+			positionDto.setISort(iSortNeu);
+			
 			panelArtikel.setzeEinheitAenderbar();
+			
+			boolean bOhneRueckfrage = panelArtikel
+					.zugehoerigenArtikelOhneRueckfrageAnlegen();
+
+			if (bOhneRueckfrage) {
+				tpLieferschein.getLieferscheinPositionenBottom().eventActionSave(e,
+						bNeedNoSaveI);
+			}
+			
+			
 		}
 
 		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
@@ -914,9 +1137,16 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 
 		if ((Boolean) parameter.getCWertAsObject()) {
 
-			wirdLagermindeststandUnterschritten(tpLieferschein
-					.getLieferscheinDto().getTBelegdatum(),
-					positionDto.getNMenge(), positionDto.getArtikelIId());
+			wirdLagermindeststandUnterschritten(
+					tpLieferschein.getLieferscheinDto().getTBelegdatum(),
+					positionDto.getNMenge(),
+					positionDto.getArtikelIId(),
+					DelegateFactory
+							.getInstance()
+							.getLagerDelegate()
+							.getPartnerIIdStandortEinesLagers(
+									tpLieferschein.getLieferscheinDto()
+											.getLagerIId()));
 		}
 
 	}
@@ -953,8 +1183,41 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 				DelegateFactory.getInstance().getLieferscheinpositionDelegate()
 						.removeLieferscheinpositionen(o);
 			} else {
+
+				if (positionDto.getWareneingangspositionIIdAndererMandant() != null) {
+					panelArtikel.wnfMenge.setEditable(false);
+
+					WareneingangspositionDto weposDto = DelegateFactory
+							.getInstance()
+							.getWareneingangDelegate()
+							.wareneingangspositionFindByPrimaryKey(
+									positionDto
+											.getWareneingangspositionIIdAndererMandant());
+
+					BestellungDto bsDto = DelegateFactory
+							.getInstance()
+							.getBestellungDelegate()
+							.bestellungFindByPrimaryKey(
+									DelegateFactory
+											.getInstance()
+											.getBestellungDelegate()
+											.bestellpositionFindByPrimaryKey(
+													weposDto.getBestellpositionIId())
+											.getBestellungIId());
+
+					DialogFactory
+							.showModalDialog(
+									LPMain.getTextRespectUISPr("lp.hint"),
+									LPMain.getMessageTextRespectUISPr(
+											"ls.lspos.remove.bereitsmitweposverknuepft",
+											bsDto.getCNr(),
+											bsDto.getMandantCNr()));
+					return;
+				}
+
 				DelegateFactory.getInstance().getLieferscheinpositionDelegate()
 						.removeLieferscheinposition(positionDto);
+
 			}
 			this.setKeyWhenDetailPanel(null);
 			super.eventActionDelete(e, false, false); // keyWasForLockMe nicht
@@ -1051,14 +1314,14 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 				.getText();
 		/*
 		 * String serienchargennummer = null;
-		 *
+		 * 
 		 * if (((PanelPositionenArtikelVerkaufSNR)
 		 * panelArtikel).wtfSerienchargennummer .getText() != null &&
 		 * ((PanelPositionenArtikelVerkaufSNR)
 		 * panelArtikel).wtfSerienchargennummer .getText().length() > 0) {
 		 * serienchargennummer = ((PanelPositionenArtikelVerkaufSNR)
 		 * panelArtikel).wtfSerienchargennummer .getText(); }
-		 *
+		 * 
 		 * if (panelArtikel.getArtikelDto().getIId() != null &&
 		 * panelArtikel.getArtikelDto().getBLagerbewirtschaftet()
 		 * .equals(Helper.boolean2Short(true))) { // das Lager des Lieferscheins
@@ -1070,7 +1333,7 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		 * .getLagerDelegate().getMengeAufLager(
 		 * panelArtikel.getArtikelDto().getIId(), iaktuelleLager,
 		 * serienchargennummer);
-		 *
+		 * 
 		 * lagerinfo += ": "; lagerinfo += ddMenge; }
 		 * setStatusbarSpalte5(lagerinfo); } else { setStatusbarSpalte5(""); }
 		 */
@@ -1080,17 +1343,23 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 
 		if (e.isMouseEvent() && e.isRightButtonPressed()) {
 
-			boolean bStatusAngelegt = tpLieferschein.getLieferscheinDto().getStatusCNr().equals(AngebotServiceFac.ANGEBOTSTATUS_ANGELEGT);
+			boolean bStatusAngelegt = tpLieferschein.getLieferscheinDto()
+					.getStatusCNr()
+					.equals(AngebotServiceFac.ANGEBOTSTATUS_ANGELEGT);
 			boolean bKonditionen = tpLieferschein.pruefeKonditionen();
+			boolean bRecht = (getCachedRights()
+					.getValueOfKey(RechteFac.RECHT_LS_LIEFERSCHEIN_CUD));
 
-			if (bStatusAngelegt && bKonditionen) {
-				DelegateFactory.getInstance().getLsDelegate().berechneAktiviereBelegControlled(
-						tpLieferschein.getLieferscheinDto().getIId());
+			if (bStatusAngelegt && bKonditionen && bRecht) {
+				DelegateFactory
+						.getInstance()
+						.getLsDelegate()
+						.berechneAktiviereBelegControlled(
+								tpLieferschein.getLieferscheinDto().getIId());
 				eventActionRefresh(e, false);
-			}
-			else if (!bStatusAngelegt) {
-				DialogFactory.showModalDialog("Status",
-						LPMain.getMessageTextRespectUISPr("status.zustand",
+			} else if (!bStatusAngelegt) {
+				DialogFactory.showModalDialog("Status", LPMain
+						.getMessageTextRespectUISPr("status.zustand",
 								LPMain.getTextRespectUISPr("ls.lieferschein"),
 								tpLieferschein.getLieferscheinStatus().trim()));
 			}
@@ -1107,9 +1376,36 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		return HelperClient.LOCKME_LIEFERSCHEIN;
 	}
 
+	public void positionMitForecastdatenVorbesetzen(Integer forecastpositionIId)
+			throws Throwable {
+		if (positionDto != null && positionDto.getIId() == null) {
+
+			ForecastpositionDto fpDto = DelegateFactory.getInstance()
+					.getForecastDelegate()
+					.forecastpositionFindByPrimaryKey(forecastpositionIId);
+
+			ArtikelDto aDto = DelegateFactory.getInstance()
+					.getArtikelDelegate()
+					.artikelFindByPrimaryKey(fpDto.getArtikelIId());
+
+			wcoPositionsart.setKeyOfSelectedItem(LocaleFac.POSITIONSART_IDENT);
+			positionDto.setForecastpositionIId(forecastpositionIId);
+
+			panelArtikel.setArtikelDto(aDto);
+			panelArtikel.wnfMenge.setBigDecimal(fpDto.getNMenge());
+
+			if (panelArtikel instanceof PanelPositionenArtikelVerkauf) {
+				((PanelPositionenArtikelVerkauf) panelArtikel)
+						.berechneVerkaufspreis(false);
+			}
+
+			setzeForecastdaten(forecastpositionIId);
+		}
+	}
+
 	/**
 	 * Eigene ExceptionLP's verarbeiten. myexception: 2 methode ueberschreiben
-	 *
+	 * 
 	 * @return boolean
 	 * @param exfc
 	 *            ExceptionLP
@@ -1127,10 +1423,6 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		return false;
 	}
 
-	protected JComponent getFirstFocusableComponent() throws Exception {
-		return wcoPositionsart;
-	}
-
 	public void wnfPauschalposition_focusLost(FocusEvent e) {
 		super.wnfPauschalposition_focusLost(e);
 		try {
@@ -1144,6 +1436,22 @@ public class PanelLieferscheinPositionen extends PanelPositionen2 {
 		} catch (ExceptionLP e1) {
 		} catch (Throwable e1) {
 		}
+	}
+
+	private void setEditorButtonColor() {
+		getHmOfButtons()
+				.get(ACTION_TEXT)
+				.getButton()
+				.setIcon(
+						positionDto.getXTextinhalt() != null
+								&& positionDto.getXTextinhalt().length() > 0 ? IconFactory
+								.getCommentExist() : IconFactory
+								.getEditorEdit());
+	}
+
+	private void resetEditorButton() {
+		getHmOfButtons().get(ACTION_TEXT).getButton()
+				.setIcon(IconFactory.getEditorEdit());
 	}
 
 }

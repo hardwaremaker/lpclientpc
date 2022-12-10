@@ -37,29 +37,45 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
 
+import javax.swing.JPanel;
+
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelPositionen2;
 import com.lp.client.frame.component.PanelPositionenArtikelVerkauf;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperTimestampField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.VerkaufspreisDto;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.AuftragpositionDto;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.bestellung.service.BestellpositionFac;
 import com.lp.server.system.service.LockMeDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 
-@SuppressWarnings("static-access")
+import net.miginfocom.swing.MigLayout;
+
 /**
- * <p>In diesem Detailfenster bekommt man einen Blick auf alle mengenbehafteten
- * Rahmenpositionen eines Rahmenauftrags.</p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 11.11.05</p>
- * <p> </p>
+ * <p>
+ * In diesem Detailfenster bekommt man einen Blick auf alle mengenbehafteten
+ * Rahmenpositionen eines Rahmenauftrags.
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 11.11.05
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.6 $
  */
@@ -67,6 +83,9 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 	/**
 	 * 
 	 */
+
+	private boolean bZusaetzlicheRahmenposition = false;
+
 	private static final long serialVersionUID = 1L;
 	private InternalFrameAuftrag intFrame = null;
 	private TabbedPaneAuftrag tpAuftrag = null;
@@ -93,10 +112,15 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 
 	private LockMeDto lockMeAuftrag = null;
 
-	public PanelAuftragpositionSichtRahmen(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
-		super(internalFrame, add2TitleI, key,
-				PanelPositionen2.TYP_PANELPREISEINGABE_ARTIKELVERKAUF);
+	private WrapperLabel jLabelLieferterminPosition = null;
+	private WrapperTimestampField wtsfLieferterminPosition;
+
+	private final static String ACTION_SPECIAL_ZUSAETZLICHE_RAHMENPOSITION = PanelBasis.ACTION_MY_OWN_NEW
+			+ "action_special_zusatzliche_rahmenposition";
+
+	public PanelAuftragpositionSichtRahmen(InternalFrame internalFrame, String add2TitleI, Object key)
+			throws Throwable {
+		super(internalFrame, add2TitleI, key, PanelPositionen2.TYP_PANELPREISEINGABE_ARTIKELVERKAUF);
 
 		intFrame = (InternalFrameAuftrag) internalFrame;
 		tpAuftrag = intFrame.getTabbedPaneAuftrag();
@@ -111,41 +135,36 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 		resetToolsPanel();
 
 		// zusaetzliche buttons
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		// einfache Preisauswahl ueber Dialog deaktivieren
 		((PanelPositionenArtikelVerkauf) panelArtikel)
 				.remove(((PanelPositionenArtikelVerkauf) panelArtikel).wbuPreisauswahl);
 
-		((PanelPositionenArtikelVerkauf) panelArtikel).add(
-				((PanelPositionenArtikelVerkauf) panelArtikel).wlaEinzelpreis,
-				new GridBagConstraints(5, 2, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(10, 2, 2, 2), 0, 0));
+		((PanelPositionenArtikelVerkauf) panelArtikel)
+				.add(((PanelPositionenArtikelVerkauf) panelArtikel).wlaEinzelpreis, new GridBagConstraints(5, 2, 1, 1,
+						0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 
 		// zusaetzliche Felder am PanelArtikel
-		panelArtikel.wlaMenge.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.rahmenmenge"));
+		panelArtikel.wlaMenge.setText(LPMain.getTextRespectUISPr("auft.rahmenmenge"));
 		HelperClient.setDefaultsToComponent(panelArtikel.wlaMenge, 85);
 		panelArtikel.wnfMenge.setMinimumValue(1); // Eingabe muss > 0 sein
 
 		wlaGeliefertArtikel = new WrapperLabel();
-		wlaGeliefertArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.abgerufen.gesamt"));
+		wlaGeliefertArtikel.setText(LPMain.getTextRespectUISPr("lp.abgerufen.gesamt"));
 
 		wlaGeliefertDieserAbrufArtikel = new WrapperLabel();
-		wlaGeliefertDieserAbrufArtikel.setText(LPMain.getInstance()
-				.getTextRespectUISPr("auftrag.rahmen.aktuellerabruf"));
+		wlaGeliefertDieserAbrufArtikel
+				.setText(LPMain.getTextRespectUISPr("auftrag.rahmen.aktuellerabruf"));
 
 		wlaGeliefertDieserAbrufHand = new WrapperLabel();
-		wlaGeliefertDieserAbrufHand.setText(LPMain.getInstance()
-				.getTextRespectUISPr("auftrag.rahmen.aktuellerabruf"));
+		wlaGeliefertDieserAbrufHand.setText(LPMain.getTextRespectUISPr("auftrag.rahmen.aktuellerabruf"));
 
 		wlaOffenimrahmenArtikel = new WrapperLabel();
-		wlaOffenimrahmenArtikel.setText(LPMain.getInstance()
-				.getTextRespectUISPr("lp.offenimrahmen"));
+		wlaOffenimrahmenArtikel.setText(LPMain.getTextRespectUISPr("lp.offenimrahmen"));
+
+		HelperClient.setMinimumAndPreferredSize(wlaOffenimrahmenArtikel, HelperClient.getSizeFactoredDimension(110));
 
 		wnfGeliefertArtikel = new WrapperNumberField();
 		wnfGeliefertDieserAbrufArtikel = new WrapperNumberField();
@@ -153,70 +172,82 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 
 		wnfOffenimrahmenArtikel = new WrapperNumberField();
 
-		panelArtikel.add(wlaGeliefertDieserAbrufArtikel,
-				new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		panelArtikel.add(wnfGeliefertDieserAbrufArtikel,
-				new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		panelArtikel.add(wlaOffenimrahmenArtikel, new GridBagConstraints(0, 4,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelArtikel.add(wnfOffenimrahmenArtikel, new GridBagConstraints(1, 4,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelArtikel.add(wlaGeliefertDieserAbrufArtikel, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelArtikel.add(wnfGeliefertDieserAbrufArtikel, new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelArtikel.add(wlaOffenimrahmenArtikel, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelArtikel.add(wnfOffenimrahmenArtikel, new GridBagConstraints(1, 4, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelArtikel.add(wlaGeliefertArtikel, new GridBagConstraints(0, 5, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelArtikel.add(wlaGeliefertArtikel, new GridBagConstraints(0, 5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
 
-		panelArtikel.add(wnfGeliefertArtikel, new GridBagConstraints(1, 5, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelArtikel.add(wnfGeliefertArtikel, new GridBagConstraints(1, 5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// zusaetzliche Felder am PanelHandeingabe
-		panelHandeingabe.wlaMenge.setText(LPMain
-				.getTextRespectUISPr("auft.rahmenmenge"));
+		panelHandeingabe.wlaMenge.setText(LPMain.getTextRespectUISPr("auft.rahmenmenge"));
 
 		wlaGeliefertHand = new WrapperLabel();
-		wlaGeliefertHand.setText(LPMain
-				.getTextRespectUISPr("lp.abgerufen.gesamt"));
+		wlaGeliefertHand.setText(LPMain.getTextRespectUISPr("lp.abgerufen.gesamt"));
 
 		wlaOffenimrahmenHand = new WrapperLabel();
-		wlaOffenimrahmenHand.setText(LPMain
-				.getTextRespectUISPr("lp.offenimrahmen"));
+		wlaOffenimrahmenHand.setText(LPMain.getTextRespectUISPr("lp.offenimrahmen"));
 
 		wnfGeliefertHand = new WrapperNumberField();
 
 		wnfOffenimrahmenHand = new WrapperNumberField();
 
-		panelHandeingabe.add(wlaGeliefertDieserAbrufHand,
-				new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		panelHandeingabe.add(wnfGeliefertDieserAbrufHand,
-				new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+		panelHandeingabe.add(wlaGeliefertDieserAbrufHand, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelHandeingabe.add(wnfGeliefertDieserAbrufHand, new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelHandeingabe.add(wlaGeliefertHand, new GridBagConstraints(0, 5, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelHandeingabe.add(wlaGeliefertHand, new GridBagConstraints(0, 5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelHandeingabe.add(wnfGeliefertHand, new GridBagConstraints(1, 5, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelHandeingabe.add(wnfGeliefertHand, new GridBagConstraints(1, 5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelHandeingabe.add(wlaOffenimrahmenHand, new GridBagConstraints(0, 4,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		panelHandeingabe.add(wnfOffenimrahmenHand, new GridBagConstraints(1, 4,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelHandeingabe.add(wlaOffenimrahmenHand, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		panelHandeingabe.add(wnfOffenimrahmenHand, new GridBagConstraints(1, 4, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		// UW 21.06.06 keine VKPF
-		panelArtikel.wnfMenge
-				.removeFocusListener(((PanelPositionenArtikelVerkauf) panelArtikel).wnfMengeFocusListener);
+		panelArtikel.wnfMenge.removeFocusListener(((PanelPositionenArtikelVerkauf) panelArtikel).wnfMengeFocusListener);
+
+		// der Liefertermin aus den Kopfdaten kann uebersteuert werden
+		jLabelLieferterminPosition = new WrapperLabel();
+		jLabelLieferterminPosition.setText(LPMain.getTextRespectUISPr("auft.label.postitionstermin"));
+
+		wtsfLieferterminPosition = new WrapperTimestampField();
+		JPanel panelLieferterminPosition = new JPanel();
+		panelLieferterminPosition.setLayout(new MigLayout("ins 0", "fill,220", ""));
+		panelLieferterminPosition.add(wtsfLieferterminPosition);
+		// posvkpf: 2
+		panelArtikel.add(jLabelLieferterminPosition, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		panelArtikel.add(panelLieferterminPosition, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		if (!tpAuftrag.getBAuftragterminstudenminuten()) {
+			wtsfLieferterminPosition.getWtfZeit().setVisible(false);
+		}
+
+		// SP6603
+
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_ABRUFPOSITIONSREIHENFOLGE_WIE_ERFASST,
+						ParameterFac.KATEGORIE_AUFTRAG, LPMain.getTheClient().getMandant());
+		boolean b = (Boolean) parameter.getCWertAsObject();
+
+		if (b == true) {
+
+			this.createAndSaveAndShowButton("/com/lp/client/res/data_next.png",
+					LPMain.getTextRespectUISPr("auftrag.sichtrahmen.zusaetzlicherahmenposition"),
+					ACTION_SPECIAL_ZUSAETZLICHE_RAHMENPOSITION, RechteFac.RECHT_AUFT_AUFTRAG_CUD);
+		}
+
 	}
 
 	private void initPanel() throws Throwable {
@@ -224,11 +255,8 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 		 * @todo MB->VF warum bestellpositionarten?
 		 */
 		// combobox Positionen in der UI Sprache des Benutzers fuellen
-		setPositionsarten(DelegateFactory
-				.getInstance()
-				.getBestellungServiceDelegate()
-				.getBestellpositionart(
-						LPMain.getInstance().getTheClient().getLocUi()));
+		setPositionsarten(DelegateFactory.getInstance().getBestellungServiceDelegate()
+				.getBestellpositionart(LPMain.getTheClient().getLocUi()));
 	}
 
 	protected void setDefaults() throws Throwable {
@@ -239,8 +267,7 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 		wcoPositionsart.setActivatable(false);
 
 		// default Positionsart ist Ident in der UI Sprache des Benutzers
-		wcoPositionsart
-				.setKeyOfSelectedItem(BestellpositionFac.BESTELLPOSITIONART_IDENT);
+		wcoPositionsart.setKeyOfSelectedItem(BestellpositionFac.BESTELLPOSITIONART_IDENT);
 
 		// in dieser Ansicht kann nur die Menge geaendert werden
 		panelArtikel.wnfEinzelpreis.setActivatable(false);
@@ -282,14 +309,14 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 		panelHandeingabe.wcoMwstsatz.setActivatable(false);
 
 		// es gilt die waehrung des lieferscheins
-		panelArtikel.setWaehrungCNr(tpAuftrag.getAuftragDto()
-				.getCAuftragswaehrung());
-		panelHandeingabe.setWaehrungCNr(tpAuftrag.getAuftragDto()
-				.getCAuftragswaehrung());
+		panelArtikel.setWaehrungCNr(tpAuftrag.getAuftragDto().getCAuftragswaehrung());
+		panelHandeingabe.setWaehrungCNr(tpAuftrag.getAuftragDto().getCAuftragswaehrung());
+
+		wtsfLieferterminPosition.setTimestamp(tpAuftrag.getAuftragDto().getDLiefertermin());
+
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		setTBelegdatumMwstsatz(tpAuftrag.getAuftragDto().getTBelegdatum());
 		// den gesamten Inhalt zuruecksetzen, ausloeser war ev. ein discard
@@ -299,190 +326,133 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 
 		if (pkPosition != null && !pkPosition.equals(LPMain.getLockMeForNew())) {
 			// Position neu einlesen.
-			auftragpositionDto = DelegateFactory.getInstance()
-					.getAuftragpositionDelegate()
+			auftragpositionDto = DelegateFactory.getInstance().getAuftragpositionDelegate()
 					.auftragpositionFindByPrimaryKey((Integer) pkPosition);
 
 			dto2Components();
 
 			// auch der zugehoerige Rahmenauftrag muss gelockt werden
-			lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG,
-					auftragpositionDto.getBelegIId() + "", LPMain
-							.getInstance().getCNrUser());
+			lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG, auftragpositionDto.getBelegIId() + "",
+					LPMain.getInstance().getCNrUser());
 
 			if (tpAuftrag.getAuftragDto().getAuftragartCNr() != null
-					&& tpAuftrag.getAuftragDto().getAuftragartCNr()
-							.equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
-				panelArtikel.wlaMenge.setText(LPMain
-						.getTextRespectUISPr("lp.mengeabruf"));
-				panelHandeingabe.wlaMenge.setText(LPMain
-						.getTextRespectUISPr("lp.mengeabruf"));
+					&& tpAuftrag.getAuftragDto().getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
+				panelArtikel.wlaMenge.setText(LPMain.getTextRespectUISPr("lp.mengeabruf"));
+				panelHandeingabe.wlaMenge.setText(LPMain.getTextRespectUISPr("lp.mengeabruf"));
 			} else if (tpAuftrag.getAuftragDto().getAuftragartCNr() != null
-					&& tpAuftrag.getAuftragDto().getAuftragartCNr()
-							.equals(AuftragServiceFac.AUFTRAGART_RAHMEN)) {
-				panelArtikel.wlaMenge.setText(LPMain
-						.getTextRespectUISPr("auft.rahmenmenge"));
-				panelHandeingabe.wlaMenge.setText(LPMain
-						.getTextRespectUISPr("auft.rahmenmenge"));
+					&& tpAuftrag.getAuftragDto().getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_RAHMEN)) {
+				panelArtikel.wlaMenge.setText(LPMain.getTextRespectUISPr("auft.rahmenmenge"));
+				panelHandeingabe.wlaMenge.setText(LPMain.getTextRespectUISPr("auft.rahmenmenge"));
 			}
 		}
-
-		tpAuftrag.enablePanelsNachBitmuster();
 	}
 
 	protected void dto2Components() throws Throwable {
 		// 1. Behandlung der trivialen Positionsarten.
-		super.dto2Components(auftragpositionDto, tpAuftrag.getKundeAuftragDto()
-				.getPartnerDto().getLocaleCNrKommunikation());
+		super.dto2Components(auftragpositionDto,
+				tpAuftrag.getKundeAuftragDto().getPartnerDto().getLocaleCNrKommunikation());
 		// 2. Weiter mit den anderen.
 		String positionsart = auftragpositionDto.getPositionsartCNr();
 
-		if (positionsart
-				.equalsIgnoreCase(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
-			if (tpAuftrag.getAuftragDto().getAuftragartCNr()
-					.equals(AuftragServiceFac.AUFTRAGART_RAHMEN)) {
-				panelArtikel.wnfMenge.setBigDecimal(auftragpositionDto
-						.getNMenge());
-			} else if (tpAuftrag.getAuftragDto().getAuftragartCNr()
-					.equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
+		if (positionsart.equalsIgnoreCase(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
+			if (tpAuftrag.getAuftragDto().getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_RAHMEN)) {
+				panelArtikel.wnfMenge.setBigDecimal(auftragpositionDto.getNMenge());
+			} else if (tpAuftrag.getAuftragDto().getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
 				panelArtikel.wnfMenge.setText("");
 			}
 
 			BigDecimal abrufmengeAktuellerAuftrag = new BigDecimal(0);
-			AuftragpositionDto[] abrufPositionenDtos = DelegateFactory
-					.getInstance()
-					.getAuftragpositionDelegate()
-					.auftragpositionFindByAuftragpositionIIdRahmenpositionOhneExc(
-							auftragpositionDto.getIId());
+			AuftragpositionDto[] abrufPositionenDtos = DelegateFactory.getInstance().getAuftragpositionDelegate()
+					.auftragpositionFindByAuftragpositionIIdRahmenpositionOhneExc(auftragpositionDto.getIId());
 			for (int i = 0; i < abrufPositionenDtos.length; i++) {
 				if (abrufPositionenDtos[i].getNMenge() != null
-						&& abrufPositionenDtos[i].getBelegIId().equals(
-								tpAuftrag.getAuftragDto().getIId())) {
-					abrufmengeAktuellerAuftrag = abrufmengeAktuellerAuftrag
-							.add(abrufPositionenDtos[i].getNMenge());
+						&& abrufPositionenDtos[i].getBelegIId().equals(tpAuftrag.getAuftragDto().getIId())) {
+					abrufmengeAktuellerAuftrag = abrufmengeAktuellerAuftrag.add(abrufPositionenDtos[i].getNMenge());
+
+					wtsfLieferterminPosition.setTimestamp(abrufPositionenDtos[i].getTUebersteuerbarerLiefertermin());
+
 				}
 			}
 
-			wnfGeliefertDieserAbrufArtikel
-					.setBigDecimal(abrufmengeAktuellerAuftrag);
+			wnfGeliefertDieserAbrufArtikel.setBigDecimal(abrufmengeAktuellerAuftrag);
 
-			wnfOffenimrahmenArtikel.setBigDecimal(auftragpositionDto
-					.getNOffeneRahmenMenge());
+			wnfOffenimrahmenArtikel.setBigDecimal(auftragpositionDto.getNOffeneRahmenMenge());
+
 			if (auftragpositionDto.getNOffeneRahmenMenge() != null) {
-				wnfGeliefertArtikel.setBigDecimal(auftragpositionDto
-						.getNMenge().subtract(
-								auftragpositionDto.getNOffeneRahmenMenge()));
+				wnfGeliefertArtikel.setBigDecimal(
+						auftragpositionDto.getNMenge().subtract(auftragpositionDto.getNOffeneRahmenMenge()));
 			}
 			((PanelPositionenArtikelVerkauf) panelArtikel).verkaufspreisDtoInZielwaehrung = DelegateFactory
-					.getInstance()
-					.getVkPreisfindungDelegate()
-					.berechneVerkaufspreis(
-							auftragpositionDto.getNEinzelpreis(),
-							auftragpositionDto.getFRabattsatz(),
-							auftragpositionDto.getFZusatzrabattsatz(),
-							auftragpositionDto.getMwstsatzIId(),
+					.getInstance().getVkPreisfindungDelegate()
+					.berechneVerkaufspreis(auftragpositionDto.getNEinzelpreis(), auftragpositionDto.getFRabattsatz(),
+							auftragpositionDto.getFZusatzrabattsatz(), auftragpositionDto.getMwstsatzIId(),
 							auftragpositionDto.getNMaterialzuschlag());
 
-			((PanelPositionenArtikelVerkauf) panelArtikel)
-					.verkaufspreisDto2components();
-		} else if (positionsart
-				.equalsIgnoreCase(AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
-			if (tpAuftrag.getAuftragDto().getAuftragartCNr()
-					.equals(AuftragServiceFac.AUFTRAGART_RAHMEN)) {
-				panelHandeingabe.wnfMenge.setBigDecimal(auftragpositionDto
-						.getNMenge());
-			} else if (tpAuftrag.getAuftragDto().getAuftragartCNr()
-					.equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
+			((PanelPositionenArtikelVerkauf) panelArtikel).verkaufspreisDto2components();
+		} else if (positionsart.equalsIgnoreCase(AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
+			if (tpAuftrag.getAuftragDto().getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_RAHMEN)) {
+				panelHandeingabe.wnfMenge.setBigDecimal(auftragpositionDto.getNMenge());
+			} else if (tpAuftrag.getAuftragDto().getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
 				panelHandeingabe.wnfMenge.setText("");
 			}
 
 			BigDecimal abrufmengeAktuellerAuftrag = new BigDecimal(0);
-			AuftragpositionDto[] abrufPositionenDtos = DelegateFactory
-					.getInstance()
-					.getAuftragpositionDelegate()
-					.auftragpositionFindByAuftragpositionIIdRahmenpositionOhneExc(
-							auftragpositionDto.getIId());
+			AuftragpositionDto[] abrufPositionenDtos = DelegateFactory.getInstance().getAuftragpositionDelegate()
+					.auftragpositionFindByAuftragpositionIIdRahmenpositionOhneExc(auftragpositionDto.getIId());
 			for (int i = 0; i < abrufPositionenDtos.length; i++) {
 				if (abrufPositionenDtos[i].getNMenge() != null
-						&& abrufPositionenDtos[i].getBelegIId().equals(
-								tpAuftrag.getAuftragDto().getIId())) {
-					abrufmengeAktuellerAuftrag = abrufmengeAktuellerAuftrag
-							.add(abrufPositionenDtos[i].getNMenge());
+						&& abrufPositionenDtos[i].getBelegIId().equals(tpAuftrag.getAuftragDto().getIId())) {
+					abrufmengeAktuellerAuftrag = abrufmengeAktuellerAuftrag.add(abrufPositionenDtos[i].getNMenge());
 				}
 			}
 
-			wnfGeliefertDieserAbrufHand
-					.setBigDecimal(abrufmengeAktuellerAuftrag);
+			wnfGeliefertDieserAbrufHand.setBigDecimal(abrufmengeAktuellerAuftrag);
 
-			wnfOffenimrahmenHand.setBigDecimal(auftragpositionDto
-					.getNOffeneRahmenMenge());
-			wnfGeliefertHand.setBigDecimal(auftragpositionDto.getNMenge()
-					.subtract(auftragpositionDto.getNOffeneRahmenMenge()));
+			wnfOffenimrahmenHand.setBigDecimal(auftragpositionDto.getNOffeneRahmenMenge());
+			wnfGeliefertHand
+					.setBigDecimal(auftragpositionDto.getNMenge().subtract(auftragpositionDto.getNOffeneRahmenMenge()));
 
-			VerkaufspreisDto verkaufspreisDtoInZielwaehrung = DelegateFactory
-					.getInstance()
-					.getVkPreisfindungDelegate()
-					.berechneVerkaufspreis(
-							auftragpositionDto.getNEinzelpreis(),
-							auftragpositionDto.getFRabattsatz(),
-							auftragpositionDto.getFZusatzrabattsatz(),
-							auftragpositionDto.getMwstsatzIId(),
+			VerkaufspreisDto verkaufspreisDtoInZielwaehrung = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+					.berechneVerkaufspreis(auftragpositionDto.getNEinzelpreis(), auftragpositionDto.getFRabattsatz(),
+							auftragpositionDto.getFZusatzrabattsatz(), auftragpositionDto.getMwstsatzIId(),
 							auftragpositionDto.getNMaterialzuschlag());
 
-			panelHandeingabe.wnfEinzelpreis
-					.setBigDecimal(verkaufspreisDtoInZielwaehrung.einzelpreis);
-			panelHandeingabe.getWnfRabattsatz().setDouble(
-					verkaufspreisDtoInZielwaehrung.rabattsatz);
-			panelHandeingabe.wnfRabattsumme
-					.setBigDecimal(verkaufspreisDtoInZielwaehrung.rabattsumme);
-			panelHandeingabe.getWnfZusatzrabattsatz().setDouble(
-					verkaufspreisDtoInZielwaehrung.getDdZusatzrabattsatz());
-			panelHandeingabe.getWnfZusatzrabattsumme().setBigDecimal(
-					verkaufspreisDtoInZielwaehrung.getNZusatzrabattsumme());
-			panelHandeingabe.wnfNettopreis
-					.setBigDecimal(verkaufspreisDtoInZielwaehrung.nettopreis);
-			panelHandeingabe.wcoMwstsatz
-					.setKeyOfSelectedItem(verkaufspreisDtoInZielwaehrung.mwstsatzIId);
-			panelHandeingabe.wnfMwstsumme
-					.setBigDecimal(verkaufspreisDtoInZielwaehrung.mwstsumme);
-			panelHandeingabe.wnfBruttopreis
-					.setBigDecimal(verkaufspreisDtoInZielwaehrung.bruttopreis);
+			panelHandeingabe.wnfEinzelpreis.setBigDecimal(verkaufspreisDtoInZielwaehrung.einzelpreis);
+			panelHandeingabe.getWnfRabattsatz().setDouble(verkaufspreisDtoInZielwaehrung.rabattsatz);
+			panelHandeingabe.wnfRabattsumme.setBigDecimal(verkaufspreisDtoInZielwaehrung.rabattsumme);
+			panelHandeingabe.getWnfZusatzrabattsatz().setDouble(verkaufspreisDtoInZielwaehrung.getDdZusatzrabattsatz());
+			panelHandeingabe.getWnfZusatzrabattsumme()
+					.setBigDecimal(verkaufspreisDtoInZielwaehrung.getNZusatzrabattsumme());
+			panelHandeingabe.wnfNettopreis.setBigDecimal(verkaufspreisDtoInZielwaehrung.nettopreis);
+			panelHandeingabe.wcoMwstsatz.setKeyOfSelectedItem(verkaufspreisDtoInZielwaehrung.mwstsatzIId);
+			panelHandeingabe.wnfMwstsumme.setBigDecimal(verkaufspreisDtoInZielwaehrung.mwstsumme);
+			panelHandeingabe.wnfBruttopreis.setBigDecimal(verkaufspreisDtoInZielwaehrung.bruttopreis);
 		}
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		if (tpAuftrag.getAuftragDto().getAuftragartCNr()
-				.equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		if (tpAuftrag.getAuftragDto().getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_ABRUF)) {
 			super.eventActionUpdate(aE, false);
-
+			getPanelArtikel().setArtikelEingabefelderEditable(true);
 			// Vorschlagswert fuer die abzurufende Menge setzen
-			if (auftragpositionDto.getPositionsartCNr().equals(
-					AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
+			if (auftragpositionDto.getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
 				if (auftragpositionDto.getNOffeneRahmenMenge() != null)
 					if (auftragpositionDto.getNOffeneRahmenMenge().intValue() == 0)
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.warning"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"auft.offenrahmenmengenull"));
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+								LPMain.getTextRespectUISPr("auft.offenrahmenmengenull"));
 					else
-						panelArtikel.wnfMenge.setBigDecimal(auftragpositionDto
-								.getNOffeneRahmenMenge());
-			} else if (auftragpositionDto.getPositionsartCNr().equals(
-					AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
-				panelHandeingabe.wnfMenge.setBigDecimal(auftragpositionDto
-						.getNOffeneRahmenMenge());
+						panelArtikel.wnfMenge.setBigDecimal(auftragpositionDto.getNOffeneRahmenMenge());
+			} else if (auftragpositionDto.getPositionsartCNr()
+					.equals(AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
+				panelHandeingabe.wnfMenge.setBigDecimal(auftragpositionDto.getNOffeneRahmenMenge());
 			}
 		} else {
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.warning"), LPMain.getInstance()
-					.getTextRespectUISPr("auft.keinabrufauftrag"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+					LPMain.getTextRespectUISPr("auft.keinabrufauftrag"));
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			calculateFields();
 			checkLockedDlg();
@@ -490,10 +460,9 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 				checkLockedDlg(lockMeAuftrag);
 			}
 
-			if (auftragpositionDto.getPositionsartCNr().equals(
-					AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)
-					|| auftragpositionDto.getPositionsartCNr().equals(
-							AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
+			if (auftragpositionDto.getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)
+					|| auftragpositionDto.getPositionsartCNr()
+							.equals(AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
 				saveAbrufposition(e, false);
 			}
 		}
@@ -503,73 +472,62 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 	 * Bevor eine Position im Abrufauftrag gespeichert werden kann, muessen
 	 * verschiedene Vorbedingungen geprueft werden.
 	 * 
-	 * @param e
-	 *            Ereignis
-	 * @param bNeedNoSaveI
-	 *            flag
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param e            Ereignis
+	 * @param bNeedNoSaveI flag
+	 * @throws Throwable Ausnahme
 	 */
-	protected void saveAbrufposition(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	protected void saveAbrufposition(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		boolean bDiePositionSpeichern = true;
 
 		// die gewaehlte Menge kann nicht groesser als die offene Menge sein
-		if (getPositionsartCNr().equals(
-				AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)
-				&& panelArtikel.wnfMenge.getDouble().doubleValue() > wnfOffenimrahmenArtikel
-						.getDouble().doubleValue()) {
+		if (getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT) && panelArtikel.wnfMenge.getDouble()
+				.doubleValue() > wnfOffenimrahmenArtikel.getDouble().doubleValue()) {
 			bDiePositionSpeichern = false;
-		} else if (getPositionsartCNr().equals(
-				AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)
-				&& panelHandeingabe.wnfMenge.getDouble().doubleValue() > wnfOffenimrahmenHand
-						.getDouble().doubleValue()) {
+		} else if (getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)
+				&& panelHandeingabe.wnfMenge.getDouble().doubleValue() > wnfOffenimrahmenHand.getDouble()
+						.doubleValue()) {
 			bDiePositionSpeichern = false;
 		}
 
 		if (!bDiePositionSpeichern) {
-			DialogFactory.showModalDialog(
-					LPMain.getInstance().getTextRespectUISPr("lp.warning"),
-					LPMain.getInstance().getTextRespectUISPr(
-							"ls.warning.geawehltemengegroesseroffenemenge"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+					LPMain.getTextRespectUISPr("ls.warning.geawehltemengegroesseroffenemenge"));
 		}
 
 		if (bDiePositionSpeichern) {
 			// wenn es zu dieser Rahmenposition bereits eine Abrufposition gibt,
 			// wird die bestehende Position aktualisiert
-			AuftragpositionDto abrufpositionDto = DelegateFactory
-					.getInstance()
-					.getAuftragpositionDelegate()
-					.auftragpositionFindByAuftragIIdAuftragpositionIIdRahmenposition(
-							tpAuftrag.getAuftragDto().getIId(),
+			AuftragpositionDto abrufpositionDto = DelegateFactory.getInstance().getAuftragpositionDelegate()
+					.auftragpositionFindByAuftragIIdAuftragpositionIIdRahmenposition(tpAuftrag.getAuftragDto().getIId(),
 							auftragpositionDto.getIId());
 
-			if (abrufpositionDto == null) {
+			if (abrufpositionDto == null || bZusaetzlicheRahmenposition) {
+				bZusaetzlicheRahmenposition = false;
 				// es gibt noch keine Position, eine neue erfassen
-				abrufpositionDto = (AuftragpositionDto) auftragpositionDto
-						.clone();
-				abrufpositionDto.setBelegIId(tpAuftrag.getAuftragDto()
-						.getIId());
-				abrufpositionDto
-						.setAuftragpositionIIdRahmenposition(auftragpositionDto
-								.getIId());
+				abrufpositionDto = (AuftragpositionDto) auftragpositionDto.clone();
 
-				if (getPositionsartCNr().equals(
-						AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
-					abrufpositionDto.setNMenge(panelArtikel.wnfMenge
-							.getBigDecimal());
-					abrufpositionDto.setNOffeneMenge(panelArtikel.wnfMenge
-							.getBigDecimal());
-				} else if (getPositionsartCNr().equals(
-						AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
-					abrufpositionDto.setNMenge(panelHandeingabe.wnfMenge
-							.getBigDecimal());
-					abrufpositionDto.setNOffeneMenge(panelArtikel.wnfMenge
-							.getBigDecimal());
+				if (bZusaetzlicheRahmenposition == true) {
+					// wg. doopeltem i_sort
+					abrufpositionDto.setISort(null);
 				}
 
-				abrufpositionDto
-						.setAuftragpositionstatusCNr(AuftragServiceFac.AUFTRAGPOSITIONSTATUS_OFFEN);
+				abrufpositionDto.setBelegIId(tpAuftrag.getAuftragDto().getIId());
+
+				if (wtsfLieferterminPosition.getTimestamp() != null) {
+					abrufpositionDto.setTUebersteuerbarerLiefertermin(wtsfLieferterminPosition.getTimestamp());
+				}
+
+				abrufpositionDto.setAuftragpositionIIdRahmenposition(auftragpositionDto.getIId());
+
+				if (getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
+					abrufpositionDto.setNMenge(panelArtikel.wnfMenge.getBigDecimal());
+					abrufpositionDto.setNOffeneMenge(panelArtikel.wnfMenge.getBigDecimal());
+				} else if (getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
+					abrufpositionDto.setNMenge(panelHandeingabe.wnfMenge.getBigDecimal());
+					abrufpositionDto.setNOffeneMenge(panelArtikel.wnfMenge.getBigDecimal());
+				}
+
+				abrufpositionDto.setAuftragpositionstatusCNr(AuftragServiceFac.AUFTRAGPOSITIONSTATUS_OFFEN);
 
 				DelegateFactory.getInstance().getAuftragRahmenAbrufDelegate()
 						.createAbrufpositionZuRahmenposition(abrufpositionDto);
@@ -577,27 +535,17 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 				// zusaetzlich wird die eingegebene Menge abgebucht -> das
 				// Handling
 				// in Bezug auf die bestehende Position geschieht am Server
-				if (getPositionsartCNr().equals(
-						AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
-					abrufpositionDto.setNMenge(panelArtikel.wnfMenge
-							.getBigDecimal());
-				} else if (getPositionsartCNr().equals(
-						AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
-					abrufpositionDto.setNMenge(panelHandeingabe.wnfMenge
-							.getBigDecimal());
+				if (getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)) {
+					abrufpositionDto.setNMenge(panelArtikel.wnfMenge.getBigDecimal());
+				} else if (getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_HANDEINGABE)) {
+					abrufpositionDto.setNMenge(panelHandeingabe.wnfMenge.getBigDecimal());
 				}
 
-				DelegateFactory
-						.getInstance()
-						.getAuftragRahmenAbrufDelegate()
-						.updateAbrufpositionZuRahmenpositionSichtRahmen(
-								abrufpositionDto);
+				DelegateFactory.getInstance().getAuftragRahmenAbrufDelegate()
+						.updateAbrufpositionZuRahmenpositionSichtRahmen(abrufpositionDto);
 			}
-			DelegateFactory
-					.getInstance()
-					.getAuftragRahmenAbrufDelegate()
-					.pruefeUndSetzeRahmenstatus(
-							auftragpositionDto.getBelegIId());
+			DelegateFactory.getInstance().getAuftragRahmenAbrufDelegate()
+					.pruefeUndSetzeRahmenstatus(auftragpositionDto.getBelegIId());
 
 			// buttons schalten
 			super.eventActionSave(e, bNeedNoSaveI);
@@ -623,7 +571,7 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 
 		// Lieferschein unlocken.
 		super.eventActionUnlock(e);
-
+		bZusaetzlicheRahmenposition = false;
 		if (lockMeAuftrag != null) {
 			// Zugehoerige Rahmenbestellung unlocken.
 			super.unlock(lockMeAuftrag);
@@ -633,6 +581,11 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
 
 		LockStateValue l = super.getLockedstateDetailMainKey();
+		//SP7845
+		if (tpAuftrag.getAuftragDto().getStatusCNr().equals(AuftragServiceFac.AUFTRAGSTATUS_STORNIERT)
+				|| tpAuftrag.getAuftragDto().getStatusCNr().equals(AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
+			l = new LockStateValue(PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+		}
 		if (l.getIState() == LOCK_IS_NOT_LOCKED && lockMeAuftrag != null) {
 			l.setIState(getLockedByWerWas(lockMeAuftrag));
 		}
@@ -640,21 +593,19 @@ public class PanelAuftragpositionSichtRahmen extends PanelPositionen2 {
 		return l;
 	}
 
-	protected void eventActionDiscard(ActionEvent e) throws Throwable {
-		super.eventActionDiscard(e);
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
-		// auch die zugehoerige Rahmenbestellung muss gelockt werden
-		lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG,
-				auftragpositionDto.getBelegIId() + "", LPMain.getInstance()
-						.getCNrUser());
-
-		tpAuftrag.enablePanelsNachBitmuster();
+		if (e.getActionCommand().equals(ACTION_SPECIAL_ZUSAETZLICHE_RAHMENPOSITION)) {
+			bZusaetzlicheRahmenposition = true;
+			eventActionUpdate(e, false);
+		}
 	}
 
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
-		super.eventActionRefresh(e, bNeedNoRefreshI);
-
-		tpAuftrag.enablePanelsNachBitmuster();
+	protected void eventActionDiscard(ActionEvent e) throws Throwable {
+		super.eventActionDiscard(e);
+		bZusaetzlicheRahmenposition = false;
+		// auch die zugehoerige Rahmenbestellung muss gelockt werden
+		lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG, auftragpositionDto.getBelegIId() + "",
+				LPMain.getInstance().getCNrUser());
 	}
 }

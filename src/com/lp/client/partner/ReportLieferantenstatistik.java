@@ -133,8 +133,8 @@ private WrapperLabel wlaSortierung = new WrapperLabel();
 
 	wdfVon.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(c
 			.getTimeInMillis())));
-	wdfBis.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(System
-			.currentTimeMillis() + 24 * 3600000)));
+	wdfBis.setTimestamp(Helper.cutTimestamp(Helper.addiereTageZuTimestamp(new java.sql.Timestamp(System
+			.currentTimeMillis()),1)));
     wlaSortierung.setText(LPMain.getInstance().getTextRespectUISPr("lp.sortierung"));
     jbgSortierung = new ButtonGroup();
 

@@ -38,10 +38,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import javax.swing.ImageIcon;
-
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.IconFactory;
 
 
 
@@ -64,8 +63,7 @@ public class WrapperURLField extends WrapperTextFieldWithIconButton
 	private final static long serialVersionUID = 5232388859414464532L;
 
 	public WrapperURLField() throws Throwable {
-		super(new ImageIcon(WrapperURLField.class.getResource("/com/lp/client/res/earth_view.png")),
-				"lp.websiteanzeigen");
+		super(IconFactory.getURL(), "lp.websiteanzeigen");
 	}
 
 	@Override

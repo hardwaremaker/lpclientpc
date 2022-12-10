@@ -215,15 +215,15 @@ public class ReportFehlerstatistik extends PanelBasis implements
 			iSortierung = FertigungReportFac.SORTIERUNG_FEHLERSTATISTIK_FEHLER;
 		}
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp = Helper.addiereTageZuTimestamp(wdfBis
+				.getTimestamp(),1);
 
 		jasperPrint = DelegateFactory
 				.getInstance()
 				.getFertigungDelegate()
 				.printFehlerstatistik(
-						Helper.cutTimestamp(wdfVon.getTimestamp()),
-						Helper.cutTimestamp(wdfBisTemp), iSortierung,
+						wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), iSortierung,
 						wcbAlle.isSelected());
 
 		return jasperPrint;

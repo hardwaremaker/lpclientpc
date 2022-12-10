@@ -38,6 +38,8 @@ import java.awt.event.ActionEvent;
 import javax.swing.JMenuBar;
 import javax.swing.event.ChangeEvent;
 
+import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.component.IPanelQueryTauscheIdsDelegate;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
@@ -45,8 +47,11 @@ import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.component.WrapperMenuBar;
+import com.lp.client.frame.delegate.AutomatikDelegate;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.automatik.IPanelAutoJobDetails;
+import com.lp.client.system.automatik.PanelAutoJobDetailsFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.system.service.AutomatikjobDto;
 import com.lp.server.system.service.AutomatikjobFac;
@@ -69,6 +74,7 @@ private PanelQuery panelQueryUebersicht = null;
   private PanelAutomatik panelAutomatikUebersicht = null;
 
   private PanelAutomatikDetails panelAutomatikDetails = null;
+  private PanelAutoJobDetailsFactory autojobDetailsFactory = new PanelAutoJobDetailsFactory();
 
   private final static int IDX_UEBERSICHT = 0;
   private final static int IDX_DETAIL = 1;
@@ -130,18 +136,17 @@ private PanelQuery panelQueryUebersicht = null;
     return panelSplitUebersicht;
   }
 
+  private PanelAutomatikDetails getPanelAutomatikDetails(AutomatikjobDto jobDto, AutomatikjobtypeDto jobtypeDto) throws Throwable {
+	  IPanelAutoJobDetails panelAutoJobDetails = autojobDetailsFactory.getPanelAutoJobDetails(jobDto, jobtypeDto);
+	  IPanelAutoJobDetails panelAutojobHead = autojobDetailsFactory.getPanelAutoJobHead(jobDto, jobtypeDto);
+	  panelAutomatikDetails = new PanelAutomatikDetails(getInternalFrame(),
+	        LPMain.getTextRespectUISPr("lp.system.automatik.tab.oben.detail.title"),
+	        panelQueryUebersicht.getSelectedId(), this,
+	        panelAutojobHead, panelAutoJobDetails);
 
-
-  private PanelAutomatikDetails getPanelAutomatikDetails(boolean bNeedInstatiationIfNull,String sPropertyType)
-    throws Throwable {
-  //if (panelAutomatikDetails == null && bNeedInstatiationIfNull) {
-    panelAutomatikDetails = new PanelAutomatikDetails(getInternalFrame(),
-        LPMain.getTextRespectUISPr("lp.system.automatik.tab.oben.detail.title"),panelQueryUebersicht.getSelectedId(),this,sPropertyType);
-    this.setComponentAt(IDX_DETAIL, panelAutomatikDetails);
-  //}
-  return panelAutomatikDetails;
-}
-
+	  return panelAutomatikDetails;
+  }
+  
 private FilterKriterium[] buildDefaultFilterAutomatikjobs()
       throws Throwable {
   FilterKriterium[] kriterien = new FilterKriterium[1];
@@ -200,78 +205,43 @@ private FilterKriterium[] buildDefaultFilterAutomatikjobs()
     switch (selectedIndex) {
       case IDX_UEBERSICHT: {
         getPanelSplitUebersicht(true).eventYouAreSelected(false);
-        getPanelAutomatikUebersicht(true).eventYouAreSelected(false);
+        getPanelQueryUebersicht(true).updateButtons();
       }
       break;
       case IDX_DETAIL: {
         AutomatikjobDto selectedautomatikjobDto = DelegateFactory.getInstance().getAutomatikDelegate().
-        automatikjobFindByPrimaryKey(Integer.parseInt(panelQueryUebersicht.getSelectedId().toString()));
+        		automatikjobFindByPrimaryKey(Integer.parseInt(panelQueryUebersicht.getSelectedId().toString()));
         AutomatikjobtypeDto automatikjobtypeDto = DelegateFactory.getInstance().getAutomatikDelegate().
             automatikjobtypeFindByPrimaryKey(selectedautomatikjobDto.getIAutomatikjobtypeIid());
-        getPanelAutomatikDetails(true,automatikjobtypeDto.getCJobtype()).eventYouAreSelected(false);
+        
+        PanelBasis panelDetails = getPanelAutomatikDetails(selectedautomatikjobDto, automatikjobtypeDto);
+  	  	this.setComponentAt(IDX_DETAIL, panelDetails);
+  	  	panelDetails.eventYouAreSelected(false);
       }
       break;
     }
 
   }
 
-
-  public void lPEventItemChanged(ItemChangedEvent eI)
-    throws Throwable {
-  String sMandantCNr =LPMain.getInstance().getTheClient().getMandant();
-  if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
-    //UP Pressed
-    int selectedJob = Integer.parseInt(panelQueryUebersicht.getSelectedId().toString());
-    AutomatikjobDto selectedautomatikjobDto = DelegateFactory.getInstance().
-        getAutomatikDelegate().
-        automatikjobFindByPrimaryKey(selectedJob);
-    int jobBefore = selectedautomatikjobDto.getISort() - 1;
-    if (! (jobBefore < 0)) {
-
-      AutomatikjobDto beforeautomatikjobDto = DelegateFactory.getInstance().
-          getAutomatikDelegate().
-          automatikjobFindByISort(jobBefore);
-      if(beforeautomatikjobDto.getCMandantCNr().equals(sMandantCNr)){
-        beforeautomatikjobDto.setISort(selectedautomatikjobDto.getISort());
-        selectedautomatikjobDto.setISort(jobBefore);
-        DelegateFactory.getInstance().getAutomatikDelegate().updateAutomatikjob(
-            selectedautomatikjobDto);
-        DelegateFactory.getInstance().getAutomatikDelegate().updateAutomatikjob(
-            beforeautomatikjobDto);
-        getPanelSplitUebersicht(true).eventYouAreSelected(false);
-      }
-    }
+  private AutomatikDelegate automatikDelegate() throws ExceptionLP {
+	  return DelegateFactory.getInstance().getAutomatikDelegate();
   }
-  else if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
-    //DOWN Pressed
-    int selectedJob = Integer.parseInt(panelQueryUebersicht.getSelectedId().toString());
-    AutomatikjobDto selectedautomatikjobDto = DelegateFactory.getInstance().
-        getAutomatikDelegate().
-        automatikjobFindByPrimaryKey(selectedJob);
-    int jobAfter = selectedautomatikjobDto.getISort() + 1;
-    AutomatikjobDto afterautomatikjobDto = null;
-    try {
-      afterautomatikjobDto = DelegateFactory.getInstance().
-          getAutomatikDelegate().
-          automatikjobFindByISort(jobAfter);
-    }
-    catch (Exception e) {
-      //User is trying to move last job down
-      //nothing here
-    }
-    if (afterautomatikjobDto != null) {
-      if(afterautomatikjobDto.getCMandantCNr().equals(sMandantCNr)){
-        afterautomatikjobDto.setISort(selectedautomatikjobDto.getISort());
-        selectedautomatikjobDto.setISort(jobAfter);
-        DelegateFactory.getInstance().getAutomatikDelegate().updateAutomatikjob(
-            selectedautomatikjobDto);
-        DelegateFactory.getInstance().getAutomatikDelegate().updateAutomatikjob(
-            afterautomatikjobDto);
-        getPanelSplitUebersicht(true).eventYouAreSelected(false);
-      }
-    }
-  }
-}
+  
+  public void lPEventItemChanged(ItemChangedEvent eI) throws Throwable {
+	  if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
+		  panelQueryUebersicht.tauscheMinus(new IPanelQueryTauscheIdsDelegate() {
+				public void tausche(Integer actualId, Integer otherId) throws Throwable {
+					  automatikDelegate().vertauscheAutomatikjobs(actualId, otherId);
+				}
+			});
+	  } else if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
+		  panelQueryUebersicht.tauschePlus(new IPanelQueryTauscheIdsDelegate() {
+				public void tausche(Integer actualId, Integer otherId) throws Throwable {
+					  automatikDelegate().vertauscheAutomatikjobs(actualId, otherId);
+				}
+			});
+	  }
+	}
 
 
 

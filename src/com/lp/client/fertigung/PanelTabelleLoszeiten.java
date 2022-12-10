@@ -37,13 +37,14 @@ import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelTabelle;
 import com.lp.client.frame.component.WrapperKeyValueField;
@@ -52,6 +53,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.auftrag.service.AuftragFac;
+import com.lp.server.auftrag.service.AuftragzeitenDto;
 import com.lp.server.fertigung.service.LossollarbeitsplanDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.system.service.SystemFac;
@@ -73,17 +75,20 @@ public class PanelTabelleLoszeiten extends PanelTabelle {
 	private WrapperLabel wlaKritAuswertung = null;
 
 	// das soll in der optionalen zweiten Zeile stehen
-	private WrapperKeyValueField wkvDauer = null;
+	private WrapperKeyValueField wkvDauerPersonal = null;
+	private WrapperKeyValueField wkvDauerMaschine = null;
 	private WrapperLabel wlaEinheit = null;
+	private WrapperLabel wlaEinheit2 = null;
 
-	private WrapperKeyValueField wkvKosten = null;
+	private WrapperKeyValueField wkvIstKosten = null;
 	private WrapperLabel wlaWaehrung = null; // in Mandantenwaehrung
 
 	private TabbedPaneLos tpLos = null;
 
 	static final public String LOSZEITEN_PRINT = LEAVEALONE + "LOSZEITEN_PRINT";
 
-	private WrapperKeyValueField wkvSollzeit = null;
+	private WrapperKeyValueField wkvSollzeitPersonal = null;
+	private WrapperKeyValueField wkvSollzeitMaschine = null;
 
 	/**
 	 * PanelTabelle.
@@ -116,8 +121,13 @@ public class PanelTabelleLoszeiten extends PanelTabelle {
 		setColumnWidth(AuftragFac.IDX_SPALTE_KOSTEN, 0); // hide Kosten
 
 		// die optionale zweite Zeile initialisieren
-		wkvDauer = new WrapperKeyValueField(60);
-		wkvDauer.setKey(LPMain.getInstance().getTextRespectUISPr("lp.dauer"));
+		wkvDauerPersonal = new WrapperKeyValueField(Defaults.sizeFactor(90));
+		wkvDauerPersonal.setKey(LPMain.getInstance().getTextRespectUISPr(
+				"fert.istzeitdaten.dauerpersonal"));
+
+		wkvDauerMaschine = new WrapperKeyValueField(Defaults.sizeFactor(90));
+		wkvDauerMaschine.setKey(LPMain.getInstance().getTextRespectUISPr(
+				"fert.istzeitdaten.dauermaschine"));
 
 		wlaEinheit = new WrapperLabel(SystemFac.EINHEIT_STUNDE.trim());
 		wlaEinheit.setMaximumSize(new Dimension(30, Defaults.getInstance()
@@ -126,52 +136,86 @@ public class PanelTabelleLoszeiten extends PanelTabelle {
 				.getControlHeight()));
 		wlaEinheit.setPreferredSize(new Dimension(30, Defaults.getInstance()
 				.getControlHeight()));
+		
+
 		wlaEinheit.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wkvKosten = new WrapperKeyValueField(60);
-		wkvKosten.setKey(LPMain.getInstance().getTextRespectUISPr("lp.kosten"));
+		wlaEinheit2 = new WrapperLabel(SystemFac.EINHEIT_STUNDE.trim());
+		wlaEinheit2.setMaximumSize(new Dimension(30, Defaults.getInstance()
+				.getControlHeight()));
+		wlaEinheit2.setMinimumSize(new Dimension(30, Defaults.getInstance()
+				.getControlHeight()));
+		wlaEinheit2.setPreferredSize(new Dimension(30, Defaults.getInstance()
+				.getControlHeight()));
+		wlaEinheit2.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wkvSollzeit = new WrapperKeyValueField(60);
-		wkvSollzeit.setKey(LPMain.getInstance().getTextRespectUISPr(
-				"lp.sollzeit"));
+		wkvIstKosten = new WrapperKeyValueField(Defaults.sizeFactor(60));
+		wkvIstKosten.setKey(LPMain.getInstance().getTextRespectUISPr(
+				"lp.kosten"));
+
+		wkvSollzeitPersonal = new WrapperKeyValueField(Defaults.sizeFactor(100));
+		wkvSollzeitPersonal.setKey(LPMain.getInstance().getTextRespectUISPr(
+				"fert.istzeitdaten.sollzeitpersonal"));
+
+		wkvSollzeitMaschine = new WrapperKeyValueField(Defaults.sizeFactor(100));
+		wkvSollzeitMaschine.setKey(LPMain.getInstance().getTextRespectUISPr(
+				"fert.istzeitdaten.sollzeitmaschine"));
+		
+		HelperClient.setMinimumAndPreferredSize(wkvSollzeitPersonal, HelperClient.getSizeFactoredDimension(160));
+		HelperClient.setMinimumAndPreferredSize(wkvDauerPersonal, HelperClient.getSizeFactoredDimension(160));
 
 		wlaWaehrung = new WrapperLabel(LPMain.getTheClient()
 				.getSMandantenwaehrung());
-		wlaWaehrung.setMaximumSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setMaximumSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
-		wlaWaehrung.setMinimumSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setMinimumSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
-		wlaWaehrung.setPreferredSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setPreferredSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
 		wlaWaehrung.setHorizontalAlignment(SwingConstants.LEFT);
 
 		getPanelOptionaleZweiteZeile().add(
-				wkvSollzeit,
+				wkvSollzeitPersonal,
 				new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
-				wkvDauer,
+				wkvDauerPersonal,
 				new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wlaEinheit,
 				new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
 						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
-				wkvKosten,
-				new GridBagConstraints(3, 0, 1, 1, 0.0,
+				wkvIstKosten,
+				new GridBagConstraints(3, 0, 1, 2, 0.0,
 
 				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 						new Insets(2, 2, 2, 2), 150, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wlaWaehrung,
-				new GridBagConstraints(5, 0, 1, 1, 0.0, 0.0,
+				new GridBagConstraints(5, 0, 1, 2, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
 						new Insets(2, 2, 2, 2), 0, 0));
 
+		getPanelOptionaleZweiteZeile().add(
+				wkvSollzeitMaschine,
+				new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
+		getPanelOptionaleZweiteZeile().add(
+				wkvDauerMaschine,
+				new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
+		getPanelOptionaleZweiteZeile().add(
+				wlaEinheit2,
+				new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.BOTH,
+						new Insets(2, 2, 2, 2), 0, 0));
 
 		getToolBar()
 				.addButtonLeft(
@@ -207,7 +251,7 @@ public class PanelTabelleLoszeiten extends PanelTabelle {
 			if (ex.getCause() != null
 					&& ex.getCause().getCause() instanceof EJBExceptionLP) {
 				EJBExceptionLP exp = (EJBExceptionLP) ex.getCause().getCause();
-				ArrayList<?> al = exp.getAlInfoForTheClient();
+				List<?> al = exp.getAlInfoForTheClient();
 				String s = "";
 				if (al != null && al.size() > 1) {
 					if (al.get(0) instanceof Integer) {
@@ -256,50 +300,66 @@ public class PanelTabelleLoszeiten extends PanelTabelle {
 
 		getPanelFilterKriterien().add(wlaKritAuswertung);
 
-		// die gesamte Dauer berechnen
-		double dGesamtdauer = 0;
-
-		for (int i = 0; i < getTable().getRowCount(); i++) {
-			Object oEinzeldauer = getTable().getValueAt(i,
-					AuftragFac.IDX_SPALTE_DAUER);
-
-			if (oEinzeldauer != null) {
-				dGesamtdauer += ((Double) oEinzeldauer).doubleValue();
-			}
-		}
-
-		wkvDauer.setValue(Helper.formatZahl(new Double(dGesamtdauer), 2,
-				Defaults.getInstance().getLocUI()));
-
 		// Sollzeiten
 
-		BigDecimal bdSoll = BigDecimal.ZERO;
+		BigDecimal bdSollPeronal = BigDecimal.ZERO;
+		BigDecimal bdSollMaschine = BigDecimal.ZERO;
 		LossollarbeitsplanDto[] dtos = DelegateFactory.getInstance()
 				.getFertigungDelegate()
 				.lossollarbeitsplanFindByLosIId(tpLos.getLosDto().getIId());
 		for (int i = 0; i < dtos.length; i++) {
 			if (dtos[i].getNGesamtzeit() != null) {
-				bdSoll = bdSoll.add(dtos[i].getNGesamtzeit());
+
+				if (dtos[i].getMaschineIId() != null) {
+					bdSollMaschine = bdSollMaschine
+							.add(dtos[i].getNGesamtzeit());
+					if (Helper.short2boolean(dtos[i].getBNurmaschinenzeit()) == false) {
+						bdSollPeronal = bdSollPeronal.add(dtos[i]
+								.getNGesamtzeit());
+					}
+				} else {
+					bdSollPeronal = bdSollPeronal.add(dtos[i].getNGesamtzeit());
+				}
+
 			}
 		}
 
-		wkvSollzeit.setValue(Helper.formatZahl(bdSoll, 2, Defaults
-				.getInstance().getLocUI()));
+		wkvSollzeitPersonal.setValue(Helper.formatZahl(bdSollPeronal, 2,
+				Defaults.getInstance().getLocUI()));
+		wkvSollzeitMaschine.setValue(Helper.formatZahl(bdSollMaschine, 2,
+				Defaults.getInstance().getLocUI()));
 
 		// die gesamten Kosten berechnen
 		BigDecimal bdGesamtkosten = new BigDecimal(0);
-
+		double dGesamtdauerPersonal = 0;
+		double dGesamtdauerMaschine = 0;
 		for (int i = 0; i < getTable().getRowCount(); i++) {
-			Object oEinzelkosten = getTable().getValueAt(i,
-					AuftragFac.IDX_SPALTE_KOSTEN);
 
-			if (oEinzelkosten != null) {
-				bdGesamtkosten = bdGesamtkosten.add((BigDecimal) oEinzelkosten);
+			Object oAuftragzeitenDto = getTable().getValueAt(i, 0);
+			if (oAuftragzeitenDto instanceof AuftragzeitenDto) {
+
+				AuftragzeitenDto azDto = (AuftragzeitenDto) oAuftragzeitenDto;
+
+				bdGesamtkosten = bdGesamtkosten.add(azDto.getBdKosten());
+
+				if (azDto.getSPersonalMaschinenname() != null
+						&& azDto.getSPersonalMaschinenname().startsWith("M:")) {
+					dGesamtdauerMaschine += azDto.getDdDauer();
+
+				} else {
+					dGesamtdauerPersonal += azDto.getDdDauer();
+				}
+
 			}
 		}
 
-		wkvKosten.setValue(Helper.formatZahl(bdGesamtkosten, 4, Defaults
+		wkvIstKosten.setValue(Helper.formatZahl(bdGesamtkosten, 4, Defaults
 				.getInstance().getLocUI()));
+
+		wkvDauerPersonal.setValue(Helper.formatZahl(new Double(
+				dGesamtdauerPersonal), 2, Defaults.getInstance().getLocUI()));
+		wkvDauerMaschine.setValue(Helper.formatZahl(new Double(
+				dGesamtdauerMaschine), 2, Defaults.getInstance().getLocUI()));
 
 		// die Spaltenueberschriften in den ersten drei Spalten sind von den
 		// Kriterien abhaengig
@@ -353,7 +413,7 @@ public class PanelTabelleLoszeiten extends PanelTabelle {
 
 		} catch (ExceptionLP ex) {
 			if (ex.getICode() == EJBExceptionLP.FEHLER_IN_ZEITDATEN) {
-				ArrayList<?> al = ex.getAlInfoForTheClient();
+				List<?> al = ex.getAlInfoForTheClient();
 				String s = "";
 				if (al != null && al.size() > 1) {
 					if (al.get(0) instanceof Integer) {

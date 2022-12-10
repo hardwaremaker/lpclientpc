@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.frame.report;
 
+import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.HeadlessException;
 import java.awt.Insets;
@@ -94,6 +95,7 @@ public class PanelVersandFax extends PanelVersand {
 		jbInit();
 	}
 
+	
 	private void jbInit() throws Throwable {
 		ImageIcon imageIcon = new ImageIcon(getClass().getResource(
 				"/com/lp/client/res/fax.png"));
@@ -183,7 +185,7 @@ public class PanelVersandFax extends PanelVersand {
 						.getPartnerDelegate()
 						.partnerkommFindOhneExec(
 								partnerDtoEmpfaenger.getIId(),
-								partnerIIdAnsprechpartner,
+								ansprechpartnerIId,
 								PartnerFac.KOMMUNIKATIONSART_FAX,
 								LPMain.getInstance().getTheClient()
 										.getMandant());
@@ -193,7 +195,7 @@ public class PanelVersandFax extends PanelVersand {
 						.getPartnerDelegate()
 						.partnerkommFindOhneExec(
 								partnerDtoEmpfaenger.getIId(),
-								partnerIIdAnsprechpartner,
+								ansprechpartnerIId,
 								PartnerFac.KOMMUNIKATIONSART_DIREKTFAX,
 								LPMain.getInstance().getTheClient()
 										.getMandant());

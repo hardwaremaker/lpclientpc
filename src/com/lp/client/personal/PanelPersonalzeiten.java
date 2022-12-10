@@ -96,7 +96,7 @@ public class PanelPersonalzeiten
 
   protected JComponent getFirstFocusableComponent()
       throws Exception {
-    return wtfBemerkung;
+    return (JComponent) wdfVon.getDateEditor();
   }
 
 

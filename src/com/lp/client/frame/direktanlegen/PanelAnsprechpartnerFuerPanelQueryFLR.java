@@ -59,6 +59,7 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
@@ -66,6 +67,7 @@ import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextArea;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.fastlanereader.gui.QueryType;
@@ -76,8 +78,11 @@ import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.partner.service.PartnerkommunikationDto;
 import com.lp.server.system.jcr.service.JCRDocFac;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /**
@@ -111,6 +116,7 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 	private WrapperLabel wlaBemerkung = null;
 	private WrapperTextArea wefBemerkung = null;
 	private WrapperLabel wlaDurchwahl = null;
+	private WrapperCheckBox wcoDurchwahl = null;
 	private WrapperTextField wtfDurchwahl = null;
 	private WrapperLabel wlaEmail = null;
 	private WrapperTextField wtfEmail = null;
@@ -126,6 +132,7 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 	protected WrapperNumberField wtfSort = null;
 	private AnsprechpartnerDto ansprechpartnerDto = null;
 
+	private WrapperComboBox wcbNewsletterGrund = new WrapperComboBox();
 	protected WrapperComboBox wcoAnrede = null;
 	protected WrapperLabel wlaTitel = null;
 	protected WrapperTextField wtfTitel = null;
@@ -219,6 +226,11 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 				LPMain.getTextRespectUISPr("lp.abteilung"));
 		wtfAbteilung = new WrapperTextField();
 
+		wcbNewsletterGrund.setMap(DelegateFactory.getInstance()
+				.getPartnerServicesDelegate().getAllNewslettergrund());
+
+		wcbNewsletterGrund.setToolTipText(LPMain
+				.getTextRespectUISPr("part.newslettergrund"));
 		
 		wtfAnsprechpartnerfunktion = new WrapperTextField();
 		wtfAnsprechpartnerfunktion.setActivatable(false);
@@ -246,14 +258,23 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 		wlaBemerkung.setVerticalAlignment(SwingConstants.NORTH);
 		wefBemerkung = new WrapperTextArea();
 
-		wlaDurchwahl = new WrapperLabel();
-		wlaDurchwahl.setText(LPMain.getInstance().getTextRespectUISPr(
+		wcoDurchwahl = new WrapperCheckBox();
+		wcoDurchwahl.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.durchwahl"));
-		wlaDurchwahl.setMinimumSize(new Dimension(120, Defaults.getInstance()
+		wcoDurchwahl.setMinimumSize(new Dimension(120, Defaults.getInstance()
 				.getControlHeight()));
-		wlaDurchwahl.setPreferredSize(new Dimension(120, Defaults.getInstance()
+		wcoDurchwahl.setPreferredSize(new Dimension(120, Defaults.getInstance()
 				.getControlHeight()));
+		wcoDurchwahl.addActionListener(this);
 
+		
+		wlaDurchwahl = new WrapperLabel();
+
+		wlaDurchwahl.setMinimumSize(new Dimension(160, Defaults.getInstance()
+				.getControlHeight()));
+		wlaDurchwahl.setPreferredSize(new Dimension(160, Defaults.getInstance()
+				.getControlHeight()));
+		
 		wtfDurchwahl = new WrapperTextField(PartnerFac.MAX_KOMMART_INHALT);
 		wtfDurchwahl.setMinimumSize(new Dimension(120, Defaults.getInstance()
 				.getControlHeight()));
@@ -266,7 +287,7 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 				.getControlHeight()));
 		wlaEmail.setPreferredSize(new Dimension(60, Defaults.getInstance()
 				.getControlHeight()));
-		wtfEmail = new WrapperTextField(PartnerFac.MAX_KOMMART_INHALT);
+		wtfEmail = new WrapperTextField(300);
 
 		wlaFremdsystem = new WrapperLabel(LPMain.getInstance()
 				.getTextRespectUISPr("part.ansprechpartner.fremdsystem"));
@@ -325,6 +346,9 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 		
 		// Zeile
 		iZeile++;
+		jpaWorkingOn.add(wcbNewsletterGrund, new GridBagConstraints(0,
+				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wlaVorname, new GridBagConstraints(1, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -377,6 +401,9 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 				0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfDurchwahl, new GridBagConstraints(1, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoDurchwahl, new GridBagConstraints(2, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wlaEmail, new GridBagConstraints(3, iZeile, 1, 1, 0.0,
@@ -435,7 +462,7 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 
 		// Die normale Telefon/Faxnummer vor der Durchwajl anzeigen
 
-		wlaDurchwahl.setText(LPMain.getInstance().getTextRespectUISPr(
+		wcoDurchwahl.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.durchwahl"));
 
 		wlaFaxdurchwahl.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -476,6 +503,17 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 				.getAllAnreden(LPMain.getInstance().getTheClient().getLocUi());
 		wcoAnrede.setMap(tmAnreden);
 		wcoAnrede.setKeyOfSelectedItem(PartnerFac.PARTNER_ANREDE_HERR);
+		
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getParametermandant(
+						ParameterFac.PARAMETER_DEFAULT_ANSPRECHPARTNER_DURCHWAHL,
+						ParameterFac.KATEGORIE_PARTNER,
+						LPMain.getTheClient().getMandant());
+
+		wcoDurchwahl.setShort(Helper.boolean2Short((Boolean) parameter
+				.getCWertAsObject()));
 
 	}
 
@@ -511,7 +549,29 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 					aWhichButtonIUse, getInternalFrame(),
 					LPMain.getTextRespectUISPr("part.ansprechpartner_funktion"));
 			new DialogQuery(panelQueryFLRAnsprechpartnerfunktion);
+		}else if (e.getSource().equals(wcoDurchwahl)) {
+
+			if (wcoDurchwahl.isSelected()) {
+				String cTelefon = DelegateFactory
+						.getInstance()
+						.getPartnerDelegate()
+						.enrichNumber(partnerIId,
+								PartnerFac.KOMMUNIKATIONSART_TELEFON, null,
+								true);
+
+				if (cTelefon != null) {
+
+					LPMain.getInstance();
+					wlaDurchwahl.setText("(" + cTelefon + ")");
+				} else {
+					LPMain.getInstance();
+					wlaDurchwahl.setText("");
+				}
+			} else {
+				wlaDurchwahl.setText("");
+			}
 		}
+
 	}
 
 	protected void eventItemchanged(EventObject eI) throws ExceptionLP,
@@ -559,9 +619,32 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 	protected void dto2Components() throws Throwable {
 
 	}
-
+	private void showDialogEmailAusfuellen() {
+		DialogFactory
+				.showModalDialog(
+						LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("part.ansprechpartner.emailfuernewsletternoetig"));
+	}
+	
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
 			throws Throwable {
+		
+		if (wcbNewsletterGrund.getKeyOfSelectedItem() != null
+				&& !Helper.validateEmailadresse(wtfEmail.getText())) {
+
+			Integer newslettergrundIId = (Integer) wcbNewsletterGrund
+					.getKeyOfSelectedItem();
+
+			if (Helper.short2boolean(DelegateFactory.getInstance()
+					.getPartnerServicesDelegate()
+					.newslettergrundFindByPrimaryKey(newslettergrundIId)
+					.getBAngemeldet()) == true) {
+
+				showDialogEmailAusfuellen();
+				return;
+			}
+		}
+		
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 
@@ -633,6 +716,11 @@ public class PanelAnsprechpartnerFuerPanelQueryFLR extends PanelBasis {
 
 		ansprechpartnerDto.setCHandy(wtfHandy.getText());
 		ansprechpartnerDto.setCAbteilung(wtfAbteilung.getText());
+		ansprechpartnerDto.setBDurchwahl(wcoDurchwahl.getShort());
+		
+		ansprechpartnerDto.setNewslettergrundIId(
+				(Integer) wcbNewsletterGrund.getKeyOfSelectedItem());
+		
 
 	}
 

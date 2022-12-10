@@ -248,7 +248,11 @@ protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
       gotoPanelLieferantKopfdaten.setHmOfExtraData(hm);
       LPMain.getInstance().execute(gotoPanelLieferantKopfdaten);
 
-    }
+    } else if (LEAVEALONE_QUERYVIEW_SAVE.equals(e.getActionCommand())
+    		|| LEAVEALONE_PRINTPANELQUERY.equals(e.getActionCommand())) {
+		super.eventActionSpecial(e);
+	}
+
   }
 
 

@@ -38,16 +38,25 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.io.ByteArrayOutputStream;
 
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 
+import org.icepdf.ri.common.ComponentKeyBinding;
+import org.icepdf.ri.common.SwingController;
+import org.icepdf.ri.common.SwingViewBuilder;
+
 import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JRExporterParameter;
 import net.sf.jasperreports.engine.JasperPrint;
 
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.util.HVPDFExporter;
 
 @SuppressWarnings("static-access")
 class JDialogDruckVorschau extends JDialog {
@@ -57,8 +66,7 @@ class JDialogDruckVorschau extends JDialog {
 	private static final long serialVersionUID = 1L;
 	private JasperPrint print = null;
 
-	public JDialogDruckVorschau(Frame frame, String sTitle, JasperPrint print)
-			throws Throwable {
+	public JDialogDruckVorschau(Frame frame, String sTitle, JasperPrint print) throws Throwable {
 		super(frame, sTitle, true);
 		this.print = print;
 		jbInit();
@@ -66,16 +74,14 @@ class JDialogDruckVorschau extends JDialog {
 
 	private void jbInit() throws Throwable {
 		if (print == null) {
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.error"), "No print possible");
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"), "No print possible");
 			return;
 		}
 		ReportViewer viewer = null;
 		try {
 			viewer = new ReportViewer(print);
 		} catch (JRException ex) {
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.error"),
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
 					"Fehler beim Erstellen des Viewers");
 			this.dispose();
 			return;
@@ -85,15 +91,16 @@ class JDialogDruckVorschau extends JDialog {
 			public void actionPerformed(ActionEvent arg0) {
 				dispose();
 			}
-		}, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
-				JComponent.WHEN_IN_FOCUSED_WINDOW);
+		}, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+
+		viewer.removePDFButton();
+
 		getContentPane().add(viewer);
 		pack();
 		this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-		Dimension frameSize = new Dimension((int) screenSize.getWidth(),
-				(int) screenSize.getHeight() - 40);
+		Dimension frameSize = new Dimension((int) screenSize.getWidth(), (int) screenSize.getHeight() - 40);
 		setSize(frameSize);
 		setLocation(0, (screenSize.height - frameSize.height) / 2);
 		viewer.getBtnFitPage().doClick();

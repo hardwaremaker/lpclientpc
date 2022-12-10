@@ -56,14 +56,8 @@ import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
-import com.lp.client.system.SystemFilterFactory;
-import com.lp.client.util.fastlanereader.gui.QueryType;
-import com.lp.server.partner.ejb.PASelektionPK;
-import com.lp.server.partner.fastlanereader.generated.service.FLRPASelektionPK;
 import com.lp.server.partner.service.PASelektionDto;
 import com.lp.server.partner.service.SelektionDto;
-import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
-import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
 /*
@@ -197,19 +191,17 @@ public class PanelPASelektionKunde extends PanelBasis {
 			// Neu.
 			leereAlleFelder(this);
 			clearStatusbar();
-			pASelektionDto.setBIsNew(true);
+			
 			sT = getTabbedPaneKunde().getKundeDto().getPartnerDto()
 					.formatFixTitelName1Name2();
 		} else {
 			// Update.
-			FLRPASelektionPK pASelektionPK = (FLRPASelektionPK) key;
+			Integer paselektionIId = (Integer) key;
 			pASelektionDto = DelegateFactory.getInstance().getPartnerDelegate()
-					.pASelektionFindByPrimaryKey(
-							new PASelektionPK(pASelektionPK.getPartner_i_id(),
-									pASelektionPK.getSelektion_i_id()));
+					.pASelektionFindByPrimaryKey(paselektionIId);
 			dto2Components();
 
-			pASelektionDto.setBIsNew(false);
+			
 
 			String sB = pASelektionDto.getCBemerkung();
 			sT = getTabbedPaneKunde().getKundeDto().getPartnerDto()
@@ -241,12 +233,12 @@ public class PanelPASelektionKunde extends PanelBasis {
 			checkLockedDlg();
 
 			components2Dto();
-			if (pASelektionDto.isBIsNew()) {
+			if (pASelektionDto.getIId()==null) {
 				// Create.
-				PASelektionPK pASelektionPK = DelegateFactory.getInstance()
-						.getPartnerDelegate().createPASelektion(pASelektionDto);
+				pASelektionDto.setIId(DelegateFactory.getInstance()
+						.getPartnerDelegate().createPASelektion(pASelektionDto));
 
-				setKeyWhenDetailPanel(pASelektionPK);
+				setKeyWhenDetailPanel(pASelektionDto.getIId());
 			} else {
 				// Update.
 				DelegateFactory.getInstance().getPartnerDelegate()
@@ -263,9 +255,7 @@ public class PanelPASelektionKunde extends PanelBasis {
 
 		if (!isLockedDlg()) {
 			DelegateFactory.getInstance().getPartnerDelegate()
-					.removePASelektion(
-							new PASelektionPK(pASelektionDto.getPartnerIId(),
-									pASelektionDto.getSelektionIId()));
+					.removePASelektion(pASelektionDto);
 			pASelektionDto = new PASelektionDto();
 
 			super.eventActionDelete(e, false, false);

@@ -48,6 +48,7 @@ import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.partner.service.AnsprechpartnerfunktionDto;
 import com.lp.server.partner.service.BrancheDto;
 import com.lp.server.partner.service.KommunikationsartDto;
+import com.lp.server.partner.service.NewslettergrundDto;
 import com.lp.server.partner.service.PartnerartDto;
 import com.lp.server.partner.service.PartnerklasseDto;
 import com.lp.server.partner.service.SelektionDto;
@@ -82,6 +83,15 @@ public class InternalFramePartner extends InternalFrame {
 	private PartnerartDto partnerartDto = new PartnerartDto();
 	private KommunikationsartDto kommunikationsartDto = new KommunikationsartDto();
 	private SelektionDto SelektionDto = new SelektionDto();
+	private NewslettergrundDto newslettergrundDto = new NewslettergrundDto();
+
+	public NewslettergrundDto getNewslettergrundDto() {
+		return newslettergrundDto;
+	}
+
+	public void setNewslettergrundDto(NewslettergrundDto newslettergrundDto) {
+		this.newslettergrundDto = newslettergrundDto;
+	}
 
 	private String rechtModulweit = null;
 

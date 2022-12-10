@@ -115,7 +115,7 @@ public class WrapperKeyValueField extends JPanel implements IDirektHilfe {
 						0, 0, 0, 0), 0, 0));
 		jpaWorkingOn.add(wlaValue, new GridBagConstraints(1, 0, 1, 1, 0.01,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+				new Insets(0, 2, 0, 0), 0, 0));
 	}
 
 	public WrapperLabel getWlaKey() {

@@ -214,11 +214,11 @@ public class PanelFinanzWaehrung
 
     wlaKommentar.setText(LPMain.getTextRespectUISPr("lp.kommentar"));
     wtfKommentar.setColumnsMax(FinanzFac.MAX_WAEHRUNG_C_KOMMENTAR);
+   
+    HelperClient.setMinimumAndPreferredSize(wtfWaehrung, HelperClient.getSizeFactoredDimension(30));
+    HelperClient.setMinimumAndPreferredSize(wlaWaehrung, HelperClient.getSizeFactoredDimension(80));
 
-    wlaWaehrung.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
-    wlaWaehrung.setPreferredSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
-    wtfWaehrung.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
-    wtfWaehrung.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+
 
     this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
         , GridBagConstraints.WEST, GridBagConstraints.NONE,

@@ -53,6 +53,7 @@ import com.lp.server.personal.service.ZutrittsmodelltagDto;
 import com.lp.server.personal.service.ZutrittsmodelltagdetailDto;
 import com.lp.server.personal.service.ZutrittsobjektDto;
 import com.lp.server.personal.service.ZutrittsobjektverwendungDto;
+import com.lp.server.reklamation.service.ReklamationFac;
 
 public class ZutrittDelegate extends Delegate {
 	private ZutrittscontrollerFac zutrittscontrollerFac;
@@ -62,7 +63,7 @@ public class ZutrittDelegate extends Delegate {
 	public ZutrittDelegate() throws ExceptionLP {
 		try {
 	        context = new InitialContext();
-			zutrittscontrollerFac = (ZutrittscontrollerFac) context.lookup("lpserver/ZutrittscontrollerFacBean/remote");
+			zutrittscontrollerFac = lookupFac(context, ZutrittscontrollerFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

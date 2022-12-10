@@ -100,5 +100,11 @@ public class PanelConsole extends JTextPane {
 		return err;
 	}
 	
-
+	public void clearContent() {
+		try {
+			doc.remove(0, doc.getLength());		
+		} catch(BadLocationException e) {
+			
+		}
+	}
 }

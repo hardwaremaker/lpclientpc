@@ -46,9 +46,11 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.text.MessageFormat;
 import java.util.Calendar;
+import java.util.EventObject;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
@@ -56,8 +58,13 @@ import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.DialogQuery;
+import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
@@ -67,14 +74,18 @@ import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikellieferantDto;
+import com.lp.server.artikel.service.HerstellerDto;
 import com.lp.server.artikel.service.LagerDto;
 import com.lp.server.artikel.service.VkPreisfindungEinzelverkaufspreisDto;
 import com.lp.server.artikel.service.VkPreisfindungPreislisteDto;
 import com.lp.server.artikel.service.VkpfMengenstaffelDto;
 import com.lp.server.artikel.service.VkpfartikelpreislisteDto;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.system.service.WechselkursDto;
+import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
 
 /*
@@ -86,8 +97,7 @@ import com.lp.util.Helper;
  * 
  * @version $Revision: 1.33 $
  */
-public class PanelVkpfPreise extends PanelBasis implements
-		PropertyChangeListener {
+public class PanelVkpfPreise extends PanelBasis implements PropertyChangeListener {
 	/**
 	 * 
 	 */
@@ -124,14 +134,18 @@ public class PanelVkpfPreise extends PanelBasis implements
 	private WrapperTextField wtfZusatzbezeichnung2 = null;
 
 	private WrapperNumberField wnfGestehungspreis = null;
-	
+
 	private WrapperNumberField wnfMinverkaufspreis = null;
-	
+
 	private WrapperNumberField wnfLief1Preis = null;
-	
+
 	private WrapperNumberField wnfMaterialzuschlag = null;
 	private WrapperLabel wlaMaterialzuschlag = null;
 	private WrapperLabel wlaMaterialzuschlagWaehrung = null;
+
+	private WrapperNumberField wnfVKPreisInclMaterialzuschlag = null;
+	private WrapperLabel wlaVKPreisInclMaterialzuschlag = null;
+	private WrapperLabel wlaVKPreisInclMaterialzuschlagWaehrung = null;
 
 	private WrapperLabel wlaEinzelvkp = null;
 	private WrapperNumberField wnfEinzelvkp = null;
@@ -150,35 +164,41 @@ public class PanelVkpfPreise extends PanelBasis implements
 	private WrapperLabel[] wlaProzent = null;
 	private WrapperNumberField[] wnfBerechneterPreis = null;
 	private WrapperDateField[] wdfPreisGueltigab = null;
-	
+
+	private WrapperCheckBox wcbVKPreispflichtig = new WrapperCheckBox();
+
 	private boolean bWaehrungsfehlerBereitsEinmalAngezeigt = false;
 
 	private WrapperLabel wlaNichtRabattierbar = null;
 
-
 	private final int iPreiseUINachkommastellen;
 
 	private final boolean vkPreisBasisLief1Preis;
+	private int begruendungAngeben = 0;
 
-	public PanelVkpfPreise(InternalFrame internalFrame, String add2TitleI,
-			Object key) throws Throwable {
+	private PanelQueryFLR panelQueryFLRVKBasis = null;
+	private PanelQueryFLR panelQueryFLREinzelpreis = null;
+
+	public PanelVkpfPreise(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 
-		iPreiseUINachkommastellen = Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK();
+		iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseVK();
 
-		ParametermandantDto p = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(
-						LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ARTIKEL,
-						ParameterFac.PARAMETER_VKPREISBASIS_IST_LIEF1PREIS);
+		ParametermandantDto p = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+				ParameterFac.PARAMETER_VKPREISBASIS_IST_LIEF1PREIS);
 		if (p != null && p.getCWert().equals("1")) {
 			vkPreisBasisLief1Preis = true;
 		} else {
 			vkPreisBasisLief1Preis = false;
 		}
+
+		p = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(LPMain.getTheClient().getMandant(),
+				ParameterFac.KATEGORIE_ARTIKEL, ParameterFac.PARAMETER_BEGRUENDUNG_BEI_VKPREISAENDERUNG);
+		if (p != null) {
+			begruendungAngeben = (Integer) p.getCWertAsObject();
+		}
+
 		jbInit();
 		initComponents();
 		initPreislisten();
@@ -193,24 +213,20 @@ public class PanelVkpfPreise extends PanelBasis implements
 
 		// Actionpanel setzen und anhaengen
 		JPanel panelButtonAction = getToolsPanel();
-		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		String[] aWhichButtonIUse = null;
 
 		wbuTagZurueck.setText("<");
-		wbuTagZurueck
-				.addActionListener(new PanelVkpfPreise_wbuTagZurueck_actionAdapter(
-						this));
+		wbuTagZurueck.addActionListener(new PanelVkpfPreise_wbuTagZurueck_actionAdapter(this));
 		wbuTagZurueck.setMaximumSize(new Dimension(25, 21));
 		wbuTagZurueck.setMinimumSize(new Dimension(25, 21));
 		wbuTagZurueck.setPreferredSize(new Dimension(25, 21));
 
+		
 		wbuNaechsterTag.setText(">");
-		wbuNaechsterTag
-				.addActionListener(new PanelVkpfPreise_wbuNaechsterTag_actionAdapter(
-						this));
+		wbuNaechsterTag.addActionListener(new PanelVkpfPreise_wbuNaechsterTag_actionAdapter(this));
 		wbuNaechsterTag.setMaximumSize(new Dimension(25, 21));
 		wbuNaechsterTag.setMinimumSize(new Dimension(25, 21));
 		wbuNaechsterTag.setPreferredSize(new Dimension(25, 21));
@@ -218,32 +234,33 @@ public class PanelVkpfPreise extends PanelBasis implements
 		// zusaetzliche buttons
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_AENDERN_VERKAUF)) {
-			aWhichButtonIUse = new String[] { PanelBasis.ACTION_UPDATE,
-					PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD,
-					PanelBasis.ACTION_PREVIOUS, PanelBasis.ACTION_NEXT };
+
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
+					PanelBasis.ACTION_DELETE, PanelBasis.ACTION_DISCARD, PanelBasis.ACTION_PREVIOUS,
+					PanelBasis.ACTION_NEXT };
 
 		} else {
-			aWhichButtonIUse = new String[] { PanelBasis.ACTION_PREVIOUS,
-					PanelBasis.ACTION_NEXT };
+			aWhichButtonIUse = new String[] { PanelBasis.ACTION_PREVIOUS, PanelBasis.ACTION_NEXT };
 		}
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
-
 		wlaPreisgueltigkeitsanzeigeab = new WrapperLabel(LPMain.getTextRespectUISPr("vkpf.preisgueltigkeitsanzeigeab"));
 		wdfPreisgueltigkeitsanzeigeab = new WrapperDateField();
 		wdfPreisgueltigkeitsanzeigeab.setMandatoryField(true);
-		datGueltigkeitsanzeigeab = Helper.cutDate(new Date(System
-				.currentTimeMillis()));
+		datGueltigkeitsanzeigeab = Helper.cutDate(new Date(System.currentTimeMillis()));
 		wdfPreisgueltigkeitsanzeigeab.setDate(datGueltigkeitsanzeigeab);
-		wdfPreisgueltigkeitsanzeigeab.getDisplay().addPropertyChangeListener(
-				this);
+		wdfPreisgueltigkeitsanzeigeab.addPropertyChangeListener("date", this);
 		wdfPreisgueltigkeitsanzeigeab.setActivatable(false);
 
-		wlaIdent = new WrapperLabel(LPMain.getTextRespectUISPr(
-				"artikel.artikelnummer"));
+		wlaIdent = new WrapperLabel(LPMain.getTextRespectUISPr("artikel.artikelnummer"));
 		wtfIdent = new WrapperTextField();
 		wtfIdent.setActivatable(false);
+
+		wcbVKPreispflichtig.setText(LPMain.getTextRespectUISPr("artikel.vkpreisflichtig"));
+		wcbVKPreispflichtig.setToolTipText(LPMain.getTextRespectUISPr("artikel.vkpreisflichtig.tooltip"));
+		wcbVKPreispflichtig.setActivatable(false);
+		
 
 		wlaBezeichnung = new WrapperLabel(LPMain.getTextRespectUISPr("lp.bezeichnung"));
 		wtfBezeichnung = new WrapperTextField();
@@ -253,11 +270,17 @@ public class PanelVkpfPreise extends PanelBasis implements
 		wtfZusatzbezeichnung = new WrapperTextField();
 		wtfZusatzbezeichnung.setActivatable(false);
 
-		wlaZusatzbezeichnung2 = new WrapperLabel(LPMain.getTextRespectUISPr("lp.zusatzbez2")); // wird ungekuerzt zu
+		wlaZusatzbezeichnung2 = new WrapperLabel(LPMain.getTextRespectUISPr("lp.zusatzbez2")); // wird ungekuerzt
+																								// zu
 		// breit
-		
+
 		wtfZusatzbezeichnung2 = new WrapperTextField();
 		wtfZusatzbezeichnung2.setActivatable(false);
+
+		int iLaengenBezeichung = DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
+		wtfBezeichnung.setColumnsMax(iLaengenBezeichung);
+		wtfZusatzbezeichnung.setColumnsMax(iLaengenBezeichung);
+		wtfZusatzbezeichnung2.setColumnsMax(iLaengenBezeichung);
 
 		WrapperLabel wlaGestehungspreis = null;
 		WrapperLabel wlaGestehungspreisWaehrung = null;
@@ -265,15 +288,15 @@ public class PanelVkpfPreise extends PanelBasis implements
 		WrapperLabel wlaMinverkaufspreisWaehrung = null;
 		WrapperLabel wlaLief1Preis = null;
 		WrapperLabel wlaLief1PreisWaehrung = null;
-		
+
 		wlaGestehungspreis = new WrapperLabel(LPMain.getTextRespectUISPr("lp.gestehungspreis"));
 		wnfGestehungspreis = new WrapperNumberField();
 		wnfGestehungspreis.setActivatable(false);
-		
-		
-		int iNachkommastellenGestpreis=Defaults.getInstance().getIUINachkommastellenPreiseVK();
-		if(Defaults.getInstance().getIUINachkommastellenPreiseEK()>Defaults.getInstance().getIUINachkommastellenPreiseVK()){
-			iNachkommastellenGestpreis=Defaults.getInstance().getIUINachkommastellenPreiseEK();
+
+		int iNachkommastellenGestpreis = Defaults.getInstance().getIUINachkommastellenPreiseVK();
+		if (Defaults.getInstance().getIUINachkommastellenPreiseEK() > Defaults.getInstance()
+				.getIUINachkommastellenPreiseVK()) {
+			iNachkommastellenGestpreis = Defaults.getInstance().getIUINachkommastellenPreiseEK();
 		}
 		wnfGestehungspreis.setFractionDigits(iNachkommastellenGestpreis);
 		wlaGestehungspreisWaehrung = new WrapperLabel(LPMain.getTheClient().getSMandantenwaehrung());
@@ -285,13 +308,31 @@ public class PanelVkpfPreise extends PanelBasis implements
 		wnfLief1Preis.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseEK());
 		wlaLief1PreisWaehrung = new WrapperLabel(LPMain.getTheClient().getSMandantenwaehrung());
 		wlaLief1PreisWaehrung.setHorizontalAlignment(SwingConstants.LEADING);
-		
+
 		wlaMaterialzuschlag = new WrapperLabel(LPMain.getTextRespectUISPr("lp.materialzuschlag"));
 		wnfMaterialzuschlag = new WrapperNumberField();
 		wnfMaterialzuschlag.setActivatable(false);
 		wnfMaterialzuschlag.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_METALLNOTIERUNG_DETAILLIERT)) {
+			wlaVKPreisInclMaterialzuschlag = new WrapperLabel(
+					LPMain.getTextRespectUISPr("artikel.preis.ohnematzuschlag"));
+		} else {
+
+			wlaVKPreisInclMaterialzuschlag = new WrapperLabel(
+					LPMain.getTextRespectUISPr("artkel.preis.inclmatzuschlag"));
+		}
+
+		wnfVKPreisInclMaterialzuschlag = new WrapperNumberField();
+		wnfVKPreisInclMaterialzuschlag.setActivatable(false);
+		wnfVKPreisInclMaterialzuschlag.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+
 		wlaMaterialzuschlagWaehrung = new WrapperLabel(LPMain.getTheClient().getSMandantenwaehrung());
 		wlaMaterialzuschlagWaehrung.setHorizontalAlignment(SwingConstants.LEADING);
+
+		wlaVKPreisInclMaterialzuschlagWaehrung = new WrapperLabel(LPMain.getTheClient().getSMandantenwaehrung());
+		wlaVKPreisInclMaterialzuschlagWaehrung.setHorizontalAlignment(SwingConstants.LEADING);
 
 		wlaMinverkaufspreis = new WrapperLabel(LPMain.getTextRespectUISPr("lp.minverkaufspreisshort"));
 		wnfMinverkaufspreis = new WrapperNumberField();
@@ -299,7 +340,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 		wnfMinverkaufspreis.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
 		wlaMinverkaufspreisWaehrung = new WrapperLabel(LPMain.getTheClient().getSMandantenwaehrung());
 		wlaMinverkaufspreisWaehrung.setHorizontalAlignment(SwingConstants.LEADING);
-		
+
 		wlaFixpreis = new WrapperLabel(LPMain.getTextRespectUISPr("lp.fixpreis"));
 		wlaFixpreis.setHorizontalAlignment(SwingConstants.CENTER);
 		wlaRabattsatz = new WrapperLabel(LPMain.getTextRespectUISPr("label.rabattsumme"));
@@ -312,7 +353,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 		wnfEinzelvkp = new WrapperNumberField();
 		wnfEinzelvkp.setFractionDigits(iPreiseUINachkommastellen);
 		wlaWaehrung1 = new WrapperLabel();
-		wlaWaehrung1.setHorizontalAlignment(SwingConstants.LEADING);
+		wlaWaehrung1.setHorizontalAlignment(SwingConstants.LEFT);
 
 		wlaEinzelvkpGueltigab = new WrapperLabel(LPMain.getTextRespectUISPr("vkpf.vkbasisgueltigab"));
 
@@ -324,46 +365,37 @@ public class PanelVkpfPreise extends PanelBasis implements
 			wlaWaehrung1.setVisible(false);
 			wlaEinzelvkpGueltigab.setVisible(false);
 			wdfEinzelvkpGueltigab.setVisible(false);
-			wnfLief1Preis.setBorder(Defaults.getInstance()
-					.getMandatoryFieldBorder());
+			wnfLief1Preis.setBorder(Defaults.getInstance().getMandatoryFieldBorder());
 		} else {
 			wnfEinzelvkp.setDependenceField(true);
 			wnfEinzelvkp.setMandatoryField(true);
-			wnfEinzelvkp
-					.addFocusListener(new PanelVkpfPreise_wnfEinzelvkp_focusAdapter(
-							this));
+			wnfEinzelvkp.addFocusListener(new PanelVkpfPreise_wnfEinzelvkp_focusAdapter(this));
 			wdfEinzelvkpGueltigab.setMandatoryField(true);
 		}
 
 		wlaNichtRabattierbar = new WrapperLabel();
 		wlaNichtRabattierbar.setForeground(Color.RED);
-		
+
+		getInternalFrame().addItemChangedListener(this);
+
 		// Workingpanel
 		jPanelWorkingOn = new JPanel(new MigLayout("wrap 8, hidemode 2",
 				"[fill,20%|fill,12.5%|fill,5%|fill,22.5%|fill,5%|fill,15%|fill,5%|fill,3%]"));
-		add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		
+		add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
 		JPanel gueltigkeitsanzeigePanel = new JPanel(new GridBagLayout());
-		gueltigkeitsanzeigePanel.add(wlaPreisgueltigkeitsanzeigeab,
-				new GridBagConstraints(0, 0, 1, 1, 0.5, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		gueltigkeitsanzeigePanel.add(wbuTagZurueck, new GridBagConstraints(1, 0, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
-		gueltigkeitsanzeigePanel.add(wdfPreisgueltigkeitsanzeigeab,
-				new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		gueltigkeitsanzeigePanel.add(wbuNaechsterTag, new GridBagConstraints(3, 0,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
-		
+		gueltigkeitsanzeigePanel.add(wlaPreisgueltigkeitsanzeigeab, new GridBagConstraints(0, 0, 1, 1, 0.5, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		gueltigkeitsanzeigePanel.add(wbuTagZurueck, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
+		gueltigkeitsanzeigePanel.add(wdfPreisgueltigkeitsanzeigeab, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		gueltigkeitsanzeigePanel.add(wbuNaechsterTag, new GridBagConstraints(3, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 20, 0));
+
 		jPanelWorkingOn.add(gueltigkeitsanzeigePanel, "span");
 
 		jPanelWorkingOn.add(wlaIdent);
@@ -379,7 +411,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 		jPanelWorkingOn.add(wlaZusatzbezeichnung2);
 		jPanelWorkingOn.add(wtfZusatzbezeichnung2, "span 4");
 		jPanelWorkingOn.add(wlaMaterialzuschlag, "span 2");
-		jPanelWorkingOn.add(wnfMaterialzuschlag, "split, span, w 10%!");
+		jPanelWorkingOn.add(wnfMaterialzuschlag, "split, span, w 12%!");
 		jPanelWorkingOn.add(wlaMaterialzuschlagWaehrung, "wrap, w 5%!");
 
 		jPanelWorkingOn.add(wlaLief1Preis);
@@ -387,20 +419,98 @@ public class PanelVkpfPreise extends PanelBasis implements
 		jPanelWorkingOn.add(wlaLief1PreisWaehrung);
 		jPanelWorkingOn.add(wlaGestehungspreis, "split 2, span 2, right, w 15%!");
 		jPanelWorkingOn.add(wnfGestehungspreis, " w 10%!");
-		jPanelWorkingOn.add(wlaGestehungspreisWaehrung, "split 2, span 2, w 5%!");		
+		jPanelWorkingOn.add(wlaGestehungspreisWaehrung, "split 2, span 2, w 5%!");
 		jPanelWorkingOn.add(wlaMinverkaufspreis);
-		jPanelWorkingOn.add(wnfMinverkaufspreis, "split, span, w 10%!");
+		jPanelWorkingOn.add(wnfMinverkaufspreis, "split, span, w 12%!");
 		jPanelWorkingOn.add(wlaMinverkaufspreisWaehrung, "wrap, w 5%!");
 
 		jPanelWorkingOn.add(wlaEinzelvkp);
 		jPanelWorkingOn.add(wnfEinzelvkp);
 		jPanelWorkingOn.add(wlaWaehrung1);
-		jPanelWorkingOn.add(wlaEinzelvkpGueltigab, "span 3");
-		jPanelWorkingOn.add(wdfEinzelvkpGueltigab, "span");
+		jPanelWorkingOn.add(wlaVKPreisInclMaterialzuschlag, "split 2, span 2, right, w 15%!");
+		jPanelWorkingOn.add(wnfVKPreisInclMaterialzuschlag, " w 10%!");
+		jPanelWorkingOn.add(wlaVKPreisInclMaterialzuschlagWaehrung, "split 2, span 2, w 5%!");
+		jPanelWorkingOn.add(wlaEinzelvkpGueltigab);
+		jPanelWorkingOn.add(wdfEinzelvkpGueltigab, "split, span 3, w 13%!");
+		jPanelWorkingOn.add(new WrapperLabel(""), "wrap, w 5%!");
+
+		// private WrapperLabel wlaVKPreisInclMaterialzuschlagWaehrung = null;
+
+		// jPanelWorkingOn.add(wlaEinzelvkpGueltigab);
+		// jPanelWorkingOn.add(wdfEinzelvkpGueltigab, "span");
 
 		jPanelWorkingOn.add(wlaFixpreis, "skip");
 		jPanelWorkingOn.add(wlaRabattsatz, "span 2");
-		jPanelWorkingOn.add(wlaBerechneterpreis, "span 3, wrap");
+		jPanelWorkingOn.add(wlaBerechneterpreis, "span 3");
+		jPanelWorkingOn.add(wcbVKPreispflichtig, "span 2, wrap");
+
+	}
+
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
+			if (e.getSource() == panelQueryFLRVKBasis) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+
+				VkPreisfindungEinzelverkaufspreisDto dto = new VkPreisfindungEinzelverkaufspreisDto();
+				dto.setIId((Integer) key);
+				DelegateFactory.getInstance().getVkPreisfindungDelegate().removeVkPreisfindungEinzelverkaufspreis(dto);
+
+				eventYouAreSelected(false);
+			}
+			if (e.getSource() == panelQueryFLREinzelpreis) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+
+				VkPreisfindungPreislisteDto dto = new VkPreisfindungPreislisteDto();
+				dto.setIId((Integer) key);
+				DelegateFactory.getInstance().getVkPreisfindungDelegate().removeVkPreisfindungPreisliste(dto);
+
+				eventYouAreSelected(false);
+			}
+
+		}
+	}
+
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+			throws Throwable {
+
+		int indexBasis = 0;
+		int indexEinzelpreis = 1;
+		int iAnzahlOptionen = 2;
+
+		Object[] aOptionen = new Object[iAnzahlOptionen];
+
+		aOptionen[indexBasis] = LPMain.getTextRespectUISPr("artikel.label.einzelverkaufspreis");
+		aOptionen[indexEinzelpreis] = LPMain.getTextRespectUISPr("artikel.vkpreisloeschen.einzelpreis");
+
+		int iAuswahl = DialogFactory.showModalDialog(getInternalFrame(),
+				LPMain.getTextRespectUISPr("artikel.vkpreisloeschen.auswahl"), LPMain.getTextRespectUISPr("lp.frage"),
+				aOptionen, aOptionen[0]);
+
+		if (iAuswahl == indexBasis) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH };
+
+			panelQueryFLRVKBasis = new PanelQueryFLR(null,
+					ArtikelFilterFactory.getInstance()
+							.createFKVKpreisbasis(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId()),
+					QueryParameters.UC_ID_VKPREISBASIS, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.label.einzelverkaufspreis"));
+
+			new DialogQuery(panelQueryFLRVKBasis);
+
+		} else if (iAuswahl == indexEinzelpreis) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH };
+
+			panelQueryFLREinzelpreis = new PanelQueryFLR(null,
+					ArtikelFilterFactory.getInstance()
+							.createFKVKpreisbasis(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId()),
+					QueryParameters.UC_ID_VKEINZELPREIS, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("artikel.label.einzelverkaufspreis"));
+
+			new DialogQuery(panelQueryFLREinzelpreis);
+
+		}
+
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -413,29 +523,39 @@ public class PanelVkpfPreise extends PanelBasis implements
 	 * @throws Throwable
 	 */
 	private void refreshPreise() throws Throwable {
-		ArtikelDto artikelDto = DelegateFactory
-				.getInstance()
-				.getArtikelDelegate()
-				.artikelFindByPrimaryKey(
-						((InternalFrameArtikel) getInternalFrame())
-								.getArtikelDto().getIId());
+		ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+				.artikelFindByPrimaryKey(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId());
+		
+		//Aktualisiert auch Datumsabhaengige Felder, z.B. Lief1Preis
+		artikelDto2comp(artikelDto);
 
 		// die gewuenschte Verkaufspreisbasis anzeigen
-		verkaufspreisbasisDto = DelegateFactory
-				.getInstance()
-				.getVkPreisfindungDelegate()
-				.getArtikeleinzelverkaufspreis(artikelDto.getIId(),
-						datGueltigkeitsanzeigeab,
-						LPMain.getTheClient().getSMandantenwaehrung());
+		verkaufspreisbasisDto = DelegateFactory.getInstance().getVkPreisfindungDelegate().getArtikeleinzelverkaufspreis(
+				artikelDto.getIId(), datGueltigkeitsanzeigeab, LPMain.getTheClient().getSMandantenwaehrung());
 
 		verkaufspreisbasisDto2comp(verkaufspreisbasisDto);
 
-		wlaWaehrung1.setText(DelegateFactory
-				.getInstance()
-				.getMandantDelegate()
-				.mandantFindByPrimaryKey(
-						LPMain.getTheClient().getMandant())
-				.getWaehrungCNr());
+		if (wnfEinzelvkp.getBigDecimal() != null) {
+			if (wnfMaterialzuschlag.getBigDecimal() != null) {
+
+				if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_METALLNOTIERUNG_DETAILLIERT)) {
+					wnfVKPreisInclMaterialzuschlag
+							.setBigDecimal(wnfEinzelvkp.getBigDecimal().subtract(wnfMaterialzuschlag.getBigDecimal()));
+				} else {
+					wnfVKPreisInclMaterialzuschlag
+							.setBigDecimal(wnfEinzelvkp.getBigDecimal().add(wnfMaterialzuschlag.getBigDecimal()));
+				}
+
+			} else {
+				wnfVKPreisInclMaterialzuschlag.setBigDecimal(wnfEinzelvkp.getBigDecimal());
+			}
+		} else {
+			wnfVKPreisInclMaterialzuschlag.setBigDecimal(null);
+		}
+
+		wlaWaehrung1.setText(DelegateFactory.getInstance().getMandantDelegate()
+				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getWaehrungCNr());
 
 		// Preisinformationen fuer Preislisten anzeigen
 		preislisteDtos = new VkPreisfindungPreislisteDto[aVkpfartikelpreislisteDtos.length];
@@ -443,13 +563,9 @@ public class PanelVkpfPreise extends PanelBasis implements
 		for (int i = 0; i < preislisteDtos.length; i++) {
 
 			// angezeigt werden die aktuell gewuenschten Preise
-			preislisteDtos[i] = DelegateFactory
-					.getInstance()
-					.getVkPreisfindungDelegate()
-					.getAktuellePreislisteByArtikelIIdPreislisteIId(
-							artikelDto.getIId(),
-							aVkpfartikelpreislisteDtos[i].getIId(),
-							datGueltigkeitsanzeigeab,
+			preislisteDtos[i] = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+					.getAktuellePreislisteByArtikelIIdPreislisteIId(artikelDto.getIId(),
+							aVkpfartikelpreislisteDtos[i].getIId(), datGueltigkeitsanzeigeab,
 							aVkpfartikelpreislisteDtos[i].getWaehrungCNr());
 
 			// das Gultiegkeitsdatum der Verkaufspreisbasis schraenkt das
@@ -463,8 +579,8 @@ public class PanelVkpfPreise extends PanelBasis implements
 	}
 
 	private void initPreislisten() throws Throwable {
-		aVkpfartikelpreislisteDtos = DelegateFactory.getInstance()
-				.getVkPreisfindungDelegate().getAlleAktivenPreislisten();
+		aVkpfartikelpreislisteDtos = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+				.getAlleAktivenPreislisten();
 
 		// alle vorhandenen preislisten anzeigen
 		wlaPreislistenname = new WrapperLabel[aVkpfartikelpreislisteDtos.length];
@@ -481,28 +597,24 @@ public class PanelVkpfPreise extends PanelBasis implements
 			// die Nummerierung der Preislisten beginnt mit 1 und ist
 			// fortlaufend
 			int iNummer = i + 1;
-			boolean isFremdWaehrung = !(aVkpfartikelpreislisteDtos[i]
-					.getWaehrungCNr().equals(mw));
+			boolean isFremdWaehrung = !(aVkpfartikelpreislisteDtos[i].getWaehrungCNr().equals(mw));
 
-			wlaPreislistenname[i] = new WrapperLabel(iNummer + " "
-					+ aVkpfartikelpreislisteDtos[i].getCNr());
-			wlaPreislistenname[i]
-					.setHorizontalAlignment(SwingConstants.LEADING);
+			wlaPreislistenname[i] = new WrapperLabel(iNummer + " " + aVkpfartikelpreislisteDtos[i].getCNr());
+			wlaPreislistenname[i].setHorizontalAlignment(SwingConstants.LEADING);
 
 			jPanelWorkingOn.add(wlaPreislistenname[i]);
 
 			wnfArtikelfixpreis[i] = new WrapperNumberField(); // kommt im UI mit
 			// der 15,4
 			// Maske daher
-			wnfArtikelfixpreis[i].setMaximumIntegerDigits(6); // 6
+			// wnfArtikelfixpreis[i].setMaximumIntegerDigits(6); // 6
 			// Vorkommastellen
 			wnfArtikelfixpreis[i].setFractionDigits(iPreiseUINachkommastellen); // UI
 			// Nachkommastellen
-			wnfArtikelfixpreis[i].setMandatoryField(isFremdWaehrung);
+			// wg. PJ21674 auskommentiert
+			// wnfArtikelfixpreis[i].setMandatoryField(isFremdWaehrung);
 			wnfArtikelfixpreis[i].setDependenceField(true);
-			wnfArtikelfixpreis[i]
-					.addFocusListener(new PanelVkpfPreise_artikelfixpreis_focusAdapter(
-							this));
+			wnfArtikelfixpreis[i].addFocusListener(new PanelVkpfPreise_artikelfixpreis_focusAdapter(this));
 
 			jPanelWorkingOn.add(wnfArtikelfixpreis[i]);
 
@@ -511,7 +623,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 			// 15,4
 			// Maske
 			// daher
-			wnfStandardrabattsatz[i].setMaximumIntegerDigits(6); // 6
+			// wnfStandardrabattsatz[i].setMaximumIntegerDigits(6); // 6
 			// Vorkommastellen
 			wnfStandardrabattsatz[i].setFractionDigits(2); // 2 Nachkommastellen
 			// PJ 15081
@@ -520,9 +632,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 			wnfStandardrabattsatz[i].setMandatoryField(!isFremdWaehrung);
 			wnfStandardrabattsatz[i].setDependenceField(true);
 			// wnfStandardrabattsatz[i].setEditable(!isFremdWaehrung);
-			wnfStandardrabattsatz[i]
-					.addFocusListener(new PanelVkpfPreise_standardrabattsatz_focusAdapter(
-							this));
+			wnfStandardrabattsatz[i].addFocusListener(new PanelVkpfPreise_standardrabattsatz_focusAdapter(this));
 			jPanelWorkingOn.add(wnfStandardrabattsatz[i], "span 2");
 
 			wlaProzent[i] = new WrapperLabel(LPMain.getTextRespectUISPr("label.prozent"));
@@ -533,7 +643,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 			wnfBerechneterPreis[i] = new WrapperNumberField(); // kommt im UI
 			// mit der 15,4
 			// Maske daher
-			wnfBerechneterPreis[i].setMaximumIntegerDigits(6); // 6
+			// wnfBerechneterPreis[i].setMaximumIntegerDigits(6); // 6
 			// Vorkommastellen
 			wnfBerechneterPreis[i].setFractionDigits(iPreiseUINachkommastellen); // UI
 			// Preise
@@ -543,8 +653,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 
 			jPanelWorkingOn.add(wnfBerechneterPreis[i]);
 
-			wlaWaehrung[i] = new WrapperLabel(
-					aVkpfartikelpreislisteDtos[i].getWaehrungCNr());
+			wlaWaehrung[i] = new WrapperLabel(aVkpfartikelpreislisteDtos[i].getWaehrungCNr());
 			wlaWaehrung[i].setHorizontalAlignment(SwingConstants.LEADING);
 
 			jPanelWorkingOn.add(wlaWaehrung[i]);
@@ -553,7 +662,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 			wdfPreisGueltigab[i].setMandatoryField(true);
 			wdfPreisGueltigab[i].setDate(datGueltigkeitsanzeigeab);
 
-			jPanelWorkingOn.add(wdfPreisGueltigab[i], "w 15%!, wrap");
+			jPanelWorkingOn.add(wdfPreisGueltigab[i], "w 13%!, wrap");
 		}
 
 		refreshPreise();
@@ -566,27 +675,20 @@ public class PanelVkpfPreise extends PanelBasis implements
 		berechnePreis();
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
+		
 		if (allMandatoryFieldsSetDlg()) {
 			boolean bSpeichern = true;
 
 			if (!vkPreisBasisLief1Preis) { // PJ 15000
 
 				// PJ 08/14231
-				if (verkaufspreisbasisDto != null
-						&& verkaufspreisbasisDto.getIId() != null) {
+				if (verkaufspreisbasisDto != null && verkaufspreisbasisDto.getIId() != null) {
 					if (verkaufspreisbasisDto.getTVerkaufspreisbasisgueltigab() != null) {
-						if (Helper.cutDate(
-								verkaufspreisbasisDto
-										.getTVerkaufspreisbasisgueltigab())
-								.getTime() == Helper.cutDate(
-								wdfEinzelvkpGueltigab.getDate()).getTime()) {
-							boolean b = DialogFactory
-									.showModalJaNeinDialog(
-											getInternalFrame(),
-											LPMain.getTextRespectUISPr(
-															"artikel.error.vkpreisaenderungmitselbemdatum"));
+						if (Helper.cutDate(verkaufspreisbasisDto.getTVerkaufspreisbasisgueltigab()).getTime() == Helper
+								.cutDate(wdfEinzelvkpGueltigab.getDate()).getTime()) {
+							boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+									LPMain.getTextRespectUISPr("artikel.error.vkpreisaenderungmitselbemdatum"));
 							if (b == false) {
 								return;
 							}
@@ -603,23 +705,17 @@ public class PanelVkpfPreise extends PanelBasis implements
 			VkPreisfindungEinzelverkaufspreisDto checkVerkaufspreisbasisDto = null;
 
 			try {
-				checkVerkaufspreisbasisDto = DelegateFactory
-						.getInstance()
-						.getVkPreisfindungDelegate()
-						.einzelverkaufspreisFindByUniqueyKey(
-								verkaufspreisbasisDto.getArtikelIId(),
-								new Date(verkaufspreisbasisDto
-										.getTVerkaufspreisbasisgueltigab()
-										.getTime()));
+				checkVerkaufspreisbasisDto = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+						.einzelverkaufspreisFindByUniqueyKey(verkaufspreisbasisDto.getArtikelIId(),
+								new Date(verkaufspreisbasisDto.getTVerkaufspreisbasisgueltigab().getTime()));
 			} catch (Throwable t) {
 				// continue
 			}
 
-			if (checkVerkaufspreisbasisDto != null
-					&& verkaufspreisbasisDto.getIId() != null
-					&& checkVerkaufspreisbasisDto.getIId().intValue() != verkaufspreisbasisDto
-							.getIId().intValue()) {
-				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain.getTextRespectUISPr("vkpf.error.gueltigabbelegt"));
+			if (checkVerkaufspreisbasisDto != null && verkaufspreisbasisDto.getIId() != null
+					&& checkVerkaufspreisbasisDto.getIId().intValue() != verkaufspreisbasisDto.getIId().intValue()) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("vkpf.error.gueltigabbelegt"));
 
 				bSpeichern = false;
 			}
@@ -635,31 +731,23 @@ public class PanelVkpfPreise extends PanelBasis implements
 					VkPreisfindungPreislisteDto checkPreisDto = null;
 
 					try {
-						checkPreisDto = DelegateFactory
-								.getInstance()
-								.getVkPreisfindungDelegate()
-								.preislisteFindByUniqueyKey(
-										preislisteDtos[i]
-												.getVkpfartikelpreislisteIId(),
-										preislisteDtos[i].getArtikelIId(),
-										wdfPreisGueltigab[i].getDate());
+						checkPreisDto = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+								.preislisteFindByUniqueyKey(preislisteDtos[i].getVkpfartikelpreislisteIId(),
+										preislisteDtos[i].getArtikelIId(), wdfPreisGueltigab[i].getDate());
 					} catch (Throwable t) {
 						// continue
 					}
 
 					if (checkPreisDto != null
-							&& checkPreisDto.getIId().intValue() != preislisteDtos[i]
-									.getIId().intValue()) {
-						MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr(
-										"vkpf.error.preisgueltigabbelegt"));
+							&& checkPreisDto.getIId().intValue() != preislisteDtos[i].getIId().intValue()) {
+						MessageFormat mf = new MessageFormat(
+								LPMain.getTextRespectUISPr("vkpf.error.preisgueltigabbelegt"));
 
-						mf.setLocale(LPMain.getTheClient()
-								.getLocUi());
+						mf.setLocale(LPMain.getTheClient().getLocUi());
 
 						Object pattern[] = { wlaPreislistenname[i].getText() };
 
-						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), mf
-								.format(pattern));
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), mf.format(pattern));
 
 						bSpeichern = false;
 					}
@@ -667,22 +755,56 @@ public class PanelVkpfPreise extends PanelBasis implements
 			}
 
 			if (bSpeichern) {
+
+				String bemerkung = null;
+
+				if (begruendungAngeben > 0) {
+
+					// Nur Wenn es noch keinen VK-Preisbasis gibt
+					VkPreisfindungEinzelverkaufspreisDto vorhanden = DelegateFactory.getInstance()
+							.getVkPreisfindungDelegate()
+							.getArtikeleinzelverkaufspreis(verkaufspreisbasisDto.getArtikelIId(),
+									datGueltigkeitsanzeigeab, LPMain.getTheClient().getSMandantenwaehrung());
+
+					if ((begruendungAngeben == 1 && vorhanden != null) || begruendungAngeben == 2) {
+						bemerkung = JOptionPane.showInputDialog(getInternalFrame(),
+								LPMain.getTextRespectUISPr("artikel.vkpreis.bemerkung"),
+								LPMain.getTextRespectUISPr("lp.frage"), JOptionPane.QUESTION_MESSAGE);
+						verkaufspreisbasisDto.setCBemerkung(bemerkung);
+					}
+				}
+
 				if (!vkPreisBasisLief1Preis) { // PJ 15000
-					if (verkaufspreisbasisDto.getIId() == null
-							|| checkVerkaufspreisbasisDto == null) {
-						Integer pkEinzelvkp = DelegateFactory
-								.getInstance()
-								.getVkPreisfindungDelegate()
-								.createVkPreisfindungEinzelverkaufspreis(
-										verkaufspreisbasisDto);
+
+					if (verkaufspreisbasisDto.getIId() == null || checkVerkaufspreisbasisDto == null) {
+						Integer pkEinzelvkp = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+								.createVkPreisfindungEinzelverkaufspreis(verkaufspreisbasisDto);
 						verkaufspreisbasisDto.setIId(pkEinzelvkp);
 					} else {
-						DelegateFactory
-								.getInstance()
+						VkPreisfindungEinzelverkaufspreisDto preisbasisDtoZuVergleichen = DelegateFactory.getInstance()
 								.getVkPreisfindungDelegate()
-								.updateVkPreisfindungEinzelverkaufspreis(
-										verkaufspreisbasisDto);
+								.vkPreisfindungEinzelverkaufspreisfindByPrimaryKey(verkaufspreisbasisDto.getIId());
+
+						// PJ20334
+						if (preisbasisDtoZuVergleichen.getNVerkaufspreisbasis().doubleValue() != verkaufspreisbasisDto
+								.getNVerkaufspreisbasis().doubleValue()
+								|| !preisbasisDtoZuVergleichen.getTVerkaufspreisbasisgueltigab()
+										.equals(verkaufspreisbasisDto.getTVerkaufspreisbasisgueltigab())) {
+
+						}
+
+						DelegateFactory.getInstance().getVkPreisfindungDelegate()
+								.updateVkPreisfindungEinzelverkaufspreis(verkaufspreisbasisDto);
 					}
+				}
+
+				// PJ20789
+				ArtikelDto aDto = DelegateFactory.getInstance().getArtikelDelegate()
+						.artikelFindByPrimaryKey(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId());
+
+				if (!aDto.getBVkpreispflichtig().equals(wcbVKPreispflichtig.getShort())) {
+					aDto.setBVkpreispflichtig(wcbVKPreispflichtig.getShort());
+					DelegateFactory.getInstance().getArtikelDelegate().updateArtikel(aDto);
 				}
 
 				// die Preise des Artikels in der jweiligen Preisliste
@@ -697,50 +819,35 @@ public class PanelVkpfPreise extends PanelBasis implements
 						VkPreisfindungPreislisteDto checklisteDto = null;
 
 						try {
-							checklisteDto = DelegateFactory
-									.getInstance()
-									.getVkPreisfindungDelegate()
-									.preislisteFindByUniqueyKey(
-											preislisteDtos[i]
-													.getVkpfartikelpreislisteIId(),
+							checklisteDto = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+									.preislisteFindByUniqueyKey(preislisteDtos[i].getVkpfartikelpreislisteIId(),
 											preislisteDtos[i].getArtikelIId(),
-											new Date(preislisteDtos[i]
-													.getTPreisgueltigab()
-													.getTime()));
+											new Date(preislisteDtos[i].getTPreisgueltigab().getTime()));
 						} catch (Throwable t) {
 							// continue
 						}
 
-						if (preislisteDtos[i].getIId() == null
-								|| checklisteDto == null) {
+						preislisteDtos[i].setCBemerkung(bemerkung);
+
+						if (preislisteDtos[i].getIId() == null || checklisteDto == null) {
 							// einen neuen Preis anlegen
-							Integer pkPreisliste = DelegateFactory
-									.getInstance()
-									.getVkPreisfindungDelegate()
-									.createVkPreisfindungPreisliste(
-											preislisteDtos[i]);
+							Integer pkPreisliste = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+									.createVkPreisfindungPreisliste(preislisteDtos[i]);
 							preislisteDtos[i].setIId(pkPreisliste);
 						} else {
-							DelegateFactory
-									.getInstance()
-									.getVkPreisfindungDelegate()
-									.updateVkPreisfindungPreisliste(
-											preislisteDtos[i]);
+							DelegateFactory.getInstance().getVkPreisfindungDelegate()
+									.updateVkPreisfindungPreisliste(preislisteDtos[i]);
 						}
 
 					}
 				}
 
 				// PJ 14400
-				VkpfMengenstaffelDto[] vkpfMengenstaffelDtos = DelegateFactory
-						.getInstance()
-						.getVkPreisfindungDelegate()
-						.vkpfMengenstaffelFindByArtikelIIdGueltigkeitsdatum(
-								verkaufspreisbasisDto.getArtikelIId(),
+				VkpfMengenstaffelDto[] vkpfMengenstaffelDtos = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+						.vkpfMengenstaffelFindByArtikelIIdGueltigkeitsdatum(verkaufspreisbasisDto.getArtikelIId(),
 								wdfPreisgueltigkeitsanzeigeab.getDate(), null);
 
-				if (vkpfMengenstaffelDtos != null
-						&& vkpfMengenstaffelDtos.length > 0) {
+				if (vkpfMengenstaffelDtos != null && vkpfMengenstaffelDtos.length > 0) {
 					boolean bMeldungMussangezeigtWerden = false;
 					for (int i = 0; i < vkpfMengenstaffelDtos.length; i++) {
 						if (vkpfMengenstaffelDtos[i].getNArtikelfixpreis() != null) {
@@ -749,11 +856,8 @@ public class PanelVkpfPreise extends PanelBasis implements
 					}
 
 					if (bMeldungMussangezeigtWerden) {
-						DialogFactory.showModalDialog(
-								LPMain.getTextRespectUISPr(
-										"lp.hinweis"),
-								LPMain.getTextRespectUISPr(
-										"artikel.error.staffelpreiseaendern"));
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+								LPMain.getTextRespectUISPr("artikel.error.staffelpreiseaendern"));
 					}
 
 				}
@@ -780,56 +884,39 @@ public class PanelVkpfPreise extends PanelBasis implements
 	 * @return VkPreisfindungEinzelverkaufspreisDto
 	 * @throws Throwable
 	 */
-	private VkPreisfindungEinzelverkaufspreisDto comp2verkaufspreisbasisDto()
-			throws Throwable {
-		if (verkaufspreisbasisDto == null
-				|| verkaufspreisbasisDto.getIId() == null) {
+	private VkPreisfindungEinzelverkaufspreisDto comp2verkaufspreisbasisDto() throws Throwable {
+		if (verkaufspreisbasisDto == null || verkaufspreisbasisDto.getIId() == null) {
 			verkaufspreisbasisDto = new VkPreisfindungEinzelverkaufspreisDto();
 			verkaufspreisbasisDto.setMandantCNr(LPMain.getTheClient().getMandant());
-			verkaufspreisbasisDto
-					.setArtikelIId(((InternalFrameArtikel) getInternalFrame())
-							.getArtikelDto().getIId());
+			verkaufspreisbasisDto.setArtikelIId(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId());
 		}
 
-		verkaufspreisbasisDto.setNVerkaufspreisbasis(this.wnfEinzelvkp
-				.getBigDecimal());
-		verkaufspreisbasisDto
-				.setTVerkaufspreisbasisgueltigab(this.wdfEinzelvkpGueltigab
-						.getDate());
+		verkaufspreisbasisDto.setNVerkaufspreisbasis(this.wnfEinzelvkp.getBigDecimal());
+		verkaufspreisbasisDto.setTVerkaufspreisbasisgueltigab(this.wdfEinzelvkpGueltigab.getDate());
 
 		return verkaufspreisbasisDto;
 	}
 
 	/**
-	 * Diese Methode baut die Preise fuer den Artikel in der jeweiligen
-	 * Preisliste zusammen.
+	 * Diese Methode baut die Preise fuer den Artikel in der jeweiligen Preisliste
+	 * zusammen.
 	 * 
 	 * @return VkPreisfindungPreislisteDto[]
 	 * @throws Throwable
 	 */
-	private VkPreisfindungPreislisteDto[] comp2preislisteDtos()
-			throws Throwable {
+	private VkPreisfindungPreislisteDto[] comp2preislisteDtos() throws Throwable {
 		for (int i = 0; i < preislisteDtos.length; i++) {
-			if (this.preislisteDtos[i] == null
-					|| preislisteDtos[i].getIId() == null) {
+			if (this.preislisteDtos[i] == null || preislisteDtos[i].getIId() == null) {
 				preislisteDtos[i] = new VkPreisfindungPreislisteDto();
-				preislisteDtos[i]
-						.setArtikelIId(((InternalFrameArtikel) getInternalFrame())
-								.getArtikelDto().getIId());
-				preislisteDtos[i]
-						.setVkpfartikelpreislisteIId(this.aVkpfartikelpreislisteDtos[i]
-								.getIId());
+				preislisteDtos[i].setArtikelIId(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId());
+				preislisteDtos[i].setVkpfartikelpreislisteIId(this.aVkpfartikelpreislisteDtos[i].getIId());
 			}
 
-			preislisteDtos[i].setNArtikelfixpreis(wnfArtikelfixpreis[i]
-					.getBigDecimal());
-			preislisteDtos[i]
-					.setNArtikelstandardrabattsatz(wnfStandardrabattsatz[i]
-							.getBigDecimal());
+			preislisteDtos[i].setNArtikelfixpreis(wnfArtikelfixpreis[i].getBigDecimal());
+			preislisteDtos[i].setNArtikelstandardrabattsatz(wnfStandardrabattsatz[i].getBigDecimal());
 
 			// preislisteDtos[i].setDGueltigab(wdfPreisGueltigab[i].getDate());
-			preislisteDtos[i].setTPreisgueltigab(Helper
-					.cutDate(wdfPreisGueltigab[i].getDate()));
+			preislisteDtos[i].setTPreisgueltigab(Helper.cutDate(wdfPreisGueltigab[i].getDate()));
 		}
 
 		return preislisteDtos;
@@ -838,18 +925,13 @@ public class PanelVkpfPreise extends PanelBasis implements
 	private void artikelDto2comp(ArtikelDto artikelDto) throws Throwable {
 		if (artikelDto != null && artikelDto.getIId() != null) {
 
+			wcbVKPreispflichtig.setShort(artikelDto.getBVkpreispflichtig());
+
 			if (getInternalFrame().bRechtDarfPreiseSehenEinkauf) {
 
-				ArtikellieferantDto alDto = DelegateFactory
-						.getInstance()
-						.getArtikelDelegate()
-						.getArtikelEinkaufspreis(
-								artikelDto.getIId(),
-								null,
-								new BigDecimal(0),
-								LPMain.getTheClient()
-										.getSMandantenwaehrung(),
-								wdfPreisgueltigkeitsanzeigeab.getDate());
+				ArtikellieferantDto alDto = DelegateFactory.getInstance().getArtikelDelegate().getArtikelEinkaufspreis(
+						artikelDto.getIId(), null, new BigDecimal(0), LPMain.getTheClient().getSMandantenwaehrung(),
+						datGueltigkeitsanzeigeab);
 				if (alDto != null && alDto.getLief1Preis() != null) {
 					wnfLief1Preis.setBigDecimal(alDto.getLief1Preis());
 
@@ -858,23 +940,31 @@ public class PanelVkpfPreise extends PanelBasis implements
 				}
 			}
 
-			if (artikelDto.getMaterialIId() != null) {
+			if (artikelDto.getMaterialIId() != null && LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MATERIALZUSCHLAG)) {
 				wnfMaterialzuschlag.setVisible(true);
-				wnfMaterialzuschlag.setBigDecimal(
-								DelegateFactory
-										.getInstance()
-										.getMaterialDelegate()
-										.getMaterialzuschlagVKInZielwaehrung(
-												artikelDto.getIId(),
-												datGueltigkeitsanzeigeab,
-												LPMain.getTheClient()
-														.getSMandantenwaehrung()));
+
+				BigDecimal zuschlag = DelegateFactory.getInstance().getMaterialDelegate()
+						.getMaterialzuschlagVKInZielwaehrung(artikelDto.getIId(), null, datGueltigkeitsanzeigeab,
+								LPMain.getTheClient().getSMandantenwaehrung());
+
+				wnfMaterialzuschlag.setBigDecimal(zuschlag);
 				wlaMaterialzuschlag.setVisible(true);
 				wlaMaterialzuschlagWaehrung.setVisible(true);
+
+				wnfVKPreisInclMaterialzuschlag.setVisible(true);
+				wlaVKPreisInclMaterialzuschlag.setVisible(true);
+				wlaVKPreisInclMaterialzuschlagWaehrung.setVisible(true);
+
 			} else {
 				wnfMaterialzuschlag.setVisible(false);
 				wlaMaterialzuschlag.setVisible(false);
 				wlaMaterialzuschlagWaehrung.setVisible(false);
+
+				wnfVKPreisInclMaterialzuschlag.setVisible(false);
+				wlaVKPreisInclMaterialzuschlag.setVisible(false);
+				wlaVKPreisInclMaterialzuschlagWaehrung.setVisible(false);
+
 			}
 			wtfIdent.setText(artikelDto.getCNr());
 			if (Helper.short2Boolean(artikelDto.getBRabattierbar())) {
@@ -885,25 +975,17 @@ public class PanelVkpfPreise extends PanelBasis implements
 
 			if (artikelDto.getArtikelsprDto() != null) {
 				wtfBezeichnung.setText(artikelDto.getArtikelsprDto().getCBez());
-				wtfZusatzbezeichnung.setText(artikelDto.getArtikelsprDto()
-						.getCZbez());
-				wtfZusatzbezeichnung2.setText(artikelDto.getArtikelsprDto()
-						.getCZbez2());
+				wtfZusatzbezeichnung.setText(artikelDto.getArtikelsprDto().getCZbez());
+				wtfZusatzbezeichnung2.setText(artikelDto.getArtikelsprDto().getCZbez2());
 
 				// Gestehungspreis des Artikels am Hauptlager des Mandanten
-				LagerDto hauptlagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate().getHauptlagerDesMandanten();
+				LagerDto hauptlagerDto = DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten();
 
-				BigDecimal nGestehungspreis = DelegateFactory
-						.getInstance()
-						.getLagerDelegate()
-						. // check WH
-						getGemittelterGestehungspreisEinesLagers(
-								artikelDto.getIId(), hauptlagerDto.getIId());
+				BigDecimal nGestehungspreis = DelegateFactory.getInstance().getLagerDelegate(). // check WH
+						getGemittelterGestehungspreisEinesLagers(artikelDto.getIId(), hauptlagerDto.getIId());
 
-				nGestehungspreis = Helper
-						.rundeKaufmaennisch(nGestehungspreis, Defaults
-								.getInstance().getIUINachkommastellenPreiseVK());
+				nGestehungspreis = Helper.rundeKaufmaennisch(nGestehungspreis,
+						Defaults.getInstance().getIUINachkommastellenPreiseVK());
 
 				wnfGestehungspreis.setBigDecimal(nGestehungspreis);
 
@@ -912,18 +994,12 @@ public class PanelVkpfPreise extends PanelBasis implements
 				BigDecimal bdMinverkaufspreis = BigDecimal.ZERO;
 
 				try {
-					bdMinverkaufspreis = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.getMindestverkaufspreis(
-									artikelDto.getIId(),
-									DelegateFactory.getInstance()
-											.getLagerDelegate()
-											.getHauptlagerDesMandanten()
-											.getIId(), new BigDecimal(1));
-					bdMinverkaufspreis = Helper.rundeKaufmaennisch(
-							bdMinverkaufspreis, Defaults.getInstance()
-									.getIUINachkommastellenPreiseVK());
+					bdMinverkaufspreis = DelegateFactory.getInstance().getLagerDelegate().getMindestverkaufspreis(
+							artikelDto.getIId(),
+							DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten().getIId(),
+							new BigDecimal(1));
+					bdMinverkaufspreis = Helper.rundeKaufmaennisch(bdMinverkaufspreis,
+							Defaults.getInstance().getIUINachkommastellenPreiseVK());
 
 				} catch (Throwable t) {
 					// wenn der minVerkaufspreis nicht gefunden wird, z.B. der
@@ -934,16 +1010,13 @@ public class PanelVkpfPreise extends PanelBasis implements
 		}
 	}
 
-	private void verkaufspreisbasisDto2comp(
-			VkPreisfindungEinzelverkaufspreisDto preisDto) throws Throwable {
+	private void verkaufspreisbasisDto2comp(VkPreisfindungEinzelverkaufspreisDto preisDto) throws Throwable {
 		if (preisDto != null && preisDto.getIId() != null) {
 			// werte anzeigen
 			wnfEinzelvkp.setBigDecimal(preisDto.getNVerkaufspreisbasis());
-			wdfEinzelvkpGueltigab.setDate(preisDto
-					.getTVerkaufspreisbasisgueltigab());
+			wdfEinzelvkpGueltigab.setDate(preisDto.getTVerkaufspreisbasisgueltigab());
 
-			this.setStatusbarPersonalIIdAendern(preisDto
-					.getPersonalIIdAendern());
+			this.setStatusbarPersonalIIdAendern(preisDto.getPersonalIIdAendern());
 			this.setStatusbarTAendern(preisDto.getTAendern());
 
 		} else {
@@ -957,20 +1030,16 @@ public class PanelVkpfPreise extends PanelBasis implements
 	/**
 	 * Diese Methode zeigt die Preise eines Artikels in einer Preisliste an.
 	 * 
-	 * @param dtos
-	 *            VkPreisfindungPreislisteDto[]
+	 * @param dtos VkPreisfindungPreislisteDto[]
 	 * @throws Throwable
 	 */
-	private void preislisteDtos2com(VkPreisfindungPreislisteDto[] dtos)
-			throws Throwable {
+	private void preislisteDtos2com(VkPreisfindungPreislisteDto[] dtos) throws Throwable {
 		if (dtos != null && dtos.length > 0) {
 			for (int i = 0; i < dtos.length; i++) {
 				if (dtos[i] != null && dtos[i].getIId() != null) {
 					// werte anzeigen
-					wnfArtikelfixpreis[i].setBigDecimal(dtos[i]
-							.getNArtikelfixpreis());
-					wnfStandardrabattsatz[i].setBigDecimal(dtos[i]
-							.getNArtikelstandardrabattsatz());
+					wnfArtikelfixpreis[i].setBigDecimal(dtos[i].getNArtikelfixpreis());
+					wnfStandardrabattsatz[i].setBigDecimal(dtos[i].getNArtikelstandardrabattsatz());
 
 					// hier den berechneten Preis pro Artikel und Preisliste
 					// anzeigen
@@ -987,25 +1056,35 @@ public class PanelVkpfPreise extends PanelBasis implements
 					wnfStandardrabattsatz[i].setDouble(null);
 					wnfBerechneterPreis[i].setBigDecimal(BigDecimal.ZERO);
 					wdfPreisGueltigab[i].setDate(datGueltigkeitsanzeigeab);
+
+					// PJ21647
+					String preislisteWaehrung = aVkpfartikelpreislisteDtos[i].getWaehrungCNr();
+					if (!preislisteWaehrung.equals(LPMain.getTheClient().getSMandantenwaehrung())) {
+						if (wnfEinzelvkp.getBigDecimal() != null) {
+
+							BigDecimal fremdwaehrung = DelegateFactory.getInstance().getLocaleDelegate()
+									.rechneUmInAndereWaehrungGerundetZuDatum(wnfEinzelvkp.getBigDecimal(),
+											LPMain.getTheClient().getSMandantenwaehrung(), preislisteWaehrung,
+											datGueltigkeitsanzeigeab);
+
+							wnfBerechneterPreis[i].setBigDecimal(fremdwaehrung);
+						}
+
+					}
+
 				}
 			}
 		}
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 
-		Object oKey = ((InternalFrameArtikel) getInternalFrame())
-				.getArtikelDto().getIId();
+		Object oKey = ((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId();
 
 		if (oKey != null) {
-			ArtikelDto artikelDto = DelegateFactory
-					.getInstance()
-					.getArtikelDelegate()
-					.artikelFindByPrimaryKey(
-							((InternalFrameArtikel) getInternalFrame())
-									.getArtikelDto().getIId());
+			ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId());
 			artikelDto2comp(artikelDto);
 
 			refreshPreise();
@@ -1015,12 +1094,6 @@ public class PanelVkpfPreise extends PanelBasis implements
 
 	public void eventActionLock(ActionEvent e) throws Throwable {
 		super.eventActionLock(e);
-		try {
-			initRabatt(true);
-			berechnePreis();
-		} catch (Throwable t) {
-			//
-		}
 	}
 
 	/**
@@ -1037,8 +1110,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 	 * Wenn dieses Feld verlassen wird, muessen die Preisfelder neu berechnet
 	 * werden.
 	 * 
-	 * @param e
-	 *            FocusEvent
+	 * @param e FocusEvent
 	 * @throws Throwable
 	 */
 	void wnfEinzelvkp_focusLost(FocusEvent e) {
@@ -1074,12 +1146,8 @@ public class PanelVkpfPreise extends PanelBasis implements
 				// setzen
 				if (wnfArtikelfixpreis[i].getDouble() != null
 						&& wnfStandardrabattsatz[i].getDouble().doubleValue() != 0) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr(
-											"lp.hint"),
-									LPMain.getTextRespectUISPr(
-													"vkpf.hint.fixpreisueberschreibtrabattsatz"));
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+							LPMain.getTextRespectUISPr("vkpf.hint.fixpreisueberschreibtrabattsatz"));
 
 					wnfStandardrabattsatz[i].setDouble(new Double(0));
 				}
@@ -1117,87 +1185,57 @@ public class PanelVkpfPreise extends PanelBasis implements
 			preisBasis = wnfEinzelvkp.getBigDecimal();
 		preisBasis = preisBasis == null ? BigDecimal.ZERO : preisBasis;
 
-		if (Helper.short2boolean(aVkpfartikelpreislisteDtos[iPreislisteI]
-				.getBPreislisteaktiv())) {
+		if (Helper.short2boolean(aVkpfartikelpreislisteDtos[iPreislisteI].getBPreislisteaktiv())) {
 			BigDecimal bdBerechneterpreis = null;
+
+			WechselkursDto wkDto = DelegateFactory.getInstance().getLocaleDelegate().getKursZuDatum(
+					LPMain.getTheClient().getSMandantenwaehrung(),
+					aVkpfartikelpreislisteDtos[iPreislisteI].getWaehrungCNr(), datGueltigkeitsanzeigeab);
+
+			if (wkDto != null && wkDto.getNKurs() != null) {
+				preisBasis = preisBasis.multiply(wkDto.getNKurs());
+			} else {
+
+				if (bWaehrungsfehlerBereitsEinmalAngezeigt == false) {
+
+					// PJ17174
+					MessageFormat mf = new MessageFormat(
+							LPMain.getTextRespectUISPr("artikel.error.keinwechselkurshinterlegt"));
+
+					Object pattern[] = { aVkpfartikelpreislisteDtos[iPreislisteI].getCNr() + " ("
+							+ aVkpfartikelpreislisteDtos[iPreislisteI].getWaehrungCNr() + ")" };
+
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), mf.format(pattern));
+					bWaehrungsfehlerBereitsEinmalAngezeigt = true;
+				}
+			}
 
 			// Artikelfixpreis zaehlt zuerst
 			if (wnfArtikelfixpreis[iPreislisteI].getText() != null
 					&& wnfArtikelfixpreis[iPreislisteI].getText().length() > 0) {
-				bdBerechneterpreis = wnfArtikelfixpreis[iPreislisteI]
-						.getBigDecimal();
+				bdBerechneterpreis = wnfArtikelfixpreis[iPreislisteI].getBigDecimal();
 			} else {
 				if (wnfStandardrabattsatz[iPreislisteI].getBigDecimal() != null) {
 					BigDecimal bdRabattsumme = preisBasis
-							.multiply(wnfStandardrabattsatz[iPreislisteI]
-									.getBigDecimal().movePointLeft(2));
+							.multiply(wnfStandardrabattsatz[iPreislisteI].getBigDecimal().movePointLeft(2));
 					bdBerechneterpreis = preisBasis.subtract(bdRabattsumme);
 				}
 			}
 
-			wnfBerechneterPreis[iPreislisteI].setBigDecimal(bdBerechneterpreis == null ? BigDecimal.ZERO : bdBerechneterpreis);
-			if (aVkpfartikelpreislisteDtos[iPreislisteI].getWaehrungCNr()
-					.equals(LPMain.getTheClient()
-							.getSMandantenwaehrung())) {
+			wnfBerechneterPreis[iPreislisteI]
+					.setBigDecimal(bdBerechneterpreis == null ? BigDecimal.ZERO : bdBerechneterpreis);
 
-				if (vkPreisBasisLief1Preis) {
-					wnfBerechneterPreis[iPreislisteI]
-							.setCompareValue(preisBasis);
-				} else {
-					wnfBerechneterPreis[iPreislisteI]
-							.setCompareValue(wnfMinverkaufspreis
-									.getBigDecimal());
-				}
-
+			if (vkPreisBasisLief1Preis) {
+				wnfBerechneterPreis[iPreislisteI].setCompareValue(preisBasis);
 			} else {
-				BigDecimal wk = DelegateFactory
-						.getInstance()
-						.getLocaleDelegate()
-						.getWechselkurs2(
-								LPMain.getTheClient()
-										.getSMandantenwaehrung(),
-								aVkpfartikelpreislisteDtos[iPreislisteI]
-										.getWaehrungCNr());
-
-				if (wk != null) {
-
-					if (vkPreisBasisLief1Preis) {
-						wnfBerechneterPreis[iPreislisteI]
-								.setCompareValue(preisBasis.multiply(wk)
-										.setScale(iPreiseUINachkommastellen,
-												BigDecimal.ROUND_HALF_EVEN));
-					} else {
-						if(wnfMinverkaufspreis.getBigDecimal() == null)
-							wnfMinverkaufspreis.setBigDecimal(BigDecimal.ZERO);
-						wnfBerechneterPreis[iPreislisteI]
-								.setCompareValue(wnfMinverkaufspreis
-										.getBigDecimal()
-										.multiply(wk)
-										.setScale(iPreiseUINachkommastellen,
-												BigDecimal.ROUND_HALF_EVEN));
-					}
-				} else {
-
-					if (bWaehrungsfehlerBereitsEinmalAngezeigt == false) {
-
-						// PJ17174
-						MessageFormat mf = new MessageFormat(
-								LPMain.getTextRespectUISPr(
-												"artikel.error.keinwechselkurshinterlegt"));
-
-						Object pattern[] = { aVkpfartikelpreislisteDtos[iPreislisteI]
-								.getCNr()
-								+ " ("
-								+ aVkpfartikelpreislisteDtos[iPreislisteI]
-										.getWaehrungCNr() + ")" };
-
-						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), mf
-								.format(pattern));
-						bWaehrungsfehlerBereitsEinmalAngezeigt = true;
-					}
-
+				
+				BigDecimal minVK = wnfMinverkaufspreis.getBigDecimal();
+				if (wkDto != null && wkDto.getNKurs() != null && wnfMinverkaufspreis.getBigDecimal() != null) {
+					//SP8999
+					minVK = wnfMinverkaufspreis.getBigDecimal().multiply(wkDto.getNKurs());
 				}
 
+				wnfBerechneterPreis[iPreislisteI].setCompareValue(minVK);
 			}
 
 			// wenn der berechnete Preis unter dem minimalen Verkaufspreis liegt
@@ -1205,8 +1243,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 			// setColorBerechneterPreis(iPreislisteI);
 
 			if (wdfPreisGueltigab[iPreislisteI].getDate() == null) {
-				wdfPreisGueltigab[iPreislisteI].setDate(new Date(System
-						.currentTimeMillis()));
+				wdfPreisGueltigab[iPreislisteI].setDate(new Date(System.currentTimeMillis()));
 			}
 		}
 	}
@@ -1215,51 +1252,62 @@ public class PanelVkpfPreise extends PanelBasis implements
 		Calendar c = Calendar.getInstance();
 		c.setTime(wdfPreisgueltigkeitsanzeigeab.getDate());
 		c.set(Calendar.DATE, c.get(Calendar.DATE) - 1);
-		wdfPreisgueltigkeitsanzeigeab.setTimestamp(new java.sql.Timestamp(c
-				.getTimeInMillis()));
+		wdfPreisgueltigkeitsanzeigeab.setTimestamp(new java.sql.Timestamp(c.getTimeInMillis()));
 	}
 
 	void wbuNaechsterTag_actionPerformed(ActionEvent e) {
 		Calendar c = Calendar.getInstance();
 		c.setTime(wdfPreisgueltigkeitsanzeigeab.getDate());
 		c.set(Calendar.DATE, c.get(Calendar.DATE) + 1);
-		wdfPreisgueltigkeitsanzeigeab.setTimestamp(new java.sql.Timestamp(c
-				.getTimeInMillis()));
+		wdfPreisgueltigkeitsanzeigeab.setTimestamp(new java.sql.Timestamp(c.getTimeInMillis()));
 	}
 
 	public void propertyChange(PropertyChangeEvent evt) {
 		try {
-			if (evt.getSource() == wdfPreisgueltigkeitsanzeigeab.getDisplay()
-					&& evt.getPropertyName().equals("date")) {
-				datGueltigkeitsanzeigeab = wdfPreisgueltigkeitsanzeigeab
-						.getDate();
+			if (evt.getSource() == wdfPreisgueltigkeitsanzeigeab && evt.getPropertyName().equals("date")) {
+
+				// SP5423
+				if (wdfPreisgueltigkeitsanzeigeab.getDate() == null) {
+					wdfPreisgueltigkeitsanzeigeab.setDate(Helper.cutDate(new Date(System.currentTimeMillis())));
+				}
+
+				datGueltigkeitsanzeigeab = wdfPreisgueltigkeitsanzeigeab.getDate();
 
 				// gesamte Anzeige aktualisieren
 				refreshPreise();
 			}
 		} catch (Throwable t) {
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.error"),
-					LPMain.getTextRespectUISPr(
-							"vkpf.error.preisgueltigkeitsanzeigeab"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("vkpf.error.preisgueltigkeitsanzeigeab"));
 		}
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		if (wnfEinzelvkp.getText() == null
-				|| wnfEinzelvkp.getText().length() == 0) {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		if (wnfEinzelvkp.getText() == null || wnfEinzelvkp.getText().length() == 0) {
 			wnfEinzelvkp.setBigDecimal(new BigDecimal(0));
 		}
 
 		super.eventActionUpdate(aE, false);
+		try {
+			initRabatt(true);
+			berechnePreis();
+		} catch (Throwable t) {
+			//
+		}
 		setPreisgueltigkeitsanzeigeab(false);
 
 	}
+	
+	@Override
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
+		super.eventActionRefresh(e, bNeedNoRefreshI);
+		//AxD: Bei super.refresh wird Datumsauswahl deaktiviert, wieder aktivieren
+		setPreisgueltigkeitsanzeigeab(true);
+	}
 
 	/**
-	 * Wenn eines der abhaengigen Felder geaendert wurde, dann muss der
-	 * angezeigte Preis geaendert werden.
+	 * Wenn eines der abhaengigen Felder geaendert wurde, dann muss der angezeigte
+	 * Preis geaendert werden.
 	 * 
 	 * @throws Throwable
 	 */
@@ -1281,14 +1329,10 @@ public class PanelVkpfPreise extends PanelBasis implements
 	private void initRabatt(boolean initNulls) throws Throwable {
 		for (int i = 0; i < wlaPreislistenname.length; i++) {
 			if (wnfStandardrabattsatz[i].getBigDecimal() == null) {
-				if (initNulls
-						&& aVkpfartikelpreislisteDtos[i]
-								.getNStandardrabattsatz() == null) {
+				if (initNulls && aVkpfartikelpreislisteDtos[i].getNStandardrabattsatz() == null) {
 					wnfStandardrabattsatz[i].setDouble(new Double(0));
 				} else {
-					wnfStandardrabattsatz[i]
-							.setBigDecimal(aVkpfartikelpreislisteDtos[i]
-									.getNStandardrabattsatz());
+					wnfStandardrabattsatz[i].setBigDecimal(aVkpfartikelpreislisteDtos[i].getNStandardrabattsatz());
 				}
 			}
 		}
@@ -1300,11 +1344,10 @@ public class PanelVkpfPreise extends PanelBasis implements
 	 * 
 	 * try { bdMinverkaufspreis = DelegateFactory.getInstance()
 	 * .getLagerDelegate().getMindestverkaufspreis( ((InternalFrameArtikel)
-	 * getInternalFrame()) .getArtikelDto().getIId(),
-	 * DelegateFactory.getInstance() .getLagerDelegate()
-	 * .getHauptlagerDesMandanten() .getIId()); bdMinverkaufspreis =
-	 * Helper.rundeKaufmaennisch( bdMinverkaufspreis, Defaults.getInstance()
-	 * .getIUINachkommastellenPreise());
+	 * getInternalFrame()) .getArtikelDto().getIId(), DelegateFactory.getInstance()
+	 * .getLagerDelegate() .getHauptlagerDesMandanten() .getIId());
+	 * bdMinverkaufspreis = Helper.rundeKaufmaennisch( bdMinverkaufspreis,
+	 * Defaults.getInstance() .getIUINachkommastellenPreise());
 	 * 
 	 * } catch (Throwable t) { // wenn der minVerkaufspreis nicht gefunden wird,
 	 * z.B. der // Artikel liegt nicht am Hauptlager -> 0 anzeigen }
@@ -1321,8 +1364,7 @@ public class PanelVkpfPreise extends PanelBasis implements
 	 */
 }
 
-class PanelVkpfPreise_artikelfixpreis_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelVkpfPreise_artikelfixpreis_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelVkpfPreise adaptee;
 
 	PanelVkpfPreise_artikelfixpreis_focusAdapter(PanelVkpfPreise adaptee) {
@@ -1334,8 +1376,7 @@ class PanelVkpfPreise_artikelfixpreis_focusAdapter extends
 	}
 }
 
-class PanelVkpfPreise_standardrabattsatz_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelVkpfPreise_standardrabattsatz_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelVkpfPreise adaptee;
 
 	PanelVkpfPreise_standardrabattsatz_focusAdapter(PanelVkpfPreise adaptee) {
@@ -1352,8 +1393,7 @@ class PanelVkpfPreise_standardrabattsatz_focusAdapter extends
 	}
 }
 
-class PanelVkpfPreise_wnfEinzelvkp_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelVkpfPreise_wnfEinzelvkp_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelVkpfPreise adaptee;
 
 	PanelVkpfPreise_wnfEinzelvkp_focusAdapter(PanelVkpfPreise adaptee) {

@@ -38,6 +38,7 @@ import javax.naming.InitialContext;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.ZutrittscontrollerReportFac;
+import com.lp.server.reklamation.service.ReklamationFac;
 import com.lp.server.util.report.JasperPrintLP;
 
 public class ZutrittReportDelegate extends Delegate {
@@ -47,7 +48,7 @@ public class ZutrittReportDelegate extends Delegate {
 	public ZutrittReportDelegate() throws ExceptionLP {
 		try {
 	        context = new InitialContext();
-			zutrittscontrollerReportFac = (ZutrittscontrollerReportFac) context.lookup("lpserver/ZutrittscontrollerReportFacBean/remote");
+			zutrittscontrollerReportFac = lookupFac(context, ZutrittscontrollerReportFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

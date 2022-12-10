@@ -550,7 +550,7 @@ public class PanelStundenabrechnung extends PanelBasis implements
 		Object key = getKeyWhenDetailPanel();
 
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
-
+			leereAlleFelder(this);
 			clearStatusbar();
 		} else {
 			stundenabrechnungDto = DelegateFactory.getInstance()

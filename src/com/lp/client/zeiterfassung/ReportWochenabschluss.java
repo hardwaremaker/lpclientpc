@@ -185,9 +185,9 @@ public class ReportWochenabschluss extends PanelBasis implements
 		jpaWorkingOn.add(wbuZeitenAbschliessen, new GridBagConstraints(4,
 				iZeile, 1, 1, 1, 1, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 20, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcoInVorschauBleiben, new GridBagConstraints(3, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoInVorschauBleiben, new GridBagConstraints(3,
+				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
@@ -215,7 +215,7 @@ public class ReportWochenabschluss extends PanelBasis implements
 					.showModalDialog(
 							LPMain.getTextRespectUISPr("lp.info"),
 							LPMain.getTextRespectUISPr("pers.report.wochenabschluss.zeitenabgeschlossen")
-									+ wlaKW.getText());
+									+ " "+ wlaKW.getText());
 			wbuZeitenAbschliessen.setEnabled(false);
 		}
 
@@ -261,7 +261,42 @@ public class ReportWochenabschluss extends PanelBasis implements
 
 				wbuZeitenAbschliessen.setToolTipText(sMsg);
 			} else {
-				wbuZeitenAbschliessen.setEnabled(true);
+
+				java.sql.Timestamp tLetzterAbschlussVorDatum = DelegateFactory
+						.getInstance()
+						.getZeiterfassungDelegate()
+						.letzterZeitabschlussVorKW(
+								internalFrameZeiterfassung.getPersonalDto()
+										.getIId(), wdfKW.getTimestamp());
+
+				if (tLetzterAbschlussVorDatum != null) {
+					// Nur wenn nicht länger als 14 Tage her
+
+					Timestamp[] tKWVonBis = Helper
+							.getTimestampVonBisEinerKW(wdfKW.getTimestamp());
+
+					if (Helper.ermittleTageEinesZeitraumes(
+							tLetzterAbschlussVorDatum, new java.sql.Date(
+									tKWVonBis[1].getTime())) <= 7) {
+						wbuZeitenAbschliessen.setEnabled(true);
+
+					} else {
+
+						wbuZeitenAbschliessen.setEnabled(false);
+						wbuZeitenAbschliessen
+								.setToolTipText(LPMain
+										.getTextRespectUISPr("pers.wochenabschluss.fehler.keinzeitabschlussvorwochevorhanden")
+										+ Helper.formatDatum(
+												tLetzterAbschlussVorDatum,
+												LPMain.getTheClient()
+														.getLocUi()));
+					}
+
+				} else {
+					// Es hat noch nie einen gegeben
+					wbuZeitenAbschliessen.setEnabled(true);
+				}
+
 			}
 
 		} else {

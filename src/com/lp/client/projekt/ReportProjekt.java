@@ -36,6 +36,7 @@ import java.sql.Timestamp;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
 import com.lp.server.partner.service.PartnerDto;
@@ -61,7 +62,7 @@ import com.lp.util.Helper;
  * @author Uli Walch
  * @version $Revision: 1.7 $
  */
-public class ReportProjekt extends ReportBeleg
+public class ReportProjekt extends ReportBeleg implements IDruckTypeReport
 
 {
 	/**
@@ -93,9 +94,13 @@ public class ReportProjekt extends ReportBeleg
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		
+		
+		
 		JasperPrintLP aJasperPrint = DelegateFactory.getInstance()
 				.getProjektDelegate().printProjekt(projektDto.getIId());
-		return aJasperPrint;
+		
+		return kopienHinzufuegen(aJasperPrint);
 	}
 
 	public boolean getBErstelleReportSofort() {

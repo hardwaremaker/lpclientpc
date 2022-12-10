@@ -34,8 +34,6 @@ package com.lp.client.personal;
 
 import javax.swing.event.ChangeEvent;
 
-import com.lp.client.artikel.ArtikelFilterFactory;
-import com.lp.client.artikel.PanelLager;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -142,6 +140,8 @@ public class TabbedPaneBetriebskalender extends TabbedPane {
 		if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
 			if (e.getSource() == panelQueryBetriebskalender) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				getInternalFramePersonal().setKeyWasForLockMe(
+						key + "");
 				panelBottomBetriebskalender.setKeyWhenDetailPanel(key);
 				panelBottomBetriebskalender.eventYouAreSelected(false);
 				panelQueryBetriebskalender.updateButtons();

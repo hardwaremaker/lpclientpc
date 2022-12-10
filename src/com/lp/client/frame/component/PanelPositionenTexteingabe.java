@@ -76,6 +76,7 @@ public class PanelPositionenTexteingabe extends PanelBasis implements IControlCo
 		setLayout(new GridBagLayout());
 
 		lpEditor = new LpEditor(null, LPMain.getInstance().getUISprLocale());
+		lpEditor.setInternalFrame(getInternalFrame());
 		lpEditor.setPageWidth(ParameterCache.getPageWidth(ParameterFac.PARAMETER_EDITOR_BREITE_TEXTEINGABE));
 		// UW 15.03.06 JO fragen, das gibt eine NullPointerException
 		// lpEditor.setJasperReport(getInternalFrame().getSystemDelegate().getDreispalter(),

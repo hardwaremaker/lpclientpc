@@ -38,36 +38,47 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
 
-import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.Defaults;
-import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.AnyFileOpener;
+import com.lp.client.frame.filechooser.open.WrapperFile;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.MediaFac;
-import com.lp.server.system.service.ParameterFac;
-import com.lp.server.system.service.ParametermandantDto;
-import com.lp.util.Helper;
+import com.lp.server.util.HvOptional;
 
 /**
- * <p> Diese Klasse kuemmert sich ...</p>
+ * <p>
+ * Diese Klasse kuemmert sich ...
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellung: Vorname Nachname; dd.mm.06</p>
+ * <p>
+ * Erstellung: Vorname Nachname; dd.mm.06
+ * </p>
  *
- * <p>@author $Author: christoph $</p>
+ * <p>
+ * @author $Author: christoph $
+ * </p>
  *
  * @version not attributable Date $Date: 2009/08/19 08:11:21 $
  *
- * @todo scrollpane auf bild  PJ 3416
- * @todo texte uebersetzen  PJ 3416
+ * @todo scrollpane auf bild PJ 3416
+ * @todo texte uebersetzen PJ 3416
  */
-public class WrapperSonstige extends PanelBasis {
+public class WrapperSonstige extends PanelBasis implements IControl {
 	/**
 	 *
 	 */
@@ -80,18 +91,17 @@ public class WrapperSonstige extends PanelBasis {
 	private JPanel jpaWorkingOn = new JPanel();
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private WrapperButton wbuDatei = new WrapperButton();
-	private JButton wbuSpeichern = new JButton();
+	private WrapperButton wbuSpeichern = new WrapperButton();
 	private WrapperLabel wlaKb = new WrapperLabel();
 	private WrapperTextField fieldToDisplayFileName = null;
 	private byte[] datei = null;
-	private File sLetzteDatei = null;
+	private boolean isActivatable = true;
 
 	public WrapperButton getButtonDatei() {
 		return wbuDatei;
 	}
 
-	public WrapperSonstige(InternalFrame internalFrame, String addTitel)
-			throws Throwable {
+	public WrapperSonstige(InternalFrame internalFrame, String addTitel) throws Throwable {
 		super(internalFrame, addTitel);
 		jbInit();
 		initComponents();
@@ -101,8 +111,8 @@ public class WrapperSonstige extends PanelBasis {
 		return wbuDatei;
 	}
 
-	public WrapperSonstige(InternalFrame internalFrame, String addTitel,
-			WrapperTextField fieldToDisplayFileName) throws Throwable {
+	public WrapperSonstige(InternalFrame internalFrame, String addTitel, WrapperTextField fieldToDisplayFileName)
+			throws Throwable {
 		super(internalFrame, addTitel);
 		this.fieldToDisplayFileName = fieldToDisplayFileName;
 		jbInit();
@@ -117,20 +127,14 @@ public class WrapperSonstige extends PanelBasis {
 
 		wlaKb.setText("kB");
 		jpaWorkingOn.setLayout(gridBagLayout2);
-		wbuDatei.setMinimumSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
-		wbuDatei.setPreferredSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
+		wbuDatei.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
+		wbuDatei.setPreferredSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
 
-		wbuSpeichern.setMinimumSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
-		wbuSpeichern.setPreferredSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
+		wbuSpeichern.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
+		wbuSpeichern.setPreferredSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
 
-		wnfGroesse.setMinimumSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
-		wnfGroesse.setPreferredSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
+		wnfGroesse.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
+		wnfGroesse.setPreferredSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
 		wnfGroesse.setActivatable(false);
 
 		wbuDatei.setActionCommand(ACTION_SPECIAL_DATEI_OFFEN);
@@ -142,102 +146,81 @@ public class WrapperSonstige extends PanelBasis {
 		wtfDatei.setColumnsMax(MediaFac.MAX_MEDIASTANDARD_DATEINAME);
 		wtfDatei.setActivatable(false);
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(wbuDatei, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuDatei, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wbuSpeichern, new GridBagConstraints(1, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuSpeichern, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wtfDatei, new GridBagConstraints(0, 1, 2, 1, 0.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfDatei, new GridBagConstraints(0, 1, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wnfGroesse, new GridBagConstraints(1, 3, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaKb, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfGroesse, new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaKb, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equalsIgnoreCase(ACTION_SPECIAL_DATEI_OFFEN)) {
-			JFileChooser open = new JFileChooser();
-
-			if (sLetzteDatei != null) {
-				open.setCurrentDirectory(sLetzteDatei);
+		if (ACTION_SPECIAL_DATEI_OFFEN.equalsIgnoreCase(e.getActionCommand())) {
+			actionSelectFile();
+		} else if (e.getActionCommand().equalsIgnoreCase(ACTION_SPECIAL_DATEI_SPEICHERN)) {
+			boolean saveFile = true;
+			if (getDatei() == null) {
+				saveFile = JOptionPane.OK_OPTION == JOptionPane.showConfirmDialog(this, 
+						LPMain.getMessageTextRespectUISPr(
+								"lp.datei.dialog.keininhalt", getDateiname()),
+						LPMain.getTextRespectUISPr("lp.hinweis"),
+						JOptionPane.OK_CANCEL_OPTION);;
 			}
-
-			int returnVal = open.showOpenDialog(getInternalFrame());
-
-			File file = open.getSelectedFile();
-
-			boolean fileExist = true;
-			if (file != null) {
-			fileExist = file.exists();
-			if (!fileExist)
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.warning"),
-						LPMain.getMessageTextRespectUISPr("lp.warning.dateinichtvorhanden", file.getName()));
-			}
-
-			if (returnVal == JFileChooser.APPROVE_OPTION && fileExist) {
-
-				sLetzteDatei = file;
-				ParametermandantDto parameter = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getMandantparameter(
-								LPMain.getTheClient().getMandant(),
-								ParameterFac.KATEGORIE_ALLGEMEIN,
-								ParameterFac.PARAMETER_ALLGEMEIN_DOKUMENTE_MAXIMALE_GROESSE);
-				double groesseInKB = ((double) file.length()) / ((double) 1024);
-
-				if (groesseInKB > (Integer) parameter.getCWertAsObject()) {
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.dateizugross"));
-				} else {
-					// darstellen
-					if (fieldToDisplayFileName != null) {
-						fieldToDisplayFileName.setText(file.getName());
-
+			
+			if (saveFile) {
+				HvOptional<WrapperFile> wf = HelperClient.showSaveDialog(
+						this, FileChooserConfigToken.ExportLastDirectory,
+						new File(getDateiname()));
+				if (wf.isPresent()) {
+					try (FileOutputStream out = new FileOutputStream(wf.get().getFile())) {
+						if (getDatei() != null) {
+							out.write(getDatei());
+						}
 					}
-					wtfDatei.setText(file.getName());
-					wbuDatei.setToolTipText(file.getAbsolutePath());
-
-					wnfGroesse.setDouble(new Double(groesseInKB));
-					datei = Helper.getBytesFromFile(file);
 				}
-			} else {
-				// keine auswahl
-				setDatei((byte[]) null);
-			}
-		} else if (e.getActionCommand().equalsIgnoreCase(
-				ACTION_SPECIAL_DATEI_SPEICHERN)) {
-			JFileChooser save = new JFileChooser();
-			save.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			save.setApproveButtonText(LPMain.getTextRespectUISPr("lp.report.save"));
-			save.setDialogTitle(LPMain.getTextRespectUISPr("lp.report.save"));
-
-			save.showOpenDialog(this);
-			int returnVal = save.showOpenDialog(null);
-			if (returnVal == JFileChooser.APPROVE_OPTION) {
-				File file = save.getSelectedFile();
-				// Create file if it does not exist
-				java.io.FileOutputStream out = new java.io.FileOutputStream(
-						file);
-				out.write(datei);
-				out.close();
-			}
+			}			
 		}
+	}
+
+	/**
+	 * @throws ExceptionLP
+	 * @throws Throwable
+	 * @throws IOException
+	 */
+	private void actionSelectFile() throws ExceptionLP, Throwable, IOException {
+		HvOptional<WrapperFile> wf = new AnyFileOpener(
+				getInternalFrame(), FileChooserConfigToken.ImportLast)
+				.selectSingleUnchecked();
+		if (!wf.isPresent()) return ;
+		
+		FileValidator validator = new FileValidator();
+		double size = wf.get().getLengthInKB();
+		if (!validator.validateFileSize(new BigDecimal(size))) {
+			setDatei((byte[]) null);
+			return;
+		}
+		
+		File file = wf.get().getFile();
+		datei = wf.get().getBytes();
+		if (fieldToDisplayFileName != null) {
+			fieldToDisplayFileName.setText(file.getName());
+
+		}
+		
+		wtfDatei.setText(file.getName());
+		wbuDatei.setToolTipText(file.getAbsolutePath());
+		wnfGroesse.setDouble(size);		
 	}
 
 	public String getDateiname() {
@@ -253,6 +236,10 @@ public class WrapperSonstige extends PanelBasis {
 		if (datei != null) {
 			double groesseInKB = ((double) datei.length) / ((double) 1024);
 			wnfGroesse.setDouble(new Double(groesseInKB));
+			wbuSpeichern.setEnabled(true);
+		} else {
+			wnfGroesse.setDouble(0D);
+			wbuSpeichern.setEnabled(false);
 		}
 	}
 
@@ -264,4 +251,44 @@ public class WrapperSonstige extends PanelBasis {
 		return wbuDatei;
 	}
 
+	@Override
+	public void removeContent() throws Throwable {
+		setDatei(null);
+		setDateiname(null);
+	}
+
+	@Override
+	public boolean hasContent() throws Throwable {
+		return wtfDatei.hasContent();
+	}
+
+	@Override
+	public boolean isMandatoryField() {
+		return wtfDatei.isMandatoryField();
+	}
+
+	@Override
+	public void setMandatoryField(boolean isMandatoryField) {
+		wtfDatei.setMandatoryField(isMandatoryField);
+	}
+
+	@Override
+	public boolean isActivatable() {
+		return isActivatable;
+	}
+
+	@Override
+	public void setActivatable(boolean isActivatable) {
+		this.isActivatable = isActivatable;
+		if (!isActivatable) {
+			setEnabled(false);
+		}
+	}
+
+	@Override
+	public void setEnabled(boolean enabled) {
+		super.setEnabled(enabled);
+		wbuDatei.setEnabled(enabled);
+		wbuSpeichern.setEnabled(!enabled && getDatei() != null);
+	}
 }

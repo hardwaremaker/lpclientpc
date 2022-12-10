@@ -83,6 +83,9 @@ public class PanelPanelbeschreibung extends PanelBasis {
 	WrapperLabel wlaTyp = new WrapperLabel();
 	WrapperComboBox wcoTyp = new WrapperComboBox();
 
+	WrapperLabel wlaProjekttyp = new WrapperLabel();
+	WrapperComboBox wcoProjekttyp = new WrapperComboBox();;
+
 	WrapperLabel wlaText = new WrapperLabel();
 	WrapperTextField wtfText = new WrapperTextField();
 
@@ -94,6 +97,8 @@ public class PanelPanelbeschreibung extends PanelBasis {
 
 	WrapperLabel wlaAnchor = new WrapperLabel();
 	WrapperComboBox wcoAnchor = new WrapperComboBox();
+	
+	WrapperCheckBox wcbUeberschrift = new WrapperCheckBox();
 
 	WrapperCheckBox wcbMandatory = new WrapperCheckBox();
 
@@ -132,6 +137,8 @@ public class PanelPanelbeschreibung extends PanelBasis {
 
 	WrapperSelectField wsfArtgru = null;
 	WrapperSelectField wsfPartnerklasse = null;
+	WrapperSelectField wsfKostenstelle = null;
+	WrapperSelectField wsfBereich = null;
 
 	WrapperLabel wlaInsetsBottom = new WrapperLabel();
 	WrapperNumberField wnfInsetsBottom = new WrapperNumberField();
@@ -155,7 +162,7 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		enableAllComponents(this, false);
 	}
 
-	private void setDefaults() {
+	private void setDefaults() throws Throwable {
 		Map<String, String> fill = new TreeMap<String, String>();
 		fill.put(PanelFac.FILL_BOTH, PanelFac.FILL_BOTH.trim());
 		fill.put(PanelFac.FILL_HORIZONTAL, PanelFac.FILL_HORIZONTAL.trim());
@@ -191,6 +198,10 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		anchor.put(PanelFac.ANCHOR_SOUTHWEST, PanelFac.ANCHOR_SOUTHWEST.trim());
 		anchor.put(PanelFac.ANCHOR_WEST, PanelFac.ANCHOR_WEST.trim());
 		wcoAnchor.setMap(anchor);
+
+		wcoProjekttyp.setMap(DelegateFactory.getInstance()
+				.getProjektServiceDelegate().getTyp());
+
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -206,6 +217,8 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		leereAlleFelder(this);
 		wsfArtgru.setKey(null);
 		wsfPartnerklasse.setKey(null);
+		wsfKostenstelle.setKey(null);
+		wsfBereich.setKey(null);
 
 		if (((ItemChangedEvent) eventObject).getID() == ItemChangedEvent.ACTION_POSITION_VORPOSITIONEINFUEGEN) {
 			// Dieses Flag gibt an, ob die neue Position vor der aktuellen
@@ -237,6 +250,7 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		panelbeschreibungDto.setPanelCNr(internalFramePersonal.getPanelDto()
 				.getCNr());
 		panelbeschreibungDto.setBMandatory(wcbMandatory.getShort());
+		panelbeschreibungDto.setBUeberschrift(wcbUeberschrift.getShort());
 		panelbeschreibungDto.setCAnchor((String) wcoAnchor
 				.getKeyOfSelectedItem());
 		panelbeschreibungDto.setCFill((String) wcoFill.getKeyOfSelectedItem());
@@ -257,7 +271,9 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		if (internalFramePersonal.getPanelDto().getCNr()
 				.equals(PanelFac.PANEL_ARTIKELEIGENSCHAFTEN)
 				|| internalFramePersonal.getPanelDto().getCNr()
-						.equals(PanelFac.PANEL_CHARGENEIGENSCHAFTEN)) {
+						.equals(PanelFac.PANEL_CHARGENEIGENSCHAFTEN)
+				|| internalFramePersonal.getPanelDto().getCNr()
+						.equals(PanelFac.PANEL_ARTIKELTECHNIK)) {
 
 			panelbeschreibungDto.setArtgruIId((Integer) wsfArtgru.getOKey());
 
@@ -266,6 +282,23 @@ public class PanelPanelbeschreibung extends PanelBasis {
 				.equals(PanelFac.PANEL_KUNDENEIGENSCHAFTEN)) {
 			panelbeschreibungDto.setPartnerklasseIId((Integer) wsfPartnerklasse
 					.getOKey());
+
+		}
+
+		if (internalFramePersonal.getPanelDto().getCNr()
+				.equals(PanelFac.PANEL_AUFTRAGSEIGENSCHAFTEN)) {
+			panelbeschreibungDto.setKostenstelleIId((Integer) wsfKostenstelle
+					.getOKey());
+			panelbeschreibungDto.setProjekttypCNr((String) wcoProjekttyp
+					.getKeyOfSelectedItem());
+
+		}
+
+		if (internalFramePersonal.getPanelDto().getCNr()
+				.equals(PanelFac.PANEL_PROJEKTEIGENSCHAFTEN)) {
+			panelbeschreibungDto.setBereichIId((Integer) wsfBereich.getOKey());
+			panelbeschreibungDto.setProjekttypCNr((String) wcoProjekttyp
+					.getKeyOfSelectedItem());
 
 		}
 
@@ -287,6 +320,7 @@ public class PanelPanelbeschreibung extends PanelBasis {
 	protected void dto2Components() throws Throwable {
 
 		wcbMandatory.setShort(panelbeschreibungDto.getBMandatory());
+		wcbUeberschrift.setShort(panelbeschreibungDto.getBUeberschrift());
 		wcoAnchor.setKeyOfSelectedItem(panelbeschreibungDto.getCAnchor());
 		wcoFill.setKeyOfSelectedItem(panelbeschreibungDto.getCFill());
 		wcoTyp.setKeyOfSelectedItem(panelbeschreibungDto.getCTyp());
@@ -303,6 +337,9 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		wtfDefault.setText(panelbeschreibungDto.getCDefault());
 		wsfArtgru.setKey(panelbeschreibungDto.getArtgruIId());
 		wsfPartnerklasse.setKey(panelbeschreibungDto.getPartnerklasseIId());
+		wsfKostenstelle.setKey(panelbeschreibungDto.getKostenstelleIId());
+		wcoProjekttyp.setKeyOfSelectedItem(panelbeschreibungDto.getProjekttypCNr());
+		wsfBereich.setKey(panelbeschreibungDto.getBereichIId());
 		wnfInsetsBottom.setInteger(panelbeschreibungDto.getIInsetsbottom());
 		wnfInsetsLeft.setInteger(panelbeschreibungDto.getIInsetsleft());
 		wnfInsetsRightt.setInteger(panelbeschreibungDto.getIInsetsright());
@@ -428,6 +465,9 @@ public class PanelPanelbeschreibung extends PanelBasis {
 				"lp.mindestgroessey"));
 		wlaText.setText(LPMain.getInstance().getTextRespectUISPr("lp.feldtext"));
 
+		wlaProjekttyp.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.panel.projekttyp"));
+
 		wlaDefault.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.panel.defaultwert"));
 
@@ -440,6 +480,8 @@ public class PanelPanelbeschreibung extends PanelBasis {
 				"lp.vertikalegewichtung"));
 		wcbMandatory.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.pflichtfeld"));
+		wcbUeberschrift.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.panelbeschreibung.ueberschrift"));
 
 		wlaInsetsBottom.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.abstandunten"));
@@ -491,6 +533,11 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		wsfPartnerklasse = new WrapperSelectField(
 				WrapperSelectField.PARTNERKLASSE, getInternalFrame(), true);
 
+		wsfKostenstelle = new WrapperSelectField(
+				WrapperSelectField.KOSTENSTELLE, getInternalFrame(), true);
+		wsfBereich = new WrapperSelectField(WrapperSelectField.BEREICH,
+				getInternalFrame(), true);
+
 		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0,
 				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(0, 0, 0, 0), 0, 0));
@@ -505,168 +552,171 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelWorkingOn.add(wlaName, new GridBagConstraints(0, 0, 1, 1, 0.30,
+		jPanelWorkingOn.add(wlaName, new GridBagConstraints(0, 1, 1, 1, 0.30,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wtfName, new GridBagConstraints(1, 0, 1, 1, 0.15,
+		jPanelWorkingOn.add(wtfName, new GridBagConstraints(1, 1, 1, 1, 0.15,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaDummy, new GridBagConstraints(2, 0, 1, 1, 0.25,
+		jPanelWorkingOn.add(wlaDummy, new GridBagConstraints(2, 1, 1, 1, 0.25,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
 		jPanelWorkingOn.add(wsfArtgru.getWrapperButton(),
-				new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0,
+				new GridBagConstraints(3, 1, 1, 1, 0.2, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
 						0, 0));
 
 		jPanelWorkingOn.add(wsfArtgru.getWrapperTextField(),
-				new GridBagConstraints(4, 0, 1, 1, 0, 0.0,
+				new GridBagConstraints(4, 1, 1, 1, 0, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
 						0, 0));
 
-		jPanelWorkingOn.add(wlaGridx, new GridBagConstraints(0, 2, 1, 1, 0,
+		jPanelWorkingOn.add(wlaGridx, new GridBagConstraints(0, 3, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfGridx, new GridBagConstraints(1, 2, 1, 1, 0,
+		jPanelWorkingOn.add(wnfGridx, new GridBagConstraints(1, 3, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaGridy, new GridBagConstraints(3, 2, 1, 1, 0.15,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jPanelWorkingOn.add(wnfGridy, new GridBagConstraints(4, 2, 1, 1, 0,
+		jPanelWorkingOn.add(wlaGridy, new GridBagConstraints(3, 3, 1, 1, 0.15,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaAnchor, new GridBagConstraints(0, 3, 1, 1, 0,
+		jPanelWorkingOn.add(wnfGridy, new GridBagConstraints(4, 3, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wcoAnchor, new GridBagConstraints(1, 3, 1, 1, 0,
+		jPanelWorkingOn.add(wlaAnchor, new GridBagConstraints(0, 4, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaFill, new GridBagConstraints(3, 3, 1, 1, 0, 0.0,
+
+		jPanelWorkingOn.add(wcoAnchor, new GridBagConstraints(1, 4, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaFill, new GridBagConstraints(3, 4, 1, 1, 0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wcoFill, new GridBagConstraints(4, 3, 1, 1, 0, 0.0,
+		jPanelWorkingOn.add(wcoFill, new GridBagConstraints(4, 4, 1, 1, 0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaGridwidth, new GridBagConstraints(0, 4, 1, 1, 0,
+		jPanelWorkingOn.add(wlaGridwidth, new GridBagConstraints(0, 5, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfGridwidth, new GridBagConstraints(1, 4, 1, 1, 0,
+		jPanelWorkingOn.add(wnfGridwidth, new GridBagConstraints(1, 5, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaGridheight, new GridBagConstraints(3, 4, 1, 1,
+		jPanelWorkingOn.add(wlaGridheight, new GridBagConstraints(3, 5, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfGridheight, new GridBagConstraints(4, 4, 1, 1,
+		jPanelWorkingOn.add(wnfGridheight, new GridBagConstraints(4, 5, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaWeightX, new GridBagConstraints(0, 5, 1, 1, 0,
+		jPanelWorkingOn.add(wlaWeightX, new GridBagConstraints(0, 6, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfWeightX, new GridBagConstraints(1, 5, 1, 1, 0,
+		jPanelWorkingOn.add(wnfWeightX, new GridBagConstraints(1, 6, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaWeightY, new GridBagConstraints(3, 5, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jPanelWorkingOn.add(wnfWeightY, new GridBagConstraints(4, 5, 1, 1, 0,
+		jPanelWorkingOn.add(wlaWeightY, new GridBagConstraints(3, 6, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaIpadx, new GridBagConstraints(0, 6, 1, 1, 0,
+		jPanelWorkingOn.add(wnfWeightY, new GridBagConstraints(4, 6, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfIpadx, new GridBagConstraints(1, 6, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaIpady, new GridBagConstraints(3, 6, 1, 1, 0,
+		jPanelWorkingOn.add(wlaIpadx, new GridBagConstraints(0, 7, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfIpady, new GridBagConstraints(4, 6, 1, 1, 0,
+		jPanelWorkingOn.add(wnfIpadx, new GridBagConstraints(1, 7, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaIpady, new GridBagConstraints(3, 7, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaInsetsTop, new GridBagConstraints(0, 7, 1, 1, 0,
+		jPanelWorkingOn.add(wnfIpady, new GridBagConstraints(4, 7, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfInsetsTop, new GridBagConstraints(1, 7, 1, 1, 0,
+		jPanelWorkingOn.add(wlaInsetsTop, new GridBagConstraints(0, 8, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaInsetsBottom, new GridBagConstraints(3, 7, 1, 1,
+
+		jPanelWorkingOn.add(wnfInsetsTop, new GridBagConstraints(1, 8, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaInsetsBottom, new GridBagConstraints(3, 8, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfInsetsBottom, new GridBagConstraints(4, 7, 1, 1,
+		jPanelWorkingOn.add(wnfInsetsBottom, new GridBagConstraints(4, 8, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaInsetsLeft, new GridBagConstraints(0, 8, 1, 1,
+		jPanelWorkingOn.add(wlaInsetsLeft, new GridBagConstraints(0, 9, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wnfInsetsLeft, new GridBagConstraints(1, 8, 1, 1,
+		jPanelWorkingOn.add(wnfInsetsLeft, new GridBagConstraints(1, 9, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaInsetsRight, new GridBagConstraints(3, 8, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jPanelWorkingOn.add(wnfInsetsRightt, new GridBagConstraints(4, 8, 1, 1,
+		jPanelWorkingOn.add(wlaInsetsRight, new GridBagConstraints(3, 9, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaTyp, new GridBagConstraints(0, 9, 1, 1, 0, 0.0,
+		jPanelWorkingOn.add(wnfInsetsRightt, new GridBagConstraints(4, 9, 1, 1,
+				0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jPanelWorkingOn.add(wlaTyp, new GridBagConstraints(0, 10, 1, 1, 0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wcoTyp, new GridBagConstraints(1, 9, 1, 1, 0, 0.0,
+		jPanelWorkingOn.add(wcoTyp, new GridBagConstraints(1, 10, 1, 1, 0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wcbMandatory, new GridBagConstraints(2, 9, 1, 1,
+		jPanelWorkingOn.add(wcbMandatory, new GridBagConstraints(2, 10, 1, 1,
+				0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wcbUeberschrift, new GridBagConstraints(2, 10, 1, 1,
 				0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaDruckname, new GridBagConstraints(3, 9, 1, 1, 0,
+		jPanelWorkingOn.add(wlaDruckname, new GridBagConstraints(3, 10, 1, 1,
+				0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jPanelWorkingOn.add(wtfDruckname, new GridBagConstraints(4, 10, 1, 1,
+				0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jPanelWorkingOn.add(wlaText, new GridBagConstraints(0, 11, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wtfDruckname, new GridBagConstraints(4, 9, 1, 1, 0,
+		jPanelWorkingOn.add(wtfText, new GridBagConstraints(1, 11, 2, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaText, new GridBagConstraints(0, 10, 1, 1, 0,
+		jPanelWorkingOn.add(wlaDefault, new GridBagConstraints(3, 11, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wtfText, new GridBagConstraints(1, 10, 2, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jPanelWorkingOn.add(wlaDefault, new GridBagConstraints(3, 10, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jPanelWorkingOn.add(wtfDefault, new GridBagConstraints(4, 10, 1, 1, 0,
+		jPanelWorkingOn.add(wtfDefault, new GridBagConstraints(4, 11, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
@@ -688,36 +738,92 @@ public class PanelPanelbeschreibung extends PanelBasis {
 		jPanelWorkingOn.remove(wsfArtgru.getWrapperTextField());
 		jPanelWorkingOn.remove(wsfPartnerklasse.getWrapperButton());
 		jPanelWorkingOn.remove(wsfPartnerklasse.getWrapperTextField());
+		jPanelWorkingOn.remove(wsfKostenstelle.getWrapperButton());
+		jPanelWorkingOn.remove(wsfKostenstelle.getWrapperTextField());
+		jPanelWorkingOn.remove(wsfBereich.getWrapperButton());
+		jPanelWorkingOn.remove(wsfBereich.getWrapperTextField());
+		jPanelWorkingOn.remove(wlaProjekttyp);
+		jPanelWorkingOn.remove(wcoProjekttyp);
 
 		if (internalFramePersonal.getPanelDto().getCNr()
 				.equals(PanelFac.PANEL_ARTIKELEIGENSCHAFTEN)
 				|| internalFramePersonal.getPanelDto().getCNr()
-						.equals(PanelFac.PANEL_CHARGENEIGENSCHAFTEN)) {
+						.equals(PanelFac.PANEL_CHARGENEIGENSCHAFTEN)|| internalFramePersonal.getPanelDto().getCNr()
+						.equals(PanelFac.PANEL_ARTIKELTECHNIK)) {
 
 			jPanelWorkingOn.add(wsfArtgru.getWrapperButton(),
-					new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0,
+					new GridBagConstraints(3, 1, 1, 1, 0.2, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
 
 			jPanelWorkingOn.add(wsfArtgru.getWrapperTextField(),
-					new GridBagConstraints(4, 0, 1, 1, 0, 0.0,
+					new GridBagConstraints(4, 1, 1, 1, 0, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
 		} else if (internalFramePersonal.getPanelDto().getCNr()
 				.equals(PanelFac.PANEL_KUNDENEIGENSCHAFTEN)) {
 			jPanelWorkingOn.add(wsfPartnerklasse.getWrapperButton(),
-					new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0,
+					new GridBagConstraints(3, 1, 1, 1, 0.2, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
 
 			jPanelWorkingOn.add(wsfPartnerklasse.getWrapperTextField(),
+					new GridBagConstraints(4, 1, 1, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		} else if (internalFramePersonal.getPanelDto().getCNr()
+				.equals(PanelFac.PANEL_AUFTRAGSEIGENSCHAFTEN)) {
+			jPanelWorkingOn.add(wsfKostenstelle.getWrapperButton(),
+					new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+
+			jPanelWorkingOn.add(wsfKostenstelle.getWrapperTextField(),
 					new GridBagConstraints(4, 0, 1, 1, 0, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
+			jPanelWorkingOn.add(wlaProjekttyp,
+					new GridBagConstraints(3, 1, 1, 1, 0.2, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+
+			jPanelWorkingOn.add(wcoProjekttyp,
+					new GridBagConstraints(4, 1, 1, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		} else if (internalFramePersonal.getPanelDto().getCNr()
+				.equals(PanelFac.PANEL_PROJEKTEIGENSCHAFTEN)) {
+			jPanelWorkingOn.add(wsfBereich.getWrapperButton(),
+					new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+
+			jPanelWorkingOn.add(wsfBereich.getWrapperTextField(),
+					new GridBagConstraints(4, 0, 1, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+			jPanelWorkingOn.add(wlaProjekttyp,
+					new GridBagConstraints(3, 1, 1, 1, 0.2, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+
+			jPanelWorkingOn.add(wcoProjekttyp,
+					new GridBagConstraints(4, 1, 1, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+
 		}
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
@@ -762,6 +868,9 @@ public class PanelPanelbeschreibung extends PanelBasis {
 	}
 
 	public void wcoTyp_actionPerformed(ActionEvent e) {
+		
+		wcbUeberschrift.setVisible(false);
+		
 		if (wcoTyp.getKeyOfSelectedItem().equals(PanelFac.TYP_WRAPPERTEXTFIELD)
 				|| wcoTyp.getKeyOfSelectedItem().equals(
 						PanelFac.TYP_WRAPPERTEXTAREA)
@@ -828,6 +937,10 @@ public class PanelPanelbeschreibung extends PanelBasis {
 
 		if (wcoTyp.getKeyOfSelectedItem().equals(PanelFac.TYP_WRAPPERCOMBOBOX)) {
 			wcbMandatory.setVisible(true);
+		}
+		
+		if (wcoTyp.getKeyOfSelectedItem().equals(PanelFac.TYP_WRAPPERLABEL)) {
+			wcbUeberschrift.setVisible(true);
 		}
 
 	}

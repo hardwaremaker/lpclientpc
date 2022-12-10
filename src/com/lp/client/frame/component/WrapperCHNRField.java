@@ -118,7 +118,7 @@ public WrapperCHNRField()
 
   protected void setMask() {
     String sLeer="[ ]{0,}";
-    String regEinzeln="[A-Za-z0-9--/%-&_-_]{1,}"+sLeer;
+    String regEinzeln="[A-Za-z0-9--/%-&_-_|-|]{1,}"+sLeer;
     String regExp = sLeer + "|" + regEinzeln;
     this.regPattern = Pattern.compile(regExp);
   }

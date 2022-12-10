@@ -32,18 +32,26 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Map;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.angebot.service.AngebotDto;
+import com.lp.server.auftrag.service.AuftragDto;
+import com.lp.server.partner.service.KundeDto;
 import com.lp.server.rechnung.service.GutschriftpositionsartDto;
 import com.lp.server.rechnung.service.GutschriftsgrundDto;
 import com.lp.server.rechnung.service.GutschrifttextDto;
+import com.lp.server.rechnung.service.MmzDto;
 import com.lp.server.rechnung.service.ProformarechnungpositionsartDto;
+import com.lp.server.rechnung.service.RechnungFac;
 import com.lp.server.rechnung.service.RechnungServiceFac;
 import com.lp.server.rechnung.service.RechnungSichtAuftragDto;
 import com.lp.server.rechnung.service.RechnungartDto;
@@ -52,6 +60,8 @@ import com.lp.server.rechnung.service.RechnungstatusDto;
 import com.lp.server.rechnung.service.RechnungtextDto;
 import com.lp.server.rechnung.service.RechnungtypDto;
 import com.lp.server.rechnung.service.ZahlungsartDto;
+import com.lp.server.system.service.LocaleFac;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class RechnungServiceDelegate extends Delegate {
@@ -61,111 +71,106 @@ public class RechnungServiceDelegate extends Delegate {
 	public RechnungServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			rechnungServiceFac = (RechnungServiceFac) context
-					.lookup("lpserver/RechnungServiceFacBean/remote");
+			rechnungServiceFac = lookupFac(context, RechnungServiceFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public Integer createRechnungtext(RechnungtextDto rechnungtextDto)
-			throws ExceptionLP {
+	public Integer createRechnungtext(RechnungtextDto rechnungtextDto) throws ExceptionLP {
 		try {
-			rechnungtextDto.setMandantCNr(LPMain.getInstance().getTheClient()
-					.getMandant());
-			rechnungtextDto.setLocaleCNr(LPMain.getInstance().getTheClient()
-					.getLocUiAsString());
-			return rechnungServiceFac.createRechnungtext(rechnungtextDto,
-					LPMain.getTheClient());
+			rechnungtextDto.setMandantCNr(LPMain.getInstance().getTheClient().getMandant());
+			rechnungtextDto.setLocaleCNr(LPMain.getInstance().getTheClient().getLocUiAsString());
+			return rechnungServiceFac.createRechnungtext(rechnungtextDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createGutschriftsgrund(
-			GutschriftsgrundDto gutschriftsgrundDto) throws ExceptionLP {
+	public Integer createMmz(MmzDto dto) throws ExceptionLP {
 		try {
-			return rechnungServiceFac.createGutschriftsgrund(
-					gutschriftsgrundDto, LPMain.getTheClient());
+			return rechnungServiceFac.createMmz(dto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void removeRechnungtext(RechnungtextDto rechnungtextDto)
-			throws ExceptionLP {
+	public Integer createGutschriftsgrund(GutschriftsgrundDto gutschriftsgrundDto) throws ExceptionLP {
 		try {
-			rechnungServiceFac.removeRechnungtext(rechnungtextDto,
-					LPMain.getTheClient());
+			return rechnungServiceFac.createGutschriftsgrund(gutschriftsgrundDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void removeRechnungtext(RechnungtextDto rechnungtextDto) throws ExceptionLP {
+		try {
+			rechnungServiceFac.removeRechnungtext(rechnungtextDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void removeGutschrifttext(GutschrifttextDto gutschrifttextDto)
-			throws ExceptionLP {
+	public void removeGutschrifttext(GutschrifttextDto gutschrifttextDto) throws ExceptionLP {
 		try {
-			rechnungServiceFac.removeGutschrifttext(gutschrifttextDto,
-					LPMain.getTheClient());
+			rechnungServiceFac.removeGutschrifttext(gutschrifttextDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void removeGutschriftsgrund(GutschriftsgrundDto gutschriftsgrundDto)
-			throws ExceptionLP {
+	public void removeMmz(MmzDto mmzDto) throws ExceptionLP {
 		try {
-			rechnungServiceFac.removeGutschriftsgrund(gutschriftsgrundDto,
-					LPMain.getTheClient());
+			rechnungServiceFac.removeMmz(mmzDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateRechnungtext(RechnungtextDto rechnungtextDto)
-			throws ExceptionLP {
+	public void removeGutschriftsgrund(GutschriftsgrundDto gutschriftsgrundDto) throws ExceptionLP {
 		try {
-			rechnungServiceFac.updateRechnungtext(rechnungtextDto,
-					LPMain.getTheClient());
+			rechnungServiceFac.removeGutschriftsgrund(gutschriftsgrundDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateGutschrifttext(GutschrifttextDto gutschrifttextDto)
-			throws ExceptionLP {
+	public void updateRechnungtext(RechnungtextDto rechnungtextDto) throws ExceptionLP {
 		try {
-			rechnungServiceFac.updateGutschrifttext(gutschrifttextDto,
-					LPMain.getTheClient());
+			rechnungServiceFac.updateRechnungtext(rechnungtextDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateRechnungart(RechnungartDto rechnungartDto)
-			throws ExceptionLP {
+	public void updateGutschrifttext(GutschrifttextDto gutschrifttextDto) throws ExceptionLP {
 		try {
-			rechnungServiceFac.updateRechnungart(rechnungartDto,
-					LPMain.getTheClient());
+			rechnungServiceFac.updateGutschrifttext(gutschrifttextDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateZahlungsart(ZahlungsartDto zahlungsartDto)
-			throws ExceptionLP {
+	public void updateRechnungart(RechnungartDto rechnungartDto) throws ExceptionLP {
 		try {
-			rechnungServiceFac.updateZahlungsart(zahlungsartDto,
-					LPMain.getTheClient());
+			rechnungServiceFac.updateRechnungart(rechnungartDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public RechnungtextDto rechnungtextFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public void updateZahlungsart(ZahlungsartDto zahlungsartDto) throws ExceptionLP {
+		try {
+			rechnungServiceFac.updateZahlungsart(zahlungsartDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public RechnungtextDto rechnungtextFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return rechnungServiceFac.rechnungtextFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -174,8 +179,7 @@ public class RechnungServiceDelegate extends Delegate {
 		}
 	}
 
-	public GutschrifttextDto gutschrifttextFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public GutschrifttextDto gutschrifttextFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return rechnungServiceFac.gutschrifttextFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -184,32 +188,27 @@ public class RechnungServiceDelegate extends Delegate {
 		}
 	}
 
-	public RechnungtextDto rechnungtextFindByMandantLocaleCNr(String pSprache,
-			String pText) throws ExceptionLP {
+	public RechnungtextDto rechnungtextFindByMandantLocaleCNr(String pSprache, String pText) throws ExceptionLP {
 		try {
-			return rechnungServiceFac
-					.rechnungtextFindByMandantLocaleCNr(LPMain.getInstance()
-							.getTheClient().getMandant(), pSprache, pText);
+			return rechnungServiceFac.rechnungtextFindByMandantLocaleCNr(
+					LPMain.getInstance().getTheClient().getMandant(), pSprache, pText);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public GutschrifttextDto gutschrifttextFindByMandantLocaleCNr(
-			String pSprache, String pText) throws ExceptionLP {
+	public GutschrifttextDto gutschrifttextFindByMandantLocaleCNr(String pSprache, String pText) throws ExceptionLP {
 		try {
 			return rechnungServiceFac.gutschrifttextFindByMandantLocaleCNr(
-					LPMain.getInstance().getTheClient().getMandant(), pSprache,
-					pText);
+					LPMain.getInstance().getTheClient().getMandant(), pSprache, pText);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public GutschriftsgrundDto gutschriftsgrundFindByPrimaryKey(Integer iId)
-			throws ExceptionLP {
+	public GutschriftsgrundDto gutschriftsgrundFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
 			return rechnungServiceFac.gutschriftsgrundFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
@@ -218,13 +217,13 @@ public class RechnungServiceDelegate extends Delegate {
 		}
 	}
 
-	public RechnungtextDto createDefaultRechnungtext(String sMediaartI,
-			String sTextinhaltI, String localeCNr) throws ExceptionLP {
+	public RechnungtextDto createDefaultRechnungtext(String sMediaartI, String sTextinhaltI, String localeCNr)
+			throws ExceptionLP {
 		RechnungtextDto oRechnungtextDto = null;
 
 		try {
-			oRechnungtextDto = rechnungServiceFac.createDefaultRechnungtext(
-					sMediaartI, sTextinhaltI, localeCNr, LPMain.getTheClient());
+			oRechnungtextDto = rechnungServiceFac.createDefaultRechnungtext(sMediaartI, sTextinhaltI, localeCNr,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -232,13 +231,13 @@ public class RechnungServiceDelegate extends Delegate {
 		return oRechnungtextDto;
 	}
 
-	public GutschrifttextDto createDefaultGutschrifttext(String sMediaartI,
-			String sTextinhaltI, String localeCNr) throws ExceptionLP {
+	public GutschrifttextDto createDefaultGutschrifttext(String sMediaartI, String sTextinhaltI, String localeCNr)
+			throws ExceptionLP {
 		GutschrifttextDto gutschrifttextDto = null;
 
 		try {
-			gutschrifttextDto = rechnungServiceFac.createDefaultGutschrifttext(
-					sMediaartI, sTextinhaltI, localeCNr, LPMain.getTheClient());
+			gutschrifttextDto = rechnungServiceFac.createDefaultGutschrifttext(sMediaartI, sTextinhaltI, localeCNr,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -246,76 +245,71 @@ public class RechnungServiceDelegate extends Delegate {
 		return gutschrifttextDto;
 	}
 
-	public RechnungpositionsartDto rechnungpositionsartFindByPrimaryKey(
-			String positionsartCNr) throws ExceptionLP {
+	public RechnungpositionsartDto rechnungpositionsartFindByPrimaryKey(String positionsartCNr) throws ExceptionLP {
 		try {
-			return rechnungServiceFac
-					.rechnungpositionsartFindByPrimaryKey(positionsartCNr);
+			return rechnungServiceFac.rechnungpositionsartFindByPrimaryKey(positionsartCNr);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public GutschriftpositionsartDto gutschriftpositionsartFindByPrimaryKey(
-			String positionsartCNr) throws ExceptionLP {
+	public GutschriftpositionsartDto gutschriftpositionsartFindByPrimaryKey(String positionsartCNr) throws ExceptionLP {
 		try {
-			return rechnungServiceFac
-					.gutschriftpositionsartFindByPrimaryKey(positionsartCNr);
+			return rechnungServiceFac.gutschriftpositionsartFindByPrimaryKey(positionsartCNr);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public ProformarechnungpositionsartDto proformarechnungpositionsartFindByPrimaryKey(
-			String positionsartCNr) throws ExceptionLP {
-		try {
-			return rechnungServiceFac
-					.proformarechnungpositionsartFindByPrimaryKey(positionsartCNr);
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public void updateRechnungpositionsart(
-			RechnungpositionsartDto rechnungpositionsartDto) throws ExceptionLP {
-		try {
-			rechnungServiceFac.updateRechnungpositionsart(
-					rechnungpositionsartDto, LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
-	}
-
-	public void updateGutschriftpositionsart(
-			GutschriftpositionsartDto gutschriftpositionsartDto)
+	public ProformarechnungpositionsartDto proformarechnungpositionsartFindByPrimaryKey(String positionsartCNr)
 			throws ExceptionLP {
 		try {
-			rechnungServiceFac.updateGutschriftpositionsart(
-					gutschriftpositionsartDto, LPMain.getTheClient());
+			return rechnungServiceFac.proformarechnungpositionsartFindByPrimaryKey(positionsartCNr);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void updateRechnungpositionsart(RechnungpositionsartDto rechnungpositionsartDto) throws ExceptionLP {
+		try {
+			rechnungServiceFac.updateRechnungpositionsart(rechnungpositionsartDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateGutschriftsgrund(GutschriftsgrundDto gutschriftsgrundDto)
+	public void updateGutschriftpositionsart(GutschriftpositionsartDto gutschriftpositionsartDto) throws ExceptionLP {
+		try {
+			rechnungServiceFac.updateGutschriftpositionsart(gutschriftpositionsartDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateGutschriftsgrund(GutschriftsgrundDto gutschriftsgrundDto) throws ExceptionLP {
+		try {
+			rechnungServiceFac.updateGutschriftsgrund(gutschriftsgrundDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateMmz(MmzDto dto) throws ExceptionLP {
+		try {
+			rechnungServiceFac.updateMmz(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateProformarechnungpositionsart(ProformarechnungpositionsartDto proformarechnungpositionsartDto)
 			throws ExceptionLP {
 		try {
-			rechnungServiceFac.updateGutschriftsgrund(gutschriftsgrundDto,
+			rechnungServiceFac.updateProformarechnungpositionsart(proformarechnungpositionsartDto,
 					LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
-	}
-
-	public void updateProformarechnungpositionsart(
-			ProformarechnungpositionsartDto proformarechnungpositionsartDto)
-			throws ExceptionLP {
-		try {
-			rechnungServiceFac.updateProformarechnungpositionsart(
-					proformarechnungpositionsartDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -332,10 +326,8 @@ public class RechnungServiceDelegate extends Delegate {
 		Map<String, String> arten = null;
 		try {
 			Locale locale1 = LPMain.getInstance().getTheClient().getLocUi();
-			Locale locale2 = LPMain.getInstance().getTheClient()
-					.getLocMandant();
-			arten = rechnungServiceFac.getAllRechnungpositionsart(locale1,
-					locale2);
+			Locale locale2 = LPMain.getInstance().getTheClient().getLocMandant();
+			arten = rechnungServiceFac.getAllRechnungpositionsart(locale1, locale2);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -350,16 +342,13 @@ public class RechnungServiceDelegate extends Delegate {
 	 * @return Map
 	 * @throws ExceptionLP
 	 */
-	public Map<String, String> getAllGutschriftpositionsart()
-			throws ExceptionLP {
+	public Map<String, String> getAllGutschriftpositionsart() throws ExceptionLP {
 		myLogger.entry();
 		Map<String, String> arten = null;
 		try {
 			Locale locale1 = LPMain.getInstance().getTheClient().getLocUi();
-			Locale locale2 = LPMain.getInstance().getTheClient()
-					.getLocMandant();
-			arten = rechnungServiceFac.getAllGutschriftpositionsart(locale1,
-					locale2);
+			Locale locale2 = LPMain.getInstance().getTheClient().getLocMandant();
+			arten = rechnungServiceFac.getAllGutschriftpositionsart(locale1, locale2);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -373,16 +362,13 @@ public class RechnungServiceDelegate extends Delegate {
 	 * @return Map
 	 * @throws ExceptionLP
 	 */
-	public Map<String, String> getAllProformarechnungpositionsart()
-			throws ExceptionLP {
+	public Map<String, String> getAllProformarechnungpositionsart() throws ExceptionLP {
 		myLogger.entry();
 		Map<String, String> arten = null;
 		try {
 			Locale locale1 = LPMain.getInstance().getTheClient().getLocUi();
-			Locale locale2 = LPMain.getInstance().getTheClient()
-					.getLocMandant();
-			arten = rechnungServiceFac.getAllProformarechnungpositionsart(
-					locale1, locale2);
+			Locale locale2 = LPMain.getInstance().getTheClient().getLocMandant();
+			arten = rechnungServiceFac.getAllProformarechnungpositionsart(locale1, locale2);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -391,8 +377,7 @@ public class RechnungServiceDelegate extends Delegate {
 		return arten;
 	}
 
-	public RechnungtypDto rechnungtypFindByPrimaryKey(String cNr)
-			throws ExceptionLP {
+	public RechnungtypDto rechnungtypFindByPrimaryKey(String cNr) throws ExceptionLP {
 		try {
 			return rechnungServiceFac.rechnungtypFindByPrimaryKey(cNr);
 		} catch (Throwable ex) {
@@ -421,10 +406,8 @@ public class RechnungServiceDelegate extends Delegate {
 		Map<?, ?> arten = null;
 		try {
 			Locale locale1 = LPMain.getInstance().getTheClient().getLocUi();
-			Locale locale2 = LPMain.getInstance().getTheClient()
-					.getLocMandant();
-			arten = rechnungServiceFac.getAllRechnungartRechnung(locale1,
-					locale2);
+			Locale locale2 = LPMain.getInstance().getTheClient().getLocMandant();
+			arten = rechnungServiceFac.getAllRechnungartRechnung(locale1, locale2);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -438,16 +421,13 @@ public class RechnungServiceDelegate extends Delegate {
 	 * @return Map
 	 * @throws ExceptionLP
 	 */
-	public Map<String, String> getAllRechnungArtenGutschrift()
-			throws ExceptionLP {
+	public Map<String, String> getAllRechnungArtenGutschrift() throws ExceptionLP {
 		myLogger.entry();
 		Map<String, String> arten = null;
 		try {
 			Locale locale1 = LPMain.getInstance().getTheClient().getLocUi();
-			Locale locale2 = LPMain.getInstance().getTheClient()
-					.getLocMandant();
-			arten = rechnungServiceFac.getAllRechnungartGutschrift(locale1,
-					locale2);
+			Locale locale2 = LPMain.getInstance().getTheClient().getLocMandant();
+			arten = rechnungServiceFac.getAllRechnungartGutschrift(locale1, locale2);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -466,10 +446,8 @@ public class RechnungServiceDelegate extends Delegate {
 		Map<?, ?> arten = null;
 		try {
 			Locale locale1 = LPMain.getInstance().getTheClient().getLocUi();
-			Locale locale2 = LPMain.getInstance().getTheClient()
-					.getLocMandant();
-			arten = rechnungServiceFac.getAllRechnungartProformarechnung(
-					locale1, locale2);
+			Locale locale2 = LPMain.getInstance().getTheClient().getLocMandant();
+			arten = rechnungServiceFac.getAllRechnungartProformarechnung(locale1, locale2);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -488,8 +466,7 @@ public class RechnungServiceDelegate extends Delegate {
 		Map<?, ?> arten = null;
 		try {
 			Locale locale1 = LPMain.getInstance().getTheClient().getLocUi();
-			Locale locale2 = LPMain.getInstance().getTheClient()
-					.getLocMandant();
+			Locale locale2 = LPMain.getInstance().getTheClient().getLocMandant();
 			arten = rechnungServiceFac.getAllZahlungsarten(locale1, locale2);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -499,11 +476,9 @@ public class RechnungServiceDelegate extends Delegate {
 	}
 
 	// ****************************************************************************
-	public RechnungartDto rechnungartFindByPrimaryKey(String cNr)
-			throws ExceptionLP {
+	public RechnungartDto rechnungartFindByPrimaryKey(String cNr) throws ExceptionLP {
 		try {
-			return rechnungServiceFac.rechnungartFindByPrimaryKey(cNr,
-					LPMain.getTheClient());
+			return rechnungServiceFac.rechnungartFindByPrimaryKey(cNr, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -511,8 +486,7 @@ public class RechnungServiceDelegate extends Delegate {
 	}
 
 	// ****************************************************************************
-	public RechnungstatusDto rechnungstatusFindByPrimaryKey(String cNr)
-			throws ExceptionLP {
+	public RechnungstatusDto rechnungstatusFindByPrimaryKey(String cNr) throws ExceptionLP {
 		try {
 			return rechnungServiceFac.rechnungstatusFindByPrimaryKey(cNr);
 		} catch (Throwable ex) {
@@ -522,11 +496,9 @@ public class RechnungServiceDelegate extends Delegate {
 	}
 
 	// ****************************************************************************
-	public ZahlungsartDto zahlungsartFindByPrimaryKey(String cNr)
-			throws ExceptionLP {
+	public ZahlungsartDto zahlungsartFindByPrimaryKey(String cNr) throws ExceptionLP {
 		try {
-			return rechnungServiceFac.zahlungsartFindByPrimaryKey(cNr,
-					LPMain.getTheClient());
+			return rechnungServiceFac.zahlungsartFindByPrimaryKey(cNr, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
@@ -535,10 +507,19 @@ public class RechnungServiceDelegate extends Delegate {
 
 	public RechnungSichtAuftragDto rechnungFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return rechnungServiceFac.rechnungFindByPrimaryKey(iId) ;
-		} catch(Throwable t) {
-			handleThrowable(t);	
-			return null ;
+			return rechnungServiceFac.rechnungFindByPrimaryKey(iId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public MmzDto mmzFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return rechnungServiceFac.mmzFindByPrimaryKey(iId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
 		}
 	}
 }

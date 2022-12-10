@@ -83,8 +83,7 @@ public class PanelGleitzeitsaldo
   private WrapperSpinner wspJahr = new WrapperSpinner(new Integer(0), new Integer(0),
                                               new Integer(9999), new Integer(1));
 
-  private WrapperLabel wlaJahr = new WrapperLabel();
-  private WrapperLabel wlaMonat = new WrapperLabel();
+  private WrapperLabel wlaJahrMonat = new WrapperLabel();
   private WrapperLabel wlaMehrstunden = new WrapperLabel();
   private WrapperLabel wlaUestfrei50 = new WrapperLabel();
   private WrapperLabel wlaUestpflichtig50 = new WrapperLabel();
@@ -106,6 +105,9 @@ public class PanelGleitzeitsaldo
   private WrapperLabel wrapperLabel5 = new WrapperLabel();
   private WrapperLabel wrapperLabel6 = new WrapperLabel();
 
+  private WrapperLabel wlaSaldoMitUestdInNormalstunden = new WrapperLabel();
+  private WrapperNumberField wnfSaldoMitUestdInNormalstunden = new WrapperNumberField();
+  
   private WrapperLabel wlaSaldo = new WrapperLabel();
   private WrapperNumberField wnfSaldo = new WrapperNumberField();
 
@@ -184,6 +186,7 @@ public class PanelGleitzeitsaldo
     gleitzeitsaldoDto.setNSaldouestpflichtig100(wnfUestpflichtig100.getBigDecimal());
     gleitzeitsaldoDto.setNSaldouestpflichtig50(wnfUestpflichtig50.getBigDecimal());
     gleitzeitsaldoDto.setNSaldouest200(wnfUest200.getBigDecimal());
+    gleitzeitsaldoDto.setNGzSaldoMitUestdInNormalstunden(wnfSaldoMitUestdInNormalstunden.getBigDecimal());
 
     gleitzeitsaldoDto.setBGesperrt(wcbGesperrt.getShort());
 
@@ -202,6 +205,7 @@ public class PanelGleitzeitsaldo
     wnfUestpflichtig50.setBigDecimal(gleitzeitsaldoDto.getNSaldouestpflichtig50());
     wnfSaldo.setBigDecimal(gleitzeitsaldoDto.getNSaldo());
     wnfUest200.setBigDecimal(gleitzeitsaldoDto.getNSaldouest200());
+    wnfSaldoMitUestdInNormalstunden.setBigDecimal(gleitzeitsaldoDto.getNGzSaldoMitUestdInNormalstunden());
     
     wcbGesperrt.setShort(gleitzeitsaldoDto.getBGesperrt());
 
@@ -257,13 +261,12 @@ public class PanelGleitzeitsaldo
     gridBagLayoutWorkingPanel = new GridBagLayout();
     jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
 
-    wlaJahr.setText(LPMain.getInstance().getTextRespectUISPr("lp.jahr"));
+    wlaJahrMonat.setText(LPMain.getInstance().getTextRespectUISPr("lp.jahr")+"/"+LPMain.getInstance().getTextRespectUISPr("lp.monat1"));
     //jetzt meine felder
     jpaWorkingOn = new JPanel();
     gridBagLayoutWorkingPanel = new GridBagLayout();
     jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
     wspJahr.setMandatoryField(true);
-    wlaMonat.setText(LPMain.getInstance().getTextRespectUISPr("lp.monat1"));
     wlaSaldo.setText(LPMain.getInstance().getTextRespectUISPr(
         "pers.title.tab.gleitzeitsaldo"));
     wlaMehrstunden.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -278,6 +281,14 @@ public class PanelGleitzeitsaldo
         "pers.gleitzeitsaldo.steuerpflichtig100"));
     wlaUest200.setText(LPMain.getInstance().getTextRespectUISPr(
     "pers.gleitzeitsaldo.200"));
+
+    
+    wlaSaldoMitUestdInNormalstunden.setText(LPMain.getInstance().getTextRespectUISPr(
+    "pers.gleitzeitsaldo.gzsaldo.mituest.in.normalstunden"));
+
+    
+    
+    
     
     wcoMonat.setMandatoryField(true);
 
@@ -314,96 +325,110 @@ public class PanelGleitzeitsaldo
         new Insets(0, 0, 0, 0), 0, 0));
 
     iZeile++;
-    jpaWorkingOn.add(wlaJahr, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+    jpaWorkingOn.add(wlaJahrMonat, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
     jpaWorkingOn.add(wspJahr, new GridBagConstraints(1, iZeile, 1, 1, 0.01, 0.0
-        , GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 70, 0));
-     iZeile++;
-    jpaWorkingOn.add(wlaMonat, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
+        , GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 0, 2), 70, 0));
     jpaWorkingOn.add(wcoMonat, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 70, 0));
+            , GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(2, 60, 0, 2), 70, 0));
+     iZeile++;
+    
+   
     iZeile++;
    jpaWorkingOn.add(wlaSaldo, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-       , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+       , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
        0, 0));
    jpaWorkingOn.add(wnfSaldo, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-       , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+       , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
        0, 0));  iZeile++;
     jpaWorkingOn.add(wlaMehrstunden, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
     jpaWorkingOn.add(wnfMehrstunden, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
 
 
     jpaWorkingOn.add(wrapperLabel1, new GridBagConstraints(2, iZeile, 1, 1, 0.03, 0.0
-    , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+    , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
     0, 0));
     iZeile++;
 
     jpaWorkingOn.add(wlaUestfrei50, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
 
     jpaWorkingOn.add(wnfUestfrei50, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
     jpaWorkingOn.add(wrapperLabel2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0
-    , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+    , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
     0, 0));
     iZeile++;
 
     jpaWorkingOn.add(wlaUestpflichtig50, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
     jpaWorkingOn.add(wnfUestpflichtig50, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-       , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+       , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
        0, 0));
     jpaWorkingOn.add(wrapperLabel3, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0
-    , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+    , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
     0, 0));
 
     iZeile++;
     jpaWorkingOn.add(wlaUestfrei100, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
     jpaWorkingOn.add(wnfUestfrei100, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-      , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+      , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
       0, 0));
     jpaWorkingOn.add(wrapperLabel4, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
   iZeile++;
     jpaWorkingOn.add(wlaUestpflichtig100, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
     jpaWorkingOn.add(wnfUestpflichtig100, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
     jpaWorkingOn.add(wrapperLabel5, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0
-     , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+     , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
      0, 0));
     iZeile++;
     jpaWorkingOn.add(wlaUest200, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
-            , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+            , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
             0, 0));
         jpaWorkingOn.add(wnfUest200, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
-            , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+            , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
             0, 0));
         
         WrapperLabel w200=new WrapperLabel("h");
 		w200.setHorizontalAlignment(SwingConstants.LEFT);
         
         jpaWorkingOn.add(w200, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0
-         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
          0, 0));
         iZeile++;
+        jpaWorkingOn.add(wlaSaldoMitUestdInNormalstunden, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
+                , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
+                0, 0));
+            jpaWorkingOn.add(wnfSaldoMitUestdInNormalstunden, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0
+                , GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
+                0, 0));
+            
+            WrapperLabel wsaldo2=new WrapperLabel("h");
+            wsaldo2.setHorizontalAlignment(SwingConstants.LEFT);
+            
+            jpaWorkingOn.add(wsaldo2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0
+             , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
+             0, 0));
+        iZeile++;
+        
     jpaWorkingOn.add(wcbGesperrt, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0
-        , GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+        , GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2),
         0, 0));
 
 

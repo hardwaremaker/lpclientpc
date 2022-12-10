@@ -168,8 +168,9 @@ public class PanelLieferantbeurteilung extends PanelBasis {
 		wnfPunkte
 				.addFocusListener(new PanelLieferantbeurteilung_wnfPunkte_focusAdapter(
 						this));
-
+		wdfDatum.setMandatoryField(true);
 		wdfDatum.setActivatable(false);
+		
 
 		// das aussenpanel hat immer das gridbaglayout.
 		gblAussen = new GridBagLayout();
@@ -243,6 +244,8 @@ public class PanelLieferantbeurteilung extends PanelBasis {
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
 			leereAlleFelder(this);
 			clearStatusbar();
+			wdfDatum.setEnabled(true);
+			wcbManuellGeaendert.setSelected(true);
 		} else {
 			lieferantbeurteilungDto = DelegateFactory.getInstance()
 					.getLieferantDelegate()

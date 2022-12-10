@@ -45,6 +45,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.WrapperButton;
@@ -246,6 +247,10 @@ public class DialogLagercockpitUmbuchen extends JDialog implements
 				.getLagerstand(artikelDto.getIId(), lagerIId_Wareneingang);
 
 		wnfMenge.setMandatoryField(true);
+		wnfMenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		
+		
+		
 
 		if (fehlmengeIId != null) {
 			wrbLos.setSelected(true);

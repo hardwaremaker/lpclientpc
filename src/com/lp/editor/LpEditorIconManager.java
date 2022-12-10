@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.editor;
@@ -91,6 +91,15 @@ public class LpEditorIconManager {
   public final static String ICON_INSERT_ROW_BEFORE = "InsertRowBefore";
   public final static String ICON_INSERT_ROW_AFTER = "InsertRowAfter";
   public final static String ICON_DELETE_ROW = "DeleteRow";
+
+  public final static String ICON_CLEAR_FORMAT = "ClearFormat";
+  
+  public final static String ICON_INSERT_IMAGE = "InsertImage";
+  public final static String ICON_INSERT_TEXTBLOCK = "InsertTextBlock";
+
+  public static final String ICON_DELETE_BLOCK = "DeleteBlock";
+
+  public static final String ICON_EDIT_IMAGE = "EditImage";
 
   private Hashtable<String, String> iconResourceNames;
 
@@ -166,6 +175,13 @@ public class LpEditorIconManager {
             RESOURCE_PREFIX_LOGP + "contract.png");
     iconResourceNames.put(ICON_EDIT_INSERT_TEXTBAUSTEIN,
             RESOURCE_PREFIX_LOGP + "document_add.png");
+
+    iconResourceNames.put(ICON_CLEAR_FORMAT, RESOURCE_PREFIX_LOGP + "clear_format_16x16.png");
+    
+    iconResourceNames.put(ICON_INSERT_IMAGE, RESOURCE_PREFIX_LOGP + "painting_landscape.png");
+    iconResourceNames.put(ICON_INSERT_TEXTBLOCK, RESOURCE_PREFIX_LOGP + "document_landscape_add.png");
+    iconResourceNames.put(ICON_DELETE_BLOCK, RESOURCE_PREFIX_LOGP + "delete2.png");
+    iconResourceNames.put(ICON_EDIT_IMAGE, RESOURCE_PREFIX_LOGP + "gearwheel.png");	
 
   }
 

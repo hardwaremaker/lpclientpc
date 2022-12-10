@@ -47,6 +47,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.EventObject;
@@ -65,15 +66,25 @@ import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.apache.commons.lang.StringUtils;
+
+import com.lp.client.cockpit.InternalFrameCockpit;
+import com.lp.client.cockpit.TabbedPaneCockpit;
+import com.lp.client.fertigung.InternalFrameFertigung;
+import com.lp.client.fertigung.TabbedPaneLos.StatusFilterKeys;
 import com.lp.client.frame.Command;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.DialogError;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.ICommand;
+import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.assistent.view.AssistentView;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.editor.PanelBlockEditor;
 import com.lp.client.frame.editor.PanelEditor;
+import com.lp.client.frame.editor.PanelEditorPlainText;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportIfJRDSZweiDrucker;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -82,16 +93,22 @@ import com.lp.client.frame.report.PanelReportKriterienZweiDrucker;
 import com.lp.client.pc.LPMain;
 import com.lp.client.projekt.InternalFrameProjekt;
 import com.lp.client.projekt.TabbedPaneProjekt;
+import com.lp.client.stueckliste.InternalFrameStueckliste;
 import com.lp.client.util.ClientConfiguration;
 import com.lp.client.util.dtable.DistributedTableModelImpl;
 import com.lp.client.util.logger.LpLogger;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.fertigung.service.LosDto;
 import com.lp.server.partner.service.PartnerDto;
+import com.lp.server.personal.service.TelefonzeitenDto;
 import com.lp.server.projekt.service.ProjektDto;
+import com.lp.server.stueckliste.service.StuecklisteDto;
 import com.lp.server.system.service.ArbeitsplatzparameterDto;
 import com.lp.server.system.service.BelegartdokumentDto;
 import com.lp.server.system.service.DokumentDto;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MediaFac;
+import com.lp.server.system.service.PanelsperrenDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.util.Helper;
@@ -109,9 +126,8 @@ import com.lp.util.Helper;
  * 
  * @version $Revision: 1.25 $
  */
-abstract public class InternalFrame extends JInternalFrame implements
-		ActionListener, ChangeListener, ItemChangedListener, IInternalFrame,
-		ComponentListener, ICommand {
+abstract public class InternalFrame extends JInternalFrame
+		implements ActionListener, ChangeListener, ItemChangedListener, IInternalFrame, ComponentListener, ICommand {
 	/**
 	 * 
 	 */
@@ -122,6 +138,8 @@ abstract public class InternalFrame extends JInternalFrame implements
 	private Stack<PanelDialogStackElement> vPanelDialog = null;
 	private ProgressTimer frameProgress = null;
 
+	private ArrayList<PanelsperrenDto> alPanelsperrenDto = null;
+
 	// SP1600
 	private Integer iLetzteGewaehlteArtikelgruppenIId;
 
@@ -129,8 +147,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 		return iLetzteGewaehlteArtikelgruppenIId;
 	}
 
-	public void setILetzteGewaehlteArtikelgruppenIId(
-			Integer iLetzteGewaehlteArtikelgruppenIId) {
+	public void setILetzteGewaehlteArtikelgruppenIId(Integer iLetzteGewaehlteArtikelgruppenIId) {
 		this.iLetzteGewaehlteArtikelgruppenIId = iLetzteGewaehlteArtikelgruppenIId;
 	}
 
@@ -145,9 +162,19 @@ abstract public class InternalFrame extends JInternalFrame implements
 		this.bNullpreiswarnungAnzeigen = bNullpreiswarnungAnzeigen;
 	}
 
+	// PJ20333
+	private boolean bKommentarNurNachNachfrageLoeschen = true;
+
+	public boolean isBKommentarNurNachNachfrageLoeschen() {
+		return bKommentarNurNachNachfrageLoeschen;
+	}
+
+	public void setBKommentarNurNachNachfrageLoeschen(boolean bKommentarNurNachNachfrageLoeschen) {
+		this.bKommentarNurNachNachfrageLoeschen = bKommentarNurNachNachfrageLoeschen;
+	}
+
 	protected final JTabbedPane tabbedPaneRoot;
-	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this
-			.getClass());
+	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this.getClass());
 
 	private java.awt.event.MouseListener mpq = null;
 
@@ -177,14 +204,17 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 	public Integer letzteKostentraegerIId = null;
 
-	private boolean modulLocked ;
-	
-	public InternalFrame(String sAddTitleI, String belegartCNr,
-			String sRechtModulweitI) throws Throwable {
+	private boolean modulLocked;
+
+	public InternalFrame(String sAddTitleI, String belegartCNr, String sRechtModulweitI) throws Throwable {
 		// titlp: 1 hier keinen Titel setzen!
 		super("", true, true, true, true);
 		this.belegartCNr = belegartCNr;
 		//
+
+		alPanelsperrenDto = DelegateFactory.getInstance().getPanelDelegate()
+				.panelsperrenFindByBelegartCNrMandantCNr(belegartCNr, LPMain.getTheClient().getMandant());
+
 		if (sRechtModulweitI == null) {
 			// Wenn kein Recht angegeben wurde -> Automatisch nur READ
 			sRechtModulweit = RechteFac.RECHT_MODULWEIT_READ;
@@ -193,21 +223,17 @@ abstract public class InternalFrame extends JInternalFrame implements
 		}
 
 		// Benutzerrecht "Darf Einkaufs-Preise sehen" holen.
-		bRechtDarfPreiseSehenEinkauf = DelegateFactory.getInstance()
-				.getTheJudgeDelegate()
+		bRechtDarfPreiseSehenEinkauf = DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_EINKAUF);
 
 		// Benutzerrecht "Darf Verkaufs-Preise sehen" holen.
-		bRechtDarfPreiseSehenVerkauf = DelegateFactory.getInstance()
-				.getTheJudgeDelegate()
+		bRechtDarfPreiseSehenVerkauf = DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_SEHEN_VERKAUF);
 
-		bRechtDarfPreiseAendernVerkauf = DelegateFactory.getInstance()
-				.getTheJudgeDelegate()
+		bRechtDarfPreiseAendernVerkauf = DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_AENDERN_VERKAUF);
 
-		bRechtDarfPreiseAendernEinkauf = DelegateFactory.getInstance()
-				.getTheJudgeDelegate()
+		bRechtDarfPreiseAendernEinkauf = DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_AENDERN_EINKAUF);
 
 		tabbedPaneRoot = new JTabbedPane();
@@ -220,10 +246,63 @@ abstract public class InternalFrame extends JInternalFrame implements
 			handleException(t, true);
 		}
 		initComponents();
+
+		LPMain.getInstance().getDesktop().showDialogOffeneOderFehlgeschlageneVersandauftraege();
 	}
 
-	public void scanAndSave(String belegartCNr, Integer belegartIId)
-			throws Throwable {
+	public boolean istPanelGesperrt(String titelUnten, String titelOben) {
+		if (alPanelsperrenDto != null && alPanelsperrenDto.size() > 0) {
+			for (int i = 0; i < alPanelsperrenDto.size(); i++) {
+
+				String ressourceUnten = alPanelsperrenDto.get(i).getCRessourceUnten();
+
+				String titelUntenRes = LPMain.getTextRespectUISPr(ressourceUnten);
+
+				if (titelUnten != null && titelUntenRes != null && titelUntenRes.equals(titelUnten)) {
+					String ressourceOben = alPanelsperrenDto.get(i).getCRessourceOben();
+					String titelObenRes = LPMain.getTextRespectUISPr(ressourceOben);
+
+					if (titelOben.startsWith("1 ") || titelOben.startsWith("2 ") || titelOben.startsWith("3")
+							|| titelOben.startsWith("4 ") || titelOben.startsWith("5 ") || titelOben.startsWith("6 ")
+							|| titelOben.startsWith("7 ") || titelOben.startsWith("8 ") || titelOben.startsWith("9 ")) {
+						titelOben = titelOben.substring(2);
+					}
+
+					if (titelOben != null && titelObenRes != null && titelObenRes.equals(titelOben)) {
+						return true;
+					}
+				}
+
+			}
+		}
+		return false;
+	}
+
+	public void gesperrtePanelsVestecken() {
+
+		if (alPanelsperrenDto != null && alPanelsperrenDto.size() > 0) {
+			Component[] untereReiter = tabbedPaneRoot.getComponents();
+
+			for (int i = 0; i < untereReiter.length; i++) {
+				if (untereReiter[i] instanceof TabbedPane) {
+					TabbedPane tpUntererReiter = (TabbedPane) untereReiter[i];
+
+					for (int j = 0; j < tpUntererReiter.getTabCount(); j++) {
+						if (istPanelGesperrt(tabbedPaneRoot.getTitleAt(i), tpUntererReiter.getTitleAt(j))) {
+							tpUntererReiter.setEnabledAt(j, false);
+
+						}
+
+					}
+
+				}
+			}
+
+		}
+
+	}
+
+	public void scanAndSave(String belegartCNr, Integer belegartIId) throws Throwable {
 
 		try {
 			java.io.File f = File.createTempFile("hvd", ".pdf");
@@ -233,19 +312,14 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 			String line;
 
-			String logpScan = ClientConfiguration.getLogpScan() ;
+			String logpScan = ClientConfiguration.getLogpScan();
 
-			ArbeitsplatzparameterDto parameter = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.holeArbeitsplatzparameter(
-							ParameterFac.ARBEITSPLATZPARAMETER_PFAD_MIT_PARAMETER_SCANTOOL);
+			ArbeitsplatzparameterDto parameter = DelegateFactory.getInstance().getParameterDelegate()
+					.holeArbeitsplatzparameter(ParameterFac.ARBEITSPLATZPARAMETER_PFAD_MIT_PARAMETER_SCANTOOL);
 
 			if (parameter == null) {
-				DialogFactory
-						.showModalDialog(LPMain.getInstance()
-								.getTextRespectUISPr("lp.error"),
-								"Bitte Arbeitsplatzparameter 'PFAD_MIT_PARAMETER_SCANTOOL' setzen.");
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						"Bitte Arbeitsplatzparameter 'PFAD_MIT_PARAMETER_SCANTOOL' setzen.");
 				return;
 			}
 
@@ -254,8 +328,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 			String command = logpScan + " " + filename;
 
 			Process p = Runtime.getRuntime().exec(command);
-			BufferedReader input = new BufferedReader(new InputStreamReader(
-					p.getInputStream()));
+			BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			String output = "";
 			while ((line = input.readLine()) != null) {
 				output = line + "\n";
@@ -270,8 +343,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 			inFile.read(datei);
 			inFile.close();
 
-			String s = JOptionPane.showInternalInputDialog(this,
-					"Bitte geben Sie eine Kurzbeschreibung an:");
+			String s = JOptionPane.showInternalInputDialog(this, "Bitte geben Sie eine Kurzbeschreibung an:");
 
 			if (s != null) {
 				BelegartdokumentDto belegartdokumentdto = new BelegartdokumentDto();
@@ -281,12 +353,10 @@ abstract public class InternalFrame extends JInternalFrame implements
 				DokumentDto dokumentDto = new DokumentDto();
 				dokumentDto.setCBez(s);
 				dokumentDto.setCDateiname(filenameKurz);
-				dokumentDto
-						.setDatenformatCNr(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
+				dokumentDto.setDatenformatCNr(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
 				dokumentDto.setOInhalt(datei);
 				belegartdokumentdto.setDokumentDto(dokumentDto);
-				DelegateFactory.getInstance().getDokumenteDelegate()
-						.createBelegartdokument(belegartdokumentdto);
+				DelegateFactory.getInstance().getDokumenteDelegate().createBelegartdokument(belegartdokumentdto);
 			}
 			f.delete();
 
@@ -306,19 +376,14 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 			String line;
 
-			String logpScan = ClientConfiguration.getLogpScan() ;
+			String logpScan = ClientConfiguration.getLogpScan();
 
-			ArbeitsplatzparameterDto parameter = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.holeArbeitsplatzparameter(
-							ParameterFac.ARBEITSPLATZPARAMETER_PFAD_MIT_PARAMETER_SCANTOOL);
+			ArbeitsplatzparameterDto parameter = DelegateFactory.getInstance().getParameterDelegate()
+					.holeArbeitsplatzparameter(ParameterFac.ARBEITSPLATZPARAMETER_PFAD_MIT_PARAMETER_SCANTOOL);
 
 			if (parameter == null) {
-				DialogFactory
-						.showModalDialog(LPMain.getInstance()
-								.getTextRespectUISPr("lp.error"),
-								"Bitte Arbeitsplatzparameter 'PFAD_MIT_PARAMETER_SCANTOOL' setzen.");
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						"Bitte Arbeitsplatzparameter 'PFAD_MIT_PARAMETER_SCANTOOL' setzen.");
 				return null;
 			}
 
@@ -327,8 +392,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 			String command = logpScan + " " + filename;
 
 			Process p = Runtime.getRuntime().exec(command);
-			BufferedReader input = new BufferedReader(new InputStreamReader(
-					p.getInputStream()));
+			BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			String output = "";
 			while ((line = input.readLine()) != null) {
 				output = line + "\n";
@@ -386,10 +450,8 @@ abstract public class InternalFrame extends JInternalFrame implements
 	/**
 	 * Setze einen Titelteil. titlp: 3
 	 * 
-	 * @param iWhichI
-	 *            int
-	 * @param titleI
-	 *            String
+	 * @param iWhichI int
+	 * @param titleI  String
 	 * @throws Exception
 	 */
 	public final void setLpTitle(int iWhichI, String titleI) {
@@ -409,9 +471,12 @@ abstract public class InternalFrame extends JInternalFrame implements
 			sTitle[iWhichI] = " | " + sTitle[iWhichI];
 		}
 
-		super.setTitle(sTitle[TITLE_IDX_MODUL]
-				+ sTitle[TITLE_IDX_OHRWASCHLUNTEN]
-				+ sTitle[TITLE_IDX_OHRWASCHLOBEN] + sTitle[TITLE_IDX_AS_I_LIKE]);
+		super.setTitle(sTitle[TITLE_IDX_MODUL] + sTitle[TITLE_IDX_OHRWASCHLUNTEN] + sTitle[TITLE_IDX_OHRWASCHLOBEN]
+				+ sTitle[TITLE_IDX_AS_I_LIKE]);
+	}
+
+	public String[] getLpTitles() {
+		return sTitle;
 	}
 
 	public final String getBelegartCNr() {
@@ -419,11 +484,10 @@ abstract public class InternalFrame extends JInternalFrame implements
 	}
 
 	/**
-	 * Registriere eine Listener. itemevt: 1 der Internalframe ist der Sammler
-	 * der Listener
+	 * Registriere eine Listener. itemevt: 1 der Internalframe ist der Sammler der
+	 * Listener
 	 * 
-	 * @param l
-	 *            ItemChangedListener
+	 * @param l ItemChangedListener
 	 */
 	synchronized public void addItemChangedListener(ItemChangedListener l) {
 		if (listeners == null) {
@@ -435,11 +499,9 @@ abstract public class InternalFrame extends JInternalFrame implements
 	/**
 	 * Entferne Listener.
 	 * 
-	 * @param listener
-	 *            ItemChangedListener (zB. Panel).
+	 * @param listener ItemChangedListener (zB. Panel).
 	 */
-	synchronized public void removeItemChangedListener(
-			ItemChangedListener listener) {
+	synchronized public void removeItemChangedListener(ItemChangedListener listener) {
 		if (listeners == null) {
 			listeners = new Vector<ItemChangedListener>();
 		}
@@ -457,10 +519,8 @@ abstract public class InternalFrame extends JInternalFrame implements
 	/**
 	 * Feuere einen Event an alle registrierten Listener (zB. Panels).
 	 * 
-	 * @param source
-	 *            Object
-	 * @param idI
-	 *            int
+	 * @param source Object
+	 * @param idI    int
 	 */
 	public final void fireItemChanged(Object source, int idI) {
 		// if we have no listeners, do nothing...
@@ -571,8 +631,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 		// call the sunMoved method in each
 		Enumeration<ItemChangedListener> e = targets.elements();
 		while (e.hasMoreElements()) {
-			ItemChangedListener listener = (ItemChangedListener) e
-					.nextElement();
+			ItemChangedListener listener = (ItemChangedListener) e.nextElement();
 			// itemevt: 2 jeder Listener wird jetzt via changed
 			// verstaendigt.
 
@@ -581,20 +640,16 @@ abstract public class InternalFrame extends JInternalFrame implements
 			if (event.getSource() instanceof PanelQuery) {
 				PanelQuery pqSource = (PanelQuery) event.getSource();
 				if (pqSource.getTable().getModel() instanceof DistributedTableModelImpl) {
-					DistributedTableModelImpl tm = (DistributedTableModelImpl) pqSource
-							.getTable().getModel();
+					DistributedTableModelImpl tm = (DistributedTableModelImpl) pqSource.getTable().getModel();
 					try {
-						if (tm.getDataSource() != null
-								&& tm.getDataSource().getUseCaseId() != null) {
+						if (tm.getDataSource() != null && tm.getDataSource().getUseCaseId() != null) {
 
 							if (listener instanceof PanelQuery) {
 								PanelQuery pq = (PanelQuery) listener;
 
-								DistributedTableModelImpl tm2 = (DistributedTableModelImpl) pq
-										.getTable().getModel();
-								if (tm2.getDataSource().getUseCaseId()
-										.intValue() != tm.getDataSource()
-										.getUseCaseId().intValue()) {
+								DistributedTableModelImpl tm2 = (DistributedTableModelImpl) pq.getTable().getModel();
+								if (tm2.getDataSource().getUseCaseId().intValue() != tm.getDataSource().getUseCaseId()
+										.intValue()) {
 									continue;
 								}
 							}
@@ -607,20 +662,16 @@ abstract public class InternalFrame extends JInternalFrame implements
 			if (event.getSource() instanceof WrapperTable) {
 				WrapperTable wtSource = (WrapperTable) event.getSource();
 				if (wtSource.getModel() instanceof DistributedTableModelImpl) {
-					DistributedTableModelImpl tm = (DistributedTableModelImpl) wtSource
-							.getModel();
+					DistributedTableModelImpl tm = (DistributedTableModelImpl) wtSource.getModel();
 					try {
-						if (tm.getDataSource() != null
-								&& tm.getDataSource().getUseCaseId() != null) {
+						if (tm.getDataSource() != null && tm.getDataSource().getUseCaseId() != null) {
 
 							if (listener instanceof PanelQuery) {
 								PanelQuery pq = (PanelQuery) listener;
 
-								DistributedTableModelImpl tm2 = (DistributedTableModelImpl) pq
-										.getTable().getModel();
-								if (tm2.getDataSource().getUseCaseId()
-										.intValue() != tm.getDataSource()
-										.getUseCaseId().intValue()) {
+								DistributedTableModelImpl tm2 = (DistributedTableModelImpl) pq.getTable().getModel();
+								if (tm2.getDataSource().getUseCaseId().intValue() != tm.getDataSource().getUseCaseId()
+										.intValue()) {
 									continue;
 								}
 							}
@@ -638,20 +689,18 @@ abstract public class InternalFrame extends JInternalFrame implements
 	}
 
 	/**
-	 * Setze, wenn der Internalframe untere "Ohrwaschl" hat, hier das unterer
-	 * als Defaultpanel, sonst ein oberes.
+	 * Setze, wenn der Internalframe untere "Ohrwaschl" hat, hier das unterer als
+	 * Defaultpanel, sonst ein oberes.
 	 * 
-	 * @param e
-	 *            das untere oder obere Defaultpanel. / // public void
-	 *            setPanelDetailUnteresOhrwaschl(PanelBasis panelDetailI) { //
-	 *            this.panelDefaultUnteresOhrwaschl = panelDetailI; // }
+	 * @param e das untere oder obere Defaultpanel. / // public void
+	 *          setPanelDetailUnteresOhrwaschl(PanelBasis panelDetailI) { //
+	 *          this.panelDefaultUnteresOhrwaschl = panelDetailI; // }
 	 */
 	final public void stateChanged(javax.swing.event.ChangeEvent e) {
 		long tStart = System.currentTimeMillis();
 		try {
 			// housekeeping
-			myLogger.info("action start: "
-					+ Helper.cutString(e.toString(), Defaults.LOG_LENGTH));
+			myLogger.info("action start: " + Helper.cutString(e.toString(), Defaults.LOG_LENGTH));
 			frameProgress.start(LPMain.getTextRespectUISPr("lp.working"));
 			setEnabled(false);
 			lPStateChanged(e);
@@ -676,12 +725,10 @@ abstract public class InternalFrame extends JInternalFrame implements
 	/**
 	 * actionPerformed
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 */
 	final public void actionPerformed(ActionEvent e) {
-		if (e.getSource() instanceof JMenuItem
-				&& e.getActionCommand().equals(WrapperMenuBar.ACTION_BEENDEN)) {
+		if (e.getSource() instanceof JMenuItem && e.getActionCommand().equals(WrapperMenuBar.ACTION_BEENDEN)) {
 
 			// Modul schliessen
 			PropertyVetoException pve = null;
@@ -711,8 +758,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 	/**
 	 * Events aus dem menu verarbeiten
 	 * 
-	 * @param e
-	 *            ausloesendes ActionEvent
+	 * @param e ausloesendes ActionEvent
 	 * @throws Throwable
 	 */
 	protected void menuActionPerformed(ActionEvent e) throws Throwable {
@@ -725,15 +771,29 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 	private void disableAllAndShowOtherComponent(PanelDialog pbPanel) {
 		PanelDialogStackElement e = (PanelDialogStackElement) getStack().peek();
-		getStack().push(
-				new PanelDialogStackElement(pbPanel, pbPanel.getOldTitle()));
+
+		
+		// SP9837
+		if (pbPanel instanceof PanelReportKriterien == false) {
+			// SP9812
+			if (pbPanel.getClass().equals(e.getJComponent().getClass())) {
+				return;
+			}
+		}
+
+		PanelDialogStackElement pushDialog = new PanelDialogStackElement(pbPanel, pbPanel.getOldTitle());
+		pushDialog.setTitles(pbPanel.getInternalFrame().getLpTitles());
+
+		myLogger.warn(
+				"pushDialog: '" + pbPanel.getOldTitle() + "', {" + StringUtils.join(pushDialog.getTitles(), ",") + "}");
+		getStack().push(pushDialog);
+
 		// wird aus PanelBasis gesetzt
 		// this.setLpTitle(TITLE_IDX_OHRWASCHLOBEN, pbPanel.getAdd2Title());
 		// fuer Reports und Dokumente nicht ueberschreiben
 		if (pbPanel instanceof AssistentView) {
 			this.setLpTitle(TITLE_IDX_OHRWASCHLOBEN, pbPanel.getAdd2Title());
-		} else if (!(pbPanel instanceof PanelReportKriterien)
-				&& !(pbPanel instanceof PanelDokumentenablage)) {
+		} else if (!(pbPanel instanceof PanelReportKriterien) && !(pbPanel instanceof PanelDokumentenablage)) {
 			this.setLpTitle(TITLE_IDX_AS_I_LIKE, "");
 		}
 		e.getJComponent().setVisible(false);
@@ -744,35 +804,49 @@ abstract public class InternalFrame extends JInternalFrame implements
 		}
 	}
 
-	private void enableAllAndRemoveComponent(boolean bKeepTitle) {
+	public void enableAllAndRemoveComponent(boolean bKeepTitle) {
 		if (getStack().size() >= 2) { // sicherheitshalber
-			PanelDialogStackElement e = (PanelDialogStackElement) getStack()
-					.pop();
+			PanelDialogStackElement e = (PanelDialogStackElement) getStack().pop();
+
+			if (e.getJComponent() instanceof PanelReportKriterien) {
+				PanelReportKriterien pk = (PanelReportKriterien) e.getJComponent();
+				try {
+					if (pk.getPanelReportIfJRDS() instanceof PanelBasis) {
+						// SP6904
+						PanelBasis bp = (PanelBasis) pk.getPanelReportIfJRDS();
+						bp.eventActionUnlock(null);
+					}
+				} catch (Throwable e1) {
+					//
+				}
+			}
+
 			getContentPane().remove(e.getJComponent());
-			getContentPane()
-					.add(((PanelDialogStackElement) getStack().peek())
-							.getJComponent(),
-							BorderLayout.CENTER);
-			(((PanelDialogStackElement) getStack().peek())).getJComponent()
-					.setVisible(true);
+			getContentPane().add(((PanelDialogStackElement) getStack().peek()).getJComponent(), BorderLayout.CENTER);
+			(((PanelDialogStackElement) getStack().peek())).getJComponent().setVisible(true);
 			if (getJMenuBar() != null
-					&& ((PanelDialogStackElement) getStack().peek())
-							.getJComponent() == tabbedPaneRoot) {
+					&& ((PanelDialogStackElement) getStack().peek()).getJComponent() == tabbedPaneRoot) {
 				getJMenuBar().setVisible(true);
 			}
+
+			myLogger.warn("popDialog: '" + e.getSTitle() + ", {" + StringUtils.join(e.getTitles(), ",") + "}, was: '"
+					+ getLpTitles()[TITLE_IDX_AS_I_LIKE] + "'.");
+
 			if (!bKeepTitle) {
+				// TODO ghp, 15.09.2021 Das setzt den Titel des JInternalFrame!
+				// Internalframe bleibt nachwievor im alten Zustand (TITLE_IDX_AS_I_LIKE)
 				this.setTitle(e.getSTitle());
+
+				setLpTitle(TITLE_IDX_AS_I_LIKE, e.getTitles()[TITLE_IDX_AS_I_LIKE]);
 			}
 		}
 	}
 
-	public void showReportKriterien(PanelReportIfJRDS panelKriterien,
-			boolean bNurVorschau) throws Throwable {
+	public void showReportKriterien(PanelReportIfJRDS panelKriterien, boolean bNurVorschau) throws Throwable {
 		showReportKriterien(panelKriterien, null, null, bNurVorschau);
 	}
 
-	public void showReportKriterien(PanelReportIfJRDS panelKriterien)
-			throws Throwable {
+	public void showReportKriterien(PanelReportIfJRDS panelKriterien) throws Throwable {
 		showReportKriterien(panelKriterien, null, null, false);
 	}
 
@@ -794,38 +868,37 @@ abstract public class InternalFrame extends JInternalFrame implements
 		// int u = 0;
 	}
 
-	public void showReportKriterien(PanelReportIfJRDS panelKriterien,
-			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId)
-			throws Throwable {
-		showReportKriterien(panelKriterien, partnerDtoEmpfaenger,
-				ansprechpartnerIId, false);
+	public void showReportKriterien(PanelReportIfJRDS panelKriterien, PartnerDto partnerDtoEmpfaenger,
+			Integer ansprechpartnerIId) throws Throwable {
+		showReportKriterien(panelKriterien, partnerDtoEmpfaenger, ansprechpartnerIId, false);
 	}
 
-	public void showReportKriterien(PanelReportIfJRDS panelKriterien,
-			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId,
-			boolean bNurVorschau) throws Throwable {
-		showReportKriterien(panelKriterien, partnerDtoEmpfaenger,
-				ansprechpartnerIId, false, bNurVorschau);
+	public void showReportKriterien(PanelReportIfJRDS panelKriterien, PartnerDto partnerDtoEmpfaenger,
+			Integer ansprechpartnerIId, boolean bNurVorschau) throws Throwable {
+		showReportKriterien(panelKriterien, partnerDtoEmpfaenger, ansprechpartnerIId, false, bNurVorschau);
 	}
 
-	public void showReportKriterien(PanelReportIfJRDS panelKriterien,
-			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId,
-			boolean bDirekt, boolean bNurVorschau) throws Throwable {
-		showReportKriterien(panelKriterien, partnerDtoEmpfaenger,
-				ansprechpartnerIId, bDirekt, true, bNurVorschau);
+	public void showReportKriterien(PanelReportIfJRDS panelKriterien, PartnerDto partnerDtoEmpfaenger,
+			Integer ansprechpartnerIId, boolean bDirekt, boolean bNurVorschau) throws Throwable {
+		showReportKriterien(panelKriterien, partnerDtoEmpfaenger, ansprechpartnerIId, bDirekt, true, bNurVorschau);
 	}
 
-	public void showReportKriterien(PanelReportIfJRDS panelKriterien,
-			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId,
-			boolean bDirekt, boolean bMitEmailFax, boolean bNurVorschau)
-			throws Throwable {
+	public void showReportKriterien(PanelReportIfJRDS panelKriterien, PartnerDto partnerDtoEmpfaenger,
+			Integer ansprechpartnerIId, boolean bDirekt, boolean bMitEmailFax, boolean bNurVorschau) throws Throwable {
 		String sAdd2Title = null;
 		if (panelKriterien instanceof PanelBasis) {
 			sAdd2Title = ((PanelBasis) panelKriterien).getAdd2Title();
 		}
-		showPanelDialog(new PanelReportKriterien(this, panelKriterien,
-				sAdd2Title, partnerDtoEmpfaenger, ansprechpartnerIId, bDirekt,
-				bMitEmailFax, bNurVorschau));
+		showPanelDialog(new PanelReportKriterien(this, panelKriterien, sAdd2Title, partnerDtoEmpfaenger,
+				ansprechpartnerIId, bDirekt, bMitEmailFax, bNurVorschau));
+	}
+
+	public void showReportKriterien(PanelReportIfJRDS panelKriterien, PanelReportKriterienOptions options)
+			throws Throwable {
+		if (options.getAddTitleI() == null && panelKriterien instanceof PanelBasis) {
+			options.setAddTitleI(((PanelBasis) panelKriterien).getAdd2Title());
+		}
+		showPanelDialog(new PanelReportKriterien(panelKriterien, options));
 	}
 
 	// ***** wp & ghp *****
@@ -833,17 +906,15 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 	PanelDialogFehlmengen panelDialogFehlmengen;
 
-	protected void showPanelDialogFehlmengen(
-			PanelReportKriterien panelReportKriterien) {
-		panelDialogFehlmengen = new PanelDialogFehlmengen(LPMain.getInstance()
-				.getDesktop(),
-				LPMain.getTextRespectUISPr("fert.report.fehlteilliste"),
+	protected void showPanelDialogFehlmengen(PanelReportKriterien panelReportKriterien) {
+		panelDialogFehlmengen = new PanelDialogFehlmengen(LPMain.getInstance().getDesktop(),
+				LPMain.getTextRespectUISPr("bes.menu.bearbeiten.fehlmengenaufloesung.nachdrucken"),
 				panelReportKriterien, this);
 		panelDialogFehlmengen.setVisible(true);
 	}
 
-	public void showReportKriterienDialog(PanelReportIfJRDS panelKriterien,
-			PanelReportKriterienOptions options) throws Throwable {
+	public void showReportKriterienDialog(PanelReportIfJRDS panelKriterien, PanelReportKriterienOptions options)
+			throws Throwable {
 
 		String sAdd2Title = null;
 		if (panelKriterien instanceof PanelBasis) {
@@ -855,15 +926,12 @@ abstract public class InternalFrame extends JInternalFrame implements
 		// deaktiviere default exit button, da action aus panel reportkriterien
 		// fuer internal frame nicht erreichbar
 		options.setMitExitButton(false);
-		PanelReportKriterien panelReportKriterienInDialog = new PanelReportKriterien(
-				panelKriterien, options);
+		PanelReportKriterien panelReportKriterienInDialog = new PanelReportKriterien(panelKriterien, options);
 
 		// erzeuge neuen exit button mit lokaler action
-		JButton buttonExit = new JButton(new ImageIcon(getClass().getResource(
-				"/com/lp/client/res/exit.png")));
+		JButton buttonExit = new JButton(new ImageIcon(getClass().getResource("/com/lp/client/res/exit.png")));
 		buttonExit.setMinimumSize(HelperClient.getToolsPanelButtonDimension());
-		buttonExit
-				.setPreferredSize(HelperClient.getToolsPanelButtonDimension());
+		buttonExit.setPreferredSize(HelperClient.getToolsPanelButtonDimension());
 
 		buttonExit.addActionListener(new ActionListener() {
 
@@ -874,8 +942,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 			}
 		});
 
-		panelReportKriterienInDialog.getToolBar().getToolsPanelRight()
-				.add(buttonExit);
+		panelReportKriterienInDialog.getToolBar().getToolsPanelRight().add(buttonExit);
 
 		showPanelDialogFehlmengen(panelReportKriterienInDialog);
 
@@ -884,27 +951,22 @@ abstract public class InternalFrame extends JInternalFrame implements
 	// *****
 	// **** wp & ghp ****
 
-	public void showReportKriterienZweiDrucker(
-			PanelReportIfJRDSZweiDrucker panelKriterien,
-			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId,
-			boolean bDirekt, boolean bMitEmailFax, boolean bNurVorschau,
-			boolean bDruckbestaetigung) throws Throwable {
+	public void showReportKriterienZweiDrucker(PanelReportIfJRDSZweiDrucker panelKriterien,
+			PartnerDto partnerDtoEmpfaenger, Integer ansprechpartnerIId, boolean bDirekt, boolean bMitEmailFax,
+			boolean bNurVorschau, boolean bDruckbestaetigung) throws Throwable {
 		String sAdd2Title = null;
 		if (panelKriterien instanceof PanelBasis) {
 			sAdd2Title = ((PanelBasis) panelKriterien).getAdd2Title();
 		}
-		showPanelDialog(new PanelReportKriterienZweiDrucker(this,
-				panelKriterien, sAdd2Title, partnerDtoEmpfaenger,
-				ansprechpartnerIId, bDirekt, bMitEmailFax, bNurVorschau,
-				bDruckbestaetigung));
+		showPanelDialog(new PanelReportKriterienZweiDrucker(this, panelKriterien, sAdd2Title, partnerDtoEmpfaenger,
+				ansprechpartnerIId, bDirekt, bMitEmailFax, bNurVorschau, bDruckbestaetigung));
 	}
 
 	/**
 	 * Einen modul-modalen Dialog anzeigen. modmod: 2 hier werden alle anderen
 	 * Komponenten des IF's ausgeblendet.
 	 * 
-	 * @param panelDialog
-	 *            PanelBasis
+	 * @param panelDialog PanelBasis
 	 */
 	public void showPanelDialog(PanelDialog panelDialog) {
 		disableAllAndShowOtherComponent(panelDialog);
@@ -920,40 +982,55 @@ abstract public class InternalFrame extends JInternalFrame implements
 	/**
 	 * Einen modul-modalen Dialog schliessen.
 	 * 
-	 * modmod: 3 hier werden die anderen Komponenten wieder eingeblendet (das
-	 * wird durch klick auf den abbruch-knopf automatisch erledigt)
+	 * modmod: 3 hier werden die anderen Komponenten wieder eingeblendet (das wird
+	 * durch klick auf den abbruch-knopf automatisch erledigt)
 	 */
 	public void closePanelDialog() {
 		boolean bKeepTitle = false;
 		if (((PanelDialogStackElement) getStack().peek()).getJComponent() instanceof PanelDialogKriterien) {
-			bKeepTitle = true;
+			// Nur wenn der Dialog entfernt wird und darunter noch ein Dialog ist
+			// den Titel (des Dialogs) "behalten"
+			// TODO: ghp, ja, das ist eine Abkuerzung, eigentlich muesste echt
+			// geprueft werden, ob darunter wieder ein Dialog ist.
+			// Eigentlich ist mir unklar, warum ueberhaupt der Titel erhalten bleiben soll.
+
+			if (getStack().size() - 1 > 1) {
+				bKeepTitle = true;
+			}
 		}
 		enableAllAndRemoveComponent(bKeepTitle);
-		// fuer die tstaturbedienung
+		// fuer die Tastaturbedienung
 		this.grabFocus();
 	}
 
 	/**
 	 * Einen Panel mit Editor anzeigen.
 	 * 
-	 * @param target
-	 *            JTextComponent
-	 * @param addTitleI
-	 *            String
-	 * @param text
-	 *            String
+	 * @param target    JTextComponent
+	 * @param addTitleI String
+	 * @param text      String
 	 * @throws Throwable
 	 */
-	public void showPanelEditor(WrapperEditorField target, String addTitleI,
-			String text) throws Throwable {
+	public void showPanelEditor(WrapperEditorField target, String addTitleI, String text) throws Throwable {
 		showPanelEditor(target, addTitleI, text, PanelBasis.LOCK_NO_LOCKING);
 	}
 
-	public void showPanelEditor(WrapperEditorField target, String addTitleI,
-			String text, int iLockState) throws Throwable {
+	public void showPanelEditor(WrapperEditorField target, String addTitleI, String text, int iLockState)
+			throws Throwable {
 		// modmod: 2 hier werden alle anderen Komponenten des IF's ausgeblendet.
-		showPanelDialog(new PanelEditor(this, target, addTitleI, text,
-				iLockState));
+		showPanelDialog(new PanelEditor(this, target, addTitleI, text, iLockState));
+		getContentPane().validate(); // @sz um alle elemente entsprechend
+		// ihrer visibility richtig anzuzeigen
+	}
+
+	public void showPanelBlockEditor(WrapperBlockEditorField targetEditor, String add2Title) throws Throwable {
+		showPanelDialog(new PanelBlockEditor(this, add2Title, targetEditor));
+	}
+
+	public void showPanelEditorPlainText(WrapperTextField target, String addTitleI, String text, int iLockState)
+			throws Throwable {
+		// modmod: 2 hier werden alle anderen Komponenten des IF's ausgeblendet.
+		showPanelDialog(new PanelEditorPlainText(this, target, addTitleI, text, iLockState));
 		getContentPane().validate(); // @sz um alle elemente entsprechend
 		// ihrer visibility richtig anzuzeigen
 	}
@@ -961,41 +1038,35 @@ abstract public class InternalFrame extends JInternalFrame implements
 	/**
 	 * Behandle ItemChangedEvent; zB. in QP auf einen anderen gewechselt.
 	 * 
-	 * @param eI
-	 *            ChangeEvent
+	 * @param eI ChangeEvent
 	 * @throws Throwable
 	 */
 	protected void lPEventItemChanged(ItemChangedEvent eI) throws Throwable {
-		throw new Throwable(
-				"InternalFrame eventItemchanged event not supported: "
-						+ eI.paramString());
+		throw new Throwable("InternalFrame eventItemchanged event not supported: " + eI.paramString());
 	}
 
 	/**
 	 * Behandle ChangeEvent; zB. Laschenwechsel oben.
 	 * 
-	 * @param eI
-	 *            ChangeEvent
+	 * @param eI ChangeEvent
 	 * @throws Throwable
 	 */
 	protected void lPEventObjectChanged(ChangeEvent eI) throws Throwable {
-		throw new Throwable("eventStateChanged event not supported: "
-				+ Helper.cutString(eI.toString(), Defaults.LOG_LENGTH));
+		throw new Throwable(
+				"eventStateChanged event not supported: " + Helper.cutString(eI.toString(), Defaults.LOG_LENGTH));
 	}
 
 	/**
 	 * Eine Itemevent kommt herein.
 	 * 
-	 * @param e
-	 *            ItemChangedEvent
+	 * @param e ItemChangedEvent
 	 */
 	final public void changed(EventObject e) {
 		long tStart = System.currentTimeMillis();
 
 		try {
 			// housekeeping
-			myLogger.info("action start: "
-					+ Helper.cutString(e.toString(), Defaults.LOG_LENGTH));
+			myLogger.info("action start: " + Helper.cutString(e.toString(), Defaults.LOG_LENGTH));
 			getFrameProgress().start(LPMain.getTextRespectUISPr("lp.working"));
 			setEnabled(false);
 
@@ -1019,11 +1090,10 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 	/**
 	 * Deaktiviert/aktiviert alle Panels und TabbedPanes in einem Internalframe,
-	 * ausser dem selektieren. Wenn das selektierte Panel ein SplitPane ist,
-	 * dann wird ausserdem das QueryPanel mit deaktiviert.
+	 * ausser dem selektieren. Wenn das selektierte Panel ein SplitPane ist, dann
+	 * wird ausserdem das QueryPanel mit deaktiviert.
 	 * 
-	 * @param enableI
-	 *            boolean
+	 * @param enableI boolean
 	 */
 	public void enableAllPanelsExcept(boolean enableI) {
 		if (tabbedPaneRoot.getComponentCount() > 0) {
@@ -1032,8 +1102,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 					if (i != tabbedPaneRoot.getSelectedIndex()) {
 						tabbedPaneRoot.setEnabledAt(i, enableI);
 					} else {
-						TabbedPane tabbedpane = (TabbedPane) tabbedPaneRoot
-								.getSelectedComponent();
+						TabbedPane tabbedpane = (TabbedPane) tabbedPaneRoot.getSelectedComponent();
 						for (int j = 0; j < tabbedpane.getTabCount(); j++) {
 							if (j != tabbedpane.getSelectedIndex()) {
 								tabbedpane.setEnabledAt(j, enableI);
@@ -1058,8 +1127,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 	private void enableTable(JTabbedPane tabbedpane, boolean enableI) {
 		if (tabbedpane.getComponentAt(tabbedpane.getSelectedIndex()) instanceof PanelSplit) {
-			PanelSplit ps = (PanelSplit) tabbedpane.getComponentAt(tabbedpane
-					.getSelectedIndex());
+			PanelSplit ps = (PanelSplit) tabbedpane.getComponentAt(tabbedpane.getSelectedIndex());
 			PanelQuery pq = ps.getPanelQuery();
 			pq.setEnabled(enableI);
 			pq.getTable().setEnabled(enableI);
@@ -1086,18 +1154,14 @@ abstract public class InternalFrame extends JInternalFrame implements
 	}
 
 	/**
-	 * Aktiviert deaktiviere alle (oberen) Laschen ausser eine bestimmte, von
-	 * einer (unteren) Lasche.
+	 * Aktiviert deaktiviere alle (oberen) Laschen ausser eine bestimmte, von einer
+	 * (unteren) Lasche.
 	 * 
-	 * @param tpUnteresOhrI
-	 *            TabbedPane
-	 * @param iOberesOhrI
-	 *            int
-	 * @param enableI
-	 *            boolean
+	 * @param tpUnteresOhrI TabbedPane
+	 * @param iOberesOhrI   int
+	 * @param enableI       boolean
 	 */
-	public void enableAllOberePanelsExceptMe(TabbedPane tpUnteresOhrI,
-			int iOberesOhrI, boolean enableI) {
+	public void enableAllOberePanelsExceptMe(TabbedPane tpUnteresOhrI, int iOberesOhrI, boolean enableI) {
 
 		if (tpUnteresOhrI.getComponentCount() > 0) {
 			for (int i = 0; i < tpUnteresOhrI.getTabCount(); i++) {
@@ -1108,9 +1172,13 @@ abstract public class InternalFrame extends JInternalFrame implements
 		}
 	}
 
-	public void geheZu(int iUnteresTab, int iOberesTab, Object key,
-			Object keyFuerOberesPanel, FilterKriterium[] kritKey)
-			throws Throwable {
+	public void geheZu(int iUnteresTab, int iOberesTab, Object key, Object keyFuerOberesPanel,
+			FilterKriterium[] kritKey) throws Throwable {
+		geheZu(iUnteresTab, iOberesTab, key, keyFuerOberesPanel, kritKey, true);
+	}
+
+	public void geheZu(int iUnteresTab, int iOberesTab, Object key, Object keyFuerOberesPanel,
+			FilterKriterium[] kritKey, boolean bDatensatzIstVersteckt) throws Throwable {
 		// Zuerst nachsehen, ob gelockt
 
 		if (tabbedPaneRoot.getSelectedComponent() instanceof TabbedPane) {
@@ -1119,17 +1187,57 @@ abstract public class InternalFrame extends JInternalFrame implements
 			}
 		}
 
+		// Wenn ein Report offen, dann vorher fragen, ob dieser geschlossen
+		// werden soll
+		if (getStack().size() > 1) {
+
+			boolean b = DialogFactory.showModalJaNeinDialog(this,
+					LPMain.getTextRespectUISPr("lp.goto.reportgeoeffnet"));
+
+			if (b == true) {
+
+				enableAllAndRemoveComponent(false);
+			} else {
+				return;
+			}
+
+		}
+
 		if (tabbedPaneRoot.getTabCount() >= iUnteresTab) {
 
 			tabbedPaneRoot.setSelectedIndex(iUnteresTab);
 			if (tabbedPaneRoot.getSelectedComponent() instanceof TabbedPane) {
-				TabbedPane tpComponent = (TabbedPane) tabbedPaneRoot
-						.getSelectedComponent();
+				TabbedPane tpComponent = (TabbedPane) tabbedPaneRoot.getSelectedComponent();
 				if (tpComponent.getTabCount() >= iOberesTab) {
 
-					tpComponent.setSelectedIndex(0);
+					if (tpComponent.getSelectedComponent() instanceof PanelBasis) {
+						PanelBasis pb = (PanelBasis) tpComponent.getSelectedComponent();
 
-					Component cp = tpComponent.getSelectedComponent();
+						if (tpComponent.getSelectedComponent() instanceof PanelSplit) {
+							pb = ((PanelSplit) tpComponent.getSelectedComponent()).getPanelDetail();
+						}
+
+						LockStateValue lv = pb.getLockedstateDetailMainKey();
+						if (lv.getIState() == PanelBasis.LOCK_IS_LOCKED_BY_ME
+								|| lv.getIState() == PanelBasis.LOCK_FOR_NEW) {
+							int i = DialogFactory.showModalJaNeinAbbrechenDialog(this,
+									LPMain.getTextRespectUISPr("lp.goto.datensatzgesperrt"),
+									LPMain.getTextRespectUISPr("lp.frage"));
+							if (i == JOptionPane.YES_OPTION) {
+								pb.eventActionSave(null, true);
+							}
+							if (i == JOptionPane.NO_OPTION) {
+								pb.discard();
+							} else {
+								return;
+							}
+						}
+					}
+
+					// tpComponent.setSelectedIndex(0);
+					// Component cp = tpComponent.getSelectedComponent();
+					// wg. SP2891
+					Component cp = tpComponent.getComponent(0);
 					if (cp instanceof PanelQuery) {
 						PanelQuery pq = (PanelQuery) cp;
 						if (pq.isFilterActive()) {
@@ -1144,18 +1252,20 @@ abstract public class InternalFrame extends JInternalFrame implements
 						if (pq.getCbSchnellansicht() != null) {
 							pq.getCbSchnellansicht().setSelected(false);
 						}
+
+						// wg. Geschwindigkeit
+						pq.getWcoFilter().removeActionListener(pq);
+
 						pq.setKeyOfFilterComboBox(null);
 
-						if (DelegateFactory
-								.getInstance()
-								.getTheJudgeDelegate()
-								.hatRecht(
-										com.lp.server.benutzer.service.RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
+						if (DelegateFactory.getInstance().getTheJudgeDelegate()
+								.hatRecht(com.lp.server.benutzer.service.RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
 							if (pq.getWcbVersteckteFelderAnzeigen() != null) {
 								// Wenn Recht DARF_VERSTECKTE_SEHEN, dann
 
-								pq.getWcbVersteckteFelderAnzeigen()
-										.setSelected(true);
+								if (bDatensatzIstVersteckt) {
+									pq.getWcbVersteckteFelderAnzeigen().setSelected(true);
+								}
 							}
 						}
 
@@ -1165,65 +1275,99 @@ abstract public class InternalFrame extends JInternalFrame implements
 						if (this instanceof InternalFrameProjekt
 								&& iUnteresTab == InternalFrameProjekt.IDX_TABBED_PANE_PROJEKT
 								&& pq.fkComboBox != null) {
-							ProjektDto projektDto = DelegateFactory
-									.getInstance().getProjektDelegate()
+							ProjektDto projektDto = DelegateFactory.getInstance().getProjektDelegate()
 									.projektFindByPrimaryKey((Integer) key);
-							pq.setKeyOfFilterComboBox(projektDto
-									.getBereichIId());
+							pq.setKeyOfFilterComboBox(projektDto.getBereichIId());
 
 							if (tpComponent instanceof TabbedPaneProjekt) {
 
 								TabbedPaneProjekt tpProjekt = (TabbedPaneProjekt) tpComponent;
-								ActionEvent e = new ActionEvent(
-										this,
-										-1,
-										TabbedPaneProjekt.MENU_ANSICHT_PROJEKT_ALLE);
+								ActionEvent e = new ActionEvent(this, -1, TabbedPaneProjekt.MENU_ANSICHT_PROJEKT_ALLE);
 								tpProjekt.lPActionEvent(e);
 							}
 
 						}
 
+						// SP7684 Filter in Los je nach Status setzen
+						if (this instanceof InternalFrameFertigung
+								&& iUnteresTab == InternalFrameFertigung.IDX_TABBED_PANE_LOS
+								&& pq.fkComboBox2 != null) {
+							LosDto losDto = DelegateFactory.getInstance().getFertigungDelegate()
+									.losFindByPrimaryKey((Integer) key);
+
+							if ((losDto.getStatusCNr().equals(LocaleFac.STATUS_ERLEDIGT)
+									|| losDto.getStatusCNr().equals(LocaleFac.STATUS_STORNIERT))
+									&& !pq.getKeyOfFilterComboBox2().equals(StatusFilterKeys.Alle)) {
+
+								pq.setKeyOfFilterComboBox2(StatusFilterKeys.Alle);
+							} else if ((losDto.getStatusCNr().equals(LocaleFac.STATUS_ANGELEGT)
+									|| losDto.getStatusCNr().equals(LocaleFac.STATUS_GESTOPPT))
+									&& !pq.getKeyOfFilterComboBox2().equals(StatusFilterKeys.Offene)) {
+								pq.setKeyOfFilterComboBox2(StatusFilterKeys.Offene);
+							} else if ((losDto.getStatusCNr().equals(LocaleFac.STATUS_TEILERLEDIGT)
+									|| losDto.getStatusCNr().equals(LocaleFac.STATUS_AUSGEGEBEN))
+									&& !pq.getKeyOfFilterComboBox2().equals(StatusFilterKeys.ZuProduzierende)) {
+								pq.setKeyOfFilterComboBox2(StatusFilterKeys.ZuProduzierende);
+							}
+
+						}
+
+						// PJ21342 Filter auf Alle setzen
+						if (this instanceof InternalFrameStueckliste
+								&& iUnteresTab == InternalFrameStueckliste.IDX_TABBED_PANE_STUECKLISTE) {
+							StuecklisteDto stklDto = DelegateFactory.getInstance().getStuecklisteDelegate()
+									.stuecklisteFindByPrimaryKey((Integer) key);
+
+							if (pq.fkComboBox != null) {
+								pq.setKeyOfFilterComboBox(stklDto.getFertigungsgruppeIId());
+							}
+
+							if (pq.fkComboBox2 != null) {
+								if (stklDto.getArtikelDto().getArtgruIId() != null) {
+
+									// SP9735
+									String filter = "(" + stklDto.getArtikelDto().getArtgruIId() + ")";
+									pq.setKeyOfFilterComboBox2(filter);
+
+									if (pq.getKeyOfFilterComboBox2() != null
+											&& !pq.getKeyOfFilterComboBox2().equals(filter))
+										pq.setKeyOfFilterComboBox2(null);
+								} else {
+									pq.setKeyOfFilterComboBox2(null);
+								}
+							}
+
+						}
+
+						// wg. Geschwindigkeit
+						pq.getWcoFilter().addActionListener(pq);
+
 						pq.setSelectedId(key);
 						pq.eventYouAreSelected(false);
 
 						if (key != null && !key.equals(pq.getSelectedId())) {
-							DialogFactory
-									.showModalDialog(
-											LPMain.getTextRespectUISPr("lp.error"),
-											LPMain.getTextRespectUISPr("lp.error.datensatznichtgefunden"));
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+									LPMain.getTextRespectUISPr("lp.error.datensatznichtgefunden"));
 						}
 
-						tpComponent.setSelectedIndex(iOberesTab);
+						if (this instanceof InternalFrameCockpit && iUnteresTab == InternalFrameCockpit.IDX_PANE_COCKPIT
+								&& iOberesTab == TabbedPaneCockpit.IDX_PANEL_TELEFONZEITEN) {
 
-						if (keyFuerOberesPanel != null) {
-							Component cpSub = tpComponent
-									.getSelectedComponent();
-
-							if (cpSub instanceof PanelSplit) {
-								PanelSplit split = (PanelSplit) cpSub;
-								if (split.getPanelQuery().isFilterActive()) {
-									// Wenn in den Filtern was drinsteht, kann
-									// der Datensatz evtl. nicht selektiert
-									// werden.
-									// -> Filter leeren und refresh
-									split.getPanelQuery().clearAllFilters();
-									split.getPanelQuery().eventYouAreSelected(
-											false);
-								}
-								split.getPanelQuery().setSelectedId(
-										keyFuerOberesPanel);
-								split.eventYouAreSelected(false);
-								// orig split.getPanelQuery()
-								// .eventYouAreSelected(false);
+							TelefonzeitenDto tDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
+									.telefonzeitenFindByPrimaryKey((Integer) keyFuerOberesPanel);
+							if (tDto.getAnsprechpartnerIId() == null) {
+								InternalFrameCockpit ifc = (InternalFrameCockpit) this;
+								ifc.getTpCockpit().gotoVonZeiterfassungTelefonzeitOhneAnsprechpartner = true;
 							}
-
 						}
+
+						doSwitchTab(iOberesTab, keyFuerOberesPanel, tpComponent);
 						pq.befuelleFilterkriteriumKey(null);
+
 					} else if (cp instanceof PanelSplit) {
 						PanelSplit split = (PanelSplit) cp;
 
-						split.getPanelQuery().befuelleFilterkriteriumKey(
-								kritKey);
+						split.getPanelQuery().befuelleFilterkriteriumKey(kritKey);
 
 						if (split.getPanelQuery().isFilterActive()) {
 							// Wenn in den Filtern was drinsteht, kann der
@@ -1235,6 +1379,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 						split.getPanelQuery().setSelectedId(key);
 						split.getPanelQuery().eventYouAreSelected(false);
 						split.getPanelQuery().befuelleFilterkriteriumKey(null);
+						doSwitchTab(iOberesTab, keyFuerOberesPanel, tpComponent);
 					}
 				}
 			}
@@ -1242,13 +1387,52 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 	}
 
+	private void doSwitchTab(int iOberesTab, Object keyFuerOberesPanel, TabbedPane tpComponent) throws Throwable {
+		if (tpComponent.getSelectedIndex() == iOberesTab) {
+			// wg. Aenderung zu SP2891
+			// damit die Panels neu initialisiert werden
+			// bei Goto in denselben Tab wird kein stateChanged
+			// "gefeuert"
+			tpComponent.changed(new ChangeEvent(this));
+		} else {
+			// SP7176, wenn bei oberer Tab derzeit null ist, wird dieses panel erst beim
+			// setSelectedIndex erstellt. In diesem Fall wird das alte Panel nicht versteckt
+			if (tpComponent.getComponentAt(iOberesTab) == null) {
+				Component oldComp = tpComponent.getSelectedComponent();
+				if (oldComp != null && oldComp.isVisible()) {
+					oldComp.setVisible(false);
+				}
+			}
+			tpComponent.setSelectedIndex(iOberesTab);
+		}
+
+		if (keyFuerOberesPanel != null) {
+			Component cpSub = tpComponent.getSelectedComponent();
+
+			if (cpSub instanceof PanelSplit) {
+				PanelSplit split = (PanelSplit) cpSub;
+				if (split.getPanelQuery().isFilterActive()) {
+					// Wenn in den Filtern was drinsteht, kann
+					// der Datensatz evtl. nicht selektiert
+					// werden.
+					// -> Filter leeren und refresh
+					split.getPanelQuery().clearAllFilters();
+					split.getPanelQuery().eventYouAreSelected(false);
+				}
+				split.getPanelQuery().setSelectedId(keyFuerOberesPanel);
+				split.eventYouAreSelected(false);
+				// orig split.getPanelQuery()
+				// .eventYouAreSelected(false);
+			}
+
+		}
+	}
+
 	/**
 	 * Aktiviert deaktiviere alle (oberen) Laschen ausser eine bestimmte.
 	 * 
-	 * @param iOberesOhrI
-	 *            int
-	 * @param enableI
-	 *            boolean
+	 * @param iOberesOhrI int
+	 * @param enableI     boolean
 	 */
 	public void enableAllMyKidPanelsExceptMe(int iOberesOhrI, boolean enableI) {
 		if (tabbedPaneRoot.getComponentCount() > 0) {
@@ -1274,19 +1458,18 @@ abstract public class InternalFrame extends JInternalFrame implements
 	}
 
 	/**
-	 * @todo JO passt der platz da? PJ 4708 Workaraound f&uuml;r WordWrap : http
-	 *       : //java.sun.com/developer/JDCTechTips/2004/tt0122.html
+	 * @todo JO passt der platz da? PJ 4708 Workaraound f&uuml;r WordWrap : http :
+	 *       //java.sun.com/developer/JDCTechTips/2004/tt0122.html
 	 * 
-	 * @param maxCharactersPerLineCount
-	 *            int
+	 * @param maxCharactersPerLineCount int
 	 * @return JOptionPane
-	 * */
+	 */
 	public static JOptionPane getNarrowOptionPane(int maxCharactersPerLineCount) {
 		// Our inner class definition
 		class NarrowOptionPane extends JOptionPane {
 			/**
-		 * 
-		 */
+			* 
+			*/
 			private static final long serialVersionUID = 1L;
 			private int maxCharactersPerLineCount;
 
@@ -1303,19 +1486,18 @@ abstract public class InternalFrame extends JInternalFrame implements
 	}
 
 	/**
-	 * handleex: Behandle Expection t; Meldung fuer den Benutzer; evtl. close
-	 * Frame. Dies ist die zentrale Methode um allgemeine (frameweite)
-	 * Exceptions abzuhandeln.
+	 * handleex: Behandle Expection t; Meldung fuer den Benutzer; evtl. close Frame.
+	 * Dies ist die zentrale Methode um allgemeine (frameweite) Exceptions
+	 * abzuhandeln.
 	 * 
-	 * @param t
-	 *            Throwable
-	 * @param bHandleHardI
-	 * <br/>
-	 *            true ... Wird die Exception nicht gefunden kommt eine allg.
-	 *            Errormeldung und der Internalframe wird geschlossen.<br/>
-	 *            false ... Es wird versucht die Exception abzuhandeln, wenn
-	 *            nicht moeglich, wird false retourniert; es wird keine Meldung
-	 *            angezeigt
+	 * @param t            Throwable
+	 * @param bHandleHardI <br/>
+	 *                     true ... Wird die Exception nicht gefunden kommt eine
+	 *                     allg. Errormeldung und der Internalframe wird
+	 *                     geschlossen.<br/>
+	 *                     false ... Es wird versucht die Exception abzuhandeln,
+	 *                     wenn nicht moeglich, wird false retourniert; es wird
+	 *                     keine Meldung angezeigt
 	 * @return boolean
 	 */
 	public boolean handleException(Throwable t, boolean bHandleHardI) {
@@ -1324,8 +1506,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 
 		// Alles wird geloggt.
 		if (t != null) {
-			String sLog = t.getClass().getName() + ": "
-					+ t.getLocalizedMessage();
+			String sLog = t.getClass().getName() + ": " + t.getLocalizedMessage();
 			StackTraceElement[] ste = t.getStackTrace();
 			if (ste.length > 0) {
 				sLog = sLog + "\n" + ste[0].toString();
@@ -1349,17 +1530,17 @@ abstract public class InternalFrame extends JInternalFrame implements
 			bErrorBekannt = (sMsg != null);
 			if (sMsg == null) {
 				// exhc4: Fehlercode wird noch nicht abgefangen
-				sMsg = "EJBExceptionLP, Fehlercode unbekannt: "
-						+ efc.getICode();
+				sMsg = "EJBExceptionLP, Fehlercode unbekannt: " + efc.getICode();
 			}
 		}
 
 		if (bErrorBekannt) {
-			JOptionPane pane = getNarrowOptionPane(com.lp.client.pc.Desktop.MAX_CHARACTERS_UNTIL_WORDWRAP);
-			pane.setMessage(sMsg);
-			pane.setMessageType(JOptionPane.ERROR_MESSAGE);
-			JDialog dialog = pane.createDialog(this, "");
-			dialog.setVisible(true);
+			new DialogError(LPMain.getInstance().getDesktop(), efc, DialogError.TYPE_INFORMATION);
+//			JOptionPane pane = getNarrowOptionPane(com.lp.client.pc.Desktop.MAX_CHARACTERS_UNTIL_WORDWRAP);
+//			pane.setMessage(sMsg);
+//			pane.setMessageType(JOptionPane.ERROR_MESSAGE);
+//			JDialog dialog = pane.createDialog(this, "");
+//			dialog.setVisible(true);
 		}
 
 		if (!bErrorBekannt && bHandleHardI) {
@@ -1376,8 +1557,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 	 * 
 	 * myexception: 1
 	 * 
-	 * @param exfc
-	 *            EJBExceptionLP
+	 * @param exfc EJBExceptionLP
 	 * @return boolean
 	 */
 	protected boolean handleOwnException(ExceptionLP exfc) {
@@ -1385,9 +1565,9 @@ abstract public class InternalFrame extends JInternalFrame implements
 	}
 
 	/**
-	 * evtvet: Event "Vetoable Window close"; wird null zurueckgegeben, so wird
-	 * das Modul via dicard beendet, wird ein PropertyVetoException
-	 * zurueckgegeben, bleibt das Modul "erhalten".
+	 * evtvet: Event "Vetoable Window close"; wird null zurueckgegeben, so wird das
+	 * Modul via dicard beendet, wird ein PropertyVetoException zurueckgegeben,
+	 * bleibt das Modul "erhalten".
 	 * 
 	 * @throws Throwable
 	 * @return PropertyVetoException
@@ -1396,8 +1576,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 		PropertyVetoException exc = null;
 
 		JComponent topComponent = getStack().peek().getJComponent();
-		if (topComponent != null && topComponent != tabbedPaneRoot
-				&& topComponent instanceof PanelBasis) {
+		if (topComponent != null && topComponent != tabbedPaneRoot && topComponent instanceof PanelBasis) {
 			exc = ((PanelBasis) topComponent).vetoableChangeLP();
 			if (exc != null)
 				return exc;
@@ -1411,29 +1590,30 @@ abstract public class InternalFrame extends JInternalFrame implements
 		// *****
 
 		if (exc == null) {
-			LPMain.getInstance().getDesktopController().behandleOffeneFehlmengen(this);			
-//			if (FehlmengenAufloesen.getAufgeloesteFehlmengen().size() > 0) {
-//				boolean bOption = DialogFactory
-//						.showModalJaNeinDialog(
-//								this,
-//								LPMain.getTextRespectUISPr("lp.frage.fehlmengenaufloesendrucken"),
-//								LPMain.getTextRespectUISPr("lp.hint"));
-//				if (bOption) {
-//					PanelReportKriterienOptions options = new PanelReportKriterienOptions();
-//					options.setInternalFrame(this);
-//					options.setMitEmailFax(true);
-//					showReportKriterienDialog(
-//							new ReportAufgeloestefehlmengen(this,
-//									FehlmengenAufloesen
-//											.getAufgeloesteFehlmengen()),
-//							options);
-//
-//					exc = new PropertyVetoException("", null);
-//				}
-//				FehlmengenAufloesen.loescheAufgeloesteFehlmengen();
-//			}
+			LPMain.getInstance().getDesktopController().behandleOffeneFehlmengen(this);
+			// if (FehlmengenAufloesen.getAufgeloesteFehlmengen().size() > 0) {
+			// boolean bOption = DialogFactory
+			// .showModalJaNeinDialog(
+			// this,
+			// LPMain.getTextRespectUISPr("lp.frage.fehlmengenaufloesendrucken"),
+			// LPMain.getTextRespectUISPr("lp.hint"));
+			// if (bOption) {
+			// PanelReportKriterienOptions options = new
+			// PanelReportKriterienOptions();
+			// options.setInternalFrame(this);
+			// options.setMitEmailFax(true);
+			// showReportKriterienDialog(
+			// new ReportAufgeloestefehlmengen(this,
+			// FehlmengenAufloesen
+			// .getAufgeloesteFehlmengen()),
+			// options);
+			//
+			// exc = new PropertyVetoException("", null);
+			// }
+			// FehlmengenAufloesen.loescheAufgeloesteFehlmengen();
+			// }
 		}
-		
+
 		// *****
 		// ***** wp & ghp *****
 
@@ -1448,11 +1628,10 @@ abstract public class InternalFrame extends JInternalFrame implements
 		return exc;
 	}
 
-	private Stack<PanelDialogStackElement> getStack() {
+	public Stack<PanelDialogStackElement> getStack() {
 		if (vPanelDialog == null) {
 			vPanelDialog = new Stack<PanelDialogStackElement>();
-			vPanelDialog.push(new PanelDialogStackElement(tabbedPaneRoot,
-					getTitle()));
+			vPanelDialog.push(new PanelDialogStackElement(tabbedPaneRoot, getTitle()));
 		}
 		return vPanelDialog;
 	}
@@ -1467,8 +1646,7 @@ abstract public class InternalFrame extends JInternalFrame implements
 		try {
 			// CK: Workaround fuer Kundenmodul (Noch kein TabbedPane):
 			if (tabbedPaneRoot.getSelectedComponent() instanceof PanelQuery) {
-				PanelQuery pq = (PanelQuery) tabbedPaneRoot
-						.getSelectedComponent();
+				PanelQuery pq = (PanelQuery) tabbedPaneRoot.getSelectedComponent();
 				pq.setFirstFocusableComponent();
 			}
 
@@ -1494,6 +1672,9 @@ abstract public class InternalFrame extends JInternalFrame implements
 		HelperClient.setComponentNames(this);
 		// dem internalFrame einen Namen geben.
 		setName();
+
+		// PJ21392
+		// gesperrtePanelsVestecken();
 	}
 
 	/**
@@ -1505,9 +1686,8 @@ abstract public class InternalFrame extends JInternalFrame implements
 			String sClassPraefix = "InternalFrame";
 
 			if (!className.startsWith(sClassPraefix)) {
-				myLogger.warn(className
-						+ " entspricht nicht den Codierrichtlinien. Muss mit \""
-						+ sClassPraefix + "\" beginnen");
+				myLogger.warn(className + " entspricht nicht den Codierrichtlinien. Muss mit \"" + sClassPraefix
+						+ "\" beginnen");
 			}
 
 			setName(className.replaceFirst(sClassPraefix, "internalFrame"));
@@ -1532,23 +1712,22 @@ abstract public class InternalFrame extends JInternalFrame implements
 		// this.getContentPane().removeAll();
 		super.finalize();
 	}
-	
-	
+
 	/**
 	 * Irgendein Datensatz dieses Moduls ist gesperrt
 	 */
 	public void lock() {
-		modulLocked = true ;
+		modulLocked = true;
 	}
 
 	/**
 	 * Keine gesperrte Datens&auml;tze dieses Moduls
 	 */
 	public void unlock() {
-		modulLocked = false ;
+		modulLocked = false;
 	}
-	
+
 	public boolean isLocked() {
-		return modulLocked ;
+		return modulLocked;
 	}
 }

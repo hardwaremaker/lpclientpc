@@ -56,7 +56,6 @@ import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
-import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -64,7 +63,6 @@ import com.lp.server.system.fastlanereader.generated.service.FLRWechselkursPK;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.WechselkursDto;
 
-@SuppressWarnings("static-access")
 /**
  * <p> Diese Klasse kuemmert sich um die Wechselkurse</p>
  *
@@ -192,7 +190,7 @@ public class PanelFinanzWechselkurs extends PanelBasis {
 				if (kursDto.getTDatum().equals(wdfDatum.getDate())) {
 					boolean b = DialogFactory.showModalJaNeinDialog(
 							getInternalFrame(),
-							LPMain.getInstance().getTextRespectUISPr(
+							textFromToken(
 									"system.kurs.zumaktuellendatumaendern"));
 					if (b == false) {
 						return;
@@ -202,16 +200,14 @@ public class PanelFinanzWechselkurs extends PanelBasis {
 
 			components2Dto();
 			if (kursDto.getWaehrungCNrVon().equals(kursDto.getWaehrungCNrZu())) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.hint"), LPMain.getInstance()
-						.getTextRespectUISPr("finanz.anderewaehrungangeben"));
+				DialogFactory.showModalDialogToken(
+						"lp.hint", "finanz.anderewaehrungangeben");
 				return;
 			}
 			// Kurs 0 nicht zulaessig
 			if (kursDto.getNKurs().compareTo(new BigDecimal(0)) == 0) {
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.hint"), LPMain.getInstance()
-						.getTextRespectUISPr("finanz.kursnullnichtzulaessig"));
+				DialogFactory.showModalDialogToken(
+						"lp.hint", "finanz.kursnullnichtzulaessig");
 				return;
 			}
 			DelegateFactory.getInstance().getLocaleDelegate()
@@ -251,14 +247,13 @@ public class PanelFinanzWechselkurs extends PanelBasis {
 		panelButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaWaehrungVon.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.von"));
+		wlaWaehrungVon.setText(textFromToken("lp.von"));
 		wlaWaehrungZu
-				.setText(LPMain.getInstance().getTextRespectUISPr("lp.zu"));
+				.setText(textFromToken("lp.zu"));
 		wcoWaehrungZu.setMandatoryField(true);
 		getInternalFrame().addItemChangedListener(this);
 
-		wlaDatum.setText(LPMain.getInstance().getTextRespectUISPr("lp.datum"));
+		wlaDatum.setText(textFromToken("lp.datum"));
 		wnfKurs.setMinimumValue(new BigDecimal(0));
 		wnfKurs.setFractionDigits(LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS);
 		wnfKurs.setMaximumIntegerDigits(LocaleFac.ANZAHL_VORKOMMASTELLEN_WECHSELKURS);
@@ -360,15 +355,10 @@ public class PanelFinanzWechselkurs extends PanelBasis {
 
 	protected void wnfKurs_focusLost() throws Throwable {
 		BigDecimal bdKurs = wnfKurs.getBigDecimal();
-		if (bdKurs != null) {
-			// division durch 0 abfangen
-			if (bdKurs.compareTo(new BigDecimal(0)) != 0) {
-				wnfKursInvertiert.setBigDecimal(new BigDecimal(1.0).divide(
-						bdKurs, LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS,
-						BigDecimal.ROUND_HALF_EVEN).setScale(
-						LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS,
-						BigDecimal.ROUND_HALF_EVEN));
-			}
+		if (bdKurs != null && bdKurs.signum() != 0) {
+			wnfKursInvertiert.setBigDecimal(BigDecimal.ONE.divide(
+					bdKurs, LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS,
+					BigDecimal.ROUND_HALF_EVEN));
 		} else {
 			wnfKursInvertiert.setBigDecimal(null);
 		}
@@ -376,15 +366,13 @@ public class PanelFinanzWechselkurs extends PanelBasis {
 
 	protected void wnfKursInvertiert_focusLost() throws Throwable {
 		BigDecimal bdKurs = wnfKursInvertiert.getBigDecimal();
-		if (bdKurs != null) {
-			// division durch 0 abfangen
-			if (bdKurs.compareTo(new BigDecimal(0)) != 0) {
-				wnfKurs.setBigDecimal(new BigDecimal(1.0).divide(bdKurs,
+		if (bdKurs != null && bdKurs.signum() != 0) {
+				wnfKurs.setBigDecimal(BigDecimal.ONE.divide(bdKurs,
 						LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS,
-						BigDecimal.ROUND_HALF_EVEN).setScale(
-						LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS,
-						BigDecimal.ROUND_HALF_EVEN));
-			}
+						BigDecimal.ROUND_HALF_EVEN)); 
+				// .setScale(
+				//		LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS,
+				//		BigDecimal.ROUND_HALF_EVEN));
 		} else {
 			wnfKursInvertiert.setBigDecimal(null);
 		}

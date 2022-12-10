@@ -35,6 +35,9 @@ package com.lp.client.frame.component;
 import java.awt.Dimension;
 import java.awt.LayoutManager;
 import java.awt.Point;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +46,8 @@ import javax.swing.JTextField;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.rechtschreibung.IRechtschreibPruefbar;
+import com.lp.client.rechtschreibung.SwingRechtschreibAdapter;
 
 /**
  * <p>
@@ -56,7 +61,8 @@ import com.lp.client.frame.HelperClient;
  * @author Martin Bluehweis
  * @version $Revision: 1.9 $
  */
-public class WrapperTextField extends JTextField implements IControl, IDirektHilfe, IHvValueHolder {
+public class WrapperTextField extends JTextField
+		implements IControl, IDirektHilfe, IHvValueHolder, IRechtschreibPruefbar {
 	private static final long serialVersionUID = 1L;
 	protected boolean isMandatoryField = false;
 	protected boolean isMandatoryFieldDB = false;
@@ -70,33 +76,38 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 	boolean infoButton = false;
 
 	private WrapperSelectField zugehoerigesSelectField = null;
-	private HvValueHolder<String> valueHolder ;
+	private HvValueHolder<String> valueHolder;
+
+	private SwingRechtschreibAdapter rechtschreibAdapter = null;
 
 	public WrapperTextField() {
 		this(I_COLUMNSMAX_DEFAULT);
 	}
 
 	public WrapperTextField(int columnsMax) {
-		valueHolder = new HvValueHolder<String>(this, null) ;
+		valueHolder = new HvValueHolder<String>(this, null);
 		HelperClient.setDefaultsToComponent(this);
 		cib = new CornerInfoButton(this);
 		new FocusHighlighter(this);
 		setColumnsMax(columnsMax);
+		addFocusListenerSelectText();
+		rechtschreibAdapter = new SwingRechtschreibAdapter(this);
 	}
 
 	public WrapperTextField(boolean infoButton) {
-		valueHolder = new HvValueHolder<String>(this, null) ;
+		valueHolder = new HvValueHolder<String>(this, null);
 		HelperClient.setDefaultsToComponent(this);
 
 		if (!infoButton) {
 			cib = null;
-		}
-		else {
+		} else {
 			cib = new CornerInfoButton(this);
 		}
 
 		new FocusHighlighter(this);
 		setColumnsMax(columnsMax);
+		addFocusListenerSelectText();
+		rechtschreibAdapter = new SwingRechtschreibAdapter(this);
 	}
 
 	public WrapperTextField(String toolTipToken) {
@@ -119,13 +130,11 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 		setText(text);
 	}
 
-
 	public WrapperSelectField getZugehoerigesSelectField() {
 		return zugehoerigesSelectField;
 	}
 
-	public void setZugehoerigesSelectField(
-			WrapperSelectField zugehoerigesSelectField) {
+	public void setZugehoerigesSelectField(WrapperSelectField zugehoerigesSelectField) {
 		this.zugehoerigesSelectField = zugehoerigesSelectField;
 	}
 
@@ -173,8 +182,7 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 	/**
 	 * setMandatoryField
 	 *
-	 * @param isMandatoryField
-	 *            boolean
+	 * @param isMandatoryField boolean
 	 */
 	public void setMandatoryField(boolean isMandatoryField) {
 		if (isMandatoryFieldDB == false || isMandatoryField == true) {
@@ -197,36 +205,32 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 	/**
 	 * setActivatable
 	 *
-	 * @param isActivatable
-	 *            boolean
+	 * @param isActivatable boolean
 	 */
 	public void setActivatable(boolean isActivatable) {
 		this.isActivatable = isActivatable;
-		if(!isActivatable) {
-			setEditable(false) ;
+		if (!isActivatable) {
+			setEditable(false);
 		}
 	}
 
 	/**
 	 * setText ueberschreiben
 	 *
-	 * @param text
-	 *            String
+	 * @param text String
 	 */
 	public void setText(String text) {
 		if (text != null) {
 			if (isUppercaseField()) {
 				text = text.toUpperCase();
 			}
-			if (this.getDocument() != null
-					&& this.getDocument() instanceof LimitedLengthDocument) {
+			if (this.getDocument() != null && this.getDocument() instanceof LimitedLengthDocument) {
 				LimitedLengthDocument document = (LimitedLengthDocument) getDocument();
 				int limit = document.getLimit();
 				if (text.length() > limit) {
 					super.setText(text.substring(0, limit - 3) + "...");
 					// MB: dd.mm.05 dieses printStackTrace ist absichtlich!
-					new IllegalArgumentException("text.length() > limit")
-							.printStackTrace();
+					new IllegalArgumentException("text.length() > limit").printStackTrace();
 				} else {
 					super.setText(text);
 				}
@@ -234,10 +238,10 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 				super.setText(text);
 			}
 
-			valueHolder.setValue(text.length() > 0 ? text : null) ;
+			valueHolder.setValue(text.length() > 0 ? text : null);
 		} else {
 			super.setText("");
-			valueHolder.setValue(null) ;
+			valueHolder.setValue(null);
 		}
 	}
 
@@ -248,16 +252,22 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 		this.setText("");
 	}
 
+	public void resetColorAndTooltip() {
+		setForeground(Defaults.getInstance().getDefaultTextColor());
+		setToolTipText(null);
+	}
+
 	public String getText() {
 		/*
-		 * Achtung: Wenn an dieser Logik, dass null zur&uuml;ckgegeben werden soll,
-		 * wenn es ein Leerstring ist etwas ge&auml;ndert wird, dann muss auch im
-		 * setText am valueHolder angepasst werden! (ghp)
+		 * Achtung: Wenn an dieser Logik, dass null zur&uuml;ckgegeben werden soll, wenn
+		 * es ein Leerstring ist etwas ge&auml;ndert wird, dann muss auch im setText am
+		 * valueHolder angepasst werden! (ghp)
 		 */
 		String s = super.getText();
-		if (s == null) return null ;
+		if (s == null)
+			return null;
 
-		return s.length() > 0 ? s : null ;
+		return s.length() > 0 ? s : null;
 	}
 
 	public Boolean isTextForFileNameAllowed() {
@@ -299,8 +309,7 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 
 	public void setUppercaseField(boolean uppercaseField) {
 		this.uppercaseField = uppercaseField;
-		if (this.getDocument() != null
-				&& this.getDocument() instanceof LimitedLengthDocument) {
+		if (this.getDocument() != null && this.getDocument() instanceof LimitedLengthDocument) {
 			((LimitedLengthDocument) this.getDocument()).setUppercase(true);
 		}
 	}
@@ -317,24 +326,20 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 	}
 
 	public void setMinimumSize(Dimension d) {
-		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMinimumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setMaximumSize(Dimension d) {
-		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setMaximumSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	public void setPreferredSize(Dimension d) {
-		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance()
-				.getControlHeight()));
+		super.setPreferredSize(new Dimension(d.width, Defaults.getInstance().getControlHeight()));
 	}
 
 	/**
 	 * @deprecated use setActivatable
-	 * @param bEnabled
-	 *            boolean
+	 * @param bEnabled boolean
 	 */
 	public void setEnabled(boolean bEnabled) {
 		/** @todo JO->MB PJ 5349 */
@@ -364,15 +369,15 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 	public Point getLocationOffset() {
 		return InfoButtonRelocator.getInstance().getRelocation(this);
 	}
+
 	@Override
 	public String getToken() {
 		return cib.getToolTipToken();
 	}
 
-
 	@Override
 	public Object getValueHolderValue() {
-		return getText() ;
+		return getText();
 	}
 
 	public void addValueChangedListener(IHvValueHolderListener l) {
@@ -381,5 +386,40 @@ public class WrapperTextField extends JTextField implements IControl, IDirektHil
 
 	public void removeValueChangedListener(IHvValueHolderListener l) {
 		valueHolder.removeListener(l);
+	}
+
+	private void addFocusListenerSelectText() {
+		if (!Defaults.getInstance().isTextfieldSelectionWholeContentOnFocus()) {
+			return;
+		}
+
+		FocusListener focusListener = new FocusListener() {
+			public void focusLost(FocusEvent e) {
+			}
+
+			public void focusGained(FocusEvent e) {
+				if (getText() == null)
+					return;
+
+				setSelectionStart(0);
+				setSelectionEnd(getText().length());
+			}
+		};
+		this.addFocusListener(focusListener);
+	}
+
+	@Override
+	public void deaktiviereRechtschreibpruefung() {
+		rechtschreibAdapter.deaktiviereRechtschreibpruefung();
+	}
+
+	@Override
+	public void aktiviereRechtschreibpruefung() {
+		rechtschreibAdapter.aktiviereRechtschreibpruefung();
+	}
+
+	@Override
+	public void setRechtschreibpruefungLocale(Locale loc) {
+		rechtschreibAdapter.setRechtschreibpruefungLocale(loc);
 	}
 }

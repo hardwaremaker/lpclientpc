@@ -37,6 +37,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.math.BigDecimal;
 import java.util.EventObject;
 
@@ -44,29 +46,30 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
-import net.miginfocom.swing.MigLayout;
-
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
-import com.lp.client.frame.component.WrapperKeyValueField;
+import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.delegate.EingangsrechnungDelegate;
 import com.lp.client.pc.LPMain;
-import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungDto;
-import com.lp.server.eingangsrechnung.service.EingangsrechnungFac;
+import com.lp.server.eingangsrechnung.service.ErZahlungsempfaenger;
 import com.lp.server.eingangsrechnung.service.ZahlungsvorschlagDto;
 import com.lp.server.partner.service.BankDto;
 import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.partner.service.PartnerbankDto;
+import com.lp.server.util.EingangsrechnungId;
 
-@SuppressWarnings("static-access")
+import net.miginfocom.swing.MigLayout;
+
 /**
  * <p> Diese Klasse kuemmert sich um den ZV</p>
  *
@@ -83,8 +86,6 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
-	private static final String ACTION_SPECIAL_TOGGLE = "action_special_zv_toggle";
 
 	private JPanel jPanelWorkingOn = new JPanel();
 
@@ -125,9 +126,18 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 
 	private TabbedPaneZahlungsvorschlag tabbedPaneZV = null;
 
-	private WrapperKeyValueField wkvBank = new WrapperKeyValueField(92);
-	private WrapperKeyValueField wkvIBAN = new WrapperKeyValueField(92);
-	private WrapperKeyValueField wkvBIC = new WrapperKeyValueField(92);
+	private WrapperGotoButton wbuGotoLieferant = null;
+	private WrapperLabel wlaEingangsrechnung = null;
+	private WrapperTextField wtfEingangsrechnungCNr = null;
+	private WrapperGotoButton wbuGotoEingangsrechnung = null;
+	
+	private WrapperLabel wlaAbweichendeBankverbindung = null;
+	private WrapperLabel wlaBank = null;
+	private WrapperTextField wtfBank = null;
+	private WrapperLabel wlaBIC = null;
+	private WrapperTextField wtfBIC = null;
+	private WrapperLabel wlaIBAN = null;
+	private WrapperTextField wtfIBAN = null;
 
 	public PanelZahlungsvorschlag(InternalFrame internalFrame,
 			String add2TitleI, Object pk,
@@ -145,6 +155,9 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 			this.setStatusbarPersonalIIdAnlegen(tabbedPaneZV.getZVlaufDto()
 					.getPersonalIIdAnlegen());
 			this.setStatusbarTAnlegen(tabbedPaneZV.getZVlaufDto().getTAnlegen());
+			
+			wbuGotoLieferant.setOKey(erDto.getLieferantIId());
+			wbuGotoEingangsrechnung.setOKey(erDto.getIId());
 		}
 	}
 
@@ -157,10 +170,9 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 			throws Throwable {
 
 		super.eventYouAreSelected(false);
-		Integer key = (Integer) getKeyWhenDetailPanel();
+		Integer key = getKeyWhenDetailPanel() == null ? null : (Integer) getKeyWhenDetailPanel();
 
-		if (key == null
-				|| (key != null && key.equals(LPMain.getLockMeForNew()))) {
+		if (key == null) {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {
@@ -174,8 +186,7 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 	}
 
 	private void jbInit() throws Throwable {
-		wlaLieferant = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.lieferant"));
+		wlaLieferant = new WrapperLabel(LPMain.getTextRespectUISPr("label.lieferant"));
 		wtfLieferant = new WrapperTextField();
 		wtfLieferant.setColumnsMax(100);
 		wtfLieferant.setActivatable(false);
@@ -184,38 +195,55 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 		wtfAdresse.setColumnsMax(100);
 		wtfAdresse.setActivatable(false);
 
-		wlaAbteilung = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.abteilung"));
+		wlaAbteilung = new WrapperLabel(
+				LPMain.getTextRespectUISPr("lp.abteilung"));
 		wtfAbteilung = new WrapperTextField();
 		wtfAbteilung.setColumnsMax(100);
 		wtfAbteilung.setActivatable(false);
 
-		wlaERBrutto = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("er.zahlungsvorschlag.erbrutto"));
+		wlaERBrutto = new WrapperLabel(
+				LPMain.getTextRespectUISPr("er.zahlungsvorschlag.erbrutto"));
 		wnfErBrutto = new WrapperNumberField();
 		wnfErBrutto.setActivatable(false);
-		wlaSkonto = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
+		wlaSkonto = new WrapperLabel(LPMain.getTextRespectUISPr(
 				"lp.skonto"));
 		wnfSkonto = new WrapperNumberField();
 		wnfSkonto.setActivatable(false);
+		
+		wlaEingangsrechnung = new WrapperLabel(
+				LPMain.getTextRespectUISPr("er.eingangsrechnung"));
+		wbuGotoEingangsrechnung = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_EINGANGSRECHNUNG_AUSWAHL);
+		wbuGotoEingangsrechnung.getWrapperButton().setVisible(false);
+		wtfEingangsrechnungCNr = new WrapperTextField();
+		wtfEingangsrechnungCNr.setActivatable(false);
 
-		wlaBelegdatum = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.belegdatum"));
+		wlaBelegdatum = new WrapperLabel(
+				LPMain.getTextRespectUISPr("label.belegdatum"));
 		wdfBelegdatum = new WrapperDateField();
 		wdfBelegdatum.setActivatable(false);
-		wlaFreigabedatum = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.freigabedatum"));
+		wlaFreigabedatum = new WrapperLabel(
+				LPMain.getTextRespectUISPr("label.freigabedatum"));
 		wdfFreigabedatum = new WrapperDateField();
 		wdfFreigabedatum.setActivatable(false);
 
-		wlaOffen = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"label.offen"));
+		wlaOffen = new WrapperLabel(
+				LPMain.getTextRespectUISPr("label.offen"));
 		wnfOffen = new WrapperNumberField();
 		wnfOffen.setActivatable(false);
-		wlaZahlbetrag = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("er.zahlungsvorschlag.zahlbetrag"));
+		wlaZahlbetrag = new WrapperLabel(
+				LPMain.getTextRespectUISPr("er.zahlungsvorschlag.zahlbetrag"));
 		wnfZahlbetrag = new WrapperNumberField();
 		wnfZahlbetrag.setMandatoryFieldDB(true);
+		wnfZahlbetrag.addFocusListener(new FocusListener() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				resetVollstaendigBezahlt();
+			}
+			
+			@Override
+			public void focusGained(FocusEvent e) {
+			}
+		});
 
 		wlaWaehrung1 = new WrapperLabel();
 		wlaWaehrung1.setHorizontalAlignment(SwingConstants.LEFT);
@@ -226,28 +254,36 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 		wlaWaehrung3 = new WrapperLabel();
 		wlaWaehrung3.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wkvBank.setKey(LPMain.getInstance().getTextRespectUISPr(
-				"part.kund.banken"));
-		wkvIBAN.setKey(LPMain.getInstance().getTextRespectUISPr("lp.iban"));
-		wkvBIC.setKey(LPMain.getInstance().getTextRespectUISPr("lp.bic"));
+		wlaBank = new WrapperLabel(LPMain.getTextRespectUISPr("part.kund.banken"));
+		wtfBank = new WrapperTextField();
+		wtfBank.setActivatable(false);
+		wlaIBAN = new WrapperLabel(LPMain.getTextRespectUISPr("lp.iban"));
+		wtfIBAN = new WrapperTextField();
+		wtfIBAN.setActivatable(false);
+		wlaBIC = new WrapperLabel(LPMain.getTextRespectUISPr("lp.bic"));
+		wtfBIC = new WrapperTextField();
+		wtfBIC.setActivatable(false);
 
-		wlaGesamt = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
+		wlaGesamt = new WrapperLabel(LPMain.getTextRespectUISPr(
 				"lp.gesamtwert"));
 		wnfGesamt = new WrapperNumberField();
 		wnfGesamt.setActivatable(false);
 
 		wcbVollstaendigBezahlt = new WrapperCheckBox(
-				LPMain.getInstance().getTextRespectUISPr(
-						"er.zahlungsvorschlag.vollstaendigbezahlt"));
+				LPMain.getTextRespectUISPr("er.zahlungsvorschlag.vollstaendigbezahlt"));
 
 		// Mandantenwaehrung
-		wlaWaehrungGesamt = new WrapperLabel(LPMain.getInstance()
+		wlaWaehrungGesamt = new WrapperLabel(LPMain
 				.getTheClient().getSMandantenwaehrung());
 		wlaWaehrungGesamt.setHorizontalAlignment(SwingConstants.LEFT);
 
 		wlaLieferant.setMinimumSize(new Dimension(150, Defaults.getInstance()
 				.getControlHeight()));
 		wlaLieferant.setPreferredSize(new Dimension(150, Defaults.getInstance()
+				.getControlHeight()));
+		wlaEingangsrechnung.setMinimumSize(new Dimension(150, Defaults.getInstance()
+				.getControlHeight()));
+		wlaEingangsrechnung.setPreferredSize(new Dimension(150, Defaults.getInstance()
 				.getControlHeight()));
 		wlaWaehrung1.setMinimumSize(new Dimension(30, Defaults.getInstance()
 				.getControlHeight()));
@@ -265,6 +301,19 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 				.getInstance().getControlHeight()));
 		wlaSkontoProzent.setPreferredSize(new Dimension(30, Defaults
 				.getInstance().getControlHeight()));
+		
+		wlaAbweichendeBankverbindung = new WrapperLabel();
+		wlaAbweichendeBankverbindung.setHorizontalAlignment(SwingConstants.LEFT);
+		
+		wbuGotoLieferant = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_LIEFERANT_AUSWAHL);
+		wbuGotoLieferant.getWrapperButton().setVisible(false);
+		JPanel lieferantPanel = new JPanel(new MigLayout("insets 0, align right", "[fill|fill]"));
+		lieferantPanel.add(wlaLieferant);
+		lieferantPanel.add(wbuGotoLieferant);
+				
+		JPanel erPanel = new JPanel(new MigLayout("insets 0, align right", "[fill|fill]"));
+		erPanel.add(wlaEingangsrechnung);
+		erPanel.add(wbuGotoEingangsrechnung);
 
 		this.setLayout(new GridBagLayout());
 		// Actionpanel von Oberklasse holen und anhaengen.
@@ -282,16 +331,24 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 				new Insets(0, 0, 0, 0), 0, 0));
 		// Felder
 
-		jPanelWorkingOn.add(wlaLieferant);
+		jPanelWorkingOn.add(erPanel);
+		jPanelWorkingOn.add(wtfEingangsrechnungCNr, "span 2, wrap");
+		
+		jPanelWorkingOn.add(wlaAbweichendeBankverbindung, "skip 4, span 2, wrap");
+		
+		jPanelWorkingOn.add(lieferantPanel);
 		jPanelWorkingOn.add(wtfLieferant, "span 2");
-		jPanelWorkingOn.add(wkvBank, "span 2, wrap");
+		jPanelWorkingOn.add(wlaBank);
+		jPanelWorkingOn.add(wtfBank, "span 2, wrap");
 
 		jPanelWorkingOn.add(wtfAdresse, "skip, span 2");
-		jPanelWorkingOn.add(wkvIBAN, "span 2, wrap");
+		jPanelWorkingOn.add(wlaIBAN);
+		jPanelWorkingOn.add(wtfIBAN, "span 2, wrap");
 
 		jPanelWorkingOn.add(wlaAbteilung);
 		jPanelWorkingOn.add(wtfAbteilung, "span 2");
-		jPanelWorkingOn.add(wkvBIC, "span 2, wrap");
+		jPanelWorkingOn.add(wlaBIC);
+		jPanelWorkingOn.add(wtfBIC, "span 2, wrap");
 
 		jPanelWorkingOn.add(wlaBelegdatum);
 		jPanelWorkingOn.add(wdfBelegdatum);
@@ -320,9 +377,19 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
-		createAndSaveAndShowButton("/com/lp/client/res/check2.png",
-				LPMain.getTextRespectUISPr("fb.tooltip.bezahlen"),
-				ACTION_SPECIAL_TOGGLE, RechteFac.RECHT_FB_FINANZ_CUD);
+	}
+
+	protected void resetVollstaendigBezahlt() {
+		try {
+			BigDecimal zahlbetrag = wnfZahlbetrag.getBigDecimal();
+			BigDecimal offenerBetrag = wnfOffen.getBigDecimal();
+			
+			if (zahlbetrag == null || offenerBetrag == null
+					|| zahlbetrag.compareTo(offenerBetrag) < 0) 
+				wcbVollstaendigBezahlt.setSelected(false);
+		} catch (ExceptionLP e) {
+			handleException(e, false);
+		}
 	}
 
 	protected String getLockMeWer() {
@@ -348,6 +415,7 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 			wtfAdresse.setText(lieferantDto.getPartnerDto().formatAdresse());
 			wtfAbteilung.setText(lieferantDto.getPartnerDto()
 					.getCName3vorname2abteilung());
+			wtfEingangsrechnungCNr.setText(erDto.getCNr());
 			wdfBelegdatum.setDate(erDto.getDBelegdatum());
 			wdfFreigabedatum.setDate(erDto.getDFreigabedatum());
 			wlaWaehrung1.setText(erDto.getWaehrungCNr());
@@ -364,31 +432,13 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 			wcbVollstaendigBezahlt.setShort(zvDto
 					.getBWaereVollstaendigBezahlt());
 
-			// Bankverbindung
-
-			PartnerbankDto[] pbDtos = DelegateFactory.getInstance()
-					.getPartnerbankDelegate()
-					.partnerbankFindByPartnerIId(lieferantDto.getPartnerIId());
-			if (pbDtos != null && pbDtos.length > 0) {
-				BankDto bankDto = DelegateFactory.getInstance()
-						.getPartnerbankDelegate()
-						.bankFindByPrimaryKey(pbDtos[0].getBankPartnerIId());
-
-				wkvBank.setValue(bankDto.getPartnerDto()
-						.getCName1nachnamefirmazeile1());
-				wkvIBAN.setValue(pbDtos[0].getCIban());
-				wkvBIC.setValue(bankDto.getCBic());
-
-			} else {
-				wkvBank.setValue("");
-				wkvBIC.setValue("");
-				wkvIBAN.setValue("");
-			}
+			bankverbindung2Components();
 
 		} else {
 			wtfLieferant.setText(null);
 			wtfAdresse.setText(null);
 			wtfAbteilung.setText(null);
+			wtfEingangsrechnungCNr.setText(null);
 			wdfBelegdatum.setDate(null);
 			wdfFreigabedatum.setDate(null);
 			wlaWaehrung1.setText(null);
@@ -398,10 +448,37 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 			wnfSkonto.setBigDecimal(null);
 			wnfOffen.setBigDecimal(null);
 			wnfZahlbetrag.setBigDecimal(null);
-			wkvBank.setValue("");
-			wkvBIC.setValue("");
-			wkvIBAN.setValue("");
+			wtfBank.setText(null);
+			wtfBIC.setText(null);
+			wtfIBAN.setText(null);
 		}
+	}
+	
+	private void bankverbindung2Components() throws ExceptionLP, Throwable {
+		// Bankverbindung
+		ErZahlungsempfaenger erEmpfaenger = erDelegate().getEingangsrechnungBankverbindung(
+				new EingangsrechnungId(zvDto.getEingangsrechnungIId()));
+		
+		if (erEmpfaenger.exists()) {
+			PartnerbankDto bv = erEmpfaenger.getPartnerbankDto();
+			BankDto bankDto = erEmpfaenger.getBankDto();
+			wtfBank.setText(bankDto.getPartnerDto().getCName1nachnamefirmazeile1());
+			wtfBIC.setText(bankDto.getCBic());
+			wtfIBAN.setText(bv.getCIban());
+		} else {
+			wtfBank.setText(null);
+			wtfBIC.setText(null);
+			wtfIBAN.setText(null);
+		}
+		
+		wlaAbweichendeBankverbindung.setText(erEmpfaenger.isAbweichend()
+				? LPMain.getMessageTextRespectUISPr("er.zahlungsvorschlag.abweichendebankverbindung", 
+						erEmpfaenger.getPartnerDto().formatFixName2Name1())
+				: null);
+	}
+
+	private EingangsrechnungDelegate erDelegate() throws Throwable {
+		return DelegateFactory.getInstance().getEingangsrechnungDelegate();
 	}
 
 	protected void updateGesamtwert() throws Throwable {
@@ -412,19 +489,6 @@ public class PanelZahlungsvorschlag extends PanelBasis {
 					.getGesamtwertEinesZahlungsvorschlaglaufsInMandantenwaehrung(
 							tabbedPaneZV.getZVlaufDto().getIId());
 			wnfGesamt.setBigDecimal(bdWert);
-		}
-	}
-
-	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equals(ACTION_SPECIAL_TOGGLE)) {
-			if (zvDto != null) {
-				DelegateFactory.getInstance().getEingangsrechnungDelegate()
-						.toggleZahlungsvorschlagBBezahlen(zvDto.getIId());
-				// oberes Panel aktualisieren
-				tabbedPaneZV.refreshPanelQueryZV();
-				// Gesamtwert neu berechnen
-				updateGesamtwert();
-			}
 		}
 	}
 

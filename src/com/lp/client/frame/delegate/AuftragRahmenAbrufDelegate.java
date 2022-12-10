@@ -40,6 +40,7 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.auftrag.service.AuftragRahmenAbrufFac;
 import com.lp.server.auftrag.service.AuftragpositionDto;
+import com.lp.server.auftrag.service.AuftragpositionFac;
 
 
 /**
@@ -64,7 +65,7 @@ public class AuftragRahmenAbrufDelegate
   public AuftragRahmenAbrufDelegate() throws ExceptionLP{
     try {
     	context = new InitialContext();
-    	auftragRahmenAbrufFac = (AuftragRahmenAbrufFac) context.lookup("lpserver/AuftragRahmenAbrufFacBean/remote");
+    	auftragRahmenAbrufFac = lookupFac(context, AuftragRahmenAbrufFac.class);
     }
     catch (Throwable t) {
       handleThrowable(t);

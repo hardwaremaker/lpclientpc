@@ -32,25 +32,24 @@
  ******************************************************************************/
 package com.lp.client.stueckliste;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
-import javax.swing.SwingConstants;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
-import com.lp.client.fertigung.FertigungFilterFactory;
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.ItemChangedEvent;
@@ -62,15 +61,14 @@ import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
-import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.component.frameposition.ClientPerspectiveManager;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.LagerDto;
-import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.stueckliste.service.StuecklisteDto;
 import com.lp.server.stueckliste.service.StuecklisteReportFac;
 import com.lp.server.system.service.MailtextDto;
@@ -105,6 +103,8 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 	private WrapperRadioButton wrbAusgabestueckliste = new WrapperRadioButton();
 	private WrapperRadioButton wrbAllgemeinMitPreis = new WrapperRadioButton();
 
+	private WrapperComboBox wcbOptionLager = new WrapperComboBox();
+
 	private WrapperRadioButton wrbUnterstklSortierungNachIdent = new WrapperRadioButton();
 	private WrapperRadioButton wrbUnterstklSortierungPosition = new WrapperRadioButton();
 	private WrapperRadioButton wrbUnterstklSortierungWieErfasst = new WrapperRadioButton();
@@ -119,8 +119,7 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 	private WrapperCheckBox wcbUnterstuecklistenEinbinden = new WrapperCheckBox();
 	private WrapperCheckBox wcbSortiertNachAenderungsdatum = new WrapperCheckBox();
 	private WrapperCheckBox wcbSortiertNachMontageart = new WrapperCheckBox();
-
-	private WrapperCheckBox wcbNurAbbuchungslaeger = new WrapperCheckBox();
+	private WrapperCheckBox wcbFremdfertigungAufloesen = new WrapperCheckBox();
 
 	static final public String ACTION_SPECIAL_STKL_FROM_LISTE = "ACTION_SPECIAL_STKL_FROM_LISTE";
 
@@ -142,6 +141,12 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 	private WrapperNumberField wnfLosgroesse = new WrapperNumberField();
 
 	private WrapperLabel wlaEinheit = new WrapperLabel();
+	
+	public enum StklReportType {
+		ALLGEMEIN,
+		AUSGABE,
+		ALLGEMEIN_MIT_PREIS;
+	}
 
 	public ReportStueckliste(InternalFrameStueckliste internalFrame,
 			String add2Title, Integer stuecklisteIId) throws Throwable {
@@ -165,7 +170,6 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 				.getHauptlagerDesMandanten();
 		lagerIId = lagerDto.getIId();
 		wtfLager.setText(lagerDto.getCNr());
-
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -186,9 +190,18 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 		wtStueckliste.setMandatoryField(true);
 		wtStueckliste.setSaveReportInformation(false);
 		wtfLager.setMandatoryField(true);
-		wrbAllgemein.setText("Allgemein");
+
+		wrbAllgemein.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.allgemein"));
 		wrbAllgemein.addActionListener(this);
 		wrbAllgemein.setSelected(true);
+		wnfLosgroesse.setEditable(false);
+		wnfLosgroesse.setMandatoryField(false);
+		wrbUnterstklSortierungNachIdent.setEnabled(false);
+		wcbUnterstklstrukturBelassen.setEnabled(false);
+		wrbUnterstklSortierungPosition.setEnabled(false);
+		wrbUnterstklSortierungWieErfasst.setEnabled(false);
+		
 
 		wrbAusgabestueckliste.setText(LPMain.getInstance().getTextRespectUISPr(
 				"stkl.report.ausgabestueckliste"));
@@ -198,7 +211,6 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 		wrbAusgabestueckliste.addActionListener(this);
 		wrbAllgemeinMitPreis.addActionListener(this);
 		wcbUnterstuecklistenEinbinden.addActionListener(this);
-		wcbNurAbbuchungslaeger.addActionListener(this);
 
 		wrbUnterstklSortierungNachIdent.setText(LPMain.getInstance()
 				.getTextRespectUISPr("artikel.artikelnummer"));
@@ -211,17 +223,35 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 				.getTextRespectUISPr("stk.sort.wieerfasst"));
 		wrbUnterstklSortierungNachIdent.setSelected(true);
 
-		wcbGleichePositionenZusammenfassen
-				.setText("gleiche Positionen zusammenfassen");
-		wcbPositionskommentar.setText("Positionskommentar");
+		wcbGleichePositionenZusammenfassen.setText(LPMain.getInstance()
+				.getTextRespectUISPr(
+						"stkl.report.gleichepositionezusammenfassen"));
+		wcbPositionskommentar.setText(LPMain.getInstance().getTextRespectUISPr(
+				"stkl.report.positionskommentar"));
 		wcbSortiertNachAenderungsdatum
 				.setText("sortiert nach \u00C4nderungsdatum");
 		wcbSortiertNachMontageart.setText("sortiert nach Montageart");
-		wcbNurAbbuchungslaeger.setText(LPMain.getInstance()
-				.getTextRespectUISPr("stk.report.nurabuchungslaeger"));
+
+		Map map = new LinkedHashMap();
+		map.put(StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_LAGER_SELEKTIERT,
+				LPMain.getTextRespectUISPr("stk.report.selektierteslager"));
+		map.put(StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_ALLE_LAEGER,
+				LPMain.getTextRespectUISPr("stk.report.allelaeger"));
+		map.put(StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_NUR_ABBUCHUNGSLAEGER,
+				LPMain.getTextRespectUISPr("stk.report.nurabuchungslaeger"));
+		wcbOptionLager.setMandatoryField(true);
+		wcbOptionLager.setMap(map);
+
+		wcbOptionLager.addActionListener(this);
 
 		wcbStuecklistenkommentar.setText(LPMain.getInstance()
 				.getTextRespectUISPr("stkl.report.stuecklistenkommentar"));
+		
+		wcbFremdfertigungAufloesen.setText(LPMain.getInstance()
+				.getTextRespectUISPr("stk.report.fremdfertigungaufloesen"));
+		
+		wcbFremdfertigungAufloesen.setEnabled(false);
+		
 
 		wcbUnterstuecklistenEinbinden.setText(LPMain.getInstance()
 				.getTextRespectUISPr("stkl.report.unterstkleinbinden"));
@@ -245,26 +275,34 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 		mBelegarten
 				.put(new Integer(
 						StuecklisteReportFac.REPORT_STUECKLISTE_OPTION_PREIS_GESTEHUNGSSPREIS),
-						"Gestehungspreis");
+						LPMain.getInstance().getTextRespectUISPr(
+								"stkl.report.preis.gestpreis"));
 		mBelegarten
 				.put(new Integer(
 						StuecklisteReportFac.REPORT_STUECKLISTE_OPTION_PREIS_VERKAUFSSPREIS),
-						"VK-Preis");
+						LPMain.getInstance().getTextRespectUISPr(
+								"stkl.report.preis.vkpreis"));
 		mBelegarten
 				.put(new Integer(
 						StuecklisteReportFac.REPORT_STUECKLISTE_OPTION_PREIS_EINKAUFSPREIS),
-						"EK-Preis");
+						LPMain.getInstance().getTextRespectUISPr(
+								"stkl.report.preis.ekpreis"));
+
 		wcoPreis.setMap(mBelegarten);
 
 		wcbUnterstklstrukturBelassen.setSelected(true);
 
 		mSortierungAlle = new LinkedHashMap<Integer, String>();
-		mSortierungAlle.put(new Integer(SORT_ARTIKELNUMMER), "Artikelnummer");
-		mSortierungAlle.put(new Integer(SORT_ARTIKELBEZEICHNUNG),
-				"Artikelbezeichnung");
+		mSortierungAlle.put(new Integer(SORT_ARTIKELNUMMER), LPMain
+				.getInstance().getTextRespectUISPr("artikel.artikelnummer"));
+		mSortierungAlle.put(
+				new Integer(SORT_ARTIKELBEZEICHNUNG),
+				LPMain.getInstance().getTextRespectUISPr(
+						"stkl.report.sort.artikelbezeichnung"));
 		mSortierungAlle.put(new Integer(SORT_POSITION), LPMain.getInstance()
 				.getTextRespectUISPr("lp.position"));
-		mSortierungAlle.put(new Integer(SORT_LFDNUMMER), "LfdNr");
+		mSortierungAlle.put(new Integer(SORT_LFDNUMMER), LPMain.getInstance()
+				.getTextRespectUISPr("stkl.report.sort.lfdnr"));
 		mSortierungAlle.put(new Integer(SORT_MONTAGEART), LPMain.getInstance()
 				.getTextRespectUISPr("stkl.montageart"));
 		mSortierungAlle.put(new Integer(SORT_WIE_ERFASST), LPMain.getInstance()
@@ -273,11 +311,22 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 		wcoSortierung2.setMap(mSortierungAlle);
 		wcoSortierung3.setMap(mSortierungAlle);
 
+		Dimension sortierungDimension = HelperClient
+				.getSizeFactoredDimension(120);
+		HelperClient.setMinimumAndPreferredSize(wcoSortierung1,
+				sortierungDimension);
+		HelperClient.setMinimumAndPreferredSize(wcoSortierung2,
+				sortierungDimension);
+		HelperClient.setMinimumAndPreferredSize(wcoSortierung3,
+				sortierungDimension);
+
 		mSortierungNurArtikelNrBez = new LinkedHashMap<Integer, String>();
-		mSortierungNurArtikelNrBez.put(new Integer(SORT_ARTIKELNUMMER),
-				"Artikelnummer");
-		mSortierungNurArtikelNrBez.put(new Integer(SORT_ARTIKELBEZEICHNUNG),
-				"Artikelbezeichnung");
+		mSortierungNurArtikelNrBez.put(new Integer(SORT_ARTIKELNUMMER), LPMain
+				.getInstance().getTextRespectUISPr("artikel.artikelnummer"));
+		mSortierungNurArtikelNrBez.put(
+				new Integer(SORT_ARTIKELBEZEICHNUNG),
+				LPMain.getInstance().getTextRespectUISPr(
+						"stkl.report.sort.artikelbezeichnung"));
 
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
@@ -295,6 +344,10 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wcbOptionLager, new GridBagConstraints(2, 1, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		jpaWorkingOn.add(wrbAllgemein, new GridBagConstraints(0, 2, 1, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -309,9 +362,12 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wnfLosgroesse, new GridBagConstraints(0, 5, 1, 1, 0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 60, 2, 50), -300, 0));
+		jpaWorkingOn.add(
+				wnfLosgroesse,
+				new GridBagConstraints(0, 5, 1, 1, 0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+						new Insets(2, Defaults.sizeFactor(60), 2, Defaults
+								.sizeFactor(50)), -300, 0));
 
 		jpaWorkingOn.add(wlaEinheit, new GridBagConstraints(0, 5, 1, 1, 0, 0.0,
 				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
@@ -337,9 +393,15 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
 						0, 0));
 		jpaWorkingOn.add(wcbUnterstklstrukturBelassen, new GridBagConstraints(
-				0, 10, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+				0, 10, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 150, 0));
 
+		jpaWorkingOn.add(wcbFremdfertigungAufloesen, new GridBagConstraints(
+				1, 10, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		
+		
 		jpaWorkingOn.add(wcoPreis, new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -365,19 +427,16 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
 						0, 0));
-		jpaWorkingOn.add(wcbNurAbbuchungslaeger, new GridBagConstraints(1, 7,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		jpaWorkingOn.add(wcoSortierung1, new GridBagConstraints(2, 4, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 100, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcoSortierung2, new GridBagConstraints(2, 5, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 100, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcoSortierung3, new GridBagConstraints(2, 6, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 100, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 
 		buttonGroupDruck.add(wrbAllgemein);
 		buttonGroupDruck.add(wrbAllgemeinMitPreis);
@@ -387,7 +446,7 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 		buttonGroupUnterstklSortierung.add(wrbUnterstklSortierungPosition);
 		buttonGroupUnterstklSortierung.add(wrbUnterstklSortierungWieErfasst);
 
-		eventActionSpecial(new ActionEvent(wrbAllgemein, -1, ""));
+		initStklReportType();
 	}
 
 	public String getModul() {
@@ -468,8 +527,8 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 					.createPanelFLRStueckliste(getInternalFrame(), selectedId,
 							false);
 
-			if (wcbNurAbbuchungslaeger.isEnabled()
-					&& wcbNurAbbuchungslaeger.isSelected()) {
+			if ((Integer) wcbOptionLager.getKeyOfSelectedItem() == StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_NUR_ABBUCHUNGSLAEGER
+					|| (Integer) wcbOptionLager.getKeyOfSelectedItem() == StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_NUR_ABBUCHUNGSLAEGER) {
 
 			} else {
 				panelQueryFLRStueckliste.setMultipleRowSelectionEnabled(true);
@@ -524,7 +583,7 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 					|| e.getSource().equals(wrbAllgemeinMitPreis)
 					|| e.getSource().equals(wrbAusgabestueckliste)) {
 
-				System.out.println("XX");
+				saveStklReportType();
 
 				if (getParent() instanceof JPanel) {
 					JPanel jpa = (JPanel) getParent();
@@ -559,7 +618,9 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 			if (e.getSource().equals(wrbAllgemein)) {
 				wcbGleichePositionenZusammenfassen.setEnabled(true);
 				wcbPositionskommentar.setEnabled(true);
-				wcbNurAbbuchungslaeger.setEnabled(false);
+
+				wcbOptionLager.setEnabled(false);
+
 				wcbStuecklistenkommentar.setEnabled(true);
 
 				wcoSortierung1.setMap(mSortierungAlle);
@@ -570,7 +631,7 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 			} else if (e.getSource().equals(wrbAllgemeinMitPreis)) {
 				wcbGleichePositionenZusammenfassen.setEnabled(true);
 				wcbPositionskommentar.setEnabled(true);
-				wcbNurAbbuchungslaeger.setEnabled(false);
+				wcbOptionLager.setEnabled(false);
 				wcbStuecklistenkommentar.setEnabled(true);
 				wcoPreis.setEnabled(true);
 
@@ -582,7 +643,7 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 
 			} else if (e.getSource().equals(wrbAusgabestueckliste)) {
 				wcbStuecklistenkommentar.setEnabled(true);
-				wcbNurAbbuchungslaeger.setEnabled(true);
+				wcbOptionLager.setEnabled(true);
 				wnfLosgroesse.setEditable(true);
 				wnfLosgroesse.setMandatoryField(true);
 
@@ -599,6 +660,7 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 					wcbUnterstklstrukturBelassen.setEnabled(true);
 					wrbUnterstklSortierungPosition.setEnabled(true);
 					wrbUnterstklSortierungWieErfasst.setEnabled(true);
+					wcbFremdfertigungAufloesen.setEnabled(true);
 
 					if (wrbAusgabestueckliste.isSelected()) {
 						wrbUnterstklSortierungNachIdent.setEnabled(false);
@@ -621,6 +683,8 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 					wrbUnterstklSortierungPosition.setEnabled(false);
 					wrbUnterstklSortierungWieErfasst.setEnabled(false);
 
+					wcbFremdfertigungAufloesen.setEnabled(false);
+					
 					wcoSortierung1.setEnabled(true);
 					wcoSortierung2.setEnabled(true);
 					wcoSortierung3.setEnabled(true);
@@ -629,8 +693,9 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 
 			}
 
-			if (wcbNurAbbuchungslaeger.isEnabled()
-					&& wcbNurAbbuchungslaeger.isSelected()) {
+			if (wcbOptionLager.isEnabled()
+					&& ((Integer) wcbOptionLager.getKeyOfSelectedItem() == StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_NUR_ABBUCHUNGSLAEGER || (Integer) wcbOptionLager
+							.getKeyOfSelectedItem() == StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_ALLE_LAEGER)) {
 				wbuLager.setEnabled(false);
 			} else {
 				wbuLager.setEnabled(true);
@@ -681,6 +746,9 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 
+		// OptionLager
+		int iOptionLager = (Integer) wcbOptionLager.getKeyOfSelectedItem();
+
 		// Sortierung1
 		int iSortierung1 = -1;
 		int iSortierung2 = -1;
@@ -715,6 +783,11 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 			}
 		}
 
+		String[] labelsSortierungen = new String[] {
+				wcoSortierung1.getSelectedItem() + "",
+				wcoSortierung2.getSelectedItem() + "",
+				wcoSortierung3.getSelectedItem() + "" };
+
 		try {
 			if (wrbAllgemein.isSelected()) {
 
@@ -733,7 +806,9 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 										.getShort()),
 								iSortierungUnterstueckliste,
 								wcbUnterstklstrukturBelassen.isSelected(),
-								iSortierung1, iSortierung2, iSortierung3);
+								iSortierung1, iSortierung2, iSortierung3,
+								labelsSortierungen,
+								wcbFremdfertigungAufloesen.isSelected());
 			} else if (wrbAllgemeinMitPreis.isSelected()) {
 
 				return DelegateFactory
@@ -753,7 +828,8 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 										.getShort()),
 								iSortierungUnterstueckliste,
 								wcbUnterstklstrukturBelassen.isSelected(),
-								iSortierung1, iSortierung2, iSortierung3);
+								iSortierung1, iSortierung2, iSortierung3,
+								wcbFremdfertigungAufloesen.isSelected());
 			} else if (wrbAusgabestueckliste.isSelected()) {
 
 				boolean bSortiertNachArtikelbezeichnung = false;
@@ -763,12 +839,11 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 					bSortiertNachArtikelbezeichnung = true;
 				}
 
-				
-				if(wcbNurAbbuchungslaeger.isSelected()){
-					Integer stuecklisteIIdTemp=stuecklisteIId[0];
-					stuecklisteIId=new Integer[]{stuecklisteIIdTemp};
+				if ((Integer) wcbOptionLager.getKeyOfSelectedItem() == StuecklisteReportFac.REPORT_AUSGABESTUECKLISTE_OPTION_NUR_ABBUCHUNGSLAEGER) {
+					Integer stuecklisteIIdTemp = stuecklisteIId[0];
+					stuecklisteIId = new Integer[] { stuecklisteIIdTemp };
 				}
-				
+
 				return DelegateFactory
 						.getInstance()
 						.getStuecklisteReportDelegate()
@@ -782,7 +857,8 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 								Helper.short2boolean(wcbGleichePositionenZusammenfassen
 										.getShort()),
 								wnfLosgroesse.getBigDecimal(),
-								bSortiertNachArtikelbezeichnung,wcbNurAbbuchungslaeger.isSelected());
+								bSortiertNachArtikelbezeichnung, iOptionLager,
+								wcbFremdfertigungAufloesen.isSelected());
 			} else {
 				return null;
 			}
@@ -809,5 +885,35 @@ public class ReportStueckliste extends PanelBasis implements PanelReportIfJRDS {
 		MailtextDto mailtextDto = PanelReportKriterien
 				.getDefaultMailtextDto(this);
 		return mailtextDto;
+	}
+	
+	private void initStklReportType() {
+		ReportStklConfigData configData = ClientPerspectiveManager.getInstance()
+				.readReportClientConfigData(ReportStklConfigData.class);
+		if (configData == null) { 
+			wrbAllgemein.setSelected(true);
+			return;
+		}
+		
+		if (StklReportType.AUSGABE.equals(configData.getStklType())) {
+			wrbAusgabestueckliste.setSelected(true);
+		} else if (StklReportType.ALLGEMEIN_MIT_PREIS.equals(configData.getStklType())) {
+			wrbAllgemeinMitPreis.setSelected(true);
+		} else {
+			wrbAllgemein.setSelected(true);
+		}
+	}
+	
+	private void saveStklReportType() {
+		ReportStklConfigData configData = new ReportStklConfigData();
+
+		if (wrbAusgabestueckliste.isSelected()) {
+			configData.setStklType(StklReportType.AUSGABE);
+		} else if (wrbAllgemeinMitPreis.isSelected()) {
+			configData.setStklType(StklReportType.ALLGEMEIN_MIT_PREIS);
+		} else {
+			configData.setStklType(StklReportType.ALLGEMEIN);
+		}
+		ClientPerspectiveManager.getInstance().saveReportClientConfig(configData);
 	}
 }

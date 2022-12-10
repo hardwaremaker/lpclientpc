@@ -34,6 +34,9 @@ package com.lp.client.pc;
 
 import java.text.MessageFormat;
 
+import com.lp.server.finanz.service.UvaverprobungDto;
+import com.lp.server.partner.service.MaileSerienbriefResponse;
+
 public class Texts {
 //	private static Texts instance ;
 //	
@@ -46,6 +49,27 @@ public class Texts {
 //		}
 //		return instance ;
 //	}
+	
+	private static final String[] monate = new String[] {
+		LPMain.getTextRespectUISPr("lp.januar"),
+		LPMain.getTextRespectUISPr("lp.februar"),
+		LPMain.getTextRespectUISPr("lp.maerz"),
+		LPMain.getTextRespectUISPr("lp.april"),
+		LPMain.getTextRespectUISPr("lp.mai"),
+		LPMain.getTextRespectUISPr("lp.juni"),
+		LPMain.getTextRespectUISPr("lp.juli"),
+		LPMain.getTextRespectUISPr("lp.august"),
+		LPMain.getTextRespectUISPr("lp.september"),
+		LPMain.getTextRespectUISPr("lp.oktober"),
+		LPMain.getTextRespectUISPr("lp.november"),
+		LPMain.getTextRespectUISPr("lp.dezember") };
+
+	private static final String[] quartale = new String[] {
+		LPMain.getTextRespectUISPr("lp.quartal1"),
+		LPMain.getTextRespectUISPr("lp.quartal2"),
+		LPMain.getTextRespectUISPr("lp.quartal3"),
+		LPMain.getTextRespectUISPr("lp.quartal4") };
+	
 	
 	private static String getResourceLabel(String string) {
 		String resourceLabel = LPMain.getTextRespectUISPr(string);
@@ -141,8 +165,61 @@ public class Texts {
 			return LPMain.getTextRespectUISPr("lp.warning.open.lpmodule.locked.abmelden");
 		}
 		else if (j > 1) {
-			getResourceLabelFormatted("lp.warning.open.lpmodule.locked.mz.abmelden", j);
+			return getResourceLabelFormatted("lp.warning.open.lpmodule.locked.mz.abmelden", j);
 		}
 		return "" ;
+	}
+	
+	public static String msgMaileSerienbrief(MaileSerienbriefResponse response) {
+		if(response.getTotalCount() == response.getEmailCount()) {
+			return response.getTotalCount() != 0
+					? getResourceLabelFormatted("kund.sent", response.getTotalCount()) 
+					: LPMain.getTextRespectUISPr("kund.sent.keine") ;			
+		}
+
+		return getResourceLabelFormatted(
+				"kund.sent.nichtalle", response.getTotalCount(), response.getEmailCount()) ;
+	}
+	
+	/**
+	 * Die Textentsprechung des Monats
+	 * @param month beginnend mit 0 ... Januar
+	 * @return den Monatsnamen
+	 */
+	public static String txtMonth(int month) {
+		return monate[month] ;
+	}
+	
+	/**
+	 * Die Textentsprechung des Monats im Abh&auml;ngigkeit des Startmonats
+	 * des Gesch&auml;ftsjahres.
+	 * @param month beginnend mit 0 
+	 * @param gjStartmonth beginnend mit 0 ... Januar
+	 * @return den Monatsnamen
+	 */
+	public static String txtMonth(int month, int gjStartmonth) {
+		return txtMonth(new Integer(month + gjStartmonth) % 12);
+	}
+	
+	/**
+	 * Die Textentsprechung des Quartals
+	 * 
+	 * @param quartal beginnend mit 0 (0 ... erstes quartal)
+	 * @return den Quartalsnamen
+	 */
+	public static String txtQuartal(int quartal) {
+		return quartale[quartal] ;
+	}
+	
+	public static String msgUvaVerprobungZuruecknehmen(Integer geschaeftsjahr, int abrechnungszeitraum, Integer periode, Integer gjBeginnmonat) {
+		if(UvaverprobungDto.UVAABRECHNUNGSZEITRAUM_MONAT == abrechnungszeitraum) {
+			return getResourceLabelFormatted("finanz.uvaverprobung.monat", geschaeftsjahr, periode, txtMonth(periode - 1, gjBeginnmonat - 1)) ;
+		}
+		if(UvaverprobungDto.UVAABRECHNUNGSZEITRAUM_QUARTAL == abrechnungszeitraum) {
+			return getResourceLabelFormatted("finanz.uvaverprobung.quartal", 
+					geschaeftsjahr, periode, txtQuartal(periode - 1)) ;			
+		}
+		
+		return getResourceLabelFormatted("finanz.uvaverprobung.jahr", geschaeftsjahr) ;
 	}
 }

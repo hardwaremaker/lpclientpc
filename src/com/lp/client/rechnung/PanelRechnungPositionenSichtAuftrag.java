@@ -39,6 +39,8 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.EventObject;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import com.lp.client.auftrag.PanelPositionenSichtAuftragSNR;
@@ -53,6 +55,7 @@ import com.lp.client.frame.component.PanelPositionenArtikelVerkaufSNR;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.MwstsatzChangedInfo;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.server.auftrag.service.AuftragDto;
@@ -61,6 +64,8 @@ import com.lp.server.auftrag.service.AuftragpositionDto;
 import com.lp.server.rechnung.service.RechnungPositionDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.LockMeDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.service.Artikelset;
 import com.lp.service.BelegpositionVerkaufDto;
 import com.lp.util.Helper;
@@ -82,37 +87,37 @@ import com.lp.util.Helper;
  * 
  * @version $Revision: 1.20 $
  */
-public class PanelRechnungPositionenSichtAuftrag extends
-		PanelPositionenSichtAuftragSNR {
+public class PanelRechnungPositionenSichtAuftrag extends PanelPositionenSichtAuftragSNR {
 
 	private static final long serialVersionUID = 1L;
 	private final TabbedPaneRechnung tpRechnung;
 	private LockMeDto lockMeAuftrag = null;
 	private RechnungPositionDto rechnungpositionAusAuftragpositionDto = null;
 	private InternalFrameRechnung intFrame = null;
+	private boolean bSichtAuftragMehrfachauswahl = true;
 
 	/**
 	 * Konstruktor.
 	 * 
-	 * @param internalFrame
-	 *            der InternalFrame auf dem das Panel sitzt
-	 * @param add2TitleI
-	 *            der default Titel des Panels
-	 * @param key
-	 *            PK des Auftrags
-	 * @param iIdLagerI
-	 *            von diesem Lager soll abgebucht werden
-	 * @param tpRechnung
-	 *            TabbedPaneRechnung
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param internalFrame der InternalFrame auf dem das Panel sitzt
+	 * @param add2TitleI    der default Titel des Panels
+	 * @param key           PK des Auftrags
+	 * @param iIdLagerI     von diesem Lager soll abgebucht werden
+	 * @param tpRechnung    TabbedPaneRechnung
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelRechnungPositionenSichtAuftrag(InternalFrame internalFrame,
-			String add2TitleI, Object key, Integer iIdLagerI,
-			TabbedPaneRechnung tpRechnung) throws Throwable {
+	public PanelRechnungPositionenSichtAuftrag(InternalFrame internalFrame, String add2TitleI, Object key,
+			Integer iIdLagerI, TabbedPaneRechnung tpRechnung) throws Throwable {
 		super(internalFrame, add2TitleI, key, iIdLagerI);
 		this.intFrame = (InternalFrameRechnung) internalFrame;
 		this.tpRechnung = tpRechnung;
+
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_SICHT_AUFTRAG_MEHRFACHAUSWAHL,
+						ParameterFac.KATEGORIE_RECHNUNG, LPMain.getTheClient().getMandant());
+
+		bSichtAuftragMehrfachauswahl=(Boolean)parameter.getCWertAsObject();
+
 		jbInitPanel();
 		initComponents();
 	}
@@ -120,23 +125,18 @@ public class PanelRechnungPositionenSichtAuftrag extends
 	private void jbInitPanel() throws Throwable {
 		// Statusbar an den unteren Rand des Panels haengen
 		iZeile++;
-		add(getPanelStatusbar(), new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// einfache Preisauswahl ueber Dialog deaktivieren
 		((PanelPositionenArtikelVerkauf) panelArtikel)
 				.remove(((PanelPositionenArtikelVerkauf) panelArtikel).wbuPreisauswahl);
 
-		((PanelPositionenArtikelVerkauf) panelArtikel)
-				.add((panelArtikel).wlaEinzelpreis, new GridBagConstraints(5,
-						2, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-						GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		((PanelPositionenArtikelVerkauf) panelArtikel).add((panelArtikel).wlaEinzelpreis, new GridBagConstraints(5, 2,
+				1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 		// Labels uebersteuern
-		panelArtikel.wlaMenge.setText(LPMain
-				.getTextRespectUISPr("re.label.mengere"));
-		panelHandeingabe.wlaMenge.setText(LPMain
-				.getTextRespectUISPr("re.label.mengere"));
+		panelArtikel.wlaMenge.setText(LPMain.getTextRespectUISPr("re.label.mengere"));
+		panelHandeingabe.wlaMenge.setText(LPMain.getTextRespectUISPr("re.label.mengere"));
 	}
 
 	protected void setDefaults() throws Throwable {
@@ -144,63 +144,49 @@ public class PanelRechnungPositionenSichtAuftrag extends
 
 		if (tpRechnung.pruefeAktuelleRechnung()) {
 			// es gilt die waehrung der Rechnung
-			panelArtikel.setWaehrungCNr(tpRechnung.getRechnungDto()
-					.getWaehrungCNr());
-			panelHandeingabe.setWaehrungCNr(tpRechnung.getRechnungDto()
-					.getWaehrungCNr());
+			panelArtikel.setWaehrungCNr(tpRechnung.getRechnungDto().getWaehrungCNr());
+			panelHandeingabe.setWaehrungCNr(tpRechnung.getRechnungDto().getWaehrungCNr());
 		}
+		Integer lagerIId = tpRechnung.getRechnungDto().getLagerIId();
+		((PanelPositionenArtikelVerkaufSNR) panelArtikel).setIIdLager(lagerIId);
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		if (intFrame.isUpdateAllowedForRechnungDto(tpRechnung.getRechnungDto())) {
 			boolean bAendern = true;
 
-			AuftragDto auftragDto = DelegateFactory.getInstance()
-					.getAuftragDelegate()
+			AuftragDto auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
 					.auftragFindByPrimaryKey(oAuftragpositionDto.getBelegIId());
 
-			if (auftragDto.getStatusCNr().equals(
-					AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.hint"),
-								LPMain.getTextRespectUISPr("ls.error.auftragbereitserledigt"));
+			if (auftragDto.getStatusCNr().equals(AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+						LPMain.getTextRespectUISPr("ls.error.auftragbereitserledigt"));
 				bAendern = false;
 				return;
 			}
 
 			if (oAuftragpositionDto.getNOffeneMenge() != null
 					&& oAuftragpositionDto.getNOffeneMenge().doubleValue() < 0) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.hint"),
-								LPMain.getTextRespectUISPr("rech.sichtauftrag.negativemengen.error"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+						LPMain.getTextRespectUISPr("rech.sichtauftrag.negativemengen.error"));
 				return;
 			}
 
-			if (oAuftragpositionDto.getAuftragpositionstatusCNr().equals(
-					AuftragServiceFac.AUFTRAGPOSITIONSTATUS_ERLEDIGT)) {
-				bAendern = DialogFactory
-						.showModalJaNeinDialog(
-								getInternalFrame(),
-								LPMain.getTextRespectUISPr("ls.warning.auftragspositionerledigt.trotzdemaendern"));
+			if (oAuftragpositionDto.getAuftragpositionstatusCNr() != null && oAuftragpositionDto
+					.getAuftragpositionstatusCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONSTATUS_ERLEDIGT)) {
+				bAendern = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("ls.warning.auftragspositionerledigt.trotzdemaendern"));
 			}
 			// PJ 14648 Setartikel
-			if (panelArtikel.getArtikelDto() != null
-					&& panelArtikel.getArtikelDto().getIId() != null
+			if (panelArtikel.getArtikelDto() != null && panelArtikel.getArtikelDto().getIId() != null
 					&& oAuftragpositionDto.getPositioniIdArtikelset() != null) {
-				if (Helper.short2boolean(panelArtikel.getArtikelDto()
-						.getBSeriennrtragend())
-						|| Helper.short2boolean(panelArtikel.getArtikelDto()
-								.getBChargennrtragend())) {
+				if (Helper.short2boolean(panelArtikel.getArtikelDto().getBSeriennrtragend())
+						|| Helper.short2boolean(panelArtikel.getArtikelDto().getBChargennrtragend())) {
 
 				} else {
 					// Es kann nur das Artikel-Set geaendert werden
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.hint"),
-									LPMain.getTextRespectUISPr("ls.warning.setartikelnichtaenderbar"));
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+							LPMain.getTextRespectUISPr("ls.warning.setartikelnichtaenderbar"));
 					return;
 				}
 			}
@@ -210,28 +196,21 @@ public class PanelRechnungPositionenSichtAuftrag extends
 				boolean bAuftragpositionExistiert = true;
 
 				try {
-					oAuftragpositionDto = DelegateFactory
-							.getInstance()
-							.getAuftragpositionDelegate()
-							.auftragpositionFindByPrimaryKey(
-									oAuftragpositionDto.getIId());
+					oAuftragpositionDto = DelegateFactory.getInstance().getAuftragpositionDelegate()
+							.auftragpositionFindByPrimaryKey(oAuftragpositionDto.getIId());
 				} catch (ExceptionLP ex) {
 					bAuftragpositionExistiert = false;
 					oAuftragpositionDto = null;
 
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.hint"),
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
 							LPMain.getTextRespectUISPr("lp.hint.geloescht"));
 				}
 
 				if (bAuftragpositionExistiert) {
 					// pruefen, ob es zu dieser Auftragposition bereits eines LS
 					// Position gibt
-					rechnungpositionAusAuftragpositionDto = DelegateFactory
-							.getInstance()
-							.getRechnungDelegate()
-							.getRechnungPositionByRechnungAuftragposition(
-									tpRechnung.getRechnungDto().getIId(),
+					rechnungpositionAusAuftragpositionDto = DelegateFactory.getInstance().getRechnungDelegate()
+							.getRechnungPositionByRechnungAuftragposition(tpRechnung.getRechnungDto().getIId(),
 									oAuftragpositionDto.getIId());
 
 				}
@@ -241,58 +220,47 @@ public class PanelRechnungPositionenSichtAuftrag extends
 
 				super.eventActionUpdate(aE, false); // die Buttons muessen auf
 
-				if (LocaleFac.POSITIONSART_IDENT.equals(oAuftragpositionDto
-						.getPositionsartCNr())) {
+				if (LocaleFac.POSITIONSART_IDENT.equals(oAuftragpositionDto.getPositionsartCNr())) {
 					// IMS 1553 Wenn die Rechnungposition neu angelegt
 					// wird, ist der
 					// Vorschlagswert die offene Menge im Auftrag, sonst
 					// die bereits erfasste
 					// Menge in der Rechnung
 					if (rechnungpositionAusAuftragpositionDto == null) {
-						if (bOffeneMengeVorschlagen) {
-							befuelleMengeMitVorschlagswert();
+						if (bOffeneMengeVorschlagen > 0) {
+							befuelleMengeMitVorschlagswert(bOffeneMengeVorschlagen);
 						} else {
 							panelArtikel.wnfMenge.setBigDecimal(null);
 						}
 					} else {
-						panelArtikel.wnfMenge
-								.setBigDecimal(rechnungpositionAusAuftragpositionDto
-										.getNMenge());
+						panelArtikel.wnfMenge.setBigDecimal(rechnungpositionAusAuftragpositionDto.getNMenge());
 					}
 					// if
 					// (!Helper.short2boolean(panelArtikel.artikelDto.
 					// getBChargennrtragend()) &&
 					// !Helper.short2boolean(panelArtikel.artikelDto.
 					// getBSeriennrtragend())) {
-				} else if (oAuftragpositionDto.getPositionsartCNr().equals(
-						LocaleFac.POSITIONSART_HANDEINGABE)) {
+				} else if (oAuftragpositionDto.getPositionsartCNr().equals(LocaleFac.POSITIONSART_HANDEINGABE)) {
 					// IMS 1553 Wenn die Rechnungsposition neu angelegt
 					// wird, ist der
 					// Vorschlagswert die offene Menge im Auftrag, sonst
 					// die bereits erfasste
 					// Menge in der Rechnung
 					if (rechnungpositionAusAuftragpositionDto == null) {
-						if (bOffeneMengeVorschlagen) {
-							panelHandeingabe.wnfMenge
-									.setBigDecimal(oAuftragpositionDto
-											.getNOffeneMenge());
+						if (bOffeneMengeVorschlagen > 0) {
+							panelHandeingabe.wnfMenge.setBigDecimal(oAuftragpositionDto.getNOffeneMenge());
 						} else {
 							panelHandeingabe.wnfMenge.setBigDecimal(null);
 						}
 					} else {
-						panelHandeingabe.wnfMenge
-								.setBigDecimal(rechnungpositionAusAuftragpositionDto
-										.getNMenge());
+						panelHandeingabe.wnfMenge.setBigDecimal(rechnungpositionAusAuftragpositionDto.getNMenge());
 					}
 				}
 
-				if (oAuftragpositionDto.getPositionsartCNr().equals(
-						LocaleFac.POSITIONSART_IDENT)) {
+				if (oAuftragpositionDto.getPositionsartCNr().equals(LocaleFac.POSITIONSART_IDENT)) {
 					if (panelArtikel.getArtikelDto().getIId() != null
-							&& (Helper.short2boolean(panelArtikel
-									.getArtikelDto().getBChargennrtragend()) || Helper
-									.short2boolean(panelArtikel.getArtikelDto()
-											.getBSeriennrtragend()))) {
+							&& (Helper.short2boolean(panelArtikel.getArtikelDto().getBChargennrtragend())
+									|| Helper.short2boolean(panelArtikel.getArtikelDto().getBSeriennrtragend()))) {
 						panelArtikel.wnfMenge.setEditable(false);
 
 					} else {
@@ -310,8 +278,7 @@ public class PanelRechnungPositionenSichtAuftrag extends
 	 * Hier muessen die Anzeige der offenen Menge und der gelieferten Menge
 	 * konistent gehalten werden.
 	 * 
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
 	protected void auftragpositionDto2Components() throws Throwable {
 		// fuer positive auftragsmengen nur positive mengen liefern
@@ -341,47 +308,35 @@ public class PanelRechnungPositionenSichtAuftrag extends
 			// wenn es keine
 			// Position gibt, dann ist die Menge 0; SNR/Chargennummer
 			// beruecksichtigen
-			RechnungPositionDto oRechnungpositionDto = DelegateFactory
-					.getInstance()
-					.getRechnungDelegate()
-					.getRechnungPositionByRechnungAuftragposition(
-							tpRechnung.getRechnungDto().getIId(),
+			RechnungPositionDto oRechnungpositionDto = DelegateFactory.getInstance().getRechnungDelegate()
+					.getRechnungPositionByRechnungAuftragposition(tpRechnung.getRechnungDto().getIId(),
 							oAuftragpositionDto.getIId());
 
 			if (oRechnungpositionDto != null
-					&& oRechnungpositionDto.getRechnungpositionartCNr().equals(
-							LocaleFac.POSITIONSART_IDENT)) {
-				panelArtikel.wnfMenge.setBigDecimal(oRechnungpositionDto
-						.getNMenge());
+					&& oRechnungpositionDto.getRechnungpositionartCNr().equals(LocaleFac.POSITIONSART_IDENT)) {
+				panelArtikel.wnfMenge.setBigDecimal(oRechnungpositionDto.getNMenge());
 
 				if (oRechnungpositionDto.getSeriennrChargennrMitMenge() != null) {
-					((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.setSeriennummern(oRechnungpositionDto
-									.getSeriennrChargennrMitMenge(),
-									oRechnungpositionDto.getArtikelIId(),
-									tpRechnung.getRechnungDto().getLagerIId());
+					((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.setSeriennummern(
+							oRechnungpositionDto.getSeriennrChargennrMitMenge(), oRechnungpositionDto.getArtikelIId(),
+							tpRechnung.getRechnungDto().getLagerIId());
 				}
 			} else if (oRechnungpositionDto != null
-					&& oRechnungpositionDto.getRechnungpositionartCNr().equals(
-							LocaleFac.POSITIONSART_HANDEINGABE)) {
-				panelHandeingabe.wnfMenge.setBigDecimal(oRechnungpositionDto
-						.getNMenge());
+					&& oRechnungpositionDto.getRechnungpositionartCNr().equals(LocaleFac.POSITIONSART_HANDEINGABE)) {
+				panelHandeingabe.wnfMenge.setBigDecimal(oRechnungpositionDto.getNMenge());
 			}
 
-			wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto
-					.getNOffeneMenge());
-			wnfGeliefertArtikel.setBigDecimal(oAuftragpositionDto.getNMenge()
-					.subtract(oAuftragpositionDto.getNOffeneMenge()));
+			wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto.getNOffeneMenge());
+			wnfGeliefertArtikel
+					.setBigDecimal(oAuftragpositionDto.getNMenge().subtract(oAuftragpositionDto.getNOffeneMenge()));
 
-			wnfOffenimauftragHand.setBigDecimal(oAuftragpositionDto
-					.getNOffeneMenge());
-			wnfGeliefertHand.setBigDecimal(oAuftragpositionDto.getNMenge()
-					.subtract(oAuftragpositionDto.getNOffeneMenge()));
+			wnfOffenimauftragHand.setBigDecimal(oAuftragpositionDto.getNOffeneMenge());
+			wnfGeliefertHand
+					.setBigDecimal(oAuftragpositionDto.getNMenge().subtract(oAuftragpositionDto.getNOffeneMenge()));
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			checkLockedDlg();
 			if (lockMeAuftrag != null) {
@@ -389,22 +344,15 @@ public class PanelRechnungPositionenSichtAuftrag extends
 			}
 
 			// @todo redundant? vorerst zur Sicherheit PJ 5000
-			rechnungpositionAusAuftragpositionDto = DelegateFactory
-					.getInstance()
-					.getRechnungDelegate()
-					.getRechnungPositionByRechnungAuftragposition(
-							tpRechnung.getRechnungDto().getIId(),
+			rechnungpositionAusAuftragpositionDto = DelegateFactory.getInstance().getRechnungDelegate()
+					.getRechnungPositionByRechnungAuftragposition(tpRechnung.getRechnungDto().getIId(),
 							oAuftragpositionDto.getIId());
 
-			if (oAuftragpositionDto.getPositionsartCNr().equals(
-					LocaleFac.POSITIONSART_IDENT)) {
+			if (oAuftragpositionDto.getPositionsartCNr().equals(LocaleFac.POSITIONSART_IDENT)) {
 
 				// artikelkommentar zeigen
-				DelegateFactory
-						.getInstance()
-						.getArtikelkommentarDelegate()
-						.pruefeArtikel(panelArtikel.getArtikelDto(),
-								intFrame.getBelegartCNr(), intFrame);
+				DelegateFactory.getInstance().getArtikelkommentarDelegate().pruefeArtikel(panelArtikel.getArtikelDto(),
+						intFrame.getBelegartCNr(), intFrame);
 
 				if (oAuftragpositionDto.getNMenge().doubleValue() > 0) {
 					saveIdentPositionPositiveMenge(e, false);
@@ -413,43 +361,29 @@ public class PanelRechnungPositionenSichtAuftrag extends
 				}
 				if (oAuftragpositionDto.getNOffeneMenge() != null)
 					// die Anzeige fuer die naechste Eingabe aktualisieren
-					wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto
-							.getNOffeneMenge());
-				if (oAuftragpositionDto.getNMenge() != null
-						&& oAuftragpositionDto.getNOffeneMenge() != null)
-					wnfGeliefertArtikel.setBigDecimal(oAuftragpositionDto
-							.getNMenge().subtract(
-									oAuftragpositionDto.getNOffeneMenge()));
-			} else if (oAuftragpositionDto.getPositionsartCNr().equals(
-					LocaleFac.POSITIONSART_HANDEINGABE)) {
+					wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto.getNOffeneMenge());
+				if (oAuftragpositionDto.getNMenge() != null && oAuftragpositionDto.getNOffeneMenge() != null)
+					wnfGeliefertArtikel.setBigDecimal(
+							oAuftragpositionDto.getNMenge().subtract(oAuftragpositionDto.getNOffeneMenge()));
+			} else if (oAuftragpositionDto.getPositionsartCNr().equals(LocaleFac.POSITIONSART_HANDEINGABE)) {
 				saveHandeingabePosition(e, false);
 				if (oAuftragpositionDto.getNOffeneMenge() != null)
 					// die Anzeige fuer die naechste Eingabe aktualisieren
-					wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto
-							.getNOffeneMenge());
-				if (oAuftragpositionDto.getNMenge() != null
-						&& oAuftragpositionDto.getNOffeneMenge() != null)
-					wnfGeliefertArtikel.setBigDecimal(oAuftragpositionDto
-							.getNMenge().subtract(
-									oAuftragpositionDto.getNOffeneMenge()));
+					wnfOffenimauftragArtikel.setBigDecimal(oAuftragpositionDto.getNOffeneMenge());
+				if (oAuftragpositionDto.getNMenge() != null && oAuftragpositionDto.getNOffeneMenge() != null)
+					wnfGeliefertArtikel.setBigDecimal(
+							oAuftragpositionDto.getNMenge().subtract(oAuftragpositionDto.getNOffeneMenge()));
 
 			} else {
 				// es gibt noch keine Position, eine neue erfassen
 				RechnungPositionDto oRechnungpositionDto = new RechnungPositionDto();
-				oRechnungpositionDto
-						.setRechnungpositionartCNr(oAuftragpositionDto
-								.getPositionsartCNr());
+				oRechnungpositionDto.setRechnungpositionartCNr(oAuftragpositionDto.getPositionsartCNr());
 				oRechnungpositionDto.setCBez(oAuftragpositionDto.getCBez());
-				oRechnungpositionDto.setXTextinhalt(oAuftragpositionDto
-						.getXTextinhalt());
-				oRechnungpositionDto.setCZusatzbez(oAuftragpositionDto
-						.getCZusatzbez());
-				oRechnungpositionDto.setEinheitCNr(oAuftragpositionDto
-						.getEinheitCNr());
-				oRechnungpositionDto.setRechnungIId(tpRechnung.getRechnungDto()
-						.getIId());
-				oRechnungpositionDto.setAuftragpositionIId(oAuftragpositionDto
-						.getIId()); // zu
+				oRechnungpositionDto.setXTextinhalt(oAuftragpositionDto.getXTextinhalt());
+				oRechnungpositionDto.setCZusatzbez(oAuftragpositionDto.getCZusatzbez());
+				oRechnungpositionDto.setEinheitCNr(oAuftragpositionDto.getEinheitCNr());
+				oRechnungpositionDto.setRechnungIId(tpRechnung.getRechnungDto().getIId());
+				oRechnungpositionDto.setAuftragpositionIId(oAuftragpositionDto.getIId()); // zu
 				// beginn
 				// ist
 				// die
@@ -457,68 +391,45 @@ public class PanelRechnungPositionenSichtAuftrag extends
 				// menge
 				// offen
 				oRechnungpositionDto.setTypCNr(oAuftragpositionDto.getTypCNr());
-				oRechnungpositionDto
-						.setBNettopreisuebersteuert(oAuftragpositionDto
-								.getBNettopreisuebersteuert());
+				oRechnungpositionDto.setBNettopreisuebersteuert(oAuftragpositionDto.getBNettopreisuebersteuert());
 
 				if (oAuftragpositionDto.isIntelligenteZwischensumme()) {
 					// SPJ 1779 - Mwstsatzfelder belegen
-					oRechnungpositionDto
-							.setBMwstsatzuebersteuert(oAuftragpositionDto
-									.getBMwstsatzuebersteuert());
-					oRechnungpositionDto.setMwstsatzIId(oAuftragpositionDto
-							.getMwstsatzIId());
-					oRechnungpositionDto.setFRabattsatz(oAuftragpositionDto
-							.getFRabattsatz());
+					oRechnungpositionDto.setFRabattsatz(oAuftragpositionDto.getFRabattsatz());
+					oRechnungpositionDto.setBMwstsatzuebersteuert(oAuftragpositionDto.getBMwstsatzuebersteuert());
+//					oRechnungpositionDto.setMwstsatzIId(oAuftragpositionDto.getMwstsatzIId());
+					MwstsatzChangedInfo mwstInfo = DelegateFactory.mandant().pruefeObMwstsatzNochAktuell(
+							oAuftragpositionDto, tpRechnung.getRechnungDto().getTBelegdatum());
+					if (mwstInfo.isChanged()) {
+						oRechnungpositionDto.setMwstsatzIId(mwstInfo.getMwstsatz().get().getIId());
+					} else {
+						oRechnungpositionDto.setMwstsatzIId(oAuftragpositionDto.getMwstsatzIId());
+					}
 
-					// SPJ 1779 - Mwstsatzfelder belegen
-					oRechnungpositionDto
-							.setBMwstsatzuebersteuert(oAuftragpositionDto
-									.getBMwstsatzuebersteuert());
-					oRechnungpositionDto.setMwstsatzIId(oAuftragpositionDto
-							.getMwstsatzIId());
-
-					Integer vonPosNr = DelegateFactory
-							.getInstance()
-							.getAuftragpositionDelegate()
-							.getPositionNummer(
-									oAuftragpositionDto.getZwsVonPosition());
-					Integer bisPosNr = DelegateFactory
-							.getInstance()
-							.getAuftragpositionDelegate()
-							.getPositionNummer(
-									oAuftragpositionDto.getZwsBisPosition());
+					Integer vonPosNr = DelegateFactory.getInstance().getAuftragpositionDelegate()
+							.getPositionNummer(oAuftragpositionDto.getZwsVonPosition());
+					Integer bisPosNr = DelegateFactory.getInstance().getAuftragpositionDelegate()
+							.getPositionNummer(oAuftragpositionDto.getZwsBisPosition());
 					Integer vonPosIId = null;
 					Integer bisPosIId = null;
 					if (vonPosNr != null && bisPosNr != null) {
 						Integer lsId = tpRechnung.getRechnungDto().getIId();
-						vonPosIId = DelegateFactory
-								.getInstance()
-								.getRechnungDelegate()
-								.getPositionIIdFromPositionNummer(lsId,
-										vonPosNr);
-						bisPosIId = DelegateFactory
-								.getInstance()
-								.getRechnungDelegate()
-								.getPositionIIdFromPositionNummer(lsId,
-										bisPosNr);
+						vonPosIId = DelegateFactory.getInstance().getRechnungDelegate()
+								.getPositionIIdFromPositionNummer(lsId, vonPosNr);
+						bisPosIId = DelegateFactory.getInstance().getRechnungDelegate()
+								.getPositionIIdFromPositionNummer(lsId, bisPosNr);
 
 						oRechnungpositionDto.setZwsVonPosition(vonPosIId);
 						oRechnungpositionDto.setZwsBisPosition(bisPosIId);
 					}
 
-					String msg = LPMain.getMessageTextRespectUISPr(
-							"lp.hint.zwsauftraglieferschein",
+					String msg = LPMain.getMessageTextRespectUISPr("lp.hint.zwsauftraglieferschein",
 							oAuftragpositionDto.getCBez(), vonPosNr, bisPosNr);
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.warning"), msg);
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"), msg);
 				}
 
-				DelegateFactory
-						.getInstance()
-						.getRechnungDelegate()
-						.createRechnungposition(oRechnungpositionDto,
-								tpRechnung.getRechnungDto().getLagerIId());
+				DelegateFactory.getInstance().getRechnungDelegate().createRechnungposition(oRechnungpositionDto,
+						tpRechnung.getRechnungDto().getLagerIId(), true);
 
 				super.eventActionSave(e, bNeedNoSaveI);
 			}
@@ -526,92 +437,57 @@ public class PanelRechnungPositionenSichtAuftrag extends
 		}
 	}
 
-	private void saveHandeingabePosition(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	private void saveHandeingabePosition(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		// wenn es zu dieser Auftragposition bereits eine Rechnungsposition
 		// gibt,
 		// wird die bestehenden Position aktualisiert
 		RechnungPositionDto oRechnungspositionDto = null;
 
-		oRechnungspositionDto = DelegateFactory
-				.getInstance()
-				.getRechnungDelegate()
-				.getRechnungPositionByRechnungAuftragposition(
-						tpRechnung.getRechnungDto().getIId(),
+		oRechnungspositionDto = DelegateFactory.getInstance().getRechnungDelegate()
+				.getRechnungPositionByRechnungAuftragposition(tpRechnung.getRechnungDto().getIId(),
 						oAuftragpositionDto.getIId());
 
 		if (oRechnungspositionDto == null) {
 			// es gibt noch keine Position, eine neue erfassen
 			oRechnungspositionDto = new RechnungPositionDto();
-			oRechnungspositionDto.setRechnungpositionartCNr(oAuftragpositionDto
-					.getPositionsartCNr());
-			oRechnungspositionDto.setArtikelIId(oAuftragpositionDto
-					.getArtikelIId());
+			oRechnungspositionDto.setRechnungpositionartCNr(oAuftragpositionDto.getPositionsartCNr());
+			oRechnungspositionDto.setArtikelIId(oAuftragpositionDto.getArtikelIId());
+			oRechnungspositionDto.setSeriennrChargennrMitMenge(
+					((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getSeriennummern());
 			oRechnungspositionDto
-					.setSeriennrChargennrMitMenge(((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.getSeriennummern());
-			oRechnungspositionDto
-					.setBArtikelbezeichnunguebersteuert(oAuftragpositionDto
-							.getBArtikelbezeichnunguebersteuert());
-			oRechnungspositionDto.setBMwstsatzuebersteuert(oAuftragpositionDto
-					.getBMwstsatzuebersteuert());
-			oRechnungspositionDto
-					.setBRabattsatzuebersteuert(oAuftragpositionDto
-							.getBRabattsatzuebersteuert());
-			oRechnungspositionDto.setCLvposition(oAuftragpositionDto
-					.getCLvposition());
+					.setBArtikelbezeichnunguebersteuert(oAuftragpositionDto.getBArtikelbezeichnunguebersteuert());
+			oRechnungspositionDto.setBMwstsatzuebersteuert(oAuftragpositionDto.getBMwstsatzuebersteuert());
+			oRechnungspositionDto.setBRabattsatzuebersteuert(oAuftragpositionDto.getBRabattsatzuebersteuert());
+			oRechnungspositionDto.setCLvposition(oAuftragpositionDto.getCLvposition());
 			oRechnungspositionDto.setCBez(oAuftragpositionDto.getCBez());
-			oRechnungspositionDto.setEinheitCNr(oAuftragpositionDto
-					.getEinheitCNr());
-			oRechnungspositionDto.setFRabattsatz(oAuftragpositionDto
-					.getFRabattsatz());
-			oRechnungspositionDto.setFZusatzrabattsatz(oAuftragpositionDto
-					.getFZusatzrabattsatz());
+			oRechnungspositionDto.setEinheitCNr(oAuftragpositionDto.getEinheitCNr());
+			oRechnungspositionDto.setFRabattsatz(oAuftragpositionDto.getFRabattsatz());
+			oRechnungspositionDto.setFZusatzrabattsatz(oAuftragpositionDto.getFZusatzrabattsatz());
 			oRechnungspositionDto.setISort(oAuftragpositionDto.getISort());
-			oRechnungspositionDto.setRechnungIId(tpRechnung.getRechnungDto()
-					.getIId());
-			oRechnungspositionDto.setMwstsatzIId(oAuftragpositionDto
-					.getMwstsatzIId());
-			oRechnungspositionDto
-					.setNBruttoeinzelpreis(panelHandeingabe.wnfBruttopreis
-							.getBigDecimal());
-			oRechnungspositionDto.setNMenge(panelHandeingabe.wnfMenge
-					.getBigDecimal());
+			oRechnungspositionDto.setRechnungIId(tpRechnung.getRechnungDto().getIId());
+//			oRechnungspositionDto.setMwstsatzIId(oAuftragpositionDto.getMwstsatzIId());
+//			oRechnungspositionDto.setNBruttoeinzelpreis(panelHandeingabe.wnfBruttopreis.getBigDecimal());
+			oRechnungspositionDto.setNMenge(panelHandeingabe.wnfMenge.getBigDecimal());
 			// oRechnungspositionDto.setNMwstbetrag(panelHandeingabe.wnfMwstsumme
 			// .getBigDecimal());
-			oRechnungspositionDto
-					.setNEinzelpreis(panelHandeingabe.wnfEinzelpreis
-							.getBigDecimal());
-			oRechnungspositionDto
-					.setNNettoeinzelpreis(panelHandeingabe.wnfNettopreis
-							.getBigDecimal());
-			oRechnungspositionDto.setAuftragpositionIId(oAuftragpositionDto
-					.getIId()); // zu beginn ist die gesamte menge offen
-			// oRechnungspositionDto.setNRabattbetrag(panelHandeingabe.
-			// wnfRabattsumme.getBigDecimal());
-			oRechnungspositionDto
-					.setBNettopreisuebersteuert(oAuftragpositionDto
-							.getBNettopreisuebersteuert());
-			DelegateFactory
-					.getInstance()
-					.getRechnungDelegate()
-					.updateRechnungPosition(oRechnungspositionDto,
-							tpRechnung.getRechnungDto().getLagerIId());
+			oRechnungspositionDto.setNEinzelpreis(panelHandeingabe.wnfEinzelpreis.getBigDecimal());
+			oRechnungspositionDto.setNNettoeinzelpreis(panelHandeingabe.wnfNettopreis.getBigDecimal());
+			oRechnungspositionDto.setAuftragpositionIId(oAuftragpositionDto.getIId());
+
+			setupSteuerFelder(oRechnungspositionDto, panelHandeingabe);
+			oRechnungspositionDto.setBNettopreisuebersteuert(oAuftragpositionDto.getBNettopreisuebersteuert());
+			DelegateFactory.getInstance().getRechnungDelegate().updateRechnungPosition(oRechnungspositionDto,
+					tpRechnung.getRechnungDto().getLagerIId());
 		} else {
 			// die bestehende Position mit der neuen Menge aktualisieren
-			oRechnungspositionDto.setNMenge(panelHandeingabe.wnfMenge
-					.getBigDecimal());
+			oRechnungspositionDto.setNMenge(panelHandeingabe.wnfMenge.getBigDecimal());
 
-			DelegateFactory
-					.getInstance()
-					.getRechnungDelegate()
-					.updateRechnungPosition(oRechnungspositionDto,
-							tpRechnung.getRechnungDto().getLagerIId());
+			DelegateFactory.getInstance().getRechnungDelegate().updateRechnungPosition(oRechnungspositionDto,
+					tpRechnung.getRechnungDto().getLagerIId());
 		}
 
 		// die werte der auftragposition aktualisieren
-		oAuftragpositionDto = DelegateFactory.getInstance()
-				.getAuftragpositionDelegate()
+		oAuftragpositionDto = DelegateFactory.getInstance().getAuftragpositionDelegate()
 				.auftragpositionFindByPrimaryKey(oAuftragpositionDto.getIId());
 
 		// buttons schalten
@@ -621,18 +497,14 @@ public class PanelRechnungPositionenSichtAuftrag extends
 	/**
 	 * Bevor eine Identposition in der Rechnung gespeichert werden kann, muessen
 	 * verschiedene Vorbedingungen geprueft werden. <br>
-	 * Der Komplexe Fall ist das Speichern einer Identposition mit einerm
-	 * serien- oder chargennummerbehafteten Artikel.
+	 * Der Komplexe Fall ist das Speichern einer Identposition mit einerm serien-
+	 * oder chargennummerbehafteten Artikel.
 	 * 
-	 * @param e
-	 *            Ereignis
-	 * @param bNeedNoSaveI
-	 *            flag
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param e            Ereignis
+	 * @param bNeedNoSaveI flag
+	 * @throws Throwable Ausnahme
 	 */
-	protected void saveIdentPositionPositiveMenge(ActionEvent e,
-			boolean bNeedNoSaveI) throws Throwable {
+	protected void saveIdentPositionPositiveMenge(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		boolean bDiePositionSpeichern = true;
 
 		// eine ev. zusaetzlich gewaehlte Menge darf nicht groesser als die
@@ -642,167 +514,113 @@ public class PanelRechnungPositionenSichtAuftrag extends
 		BigDecimal nMengeInRechnungsposition = new BigDecimal(0);
 
 		if (rechnungpositionAusAuftragpositionDto != null) {
-			nMengeInRechnungsposition = rechnungpositionAusAuftragpositionDto
-					.getNMenge();
-			nBenoetigteMengeVomLager = panelArtikel.wnfMenge.getBigDecimal()
-					.subtract(nMengeInRechnungsposition);
+			nMengeInRechnungsposition = rechnungpositionAusAuftragpositionDto.getNMenge();
+			nBenoetigteMengeVomLager = panelArtikel.wnfMenge.getBigDecimal().subtract(nMengeInRechnungsposition);
 		} else {
 			nBenoetigteMengeVomLager = panelArtikel.wnfMenge.getBigDecimal();
 		}
 
-		if (nBenoetigteMengeVomLager.compareTo(oAuftragpositionDto
-				.getNOffeneMenge()) == 1) {
+		if (nBenoetigteMengeVomLager.compareTo(oAuftragpositionDto.getNOffeneMenge()) == 1) {
 
-			boolean b = DialogFactory
-					.showModalJaNeinDialog(
-							getInternalFrame(),
-							LPMain.getTextRespectUISPr("ls.warning.geawehltemengegroesseroffenemenge.ueberliefern"));
+			boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+					LPMain.getTextRespectUISPr("ls.warning.geawehltemengegroesseroffenemenge.ueberliefern"));
 
 			if (b == true) {
 				bDiePositionSpeichern = true;
 			} else {
-				panelArtikel.wnfMenge.setBigDecimal(nMengeInRechnungsposition
-						.add(oAuftragpositionDto.getNOffeneMenge()));
+				panelArtikel.wnfMenge
+						.setBigDecimal(nMengeInRechnungsposition.add(oAuftragpositionDto.getNOffeneMenge()));
 
 				bDiePositionSpeichern = false;
 			}
-		} else if (Helper.short2boolean(panelArtikel.getArtikelDto()
-				.getBChargennrtragend())
-				&& (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-						.getText() == null || ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-						.getText().length() == 0)) {
+		} else if (Helper.short2boolean(panelArtikel.getArtikelDto().getBChargennrtragend())
+				&& (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText() == null
+						|| ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()
+								.length() == 0)) {
 
-			MessageFormat mf = new MessageFormat(
-					LPMain.getTextRespectUISPr("lp.hint.chargennummer"));
+			MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr("lp.hint.chargennummer"));
 
 			mf.setLocale(LPMain.getTheClient().getLocUi());
 
 			Object pattern[] = { panelArtikel.wnfMenge.getBigDecimal() };
 
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.warning"),
-					mf.format(pattern));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"), mf.format(pattern));
 
 			bDiePositionSpeichern = false;
 		} else
 
 		// die Anzahl der eingegebenen Seriennummern pruefen
-		if (Helper.short2boolean(panelArtikel.getArtikelDto()
-				.getBSeriennrtragend())) {
+		if (Helper.short2boolean(panelArtikel.getArtikelDto().getBSeriennrtragend())) {
 
 			int iAnzahl = 0;
 
-			if (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-					.getText() != null
-					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.getText().length() != 0) {
-				iAnzahl = Helper
-						.erzeugeStringArrayAusString(((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-								.getText()).length;
+			if (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText() != null
+					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()
+							.length() != 0) {
+				iAnzahl = Helper.erzeugeStringArrayAusString(
+						((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()).length;
 			}
 
 			if (iAnzahl != panelArtikel.wnfMenge.getDouble().intValue()) {
-				MessageFormat mf = new MessageFormat(
-						LPMain.getTextRespectUISPr("lp.hint.seriennummer"));
+				MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr("lp.hint.seriennummer"));
 
 				mf.setLocale(LPMain.getTheClient().getLocUi());
 
-				Object pattern[] = { panelArtikel.wnfMenge.getBigDecimal(),
-						new Integer(iAnzahl) };
+				Object pattern[] = { panelArtikel.wnfMenge.getBigDecimal(), new Integer(iAnzahl) };
 
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.warning"),
-						mf.format(pattern));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"), mf.format(pattern));
 
 				bDiePositionSpeichern = false;
 			}
 		}
 
 		if (bDiePositionSpeichern) {
-			if (tpRechnung
-					.istMengeAufLager(
-							oAuftragpositionDto.getArtikelIId(),
-							tpRechnung.getRechnungDto().getLagerIId(),
-							((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-									.getSeriennummern(),
-							nBenoetigteMengeVomLager)) {
+			if (tpRechnung.istMengeAufLager(oAuftragpositionDto.getArtikelIId(),
+					tpRechnung.getRechnungDto().getLagerIId(),
+					((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getSeriennummern(),
+					nBenoetigteMengeVomLager)) {
 
 				// wenn es zu dieser Auftragposition bereits eine
 				// Rechnungsposition gibt,
 				// wird die bestehenden Position aktualisiert
 				RechnungPositionDto oRechnungspositionDto = null;
 
-				oRechnungspositionDto = DelegateFactory
-						.getInstance()
-						.getRechnungDelegate()
-						.getRechnungPositionByRechnungAuftragposition(
-								tpRechnung.getRechnungDto().getIId(),
+				oRechnungspositionDto = DelegateFactory.getInstance().getRechnungDelegate()
+						.getRechnungPositionByRechnungAuftragposition(tpRechnung.getRechnungDto().getIId(),
 								oAuftragpositionDto.getIId());
 
 				if (oRechnungspositionDto == null) {
 					// es gibt noch keine Position, eine neue erfassen
 					oRechnungspositionDto = new RechnungPositionDto();
-					oRechnungspositionDto
-							.setRechnungpositionartCNr(oAuftragpositionDto
-									.getPositionsartCNr());
-					oRechnungspositionDto.setArtikelIId(oAuftragpositionDto
-							.getArtikelIId());
-					oRechnungspositionDto
-							.setSeriennrChargennrMitMenge(((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
+					oRechnungspositionDto.setRechnungpositionartCNr(oAuftragpositionDto.getPositionsartCNr());
+					oRechnungspositionDto.setArtikelIId(oAuftragpositionDto.getArtikelIId());
+					oRechnungspositionDto.setSeriennrChargennrMitMenge(
+							((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
 									.getSeriennummern());
-					oRechnungspositionDto
-							.setBArtikelbezeichnunguebersteuert(oAuftragpositionDto
-									.getBArtikelbezeichnunguebersteuert());
-					oRechnungspositionDto
-							.setBMwstsatzuebersteuert(oAuftragpositionDto
-									.getBMwstsatzuebersteuert());
-					oRechnungspositionDto
-							.setBRabattsatzuebersteuert(oAuftragpositionDto
-									.getBRabattsatzuebersteuert());
-					oRechnungspositionDto
-							.setCBez(oAuftragpositionDto.getCBez());
-					oRechnungspositionDto.setCZusatzbez(oAuftragpositionDto
-							.getCZusatzbez());
-					oRechnungspositionDto.setEinheitCNr(oAuftragpositionDto
-							.getEinheitCNr());
-					oRechnungspositionDto.setFRabattsatz(oAuftragpositionDto
-							.getFRabattsatz());
-					oRechnungspositionDto
-							.setFZusatzrabattsatz(oAuftragpositionDto
-									.getFZusatzrabattsatz());
-					oRechnungspositionDto
-							.setKostentraegerIId(oAuftragpositionDto
-									.getKostentraegerIId());
-					oRechnungspositionDto
-							.setNMaterialzuschlagKurs(oAuftragpositionDto
-									.getNMaterialzuschlagKurs());
-					oRechnungspositionDto
-							.setTMaterialzuschlagDatum(oAuftragpositionDto
-									.getTMaterialzuschlagDatum());
-					oRechnungspositionDto.setRechnungIId(tpRechnung
-							.getRechnungDto().getIId());
-					oRechnungspositionDto.setMwstsatzIId(oAuftragpositionDto
-							.getMwstsatzIId());
-					oRechnungspositionDto
-							.setNBruttoeinzelpreis(panelArtikel.wnfBruttopreis
-									.getBigDecimal());
-					oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge
-							.getBigDecimal());
-					// oRechnungspositionDto.setNMwstbetrag(panelArtikel.
-					// wnfMwstsumme.getBigDecimal());
-					oRechnungspositionDto
-							.setNEinzelpreis(panelArtikel.wnfEinzelpreis
-									.getBigDecimal());
-					oRechnungspositionDto
-							.setNNettoeinzelpreis(panelArtikel.wnfNettopreis
-									.getBigDecimal());
+					oRechnungspositionDto.setBArtikelbezeichnunguebersteuert(
+							oAuftragpositionDto.getBArtikelbezeichnunguebersteuert());
+					oRechnungspositionDto.setBMwstsatzuebersteuert(oAuftragpositionDto.getBMwstsatzuebersteuert());
+					oRechnungspositionDto.setBRabattsatzuebersteuert(oAuftragpositionDto.getBRabattsatzuebersteuert());
+					oRechnungspositionDto.setCBez(oAuftragpositionDto.getCBez());
+					oRechnungspositionDto.setCZusatzbez(oAuftragpositionDto.getCZusatzbez());
+					oRechnungspositionDto.setEinheitCNr(oAuftragpositionDto.getEinheitCNr());
+					oRechnungspositionDto.setFRabattsatz(oAuftragpositionDto.getFRabattsatz());
+					oRechnungspositionDto.setFZusatzrabattsatz(oAuftragpositionDto.getFZusatzrabattsatz());
+					oRechnungspositionDto.setKostentraegerIId(oAuftragpositionDto.getKostentraegerIId());
+					oRechnungspositionDto.setNMaterialzuschlagKurs(oAuftragpositionDto.getNMaterialzuschlagKurs());
+					oRechnungspositionDto.setTMaterialzuschlagDatum(oAuftragpositionDto.getTMaterialzuschlagDatum());
+					oRechnungspositionDto.setRechnungIId(tpRechnung.getRechnungDto().getIId());
+//					oRechnungspositionDto.setNBruttoeinzelpreis(panelArtikel.wnfBruttopreis.getBigDecimal());
+					oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge.getBigDecimal());
+					oRechnungspositionDto.setNEinzelpreis(panelArtikel.wnfEinzelpreis.getBigDecimal());
+					oRechnungspositionDto.setNNettoeinzelpreis(panelArtikel.wnfNettopreis.getBigDecimal());
+
+//					oRechnungspositionDto.setMwstsatzIId(oAuftragpositionDto.getMwstsatzIId());
+					setupSteuerFelder(oRechnungspositionDto, panelArtikel);
 					if (panelArtikel.wnfMaterialzuschlag != null) {
-						oRechnungspositionDto
-								.setNMaterialzuschlag(panelArtikel.wnfMaterialzuschlag
-										.getBigDecimal());
+						oRechnungspositionDto.setNMaterialzuschlag(panelArtikel.wnfMaterialzuschlag.getBigDecimal());
 					}
-					oRechnungspositionDto
-							.setAuftragpositionIId(oAuftragpositionDto.getIId()); // zu
+					oRechnungspositionDto.setAuftragpositionIId(oAuftragpositionDto.getIId()); // zu
 					// beginn
 					// ist
 					// die
@@ -811,29 +629,19 @@ public class PanelRechnungPositionenSichtAuftrag extends
 					// offen
 					// oRechnungspositionDto.setNRabattbetrag(panelArtikel.
 					// wnfRabattsumme.getBigDecimal());
-					oRechnungspositionDto
-							.setBNettopreisuebersteuert(oAuftragpositionDto
-									.getBNettopreisuebersteuert());
+					oRechnungspositionDto.setBNettopreisuebersteuert(oAuftragpositionDto.getBNettopreisuebersteuert());
 
 					List<SeriennrChargennrMitMengeDto> snrs = getArtikelsetViewController()
-							.handleArtikelsetSeriennummern(
-									tpRechnung.getRechnungDto().getLagerIId(),
+							.handleArtikelsetSeriennummern(tpRechnung.getRechnungDto().getLagerIId(),
 									oRechnungspositionDto);
 
-					if (!getArtikelsetViewController()
-							.isArtikelsetWithSnrsStoreable(
-									oRechnungspositionDto, snrs)) {
+					if (!getArtikelsetViewController().isArtikelsetWithSnrsStoreable(oRechnungspositionDto, snrs)) {
 						bDiePositionSpeichern = false;
 					}
 
 					if (bDiePositionSpeichern) {
-						DelegateFactory
-								.getInstance()
-								.getRechnungDelegate()
-								.updateRechnungPosition(
-										oRechnungspositionDto,
-										tpRechnung.getRechnungDto()
-												.getLagerIId(), snrs);
+						DelegateFactory.getInstance().getRechnungDelegate().updateRechnungPosition(
+								oRechnungspositionDto, tpRechnung.getRechnungDto().getLagerIId(), snrs);
 					}
 				}
 
@@ -843,51 +651,34 @@ public class PanelRechnungPositionenSichtAuftrag extends
 					// zusaetzlich wird die eingegebene Menge abgebucht -> das
 					// Handling
 					// in Bezug auf die bestehende Position geschieht am Server
-					oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge
-							.getBigDecimal());
-					oRechnungspositionDto
-							.setSeriennrChargennrMitMenge(((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
+					oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge.getBigDecimal());
+					oRechnungspositionDto.setSeriennrChargennrMitMenge(
+							((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
 									.getSeriennummern());
 
-					List<SeriennrChargennrMitMengeDto> bekannteSnrs = DelegateFactory
-							.getInstance()
+					List<SeriennrChargennrMitMengeDto> bekannteSnrs = DelegateFactory.getInstance()
 							.getRechnungDelegate()
-							.getSeriennrchargennrForArtikelsetPosition(
-									oRechnungspositionDto.getIId());
+							.getSeriennrchargennrForArtikelsetPosition(oRechnungspositionDto.getIId());
 
 					List<SeriennrChargennrMitMengeDto> snrs = getArtikelsetViewController()
-							.handleArtikelsetSeriennummern(
-									tpRechnung.getRechnungDto().getLagerIId(),
+							.handleArtikelsetSeriennummern(tpRechnung.getRechnungDto().getLagerIId(),
 									oRechnungspositionDto, bekannteSnrs);
 
-					if (!getArtikelsetViewController()
-							.isArtikelsetWithSnrsStoreable(
-									oRechnungspositionDto, snrs)) {
+					if (!getArtikelsetViewController().isArtikelsetWithSnrsStoreable(oRechnungspositionDto, snrs)) {
 						bDiePositionSpeichern = false;
 					}
 
 					if (bDiePositionSpeichern) {
-						DelegateFactory
-								.getInstance()
-								.getRechnungDelegate()
-								.updateRechnungPosition(
-										oRechnungspositionDto,
-										tpRechnung.getRechnungDto()
-												.getLagerIId(), snrs);
+						DelegateFactory.getInstance().getRechnungDelegate().updateRechnungPosition(
+								oRechnungspositionDto, tpRechnung.getRechnungDto().getLagerIId(), snrs);
 					}
 				}
 
 				// buttons schalten
 				super.eventActionSave(e, bNeedNoSaveI);
 			} else {
-				panelArtikel.wnfMenge
-						.setBigDecimal(DelegateFactory
-								.getInstance()
-								.getLagerDelegate()
-								.getMengeAufLager(
-										oAuftragpositionDto.getArtikelIId(),
-										tpRechnung.getRechnungDto()
-												.getLagerIId(), null));
+				panelArtikel.wnfMenge.setBigDecimal(DelegateFactory.getInstance().getLagerDelegate().getMengeAufLager(
+						oAuftragpositionDto.getArtikelIId(), tpRechnung.getRechnungDto().getLagerIId(), null));
 			}
 		}
 	}
@@ -895,18 +686,14 @@ public class PanelRechnungPositionenSichtAuftrag extends
 	/**
 	 * Bevor eine Identposition in der Rechnung gespeichert werden kann, muessen
 	 * verschiedene Vorbedingungen geprueft werden. <br>
-	 * Der Komplexe Fall ist das Speichern einer Identposition mit einerm
-	 * serien- oder chargennummerbehafteten Artikel.
+	 * Der Komplexe Fall ist das Speichern einer Identposition mit einerm serien-
+	 * oder chargennummerbehafteten Artikel.
 	 * 
-	 * @param e
-	 *            Ereignis
-	 * @param bNeedNoSaveI
-	 *            flag
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param e            Ereignis
+	 * @param bNeedNoSaveI flag
+	 * @throws Throwable Ausnahme
 	 */
-	protected void saveIdentPositionNegativeMenge(ActionEvent e,
-			boolean bNeedNoSaveI) throws Throwable {
+	protected void saveIdentPositionNegativeMenge(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		boolean bDiePositionSpeichern = true;
 
 		// IMS 2129
@@ -917,71 +704,54 @@ public class PanelRechnungPositionenSichtAuftrag extends
 		BigDecimal nMengeInRechnungsposition = new BigDecimal(0);
 
 		if (rechnungpositionAusAuftragpositionDto != null) {
-			nMengeInRechnungsposition = rechnungpositionAusAuftragpositionDto
-					.getNMenge();
-			nBenoetigteMengeVomLager = panelArtikel.wnfMenge.getBigDecimal()
-					.subtract(nMengeInRechnungsposition);
+			nMengeInRechnungsposition = rechnungpositionAusAuftragpositionDto.getNMenge();
+			nBenoetigteMengeVomLager = panelArtikel.wnfMenge.getBigDecimal().subtract(nMengeInRechnungsposition);
 		} else {
 			nBenoetigteMengeVomLager = panelArtikel.wnfMenge.getBigDecimal();
 		}
 
-		if (nBenoetigteMengeVomLager.compareTo(oAuftragpositionDto
-				.getNOffeneMenge()) == -1) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.warning"),
-							LPMain.getTextRespectUISPr("ls.warning.geawehltemengegroesseroffenemenge"));
+		if (nBenoetigteMengeVomLager.compareTo(oAuftragpositionDto.getNOffeneMenge()) == -1) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+					LPMain.getTextRespectUISPr("ls.warning.geawehltemengegroesseroffenemenge"));
 
-			panelArtikel.wnfMenge.setBigDecimal(nMengeInRechnungsposition
-					.add(oAuftragpositionDto.getNOffeneMenge()));
+			panelArtikel.wnfMenge.setBigDecimal(nMengeInRechnungsposition.add(oAuftragpositionDto.getNOffeneMenge()));
 
 			bDiePositionSpeichern = false;
-		} else if (Helper.short2boolean(panelArtikel.getArtikelDto()
-				.getBChargennrtragend())
-				&& (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-						.getText() == null || ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-						.getText().length() == 0)) {
+		} else if (Helper.short2boolean(panelArtikel.getArtikelDto().getBChargennrtragend())
+				&& (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText() == null
+						|| ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()
+								.length() == 0)) {
 
-			MessageFormat mf = new MessageFormat(
-					LPMain.getTextRespectUISPr("lp.hint.chargennummer"));
+			MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr("lp.hint.chargennummer"));
 
 			mf.setLocale(LPMain.getTheClient().getLocUi());
 
 			Object pattern[] = { panelArtikel.wnfMenge.getBigDecimal() };
 
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.warning"),
-					mf.format(pattern));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"), mf.format(pattern));
 
 			bDiePositionSpeichern = false;
 		} else
 
 		// die Anzahl der eingegebenen Seriennummern pruefen
-		if (Helper.short2boolean(panelArtikel.getArtikelDto()
-				.getBSeriennrtragend())) {
+		if (Helper.short2boolean(panelArtikel.getArtikelDto().getBSeriennrtragend())) {
 
 			int iAnzahl = 0;
 
-			if (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-					.getText() != null
-					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.getText().length() != 0) {
-				iAnzahl = Helper
-						.erzeugeStringArrayAusString(((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-								.getText()).length;
+			if (((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText() != null
+					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()
+							.length() != 0) {
+				iAnzahl = Helper.erzeugeStringArrayAusString(
+						((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()).length;
 			}
 
 			if (iAnzahl != panelArtikel.wnfMenge.getDouble().intValue()) {
-				MessageFormat mf = new MessageFormat(
-						LPMain.getTextRespectUISPr("lp.hint.seriennummer"));
+				MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr("lp.hint.seriennummer"));
 				mf.setLocale(LPMain.getTheClient().getLocUi());
 
-				Object pattern[] = { panelArtikel.wnfMenge.getBigDecimal(),
-						new Integer(iAnzahl) };
+				Object pattern[] = { panelArtikel.wnfMenge.getBigDecimal(), new Integer(iAnzahl) };
 
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.warning"),
-						mf.format(pattern));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"), mf.format(pattern));
 
 				bDiePositionSpeichern = false;
 			}
@@ -994,88 +764,48 @@ public class PanelRechnungPositionenSichtAuftrag extends
 			// wird die bestehenden Position aktualisiert
 			RechnungPositionDto oRechnungspositionDto = null;
 
-			oRechnungspositionDto = DelegateFactory
-					.getInstance()
-					.getRechnungDelegate()
-					.getRechnungPositionByRechnungAuftragposition(
-							tpRechnung.getRechnungDto().getIId(),
+			oRechnungspositionDto = DelegateFactory.getInstance().getRechnungDelegate()
+					.getRechnungPositionByRechnungAuftragposition(tpRechnung.getRechnungDto().getIId(),
 							oAuftragpositionDto.getIId());
 
 			if (oRechnungspositionDto == null) {
 				// es gibt noch keine Position, eine neue erfassen
 				oRechnungspositionDto = new RechnungPositionDto();
+				oRechnungspositionDto.setRechnungpositionartCNr(oAuftragpositionDto.getPositionsartCNr());
+				oRechnungspositionDto.setArtikelIId(oAuftragpositionDto.getArtikelIId());
+				oRechnungspositionDto.setSeriennrChargennrMitMenge(
+						((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getSeriennummern());
+				oRechnungspositionDto.setCLvposition(oAuftragpositionDto.getCLvposition());
 				oRechnungspositionDto
-						.setRechnungpositionartCNr(oAuftragpositionDto
-								.getPositionsartCNr());
-				oRechnungspositionDto.setArtikelIId(oAuftragpositionDto
-						.getArtikelIId());
-				oRechnungspositionDto
-						.setSeriennrChargennrMitMenge(((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-								.getSeriennummern());
-				oRechnungspositionDto.setCLvposition(oAuftragpositionDto
-						.getCLvposition());
-				oRechnungspositionDto
-						.setBArtikelbezeichnunguebersteuert(oAuftragpositionDto
-								.getBArtikelbezeichnunguebersteuert());
-				oRechnungspositionDto
-						.setBMwstsatzuebersteuert(oAuftragpositionDto
-								.getBMwstsatzuebersteuert());
-				oRechnungspositionDto
-						.setBRabattsatzuebersteuert(oAuftragpositionDto
-								.getBRabattsatzuebersteuert());
+						.setBArtikelbezeichnunguebersteuert(oAuftragpositionDto.getBArtikelbezeichnunguebersteuert());
+				oRechnungspositionDto.setBMwstsatzuebersteuert(oAuftragpositionDto.getBMwstsatzuebersteuert());
+				oRechnungspositionDto.setBRabattsatzuebersteuert(oAuftragpositionDto.getBRabattsatzuebersteuert());
 				oRechnungspositionDto.setCBez(oAuftragpositionDto.getCBez());
-				oRechnungspositionDto.setCZusatzbez(oAuftragpositionDto
-						.getCZusatzbez());
-				oRechnungspositionDto.setEinheitCNr(oAuftragpositionDto
-						.getEinheitCNr());
-				oRechnungspositionDto.setFRabattsatz(oAuftragpositionDto
-						.getFRabattsatz());
-				oRechnungspositionDto.setFZusatzrabattsatz(oAuftragpositionDto
-						.getFZusatzrabattsatz());
-				oRechnungspositionDto.setKostentraegerIId(oAuftragpositionDto
-						.getKostentraegerIId());
-				oRechnungspositionDto
-						.setNMaterialzuschlagKurs(oAuftragpositionDto
-								.getNMaterialzuschlagKurs());
-				oRechnungspositionDto
-						.setTMaterialzuschlagDatum(oAuftragpositionDto
-								.getTMaterialzuschlagDatum());
-				oRechnungspositionDto.setRechnungIId(tpRechnung
-						.getRechnungDto().getIId());
-				oRechnungspositionDto.setMwstsatzIId(oAuftragpositionDto
-						.getMwstsatzIId());
-				oRechnungspositionDto
-						.setNBruttoeinzelpreis(panelArtikel.wnfBruttopreis
-								.getBigDecimal());
+				oRechnungspositionDto.setCZusatzbez(oAuftragpositionDto.getCZusatzbez());
+				oRechnungspositionDto.setEinheitCNr(oAuftragpositionDto.getEinheitCNr());
+				oRechnungspositionDto.setFRabattsatz(oAuftragpositionDto.getFRabattsatz());
+				oRechnungspositionDto.setFZusatzrabattsatz(oAuftragpositionDto.getFZusatzrabattsatz());
+				oRechnungspositionDto.setKostentraegerIId(oAuftragpositionDto.getKostentraegerIId());
+				oRechnungspositionDto.setNMaterialzuschlagKurs(oAuftragpositionDto.getNMaterialzuschlagKurs());
+				oRechnungspositionDto.setTMaterialzuschlagDatum(oAuftragpositionDto.getTMaterialzuschlagDatum());
+				oRechnungspositionDto.setRechnungIId(tpRechnung.getRechnungDto().getIId());
+				oRechnungspositionDto.setNEinzelpreis(panelArtikel.wnfEinzelpreis.getBigDecimal());
+				oRechnungspositionDto.setNNettoeinzelpreis(panelArtikel.wnfNettopreis.getBigDecimal());
+				setupSteuerFelder(oRechnungspositionDto, panelArtikel);
+
+//				oRechnungspositionDto.setMwstsatzIId(oAuftragpositionDto.getMwstsatzIId());
+//				oRechnungspositionDto.setNBruttoeinzelpreis(panelArtikel.wnfBruttopreis.getBigDecimal());
 				if (panelArtikel.wnfMaterialzuschlag != null) {
-					oRechnungspositionDto
-							.setNMaterialzuschlag(panelArtikel.wnfMaterialzuschlag
-									.getBigDecimal());
+					oRechnungspositionDto.setNMaterialzuschlag(panelArtikel.wnfMaterialzuschlag.getBigDecimal());
 				}
-				oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge
-						.getBigDecimal());
+				oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge.getBigDecimal());
 				// oRechnungspositionDto.setNMwstbetrag(panelArtikel.wnfMwstsumme
 				// .getBigDecimal());
-				oRechnungspositionDto
-						.setNEinzelpreis(panelArtikel.wnfEinzelpreis
-								.getBigDecimal());
-				oRechnungspositionDto
-						.setNNettoeinzelpreis(panelArtikel.wnfNettopreis
-								.getBigDecimal());
-				oRechnungspositionDto.setAuftragpositionIId(oAuftragpositionDto
-						.getIId()); // zu beginn ist die gesamte menge offen
-				// oRechnungspositionDto.setNRabattbetrag(panelArtikel.
-				// wnfRabattsumme.getBigDecimal());
-				oRechnungspositionDto
-						.setBNettopreisuebersteuert(oAuftragpositionDto
-								.getBNettopreisuebersteuert());
-				oRechnungspositionDto.setVerleihIId(oAuftragpositionDto
-						.getVerleihIId());
-				DelegateFactory
-						.getInstance()
-						.getRechnungDelegate()
-						.updateRechnungPosition(oRechnungspositionDto,
-								tpRechnung.getRechnungDto().getLagerIId());
+				oRechnungspositionDto.setAuftragpositionIId(oAuftragpositionDto.getIId());
+				oRechnungspositionDto.setBNettopreisuebersteuert(oAuftragpositionDto.getBNettopreisuebersteuert());
+				oRechnungspositionDto.setVerleihIId(oAuftragpositionDto.getVerleihIId());
+				DelegateFactory.getInstance().getRechnungDelegate().updateRechnungPosition(oRechnungspositionDto,
+						tpRechnung.getRechnungDto().getLagerIId());
 			}
 
 			// es gibt in dieser Rechnung bereits eine Rechnungsposition zu
@@ -1084,44 +814,33 @@ public class PanelRechnungPositionenSichtAuftrag extends
 				// zusaetzlich wird die eingegebene Menge abgebucht -> das
 				// Handling
 				// in Bezug auf die bestehende Position geschieht am Server
-				oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge
-						.getBigDecimal());
-				oRechnungspositionDto
-						.setSeriennrChargennrMitMenge(((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-								.getSeriennummern());
+				oRechnungspositionDto.setNMenge(panelArtikel.wnfMenge.getBigDecimal());
+				oRechnungspositionDto.setSeriennrChargennrMitMenge(
+						((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getSeriennummern());
 
-				DelegateFactory
-						.getInstance()
-						.getRechnungDelegate()
-						.updateRechnungPosition(oRechnungspositionDto,
-								tpRechnung.getRechnungDto().getLagerIId());
+				DelegateFactory.getInstance().getRechnungDelegate().updateRechnungPosition(oRechnungspositionDto,
+						tpRechnung.getRechnungDto().getLagerIId());
 			}
 
 			// buttons schalten
 			super.eventActionSave(e, bNeedNoSaveI);
 			// IMS 2129
 			/*
-			 * } else {
-			 * panelArtikel.wnfMenge.setDouble(DelegateFactory.getInstance
-			 * ().getLagerDelegate().getMengeAufLager(
-			 * oAuftragpositionDto.getArtikelIId(),
+			 * } else { panelArtikel.wnfMenge.setDouble(DelegateFactory.getInstance
+			 * ().getLagerDelegate().getMengeAufLager( oAuftragpositionDto.getArtikelIId(),
 			 * tpRechnung.getRechnungDto().getLagerIId(), null)); }
 			 */
 		}
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
-		super.eventYouAreSelected(false); // buttons schalten
-
-		setLagerIId(tpRechnung.getRechnungDto().getLagerIId());
-
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		setTBelegdatumMwstsatz(tpRechnung.getRechnungDto().getTBelegdatum());
+		super.eventYouAreSelected(false); // buttons schalten
+		setLagerIId(tpRechnung.getRechnungDto().getLagerIId());
 		// auch der zugehoerige Auftrag muss gelockt werden
 		if (oAuftragpositionDto != null) {
-			lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG,
-					oAuftragpositionDto.getBelegIId() + "", LPMain
-							.getInstance().getCNrUser());
+			lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG, oAuftragpositionDto.getBelegIId() + "",
+					LPMain.getInstance().getCNrUser());
 		}
 
 		// wenn die Rechnung gerade gelockt ist, die Eingabefelder freischalten
@@ -1140,84 +859,61 @@ public class PanelRechnungPositionenSichtAuftrag extends
 	 * Bei jeder Anzeige eines Artikels muss darueber entschieden werden, ob die
 	 * Controls fuer die Serien- bzw. Chargennummereingabe angezeigt werden.
 	 * 
-	 * @param bEditableI
-	 *            true, wenn eine Eingabe moeglich sein soll
-	 * @param bSerienchargennrLeer
-	 *            true, wenn die Eingabe zurueckgesetzt werden soll
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param bEditableI           true, wenn eine Eingabe moeglich sein soll
+	 * @param bSerienchargennrLeer true, wenn die Eingabe zurueckgesetzt werden soll
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	protected void zeigeSerienchargennummer(boolean bEditableI,
-			boolean bSerienchargennrLeer) throws Throwable {
-		((PanelPositionenArtikelVerkaufSNR) panelArtikel)
-				.zeigeSerienchargennummer(bEditableI, bSerienchargennrLeer);
+	protected void zeigeSerienchargennummer(boolean bEditableI, boolean bSerienchargennrLeer) throws Throwable {
+		((PanelPositionenArtikelVerkaufSNR) panelArtikel).zeigeSerienchargennummer(bEditableI, bSerienchargennrLeer,
+				false);
 		aktualisiereStatusbar();
 	}
 
 	private void aktualisiereStatusbar() throws Throwable {
-		setStatusbarPersonalIIdAnlegen(tpRechnung.getRechnungDto()
-				.getPersonalIIdAnlegen());
+		setStatusbarPersonalIIdAnlegen(tpRechnung.getRechnungDto().getPersonalIIdAnlegen());
 		setStatusbarTAnlegen(tpRechnung.getRechnungDto().getTAnlegen());
-		setStatusbarPersonalIIdAendern(tpRechnung.getRechnungDto()
-				.getPersonalIIdAendern());
+		setStatusbarPersonalIIdAendern(tpRechnung.getRechnungDto().getPersonalIIdAendern());
 		setStatusbarTAendern(tpRechnung.getRechnungDto().getTAendern());
 		setStatusbarStatusCNr(tpRechnung.getRechnungDto().getStatusCNr());
 
-		setStatusbarSpalte5(this.getLagerstandFuerStatusbarSpalte5(tpRechnung
-				.getRechnungDto().getLagerIId()));
+		setStatusbarSpalte5(this.getLagerstandFuerStatusbarSpalte5(tpRechnung.getRechnungDto().getLagerIId()));
 	}
 
 	/**
 	 * VF 15.05.2006 IMS 2054 In Spalte 5 der Statusbar wird der neben dem Lager
-	 * auch der Lagerstand angezeigt, wenn dafuer genug Information vorhanden
-	 * ist.
+	 * auch der Lagerstand angezeigt, wenn dafuer genug Information vorhanden ist.
 	 * 
 	 * @return String
-	 * @param iIdLager
-	 *            Integer
+	 * @param iIdLager Integer
 	 * @throws Throwable
 	 */
-	protected String getLagerstandFuerStatusbarSpalte5(Integer iIdLager)
-			throws Throwable {
+	protected String getLagerstandFuerStatusbarSpalte5(Integer iIdLager) throws Throwable {
 		String sLagerinfoO = null;
-		sLagerinfoO = DelegateFactory.getInstance().getLagerDelegate()
-				.lagerFindByPrimaryKey(iIdLager).getCNr();
+		sLagerinfoO = DelegateFactory.getInstance().getLagerDelegate().lagerFindByPrimaryKey(iIdLager).getCNr();
 
-		if (panelArtikel.getArtikelDto() != null
-				&& panelArtikel.getArtikelDto().getIId() != null) {
+		if (panelArtikel.getArtikelDto() != null && panelArtikel.getArtikelDto().getIId() != null) {
 			String serienchargennummer = null;
 
-			if (Helper.short2boolean(panelArtikel.getArtikelDto()
-					.getBSeriennrtragend())
-					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.getText() != null
-					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.getText().length() > 0) {
+			if (Helper.short2boolean(panelArtikel.getArtikelDto().getBSeriennrtragend())
+					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText() != null
+					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()
+							.length() > 0) {
 				serienchargennummer = ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
 						.getText();
-			} else if (Helper.short2boolean(panelArtikel.getArtikelDto()
-					.getBChargennrtragend())
-					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.getText() != null
-					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
-							.getText().length() > 0) {
+			} else if (Helper.short2boolean(panelArtikel.getArtikelDto().getBChargennrtragend())
+					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText() != null
+					&& ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer.getText()
+							.length() > 0) {
 				serienchargennummer = ((PanelPositionenArtikelVerkaufSNR) panelArtikel).wtfSerienchargennummer
 						.getText();
 			}
 
-			if ((!Helper.short2boolean(panelArtikel.getArtikelDto()
-					.getBSeriennrtragend()) && !Helper
-					.short2boolean(panelArtikel.getArtikelDto()
-							.getBChargennrtragend()))
+			if ((!Helper.short2boolean(panelArtikel.getArtikelDto().getBSeriennrtragend())
+					&& !Helper.short2boolean(panelArtikel.getArtikelDto().getBChargennrtragend()))
 					|| serienchargennummer != null) {
-				if (panelArtikel.getArtikelDto() != null
-						&& panelArtikel.getArtikelDto().getIId() != null) {
-					BigDecimal ddMenge = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.getMengeAufLager(
-									panelArtikel.getArtikelDto().getIId(),
-									iIdLager, serienchargennummer);
+				if (panelArtikel.getArtikelDto() != null && panelArtikel.getArtikelDto().getIId() != null) {
+					BigDecimal ddMenge = DelegateFactory.getInstance().getLagerDelegate()
+							.getMengeAufLager(panelArtikel.getArtikelDto().getIId(), iIdLager, serienchargennummer);
 
 					sLagerinfoO += ": ";
 					sLagerinfoO += ddMenge;
@@ -1256,8 +952,7 @@ public class PanelRechnungPositionenSichtAuftrag extends
 	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
 
 		LockStateValue lockstateValue = super.getLockedstateDetailMainKey();
-		if (lockstateValue.getIState() == LOCK_IS_NOT_LOCKED
-				&& lockMeAuftrag != null) {
+		if (lockstateValue.getIState() == LOCK_IS_NOT_LOCKED && lockMeAuftrag != null) {
 			int iLockstate = getLockedByWerWas(lockMeAuftrag);
 
 			if (iLockstate == LOCK_IS_LOCKED_BY_ME) {
@@ -1276,15 +971,13 @@ public class PanelRechnungPositionenSichtAuftrag extends
 
 		// auch der zugehoerige Auftrag muss gelockt werden
 		if (oAuftragpositionDto != null) {
-			lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG,
-					oAuftragpositionDto.getBelegIId() + "", LPMain
-							.getInstance().getCNrUser());
+			lockMeAuftrag = new LockMeDto(HelperClient.LOCKME_AUFTRAG, oAuftragpositionDto.getBelegIId() + "",
+					LPMain.getInstance().getCNrUser());
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
-		if (tpRechnung.istAktualisierenRechnungErlaubt()) {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
+		if (intFrame.isUpdateAllowedForRechnungDto(tpRechnung.getRechnungDto())) {
 
 			super.eventActionNew(eventObject, true, false);
 
@@ -1299,16 +992,15 @@ public class PanelRechnungPositionenSichtAuftrag extends
 				}
 			}
 		} else {
-			tpRechnung.getPanelQueryPositionen(true).updateButtons(
-					tpRechnung.getPanelDetailPositionen(true)
-							.getLockedstateDetailMainKey());
+			tpRechnung.getPanelQueryPositionen(true)
+					.updateButtons(tpRechnung.getPanelDetailPositionen(true).getLockedstateDetailMainKey());
 		}
 	}
 
 	/**
 	 * ACHTUNG: Das ist eine ganz b&ouml;se Routine. Sie castet - mit dem Wissen
-	 * dass es sich nur um Auftragpositionen handeln kann(!) - von
-	 * Belegpositionen auf Auftragpositionen.
+	 * dass es sich nur um Auftragpositionen handeln kann(!) - von Belegpositionen
+	 * auf Auftragpositionen.
 	 * 
 	 * @param artikelset
 	 * @return AuftragpositionDto[]
@@ -1328,94 +1020,111 @@ public class PanelRechnungPositionenSichtAuftrag extends
 	 * <p>
 	 * Es gilt:
 	 * <ul>
-	 * <li>Lagerbewirtschaftete Artikel werden nur mit der Menge uebernommen,
-	 * die auf Lager liegt.
-	 * <li>Artikel mit Chargennummer werden nur uebernommen, wenn es eine
-	 * eindeutige Charge auf Lager gibt.
+	 * <li>Lagerbewirtschaftete Artikel werden nur mit der Menge uebernommen, die
+	 * auf Lager liegt.
+	 * <li>Artikel mit Chargennummer werden nur uebernommen, wenn es eine eindeutige
+	 * Charge auf Lager gibt.
 	 * <li>Artikel mit Seriennummer werden nicht uebernommen.
 	 * </ul>
 	 * 
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
-	private void uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktion()
-			throws Throwable {
+	private void uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktion() throws Throwable {
 		try {
-			if (tpRechnung.getPanelQueryPositionenSichtAuftrag(true)
-					.getSelectedId() != null) {
+			if (tpRechnung.getPanelQueryPositionenSichtAuftrag(true).getSelectedId() != null) {
 
 				AuftragDto auftragDto = tpRechnung.getAuftragDtoSichtAuftrag();
-				AuftragpositionDto[] positions = DelegateFactory.getInstance()
-						.getAuftragpositionDelegate()
+				AuftragpositionDto[] positions = DelegateFactory.getInstance().getAuftragpositionDelegate()
 						.auftragpositionFindByAuftrag(auftragDto.getIId());
 
-				List<Artikelset> artikelSets = DelegateFactory.getInstance()
-						.getAuftragpositionDelegate()
+				// PJ21225
+				boolean bNurMarkierte = false;
+
+				int indexAlle = 0;
+				int indexMarkierte = 1;
+				int iAnzahlOptionen = 2;
+				Object[] aOptionenVerdichten = new Object[iAnzahlOptionen];
+
+				aOptionenVerdichten[indexAlle] = LPMain.getTextRespectUISPr("lp.auftragspositionen.uebernehmen.alle");
+				aOptionenVerdichten[indexMarkierte] = LPMain
+						.getTextRespectUISPr("lp.auftragspositionen.uebernehmen.markierte");
+
+				int iAuswahl = -1;
+				// PJ21907
+				if (bSichtAuftragMehrfachauswahl) {
+					iAuswahl = DialogFactory.showModalDialog(getInternalFrame(),
+							LPMain.getTextRespectUISPr("lp.auftragspositionen.uebernehmen.frage"),
+							LPMain.getTextRespectUISPr("lp.frage"), aOptionenVerdichten, aOptionenVerdichten[0]);
+				} else {
+					iAuswahl = indexAlle;
+				}
+
+				if (iAuswahl == indexAlle) {
+					// OK
+				} else if (iAuswahl == indexMarkierte) {
+					// Die Markierten rausfiltern
+					bNurMarkierte = true;
+					ArrayList<AuftragpositionDto> alMarkiert = new ArrayList<AuftragpositionDto>();
+
+					ArrayList<Integer> alAuftragpositionIIdsSelektiert = tpRechnung
+							.getPanelQueryPositionenSichtAuftrag(true).getSelectedIdsAsInteger();
+
+					for (AuftragpositionDto posDto : positions) {
+						if (alAuftragpositionIIdsSelektiert.contains(posDto.getIId())) {
+							alMarkiert.add(posDto);
+						}
+					}
+
+					positions = alMarkiert.toArray(new AuftragpositionDto[alMarkiert.size()]);
+
+				} else {
+					return;
+				}
+
+				List<Artikelset> artikelSets = DelegateFactory.getInstance().getAuftragpositionDelegate()
 						.getOffeneAuftragpositionDtoMitArtikelset(positions);
 
 				if (artikelSets.size() > 0) {
 					List<BelegpositionVerkaufDto> nichtErfuellbarePositionen = new ArrayList<BelegpositionVerkaufDto>();
 					for (Artikelset artikelset : artikelSets) {
-						BigDecimal erfuellbareMenge = DelegateFactory
-								.getInstance()
-								.getAuftragpositionDelegate()
-								.getErfuellbareMengeArtikelset(
-										getAuftragpositionDtos(artikelset),
-										tpRechnung.getRechnungDto()
-												.getLagerIId());
+						BigDecimal erfuellbareMenge = DelegateFactory.getInstance().getAuftragpositionDelegate()
+								.getErfuellbareMengeArtikelset(getAuftragpositionDtos(artikelset),
+										tpRechnung.getRechnungDto().getLagerIId());
 						artikelset.setAvailableAmount(erfuellbareMenge);
 
-						if (erfuellbareMenge.compareTo(artikelset
-								.getSlipAmount()) < 0) {
-							nichtErfuellbarePositionen
-									.add(artikelset.getHead());
+						if (erfuellbareMenge.compareTo(artikelset.getSlipAmount()) < 0) {
+							nichtErfuellbarePositionen.add(artikelset.getHead());
 						}
 					}
 
 					if (nichtErfuellbarePositionen.size() > 0) {
-						boolean yes = DialogFactory
-								.showModalJaNeinDialog(
-										getInternalFrame(),
-										"Es sind nicht alle Auftragpositionen mit Artikelsets \n"
-												+ "komplett erf\u00FCllbar.\n"
-												+ "Trotzdem mit der \u00DCbernahme der Positionen fortfahren?");
+						boolean yes = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+								"Es sind nicht alle Auftragpositionen mit Artikelsets \n" + "komplett erf\u00FCllbar.\n"
+										+ "Trotzdem mit der \u00DCbernahme der Positionen fortfahren?");
 						if (!yes)
 							return;
 					}
 
 					for (Artikelset artikelset : artikelSets) {
-						if (getArtikelsetViewController()
-								.needArtikelsetSeriennummern(
-										tpRechnung.getRechnungDto()
-												.getLagerIId(),
-										artikelset.getAllPositions())) {
-							ArtikelDto headDto = DelegateFactory
-									.getInstance()
-									.getArtikelDelegate()
-									.artikelFindByPrimaryKey(
-											artikelset.getHead()
-													.getArtikelIId());
+						if (getArtikelsetViewController().needArtikelsetSeriennummern(
+								tpRechnung.getRechnungDto().getLagerIId(), artikelset.getAllPositions())) {
+							ArtikelDto headDto = DelegateFactory.getInstance().getArtikelDelegate()
+									.artikelFindByPrimaryKey(artikelset.getHead().getArtikelIId());
 
 							boolean needsInput = true;
 							do {
 								List<SeriennrChargennrMitMengeDto> snrs = getArtikelsetViewController()
 										.inputArtikelsetSeriennummern(
-												"Seriennummernerfassung f\u00FCr ["
-														+ headDto.getCNr()
-														+ "]",
-												tpRechnung.getRechnungDto()
-														.getLagerIId(),
-												artikelset);
+												"Seriennummernerfassung f\u00FCr [" + headDto.getCNr() + "]",
+												tpRechnung.getRechnungDto().getLagerIId(), artikelset);
 								artikelset.setIdentities(snrs);
 
 								if (snrs.size() > 0) {
 									needsInput = false;
 								} else {
-									boolean yes = DialogFactory
-											.showModalJaNeinDialog(
-													getInternalFrame(),
-													"Es wurden keine Seriennummern erfasst!\n"
-															+ "Soll die \u00DCbernahme der Positionen abgebrochen werden?");
+									boolean yes = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+											"Es wurden keine Seriennummern erfasst!\n"
+													+ "Soll die \u00DCbernahme der Positionen abgebrochen werden?");
 									if (yes)
 										return;
 								}
@@ -1424,26 +1133,52 @@ public class PanelRechnungPositionenSichtAuftrag extends
 					}
 				}
 
-				DelegateFactory
-						.getInstance()
-						.getRechnungDelegate()
-						.uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktionNew(
-								tpRechnung.getRechnungDto().getIId(),
-								tpRechnung.getAuftragDtoSichtAuftrag().getIId(),
-								artikelSets);
+				ArrayList<RechnungPositionDto> createdRePosDtos = null;
+
+				if (bNurMarkierte) {
+					createdRePosDtos = DelegateFactory.getInstance().getRechnungDelegate()
+							.uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktionNew(
+									tpRechnung.getRechnungDto().getIId(),
+									tpRechnung.getAuftragDtoSichtAuftrag().getIId(), artikelSets,
+									tpRechnung.getPanelQueryPositionenSichtAuftrag(true).getSelectedIdsAsInteger());
+				} else {
+					createdRePosDtos = DelegateFactory.getInstance().getRechnungDelegate()
+							.uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktionNew(
+									tpRechnung.getRechnungDto().getIId(),
+									tpRechnung.getAuftragDtoSichtAuftrag().getIId(), artikelSets, null);
+				}
+
+				LinkedHashSet<Integer> hsArtikelIIds = new LinkedHashSet<Integer>();
+				for (int i = 0; i < createdRePosDtos.size(); i++) {
+					if (createdRePosDtos.get(i).getPositionsartCNr().equals(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT)
+							&& createdRePosDtos.get(i).getArtikelIId() != null) {
+						hsArtikelIIds.add(createdRePosDtos.get(i).getArtikelIId());
+					}
+				}
+
+				// SP7546
+				Iterator<Integer> itArtikel = hsArtikelIIds.iterator();
+				while (itArtikel.hasNext()) {
+
+					Integer artikelIId = (Integer) itArtikel.next();
+
+					ArtikelDto aDto = DelegateFactory.getInstance().getArtikelDelegate()
+							.artikelFindByPrimaryKey(artikelIId);
+
+					DelegateFactory.getInstance().getArtikelkommentarDelegate().pruefeArtikel(aDto,
+							intFrame.getBelegartCNr(), intFrame);
+				}
 
 				// das Panel neu laden, damit die uebernommenen Positionen
 				// verschwinden
-				tpRechnung.getPanelDetailPositionenSichtAuftrag(true)
-						.eventYouAreSelected(false);
+				tpRechnung.getPanelDetailPositionenSichtAuftrag(true).eventYouAreSelected(false);
 			}
 		} finally {
 			// den gelockten Auftrag explizit freigeben
 			if (lockMeAuftrag != null) {
 				super.unlock(lockMeAuftrag);
 			}
-			getInternalFrame().setKeyWasForLockMe(
-					tpRechnung.getRechnungDto().getIId() + "");
+			getInternalFrame().setKeyWasForLockMe(tpRechnung.getRechnungDto().getIId() + "");
 		}
 	}
 

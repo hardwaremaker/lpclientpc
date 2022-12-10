@@ -35,7 +35,6 @@
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.util.List;
 
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
@@ -44,16 +43,22 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import net.miginfocom.swing.MigLayout;
-
-import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.assistent.view.AssistentPageView;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.CsvXlsFile;
+import com.lp.client.frame.filechooser.open.CsvXlsFileOpener;
+import com.lp.client.frame.filechooser.open.CsvXlsFileOpenerNew;
+import com.lp.client.frame.filechooser.open.FileOpenerFactory;
+import com.lp.client.frame.filechooser.open.XlsFile;
 import com.lp.client.pc.LPMain;
+import com.lp.server.util.HvOptional;
+
+import net.miginfocom.swing.MigLayout;
 
 /**
  * View der ersten Seite des StklImports. Hier werden das File und die
@@ -74,7 +79,8 @@ public class StklImportPage1View extends AssistentPageView implements ActionList
 	private JList spezList;
 	private WrapperRadioButton gespeicherteSpez;
 	private WrapperRadioButton neueSpez;
-	private WrapperLabel kundeNichtGesetzt;
+	private WrapperLabel wlBezugsobjektNichtGesetzt;
+	private String title;
 
 	public StklImportPage1View(StklImportPage1Ctrl controller, InternalFrame iFrame) {
 		super(controller, iFrame);
@@ -96,8 +102,8 @@ public class StklImportPage1View extends AssistentPageView implements ActionList
 		neueSpez = new WrapperRadioButton(
 				LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.neuespezifikationen"));
 		
-		kundeNichtGesetzt = new WrapperLabel(
-				LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.kundenichthinterlegt"));
+		wlBezugsobjektNichtGesetzt = new WrapperLabel(
+				getController().getTextBezugsobjektNichtGesetzt());
 		loescheSpez = new WrapperButton(LPMain.getTextRespectUISPr("lp.loeschen"));
 		
 		ButtonGroup bg = new ButtonGroup();
@@ -127,16 +133,18 @@ public class StklImportPage1View extends AssistentPageView implements ActionList
 		
 		add(loescheSpez, "bottom");
 		
-		if(!getController().isKundeGesetzt())
-			add(kundeNichtGesetzt, "span");
+		if (getController().showKundeLieferantNichtHinterlegt())
+			add(wlBezugsobjektNichtGesetzt, "span");
 		
 	}
 
 	@Override
 	public void dataUpdated() {
-		if(getController().getImportFile() != null)
-			filePath.setText(getController().getImportFile().getAbsolutePath());
-		else filePath.removeContent();
+		if(getController().getImportFile() != null) {
+			filePath.setText(getController().getImportFile().getFile().getAbsolutePath());
+		} else {
+			filePath.removeContent();
+		}
 		String selectedSpezName = getController().getSelectedImportSpezName();
 		
 		DefaultListModel model = new DefaultListModel();
@@ -168,9 +176,7 @@ public class StklImportPage1View extends AssistentPageView implements ActionList
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == chooseFile) {
-			List<File> files = HelperClient.showOpenFileDialog(getController().getImportFile(), this, false, ".csv", null);
-			if(files != null && files.size() == 1)
-				getController().setImportFile(files.get(0));
+			actionChoosingFile();
 		} else if(e.getSource() == gespeicherteSpez || e.getSource() == neueSpez) {
 			if(gespeicherteSpez.isSelected()) {
 				if(spezList.getSelectedIndex() == -1)
@@ -185,9 +191,44 @@ public class StklImportPage1View extends AssistentPageView implements ActionList
 		}
 	}
 
+	private void actionChoosingFile() {
+		HvOptional<CsvXlsFile> csvFile = new CsvXlsFileOpenerNew(
+				getInternalFrame(), getController().getFileChooserToken()).selectSingle();
+		if (!csvFile.isPresent()) return;
+		
+		File f = csvFile.get().getFile();
+		if (csvFile.get().isCsv() ) {
+			getController().setCsvFile(new CsvFile(f));
+		} else {
+			getController().setXlsFile(new XlsFile(f));
+		}
+	}
+	
+	private void actionChoosingFile0() {
+		CsvXlsFileOpener fileOpener = FileOpenerFactory.intelligenterStklImport(
+				getInternalFrame(), getController().getFileChooserToken());
+		fileOpener.doOpenDialog();
+		
+		if (fileOpener.isCsv()) {
+			getController().setCsvFile(fileOpener.getCsvFile());
+		} else if (fileOpener.isXls()) {
+			getController().setXlsFile(fileOpener.getXlsFile());
+		}
+//		
+//		List<File> files = HelperClient.showOpenFileDialog(getController().getImportFile(), this, false, ".csv", ".xls", null);
+//		if(files != null && files.size() == 1)
+//			getController().setImportFile(files.get(0));
+	}
+
 	@Override
 	public String getTitle() {
-		return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
+		return title != null
+				? title
+				: LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
+	}
+	
+	public void setTitle(String pageTitle) {
+		this.title = pageTitle;
 	}
 
 	@Override
@@ -199,5 +240,4 @@ public class StklImportPage1View extends AssistentPageView implements ActionList
 		}
 		spezList.setEnabled(gespeicherteSpez.isSelected());
 	}
-
 }

@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
@@ -57,12 +56,14 @@ import com.lp.client.frame.component.WrapperTextArea;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.system.service.ImportErroInfo;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.SystemFac;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class DialogStuecklisteMaterialXLSImport extends JDialog implements
-		ActionListener {
+public class DialogStuecklisteMaterialXLSImport extends JDialog implements ActionListener {
 	/**
 	 * 
 	 */
@@ -75,6 +76,10 @@ public class DialogStuecklisteMaterialXLSImport extends JDialog implements
 
 	JButton wbuImportieren = new JButton();
 
+	private WrapperLabel wlaEinheitZeit = new WrapperLabel();
+	private WrapperComboBox wcbEinheitZeit = new WrapperComboBox();
+
+	private WrapperCheckBox wcbVorhandenePositionenLoeschen = new WrapperCheckBox();
 
 	private byte[] xlsDatei = null;
 
@@ -82,10 +87,8 @@ public class DialogStuecklisteMaterialXLSImport extends JDialog implements
 	private WrapperTextArea wtaFehler = new WrapperTextArea();
 	private TabbedPaneStueckliste tpPartner = null;
 
-	public DialogStuecklisteMaterialXLSImport(byte[] xlsDatei,
-			TabbedPaneStueckliste tpPartner) throws Throwable {
-		super(LPMain.getInstance().getDesktop(), "Material-XLS importieren",
-				true);
+	public DialogStuecklisteMaterialXLSImport(byte[] xlsDatei, TabbedPaneStueckliste tpPartner) throws Throwable {
+		super(LPMain.getInstance().getDesktop(), "Material-XLS importieren", true);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
@@ -107,12 +110,36 @@ public class DialogStuecklisteMaterialXLSImport extends JDialog implements
 
 		wbuImportieren.setText("Importieren");
 
-		wtaFehler.setText(DelegateFactory.getInstance()
-				.getStuecklisteDelegate()
-				.pruefeUndImportiereMaterialXLS(xlsDatei, false));
+		wcbEinheitZeit.setMandatoryField(true);
 
-		wbuAbbrechen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.abbrechen"));
+		Map m = new LinkedHashMap();
+		m.put(SystemFac.EINHEIT_STUNDE, SystemFac.EINHEIT_STUNDE.trim());
+		m.put(SystemFac.EINHEIT_MINUTE, SystemFac.EINHEIT_MINUTE.trim());
+		m.put(SystemFac.EINHEIT_SEKUNDE, SystemFac.EINHEIT_SEKUNDE.trim());
+
+		wcbEinheitZeit.setMap(m);
+
+		wlaEinheitZeit.setText(LPMain.getTextRespectUISPr("stkl.arbeitplanimport.einheitzeit"));
+
+		ImportErroInfo info = DelegateFactory.getInstance().getStuecklisteDelegate()
+				.pruefeUndImportiereMaterialXLS(xlsDatei, false, false, (String) wcbEinheitZeit.getKeyOfSelectedItem());
+
+		if (info.sindFehlerOoderInfosVorhanden()) {
+			wtaFehler.setText(info.getErrorAndInfosAsString());
+		} else {
+			wtaFehler.setText("Keine Fehler gefunden");
+		}
+
+		wbuAbbrechen.setText(LPMain.getInstance().getTextRespectUISPr("lp.abbrechen"));
+
+		wcbVorhandenePositionenLoeschen
+				.setText(LPMain.getInstance().getTextRespectUISPr("stkl.import.xls.vorhandenepositionenloeschen"));
+
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_STUECKLISTE,
+				ParameterFac.PARAMETER_DEFAULT_STKL_XLSIMPORT_POSITIONEN_LOESCHEN);
+		boolean bParameter = (Boolean) parameter.getCWertAsObject();
+		wcbVorhandenePositionenLoeschen.setSelected(bParameter);
 
 		wbuImportieren.addActionListener(this);
 
@@ -120,12 +147,8 @@ public class DialogStuecklisteMaterialXLSImport extends JDialog implements
 		c.set(Calendar.MONTH, Calendar.JANUARY);
 		c.set(Calendar.DAY_OF_MONTH, 1);
 
-	
-
-		if (wtaFehler.getText() != null && wtaFehler.getText().length() > 0) {
+		if (info.sindFehlerVorhanden()) {
 			wbuImportieren.setEnabled(false);
-		} else {
-			wtaFehler.setText("Keine Fehler gefunden");
 		}
 
 		setSize(500, 500);
@@ -134,24 +157,24 @@ public class DialogStuecklisteMaterialXLSImport extends JDialog implements
 
 		this.getContentPane().setLayout(gridBagLayout2);
 
-		this.getContentPane().add(
-				panelUrlaubsanspruch,
-				new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(0, 0, 0, 0), 250, 50));
+		this.getContentPane().add(panelUrlaubsanspruch, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 250, 50));
 
-		panelUrlaubsanspruch.add(jspScrollPane, new GridBagConstraints(0, 0, 2,
-				1, 1.0, 1.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(jspScrollPane, new GridBagConstraints(0, 0, 2, 1, 1.0, 1.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 2), 0, 0));
 		jspScrollPane.getViewport().add(wtaFehler, null);
 
-	
+		panelUrlaubsanspruch.add(wlaEinheitZeit, new GridBagConstraints(0, 2, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wcbEinheitZeit, new GridBagConstraints(1, 2, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelUrlaubsanspruch.add(wbuImportieren, new GridBagConstraints(0, 4,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wcbVorhandenePositionenLoeschen, new GridBagConstraints(0, 3, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+
+		panelUrlaubsanspruch.add(wbuImportieren, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
-		panelUrlaubsanspruch.add(wbuAbbrechen, new GridBagConstraints(1, 4, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wbuAbbrechen, new GridBagConstraints(1, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
 
 	}
@@ -160,15 +183,15 @@ public class DialogStuecklisteMaterialXLSImport extends JDialog implements
 
 		if (e.getSource().equals(wbuImportieren)) {
 			try {
-				String fehler = DelegateFactory.getInstance()
-						.getStuecklisteDelegate()
-						.pruefeUndImportiereMaterialXLS(xlsDatei, true);
+				ImportErroInfo info = DelegateFactory.getInstance().getStuecklisteDelegate()
+						.pruefeUndImportiereMaterialXLS(xlsDatei, true, wcbVorhandenePositionenLoeschen.isSelected(),
+								(String) wcbEinheitZeit.getKeyOfSelectedItem());
 
-				if (fehler != null && fehler.length() > 0) {
-					DialogFactory.showMessageMitScrollbar("Info", fehler, true);
+				if (info.sindFehlerOoderInfosVorhanden()) {
+					wtaFehler.setText(info.getErrorAndInfosAsString());
+				} else {
+					this.setVisible(false);
 				}
-
-				this.setVisible(false);
 
 			} catch (Throwable e2) {
 				tpPartner.getPanelQueryPersonal().handleException(e2, true);

@@ -33,22 +33,32 @@
 package com.lp.client.frame.delegate;
 
 import java.math.BigDecimal;
+import java.rmi.RemoteException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.auftrag.service.ImportAmazonCsvDto;
+import com.lp.server.auftrag.service.ImportShopifyCsvDto;
+import com.lp.server.lieferschein.service.EasydataImportResult;
 import com.lp.server.lieferschein.service.LieferscheinDto;
 import com.lp.server.lieferschein.service.LieferscheinFac;
+import com.lp.server.lieferschein.service.LieferscheinImportFac;
 import com.lp.server.lieferschein.service.LieferscheinpositionDto;
+import com.lp.server.lieferschein.service.PaketVersandAntwortDto;
+import com.lp.server.partner.service.LieferantServicesFac;
 import com.lp.server.system.service.BelegPruefungDto;
-import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.ImportRueckgabeDto;
+import com.lp.server.system.service.TheClientDto;
 import com.lp.service.Artikelset;
 
 /**
@@ -76,23 +86,48 @@ import com.lp.service.Artikelset;
 public class LieferscheinDelegate extends Delegate {
 	private Context context = null;
 	private LieferscheinFac lsFac = null;
+	private LieferscheinImportFac lieferscheinImportFac = null;
 
 	public LieferscheinDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			lsFac = (LieferscheinFac) context
-					.lookup("lpserver/LieferscheinFacBean/remote");
+			lsFac = lookupFac(context, LieferscheinFac.class);
+
+			lieferscheinImportFac = lookupFac(context, LieferscheinImportFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 
 	}
 
+	public ImportRueckgabeDto importiereAmazon_CSV(
+			LinkedHashMap<String, ArrayList<ImportAmazonCsvDto>> hmNachBestellnummerGruppiert,
+			Integer lagerIIdAbbuchungslager, boolean bImportiereWennKeinFehler) throws ExceptionLP {
+		try {
+			return lieferscheinImportFac.importiereAmazon_CSV(hmNachBestellnummerGruppiert, lagerIIdAbbuchungslager,
+					bImportiereWennKeinFehler, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public ImportRueckgabeDto importiereShopify_CSV(
+			LinkedHashMap<String, ArrayList<ImportShopifyCsvDto>> hmNachBestellnummerGruppiert,Integer lagerIIdAbbuchungslager,
+			boolean bImportiereWennKeinFehler) throws ExceptionLP {
+		try {
+			return lieferscheinImportFac.importiereShopify_CSV(hmNachBestellnummerGruppiert, lagerIIdAbbuchungslager,bImportiereWennKeinFehler,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
 	/**
 	 * Lieferscheinarten in Uebesetzung holen.
 	 * 
-	 * @param locKunde
-	 *            Locale
+	 * @param locKunde Locale
 	 * @throws ExceptionLP
 	 * @return KeyValueDto[]
 	 */
@@ -100,8 +135,7 @@ public class LieferscheinDelegate extends Delegate {
 		Map<?, ?> artenMap = null;
 
 		try {
-			artenMap = this.lsFac.getLieferscheinart(locKunde, LPMain
-					.getInstance().getUISprLocale());
+			artenMap = this.lsFac.getLieferscheinart(locKunde, LPMain.getInstance().getUISprLocale());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -112,18 +146,15 @@ public class LieferscheinDelegate extends Delegate {
 	/**
 	 * Lieferscheinpositionsarten in Uebersetzung holen.
 	 * 
-	 * @param locKunde
-	 *            Locale
+	 * @param locKunde Locale
 	 * @throws ExceptionLP
 	 * @return KeyValueDto[]
 	 */
-	public Map<?, ?> getLieferscheinpositionart(Locale locKunde)
-			throws ExceptionLP {
+	public Map<?, ?> getLieferscheinpositionart(Locale locKunde) throws ExceptionLP {
 		Map<?, ?> artenMap = null;
 
 		try {
-			artenMap = this.lsFac.getLieferscheinpositionart(locKunde, LPMain
-					.getInstance().getUISprLocale());
+			artenMap = this.lsFac.getLieferscheinpositionart(locKunde, LPMain.getInstance().getUISprLocale());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -131,23 +162,40 @@ public class LieferscheinDelegate extends Delegate {
 		return artenMap;
 	}
 
+	public List<Integer> getRechnungsadressenGelieferterLieferscheine(java.sql.Date tBisInclBelegdatum)
+			throws ExceptionLP {
+		try {
+			return this.lsFac.getRechnungsadressenGelieferterLieferscheine(tBisInclBelegdatum, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public void verrechneGelieferteLieferscheine(List<Integer> kundeIIdRechnungsadresse,
+			java.sql.Date tBisInclBelegdatum, java.sql.Date neuDatum) throws ExceptionLP {
+		try {
+			this.lsFac.verrechneGelieferteLieferscheine(kundeIIdRechnungsadresse, tBisInclBelegdatum, neuDatum,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+
+		}
+	}
+
 	/**
 	 * Lieferscheinstatus in Uebersetzung holen.
 	 * 
-	 * @param pConstant
-	 *            String
-	 * @param locKunde
-	 *            Locale
+	 * @param pConstant String
+	 * @param locKunde  Locale
 	 * @throws ExceptionLP
 	 * @return String
 	 */
-	public String getLieferscheinstatus(String pConstant, Locale locKunde)
-			throws ExceptionLP {
+	public String getLieferscheinstatus(String pConstant, Locale locKunde) throws ExceptionLP {
 		String status = null;
 
 		try {
-			status = this.lsFac.getLieferscheinstatus(pConstant, locKunde,
-					LPMain.getInstance().getUISprLocale());
+			status = this.lsFac.getLieferscheinstatus(pConstant, locKunde, LPMain.getInstance().getUISprLocale());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -160,18 +208,15 @@ public class LieferscheinDelegate extends Delegate {
 	 * Ein Lieferschein kann zu mehreren Auftraegen liefern. <br>
 	 * Der Bezug zu einem Auftrag wird in einer Kreuztabelle eingetragen.
 	 * 
-	 * @param lieferscheinDtoI
-	 *            die Daten des Lieferscheins
+	 * @param lieferscheinDtoI die Daten des Lieferscheins
 	 * @throws ExceptionLP
 	 * @return Integer PK des neuen Lieferscheins
 	 */
-	public Integer createLieferschein(LieferscheinDto lieferscheinDtoI)
-			throws ExceptionLP {
+	public Integer createLieferschein(LieferscheinDto lieferscheinDtoI) throws ExceptionLP {
 		Integer pkLieferschein = null;
 
 		try {
-			pkLieferschein = this.lsFac.createLieferschein(lieferscheinDtoI,
-					LPMain.getTheClient());
+			pkLieferschein = this.lsFac.createLieferschein(lieferscheinDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -184,20 +229,15 @@ public class LieferscheinDelegate extends Delegate {
 	 * Ein Lieferschein kann zu mehreren Auftraegen liefern. <br>
 	 * Der Bezug zu einem Auftrag wird in einer Kreuztabelle eingetragen.
 	 * 
-	 * @param lieferscheinDtoI
-	 *            die Daten des Lieferscheins
-	 * @param aAuftragIIdI
-	 *            der Bezug zu 0..n Auftraegen
-	 * @param waehrungOriCNrI
-	 *            die urspruengliche Belegwaehrung
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param lieferscheinDtoI die Daten des Lieferscheins
+	 * @param aAuftragIIdI     der Bezug zu 0..n Auftraegen
+	 * @param waehrungOriCNrI  die urspruengliche Belegwaehrung
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public boolean updateLieferschein(LieferscheinDto lieferscheinDtoI,
-			String waehrungOriCNrI, Integer[] aAuftragIIdI) throws ExceptionLP {
+	public boolean updateLieferschein(LieferscheinDto lieferscheinDtoI, String waehrungOriCNrI, Integer[] aAuftragIIdI)
+			throws ExceptionLP {
 		try {
-			return lsFac.updateLieferschein(lieferscheinDtoI, aAuftragIIdI,
-					waehrungOriCNrI, LPMain.getTheClient());
+			return lsFac.updateLieferschein(lieferscheinDtoI, aAuftragIIdI, waehrungOriCNrI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return false;
@@ -208,16 +248,12 @@ public class LieferscheinDelegate extends Delegate {
 	 * Einen bestehenden Lieferschein ohne weitere Aktion aktualisieren. <br>
 	 * Ein eventuelle Bezug zu Auftraegen bleibt dabei unberuecksichtig.
 	 * 
-	 * @param lieferscheinDtoI
-	 *            der aktuelle Lieferschein
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param lieferscheinDtoI der aktuelle Lieferschein
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateLieferscheinOhneWeitereAktion(
-			LieferscheinDto lieferscheinDtoI) throws ExceptionLP {
+	public void updateLieferscheinOhneWeitereAktion(LieferscheinDto lieferscheinDtoI) throws ExceptionLP {
 		try {
-			lsFac.updateLieferscheinOhneWeitereAktion(lieferscheinDtoI,
-					LPMain.getTheClient());
+			lsFac.updateLieferscheinOhneWeitereAktion(lieferscheinDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -227,13 +263,10 @@ public class LieferscheinDelegate extends Delegate {
 	 * Einen bestehenden Lieferschein aktualisieren. <br>
 	 * Ein eventuelle Bezug zu Auftraegen bleibt dabei unberuecksichtig.
 	 * 
-	 * @param lieferscheinDtoI
-	 *            der aktuelle Lieferschein
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param lieferscheinDtoI der aktuelle Lieferschein
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateLieferschein(LieferscheinDto lieferscheinDtoI)
-			throws ExceptionLP {
+	public void updateLieferschein(LieferscheinDto lieferscheinDtoI) throws ExceptionLP {
 		try {
 			lsFac.updateLieferschein(lieferscheinDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
@@ -241,11 +274,17 @@ public class LieferscheinDelegate extends Delegate {
 		}
 	}
 
-	public void updateLieferscheinBegruendung(Integer lieferscheinIId,
-			Integer begruendungIId) throws ExceptionLP {
+	public void updateLieferscheinVersandinfos(LieferscheinDto lieferscheinDtoI) throws ExceptionLP {
 		try {
-			lsFac.updateLieferscheinBegruendung(lieferscheinIId,
-					begruendungIId, LPMain.getTheClient());
+			lsFac.updateLieferscheinVersandinfos(lieferscheinDtoI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void updateLieferscheinBegruendung(Integer lieferscheinIId, Integer begruendungIId) throws ExceptionLP {
+		try {
+			lsFac.updateLieferscheinBegruendung(lieferscheinIId, begruendungIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -253,21 +292,27 @@ public class LieferscheinDelegate extends Delegate {
 
 	public LieferscheinDto lieferscheinFindByCNr(String cNr) throws ExceptionLP {
 		try {
-			return lsFac.lieferscheinFindByCNrMandantCNr(cNr, LPMain
-					.getTheClient().getMandant());
+			return lsFac.lieferscheinFindByCNrMandantCNr(cNr, LPMain.getTheClient().getMandant());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return null;
 	}
 
-	public LieferscheinDto lieferscheinFindByPrimaryKey(Integer iIdLieferscheinI)
-			throws ExceptionLP {
+	public LieferscheinDto[] lieferscheinFindByAuftrag(Integer iIdAuftragI) throws ExceptionLP {
+		try {
+			return lsFac.lieferscheinFindByAuftrag(iIdAuftragI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public LieferscheinDto lieferscheinFindByPrimaryKey(Integer iIdLieferscheinI) throws ExceptionLP {
 		LieferscheinDto lsDto = null;
 
 		try {
-			lsDto = lsFac.lieferscheinFindByPrimaryKey(iIdLieferscheinI,
-					LPMain.getTheClient());
+			lsDto = lsFac.lieferscheinFindByPrimaryKey(iIdLieferscheinI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -284,26 +329,33 @@ public class LieferscheinDelegate extends Delegate {
 		return null;
 	}
 
+	public BigDecimal getEKWertUeberLoseAusKundenlaegern(Integer lieferscheinpositionIId, boolean bMaxSollmenge)
+			throws ExceptionLP {
+		try {
+			return lsFac.getEKWertUeberLoseAusKundenlaegern(lieferscheinpositionIId, bMaxSollmenge,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
 	/**
-	 * Aus einem Lieferschein jene Position heraussuchen, die zu einer
-	 * bestimmten Auftragposition gehoert.
+	 * Aus einem Lieferschein jene Position heraussuchen, die zu einer bestimmten
+	 * Auftragposition gehoert.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            Integer
-	 * @param iIdAuftragpositionI
-	 *            Integer
+	 * @param iIdLieferscheinI    Integer
+	 * @param iIdAuftragpositionI Integer
 	 * @throws ExceptionLP
 	 * @return LieferscheinpositionDto
 	 */
-	public LieferscheinpositionDto getLieferscheinpositionByLieferscheinAuftragposition(
-			Integer iIdLieferscheinI, Integer iIdAuftragpositionI)
-			throws ExceptionLP {
+	public LieferscheinpositionDto getLieferscheinpositionByLieferscheinAuftragposition(Integer iIdLieferscheinI,
+			Integer iIdAuftragpositionI) throws ExceptionLP {
 		LieferscheinpositionDto oLieferscheinpositionDto = null;
 
 		try {
-			oLieferscheinpositionDto = lsFac
-					.getLieferscheinpositionByLieferscheinAuftragposition(
-							iIdLieferscheinI, iIdAuftragpositionI);
+			oLieferscheinpositionDto = lsFac.getLieferscheinpositionByLieferscheinAuftragposition(iIdLieferscheinI,
+					iIdAuftragpositionI);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -314,19 +366,13 @@ public class LieferscheinDelegate extends Delegate {
 	/**
 	 * Den Status eines Lieferscheins aendern.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            pk des Lieferscheins
-	 * @param sStatusI
-	 *            der neue Status
-	 * @param iIdRechnungI
-	 *            PK der verrechnenden Rechnung
+	 * @param iIdLieferscheinI pk des Lieferscheins
+	 * @param sStatusI         der neue Status
 	 * @throws ExceptionLP
 	 */
-	public void setzeStatusLieferschein(Integer iIdLieferscheinI,
-			String sStatusI, Integer iIdRechnungI) throws ExceptionLP {
+	public void setzeStatusLieferschein(Integer iIdLieferscheinI, String sStatusI) throws ExceptionLP {
 		try {
-			lsFac.setzeStatusLieferschein(iIdLieferscheinI, sStatusI,
-					iIdRechnungI, LPMain.getTheClient());
+			lsFac.setzeStatusLieferschein(iIdLieferscheinI, sStatusI);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -334,24 +380,20 @@ public class LieferscheinDelegate extends Delegate {
 
 	/**
 	 * Berechnung des Gestehungswerts eines Lieferscheins. <br>
-	 * Der Gestehungswert ist die Summe ueber die Gestehungswerte der
-	 * enthaltenen Artikelpositionen. <br>
+	 * Der Gestehungswert ist die Summe ueber die Gestehungswerte der enthaltenen
+	 * Artikelpositionen. <br>
 	 * Der Gestehungswert einer Artikelposition errechnet sich aus Menge x
 	 * positionsbezogenem Gestehungspreis des enthaltenen Artikels.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 * @return BigDecimal der Gestehungswert in der gewuenschten Waehrung
 	 */
-	public BigDecimal berechneGestehungswert(Integer iIdLieferscheinI)
-			throws ExceptionLP {
+	public BigDecimal berechneGestehungswert(Integer iIdLieferscheinI) throws ExceptionLP {
 		BigDecimal wert = null;
 
 		try {
-			wert = lsFac.berechneGestehungswert(iIdLieferscheinI,
-					LPMain.getTheClient());
+			wert = lsFac.berechneGestehungswert(iIdLieferscheinI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -360,27 +402,23 @@ public class LieferscheinDelegate extends Delegate {
 	}
 
 	/**
-	 * Berechne den Gesamtwert eines bestimmten Lieferscheins in einer
-	 * bestimmten Waherung. <br>
+	 * Berechne den Gesamtwert eines bestimmten Lieferscheins in einer bestimmten
+	 * Waherung. <br>
 	 * Der Gesamtwert berechnet sich aus
 	 * <p>
 	 * Summe der Nettogesamtpreise der Positionen <br>
 	 * + Versteckter Aufschlag <br>
 	 * - Allgemeiner Rabatt
 	 * 
-	 * @param iIdLieferscheinI
-	 *            pk des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI pk des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 * @return BigDecimal der Gesamtwert des Lieferscheins
 	 */
-	public BigDecimal berechneGesamtwertLieferschein(Integer iIdLieferscheinI)
-			throws ExceptionLP {
+	public BigDecimal berechneGesamtwertLieferschein(Integer iIdLieferscheinI) throws ExceptionLP {
 		BigDecimal wert = null;
 
 		try {
-			wert = lsFac.berechneGesamtwertLieferschein(iIdLieferscheinI,
-					LPMain.getTheClient());
+			wert = lsFac.berechneGesamtwertLieferschein(iIdLieferscheinI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -388,13 +426,11 @@ public class LieferscheinDelegate extends Delegate {
 		return wert;
 	}
 
-	public BigDecimal berechneOffenenLieferscheinwert(Integer kundeIId)
-			throws ExceptionLP {
+	public BigDecimal berechneOffenenLieferscheinwert(Integer kundeIId) throws ExceptionLP {
 		BigDecimal wert = null;
 
 		try {
-			wert = lsFac.berechneOffenenLieferscheinwert(kundeIId,
-					LPMain.getTheClient());
+			wert = lsFac.berechneOffenenLieferscheinwert(kundeIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -421,20 +457,15 @@ public class LieferscheinDelegate extends Delegate {
 	}
 
 	/**
-	 * Wenn die Konditionen im Lieferschein geaendert werden, muessen die Werte
-	 * der einzelnen Positionen und die Gesamtwerte des Lieferscheins angepasst
-	 * werden.
+	 * Wenn die Konditionen im Lieferschein geaendert werden, muessen die Werte der
+	 * einzelnen Positionen und die Gesamtwerte des Lieferscheins angepasst werden.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferschein
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferschein
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateLieferscheinKonditionen(Integer iIdLieferscheinI)
-			throws ExceptionLP {
+	public void updateLieferscheinKonditionen(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
-			lsFac.updateLieferscheinKonditionen(iIdLieferscheinI,
-					LPMain.getTheClient());
+			lsFac.updateLieferscheinKonditionen(iIdLieferscheinI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -444,10 +475,8 @@ public class LieferscheinDelegate extends Delegate {
 	 * Ein Lieferschein kann manuell freigegeben werden. <br>
 	 * Der Lieferschein muss sich im Status 'Angelegt' befinden.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void manuellFreigeben(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
@@ -461,10 +490,8 @@ public class LieferscheinDelegate extends Delegate {
 	 * Ein Lieferschein kann manuell erledigt werden. <br>
 	 * Der Lieferschein muss sich im Status 'Geliefert' befinden.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void manuellErledigen(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
@@ -478,10 +505,8 @@ public class LieferscheinDelegate extends Delegate {
 	 * Die Erledigung eines Lieferscheins kann aufgehoben werden. <br>
 	 * Der Lieferschein muss sich im Status 'Erledigt' befinden.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void erledigungAufheben(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
@@ -495,18 +520,13 @@ public class LieferscheinDelegate extends Delegate {
 	 * Ein Lieferschein kann durch eine Rechnung verrechnet werden. <br>
 	 * Der Lieferschein muss sich im Status 'Geliefert' befinden.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @param iIdRechnungI
-	 *            PK der verrechnenden Rechnung
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @param iIdRechnungI     PK der verrechnenden Rechnung
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void verrechnen(Integer iIdLieferscheinI, Integer iIdRechnungI)
-			throws ExceptionLP {
+	public void verrechnen(Integer iIdLieferscheinI, Integer iIdRechnungI) throws ExceptionLP {
 		try {
-			lsFac.verrechnen(iIdLieferscheinI, iIdRechnungI,
-					LPMain.getTheClient());
+			lsFac.verrechnen(iIdLieferscheinI, iIdRechnungI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -517,10 +537,8 @@ public class LieferscheinDelegate extends Delegate {
 	 * Das bedeutet: - Den Status des Lieferscheins anpassen und die Stornodaten
 	 * vermerken. - Die Lieferscheinpositionen loeschen.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void stornieren(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
@@ -530,12 +548,18 @@ public class LieferscheinDelegate extends Delegate {
 		}
 	}
 
-	public void toggleZollexportpapiereErhalten(Integer lieferscheinIId,
-			String cZollexportpapier, Integer eingangsrechnungIId_Zollexport)
-			throws ExceptionLP {
+	public void stornoAufheben(Integer iIdLieferscheinI) throws ExceptionLP {
 		try {
-			lsFac.toggleZollexportpapiereErhalten(lieferscheinIId,
-					cZollexportpapier, eingangsrechnungIId_Zollexport,
+			lsFac.stornoAufheben(iIdLieferscheinI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void toggleZollexportpapiereErhalten(Integer lieferscheinIId, String cZollexportpapier,
+			Integer eingangsrechnungIId_Zollexport) throws ExceptionLP {
+		try {
+			lsFac.toggleZollexportpapiereErhalten(lieferscheinIId, cZollexportpapier, eingangsrechnungIId_Zollexport,
 					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
@@ -545,7 +569,7 @@ public class LieferscheinDelegate extends Delegate {
 	public void aktiviereBelegControlled(Integer iid, Timestamp t) throws ExceptionLP {
 		try {
 			BelegPruefungDto pruefungDto = lsFac.aktiviereBelegControlled(iid, t, LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto) ;
+			dialogBelegpruefung(pruefungDto);
 			// SP1881
 //			DelegateFactory
 //					.getInstance()
@@ -556,13 +580,12 @@ public class LieferscheinDelegate extends Delegate {
 			handleThrowable(t1);
 		}
 	}
-	
+
 	public Timestamp berechneBelegControlled(Integer iid) throws ExceptionLP {
 		try {
-			BelegPruefungDto pruefungDto = lsFac.berechneBelegControlled(iid,
-					LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto) ;
-			return pruefungDto.getBerechnungsZeitpunkt() ;
+			BelegPruefungDto pruefungDto = lsFac.berechneBelegControlled(iid, LPMain.getTheClient());
+			dialogBelegpruefung(pruefungDto);
+			return pruefungDto.getBerechnungsZeitpunkt();
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
@@ -572,14 +595,14 @@ public class LieferscheinDelegate extends Delegate {
 	public Timestamp berechneAktiviereBelegControlled(Integer iid) throws ExceptionLP {
 		try {
 			BelegPruefungDto pruefungDto = lsFac.berechneAktiviereBelegControlled(iid, LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto) ;
-			return pruefungDto.getBerechnungsZeitpunkt() ;
+			dialogBelegpruefung(pruefungDto);
+			return pruefungDto.getBerechnungsZeitpunkt();
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Bei einem auftragbezogenen Lieferschein ist es moeglich, all jene offenen
 	 * oder teilerledigten Auftragpositionen innerhalb einer Transaktion zu
@@ -590,17 +613,14 @@ public class LieferscheinDelegate extends Delegate {
 	 * <li>Nicht Serien- oder Chargennummertragende Artikelpositionen werden mit
 	 * jener Menge uebernommen, die auf Lager liegt.
 	 * <li>Artikelpositionen mit Seriennummer werden nicht uebernommen.
-	 * <li>Artikelpositionen mit Chargennummer werden mit jener Menge
-	 * uebernommen, die auf Lager liegt, wenn es genau eine Charge gibt.
+	 * <li>Artikelpositionen mit Chargennummer werden mit jener Menge uebernommen,
+	 * die auf Lager liegt, wenn es genau eine Charge gibt.
 	 * </ul>
 	 * Die restlichen Positionen koennen nicht automatisch uebernommen werden.
 	 * 
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @param iIdAuftragI
-	 *            Integer
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @param iIdAuftragI      Integer
+	 * @throws ExceptionLP Ausnahme
 	 */
 //	public void uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktion(
 //			Integer iIdLieferscheinI, Integer iIdAuftragI) throws ExceptionLP {
@@ -612,20 +632,18 @@ public class LieferscheinDelegate extends Delegate {
 //		}
 //	}
 
-	public void uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktionNew(
-			Integer iIdLieferscheinI, Integer iIdAuftrag,
-			List<Artikelset> artikelsets) throws ExceptionLP {
+	public Set<Integer> uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktionNew(Integer iIdLieferscheinI,
+			Integer iIdAuftrag, List<Artikelset> artikelsets, List<Integer> auftragspositionIIds) throws ExceptionLP {
 		try {
-			lsFac.uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktionNew(
-					iIdLieferscheinI, iIdAuftrag, artikelsets,
-					LPMain.getTheClient());
+			return lsFac.uebernimmAlleOffenenAuftragpositionenOhneBenutzerinteraktionNew(iIdLieferscheinI, iIdAuftrag,
+					artikelsets, auftragspositionIIds, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
+			return null;
 		}
 	}
 
-	public void setzeVersandzeitpunktAufJetzt(Integer iLieferscheinIId,
-			String sDruckart) throws ExceptionLP {
+	public void setzeVersandzeitpunktAufJetzt(Integer iLieferscheinIId, String sDruckart) throws ExceptionLP {
 		try {
 			lsFac.setzeVersandzeitpunktAufJetzt(iLieferscheinIId, sDruckart);
 		} catch (Throwable t) {
@@ -633,52 +651,119 @@ public class LieferscheinDelegate extends Delegate {
 		}
 	}
 
-	public boolean hatLieferscheinVersandweg(LieferscheinDto lieferscheinDto)
-			throws ExceptionLP {
+	public boolean hatLieferscheinVersandweg(LieferscheinDto lieferscheinDto) throws ExceptionLP {
 		try {
-			return lsFac.hatLieferscheinVersandweg(lieferscheinDto,
-					LPMain.getTheClient());
+			return lsFac.hatLieferscheinVersandweg(lieferscheinDto, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return false;
 	}
 
-	public String createLieferscheinAvisoPost(Integer lieferscheinIId)
-			throws ExceptionLP {
+	public String createLieferscheinAvisoPost(Integer lieferscheinIId) throws ExceptionLP {
 		try {
-			return lsFac.createLieferscheinAvisoPost(lieferscheinIId,
-					LPMain.getTheClient());
+			return lsFac.createLieferscheinAvisoPost(lieferscheinIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return "";
 	}
 
-	public void resetLieferscheinAviso(Integer lieferscheinIId)
-			throws ExceptionLP {
+	public void resetLieferscheinAviso(Integer lieferscheinIId) throws ExceptionLP {
 		try {
 			lsFac.resetLieferscheinAviso(lieferscheinIId, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
-	
+
 	public void repairLieferscheinZws2276(Integer lieferscheinId) throws ExceptionLP {
 		try {
 			lsFac.repairLieferscheinZws2276(lieferscheinId, LPMain.getTheClient());
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
-	}	
+	}
 
 	public List<Integer> repairLieferscheinZws2276GetList() throws ExceptionLP {
 		try {
-			return lsFac.repairLieferscheinZws2276GetList(LPMain.getTheClient()) ;
-		} catch(Throwable t) {
+			return lsFac.repairLieferscheinZws2276GetList(LPMain.getTheClient());
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
-		
-		return new ArrayList<Integer>() ;
-	}	
+
+		return new ArrayList<Integer>();
+	}
+
+	public void setzeAuslieferdatumAufJetzt(Integer lieferscheinId) throws ExceptionLP {
+		try {
+			lsFac.setzeAuslieferdatumAufJetzt(lieferscheinId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public EasydataImportResult importXMLEasydataStockMovements(String xmlData, boolean checkOnly) throws ExceptionLP {
+		try {
+			return lsFac.importXMLEasydataStockMovements(xmlData, checkOnly, LPMain.getTheClient());
+		} catch (Throwable e) {
+			handleThrowable(e);
+		}
+		return null;
+	}
+
+	public List<Integer> repairLieferscheinSP6402GetList() throws ExceptionLP {
+		try {
+			return lsFac.repairLieferscheinSP6402GetList(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return new ArrayList<Integer>();
+	}
+
+	public void repairLieferscheinSP6402(Integer lieferscheinId) throws ExceptionLP {
+		try {
+			lsFac.repairLieferscheinSP6402(lieferscheinId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void repairLieferscheinSP6999(Integer lieferscheinId) throws ExceptionLP {
+		try {
+			lsFac.repairLieferscheinSP6999(lieferscheinId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public boolean isPaketEtikettErzeugbar(Integer lieferscheinId) throws ExceptionLP {
+		try {
+			return lsFac.isPaketEtikettErzeugbar(lieferscheinId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return false;
+	}
+
+	public PaketVersandAntwortDto erzeugePaketInfo(Integer lieferscheinId) throws ExceptionLP {
+		try {
+			return lsFac.erzeugePaketInfo(lieferscheinId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public void uebersteuereIntelligenteZwischensumme(Integer lieferscheinpositionIId,
+			BigDecimal bdBetragInBelegwaehrungUebersteuert) throws ExceptionLP {
+		try {
+			lsFac.uebersteuereIntelligenteZwischensumme(lieferscheinpositionIId, bdBetragInBelegwaehrungUebersteuert,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+
+		}
+	}
 }

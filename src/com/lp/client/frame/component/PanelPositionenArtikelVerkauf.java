@@ -47,6 +47,7 @@ import java.text.MessageFormat;
 import java.util.EventObject;
 
 import com.lp.client.angebot.InternalFrameAngebot;
+import com.lp.client.auftrag.InternalFrameAuftrag;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
@@ -59,6 +60,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.lieferschein.InternalFrameLieferschein;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.HelperTimestamp;
 import com.lp.server.artikel.service.ArtgruDto;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikellieferantDto;
@@ -71,9 +73,11 @@ import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.partner.service.KundesokoDto;
 import com.lp.server.partner.service.KundesokomengenstaffelDto;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MwstsatzDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.service.BelegpositionVerkaufDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
@@ -98,6 +102,12 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	/** Die Ergebnisse der VK Preisfindung hinterlegen. */
 	private VkpreisfindungDto vkpreisfindungDto = null;
 
+	private BelegpositionVerkaufDto belegpositionVerkaufDto = null;
+
+	public void setBelegpositionVerkaufDto(BelegpositionVerkaufDto belegpositionVerkaufDto) {
+		this.belegpositionVerkaufDto = belegpositionVerkaufDto;
+	}
+
 	/** Den Kunden mit seiner Standardpreisliste hinterlegen. */
 	private KundeDto kundeDto = null;
 	/** Das Gueltigkeitsdatum fuer den Artikeleinzelverkaufspreis hinterlegen. */
@@ -107,8 +117,8 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	/** Den Wechselkurs fuer die Berechnung der Preise hinterlegen. */
 	private Double ddWechselkurs = null;
 	/**
-	 * Wenn eine Preisliste ueber PanelDialogPreisvorschlag geawehlt wurde, wird
-	 * sie hier hinterlegt.
+	 * Wenn eine Preisliste ueber PanelDialogPreisvorschlag geawehlt wurde, wird sie
+	 * hier hinterlegt.
 	 */
 	private Integer iIdPreislisteGewaehlt = null;
 	/**
@@ -125,8 +135,8 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	protected Integer iIdLager = null;
 
 	/**
-	 * Den Vorschlagswert fuer den Mwstsatz hinterlegen, damit man sehen kann,
-	 * ob manipuliert wurde.
+	 * Den Vorschlagswert fuer den Mwstsatz hinterlegen, damit man sehen kann, ob
+	 * manipuliert wurde.
 	 */
 	public Integer iIdMwstsatzDefault = null;
 
@@ -141,13 +151,13 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	 */
 	public boolean bIstMwstsatzDefaultUebersteuert = false;
 	/**
-	 * Wurde der Vorschlagswert fuer den Nettoeinzelpreis in diesem Fenster
-	 * manuell uebersteuert?
+	 * Wurde der Vorschlagswert fuer den Nettoeinzelpreis in diesem Fenster manuell
+	 * uebersteuert?
 	 */
 	public boolean bIstNettoeinzelpreisUebersteuert = false;
 	/**
-	 * Wurde der Vorschlagswert fuer den Nettogesamtpreis in diesem Fenster
-	 * manuell uebersteuert?
+	 * Wurde der Vorschlagswert fuer den Nettogesamtpreis in diesem Fenster manuell
+	 * uebersteuert?
 	 */
 	public boolean bIstNettogesamtpreisUebersteuert = false;
 
@@ -168,25 +178,17 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	/**
 	 * Konstruktor.
 	 * 
-	 * @param internalFrame
-	 *            der InternalFrame auf dem das Panel sitzt
-	 * @param add2TitleI
-	 *            der default Titel des Panels
-	 * @param key
-	 *            PK der Position
-	 * @param sLockMeWer
-	 *            String
-	 * @param iSpaltenbreite1I
-	 *            die Breite der ersten Spalte
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param internalFrame    der InternalFrame auf dem das Panel sitzt
+	 * @param add2TitleI       der default Titel des Panels
+	 * @param key              PK der Position
+	 * @param sLockMeWer       String
+	 * @param iSpaltenbreite1I die Breite der ersten Spalte
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelPositionenArtikelVerkauf(InternalFrame internalFrame,
-			String add2TitleI, Object key, String sLockMeWer,
-			int iSpaltenbreite1I) throws Throwable {
-		super(internalFrame, add2TitleI, key, sLockMeWer,
-				internalFrame.bRechtDarfPreiseSehenVerkauf,
-				internalFrame.bRechtDarfPreiseAendernVerkauf, iSpaltenbreite1I);
+	public PanelPositionenArtikelVerkauf(InternalFrame internalFrame, String add2TitleI, Object key, String sLockMeWer,
+			int iSpaltenbreite1I, PanelBasis panelBasisFuerGetKeyWhenDetailPanel) throws Throwable {
+		super(internalFrame, add2TitleI, key, sLockMeWer, internalFrame.bRechtDarfPreiseSehenVerkauf,
+				internalFrame.bRechtDarfPreiseAendernVerkauf, iSpaltenbreite1I, panelBasisFuerGetKeyWhenDetailPanel);
 		jbInit();
 		initComponents();
 	}
@@ -201,6 +203,9 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 		iYGridBagNext++;
 		iYGridBagNext++;
 		addFormatierungszeileNettoeinzelpreis(this, iYGridBagNext);
+
+		iYGridBagNext++;
+		addZeileDimensionen(this, iYGridBagNext);
 
 		// Zeile
 		iYGridBagNext++;
@@ -229,8 +234,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 		remove(wlaEinzelpreis);
 		wbuPreisauswahl = new WrapperButton();
 		HelperClient.setDefaultsToComponent(wbuPreisauswahl, 70);
-		wbuPreisauswahl
-				.setActionCommand(ACTION_SPECIAL_PREISAUSWAHL_FROM_DIALOG);
+		wbuPreisauswahl.setActionCommand(ACTION_SPECIAL_PREISAUSWAHL_FROM_DIALOG);
 		wbuPreisauswahl.setText(LPMain.getTextRespectUISPr("button.preis"));
 		wbuPreisauswahl.addActionListener(this);
 		// darf Preis sehen Recht, keinen Button zeigen, wenn nicht erlaubt
@@ -241,21 +245,40 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 			wbuPreisauswahl.setEnabled(false);
 		}
 
-		add(wbuPreisauswahl, new GridBagConstraints(5, 2, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2,
-						2, 2, 2), 0, 0));
+		add(wbuPreisauswahl, new GridBagConstraints(5, 2, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		wnfMengeFocusListener = this;
 		wnfMenge.addFocusListener(wnfMengeFocusListener);
+	}
+
+	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
+		if (panelBasisFuerGetKeyWhenDetailPanel != null) {
+			return panelBasisFuerGetKeyWhenDetailPanel.getLockedstateDetailMainKey();
+		} else {
+			return super.getLockedstateDetailMainKey();
+		}
 	}
 
 	protected void setDefaults() throws Throwable {
 		super.setDefaults();
 
 		setArtikelDto(new ArtikelDto());
+
+		// SP5242
+		ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+						ParameterFac.PARAMETER_VK_STANDARD_MENGE);
+		int standardMenge = ((Integer) parametermandantDto.getCWertAsObject()).intValue();
+
+		if (standardMenge <= 0) {
+			wnfMenge.setBigDecimal(null);
+		} else {
+			wnfMenge.setBigDecimal(new BigDecimal(standardMenge));
+		}
+
 		verkaufspreisDtoInZielwaehrung = new VerkaufspreisDto();
-		vkpreisfindungDto = new VkpreisfindungDto(LPMain.getInstance()
-				.getTheClient().getLocUi());
+		vkpreisfindungDto = new VkpreisfindungDto(LPMain.getInstance().getTheClient().getLocUi());
 
 		wtfZusatzbezeichnung.setActivatable(false);
 
@@ -263,28 +286,43 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 		// PJ17455 Wenn Lieferschein, dann kommt MWST aus Lieferadresse
 		if (getInternalFrame() instanceof InternalFrameLieferschein) {
 			InternalFrameLieferschein ifL = (InternalFrameLieferschein) getInternalFrame();
-			kdDtoFuerMwst = DelegateFactory
-					.getInstance()
-					.getKundeDelegate()
-					.kundeFindByPrimaryKey(
-							ifL.getTabbedPaneLieferschein()
-									.getLieferscheinDto()
-									.getKundeIIdLieferadresse());
+			kdDtoFuerMwst = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(
+					ifL.getTabbedPaneLieferschein().getLieferscheinDto().getKundeIIdLieferadresse());
+
+		}
+
+		if (getInternalFrame() instanceof InternalFrameAngebot) {
+			InternalFrameAngebot ifA = (InternalFrameAngebot) getInternalFrame();
+			kdDtoFuerMwst = DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(ifA.getTabbedPaneAngebot().getAngebotDto().getKundeIIdLieferadresse());
+
+		}
+
+		if (getInternalFrame() instanceof InternalFrameAuftrag) {
+			InternalFrameAuftrag ifA = (InternalFrameAuftrag) getInternalFrame();
+			kdDtoFuerMwst = DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(ifA.getTabbedPaneAuftrag().getAuftragDto().getKundeIIdLieferadresse());
 
 		}
 
 		if (!getBDefaultMwstsatzAusArtikel()) {
 			if (kdDtoFuerMwst != null) {
 				Integer iIdMwstsatzbez = kdDtoFuerMwst.getMwstsatzbezIId();
-
-				// Aktuellen MWST-Satz uebersetzen.
-				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
-						.getInstance()
-						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(iIdMwstsatzbez);
+				Timestamp belegDatum = getTBelegdatumMwstsatz();
+				if (belegDatum == null) {
+					belegDatum = HelperTimestamp.cut();
+				}
+				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory.mandant().mwstsatzFindZuDatum(iIdMwstsatzbez,
+						belegDatum);
+				/*
+				 * MwstsatzDto mwstsatzDtoAktuell = null; if (getTBelegdatumMwstsatz() != null)
+				 * { mwstsatzDtoAktuell = DelegateFactory .getInstance() .getMandantDelegate()
+				 * .mwstsatzFindZuDatum(iIdMwstsatzbez, getTBelegdatumMwstsatz()); } else {
+				 * mwstsatzDtoAktuell = DelegateFactory .getInstance() .getMandantDelegate()
+				 * .mwstsatzFindByMwstsatzbezIIdAktuellster( iIdMwstsatzbez); }
+				 */
 				if (wcoMwstsatz != null) {
-					wcoMwstsatz.setKeyOfSelectedItem(mwstsatzDtoAktuell
-							.getIId());
+					wcoMwstsatz.setKeyOfSelectedItem(mwstsatzDtoAktuell.getIId());
 				}
 				iIdMwstsatzDefault = mwstsatzDtoAktuell.getIId();
 			}
@@ -294,13 +332,18 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 			if (kdDtoFuerMwst != null) {
 				// Ausser der Kunde hat MWST-Satz mit 0%, dann muss dieser
 				// verwendet werden
-				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
-						.getInstance()
-						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(
-								kdDtoFuerMwst.getMwstsatzbezIId());
-
-				if (mwstsatzDtoAktuell.getFMwstsatz().doubleValue() == 0) {
+				Timestamp belegDatum = getTBelegdatumMwstsatz();
+				if (belegDatum == null) {
+					belegDatum = HelperTimestamp.cut();
+				}
+				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory.mandant()
+						.mwstsatzFindZuDatum(kdDtoFuerMwst.getMwstsatzbezIId(), belegDatum);
+				/*
+				 * MwstsatzDto mwstsatzDtoAktuell = DelegateFactory .getInstance()
+				 * .getMandantDelegate() .mwstsatzFindByMwstsatzbezIIdAktuellster(
+				 * kdDtoFuerMwst.getMwstsatzbezIId());
+				 */
+				if (mwstsatzDtoAktuell != null && mwstsatzDtoAktuell.getFMwstsatz().doubleValue() == 0) {
 					iIdMwstsatzDefault = mwstsatzDtoAktuell.getIId();
 					if (wcoMwstsatz != null) {
 						wcoMwstsatz.setKeyOfSelectedItem(iIdMwstsatzDefault);
@@ -325,27 +368,17 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 		if (e.getID() == ItemChangedEvent.ACTION_KRITERIEN_HAVE_BEEN_SELECTED) {
 			// Source ist mein Dialog zum Preisvorschlag
 			if (e.getSource() == pdPreisvorschlag) {
-				iIdPreislisteGewaehlt = pdPreisvorschlag
-						.getIIdPreislisteGewaehlt();
-				kundesokostaffelmengeIId = pdPreisvorschlag
-						.getIIdKundesokomengenstaffelZuletztGewaehlt();
-				vkStaffelmengeIId = pdPreisvorschlag
-						.getIIdVkmengenstaffelZuletztGewaehlt();
-				verkaufspreisDtoInZielwaehrung = pdPreisvorschlag
-						.getVerkaufspreisDto();
+				iIdPreislisteGewaehlt = pdPreisvorschlag.getIIdPreislisteGewaehlt();
+				kundesokostaffelmengeIId = pdPreisvorschlag.getIIdKundesokomengenstaffelZuletztGewaehlt();
+				vkStaffelmengeIId = pdPreisvorschlag.getIIdVkmengenstaffelZuletztGewaehlt();
+				verkaufspreisDtoInZielwaehrung = pdPreisvorschlag.getVerkaufspreisDto();
 				pruefeNettoPreis();
 
-				if (verkaufspreisDtoInZielwaehrung != null
-						&& verkaufspreisDtoInZielwaehrung.mwstsatzIId != null
-						&& !verkaufspreisDtoInZielwaehrung.mwstsatzIId
-								.equals(wcoMwstsatz.getKeyOfSelectedItem())) {
+				if (verkaufspreisDtoInZielwaehrung != null && verkaufspreisDtoInZielwaehrung.mwstsatzIId != null
+						&& !verkaufspreisDtoInZielwaehrung.mwstsatzIId.equals(wcoMwstsatz.getKeyOfSelectedItem())) {
 					// 15409 mit WH besprochen: Meldung anzeigen
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.info"),
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.warn.mwstsatzzurueckgesetzt"));
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.info"),
+							LPMain.getInstance().getTextRespectUISPr("lp.warn.mwstsatzzurueckgesetzt"));
 
 				}
 
@@ -364,25 +397,16 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 
 					// PJ 17176
 					if (getTBelegdatumMwstsatz() != null) {
-						KundesokoDto kundeSokoDto_gueltig = DelegateFactory
-								.getInstance()
-								.getKundesokoDelegate()
-								.kundesokoFindByKundeIIdArtikelIIdGueltigkeitsdatumOhneExc(
-										kundeDto.getIId(),
-										wifArtikelauswahl.getArtikelDto()
-												.getIId(),
-										new java.sql.Date(
-												getTBelegdatumMwstsatz()
-														.getTime()));
+						KundesokoDto kundeSokoDto_gueltig = DelegateFactory.getInstance().getKundesokoDelegate()
+								.kundesokoFindByKundeIIdArtikelIIdGueltigkeitsdatumOhneExc(kundeDto.getIId(),
+										wifArtikelauswahl.getArtikelDto().getIId(),
+										new java.sql.Date(getTBelegdatumMwstsatz().getTime()));
 						if (kundeSokoDto_gueltig != null) {
 							if (kundeSokoDto_gueltig.getCKundeartikelbez() != null) {
-								wtfBezeichnung.setText(kundeSokoDto_gueltig
-										.getCKundeartikelbez());
+								wtfBezeichnung.setText(kundeSokoDto_gueltig.getCKundeartikelbez());
 							}
 							if (kundeSokoDto_gueltig.getCKundeartikelzbez() != null) {
-								wtfZusatzbezeichnung
-										.setText(kundeSokoDto_gueltig
-												.getCKundeartikelzbez());
+								wtfZusatzbezeichnung.setText(kundeSokoDto_gueltig.getCKundeartikelzbez());
 							}
 
 						}
@@ -391,8 +415,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 				}
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_TABLE_SELECTION_CHANGED) {
-			wlaMinus.setText(LPMain.getInstance().getTextRespectUISPr(
-					"lp.minus"));
+			wlaMinus.setText(LPMain.getInstance().getTextRespectUISPr("lp.minus"));
 			wlaMinus.setToolTipText("");
 			wlaMinus.setForeground(Color.BLACK);
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
@@ -400,8 +423,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false); // LockMeForNew setzen
 
 		setDefaults();
@@ -411,8 +433,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		super.eventActionSpecial(e);
-		if (e.getActionCommand()
-				.equals(ACTION_SPECIAL_PREISAUSWAHL_FROM_DIALOG)) {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_PREISAUSWAHL_FROM_DIALOG)) {
 			dialogPreisvorschlag();
 		}
 	}
@@ -426,69 +447,91 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 
 			// PJ 15343 immer den Nettopreis vorschlagen
 
+			// SP8708
+			if (wnfMenge.getBigDecimal() == null) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+						LPMain.getTextRespectUISPr("lp.dialog.preisvorschlag.keinemenge"));
+				return;
+			}
+
 			BigDecimal nMaterialzuschlag = new BigDecimal(0);
-			if (wnfMaterialzuschlag != null
-					&& wnfMaterialzuschlag.getBigDecimal() != null) {
+			if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
 				nMaterialzuschlag = wnfMaterialzuschlag.getBigDecimal();
 			}
 
 			nFixPreis = wnfNettopreis.getBigDecimal();
 			if (iIdPreislisteGewaehlt == null)
-
-				iIdPreislisteGewaehlt = kundeDto
-						.getVkpfArtikelpreislisteIIdStdpreisliste();
-			nFixPreis = wnfNettopreis.getBigDecimal();
+				iIdPreislisteGewaehlt = kundeDto.getVkpfArtikelpreislisteIIdStdpreisliste();
 
 			// den Aufbau des Auswahldialogs bestimmen
 
 			if (iIdMwstsatzDefault == null) {
-				iIdMwstsatzDefault = (Integer) wcoMwstsatz
-						.getKeyOfSelectedItem();
+				iIdMwstsatzDefault = (Integer) wcoMwstsatz.getKeyOfSelectedItem();
 			}
 
-			vkpreisfindungDto = DelegateFactory
-					.getInstance()
-					.getVkPreisfindungDelegate()
-					.verkaufspreisfindung(getArtikelDto().getIId(),
-							kundeDto.getIId(), wnfMenge.getBigDecimal(),
-							getGueltigkeitsdatumArtikeleinzelverkaufspreis(),
-							iIdPreislisteGewaehlt, iIdMwstsatzDefault,
-							getWaehrungCNr());
+			boolean bMitMaterialzuschlag = true;
 
-			PanelDialogPreisvorschlagDto preisvorschlagDto = new PanelDialogPreisvorschlagDto(
-					getArtikelDto(), wnfMenge.getBigDecimal(), iIdLager,
-					getGueltigkeitsdatumArtikeleinzelverkaufspreis(), kundeDto,
-					iIdPreislisteGewaehlt, kundesokostaffelmengeIId,
-					vkStaffelmengeIId, cNrWaehrung, ddWechselkurs,
-					verkaufspreisDtoInZielwaehrung, vkpreisfindungDto,
-					nFixPreis, nMaterialzuschlag, true, wnfNettopreis
-							.getWrbFixNumber().isSelected());
+			ParametermandantDto parametermandantDtoMZ = DelegateFactory.getInstance().getParameterDelegate()
+					.getMandantparameter(LPMain.getInstance().getTheClient().getMandant(),
+							ParameterFac.KATEGORIE_ARTIKEL,
+							ParameterFac.PARAMETER_MATERIALKURS_AUF_BASIS_RECHNUNGSDATUM);
+			boolean bMaterialkursAufBasisRechnungsdatum = ((Boolean) parametermandantDtoMZ.getCWertAsObject())
+					.booleanValue();
+			if (bMaterialkursAufBasisRechnungsdatum) {
+				bMitMaterialzuschlag = false;
+			}
 
-			if (vkpreisfindungDto.getVkpreisberechnetStufe() != null
-					&& vkpreisfindungDto.getVkpreisberechnetStufe().equals(
-							VkpreisfindungDto.VKPFSTUFE3)) {
-				pdPreisvorschlag = new PanelDialogPreisvorschlagKundesokomengenstaffel(
-						getInternalFrame(),
-						LPMain.getTextRespectUISPr("lp.preisvorschlag.kundesokomengenstaffel"),
-						preisvorschlagDto);
-			} else if (vkpreisfindungDto.getVkpreisberechnetStufe() != null
-					&& vkpreisfindungDto.getVkpreisberechnetStufe().equals(
-							VkpreisfindungDto.VKPFSTUFE2)) {
-				pdPreisvorschlag = new PanelDialogPreisvorschlagVkmengenstaffel(
-						getInternalFrame(),
-						LPMain.getTextRespectUISPr("lp.preisvorschlag.vkmengenstaffel"),
-						preisvorschlagDto);
+			vkpreisfindungDto = DelegateFactory.getInstance().getVkPreisfindungDelegate().verkaufspreisfindung(
+					getArtikelDto().getIId(), kundeDto.getIId(), wnfMenge.getBigDecimal(),
+					getGueltigkeitsdatumArtikeleinzelverkaufspreis(), iIdPreislisteGewaehlt, iIdMwstsatzDefault,
+					getWaehrungCNr(), bMitMaterialzuschlag);
+
+			// PS20578
+			boolean bArtikelGeaendert = false;
+			if (getVorherigerArtikel() != null && getVorherigerArtikel().getIId() != null
+					&& wifArtikelauswahl.getArtikelDto() != null && wifArtikelauswahl.getArtikelDto().getIId() != null
+					&& !getVorherigerArtikel().getIId().equals(wifArtikelauswahl.getArtikelDto().getIId())) {
+				bArtikelGeaendert = true;
+			}
+
+			PanelDialogPreisvorschlagDto preisvorschlagDto = new PanelDialogPreisvorschlagDto(getArtikelDto(),
+					wnfMenge.getBigDecimal(), iIdLager, getGueltigkeitsdatumArtikeleinzelverkaufspreis(), kundeDto,
+					iIdPreislisteGewaehlt, kundesokostaffelmengeIId, vkStaffelmengeIId, cNrWaehrung, ddWechselkurs,
+					verkaufspreisDtoInZielwaehrung, vkpreisfindungDto, nFixPreis, nMaterialzuschlag,
+					belegpositionVerkaufDto == null ? null : belegpositionVerkaufDto.getNMaterialzuschlagKurs(),
+					belegpositionVerkaufDto == null ? null : belegpositionVerkaufDto.getTMaterialzuschlagDatum(), true,
+					wnfNettopreis.getWrbFixNumber().isSelected(), bArtikelGeaendert);
+
+			// SP3719 Auch beim Menge=1 bzw. wenn keine Staffeln vorhanden sind,
+			// der Staffel-Dialog anzeigen
+			ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+					.getMandantparameter(LPMain.getInstance().getTheClient().getMandant(),
+							ParameterFac.KATEGORIE_ARTIKEL,
+							ParameterFac.PARAMETER_IMMER_VKPREISDIALOG_MENGENSTAFFEL_ANZEIGEN);
+
+			boolean bImmerStufe2Anzeigen = ((Boolean) parametermandantDto.getCWertAsObject()).booleanValue();
+
+			if (bImmerStufe2Anzeigen == false) {
+
+				if (vkpreisfindungDto.getVkpreisberechnetStufe() != null
+						&& vkpreisfindungDto.getVkpreisberechnetStufe().equals(VkpreisfindungDto.VKPFSTUFE3)) {
+					pdPreisvorschlag = new PanelDialogPreisvorschlagKundesokomengenstaffel(getInternalFrame(),
+							LPMain.getTextRespectUISPr("lp.preisvorschlag.kundesokomengenstaffel"), preisvorschlagDto);
+				} else if (vkpreisfindungDto.getVkpreisberechnetStufe() != null
+						&& vkpreisfindungDto.getVkpreisberechnetStufe().equals(VkpreisfindungDto.VKPFSTUFE2)) {
+					pdPreisvorschlag = new PanelDialogPreisvorschlagVkmengenstaffel(getInternalFrame(),
+							LPMain.getTextRespectUISPr("lp.preisvorschlag.vkmengenstaffel"), preisvorschlagDto);
+				} else {
+					pdPreisvorschlag = new PanelDialogPreisvorschlagPreisliste(getInternalFrame(),
+							LPMain.getTextRespectUISPr("lp.preisvorschlag.kundepreisliste"), preisvorschlagDto);
+				}
 			} else {
-				pdPreisvorschlag = new PanelDialogPreisvorschlagPreisliste(
-						getInternalFrame(),
-						LPMain.getTextRespectUISPr("lp.preisvorschlag.kundepreisliste"),
-						preisvorschlagDto);
+				pdPreisvorschlag = new PanelDialogPreisvorschlagVkmengenstaffel(getInternalFrame(),
+						LPMain.getTextRespectUISPr("lp.preisvorschlag.vkmengenstaffel"), preisvorschlagDto);
 			}
-
 			getInternalFrame().showPanelDialog(pdPreisvorschlag);
 		} else {
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.warning"),
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
 					LPMain.getTextRespectUISPr("lp.hint.artikelwaehlen"));
 		}
 	}
@@ -497,47 +540,36 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	 * Bestimmen, ob fuer einen bestimmten Artikel eine Verkaufspreisbasis
 	 * hinterlegt ist.
 	 * 
-	 * @param iIdArtikelI
-	 *            PK des Artikels
-	 * @param datGueltigkeitsdatumI
-	 *            Gueltigkeitsdatum des Artikels
+	 * @param iIdArtikelI           PK des Artikels
+	 * @param datGueltigkeitsdatumI Gueltigkeitsdatum des Artikels
 	 * @return boolean true, wenn eine Verkaufspreisbasis hinterlegt ist
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public boolean istArtikelverkaufspreisbasisHinterlegt(Integer iIdArtikelI,
-			java.sql.Date datGueltigkeitsdatumI) throws Throwable {
+	public boolean istArtikelverkaufspreisbasisHinterlegt(Integer iIdArtikelI, java.sql.Date datGueltigkeitsdatumI)
+			throws Throwable {
 		boolean bIstHinterlegt = false;
 
 		try {
-			VkPreisfindungEinzelverkaufspreisDto oEinzelverkaufspreisDto = DelegateFactory
-					.getInstance()
-					.getVkPreisfindungDelegate()
-					.getArtikeleinzelverkaufspreis(iIdArtikelI,
-							datGueltigkeitsdatumI,
+			VkPreisfindungEinzelverkaufspreisDto oEinzelverkaufspreisDto = DelegateFactory.getInstance()
+					.getVkPreisfindungDelegate().getArtikeleinzelverkaufspreis(iIdArtikelI, datGueltigkeitsdatumI,
 							LPMain.getTheClient().getSMandantenwaehrung());
 
 			if (oEinzelverkaufspreisDto.getNVerkaufspreisbasis() != null) {
 				bIstHinterlegt = true;
 			}
 		} catch (Throwable t) {
-			MessageFormat mf = new MessageFormat(LPMain.getInstance()
-					.getTextRespectUISPr(
-							"lp.error.artikelhatkeineneinzelvkphinterlegt"));
+			MessageFormat mf = new MessageFormat(
+					LPMain.getInstance().getTextRespectUISPr("lp.error.artikelhatkeineneinzelvkphinterlegt"));
 
 			mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
 
-			VkpfartikelpreislisteDto oVkpfartikelpreislisteDto = DelegateFactory
-					.getInstance()
+			VkpfartikelpreislisteDto oVkpfartikelpreislisteDto = DelegateFactory.getInstance()
 					.getVkPreisfindungDelegate()
-					.vkpfartikelpreislisteFindByPrimaryKey(
-							kundeDto.getVkpfArtikelpreislisteIIdStdpreisliste());
+					.vkpfartikelpreislisteFindByPrimaryKey(kundeDto.getVkpfArtikelpreislisteIIdStdpreisliste());
 
-			Object pattern[] = { kundeDto.getPartnerDto().formatTitelAnrede(),
-					oVkpfartikelpreislisteDto.getCNr() };
+			Object pattern[] = { kundeDto.getPartnerDto().formatTitelAnrede(), oVkpfartikelpreislisteDto.getCNr() };
 
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.warning"), mf.format(pattern));
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"), mf.format(pattern));
 		}
 
 		return bIstHinterlegt;
@@ -548,271 +580,287 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	 * berechnet. Diese werden jetzt zur Anzeige gebracht. <br>
 	 * Die Anzeige erfolgt in Fremdwaehrung.
 	 * 
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public void verkaufspreisDto2components() throws Throwable {
-		wnfEinzelpreis
-				.setBigDecimal(verkaufspreisDtoInZielwaehrung.einzelpreis);
-		wnfRabattsumme
-				.setBigDecimal(verkaufspreisDtoInZielwaehrung.rabattsumme);
+		wnfEinzelpreis.setBigDecimal(verkaufspreisDtoInZielwaehrung.einzelpreis);
+		wnfRabattsumme.setBigDecimal(verkaufspreisDtoInZielwaehrung.rabattsumme);
 
 		getWnfRabattsatz().setDouble(verkaufspreisDtoInZielwaehrung.rabattsatz);
-		getWnfZusatzrabattsatz().setDouble(
-				verkaufspreisDtoInZielwaehrung.getDdZusatzrabattsatz());
-		getWnfZusatzrabattsumme().setBigDecimal(
-				verkaufspreisDtoInZielwaehrung.getNZusatzrabattsumme());
+		getWnfZusatzrabattsatz().setDouble(verkaufspreisDtoInZielwaehrung.getDdZusatzrabattsatz());
+		getWnfZusatzrabattsumme().setBigDecimal(verkaufspreisDtoInZielwaehrung.getNZusatzrabattsumme());
 
-		if (wnfMaterialzuschlag != null
-				&& verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag != null) {
-			wnfMaterialzuschlag
-					.setBigDecimal(verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag);
+		if (wnfMaterialzuschlag != null && verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag != null) {
+			wnfMaterialzuschlag.setBigDecimal(verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag);
 		}
 
 		wnfNettopreis.setBigDecimal(verkaufspreisDtoInZielwaehrung.nettopreis);
 		wnfMwstsumme.setBigDecimal(verkaufspreisDtoInZielwaehrung.mwstsumme);
-		wnfBruttopreis
-				.setBigDecimal(verkaufspreisDtoInZielwaehrung.bruttopreis);
+		wnfBruttopreis.setBigDecimal(verkaufspreisDtoInZielwaehrung.bruttopreis);
 		// die MwstsatzIId hier nicht ueberschreiben! WARUM NICHT??? Das ist
 		// falsch ...
 
 		// falls der Mwstsatz aus der ComboBox durch den Preisdialog
 		// uebersteuert wurde
-		wcoMwstsatz
-				.setKeyOfSelectedItem(verkaufspreisDtoInZielwaehrung.mwstsatzIId);
+		wcoMwstsatz.setKeyOfSelectedItem(verkaufspreisDtoInZielwaehrung.mwstsatzIId);
+
+		// SP8708
+		if (verkaufspreisDtoInZielwaehrung.bKommtVonFixpreis) {
+			wnfNettopreis.getWrbFixNumber().setSelected(true);
+		}
+
 	}
 
 	/**
-	 * Den gesamten Verkaufspreis wie er momentan im Panel angezeigt wird in ein
-	 * Dto packen.
+	 * Den gesamten Verkaufspreis wie er momentan im Panel angezeigt wird in ein Dto
+	 * packen.
 	 * 
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
 	private void components2VerkaufspreisDto() throws Throwable {
-		verkaufspreisDtoInZielwaehrung.einzelpreis = wnfEinzelpreis
-				.getBigDecimal();
-		verkaufspreisDtoInZielwaehrung.rabattsumme = wnfRabattsumme
-				.getBigDecimal();
-		verkaufspreisDtoInZielwaehrung.nettopreis = wnfNettopreis
-				.getBigDecimal();
+		verkaufspreisDtoInZielwaehrung.einzelpreis = wnfEinzelpreis.getBigDecimal();
+		verkaufspreisDtoInZielwaehrung.rabattsumme = wnfRabattsumme.getBigDecimal();
+		verkaufspreisDtoInZielwaehrung.nettopreis = wnfNettopreis.getBigDecimal();
 		verkaufspreisDtoInZielwaehrung.mwstsumme = wnfMwstsumme.getBigDecimal();
-		verkaufspreisDtoInZielwaehrung.bruttopreis = wnfBruttopreis
-				.getBigDecimal();
+		verkaufspreisDtoInZielwaehrung.bruttopreis = wnfBruttopreis.getBigDecimal();
 
-		verkaufspreisDtoInZielwaehrung.rabattsatz = getWnfRabattsatz()
-				.getDouble();
-		verkaufspreisDtoInZielwaehrung.mwstsatzIId = (Integer) wcoMwstsatz
-				.getKeyOfSelectedItem();
+		verkaufspreisDtoInZielwaehrung.rabattsatz = getWnfRabattsatz().getDouble();
+		verkaufspreisDtoInZielwaehrung.mwstsatzIId = (Integer) wcoMwstsatz.getKeyOfSelectedItem();
 	}
 
-	public void berechneVerkaufspreis(boolean bMitDialogPreisvorschlag)
-			throws Throwable {
-		berechneVerkaufspreis((Integer) wcoMwstsatz.getKeyOfSelectedItem(),
-				ddWechselkurs, bMitDialogPreisvorschlag);
+	public void berechneVerkaufspreis(boolean bMitDialogPreisvorschlag) throws Throwable {
+		berechneVerkaufspreis((Integer) wcoMwstsatz.getKeyOfSelectedItem(), ddWechselkurs, bMitDialogPreisvorschlag);
 	}
 
 	/**
 	 * Den Verkaufspreis berechnen.
 	 * 
-	 * @param iIdMwstsatzI
-	 *            PK des Mwstsatzes
-	 * @param ddWechselkursI
-	 *            Wechselkurs von Mandantenwaehrung zu Fremdwaehrung
+	 * @param iIdMwstsatzI   PK des Mwstsatzes
+	 * @param ddWechselkursI Wechselkurs von Mandantenwaehrung zu Fremdwaehrung
 	 * @throws Throwable
 	 */
-	public void berechneVerkaufspreis(Integer iIdMwstsatzI,
-			Double ddWechselkursI, boolean bMitDialogPreisvorschlag)
+	public void berechneVerkaufspreis(Integer iIdMwstsatzI, Double ddWechselkursI, boolean bMitDialogPreisvorschlag)
 			throws Throwable {
 
-		// PJ 15845
-		if (!DelegateFactory.getInstance().getTheJudgeDelegate()
-				.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_AENDERN_VERKAUF)) {
-			bMitDialogPreisvorschlag = false;
-		}
-
-		nFixPreis = wnfNettopreis.getBigDecimal();
-		// VKPF Stufe 1: Standardpreisliste des Kunden bestimmen, ist eine
-		// Eigenschaft des Kunden und darf nicht null sein
-		Integer kundeStandardpreisliste = kundeDto
-				.getVkpfArtikelpreislisteIIdStdpreisliste();
-
-		if (kundeStandardpreisliste == null) {
-			throw new ExceptionLP(
-					EJBExceptionLP.FEHLER_KUNDE_HAT_KEINE_STANDARDPREISLISTE_HINTERLEGT,
-					new Exception("kundeStandardpreisliste == null"));
-		}
-
-		String vkpfWaehrung = DelegateFactory.getInstance()
-				.getVkPreisfindungDelegate()
-				.vkpfartikelpreislisteFindByPrimaryKey(kundeStandardpreisliste)
-				.getWaehrungCNr();
-		if (kundeDto.getCWaehrung().compareTo(vkpfWaehrung) != 0) {
-
-			if (!vkpfWaehrung.equals(LPMain.getInstance().getTheClient()
-					.getSMandantenwaehrung())) {
-
-				throw new ExceptionLP(
-						EJBExceptionLP.FEHLER_KUNDE_STANDARDPREISLISTE_HAT_FALSCHE_WAEHRUNG,
-						new Exception(
-								"kundeStandardpreisliste falsche Waehrung ("
-										+ vkpfWaehrung + ")"));
-			}
-		}
-		iIdPreislisteGewaehlt = kundeStandardpreisliste;
-
-		// VKPF Stufe 2: die passende Mengenstaffel vorbelegen
-		VkpfMengenstaffelDto[] aVkpfMengenstaffelDtos = // alle
-														// Mengenstaffeln
-		DelegateFactory
-				.getInstance()
-				.getVkPreisfindungDelegate()
-				.vkpfMengenstaffelFindByArtikelIIdGueltigkeitsdatum(
-						getArtikelDto().getIId(),
-						datGueltigkeitsdatumArtikeleinzelverkaufspreis,
-						getKundeDto()
-								.getVkpfArtikelpreislisteIIdStdpreisliste());
-
-		// die passende Mengenstaffel
-		VkpfMengenstaffelDto vkpfMengenstaffelDtoPassend = DelegateFactory
-				.getInstance()
-				.getVkPreisfindungDelegate()
-				.vkpfMengenstaffelFindByArtikelIIdNMengeGueltigkeitsdatum(
-						getArtikelDto().getIId(),
-						wnfMenge.getBigDecimal(),
-						datGueltigkeitsdatumArtikeleinzelverkaufspreis,
-						getKundeDto()
-								.getVkpfArtikelpreislisteIIdStdpreisliste());
-		// PJ 09/0013865
-
-		if (vkpfMengenstaffelDtoPassend != null)
-			if (vkpfMengenstaffelDtoPassend.getNArtikelfixpreis() != null) {
-				wnfNettopreis.getWrbFixNumber().setSelected(true);
+		if (wnfMenge.getBigDecimal() != null) {
+			// PJ 15845
+			if (!DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_LP_DARF_PREISE_AENDERN_VERKAUF)) {
+				bMitDialogPreisvorschlag = false;
 			}
 
-		if (aVkpfMengenstaffelDtos != null && aVkpfMengenstaffelDtos.length > 0
-				&& vkpfMengenstaffelDtoPassend != null) {
-			for (int i = 0; i < aVkpfMengenstaffelDtos.length; i++) {
-				if (aVkpfMengenstaffelDtos[i].getIId().intValue() == vkpfMengenstaffelDtoPassend
-						.getIId().intValue()) {
-					vkStaffelmengeIId = aVkpfMengenstaffelDtos[i].getIId();
+			// PJ20672
+			ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+					.getMandantparameter(LPMain.getInstance().getTheClient().getMandant(),
+							ParameterFac.KATEGORIE_ALLGEMEIN, ParameterFac.PARAMETER_VK_PREIS_IMMER_AKTUALISIEREN);
+			boolean bVkPreisImmeraktualisieren = ((Boolean) parametermandantDto.getCWertAsObject()).booleanValue();
+			if (bVkPreisImmeraktualisieren == true) {
+				bMitDialogPreisvorschlag = false;
+			}
+
+			boolean bVkPreisAusStklGesamtkalkulationWennAgstkl = false;
+			if (getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_AGSTUECKLISTE)) {
+				parametermandantDto = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+						LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_ANGEBOTSSTUECKLISTE,
+						ParameterFac.PARAMETER_PREIS_AUS_GESAMTKALKULATION_WENN_STUECKLISTE);
+				bVkPreisAusStklGesamtkalkulationWennAgstkl = ((Boolean) parametermandantDto.getCWertAsObject())
+						.booleanValue();
+			}
+
+			nFixPreis = wnfNettopreis.getBigDecimal();
+			// VKPF Stufe 1: Standardpreisliste des Kunden bestimmen, ist eine
+			// Eigenschaft des Kunden und darf nicht null sein
+			Integer kundeStandardpreisliste = kundeDto.getVkpfArtikelpreislisteIIdStdpreisliste();
+
+			if (kundeStandardpreisliste == null) {
+				throw new ExceptionLP(EJBExceptionLP.FEHLER_KUNDE_HAT_KEINE_STANDARDPREISLISTE_HINTERLEGT,
+						new Exception("kundeStandardpreisliste == null"));
+			}
+
+			String vkpfWaehrung = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+					.vkpfartikelpreislisteFindByPrimaryKey(kundeStandardpreisliste).getWaehrungCNr();
+			if (kundeDto.getCWaehrung().compareTo(vkpfWaehrung) != 0) {
+
+				if (!vkpfWaehrung.equals(LPMain.getInstance().getTheClient().getSMandantenwaehrung())) {
+
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.info"),
+							LPMain.getInstance().getTextRespectUISPr("lp.error.falschewaehrung.beleg"));
+
 				}
 			}
-		}
+			iIdPreislisteGewaehlt = kundeStandardpreisliste;
 
-		// VKPF Stufe 3: Die passende Kundesokomengenstaffel vorbelegen
-		KundesokomengenstaffelDto mengenstaffelDtoPassend = DelegateFactory
-				.getInstance()
-				.getVkPreisfindungDelegate()
-				.ermittleKundesokomengenstaffel(getArtikelDto(),
-						kundeDto.getIId(), wnfMenge.getBigDecimal(),
-						datGueltigkeitsdatumArtikeleinzelverkaufspreis);
+			// VKPF Stufe 2: die passende Mengenstaffel vorbelegen
+			VkpfMengenstaffelDto[] aVkpfMengenstaffelDtos = // alle
+															// Mengenstaffeln
+					DelegateFactory.getInstance().getVkPreisfindungDelegate()
+							.vkpfMengenstaffelFindByArtikelIIdGueltigkeitsdatum(getArtikelDto().getIId(),
+									datGueltigkeitsdatumArtikeleinzelverkaufspreis,
+									getKundeDto().getVkpfArtikelpreislisteIIdStdpreisliste());
 
-		if (mengenstaffelDtoPassend != null) {
-			kundesokostaffelmengeIId = mengenstaffelDtoPassend.getIId();
-		}
+			// die passende Mengenstaffel
+			VkpfMengenstaffelDto vkpfMengenstaffelDtoPassend = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+					.vkpfMengenstaffelFindByArtikelIIdNMengeGueltigkeitsdatum(getArtikelDto().getIId(),
+							wnfMenge.getBigDecimal(), datGueltigkeitsdatumArtikeleinzelverkaufspreis,
+							getKundeDto().getVkpfArtikelpreislisteIIdStdpreisliste());
+			// PJ 09/0013865
 
-		vkpreisfindungDto = DelegateFactory
-				.getInstance()
-				.getVkPreisfindungDelegate()
-				.verkaufspreisfindung(getArtikelDto().getIId(),
-						kundeDto.getIId(), wnfMenge.getBigDecimal(),
-						datGueltigkeitsdatumArtikeleinzelverkaufspreis,
-						kundeStandardpreisliste, iIdMwstsatzI, getWaehrungCNr());
-
-		try {
-			verkaufspreisDtoInZielwaehrung = Helper
-					.getVkpreisBerechnet(vkpreisfindungDto);
-		} catch (Throwable t) {
-			t.printStackTrace();
-		}
-
-		if (verkaufspreisDtoInZielwaehrung == null) {
-			// Message anzeigen
-
-			// PJ 17580
-			boolean bMeldungAnzeigen = true;
-			if (getArtikelDto().getArtgruIId() != null
-					&& getInternalFrame() instanceof InternalFrameLieferschein) {
-				ArtgruDto agDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
-						.artgruFindByPrimaryKey(getArtikelDto().getArtgruIId());
-
-				if (Helper.short2boolean(agDto.getBKeinevkwarnmeldungimls()) == true) {
-					bMeldungAnzeigen = false;
+			if (vkpfMengenstaffelDtoPassend != null)
+				if (vkpfMengenstaffelDtoPassend.getNArtikelfixpreis() != null) {
+					wnfNettopreis.getWrbFixNumber().setSelected(true);
 				}
 
-			}
-
-			if (bMeldungAnzeigen == true) {
-
-				if (!Helper.short2boolean(getArtikelDto().getBKalkulatorisch())) {
-					MessageFormat mf = new MessageFormat(
-							LPMain.getTextRespectUISPr("lp.error.artikelhatkeineneinzelvkphinterlegt"));
-
-					mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
-
-					VkpfartikelpreislisteDto oVkpfartikelpreislisteDto = DelegateFactory
-							.getInstance()
-							.getVkPreisfindungDelegate()
-							.vkpfartikelpreislisteFindByPrimaryKey(
-									iIdPreislisteGewaehlt);
-
-					Object pattern[] = {
-							kundeDto.getPartnerDto().formatTitelAnrede(),
-							oVkpfartikelpreislisteDto.getCNr() };
-
-					DialogFactory.showModalDialog(LPMain.getInstance()
-							.getTextRespectUISPr("lp.warning"), mf
-							.format(pattern));
+			if (aVkpfMengenstaffelDtos != null && aVkpfMengenstaffelDtos.length > 0
+					&& vkpfMengenstaffelDtoPassend != null) {
+				for (int i = 0; i < aVkpfMengenstaffelDtos.length; i++) {
+					if (aVkpfMengenstaffelDtos[i].getIId().intValue() == vkpfMengenstaffelDtoPassend.getIId()
+							.intValue()) {
+						vkStaffelmengeIId = aVkpfMengenstaffelDtos[i].getIId();
+					}
 				}
 			}
 
-			// die Preise koennen auch per Hand eingegeben werden
-			verkaufspreisDtoInZielwaehrung = new VerkaufspreisDto();
+			// VKPF Stufe 3: Die passende Kundesokomengenstaffel vorbelegen
+			KundesokomengenstaffelDto mengenstaffelDtoPassend = DelegateFactory.getInstance()
+					.getVkPreisfindungDelegate().ermittleKundesokomengenstaffel(getArtikelDto(), kundeDto.getIId(),
+							wnfMenge.getBigDecimal(), datGueltigkeitsdatumArtikeleinzelverkaufspreis);
 
-			// SP2952 Materialzuschlag gibt es jedoch trotzdem
-			if (getArtikelDto().getMaterialIId() != null) {
-				BigDecimal materialzuschlag = DelegateFactory
-						.getInstance()
-						.getMaterialDelegate()
-						.getMaterialzuschlagVKInZielwaehrung(
-								getArtikelDto().getIId(),
-								datGueltigkeitsdatumArtikeleinzelverkaufspreis,
-								getWaehrungCNr());
-				if (materialzuschlag != null) {
-					verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag = materialzuschlag;
-					verkaufspreisDtoInZielwaehrung.nettopreis = materialzuschlag;
-				}
+			if (mengenstaffelDtoPassend != null) {
+				kundesokostaffelmengeIId = mengenstaffelDtoPassend.getIId();
 			}
 
-			wnfEinzelpreis.requestFocus();
-		}
+			// PJ19683
+			boolean bMitMaterialzuschlag = true;
 
-		if (nFixPreis.compareTo(verkaufspreisDtoInZielwaehrung.einzelpreis) != 0) {
-			// VF PJ 08/0013026
-			LockStateValue lv = this.getLockedstateDetailMainKey();
-			if (lv.getIState() != LOCK_FOR_EMPTY
-					&& bMitDialogPreisvorschlag == true)
-				dialogPreisvorschlag();
-		}
-		// Preise in der Zielwaehrung anzeigen
-		verkaufspreisDto2components();
+			parametermandantDto = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+					LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+					ParameterFac.PARAMETER_MATERIALKURS_AUF_BASIS_RECHNUNGSDATUM);
+			boolean bMaterialkursAufBasisRechnungsdatum = ((Boolean) parametermandantDto.getCWertAsObject())
+					.booleanValue();
+			if (bMaterialkursAufBasisRechnungsdatum) {
+				bMitMaterialzuschlag = false;
+			}
 
-		pruefeGueltigBisArtikellieferant();
+			if (!Helper.short2boolean(getArtikelDto().getBKalkulatorisch())) {
+				vkpreisfindungDto = DelegateFactory.getInstance().getVkPreisfindungDelegate().verkaufspreisfindung(
+						getArtikelDto().getIId(), kundeDto.getIId(), wnfMenge.getBigDecimal(),
+						datGueltigkeitsdatumArtikeleinzelverkaufspreis, kundeStandardpreisliste, iIdMwstsatzI,
+						getWaehrungCNr(), bMitMaterialzuschlag);
+			} else {
+				// SP5891
+				vkpreisfindungDto = new VkpreisfindungDto(LPMain.getTheClient().getLocUi());
+			}
+
+			try {
+				verkaufspreisDtoInZielwaehrung = Helper.getVkpreisBerechnet(vkpreisfindungDto);
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+
+			if (verkaufspreisDtoInZielwaehrung == null) {
+				// Message anzeigen
+
+				// PJ 17580
+				boolean bMeldungAnzeigen = true;
+				if (getArtikelDto().getArtgruIId() != null && getInternalFrame() instanceof InternalFrameLieferschein) {
+					ArtgruDto agDto = DelegateFactory.getInstance().getArtikelDelegate()
+							.artgruFindByPrimaryKey(getArtikelDto().getArtgruIId());
+
+					if (Helper.short2boolean(agDto.getBKeinevkwarnmeldungimls()) == true) {
+						bMeldungAnzeigen = false;
+					}
+
+				}
+
+				// die Preise koennen auch per Hand eingegeben werden
+				verkaufspreisDtoInZielwaehrung = new VerkaufspreisDto();
+
+				// PJ22027
+				if (getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_AGSTUECKLISTE)
+						&& bVkPreisAusStklGesamtkalkulationWennAgstkl) {
+					VerkaufspreisDto vkPreisDtoStkl = DelegateFactory.getInstance().getStuecklisteDelegate()
+							.getKalkuliertenVerkaufspreisAusGesamtkalkulation(getArtikelDto().getIId(),
+									wnfMenge.getBigDecimal(), datGueltigkeitsdatumArtikeleinzelverkaufspreis,
+									getWaehrungCNr());
+
+					if (vkPreisDtoStkl != null) {
+						verkaufspreisDtoInZielwaehrung = vkPreisDtoStkl;
+						bMeldungAnzeigen = false;
+					}
+
+				}
+
+				if (bMeldungAnzeigen == true) {
+
+					if (!Helper.short2boolean(getArtikelDto().getBKalkulatorisch())) {
+						MessageFormat mf = new MessageFormat(
+								LPMain.getTextRespectUISPr("lp.error.artikelhatkeineneinzelvkphinterlegt"));
+
+						mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
+
+						VkpfartikelpreislisteDto oVkpfartikelpreislisteDto = DelegateFactory.getInstance()
+								.getVkPreisfindungDelegate()
+								.vkpfartikelpreislisteFindByPrimaryKey(iIdPreislisteGewaehlt);
+
+						Object pattern[] = { kundeDto.getPartnerDto().formatTitelAnrede(),
+								oVkpfartikelpreislisteDto.getCNr() };
+
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+								mf.format(pattern));
+					}
+				}
+
+				// SP2952 Materialzuschlag gibt es jedoch trotzdem
+				if (getArtikelDto().getMaterialIId() != null) {
+					if (bMaterialkursAufBasisRechnungsdatum == false) {
+
+						BigDecimal materialzuschlag = DelegateFactory.getInstance().getMaterialDelegate()
+								.getMaterialzuschlagVKInZielwaehrung(getArtikelDto().getIId(), kundeDto.getIId(),
+										datGueltigkeitsdatumArtikeleinzelverkaufspreis, getWaehrungCNr());
+						if (materialzuschlag != null) {
+							verkaufspreisDtoInZielwaehrung.bdMaterialzuschlag = materialzuschlag;
+							verkaufspreisDtoInZielwaehrung.nettopreis = materialzuschlag;
+						}
+					}
+				}
+
+				wnfEinzelpreis.requestFocus();
+			}
+
+			if (nFixPreis.compareTo(Helper.rundeKaufmaennisch(verkaufspreisDtoInZielwaehrung.nettopreis,
+					Defaults.getInstance().getIUINachkommastellenPreiseVK())) != 0) {
+				// VF PJ 08/0013026
+				LockStateValue lv = this.getLockedstateDetailMainKey();
+				if (lv.getIState() == LOCK_IS_LOCKED_BY_ME && bMitDialogPreisvorschlag == true) {
+					dialogPreisvorschlag();
+				} else if (lv.getIState() == LOCK_FOR_NEW && nFixPreis.doubleValue() != 0
+						&& bMitDialogPreisvorschlag == true) {
+					// SP4486
+					dialogPreisvorschlag();
+				} else {
+					// Preise in der Zielwaehrung anzeigen
+					verkaufspreisDto2components();
+				}
+			} else {
+				// Preise in der Zielwaehrung anzeigen
+				verkaufspreisDto2components();
+			}
+
+			pruefeGueltigBisArtikellieferant();
+		} else {
+			wnfMenge.requestFocus();
+		}
 
 	}
 
 	private void pruefeGueltigBisArtikellieferant() throws Throwable {
 		// PJ15259
 
-		if (getArtikelDto() != null && getArtikelDto().getIId() != null
-				&& wnfMenge.getBigDecimal() != null && getCNrWaehrung() != null) {
+		if (getArtikelDto() != null && getArtikelDto().getIId() != null && wnfMenge.getBigDecimal() != null
+				&& getCNrWaehrung() != null) {
 
-			ArtikellieferantDto alDto = DelegateFactory
-					.getInstance()
-					.getArtikelDelegate()
-					.getArtikelEinkaufspreis(getArtikelDto().getIId(),
+			ArtikellieferantDto alDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.getArtikelEinkaufspreisDesBevorzugtenLieferanten(getArtikelDto().getIId(),
 							wnfMenge.getBigDecimal(), getCNrWaehrung());
 
 			Timestamp tPruefDatum = getTBelegdatumMwstsatz();
@@ -820,26 +868,20 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 			if (getInternalFrame() instanceof InternalFrameAngebot) {
 
 				InternalFrameAngebot ifa = (InternalFrameAngebot) getInternalFrame();
-				tPruefDatum = ifa.getTabbedPaneAngebot().getAngebotDto()
-						.getTAngebotsgueltigkeitbis();
+				tPruefDatum = ifa.getTabbedPaneAngebot().getAngebotDto().getTAngebotsgueltigkeitbis();
 
 			}
 
-			if (alDto != null && alDto.getTPreisgueltigbis() != null
-					&& tPruefDatum != null
+			if (alDto != null && alDto.getTPreisgueltigbis() != null && tPruefDatum != null
 					&& alDto.getTPreisgueltigbis().before(tPruefDatum)) {
 
-				wlaMinus.setText(LPMain.getInstance().getTextRespectUISPr(
-						"lp.ekpreis.abgelaufen")
-						+ "  "
+				wlaMinus.setText(LPMain.getInstance().getTextRespectUISPr("lp.ekpreis.abgelaufen") + "  "
 						+ LPMain.getInstance().getTextRespectUISPr("lp.minus"));
-				wlaMinus.setToolTipText(LPMain.getInstance()
-						.getTextRespectUISPr("lp.ekpreis.abgelaufen.tooltip"));
+				wlaMinus.setToolTipText(LPMain.getInstance().getTextRespectUISPr("lp.ekpreis.abgelaufen.tooltip"));
 				wlaMinus.setForeground(Color.RED);
 
 			} else {
-				wlaMinus.setText(LPMain.getInstance().getTextRespectUISPr(
-						"lp.minus"));
+				wlaMinus.setText(LPMain.getInstance().getTextRespectUISPr("lp.minus"));
 				wlaMinus.setToolTipText("");
 				wlaMinus.setForeground(Color.BLACK);
 			}
@@ -884,15 +926,14 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	 * Hier den Wert fuer datGueltigkeitsdatumArtikeleinzelverkaufspreis
 	 * hinterlegen.
 	 * 
-	 * @param datDatumI
-	 *            das Gueltigkeitsdatum
+	 * @param datDatumI das Gueltigkeitsdatum
 	 */
-	public void setGueltigkeitsdatumArtikeleinzelverkaufspreis(
-			java.sql.Date datDatumI) {
+	public void setGueltigkeitsdatumArtikeleinzelverkaufspreis(java.sql.Date datDatumI) {
 		datGueltigkeitsdatumArtikeleinzelverkaufspreis = datDatumI;
 	}
 
 	public void artikelDto2components() throws Throwable {
+
 		super.artikelDto2components();
 
 		if (getBDefaultMwstsatzAusArtikel()) {
@@ -902,55 +943,55 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 			MwstsatzDto mwstsatzDtoAktuell = null;
 
 			KundeDto kdDtoFuerMwst = kundeDto;
+			Timestamp belegDatum = getTBelegdatumMwstsatz();
+			if (belegDatum == null) {
+				belegDatum = HelperTimestamp.cut();
+			}
+
 			// PJ17455 Wenn Lieferschein, dann kommt MWST aus Lieferadresse
 			if (getInternalFrame() instanceof InternalFrameLieferschein) {
 				InternalFrameLieferschein ifL = (InternalFrameLieferschein) getInternalFrame();
-				kdDtoFuerMwst = DelegateFactory
-						.getInstance()
-						.getKundeDelegate()
-						.kundeFindByPrimaryKey(
-								ifL.getTabbedPaneLieferschein()
-										.getLieferscheinDto()
-										.getKundeIIdLieferadresse());
+				kdDtoFuerMwst = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(
+						ifL.getTabbedPaneLieferschein().getLieferscheinDto().getKundeIIdLieferadresse());
 
 			}
 
 			if (kdDtoFuerMwst != null) {
 				// Ausser der Kunde hat MWST-Satz mit 0%, dann muss dieser
 				// verwendet werden
-				MwstsatzDto mwstsatzDtoKunde = DelegateFactory
-						.getInstance()
-						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(
-								kdDtoFuerMwst.getMwstsatzbezIId());
-
-				if (mwstsatzDtoKunde.getFMwstsatz().doubleValue() == 0) {
+				MwstsatzDto mwstsatzDtoKunde = DelegateFactory.mandant()
+						.mwstsatzFindZuDatum(kdDtoFuerMwst.getMwstsatzbezIId(), belegDatum);
+				/*
+				 * MwstsatzDto mwstsatzDtoKunde = DelegateFactory .getInstance()
+				 * .getMandantDelegate() .mwstsatzFindByMwstsatzbezIIdAktuellster(
+				 * kdDtoFuerMwst.getMwstsatzbezIId());
+				 */
+				if (mwstsatzDtoKunde != null && mwstsatzDtoKunde.getFMwstsatz().doubleValue() == 0) {
 					mwstsatzDtoAktuell = mwstsatzDtoKunde;
 				}
-
 			}
 
 			if (mwstsatzDtoAktuell == null) {
-				mwstsatzDtoAktuell = DelegateFactory
-						.getInstance()
-						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(
-								getArtikelDto().getMwstsatzbezIId());
+				/*
+				 * mwstsatzDtoAktuell = DelegateFactory .getInstance() .getMandantDelegate()
+				 * .mwstsatzFindByMwstsatzbezIIdAktuellster(
+				 * getArtikelDto().getMwstsatzbezIId());
+				 */
+				mwstsatzDtoAktuell = DelegateFactory.getInstance().mandant()
+						.mwstsatzFindZuDatum(getArtikelDto().getMwstsatzbezIId(), belegDatum);
 			}
 
 			if (mwstsatzDtoAktuell != null) {
 				iIdMwstsatzDefault = mwstsatzDtoAktuell.getIId();
 				wcoMwstsatz.setKeyOfSelectedItem(mwstsatzDtoAktuell.getIId());
 			} else
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.hint"), LPMain.getInstance()
-						.getTextRespectUISPr("lp.error.mwstsatzartikel"));
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hint"),
+						LPMain.getInstance().getTextRespectUISPr("lp.error.mwstsatzartikel"));
 		}
 		// VF PJ 08/0013026
 		LockStateValue lv = this.getLockedstateDetailMainKey();
-		if (lv.getIState() != LOCK_IS_LOCKED_BY_ME)
-			berechneVerkaufspreis((Integer) wcoMwstsatz.getKeyOfSelectedItem(),
-					ddWechselkurs, true);
+		if (lv.getIState() == LOCK_IS_LOCKED_BY_ME || lv.getIState() == LOCK_FOR_NEW)
+			berechneVerkaufspreis((Integer) wcoMwstsatz.getKeyOfSelectedItem(), ddWechselkurs, true);
 	}
 
 	public Integer getIIdPreislisteGewaehlt() {
@@ -986,18 +1027,15 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	}
 
 	/**
-	 * Hinterlegen der Information, ob die Default MwstsatzIId manuell
-	 * uebersteuert wurde.
+	 * Hinterlegen der Information, ob die Default MwstsatzIId manuell uebersteuert
+	 * wurde.
 	 * 
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	protected void bestimmeDefaultMwstsatzIIdUebersteuert() throws Throwable {
-		if (iIdMwstsatzDefault != null
-				&& wcoMwstsatz.getKeyOfSelectedItem() != null) {
+		if (iIdMwstsatzDefault != null && wcoMwstsatz.getKeyOfSelectedItem() != null) {
 
-			if (((Integer) wcoMwstsatz.getKeyOfSelectedItem()).intValue() != iIdMwstsatzDefault
-					.intValue()) {
+			if (((Integer) wcoMwstsatz.getKeyOfSelectedItem()).intValue() != iIdMwstsatzDefault.intValue()) {
 				bIstMwstsatzDefaultUebersteuert = true;
 
 				// im PanelDialogPreisauswahl muss Fixpreis/Rabattsatz angezeigt
@@ -1019,14 +1057,12 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	/**
 	 * Feststellen, ob der Rabattsatz aus der Vkpf manuell uebersteuert wurde.
 	 * 
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	protected void bestimmeRabattsatzAusVkpfUebersteuert() throws Throwable {
 		if (verkaufspreisDtoInZielwaehrung != null) {
 
-			if (getWnfRabattsatz().getDouble() != null
-					&& verkaufspreisDtoInZielwaehrung.rabattsatz != null) {
+			if (getWnfRabattsatz().getDouble() != null && verkaufspreisDtoInZielwaehrung.rabattsatz != null) {
 				if (getWnfRabattsatz().getDouble().doubleValue() != verkaufspreisDtoInZielwaehrung.rabattsatz
 						.doubleValue()) {
 					bIstRabattsatzDefaultUebersteuert = true;
@@ -1044,20 +1080,15 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	}
 
 	/**
-	 * Feststellen, ob der Nettoeinzelpreis aus der Vkpf manuell uebersteuert
-	 * wurde.
+	 * Feststellen, ob der Nettoeinzelpreis aus der Vkpf manuell uebersteuert wurde.
 	 * 
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	protected void bestimmeNettoeinzelpreisAusVkpfUebersteuert()
-			throws Throwable {
+	protected void bestimmeNettoeinzelpreisAusVkpfUebersteuert() throws Throwable {
 		if (verkaufspreisDtoInZielwaehrung != null) {
 
-			if (wnfEinzelpreis.getBigDecimal() != null
-					&& verkaufspreisDtoInZielwaehrung.einzelpreis != null) {
-				if (wnfEinzelpreis.getBigDecimal().compareTo(
-						verkaufspreisDtoInZielwaehrung.einzelpreis) != 0) {
+			if (wnfEinzelpreis.getBigDecimal() != null && verkaufspreisDtoInZielwaehrung.einzelpreis != null) {
+				if (wnfEinzelpreis.getBigDecimal().compareTo(verkaufspreisDtoInZielwaehrung.einzelpreis) != 0) {
 					bIstNettoeinzelpreisUebersteuert = true;
 
 					// im PanelDialogPreisauswahl muss Fixpreis/Rabattsatz
@@ -1076,17 +1107,13 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	 * Feststellen, ob der bestimmeNettogesamtpreis aus der Vkpf manuell
 	 * uebersteuert wurde.
 	 * 
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	protected void bestimmeNettogesamtpreisAusVkpfUebersteuert()
-			throws Throwable {
+	protected void bestimmeNettogesamtpreisAusVkpfUebersteuert() throws Throwable {
 		if (verkaufspreisDtoInZielwaehrung != null) {
 
-			if (wnfNettopreis.getBigDecimal() != null
-					&& verkaufspreisDtoInZielwaehrung.nettopreis != null) {
-				if (wnfNettopreis.getBigDecimal().compareTo(
-						verkaufspreisDtoInZielwaehrung.nettopreis) != 0) {
+			if (wnfNettopreis.getBigDecimal() != null && verkaufspreisDtoInZielwaehrung.nettopreis != null) {
+				if (wnfNettopreis.getBigDecimal().compareTo(verkaufspreisDtoInZielwaehrung.nettopreis) != 0) {
 					bIstNettogesamtpreisUebersteuert = true;
 					// im PanelDialogPreisauswahl muss Fixpreis/Rabattsatz
 					// angezeigt werden
@@ -1104,8 +1131,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	 * Wenn dieses Feld verlassen wird, muessen die Preisfelder neu berechnet
 	 * werden.
 	 * 
-	 * @param e
-	 *            FocusEvent
+	 * @param e FocusEvent
 	 * @throws Throwable
 	 */
 	public void wnfRabattsatz_focusLost(FocusEvent e) throws Throwable {
@@ -1116,12 +1142,10 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	/**
 	 * Es wurde ein neuer Mwsatsatz gewaehlt.
 	 * 
-	 * @param e
-	 *            enthaelt den neuen Mwstsatz
+	 * @param e enthaelt den neuen Mwstsatz
 	 * @throws Throwable
 	 */
-	protected void jComboBoxMwstsatz_itemStateChanged(ItemEvent e)
-			throws Throwable {
+	protected void jComboBoxMwstsatz_itemStateChanged(ItemEvent e) throws Throwable {
 		super.jComboBoxMwstsatz_itemStateChanged(e);
 		bestimmeDefaultMwstsatzIIdUebersteuert();
 	}
@@ -1130,8 +1154,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	 * Wenn dieses Feld verlassen wird, muessen die Preisfelder neu berechnet
 	 * werden.
 	 * 
-	 * @param e
-	 *            FocusEvent
+	 * @param e FocusEvent
 	 * @throws Throwable
 	 */
 	public void wnfEinzelpreis_focusLost(FocusEvent e) throws Throwable {
@@ -1142,8 +1165,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	/**
 	 * Nettopreis und Einzelpreis bestimmen den Rabattsatz.
 	 * 
-	 * @param e
-	 *            FocusEvent
+	 * @param e FocusEvent
 	 * @throws Throwable
 	 */
 	void wnfNettopreis_focusLost(FocusEvent e) throws Throwable {
@@ -1153,51 +1175,41 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	}
 
 	/**
-	 * Wenn eine Verkaufsposition abgespeichert werden soll, muss
-	 * moeglicherweise der Nettogesamtpreis darauf ueberpruft werden, ob er
-	 * unter dem StandardDB des Artikels liegt (StandardDB = Gestehungspreis +
-	 * Aufschlag MindestDB). Ob diese Pruefung notwendig ist, bestimmt der
-	 * Mandantenparameter DEFAULT_ANGEBOT_PRUEFESTANDARDDBARTIKEL.
+	 * Wenn eine Verkaufsposition abgespeichert werden soll, muss moeglicherweise
+	 * der Nettogesamtpreis darauf ueberpruft werden, ob er unter dem StandardDB des
+	 * Artikels liegt (StandardDB = Gestehungspreis + Aufschlag MindestDB). Ob diese
+	 * Pruefung notwendig ist, bestimmt der Mandantenparameter
+	 * DEFAULT_ANGEBOT_PRUEFESTANDARDDBARTIKEL.
 	 * 
 	 * @return boolean true, wenn der Parameter auf 1 steht
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public boolean pruefeStandardDBArtikel() throws Throwable {
 		boolean bPruefeStandardDB = false;
 
 		// Soll der StandardDB geprueft werden?
-		ParametermandantDto parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(
-						LPMain.getInstance().getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ANGEBOT,
+		ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_ANGEBOT,
 						ParameterFac.PARAMETER_DEFAULT_ANGEBOT_PRUEFESTANDARDDBARTIKEL);
 
-		bPruefeStandardDB = ((Boolean) parametermandantDto.getCWertAsObject())
-				.booleanValue();
+		bPruefeStandardDB = ((Boolean) parametermandantDto.getCWertAsObject()).booleanValue();
 
 		return bPruefeStandardDB;
 	}
 
 	public void pruefeNettoPreis() throws Throwable {
 
-		int iPreiseUINachkommastellen = Defaults.getInstance()
-				.getIUINachkommastellenPreiseVK();
+		int iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseVK();
 		BigDecimal nEinzelpreisMinusRabattsumme = verkaufspreisDtoInZielwaehrung.einzelpreis;
-		nEinzelpreisMinusRabattsumme = Helper.rundeKaufmaennisch(
-				nEinzelpreisMinusRabattsumme, iPreiseUINachkommastellen);
+		nEinzelpreisMinusRabattsumme = Helper.rundeKaufmaennisch(nEinzelpreisMinusRabattsumme,
+				iPreiseUINachkommastellen);
 
 		if (verkaufspreisDtoInZielwaehrung.rabattsatz.doubleValue() != 0) {
-			nEinzelpreisMinusRabattsumme = Helper.getWertPlusProzent(
-					verkaufspreisDtoInZielwaehrung.einzelpreis, new BigDecimal(
-							wnfRabattsatz.getDouble()),
-					iPreiseUINachkommastellen);
+			nEinzelpreisMinusRabattsumme = Helper.getWertPlusProzent(verkaufspreisDtoInZielwaehrung.einzelpreis,
+					new BigDecimal(wnfRabattsatz.getDouble()), iPreiseUINachkommastellen);
 		}
-		boolean bUebersteuert = (nEinzelpreisMinusRabattsumme.compareTo(Helper
-				.rundeKaufmaennisch(verkaufspreisDtoInZielwaehrung.nettopreis,
-						iPreiseUINachkommastellen)) != 0);
+		boolean bUebersteuert = (nEinzelpreisMinusRabattsumme.compareTo(
+				Helper.rundeKaufmaennisch(verkaufspreisDtoInZielwaehrung.nettopreis, iPreiseUINachkommastellen)) != 0);
 		if (bUebersteuert) {
 			wnfNettopreis.getWrbFixNumber().setSelected(true);
 		} else {
@@ -1220,115 +1232,101 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 				}
 			} else if (e.getSource() == wnfMenge) {
 				// eventuell wurde eine neue Staffelmenge erreicht
-				if (wnfMenge.getText() != null
-						&& wnfMenge.getText().trim().length() > 0) {
-					if (getArtikelDto() != null
-							&& getArtikelDto().getIId() != null) {
-						berechneVerkaufspreis(
-								(Integer) wcoMwstsatz.getKeyOfSelectedItem(),
-								ddWechselkurs, true);
-					} else {
-						if (wtfArtikel.getText() != null) {
-							ArtikelDto aDto = null;
-							try {
-								aDto = DelegateFactory.getInstance()
-										.getArtikelDelegate()
-										.artikelFindByCNr(wtfArtikel.getText());
-							} catch (ExceptionLP ex) {
-								switch (ex.getICode()) {
-								case EJBExceptionLP.FEHLER_BEI_FIND: {
-									// nothing here
-								}
-									break;
-								default: {
-									throw ex;
-								}
-								}
-							}
-							if (aDto != null) {
-								// MB 09.05.06 Die Artikeldaten muessen
-								// (duerfen) nur dann neu angezeigt werden ...
-								boolean bRefreshArtikeldaten = false;
-								// wenn a) vorher noch kein artikel ausgewaehlt
-								// war
-								if (getArtikelDto() == null) {
-									bRefreshArtikeldaten = true;
-								} else {
-									// wenn b) ein anderer artikel ausgewaehlt
-									// wurde
-									if (getArtikelDto().getIId() == null
-											|| !getArtikelDto().getIId()
-													.equals(aDto.getIId())) {
-										bRefreshArtikeldaten = true;
+				if (wnfMenge.getText() != null && wnfMenge.getText().trim().length() > 0) {
+					LockStateValue lv = this.getLockedstateDetailMainKey();
+					if (lv.getIState() == LOCK_FOR_NEW || lv.getIState() == LOCK_IS_LOCKED_BY_ME) {
+
+						if (getArtikelDto() != null && getArtikelDto().getIId() != null) {
+
+							berechneVerkaufspreis((Integer) wcoMwstsatz.getKeyOfSelectedItem(), ddWechselkurs, true);
+						} else {
+							if (wtfArtikel.getText() != null) {
+								ArtikelDto aDto = null;
+								try {
+									aDto = DelegateFactory.getInstance().getArtikelDelegate()
+											.artikelFindByCNr(wtfArtikel.getText());
+								} catch (ExceptionLP ex) {
+									switch (ex.getICode()) {
+									case EJBExceptionLP.FEHLER_BEI_FIND: {
+										// nothing here
+									}
+										break;
+									default: {
+										throw ex;
+									}
 									}
 								}
-								setArtikelDto(aDto);
-								if (bRefreshArtikeldaten) {
-									artikelDto2components();
+								if (aDto != null) {
+									// MB 09.05.06 Die Artikeldaten muessen
+									// (duerfen) nur dann neu angezeigt werden
+									// ...
+									boolean bRefreshArtikeldaten = false;
+									// wenn a) vorher noch kein artikel
+									// ausgewaehlt
+									// war
+									if (getArtikelDto() == null) {
+										bRefreshArtikeldaten = true;
+									} else {
+										// wenn b) ein anderer artikel
+										// ausgewaehlt
+										// wurde
+										if (getArtikelDto().getIId() == null
+												|| !getArtikelDto().getIId().equals(aDto.getIId())) {
+											bRefreshArtikeldaten = true;
+										}
+									}
+									setArtikelDto(aDto);
+									if (bRefreshArtikeldaten) {
+										artikelDto2components();
+									}
+									berechneVerkaufspreis((Integer) wcoMwstsatz.getKeyOfSelectedItem(), ddWechselkurs,
+											true);
 								}
-								berechneVerkaufspreis(
-										(Integer) wcoMwstsatz
-												.getKeyOfSelectedItem(),
-										ddWechselkurs, true);
 							}
 						}
 					}
 				}
 			}
 		} catch (Throwable t) {
-			LPMain.getInstance().exitFrame(getInternalFrame());
+			getInternalFrame().handleException(t, false);
+			// LPMain.getInstance().exitFrame(getInternalFrame());
 		}
 	}
 
 	/**
-	 * Wenn die VK-Preisfindung nicht den guenstigsten moeglichen Preis
-	 * ermittelt, erhaelt der Benutzer die Moeglichkeit, diesen trotzdem zu
-	 * waehlen.
+	 * Wenn die VK-Preisfindung nicht den guenstigsten moeglichen Preis ermittelt,
+	 * erhaelt der Benutzer die Moeglichkeit, diesen trotzdem zu waehlen.
 	 * 
-	 * @param vkpreisfindungDtoI
-	 *            das Ergebnis der Preisfindung
-	 * @return boolean true, wenn der guenstigst moegliche Preis uebernommen
-	 *         werden soll
+	 * @param vkpreisfindungDtoI das Ergebnis der Preisfindung
+	 * @return boolean true, wenn der guenstigst moegliche Preis uebernommen werden
+	 *         soll
 	 * @throws Throwable
 	 */
-	public boolean showVkphint(VkpreisfindungDto vkpreisfindungDtoI)
-			throws Throwable {
+	public boolean showVkphint(VkpreisfindungDto vkpreisfindungDtoI) throws Throwable {
 		boolean bVkpminimal = true;
 
-		MessageFormat mf = new MessageFormat(LPMain.getInstance()
-				.getTextRespectUISPr("vkpf.vkhint"));
+		MessageFormat mf = new MessageFormat(LPMain.getInstance().getTextRespectUISPr("vkpf.vkhint"));
 
 		mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
 
-		VerkaufspreisDto vkpBerechnetInZielwaehrungDto = Helper
-				.getVkpreisBerechnet(vkpreisfindungDtoI);
+		VerkaufspreisDto vkpBerechnetInZielwaehrungDto = Helper.getVkpreisBerechnet(vkpreisfindungDtoI);
 
-		VerkaufspreisDto vkpMinimalInZielwaehrungDto = DelegateFactory
-				.getInstance().getVkPreisfindungDelegate()
+		VerkaufspreisDto vkpMinimalInZielwaehrungDto = DelegateFactory.getInstance().getVkPreisfindungDelegate()
 				.getVkpreisMinimal(vkpreisfindungDtoI);
 
 		if (vkpMinimalInZielwaehrungDto.nettopreis != null) {
-			vkpMinimalInZielwaehrungDto.nettopreis = Helper.rundeKaufmaennisch(
-					vkpMinimalInZielwaehrungDto.nettopreis, Defaults
-							.getInstance().getIUINachkommastellenPreiseVK());
+			vkpMinimalInZielwaehrungDto.nettopreis = Helper.rundeKaufmaennisch(vkpMinimalInZielwaehrungDto.nettopreis,
+					Defaults.getInstance().getIUINachkommastellenPreiseVK());
 		}
 		if (vkpBerechnetInZielwaehrungDto.nettopreis != null) {
-			vkpBerechnetInZielwaehrungDto.nettopreis = Helper
-					.rundeKaufmaennisch(
-							vkpBerechnetInZielwaehrungDto.nettopreis, Defaults
-									.getInstance()
-									.getIUINachkommastellenPreiseVK());
+			vkpBerechnetInZielwaehrungDto.nettopreis = Helper.rundeKaufmaennisch(
+					vkpBerechnetInZielwaehrungDto.nettopreis, Defaults.getInstance().getIUINachkommastellenPreiseVK());
 		}
-		Object pattern[] = {
-				vkpreisfindungDtoI.getVkpreisminimalStufe(),
-				vkpreisfindungDtoI.getVkpreisberechnetStufe(),
-				vkpMinimalInZielwaehrungDto.getNettpreisOhneMaterialzuschlag()
-						+ " " + cNrWaehrung,
-				vkpBerechnetInZielwaehrungDto
-						.getNettpreisOhneMaterialzuschlag() + " " + cNrWaehrung };
+		Object pattern[] = { vkpreisfindungDtoI.getVkpreisminimalStufe(), vkpreisfindungDtoI.getVkpreisberechnetStufe(),
+				vkpMinimalInZielwaehrungDto.getNettpreisOhneMaterialzuschlag() + " " + cNrWaehrung,
+				vkpBerechnetInZielwaehrungDto.getNettpreisOhneMaterialzuschlag() + " " + cNrWaehrung };
 
-		if (DialogFactory.showMeldung(mf.format(pattern), LPMain.getInstance()
-				.getTextRespectUISPr("lp.hint"),
+		if (DialogFactory.showMeldung(mf.format(pattern), LPMain.getInstance().getTextRespectUISPr("lp.hint"),
 				javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.NO_OPTION) {
 			bVkpminimal = false;
 		}
@@ -1337,23 +1335,20 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 	}
 
 	/**
-	 * Der Benutzer kann einen guenstigeren VK-Preis uebernehmen, als den, der
-	 * durch die VK-Preisfindung ermittelt wurde.
+	 * Der Benutzer kann einen guenstigeren VK-Preis uebernehmen, als den, der durch
+	 * die VK-Preisfindung ermittelt wurde.
 	 * 
 	 * @throws Throwable
 	 */
 	public void checkVkp() throws Throwable {
 		if (vkpreisfindungDto.getVkpreisminimalStufe() != null) {
-			VerkaufspreisDto vkpBerechnetDto = Helper
-					.getVkpreisBerechnet(vkpreisfindungDto);
+			VerkaufspreisDto vkpBerechnetDto = Helper.getVkpreisBerechnet(vkpreisfindungDto);
 
-			VerkaufspreisDto vkpMinimalDto = DelegateFactory.getInstance()
-					.getVkPreisfindungDelegate()
+			VerkaufspreisDto vkpMinimalDto = DelegateFactory.getInstance().getVkPreisfindungDelegate()
 					.getVkpreisMinimal(vkpreisfindungDto);
 
 			if (vkpBerechnetDto != null && vkpMinimalDto != null) {
-				if (vkpBerechnetDto.getNettpreisOhneMaterialzuschlag()
-						.doubleValue() > vkpMinimalDto
+				if (vkpBerechnetDto.getNettpreisOhneMaterialzuschlag().doubleValue() > vkpMinimalDto
 						.getNettpreisOhneMaterialzuschlag().doubleValue()) {
 					boolean bVkpminimal = showVkphint(vkpreisfindungDto);
 
@@ -1380,9 +1375,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 		if (wnfMenge.getText() != null) {
 			if (getArtikelDto() != null && getArtikelDto().getIId() != null) {
 				try {
-					berechneVerkaufspreis(
-							(Integer) wcoMwstsatz.getKeyOfSelectedItem(),
-							ddWechselkurs, true);
+					berechneVerkaufspreis((Integer) wcoMwstsatz.getKeyOfSelectedItem(), ddWechselkurs, true);
 				} catch (Throwable e) {
 				}
 			}
@@ -1400,8 +1393,7 @@ public class PanelPositionenArtikelVerkauf extends PanelPositionenPreiseingabe {
 		return vkpreisfindungDto;
 	}
 
-	public void setVerkaufspreisDtoInZielwaehrung(
-			VerkaufspreisDto verkaufspreisDtoInZielwaehrungI) {
+	public void setVerkaufspreisDtoInZielwaehrung(VerkaufspreisDto verkaufspreisDtoInZielwaehrungI) {
 		verkaufspreisDtoInZielwaehrung = verkaufspreisDtoInZielwaehrungI;
 	}
 }

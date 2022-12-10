@@ -37,8 +37,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.sql.Timestamp;
-import java.text.MessageFormat;
-import java.util.Calendar;
 import java.util.EventObject;
 
 import javax.swing.BorderFactory;
@@ -66,14 +64,13 @@ import com.lp.client.frame.component.WrapperTimeField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.angebotstkl.service.AgstklpositionDto;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.personal.service.SonderzeitenDto;
 import com.lp.server.personal.service.TaetigkeitDto;
 import com.lp.server.personal.service.ZeiterfassungFac;
-import com.lp.server.system.service.LocaleFac;
-import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
@@ -116,10 +113,13 @@ public class PanelSonderzeiten extends PanelBasis {
 
 	static final public String ACTION_SPECIAL_TAETIGKEIT_FROM_LISTE = "action_taetigkeit_from_liste";
 
+	private ZeiterfassungPruefer zeiterfassungPruefer = null;
+
 	public PanelSonderzeiten(InternalFrame internalFrame, String add2TitleI,
 			Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameZeiterfassung = (InternalFrameZeiterfassung) internalFrame;
+		zeiterfassungPruefer = new ZeiterfassungPruefer(getInternalFrame());
 		jbInit();
 		setDefaults();
 		initComponents();
@@ -147,126 +147,13 @@ public class PanelSonderzeiten extends PanelBasis {
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
-		if (pruefeObBuchungMoeglich()) {
+		if (zeiterfassungPruefer.pruefeObBuchungMoeglich(sonderzeitenDto
+				.getTDatum(), internalFrameZeiterfassung.getPersonalDto()
+				.getIId())) {
 			super.eventActionUpdate(aE, bNeedNoUpdateI);
 		} else {
 			return;
 		}
-	}
-
-	private boolean pruefeObBuchungMoeglich() throws ExceptionLP, Throwable {
-		boolean bRechtChefbuchhalter = DelegateFactory.getInstance()
-				.getTheJudgeDelegate()
-				.hatRecht(RechteFac.RECHT_FB_CHEFBUCHHALTER);
-
-		// SP3285
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZEITEN_ABSCHLIESSEN)
-				&& sonderzeitenDto.getTDatum() != null) {
-
-			java.sql.Timestamp t = DelegateFactory
-					.getInstance()
-					.getZeiterfassungDelegate()
-					.gibtEsBereitseinenZeitabschlussBisZurKW(
-							internalFrameZeiterfassung.getPersonalDto()
-									.getIId(), sonderzeitenDto.getTDatum());
-
-			if (t != null) {
-				MessageFormat mf = new MessageFormat(
-						LPMain.getTextRespectUISPr("pers.zeiterfassung.zeitenbereitsabgeschlossen.bis"));
-				mf.setLocale(LPMain.getTheClient().getLocUi());
-
-				Calendar c = Calendar.getInstance();
-				c.setTimeInMillis(t.getTime());
-				c.get(Calendar.WEEK_OF_YEAR);
-				Object pattern[] = { c.get(Calendar.WEEK_OF_YEAR) };
-
-				String sMsg = mf.format(pattern);
-
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.error"), sMsg);
-				return false;
-			}
-
-		}
-
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.ZEITBUCHUNGEN_NACHTRAEGLICH_BUCHEN_BIS,
-						ParameterFac.KATEGORIE_PERSONAL,
-						LPMain.getTheClient().getMandant());
-
-		int iTag = (Integer) parameter.getCWertAsObject();
-
-		Calendar cAktuelleZeit = Calendar.getInstance();
-		cAktuelleZeit.setTimeInMillis(DelegateFactory.getInstance()
-				.getSystemDelegate().getServerTimestamp().getTime());
-
-		Calendar cBisDahinDarfGeaendertWerden = Calendar.getInstance();
-		cBisDahinDarfGeaendertWerden.setTimeInMillis(Helper.cutTimestamp(
-				DelegateFactory.getInstance().getSystemDelegate()
-						.getServerTimestamp()).getTime());
-
-		// Im aktuelle Monat darf geaendert werden
-		cBisDahinDarfGeaendertWerden.set(Calendar.DAY_OF_MONTH, 1);
-
-		if (cAktuelleZeit.get(Calendar.DAY_OF_MONTH) <= iTag) {
-			// Im Vormonat darf geaendert werden
-			cBisDahinDarfGeaendertWerden.set(Calendar.MONTH,
-					cBisDahinDarfGeaendertWerden.get(Calendar.MONTH) - 1);
-		}
-
-		if (cBisDahinDarfGeaendertWerden.getTimeInMillis() > sonderzeitenDto
-				.getTDatum().getTime()) {
-
-			if (bRechtChefbuchhalter) {
-				// Warnung anzeigen
-				MessageFormat mf = new MessageFormat(
-						LPMain.getTextRespectUISPr("pers.error.zeitbuchungenduerfenichtmehrgeaendertwerden.trotzdem"));
-				mf.setLocale(LPMain.getTheClient().getLocUi());
-
-				Object pattern[] = { Helper.formatDatum(
-						cBisDahinDarfGeaendertWerden.getTime(), LPMain
-								.getTheClient().getLocUi()) };
-				String sMsg = mf.format(pattern);
-
-				boolean b = DialogFactory.showModalJaNeinDialog(
-						getInternalFrame(), sMsg,
-						LPMain.getTextRespectUISPr("lp.warning"));
-				if (b == false) {
-					return false;
-				}
-
-			} else {
-				// Fehler anzeigen
-				MessageFormat mf = new MessageFormat(
-						LPMain.getTextRespectUISPr("pers.error.zeitbuchungenduerfenichtmehrgeaendertwerden"));
-
-				try {
-					mf.setLocale(LPMain.getTheClient().getLocUi());
-				} catch (Throwable ex) {
-				}
-
-				Object pattern[] = { Helper.formatDatum(
-						cBisDahinDarfGeaendertWerden.getTime(), LPMain
-								.getTheClient().getLocUi()) };
-
-				String sMsg = mf.format(pattern);
-
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.error"), sMsg);
-
-				return false;
-			}
-
-		}
-
-		return true;
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -296,12 +183,27 @@ public class PanelSonderzeiten extends PanelBasis {
 	protected void eventActionDelete(ActionEvent e,
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		if (pruefeObBuchungMoeglich()) {
-			DelegateFactory.getInstance().getZeiterfassungDelegate()
-					.removeSonderzeiten(sonderzeitenDto);
-			this.setKeyWhenDetailPanel(null);
-			super.eventActionDelete(e, false, false);
+		
+		Object[] o = internalFrameZeiterfassung.getTabbedPaneZeiterfassung().getPanelQuerySonderzeiten()
+				.getSelectedIds();
+		if (o != null) {
+			for (int i = 0; i < o.length; i++) {
+				
+				SonderzeitenDto sonderzeitenDto =DelegateFactory.getInstance().getZeiterfassungDelegate().sonderzeitenFindByPrimaryKey((Integer)o[i]);
+				
+				if (zeiterfassungPruefer.pruefeObBuchungMoeglich(sonderzeitenDto
+						.getTDatum(), internalFrameZeiterfassung.getPersonalDto()
+						.getIId())) {
+					DelegateFactory.getInstance().getZeiterfassungDelegate()
+							.removeSonderzeiten(sonderzeitenDto);
+					this.setKeyWhenDetailPanel(null);
+					super.eventActionDelete(e, false, false);
+				} 
+			}
 		}
+		
+		
+		
 	}
 
 	protected void components2Dto() throws ExceptionLP {
@@ -312,6 +214,9 @@ public class PanelSonderzeiten extends PanelBasis {
 		sonderzeitenDto.setBTag(wrbTageweise.getShort());
 
 		sonderzeitenDto.setBHalbtag(wrbHalbtageweise.getShort());
+		
+		
+		sonderzeitenDto.setBAutomatik(Helper.boolean2Short(false));
 
 		sonderzeitenDto.setPersonalIId(internalFrameZeiterfassung
 				.getPersonalDto().getIId());
@@ -389,25 +294,104 @@ public class PanelSonderzeiten extends PanelBasis {
 					.getZeiterfassungDelegate()
 					.sonderzeitenFindByPrimaryKey(key);
 
+			ParametermandantDto parameter = DelegateFactory
+					.getInstance()
+					.getParameterDelegate()
+					.getMandantparameter(LPMain.getTheClient().getMandant(),
+							ParameterFac.KATEGORIE_PERSONAL,
+							ParameterFac.PARAMETER_URLAUBSANTRAG);
+			boolean bUrlaubsantrag = (java.lang.Boolean) parameter
+					.getCWertAsObject();
+
 			boolean bSonderzeitenCUD = DelegateFactory.getInstance()
 					.getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_PERS_SONDERZEITEN_CUD);
 
 			if (bSonderzeitenCUD == false) {
 
-				if (sonderzeitenDto != null
-						&& sonderzeitenDto.getTaetigkeitIId() != null
-						&& !sonderzeitenDto
+				if (bUrlaubsantrag == true) {
+					if (sonderzeitenDto != null
+							&& sonderzeitenDto.getTaetigkeitIId() != null
+							&& (sonderzeitenDto
+									.getTaetigkeitIId()
+									.equals(DelegateFactory
+											.getInstance()
+											.getZeiterfassungDelegate()
+											.taetigkeitFindByCNr(
+													ZeiterfassungFac.TAETIGKEIT_URLAUB)
+											.getIId()) || !Helper
+									.short2boolean(DelegateFactory
+											.getInstance()
+											.getZeiterfassungDelegate()
+											.taetigkeitFindByPrimaryKey(
+													sonderzeitenDto
+															.getTaetigkeitIId())
+											.getBDarfSelberBuchen()))) {
+
+						if (sonderzeitenDto
 								.getTaetigkeitIId()
 								.equals(DelegateFactory
 										.getInstance()
 										.getZeiterfassungDelegate()
 										.taetigkeitFindByCNr(
-												ZeiterfassungFac.TAETIGKEIT_URLAUBSANTRAG)
-										.getIId())) {
+												ZeiterfassungFac.TAETIGKEIT_URLAUBSANTRAG).getIId())
+								|| sonderzeitenDto
+										.getTaetigkeitIId()
+										.equals(DelegateFactory
+												.getInstance()
+												.getZeiterfassungDelegate()
+												.taetigkeitFindByCNr(
+														ZeiterfassungFac.TAETIGKEIT_ZAANTRAG).getIId())	|| sonderzeitenDto
+														.getTaetigkeitIId()
+														.equals(DelegateFactory
+																.getInstance()
+																.getZeiterfassungDelegate()
+																.taetigkeitFindByCNr(
+																		ZeiterfassungFac.TAETIGKEIT_KRANKANTRAG).getIId())) {
 
-					lockStateValue = new LockStateValue(
-							PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+						} else {
+							lockStateValue = new LockStateValue(
+									PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+						}
+
+					}
+				} else {
+
+					boolean urlaubsOderZAAntrag = false;
+
+					if (sonderzeitenDto
+							.getTaetigkeitIId()
+							.equals(DelegateFactory
+									.getInstance()
+									.getZeiterfassungDelegate()
+									.taetigkeitFindByCNr(
+											ZeiterfassungFac.TAETIGKEIT_URLAUBSANTRAG)
+									.getIId())
+							|| sonderzeitenDto
+									.getTaetigkeitIId()
+									.equals(DelegateFactory
+											.getInstance()
+											.getZeiterfassungDelegate()
+											.taetigkeitFindByCNr(
+													ZeiterfassungFac.TAETIGKEIT_ZAANTRAG)
+											.getIId())|| sonderzeitenDto
+											.getTaetigkeitIId()
+											.equals(DelegateFactory
+													.getInstance()
+													.getZeiterfassungDelegate()
+													.taetigkeitFindByCNr(
+															ZeiterfassungFac.TAETIGKEIT_KRANKANTRAG)
+													.getIId())) {
+						urlaubsOderZAAntrag = true;
+					}
+
+					if (sonderzeitenDto != null
+							&& sonderzeitenDto.getTaetigkeitIId() != null
+							&& !urlaubsOderZAAntrag) {
+
+						lockStateValue = new LockStateValue(
+								PanelBasis.LOCK_ENABLE_REFRESHANDPRINT_ONLY);
+					}
 				}
 
 			}
@@ -442,7 +426,11 @@ public class PanelSonderzeiten extends PanelBasis {
 				if (taetigkeitDto.getCNr().equals(
 						ZeiterfassungFac.TAETIGKEIT_URLAUB)
 						|| taetigkeitDto.getCNr().equals(
-								ZeiterfassungFac.TAETIGKEIT_URLAUBSANTRAG)) {
+								ZeiterfassungFac.TAETIGKEIT_URLAUBSANTRAG)
+						|| taetigkeitDto.getCNr().equals(
+								ZeiterfassungFac.TAETIGKEIT_ZEITAUSGLEICH)
+						|| taetigkeitDto.getCNr().equals(
+								ZeiterfassungFac.TAETIGKEIT_ZAANTRAG)) {
 					bUrlaubOderUrlaubsantrag = true;
 				}
 
@@ -457,7 +445,10 @@ public class PanelSonderzeiten extends PanelBasis {
 
 					components2Dto();
 
-					if (pruefeObBuchungMoeglich()) {
+					if (zeiterfassungPruefer.pruefeObBuchungMoeglich(
+							sonderzeitenDto.getTDatum(),
+							internalFrameZeiterfassung.getPersonalDto()
+									.getIId())) {
 
 						if (sonderzeitenDto.getIId() == null) {
 							components2Dto();

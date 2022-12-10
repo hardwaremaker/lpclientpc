@@ -35,17 +35,32 @@ package com.lp.client.auftrag;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.io.ByteArrayOutputStream;
 
+import javax.swing.JButton;
 import javax.swing.JPanel;
+
+import net.sf.jasperreports.engine.JRExporterParameter;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
+import com.lp.client.pc.LPMain;
 import com.lp.server.auftrag.service.AuftragReportFac;
+import com.lp.server.system.jcr.service.JCRDocDto;
+import com.lp.server.system.jcr.service.JCRDocFac;
+import com.lp.server.system.jcr.service.PrintInfoDto;
+import com.lp.server.system.jcr.service.docnode.DocNodeFile;
+import com.lp.server.system.jcr.service.docnode.DocPath;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MandantDto;
+import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.HVPDFExporter;
+import com.lp.util.Helper;
 
 public class ReportProjektblatt extends PanelBasis implements PanelReportIfJRDS {
 	/**
@@ -57,6 +72,10 @@ public class ReportProjektblatt extends PanelBasis implements PanelReportIfJRDS 
 	protected JPanel jpaWorkingOn = new JPanel();
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+
+	private JButton jbFreigabeUndDokumentenblage = new JButton();
+
+	private String ACTION_SPEICHERN = "ACTION_SPEICHERN";
 
 	public ReportProjektblatt(InternalFrame internalFrame, Integer iIdAuftragI,
 			String sAdd2Title) throws Throwable {
@@ -74,10 +93,86 @@ public class ReportProjektblatt extends PanelBasis implements PanelReportIfJRDS 
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 
+		jbFreigabeUndDokumentenblage
+				.setText(LPMain
+						.getTextRespectUISPr("auft.projektblatt.freigabeunddokumentenablage"));
+		jbFreigabeUndDokumentenblage.setActionCommand(ACTION_SPEICHERN);
+		jbFreigabeUndDokumentenblage.addActionListener(this);
+
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
+
+		jpaWorkingOn.add(jbFreigabeUndDokumentenblage);
+
 		iZeile++;
+
+	}
+
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+
+		if (e.getActionCommand().equals(ACTION_SPEICHERN)) {
+			JasperPrintLP print = DelegateFactory.getInstance()
+					.getAuftragReportDelegate().printProjektblatt(auftragIId);
+
+			// und in Dokumentenablage speichern
+			PrintInfoDto oInfo = DelegateFactory
+					.getInstance()
+					.getJCRDocDelegate()
+					.getPathAndPartnerAndTable(auftragIId,
+							QueryParameters.UC_ID_AUFTRAG);
+
+			DocPath docPath = null;
+			if (oInfo != null) {
+				docPath = oInfo.getDocPath();
+			}
+			if (docPath != null) {
+				// Nur archivieren wenn nicht in dieser Tabelle vorhanden
+
+				String sName = "auft_projektblatt";
+
+				JCRDocDto jcrDocDto = new JCRDocDto();
+
+				Integer iPartnerIId = null;
+				MandantDto mandantDto = DelegateFactory
+						.getInstance()
+						.getMandantDelegate()
+						.mandantFindByPrimaryKey(
+								LPMain.getTheClient().getMandant());
+				iPartnerIId = mandantDto.getPartnerIId();
+
+				Helper.setJcrDocBinaryData(jcrDocDto, print.getPrint());
+
+				jcrDocDto.setDocPath(docPath.add(new DocNodeFile(sName)));
+				jcrDocDto.setlPartner(iPartnerIId);
+				jcrDocDto.setsBelegnummer("");
+				jcrDocDto.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
+				jcrDocDto.setlAnleger(LPMain.getTheClient().getIDPersonal());
+				jcrDocDto.setlZeitpunkt(System.currentTimeMillis());
+				jcrDocDto.setsSchlagworte(" ");
+				jcrDocDto.setsName(sName);
+				jcrDocDto.setsFilename(sName + ".jrprint");
+				if (oInfo.getTable() != null) {
+					jcrDocDto.setsTable(oInfo.getTable());
+				} else {
+					jcrDocDto.setsTable(" ");
+				}
+				jcrDocDto.setsRow(" ");
+
+				jcrDocDto.setsMIME(".jrprint");
+				jcrDocDto.setlSicherheitsstufe(JCRDocFac.SECURITY_ARCHIV);
+				jcrDocDto.setsGruppierung(JCRDocFac.DEFAULT_ARCHIV_GRUPPE);
+				jcrDocDto.setbVersteckt(false);
+				jcrDocDto.setlVersion(DelegateFactory.getInstance()
+						.getJCRDocDelegate().getNextVersionNumer(jcrDocDto));
+				DelegateFactory.getInstance().getJCRDocDelegate()
+						.addNewDocumentOrNewVersionOfDocument(jcrDocDto);
+			}
+
+			DelegateFactory.getInstance().getAuftragDelegate()
+					.auftragFreigeben(auftragIId);
+
+		}
 
 	}
 

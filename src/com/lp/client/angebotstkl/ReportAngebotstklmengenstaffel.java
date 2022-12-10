@@ -32,14 +32,23 @@
  ******************************************************************************/
 package com.lp.client.angebotstkl;
 
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+
 import javax.swing.JComponent;
+import javax.swing.JPanel;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
+import com.lp.client.pc.LPMain;
 import com.lp.server.angebotstkl.service.AngebotstklFac;
+import com.lp.server.angebotstkl.service.AngebotstklreportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -58,25 +67,48 @@ import com.lp.server.util.report.JasperPrintLP;
  * @author Uli Walch
  * @version $Revision: 1.4 $
  */
-public class ReportAngebotstklmengenstaffel extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportAngebotstklmengenstaffel extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private Integer angebotstklIId = null;
 
-	public ReportAngebotstklmengenstaffel(InternalFrame internalFrame,
-			Integer iIdAngebotstklI, String add2Title) throws Throwable {
+	private WrapperLabel wlaVergleichsdatum = new WrapperLabel();
+	private WrapperDateField wdfVergleichsdatum = new WrapperDateField();
+
+	protected JPanel jpaWorkingOn = new JPanel();
+
+	public ReportAngebotstklmengenstaffel(InternalFrame internalFrame, Integer iIdAngebotstklI, String add2Title)
+			throws Throwable {
 		super(internalFrame, add2Title);
 
 		angebotstklIId = iIdAngebotstklI;
+		jbInit();
+	}
 
-		setVisible(false);
+	private void jbInit() {
+		this.setLayout(new GridBagLayout());
+		jpaWorkingOn.setLayout(new GridBagLayout());
+		wlaVergleichsdatum.setText(LPMain.getTextRespectUISPr("agstkl.report.mengenstaffel.vergleichsdatum"));
+		wdfVergleichsdatum.setMandatoryField(true);
+
+		wdfVergleichsdatum.setDate(new java.sql.Date(System.currentTimeMillis()));
+
+		getInternalFrame().addItemChangedListener(this);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
+		int iZeile = 0;
+		jpaWorkingOn.add(wlaVergleichsdatum, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+		jpaWorkingOn.add(wdfVergleichsdatum, new GridBagConstraints(1, iZeile, 1, 1, 1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 	}
 
 	public String getModul() {
-		return AngebotstklFac.REPORT_MODUL;
+		return AngebotstklreportFac.REPORT_MODUL;
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -84,12 +116,12 @@ public class ReportAngebotstklmengenstaffel extends PanelBasis implements
 	}
 
 	public String getReportname() {
-		return AngebotstklFac.REPORT_ANGEBOTSTUECKLISTEMENGENSTAFFEL;
+		return AngebotstklreportFac.REPORT_ANGEBOTSTUECKLISTEMENGENSTAFFEL;
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory.getInstance().getAngebotstklDelegate()
-				.printAngebotstklmenenstaffel(angebotstklIId);
+		return DelegateFactory.getInstance().getAngebotstklDelegate().printAngebotstklmenenstaffel(angebotstklIId,
+				wdfVergleichsdatum.getTimestamp());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -97,8 +129,7 @@ public class ReportAngebotstklmengenstaffel extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

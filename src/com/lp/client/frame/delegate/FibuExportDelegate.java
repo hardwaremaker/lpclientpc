@@ -42,6 +42,8 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.fertigung.service.FertigungServiceFac;
+import com.lp.server.finanz.service.BuchungsjournalExportProperties;
 import com.lp.server.finanz.service.ExportdatenDto;
 import com.lp.server.finanz.service.ExportlaufDto;
 import com.lp.server.finanz.service.FibuExportFac;
@@ -66,19 +68,17 @@ public class FibuExportDelegate extends Delegate {
 	public FibuExportDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			fibuExportFac = (FibuExportFac) context
-					.lookup("lpserver/FibuExportFacBean/remote");
+			fibuExportFac = lookupFac(context, FibuExportFac.class);	
+
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public List<String> exportiereBuchungsjournal(String format, Date von, Date bis,
-			boolean mitAutoEB, boolean mitManEB, boolean mitAutoB, boolean mitStornierte,
-			String bezeichnung) throws ExceptionLP {
+	public List<String> exportiereBuchungsjournal(BuchungsjournalExportProperties exportProperties) 
+			throws ExceptionLP {
 		try {
-			return fibuExportFac.exportiereBuchungsjournal(format, von, bis, mitAutoEB,
-					mitManEB, mitAutoB, mitStornierte, bezeichnung, LPMain.getTheClient());
+			return fibuExportFac.exportiereBuchungsjournal(exportProperties, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -136,10 +136,10 @@ public class FibuExportDelegate extends Delegate {
 		}
 	}
 
-	public String exportierePersonenkonten(String kontotypCNr)
+	public String exportierePersonenkonten(String kontotypCNr, boolean nurVerwendete)
 			throws ExceptionLP {
 		try {
-			return fibuExportFac.exportierePersonenkonten(kontotypCNr, LPMain.getTheClient());
+			return fibuExportFac.exportierePersonenkonten(kontotypCNr, nurVerwendete, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -190,7 +190,7 @@ public class FibuExportDelegate extends Delegate {
 		return daten;
 	}
 
-	public String importiereOffenePosten(ArrayList<String[]> daten)
+	public String importiereOffenePosten(List<String[]> daten)
 			throws ExceptionLP {
 		String result = null;
 		try {

@@ -39,6 +39,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.math.BigDecimal;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -61,12 +62,13 @@ import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.AuftragpositionDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
-		KeyListener {
+public class DialogAuftragspositionenSchnellerfassung extends JDialog implements KeyListener {
 	/**
 	 * 
 	 */
@@ -89,11 +91,12 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 	AuftragDto auftragDto = null;
 	PanelSplit panelPositionen = null;
 
-	public DialogAuftragspositionenSchnellerfassung(
-			PanelSplit panelInventurliste, AuftragDto auftragDto)
+	boolean suchNachEan = false;
+
+	public DialogAuftragspositionenSchnellerfassung(PanelSplit panelInventurliste, AuftragDto auftragDto)
 			throws Throwable {
-		super(LPMain.getInstance().getDesktop(), LPMain.getInstance()
-				.getTextRespectUISPr("auftrag.positionen.schnelleingabe"), true);
+		super(LPMain.getInstance().getDesktop(),
+				LPMain.getInstance().getTextRespectUISPr("auftrag.positionen.schnelleingabe"), true);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		this.panelPositionen = panelInventurliste;
 		this.auftragDto = auftragDto;
@@ -105,12 +108,10 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 	public void dispose() {
 		try {
 
-			if (wtfArtikelnummer.getText() != null
-					&& wtfArtikelnummer.getText().length() > 0
-					&& artikelDto != null && wnfMenge.getBigDecimal() != null) {
+			if (wtfArtikelnummer.getText() != null && wtfArtikelnummer.getText().length() > 0 && artikelDto != null
+					&& wnfMenge.getBigDecimal() != null) {
 
-				KeyEvent k = new KeyEvent(wnfMenge, 0, 0, 0, KeyEvent.VK_ENTER,
-						' ');
+				KeyEvent k = new KeyEvent(wnfMenge, 0, 0, 0, KeyEvent.VK_ENTER, ' ');
 
 				keyPressed(k);
 			}
@@ -125,70 +126,58 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 	private void jbInit() throws Throwable {
 		panelUrlaubsanspruch.setLayout(gridBagLayout1);
 
-		wlaArtikelnummer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.artikelnummer"));
-		wlaSerienChargennummer.setText(LPMain.getInstance()
-				.getTextRespectUISPr(
-						"artikel.handlagerbewegung.seriennrchargennreinzeln"));
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_SCHNELLANLAGE_SUCHE_ZUERST_NACH_EAN,
+						ParameterFac.KATEGORIE_ALLGEMEIN, LPMain.getTheClient().getMandant());
+		suchNachEan = (Boolean) parameter.getCWertAsObject();
+
+		if (suchNachEan) {
+			wlaArtikelnummer.setText(LPMain.getInstance().getTextRespectUISPr("lp.lsreschnellerfassung.suchenachean"));
+
+		} else {
+			wlaArtikelnummer.setText(LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer"));
+		}
+
+		wlaSerienChargennummer.setText(
+				LPMain.getInstance().getTextRespectUISPr("artikel.handlagerbewegung.seriennrchargennreinzeln"));
 		wlaMenge.setText(LPMain.getInstance().getTextRespectUISPr("lp.menge"));
 
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
 		wtfBezeichnung.setEnabled(false);
 		wtfSerienChargennummer.setEnabled(false);
 
 		wtfArtikelnummer.addKeyListener(this);
 
 		wtfSerienChargennummer.addKeyListener(this);
-		wnfMenge.setFractionDigits(Defaults.getInstance()
-				.getIUINachkommastellenMenge());
+		wnfMenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
 		wnfMenge.addKeyListener(this);
 
-		wbuFertig.setText(LPMain.getInstance()
-				.getTextRespectUISPr("lp.beenden"));
-		wbuFertig
-				.addActionListener(new DialogAuftragspositionenSchnellerfassung_wbuFertig_actionAdapter(
-						this));
+		wbuFertig.setText(LPMain.getInstance().getTextRespectUISPr("lp.beenden"));
+		wbuFertig.addActionListener(new DialogAuftragspositionenSchnellerfassung_wbuFertig_actionAdapter(this));
 		this.getContentPane().setLayout(gridBagLayout2);
 
-		this.getContentPane().add(
-				panelUrlaubsanspruch,
-				new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(0, 0, 0, 0), 250, 50));
+		this.getContentPane().add(panelUrlaubsanspruch, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 250, 50));
 
-		panelUrlaubsanspruch.add(wtfArtikelnummer, new GridBagConstraints(2, 1,
-				1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wlaArtikelnummer, new GridBagConstraints(0, 1,
-				1, 1, 0.15, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wtfArtikelnummer, new GridBagConstraints(2, 1, 1, 1, 0.2, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wlaArtikelnummer, new GridBagConstraints(0, 1, 1, 1, 0.15, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelUrlaubsanspruch.add(wtfBezeichnung, new GridBagConstraints(2, 2,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wtfBezeichnung, new GridBagConstraints(2, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wlaBezeichnung, new GridBagConstraints(0, 2,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wlaBezeichnung, new GridBagConstraints(0, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		panelUrlaubsanspruch.add(wlaSerienChargennummer,
-				new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-						0, 0));
-		panelUrlaubsanspruch.add(wtfSerienChargennummer,
-				new GridBagConstraints(2, 3, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		panelUrlaubsanspruch.add(wlaMenge, new GridBagConstraints(0, 4, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wlaSerienChargennummer, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		panelUrlaubsanspruch.add(wtfSerienChargennummer, new GridBagConstraints(2, 3, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		panelUrlaubsanspruch.add(wlaMenge, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-		panelUrlaubsanspruch.add(wnfMenge, new GridBagConstraints(2, 4, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wnfMenge, new GridBagConstraints(2, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		panelUrlaubsanspruch.add(wbuFertig, new GridBagConstraints(2, 5, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		panelUrlaubsanspruch.add(wbuFertig, new GridBagConstraints(2, 5, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
@@ -202,18 +191,25 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 
 		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 			if (e.getSource() == wtfArtikelnummer) {
-
+				artikelDto=null;
 				try {
-					artikelDto = DelegateFactory.getInstance()
-							.getArtikelDelegate()
-							.artikelFindByCNr(wtfArtikelnummer.getText());
+
+					if (suchNachEan) {
+						artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+								.artikelFindByEanFuerSchnellerfassung(wtfArtikelnummer.getText());
+					}
+
+					if (artikelDto == null) {
+
+						artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+								.artikelFindByCNr(wtfArtikelnummer.getText());
+					}
 
 				} catch (Throwable ex) {
 					if (ex instanceof ExceptionLP) {
 						ExceptionLP exLP = (ExceptionLP) ex;
 						if (exLP.getICode() == EJBExceptionLP.FEHLER_BEI_FIND) {
-							DialogFactory.showModalDialog(LPMain.getInstance()
-									.getTextRespectUISPr("lp.error"),
+							DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
 									"Artikel konnte nicht gefunden werden.");
 							artikelDto = null;
 							wtfArtikelnummer.setText(null);
@@ -231,17 +227,14 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 				}
 
 				if (artikelDto != null) {
-					wtfBezeichnung.setText(artikelDto
-							.formatArtikelbezeichnung());
+					wtfBezeichnung.setText(artikelDto.formatArtikelbezeichnung());
 
 					if (Helper.short2boolean(artikelDto.getBChargennrtragend())
-							|| Helper.short2boolean(artikelDto
-									.getBSeriennrtragend())) {
+							|| Helper.short2boolean(artikelDto.getBSeriennrtragend())) {
 						wtfSerienChargennummer.setEnabled(true);
 						wtfSerienChargennummer.setText(null);
 						wtfSerienChargennummer.requestFocus();
-						if (Helper.short2boolean(artikelDto
-								.getBSeriennrtragend())) {
+						if (Helper.short2boolean(artikelDto.getBSeriennrtragend())) {
 							try {
 								wnfMenge.setDouble(new Double(1));
 							} catch (ExceptionLP ex2) {
@@ -265,8 +258,7 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 				if (Helper.short2boolean(artikelDto.getBSeriennrtragend())) {
 					wtfArtikelnummer.requestFocus();
 
-				} else if (Helper.short2boolean(artikelDto
-						.getBChargennrtragend())) {
+				} else if (Helper.short2boolean(artikelDto.getBChargennrtragend())) {
 					wnfMenge.requestFocus();
 				}
 			} else if (e.getSource() == wnfMenge) {
@@ -276,30 +268,29 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 				try {
 					if (artikelDto != null && wnfMenge.getBigDecimal() != null) {
 
+						BigDecimal bdVerpackungsmengenMultiplikator = BigDecimal.ONE;
+						if (suchNachEan && wtfArtikelnummer.getText().equals(artikelDto.getCVerpackungseannr())
+								&& artikelDto.getFVerpackungsmenge() != null) {
+							bdVerpackungsmengenMultiplikator = new BigDecimal(artikelDto.getFVerpackungsmenge());
+						}
+
 						AuftragpositionDto aDto = new AuftragpositionDto();
 						aDto.setBelegIId(auftragDto.getIId());
 						aDto.setArtikelIId(artikelDto.getIId());
 						aDto.setPositionsartCNr(AuftragServiceFac.AUFTRAGPOSITIONART_IDENT);
-						aDto.setNMenge(wnfMenge.getBigDecimal());
-						aDto.setBNettopreisuebersteuert(Helper
-								.boolean2Short(false));
-						aDto.setBMwstsatzuebersteuert(Helper
-								.boolean2Short(false));
-						aDto.setBArtikelbezeichnunguebersteuert(Helper
-								.boolean2Short(false));
+						aDto.setNMenge(wnfMenge.getBigDecimal().multiply(bdVerpackungsmengenMultiplikator));
+						aDto.setBNettopreisuebersteuert(Helper.boolean2Short(false));
+						aDto.setBMwstsatzuebersteuert(Helper.boolean2Short(false));
+						aDto.setBArtikelbezeichnunguebersteuert(Helper.boolean2Short(false));
 						aDto.setEinheitCNr(artikelDto.getEinheitCNr());
-						aDto.setNOffeneMenge(wnfMenge.getBigDecimal());
-						aDto.setTUebersteuerbarerLiefertermin(auftragDto
-								.getDLiefertermin());
+						aDto.setNOffeneMenge(wnfMenge.getBigDecimal().multiply(bdVerpackungsmengenMultiplikator));
+						aDto.setTUebersteuerbarerLiefertermin(auftragDto.getDLiefertermin());
 						if (wtfSerienChargennummer.getText() != null) {
 							aDto.setSeriennrChargennrMitMenge(SeriennrChargennrMitMengeDto
-									.erstelleDtoAusEinerChargennummer(
-											wtfSerienChargennummer.getText(),
-											wnfMenge.getBigDecimal()));
+									.erstelleDtoAusEinerChargennummer(wtfSerienChargennummer.getText(),
+											wnfMenge.getBigDecimal().multiply(bdVerpackungsmengenMultiplikator)));
 						}
-						DelegateFactory.getInstance()
-								.getAuftragpositionDelegate()
-								.createAuftragposition(aDto);
+						DelegateFactory.getInstance().getAuftragpositionDelegate().createAuftragposition(aDto);
 						wtfArtikelnummer.setText(null);
 						wtfBezeichnung.setText(null);
 						wtfSerienChargennummer.setText(null);
@@ -326,12 +317,10 @@ public class DialogAuftragspositionenSchnellerfassung extends JDialog implements
 
 }
 
-class DialogAuftragspositionenSchnellerfassung_wbuFertig_actionAdapter
-		implements ActionListener {
+class DialogAuftragspositionenSchnellerfassung_wbuFertig_actionAdapter implements ActionListener {
 	private DialogAuftragspositionenSchnellerfassung adaptee;
 
-	DialogAuftragspositionenSchnellerfassung_wbuFertig_actionAdapter(
-			DialogAuftragspositionenSchnellerfassung adaptee) {
+	DialogAuftragspositionenSchnellerfassung_wbuFertig_actionAdapter(DialogAuftragspositionenSchnellerfassung adaptee) {
 		this.adaptee = adaptee;
 	}
 

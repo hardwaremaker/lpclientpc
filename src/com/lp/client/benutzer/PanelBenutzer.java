@@ -36,12 +36,18 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.FocusEvent;
 import java.util.EventObject;
 
 import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 
+import com.lp.client.artikel.ReportLieferantenpreis;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
@@ -82,7 +88,8 @@ public class PanelBenutzer extends PanelBasis {
 	private WrapperLabel wlaKennwort = new WrapperLabel();
 	private WrapperPasswordField wpfKennwort = new WrapperPasswordField();
 	private WrapperLabel wlaGueltigbis = new WrapperLabel();
-//	private WrapperDateFieldMitJDialog wdfGueltigbis = new WrapperDateFieldMitJDialog();
+	// private WrapperDateFieldMitJDialog wdfGueltigbis = new
+	// WrapperDateFieldMitJDialog();
 	private WrapperDateField wdfGueltigbis = new WrapperDateField();
 	private WrapperLabel wlaBenutzerkannung = new WrapperLabel();
 	private WrapperButton wbuDefMandant = new WrapperButton();
@@ -121,6 +128,41 @@ public class PanelBenutzer extends PanelBasis {
 		// getInternalFrame().setKeyWasForLockMe(LPMain.getLockMeForNew());
 
 		leereAlleFelder(this);
+	}
+
+	public char[] getPassword(String title) {
+		JPanel panel = new JPanel();
+		final JPasswordField passwordField = new JPasswordField(20);
+		panel.add(new JLabel(LPMain
+				.getTextRespectUISPr("pers.benutzer.report.passwort")));
+		panel.add(passwordField);
+		JOptionPane pane = new JOptionPane(panel, JOptionPane.QUESTION_MESSAGE,
+				JOptionPane.OK_CANCEL_OPTION) {
+			@Override
+			public void selectInitialValue() {
+				passwordField.requestFocusInWindow();
+			}
+		};
+		pane.createDialog(null, title).setVisible(true);
+		return passwordField.getPassword();
+	}
+
+	protected void eventActionPrint(ActionEvent e) throws Throwable {
+
+		char[] password = getPassword(LPMain
+				.getTextRespectUISPr("pers.benutzer.report.passwort.title"));
+		if (password != null && password.length > 0) // pressing OK button
+		{
+
+			String add2Title = LPMain
+					.getTextRespectUISPr("pers.benutzer.report.login");
+			getInternalFrame().showReportKriterien(
+					new ReportLogin(internalFramePersonal,
+							wtfKennung.getText(), new String(password),
+							add2Title));
+
+		}
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -369,7 +411,7 @@ public class PanelBenutzer extends PanelBasis {
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+				ACTION_DELETE, ACTION_DISCARD, ACTION_PRINT, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -393,12 +435,12 @@ public class PanelBenutzer extends PanelBasis {
 		}
 	}
 
-//	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-//			throws Throwable {
-//		super.eventActionUpdate(aE, bNeedNoUpdateI);
-//		wpfKennwort.setText("");
-//		wpfKennwortBestaetigen.setText("");
-//	}
+	// protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
+	// throws Throwable {
+	// super.eventActionUpdate(aE, bNeedNoUpdateI);
+	// wpfKennwort.setText("");
+	// wpfKennwortBestaetigen.setText("");
+	// }
 
 	void wpfKennwort_focusLost(FocusEvent e) {
 		if (wpfKennwort.isEditable()) {

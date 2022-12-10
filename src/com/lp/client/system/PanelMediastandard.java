@@ -274,6 +274,22 @@ public class PanelMediastandard extends PanelBasis {
 			throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
+			
+			
+			//SP6352
+			if (mediastandardDto.getCNr().equals(
+					MediaFac.MEDIAART_EIGENTUMSVORBEHALT)
+					|| mediastandardDto.getCNr().equals(
+							MediaFac.MEDIAART_LIEFERBEDINGUNGEN)) {
+				if (!mediastandardDto.getDatenformatCNr().equals(MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML)) {
+					DialogFactory.showModalDialog(LPMain.getInstance()
+							.getTextRespectUISPr("lp.info"), LPMain.getInstance()
+							.getTextRespectUISPr("lp.mediastandart.lieferbedingungen.html"));
+					
+					return;
+				}
+			}
+			
 			if (mediastandardDto.getIId() == null) {
 				mediastandardDto = DelegateFactory.getInstance()
 						.getMediaDelegate()

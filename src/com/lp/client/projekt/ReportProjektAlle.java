@@ -54,6 +54,9 @@ public class ReportProjektAlle extends PanelReportJournalPersonal implements
 
 	private WrapperCheckBox wcbBelegdatumStattZieltermin = new WrapperCheckBox();
 
+	private WrapperCheckBox wcbMitIstZeiten = new WrapperCheckBox();
+
+	
 	private static final long serialVersionUID = 1L;
 	Integer bereichIId = null;
 
@@ -72,12 +75,21 @@ public class ReportProjektAlle extends PanelReportJournalPersonal implements
 
 		wcbBelegdatumStattZieltermin.setText(LPMain.getTextRespectUISPr(
 		        "proj.journal.alle.belegdatumstattzieltermin"));
+		wcbMitIstZeiten.setText(LPMain.getTextRespectUISPr(
+		        "proj.journal.alle.mitistzeitdaten"));
+		
+		
 		
 		
 		iZeile++;
 		jpaWorkingOn.add(wcbBelegdatumStattZieltermin, new GridBagConstraints(
-				1, iZeile, 5, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				0, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wcbMitIstZeiten, new GridBagConstraints(
+				3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		
 
 	}
 
@@ -105,7 +117,7 @@ public class ReportProjektAlle extends PanelReportJournalPersonal implements
 				.getInstance()
 				.getProjektDelegate()
 				.printProjektAlle(getKriterien(), bereichIId, datedStichtag,
-						wcbBelegdatumStattZieltermin.isSelected());
+						wcbBelegdatumStattZieltermin.isSelected(), wcbMitIstZeiten.isSelected());
 
 	}
 

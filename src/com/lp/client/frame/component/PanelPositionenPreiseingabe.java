@@ -2,50 +2,55 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame.component;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.util.EventObject;
 import java.util.Map;
 
 import javax.swing.ButtonGroup;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
@@ -57,6 +62,7 @@ import com.lp.client.bestellung.InternalFrameBestellung;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.PanelAdditiveVerpackungsmengen;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -73,6 +79,7 @@ import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.SystemFac;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.service.BelegpositionVerkaufDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
@@ -92,13 +99,8 @@ import com.lp.util.Helper;
  * @author Uli Walch
  * @version $Revision: 1.42 $
  */
-public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
-		FocusListener {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+public abstract class PanelPositionenPreiseingabe extends PanelBasis implements FocusListener, PropertyChangeListener {
+	private static final long serialVersionUID = 4346637692182865121L;
 
 	// in Unterklassen muss entschieden werden, ob darfPreiseSehen Einkauf oder
 	// Verkaufsrecht gilt
@@ -115,6 +117,10 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	public WrapperTextField wtfBezeichnung = null;
 	public WrapperTextField wtfZusatzbezeichnung = null;
 
+	// + Index/Revision
+	public WrapperKeyValueField wkvIndex = null;
+	public WrapperKeyValueField wkvRevision = null;
+
 	// optionale Zeile mit Formatierung in acht Spalten
 	public WrapperLabel wlaMenge = null;
 	public WrapperNumberField wnfMenge = null;
@@ -125,7 +131,19 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	private WrapperLabel wlaZielwaehrung0 = null;
 	private WrapperLabel wlaEmpty = null;
 
+	// Dimensionen
+	public WrapperLabel wlaMengeDimension = null;
+	public WrapperNumberField wnfMengeDimension = null;
+	public WrapperLabel wlaBreiteDimension = null;
+	public WrapperNumberField wnfBreiteDimension = null;
+	public WrapperLabel wlaHoeheDimension = null;
+	public WrapperNumberField wnfHoeheDimension = null;
+	public WrapperLabel wlaTiefeDimension = null;
+	public WrapperNumberField wnfTiefeDimension = null;
+
 	public WrapperComboBox wcoVerleih = null;
+
+	public PanelAdditiveVerpackungsmengen pa = null;
 
 	// optionale Zeile ohne Formatierung mit acht Spalten
 	private WrapperLabel wlaRabattsatz = null;
@@ -188,28 +206,30 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	public WrapperLabel wlaLieferterminPosition = null;
 	public WrapperDateField wdfLieferterminPosition = null;
 
-	public WrapperSelectField wsfKostentraeger = new WrapperSelectField(
-			WrapperSelectField.KOSTENTRAEGER, getInternalFrame(), false);
+	public WrapperRadioButton wrbPauschal = null;
+	public WrapperRadioButton wrbNachAufwand = null;
+	private ButtonGroup bgPauschal = new ButtonGroup();
 
-	public WrapperSelectField wsfLieferant = new WrapperSelectField(
-			WrapperSelectField.LIEFERANT, getInternalFrame(), true);
+	public WrapperSelectField wsfKostentraeger = new WrapperSelectField(WrapperSelectField.KOSTENTRAEGER,
+			getInternalFrame(), false);
+
+	public WrapperSelectField wsfLieferant = new WrapperSelectField(WrapperSelectField.LIEFERANT, getInternalFrame(),
+			true);
 
 	public WrapperLabel wlaLVPosition = new WrapperLabel();
 	public WrapperTextField wtfLVPosition = new WrapperTextField();
 
-	public WrapperButton wbuLager = new WrapperButton(
-			LPMain.getTextRespectUISPr("button.lager"));
+	public WrapperButton wbuLager = new WrapperButton(LPMain.getTextRespectUISPr("button.lager"));
 	public WrapperTextField wtfLager = new WrapperTextField();
 	public PanelQueryFLR panelQueryFLRArtikellager = null;
 	static final public String ACTION_SPECIAL_LAGER_FROM_LISTE = "action_lager_from_liste";
 	public Integer selectedlagerIId = null;
 
-	public void setUebersteuertesLagerIId(Integer selectedlagerIId)
-			throws Throwable {
+	public void setUebersteuertesLagerIId(Integer selectedlagerIId) throws Throwable {
 		this.selectedlagerIId = selectedlagerIId;
 		if (selectedlagerIId != null) {
-			LagerDto lagerDto = DelegateFactory.getInstance()
-					.getLagerDelegate().lagerFindByPrimaryKey(selectedlagerIId);
+			LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
+					.lagerFindByPrimaryKey(selectedlagerIId);
 			wtfLager.setText(lagerDto.getCNr());
 			this.selectedlagerIId = lagerDto.getIId();
 		} else {
@@ -225,6 +245,8 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 
 	public int iZeileNettopreis = -1;
 
+	public int iZeileMenge = -1;
+
 	private int iPreiseUINachkommastellen;
 	private final int iMengeUINachkommastellen;
 
@@ -235,132 +257,110 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	// MB letzteArtikelNr:
 	private String letzteArtikelNr = null;
 
+	private ArtikelDto vorherigerArtikel = null;
+
 	private final String sLockMeWer;
+
+	protected PanelBasis panelBasisFuerGetKeyWhenDetailPanel = null;
 
 	/**
 	 * Ad Vorbelegung Mwstsatz: Es gibt einen Mandantenparameter
-	 * ParameterFac.PARAMETER_KUNDEN_POSITIONSKONTIERUNG vom Typ boolean. 'true'
-	 * = Der Vorschlagswert fuer alle Positionen kommt aus dem jeweiligen
-	 * Artikel. 'false' = Der Vorschlagswert fuer alle Positionen kommt aus dem
-	 * Kunden des Belegs.
+	 * ParameterFac.PARAMETER_KUNDEN_POSITIONSKONTIERUNG vom Typ boolean. 'true' =
+	 * Der Vorschlagswert fuer alle Positionen kommt aus dem jeweiligen Artikel.
+	 * 'false' = Der Vorschlagswert fuer alle Positionen kommt aus dem Kunden des
+	 * Belegs.
 	 */
 	private boolean bDefaultMwstsatzAusArtikel = true;
+
+	public boolean bDimensionserfassung = false;
 
 	/**
 	 * Konstruktor.
 	 * 
-	 * @param internalFrame
-	 *            der InternalFrame auf dem das Panel sitzt
-	 * @param add2TitleI
-	 *            der default Titel des Panels
-	 * @param key
-	 *            PK der Position
-	 * @param sLockMeWer
-	 *            String
-	 * @param bDarfPreiseSehenI
-	 *            boolean
-	 * @param iSpaltenbreite1I
-	 *            die Breite der ersten Spalte
+	 * @param internalFrame     der InternalFrame auf dem das Panel sitzt
+	 * @param add2TitleI        der default Titel des Panels
+	 * @param key               PK der Position
+	 * @param sLockMeWer        String
+	 * @param bDarfPreiseSehenI boolean
+	 * @param iSpaltenbreite1I  die Breite der ersten Spalte
 	 * @throws Throwable
 	 */
-	public PanelPositionenPreiseingabe(InternalFrame internalFrame,
-			String add2TitleI, Object key, String sLockMeWer,
-			boolean bDarfPreiseSehenI, boolean bDarfPreiseAendernI,
-			int iSpaltenbreite1I) throws Throwable {
+	public PanelPositionenPreiseingabe(InternalFrame internalFrame, String add2TitleI, Object key, String sLockMeWer,
+			boolean bDarfPreiseSehenI, boolean bDarfPreiseAendernI, int iSpaltenbreite1I,
+			PanelBasis panelBasisFuerGetKeyWhenDetailPanel) throws Throwable {
 		super(internalFrame, add2TitleI, key);
+		this.panelBasisFuerGetKeyWhenDetailPanel = panelBasisFuerGetKeyWhenDetailPanel;
+		this.iSpaltenbreite1 = Defaults.sizeFactor(iSpaltenbreite1I);
 
-		this.iSpaltenbreite1 = iSpaltenbreite1I;
 		this.sLockMeWer = sLockMeWer;
 		this.bRechtDarfPreiseSehen = bDarfPreiseSehenI;
 		this.bRechtDarfPreiseAendern = bDarfPreiseAendernI;
 
 		// Mandantenparameter fuer Positionskontierung bestimmen
-		ParametermandantDto parameterPositionskontierung = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_KUNDEN,
+		ParametermandantDto parameterPositionskontierung = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_KUNDEN,
 						ParameterFac.PARAMETER_KUNDEN_POSITIONSKONTIERUNG);
-		bDefaultMwstsatzAusArtikel = (Boolean) parameterPositionskontierung
-				.getCWertAsObject();
+		bDefaultMwstsatzAusArtikel = (Boolean) parameterPositionskontierung.getCWertAsObject();
 
-		parameterPositionskontierung = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
-						ParameterFac.PARAMETER_VKPREISEINGABE_NUR_NETTO);
-		bVkpreiseingabeNurNetto = (Boolean) parameterPositionskontierung
-				.getCWertAsObject();
+		parameterPositionskontierung = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+				ParameterFac.PARAMETER_VKPREISEINGABE_NUR_NETTO);
+		bVkpreiseingabeNurNetto = (Boolean) parameterPositionskontierung.getCWertAsObject();
+
+		parameterPositionskontierung = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+				ParameterFac.PARAMETER_DIMENSIONSERFASSUNG_VK);
+		bDimensionserfassung = (Boolean) parameterPositionskontierung.getCWertAsObject();
 
 		// Mandantenparameter fuer Preis Nachkommastellen
-		iPreiseUINachkommastellen = Defaults.getInstance()
-				.getIUINachkommastellenPreiseAllgemein();
+		iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseAllgemein();
 
 		if (this instanceof PanelPositionenArtikelVerkauf) {
-			iPreiseUINachkommastellen = Defaults.getInstance()
-					.getIUINachkommastellenPreiseVK();
+			iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseVK();
 		} else if (this instanceof PanelPositionenArtikelEinkauf) {
-			iPreiseUINachkommastellen = Defaults.getInstance()
-					.getIUINachkommastellenPreiseEK();
+			iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseEK();
 		} else if (this instanceof PanelPositionenHandeingabe) {
-			if (internalFrame instanceof InternalFrameBestellung
-					|| internalFrame instanceof InternalFrameAnfrage) {
-				iPreiseUINachkommastellen = Defaults.getInstance()
-						.getIUINachkommastellenPreiseEK();
+			if (internalFrame instanceof InternalFrameBestellung || internalFrame instanceof InternalFrameAnfrage) {
+				iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseEK();
 			} else {
-				iPreiseUINachkommastellen = Defaults.getInstance()
-						.getIUINachkommastellenPreiseVK();
+				iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseVK();
 			}
 		} else if (this instanceof PanelPositionenBestellvorschlag) {
-			iPreiseUINachkommastellen = Defaults.getInstance()
-					.getIUINachkommastellenPreiseEK();
+			iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseEK();
 		}
 
 		// Mandantenparameter fuer Mengen Nachkommastellen
-		iMengeUINachkommastellen = Defaults.getInstance()
-				.getIUINachkommastellenMenge();
+		iMengeUINachkommastellen = Defaults.getInstance().getIUINachkommastellenMenge();
 		buttonGroupFixable = new ButtonGroup();
 	}
 
 	void dialogQueryLagerFromListe(ActionEvent e) throws Throwable {
 
 		boolean bSetartikel = false;
-		StuecklisteDto stklDto = DelegateFactory
-				.getInstance()
-				.getStuecklisteDelegate()
-				.stuecklisteFindByMandantCNrArtikelIIdOhneExc(
-						artikelDto.getIId());
-		if (stklDto != null
-				&& stklDto.getStuecklisteartCNr().equals(
-						StuecklisteFac.STUECKLISTEART_SETARTIKEL)) {
+		StuecklisteDto stklDto = DelegateFactory.getInstance().getStuecklisteDelegate()
+				.stuecklisteFindByMandantCNrArtikelIIdOhneExc(artikelDto.getIId());
+		if (stklDto != null && stklDto.getStuecklisteartCNr().equals(StuecklisteFac.STUECKLISTEART_SETARTIKEL)) {
 			bSetartikel = true;
 		}
 
-		if (artikelDto != null && artikelDto.getIId() != null
-				&& bSetartikel == false) {
+		if (artikelDto != null && artikelDto.getIId() != null && bSetartikel == false) {
 
 			panelQueryFLRArtikellager = new PanelQueryFLR(null,
-					ArtikelFilterFactory.getInstance().createFKArtikellager(
-							artikelDto.getIId()),
-					QueryParameters.UC_ID_ARTIKELLAGER, null,
-					getInternalFrame(),
+					ArtikelFilterFactory.getInstance().createFKArtikellager(artikelDto.getIId()),
+					QueryParameters.UC_ID_ARTIKELLAGER, null, getInternalFrame(),
 					LPMain.getTextRespectUISPr("label.lager"));
-			panelQueryFLRArtikellager
-					.befuellePanelFilterkriterienDirektUndVersteckte(null,
-							null, ArtikelFilterFactory.getInstance()
-									.createFKVLager());
+			panelQueryFLRArtikellager.befuellePanelFilterkriterienDirektUndVersteckte(null, null,
+					ArtikelFilterFactory.getInstance().createFKVLager());
 			if (artikelDto.getIId() != null && selectedlagerIId != null) {
-				panelQueryFLRArtikellager.setSelectedId(new WwArtikellagerPK(
-						artikelDto.getIId(), selectedlagerIId));
+				panelQueryFLRArtikellager.setSelectedId(new WwArtikellagerPK(artikelDto.getIId(), selectedlagerIId));
 			}
 			new DialogQuery(panelQueryFLRArtikellager);
 
 		} else {
 			// Wenn noch kein Artikel Ausgewaehlt ist, dann normale Lagerliste
 			// anzeigen
-			panelQueryFLRArtikellager = ArtikelFilterFactory.getInstance()
-					.createPanelFLRLager(getInternalFrame(), selectedlagerIId);
+			panelQueryFLRArtikellager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(),
+					selectedlagerIId);
 
 			new DialogQuery(panelQueryFLRArtikellager);
 		}
@@ -378,6 +378,15 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		wtfBezeichnung.setActivatable(true);
 		wtfZusatzbezeichnung = wifArtikelauswahl.getWtfZusatzBezeichnung();
 		wtfZusatzbezeichnung.setActivatable(true);
+		wkvIndex = new WrapperKeyValueField(Defaults.sizeFactor(50));
+		wkvIndex.getWlaKey().setText(LPMain.getTextRespectUISPr("artikel.index"));
+
+		HelperClient.setMinimumAndPreferredSize(wkvIndex, HelperClient.getSizeFactoredDimension(110));
+
+		wkvRevision = new WrapperKeyValueField(Defaults.sizeFactor(50));
+		wkvRevision.getWlaKey().setText(LPMain.getTextRespectUISPr("artikel.revision"));
+
+		HelperClient.setMinimumAndPreferredSize(wkvRevision, HelperClient.getSizeFactoredDimension(110));
 
 		wbuLager.addActionListener(this);
 		wbuLager.setActionCommand(ACTION_SPECIAL_LAGER_FROM_LISTE);
@@ -387,129 +396,103 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		// Im VK-Panel
 		if (this instanceof PanelPositionenArtikelVerkauf) {
 
-			oPanelI.add(wifArtikelauswahl.getKundenidentnummerButton(),
-					new GridBagConstraints(0, iZeileI, 1, 1, 0, 0.0,
-							GridBagConstraints.WEST, GridBagConstraints.NONE,
-							new Insets(1, 2, 1, 2), 10, 0));
-			oPanelI.add(wbuArtikelauswahl, new GridBagConstraints(0, iZeileI,
-					1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
-					GridBagConstraints.HORIZONTAL, new Insets(1, 22, 1, 2), 0,
-					0));
+			oPanelI.add(wifArtikelauswahl.getKundenidentnummerButton(), new GridBagConstraints(0, iZeileI, 1, 1, 0, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(1, 2, 1, 2), 10, 0));
+			oPanelI.add(wbuArtikelauswahl, new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 22, 1, 2), 0, 0));
 		} else {
-			oPanelI.add(wbuArtikelauswahl,
-					new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0,
-							GridBagConstraints.NORTH,
-							GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1,
-									2), 0, 0));
+			oPanelI.add(wbuArtikelauswahl, new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 		}
 
-		oPanelI.add(wtfArtikel, new GridBagConstraints(1, iZeileI, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wtfArtikel, new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 
-		oPanelI.add(wlaBezeichnung, new GridBagConstraints(2, iZeileI, 1, 1,
-				0.0, 0.0, GridBagConstraints.NORTH,
+		oPanelI.add(wlaBezeichnung, new GridBagConstraints(2, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wtfBezeichnung, new GridBagConstraints(3, iZeileI, 5, 1,
-				0.0, 0.0, GridBagConstraints.NORTH,
+		oPanelI.add(wtfBezeichnung, new GridBagConstraints(3, iZeileI, 4, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+
+		oPanelI.add(wkvRevision, new GridBagConstraints(7, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.EAST,
+				GridBagConstraints.NONE, new Insets(1, 2, 1, 2), 0, 0));
 
 		// Zeile 2 des Artikelblocks
 		iZeileI++;
 
-		ParametermandantDto parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
+		ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
 						ParameterFac.PARAMETER_LV_POSITION);
 
-		boolean bMitLVPositionen = ((Boolean) parametermandantDto
-				.getCWertAsObject()).booleanValue();
+		boolean bMitLVPositionen = ((Boolean) parametermandantDto.getCWertAsObject()).booleanValue();
 
 		if (bMitLVPositionen == true) {
 			wlaLVPosition.setText(LPMain.getTextRespectUISPr("lp.lvposition"));
-			oPanelI.add(wlaLVPosition,
-					new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0,
-							GridBagConstraints.NORTH,
-							GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1,
-									2), 0, 0));
-			oPanelI.add(wtfLVPosition,
-					new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0,
-							GridBagConstraints.NORTH,
-							GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1,
-									2), 0, 0));
+			oPanelI.add(wlaLVPosition, new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+			oPanelI.add(wtfLVPosition, new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 		} else {
 
-			if (getInternalFrame().getBelegartCNr().equals(
-					LocaleFac.BELEGART_LIEFERSCHEIN)) {
+			if (getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_LIEFERSCHEIN)) {
 
-				oPanelI.add(wbuLager, new GridBagConstraints(0, iZeileI, 1, 1,
-						0.0, 0.0, GridBagConstraints.NORTH,
-						GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2),
-						0, 0));
-				oPanelI.add(wtfLager, new GridBagConstraints(1, iZeileI, 1, 1,
-						0.0, 0.0, GridBagConstraints.NORTH,
-						GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2),
-						0, 0));
+				oPanelI.add(wbuLager, new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+						GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+				oPanelI.add(wtfLager, new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+						GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 			}
 		}
 
-		oPanelI.add(wtfZusatzbezeichnung, new GridBagConstraints(3, iZeileI, 5,
-				1, 0.0, 0.0, GridBagConstraints.NORTH,
+		oPanelI.add(wtfZusatzbezeichnung, new GridBagConstraints(3, iZeileI, 4, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+
+		oPanelI.add(wkvIndex, new GridBagConstraints(7, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.EAST,
+				GridBagConstraints.NONE, new Insets(1, 2, 1, 2), 0, 0));
+
 	}
 
 	/**
-	 * Diese Zeile formatiert ein Panel in drei Fluchten und bietet die Basis
-	 * fuer ein Panel mit einer Preisfindung. <br>
+	 * Diese Zeile formatiert ein Panel in drei Fluchten und bietet die Basis fuer
+	 * ein Panel mit einer Preisfindung. <br>
 	 * Die folgenden Felder werden in dieser Zeile angezeigt: <br>
-	 * Label Menge - Menge - Label Einheit - Einheit - leer - Label Einzelpreis
-	 * - Einzelpreis - Waehrung
+	 * Label Menge - Menge - Label Einheit - Einheit - leer - Label Einzelpreis -
+	 * Einzelpreis - Waehrung
 	 * 
-	 * @param oPanelI
-	 *            JPanel
-	 * @param iZeileI
-	 *            int
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param oPanelI JPanel
+	 * @param iZeileI int
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public void addFormatierungszeileNettoeinzelpreis(JPanel oPanelI,
-			int iZeileI) throws Throwable {
+	public void addFormatierungszeileNettoeinzelpreis(JPanel oPanelI, int iZeileI) throws Throwable {
+
+		iZeileMenge = iZeileI;
+
 		wlaMenge = new WrapperLabel(LPMain.getTextRespectUISPr("label.menge"));
 		HelperClient.setDefaultsToComponent(wlaMenge, iSpaltenbreite1);
 
 		wnfMenge = new WrapperNumberField();
 		wnfMenge.setFractionDigits(iMengeUINachkommastellen);
 		HelperClient.setDefaultsToComponent(wnfMenge, 90);
-		wnfMenge.addFocusListener(new PanelPositionenPreiseingabe_wnfMenge_focusAdapter(
-				this));
-		wnfMenge.addKeyListener(new PanelPositionenPreiseingabe_wnfMenge_keyAdapter(
-				this));
+		wnfMenge.addFocusListener(new PanelPositionenPreiseingabe_wnfMenge_focusAdapter(this));
+		wnfMenge.addKeyListener(new PanelPositionenPreiseingabe_wnfMenge_keyAdapter(this));
+		wnfMenge.addPropertyChangeListener(WrapperSnrChnrField.MENGE_GEAENDERT, this);
 
-		wlaEinheit = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.einheit"));
+		wlaEinheit = new WrapperLabel(LPMain.getTextRespectUISPr("label.einheit"));
 		HelperClient.setDefaultsToComponent(wlaEinheit, 40);
 
 		wcoEinheit = new WrapperComboBox();
 		HelperClient.setDefaultsToComponent(wcoEinheit, 90);
 		wcoEinheit.setMandatoryFieldDB(true);
-		wcoEinheit.setMap(DelegateFactory.getInstance().getSystemDelegate()
-				.getAllEinheiten());
+		wcoEinheit.setMap(DelegateFactory.getInstance().getSystemDelegate().getAllEinheiten());
 
 		wlaEmpty = new WrapperLabel();
 		HelperClient.setDefaultsToComponent(wlaEmpty, 12);
 
-		wlaEinzelpreis = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.einzelpreis"));
-		HelperClient.setDefaultsToComponent(wlaEinzelpreis, 50);
+		wlaEinzelpreis = new WrapperLabel(LPMain.getTextRespectUISPr("label.einzelpreis"));
+		HelperClient.setDefaultsToComponent(wlaEinzelpreis, Defaults.sizeFactor(50));
 
 		wnfEinzelpreis = new WrapperNumberField();
 		wnfEinzelpreis.setDependenceField(true);
 		wnfEinzelpreis.setMandatoryField(true);
-		wnfEinzelpreis
-				.addFocusListener(new PanelPositionenPreiseingabe_wnfEinzelpreis_focusAdapter(
-						this));
+		wnfEinzelpreis.addFocusListener(new PanelPositionenPreiseingabe_wnfEinzelpreis_focusAdapter(this));
 
 		wlaZielwaehrung0 = new WrapperLabel();
 		HelperClient.setDefaultsToComponent(wlaZielwaehrung0, 20);
@@ -520,100 +503,132 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wlaEinzelpreis.setVisible(false);
 			wnfEinzelpreis.setVisible(false);
 			wlaZielwaehrung0.setVisible(false);
+		} else if (!bRechtDarfPreiseAendern) {
+			wnfEinzelpreis.setActivatable(false);
 		}
 
-		oPanelI.add(wlaMenge, new GridBagConstraints(0, iZeileI, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaMenge, new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_VERLEIH)
+		if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_VERLEIH)
 				&& this instanceof PanelPositionenArtikelVerkauf
 				&& !(getInternalFrame() instanceof InternalFrameAngebotstkl)) {
 
 			wcoVerleih = new WrapperComboBox();
-			wcoVerleih.setMinimumSize(new Dimension(20, Defaults.getInstance()
-					.getControlHeight()));
-			wcoVerleih.setPreferredSize(new Dimension(20, Defaults
-					.getInstance().getControlHeight()));
+			wcoVerleih.setMinimumSize(new Dimension(20, Defaults.getInstance().getControlHeight()));
+			wcoVerleih.setPreferredSize(new Dimension(20, Defaults.getInstance().getControlHeight()));
 
-			wcoVerleih.setMap(DelegateFactory.getInstance()
-					.getArtikelDelegate().getAllVerleih());
-			oPanelI.add(wcoVerleih, new GridBagConstraints(1, iZeileI, 1, 1,
-					0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-					new Insets(1, 2, 1, 2), 50, 0));
-			oPanelI.add(wnfMenge, new GridBagConstraints(1, iZeileI, 1, 1, 0.0,
-					0.0, GridBagConstraints.EAST,
-					GridBagConstraints.HORIZONTAL, new Insets(1, 75, 1, 2), 0,
-					0));
+			wcoVerleih.setMap(DelegateFactory.getInstance().getArtikelDelegate().getAllVerleih());
+			oPanelI.add(wcoVerleih, new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.NONE, new Insets(1, 2, 1, 2), 50, 0));
+			oPanelI.add(wnfMenge, new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.EAST,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 75, 1, 2), 0, 0));
 		} else {
-			oPanelI.add(wnfMenge,
-					new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1,
-									2), 0, 0));
+			oPanelI.add(wnfMenge, new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 		}
 
-		oPanelI.add(wlaEinheit, new GridBagConstraints(2, iZeileI, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wcoEinheit, new GridBagConstraints(3, iZeileI, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaEmpty, new GridBagConstraints(4, iZeileI, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaEinzelpreis, new GridBagConstraints(5, iZeileI, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaEinheit, new GridBagConstraints(2, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfEinzelpreis, new GridBagConstraints(6, iZeileI, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wcoEinheit, new GridBagConstraints(3, iZeileI, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaZielwaehrung0, new GridBagConstraints(7, iZeileI, 1, 1,
-				0.1, 0.0, GridBagConstraints.WEST,
+		oPanelI.add(wlaEmpty, new GridBagConstraints(4, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaEinzelpreis, new GridBagConstraints(5, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfEinzelpreis, new GridBagConstraints(6, iZeileI, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaZielwaehrung0, new GridBagConstraints(7, iZeileI, 1, 1, 0.1, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 	}
 
+	public void addZeileDimensionen(JPanel oPanelI, int iZeileI) throws Throwable {
+
+		wlaMengeDimension = new WrapperLabel(LPMain.getTextRespectUISPr("lp.dim.menge"));
+		wnfMengeDimension = new WrapperNumberField();
+
+		wlaBreiteDimension = new WrapperLabel(LPMain.getTextRespectUISPr("stkl.breite") + " (mm)");
+		wnfBreiteDimension = new WrapperNumberField();
+
+		wlaHoeheDimension = new WrapperLabel(LPMain.getTextRespectUISPr("stkl.hoehe") + " (mm)");
+		wnfHoeheDimension = new WrapperNumberField();
+
+		wlaTiefeDimension = new WrapperLabel(LPMain.getTextRespectUISPr("stkl.tiefe") + " (mm)");
+		wnfTiefeDimension = new WrapperNumberField();
+
+		wnfBreiteDimension.setFractionDigits(Defaults.getInstance().getIUINachkommastellenDimensionen());
+		wnfHoeheDimension.setFractionDigits(Defaults.getInstance().getIUINachkommastellenDimensionen());
+		wnfTiefeDimension.setFractionDigits(Defaults.getInstance().getIUINachkommastellenDimensionen());
+
+		wnfBreiteDimension.addFocusListener(this);
+		wnfHoeheDimension.addFocusListener(this);
+		wnfTiefeDimension.addFocusListener(this);
+		wnfMengeDimension.addFocusListener(this);
+
+		oPanelI.add(wlaMengeDimension, new GridBagConstraints(0, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfMengeDimension, new GridBagConstraints(1, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+
+		JPanel panelBHT = new JPanel(new GridBagLayout());
+
+		panelBHT.add(wlaBreiteDimension, new GridBagConstraints(0, 0, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 20, 0));
+		panelBHT.add(wnfBreiteDimension, new GridBagConstraints(1, 0, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, -50));
+		panelBHT.add(wlaHoeheDimension, new GridBagConstraints(2, 0, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 30, 0));
+		panelBHT.add(wnfHoeheDimension, new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, -50));
+		panelBHT.add(wlaTiefeDimension, new GridBagConstraints(4, 0, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 30, 0));
+		panelBHT.add(wnfTiefeDimension, new GridBagConstraints(5, 0, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, -50));
+
+		oPanelI.add(panelBHT, new GridBagConstraints(2, iZeileI, 6, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+
+		if (!bDimensionserfassung) {
+			wlaMengeDimension.setVisible(false);
+			wnfMengeDimension.setVisible(false);
+			wlaBreiteDimension.setVisible(false);
+			wnfBreiteDimension.setVisible(false);
+			wlaHoeheDimension.setVisible(false);
+			wnfHoeheDimension.setVisible(false);
+			wlaTiefeDimension.setVisible(false);
+			wnfTiefeDimension.setVisible(false);
+		}
+
+	}
+
 	/**
-	 * Diese Zeile enthaelt keine Formatierung und bietet die Basis fuer ein
-	 * Panel mit einer Preisfindung, das ueber
-	 * addFormatierungszeileNettoeinzelpreis() formtiert wurde. <br>
+	 * Diese Zeile enthaelt keine Formatierung und bietet die Basis fuer ein Panel
+	 * mit einer Preisfindung, das ueber addFormatierungszeileNettoeinzelpreis()
+	 * formtiert wurde. <br>
 	 * Die folgenden Felder werden in dieser Zeile angezeigt: <br>
-	 * leer - leer - leer - Rabattsatz - Label Prozent - Label Minus -
-	 * Rabattsumme - Waehrung
+	 * leer - leer - leer - Rabattsatz - Label Prozent - Label Minus - Rabattsumme -
+	 * Waehrung
 	 * 
-	 * @param oPanelI
-	 *            JPanel
-	 * @param iZeileI
-	 *            int
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param oPanelI JPanel
+	 * @param iZeileI int
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public void addZeileRabattsumme(JPanel oPanelI, int iZeileI)
-			throws Throwable {
-		wlaRabattsatz = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.rabatt"));
-		wnfRabattsatz = new WrapperNumberField(new BigDecimal(
-				SystemFac.MIN_N_NUMBER), new BigDecimal(SystemFac.MAX_N_NUMBER));
+	public void addZeileRabattsumme(JPanel oPanelI, int iZeileI) throws Throwable {
+		wlaRabattsatz = new WrapperLabel(LPMain.getTextRespectUISPr("label.rabatt"));
+		wnfRabattsatz = new WrapperNumberField(new BigDecimal(SystemFac.MIN_N_NUMBER),
+				new BigDecimal(SystemFac.MAX_N_NUMBER));
 		wnfRabattsatz.setDependenceField(true);
 		wnfRabattsatz.setMandatoryField(true);
-		wnfRabattsatz
-				.addFocusListener(new PanelPositionenPreiseingabe_wnfRabattsatz_focusAdapter(
-						this));
+		wnfRabattsatz.addFocusListener(new PanelPositionenPreiseingabe_wnfRabattsatz_focusAdapter(this));
 
-		wlaProzent1 = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.prozent"));
+		wlaProzent1 = new WrapperLabel(LPMain.getTextRespectUISPr("label.prozent"));
 		wlaProzent1.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaProzent1.setHorizontalTextPosition(SwingConstants.LEFT);
-		wlaProzent1.setMaximumSize(new Dimension(12, Defaults.getInstance()
-				.getControlHeight()));
-		wlaProzent1.setMinimumSize(new Dimension(12, Defaults.getInstance()
-				.getControlHeight()));
-		wlaProzent1.setPreferredSize(new Dimension(12, Defaults.getInstance()
-				.getControlHeight()));
+
+		Dimension prozentDimension = HelperClient.getSizeFactoredDimension(15);
+		wlaProzent1.setMaximumSize(prozentDimension);
+		wlaProzent1.setMinimumSize(prozentDimension);
+		wlaProzent1.setPreferredSize(prozentDimension);
 
 		wlaMinus = new WrapperLabel(LPMain.getTextRespectUISPr("lp.minus"));
 
@@ -633,39 +648,47 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wlaMinus.setVisible(false);
 			wnfRabattsumme.setVisible(false);
 			wlaZielwaehrung1.setVisible(false);
+		} else if (!bRechtDarfPreiseAendern) {
+			wnfRabattsatz.setActivatable(false);
+			wnfRabattsumme.setActivatable(false);
 		}
 
-		oPanelI.add(wlaRabattsatz, new GridBagConstraints(2, iZeileI, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfRabattsatz, new GridBagConstraints(3, iZeileI, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaProzent1, new GridBagConstraints(4, iZeileI, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaMinus, new GridBagConstraints(5, iZeileI, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfRabattsumme, new GridBagConstraints(6, iZeileI, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaZielwaehrung1, new GridBagConstraints(7, iZeileI, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaRabattsatz, new GridBagConstraints(2, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfRabattsatz, new GridBagConstraints(3, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaProzent1, new GridBagConstraints(4, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaMinus, new GridBagConstraints(5, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfRabattsumme, new GridBagConstraints(6, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaZielwaehrung1, new GridBagConstraints(7, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+
+		// PJ19213
+		pa = new PanelAdditiveVerpackungsmengen(getInternalFrame(), wnfMenge);
+
+		ParametermandantDto parameterDto = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+				ParameterFac.PARAMETER_VERPACKUNGSMENGEN_EINGABE);
+		int bVerpackungsmengeneingabe = (Integer) parameterDto.getCWertAsObject();
+
+		if (bVerpackungsmengeneingabe > 0) {
+
+			oPanelI.add(pa, new GridBagConstraints(1, iZeileI, 1, 3, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 150, 0));
+		}
 	}
 
 	public void addZeileAufschlag(JPanel oPanelI, int iZeileI) throws Throwable {
 
-		wlaAufschlag = new WrapperLabel(
-				LPMain.getTextRespectUISPr("as.aufschlag"));
+		wlaAufschlag = new WrapperLabel(LPMain.getTextRespectUISPr("as.aufschlag"));
 
 		wnfAufschlagProzent = new WrapperNumberField();
 		wnfAufschlagProzent.setMandatoryField(true);
 
-		wnfAufschlagProzent
-				.addFocusListener(new PanelPositionenPreiseingabe_wnfAufschlag_focusAdapter(
-						this));
+		wnfAufschlagProzent.addFocusListener(new PanelPositionenPreiseingabe_wnfAufschlag_focusAdapter(this));
 
 		buttonGroupFixableAufschlag = new ButtonGroup();
 
@@ -679,103 +702,76 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		wnfGesamtpreisMitAufschlag = new WrapperFixableNumberField();
 		wnfGesamtpreisMitAufschlag.setMandatoryField(true);
 		wnfGesamtpreisMitAufschlag.setDependenceField(true);
-		wnfGesamtpreisMitAufschlag
-				.getWrapperWrapperNumberField()
-				.addFocusListener(
-						new PanelPositionenPreiseingabe_wnfGesamtpreisMitAufschlag_focusAdapter(
-								this));
+		wnfGesamtpreisMitAufschlag.getWrapperWrapperNumberField()
+				.addFocusListener(new PanelPositionenPreiseingabe_wnfGesamtpreisMitAufschlag_focusAdapter(this));
 
 		buttonGroupFixableAufschlag.add(wnfAufschlagBetrag.getWrbFixNumber());
-		buttonGroupFixableAufschlag.add(wnfGesamtpreisMitAufschlag
-				.getWrbFixNumber());
+		buttonGroupFixableAufschlag.add(wnfGesamtpreisMitAufschlag.getWrbFixNumber());
 
-		wlaProzentAufschlag = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.prozent"));
-		wlaPlusAufschlag = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.plus"));
+		wlaProzentAufschlag = new WrapperLabel(LPMain.getTextRespectUISPr("label.prozent"));
+		wlaPlusAufschlag = new WrapperLabel(LPMain.getTextRespectUISPr("lp.plus"));
 
 		wlaWaehrungAufschlag1 = new WrapperLabel();
 		wlaWaehrungAufschlag2 = new WrapperLabel();
 
-		oPanelI.add(wlaAufschlag, new GridBagConstraints(1, iZeileI, 2, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfAufschlagProzent, new GridBagConstraints(3, iZeileI, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaAufschlag, new GridBagConstraints(1, iZeileI, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaProzentAufschlag, new GridBagConstraints(4, iZeileI, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wnfAufschlagProzent, new GridBagConstraints(3, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaPlusAufschlag, new GridBagConstraints(5, iZeileI, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfAufschlagBetrag, new GridBagConstraints(6, iZeileI, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaWaehrungAufschlag1, new GridBagConstraints(7, iZeileI,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaProzentAufschlag, new GridBagConstraints(4, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaPlusAufschlag, new GridBagConstraints(5, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfAufschlagBetrag, new GridBagConstraints(6, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaWaehrungAufschlag1, new GridBagConstraints(7, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 
 		iZeileI++;
 
-		oPanelI.add(
-				new WrapperLabel(LPMain.getTextRespectUISPr("agstkl.label.nettovkpreis")),
-				new GridBagConstraints(5, iZeileI, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+		oPanelI.add(new WrapperLabel(LPMain.getTextRespectUISPr("agstkl.label.nettovkpreis")),
+				new GridBagConstraints(5, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(1, 2, 1, 2), 0, 0));
 
-		oPanelI.add(wnfGesamtpreisMitAufschlag, new GridBagConstraints(6,
-				iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaWaehrungAufschlag2, new GridBagConstraints(7, iZeileI,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wnfGesamtpreisMitAufschlag, new GridBagConstraints(6, iZeileI, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaWaehrungAufschlag2, new GridBagConstraints(7, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 
 	}
 
 	/**
-	 * Diese Zeile enthaelt keine Formatierung und bietet die Basis fuer ein
-	 * Panel mit einer Preisfindung, das ueber
-	 * addFormatierungszeileNettoeinzelpreis() formtiert wurde. <br>
+	 * Diese Zeile enthaelt keine Formatierung und bietet die Basis fuer ein Panel
+	 * mit einer Preisfindung, das ueber addFormatierungszeileNettoeinzelpreis()
+	 * formtiert wurde. <br>
 	 * Die folgenden Felder werden in dieser Zeile angezeigt: <br>
 	 * leer - leer - leer - Zusatzrabattsatz - Label Prozent - Label Minus -
 	 * Rabattsumme - Waehrung
 	 * 
-	 * @param oPanelI
-	 *            JPanel
-	 * @param iZeileI
-	 *            int
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param oPanelI JPanel
+	 * @param iZeileI int
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public void addZeileZusatzrabattsumme(JPanel oPanelI, int iZeileI)
-			throws Throwable {
-		wlaZusatzrabattsatz = new WrapperLabel(
-				LPMain.getTextRespectUISPr("detail.label.sonderrabatt"));
-		wnfZusatzrabattsatz = new WrapperNumberField(new BigDecimal(
-				SystemFac.MIN_N_NUMBER), new BigDecimal(SystemFac.MAX_N_NUMBER));
+	public void addZeileZusatzrabattsumme(JPanel oPanelI, int iZeileI) throws Throwable {
+		wlaZusatzrabattsatz = new WrapperLabel(LPMain.getTextRespectUISPr("detail.label.sonderrabatt"));
+		wnfZusatzrabattsatz = new WrapperNumberField(new BigDecimal(SystemFac.MIN_N_NUMBER),
+				new BigDecimal(SystemFac.MAX_N_NUMBER));
 		wnfZusatzrabattsatz.setDependenceField(true);
 		wnfZusatzrabattsatz.setMandatoryField(true);
-		wnfZusatzrabattsatz
-				.addFocusListener(new PanelPositionenPreiseingabe_wnfZusatzrabattsatz_focusAdapter(
-						this));
+		wnfZusatzrabattsatz.addFocusListener(new PanelPositionenPreiseingabe_wnfZusatzrabattsatz_focusAdapter(this));
 
-		wlaProzentZusatzrabattsatz = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.prozent"));
+		wlaProzentZusatzrabattsatz = new WrapperLabel(LPMain.getTextRespectUISPr("label.prozent"));
 		wlaProzentZusatzrabattsatz.setHorizontalAlignment(SwingConstants.LEFT);
-		wlaProzentZusatzrabattsatz
-				.setHorizontalTextPosition(SwingConstants.LEFT);
+		wlaProzentZusatzrabattsatz.setHorizontalTextPosition(SwingConstants.LEFT);
 		HelperClient.setDefaultsToComponent(wlaProzentZusatzrabattsatz, 12);
 
-		wlaMinusZusatzrabattsumme = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.minus"));
+		wlaMinusZusatzrabattsumme = new WrapperLabel(LPMain.getTextRespectUISPr("lp.minus"));
 
 		wnfZusatzrabattsumme = new WrapperNumberField();
 		wnfZusatzrabattsumme.setDependenceField(true);
 
 		wlaZielwaehrungZusatzrabattsumme = new WrapperLabel();
-		wlaZielwaehrungZusatzrabattsumme
-				.setHorizontalAlignment(SwingConstants.LEADING);
+		wlaZielwaehrungZusatzrabattsumme.setHorizontalAlignment(SwingConstants.LEADING);
 
 		// Sichtbarkeit
 		if (!bRechtDarfPreiseSehen) {
@@ -787,58 +783,44 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wlaZielwaehrungZusatzrabattsumme.setVisible(false);
 		}
 
-		oPanelI.add(wlaZusatzrabattsatz, new GridBagConstraints(2, iZeileI, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaZusatzrabattsatz, new GridBagConstraints(2, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfZusatzrabattsatz, new GridBagConstraints(3, iZeileI, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wnfZusatzrabattsatz, new GridBagConstraints(3, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaProzentZusatzrabattsatz, new GridBagConstraints(4,
-				iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaProzentZusatzrabattsatz, new GridBagConstraints(4, iZeileI, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaMinusZusatzrabattsumme, new GridBagConstraints(5, iZeileI, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfZusatzrabattsumme, new GridBagConstraints(6, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaMinusZusatzrabattsumme, new GridBagConstraints(5,
-				iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfZusatzrabattsumme, new GridBagConstraints(6, iZeileI, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaZielwaehrungZusatzrabattsumme, new GridBagConstraints(7,
-				iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaZielwaehrungZusatzrabattsumme, new GridBagConstraints(7, iZeileI, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 	}
 
 	/**
-	 * Diese Zeile enthaelt keine Formatierung und bietet die Basis fuer ein
-	 * Panel mit einer Preisfindung, das ueber
-	 * addFormatierungszeileNettoeinzelpreis() formtiert wurde. <br>
+	 * Diese Zeile enthaelt keine Formatierung und bietet die Basis fuer ein Panel
+	 * mit einer Preisfindung, das ueber addFormatierungszeileNettoeinzelpreis()
+	 * formtiert wurde. <br>
 	 * Die folgenden Felder werden in dieser Zeile angezeigt: <br>
 	 * leer - leer - leer - Zusatzrabattsatz - Label Prozent - Label Minus -
 	 * Rabattsumme - Waehrung
 	 * 
-	 * @param oPanelI
-	 *            JPanel
-	 * @param iZeileI
-	 *            int
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param oPanelI JPanel
+	 * @param iZeileI int
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public void addZeileMaterialzuschlag(JPanel oPanelI, int iZeileI)
-			throws Throwable {
-		wlaMaterialzuschlag = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.materialzuschlag"));
-		wnfMaterialzuschlag = new WrapperNumberField(new BigDecimal(
-				SystemFac.MIN_N_NUMBER), new BigDecimal(SystemFac.MAX_N_NUMBER));
+	public void addZeileMaterialzuschlag(JPanel oPanelI, int iZeileI) throws Throwable {
+		wlaMaterialzuschlag = new WrapperLabel(LPMain.getTextRespectUISPr("lp.materialzuschlag"));
+		wnfMaterialzuschlag = new WrapperNumberField(new BigDecimal(SystemFac.MIN_N_NUMBER),
+				new BigDecimal(SystemFac.MAX_N_NUMBER));
 		wnfMaterialzuschlag.setDependenceField(true);
 		wnfMaterialzuschlag.setActivatable(false);
-		wnfMaterialzuschlag
-				.addFocusListener(new PanelPositionenPreiseingabe_wnfMaterialzuschlag_focusAdapter(
-						this));
+		wnfMaterialzuschlag.addFocusListener(new PanelPositionenPreiseingabe_wnfMaterialzuschlag_focusAdapter(this));
 
 		wlaPlusMaterialzuschlag = new WrapperLabel("+");
 
 		wlaZielwaehrungMaterialzuschlag = new WrapperLabel();
-		wlaZielwaehrungMaterialzuschlag
-				.setHorizontalAlignment(SwingConstants.LEADING);
+		wlaZielwaehrungMaterialzuschlag.setHorizontalAlignment(SwingConstants.LEADING);
 
 		// Sichtbarkeit
 		if (!bRechtDarfPreiseSehen) {
@@ -848,19 +830,15 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wlaZielwaehrungMaterialzuschlag.setVisible(false);
 		}
 
-		oPanelI.add(wlaMaterialzuschlag, new GridBagConstraints(3, iZeileI, 2,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaMaterialzuschlag, new GridBagConstraints(3, iZeileI, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 
-		oPanelI.add(wlaPlusMaterialzuschlag, new GridBagConstraints(5, iZeileI,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaPlusMaterialzuschlag, new GridBagConstraints(5, iZeileI, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfMaterialzuschlag, new GridBagConstraints(6, iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfMaterialzuschlag, new GridBagConstraints(6, iZeileI, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaZielwaehrungMaterialzuschlag, new GridBagConstraints(7,
-				iZeileI, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaZielwaehrungMaterialzuschlag, new GridBagConstraints(7, iZeileI, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 	}
 
 	public void setVisibleZeileRabattsumme(boolean bVisible) {
@@ -881,8 +859,8 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		wlaZielwaehrungZusatzrabattsumme.setVisible(bVisible);
 	}
 
-	protected void addZeileNettogesamtpreis(JPanel oPanelI, int iYGridBagNext,
-			boolean bMitKostentraeger) throws Throwable {
+	protected void addZeileNettogesamtpreis(JPanel oPanelI, int iYGridBagNext, boolean bMitKostentraeger)
+			throws Throwable {
 		// CK->UW Hier Gestehungspreis eingefuegt
 		wlaGestpreis = new WrapperLabel();
 		wlaGestpreis.setText(LPMain.getTextRespectUISPr("lp.gestehungspreis"));
@@ -894,13 +872,10 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		buttonGroupFixable.add(wnfNettopreis.getWrbFixNumber());
 		wnfNettopreis.setDependenceField(true);
 		wnfNettopreis.setMandatoryField(true);
-		wnfNettopreis
-				.getWrapperWrapperNumberField()
-				.addFocusListener(
-						new PanelPositionenPreiseingabe_wnfNettopreis_focusAdapter(
-								this));
-		wnfNettopreis.getWrapperWrapperNumberField().addKeyListener(
-				new PanelPositionenPreiseingabe_wnfNettopreis_keyAdapter(this));
+		wnfNettopreis.getWrapperWrapperNumberField()
+				.addFocusListener(new PanelPositionenPreiseingabe_wnfNettopreis_focusAdapter(this));
+		wnfNettopreis.getWrapperWrapperNumberField()
+				.addKeyListener(new PanelPositionenPreiseingabe_wnfNettopreis_keyAdapter(this));
 
 		wlaZielwaehrung2 = new WrapperLabel();
 		wlaZielwaehrung2.setHorizontalAlignment(SwingConstants.LEADING);
@@ -912,73 +887,52 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wlaNettopreis.setVisible(false);
 			wnfNettopreis.setVisible(false);
 			wlaZielwaehrung2.setVisible(false);
+		} else if (!bRechtDarfPreiseAendern) {
+			wnfNettopreis.setActivatable(false);
 		}
 
 		iZeileNettopreis = iYGridBagNext;
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_KOSTENTRAEGER)
-				&& bMitKostentraeger) {
-			wsfKostentraeger.setMandatoryField(true);
-			add(wsfKostentraeger.getWrapperButton(), new GridBagConstraints(0,
-					iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-			add(wsfKostentraeger.getWrapperTextField(), new GridBagConstraints(
-					1, iYGridBagNext, 3, 1, 0.0, 0.0,
-					GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-					new Insets(1, 2, 1, 2), 0, 0));
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_KOSTENTRAEGER) && bMitKostentraeger) {
+
+			if (!getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_AGSTUECKLISTE)) {
+				wsfKostentraeger.setMandatoryField(true);
+				add(wsfKostentraeger.getWrapperButton(), new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+				add(wsfKostentraeger.getWrapperTextField(), new GridBagConstraints(1, iYGridBagNext, 3, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+			}
 		} else {
 			// PJ18312
-			if (this instanceof PanelPositionenArtikelVerkauf
-					&& getInternalFrame().getBelegartCNr() != null
-					&& (getInternalFrame().getBelegartCNr().equals(
-							LocaleFac.BELEGART_ANGEBOT) || getInternalFrame()
-							.getBelegartCNr()
-							.equals(LocaleFac.BELEGART_AUFTRAG))) {
+			if (this instanceof PanelPositionenArtikelVerkauf && getInternalFrame().getBelegartCNr() != null
+					&& (getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_ANGEBOT)
+							|| getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_AUFTRAG))) {
 
-				ParametermandantDto parameterDto = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getMandantparameter(
-								LPMain.getTheClient().getMandant(),
-								ParameterFac.KATEGORIE_ANGEBOT,
+				ParametermandantDto parameterDto = DelegateFactory.getInstance().getParameterDelegate()
+						.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ANGEBOT,
 								ParameterFac.PARAMETER_LIEFERANT_ANGEBEN);
-				boolean bLieferantAngeben = (Boolean) parameterDto
-						.getCWertAsObject();
+				boolean bLieferantAngeben = (Boolean) parameterDto.getCWertAsObject();
 				if (bLieferantAngeben == true) {
-					add(wsfLieferant.getWrapperButton(),
-							new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0,
-									0.0, GridBagConstraints.CENTER,
-									GridBagConstraints.BOTH, new Insets(1, 2,
-											1, 2), 0, 0));
-					add(wsfLieferant.getWrapperTextField(),
-							new GridBagConstraints(1, iYGridBagNext, 3, 1, 0.0,
-									0.0, GridBagConstraints.CENTER,
-									GridBagConstraints.BOTH, new Insets(1, 2,
-											1, 2), 0, 0));
+					add(wsfLieferant.getWrapperButton(), new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+					add(wsfLieferant.getWrapperTextField(), new GridBagConstraints(1, iYGridBagNext, 3, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 				}
 			}
 		}
 
-		oPanelI.add(wlaGestpreis, new GridBagConstraints(1, iYGridBagNext, 2,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaGestpreis, new GridBagConstraints(1, iYGridBagNext, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfGestpreis, new GridBagConstraints(3, iYGridBagNext, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wnfGestpreis, new GridBagConstraints(3, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 
-		oPanelI.add(wlaNettopreis, new GridBagConstraints(4, iYGridBagNext, 2,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaNettopreis, new GridBagConstraints(4, iYGridBagNext, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfNettopreis, new GridBagConstraints(6, iYGridBagNext, 1,
-				1, 3.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wnfNettopreis, new GridBagConstraints(6, iYGridBagNext, 1, 1, 3.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaZielwaehrung2, new GridBagConstraints(7, iYGridBagNext,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaZielwaehrung2, new GridBagConstraints(7, iYGridBagNext, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 
 		wlaGestpreis.setVisible(false);
 		wnfGestpreis.setVisible(false);
@@ -1000,20 +954,15 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		wlaZielwaehrung2.setVisible(bVisible);
 	}
 
-	protected void addZeileMwstsumme(JPanel oPanelI, int iYGridBagNext)
-			throws Throwable {
-		wlaMwstsatz = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.mwstshort"));
+	protected void addZeileMwstsumme(JPanel oPanelI, int iYGridBagNext) throws Throwable {
+		wlaMwstsatz = new WrapperLabel(LPMain.getTextRespectUISPr("lp.mwstshort"));
 
 		wcoMwstsatz = new WrapperComboBox();
 		wcoMwstsatz.setDependenceField(true);
 		wcoMwstsatz.setMandatoryFieldDB(true);
-		wcoMwstsatz
-				.addItemListener(new PanelPositionenPreiseingabe_jComboBoxMwstsatz_itemAdapter(
-						this));
+		wcoMwstsatz.addItemListener(new PanelPositionenPreiseingabe_jComboBoxMwstsatz_itemAdapter(this));
 
-		wlaProzent2 = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.prozent"));
+		wlaProzent2 = new WrapperLabel(LPMain.getTextRespectUISPr("label.prozent"));
 		wlaProzent2.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaProzent2.setHorizontalTextPosition(SwingConstants.LEFT);
 
@@ -1035,24 +984,18 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wlaZielwaehrung3.setVisible(false);
 		}
 
-		oPanelI.add(wlaMwstsatz, new GridBagConstraints(0, iYGridBagNext, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wcoMwstsatz, new GridBagConstraints(1, iYGridBagNext, 3, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaProzent2, new GridBagConstraints(4, iYGridBagNext, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		add(wlaPlus, new GridBagConstraints(5, iYGridBagNext, 1, 1, 0.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						1, 2, 1, 2), 0, 0));
-		oPanelI.add(wnfMwstsumme, new GridBagConstraints(6, iYGridBagNext, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wlaMwstsatz, new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
-		oPanelI.add(wlaZielwaehrung3, new GridBagConstraints(7, iYGridBagNext,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		oPanelI.add(wcoMwstsatz, new GridBagConstraints(1, iYGridBagNext, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaProzent2, new GridBagConstraints(4, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		add(wlaPlus, new GridBagConstraints(5, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wnfMwstsumme, new GridBagConstraints(6, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		oPanelI.add(wlaZielwaehrung3, new GridBagConstraints(7, iYGridBagNext, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 	}
 
 	public void setVisibleZeileMwstsumme(boolean bVisible) {
@@ -1070,16 +1013,13 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		wnfGestpreis.setVisible(bVisible);
 	}
 
-	protected void addZeileBruttogesamtpreis(JPanel oPanelI, int iYGridBagNext)
-			throws Throwable {
-		wlaBruttopreis = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.bruttopreis"));
+	protected void addZeileBruttogesamtpreis(JPanel oPanelI, int iYGridBagNext) throws Throwable {
+		wlaBruttopreis = new WrapperLabel(LPMain.getTextRespectUISPr("label.bruttopreis"));
 		wnfBruttopreis = new WrapperNumberField();
 		wnfBruttopreis.setDependenceField(true);
 
 		wlaZielwaehrungBruttopreis = new WrapperLabel();
-		wlaZielwaehrungBruttopreis
-				.setHorizontalAlignment(SwingConstants.LEADING);
+		wlaZielwaehrungBruttopreis.setHorizontalAlignment(SwingConstants.LEADING);
 
 		// Sichtbarkeit
 		if (!bRechtDarfPreiseSehen) {
@@ -1088,30 +1028,39 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wlaZielwaehrungBruttopreis.setVisible(false);
 		}
 
-		add(wlaBruttopreis, new GridBagConstraints(4, iYGridBagNext, 2, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		add(wnfBruttopreis, new GridBagConstraints(6, iYGridBagNext, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		add(wlaZielwaehrungBruttopreis, new GridBagConstraints(7,
-				iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		add(wlaBruttopreis, new GridBagConstraints(4, iYGridBagNext, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		add(wnfBruttopreis, new GridBagConstraints(6, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		add(wlaZielwaehrungBruttopreis, new GridBagConstraints(7, iYGridBagNext, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
 	}
 
-	protected void addZeileLieferterminposition(JPanel oPanelI,
-			int iYGridBagNext) throws Throwable {
+	protected void addZeileLieferterminposition(JPanel oPanelI, int iYGridBagNext) throws Throwable {
 		wlaLieferterminPosition = new WrapperLabel();
-		wlaLieferterminPosition.setText(LPMain
-				.getTextRespectUISPr("auft.label.postitionstermin"));
+		wlaLieferterminPosition.setText(LPMain.getTextRespectUISPr("auft.label.postitionstermin"));
 		wdfLieferterminPosition = new WrapperDateField();
 
-		add(wlaLieferterminPosition, new GridBagConstraints(0, iYGridBagNext,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		// PJ21227
+		wrbPauschal = new WrapperRadioButton(LPMain.getTextRespectUISPr("auft.abrechnungsart.pauschal"));
+		wrbNachAufwand = new WrapperRadioButton(LPMain.getTextRespectUISPr("auft.abrechnungsart.nachaufwand"));
+
+		bgPauschal.add(wrbPauschal);
+		bgPauschal.add(wrbNachAufwand);
+		wrbNachAufwand.setSelected(true);
+
+		add(wlaLieferterminPosition, new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		add(wdfLieferterminPosition, new GridBagConstraints(1, iYGridBagNext,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		add(wdfLieferterminPosition, new GridBagConstraints(1, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ABRECHNUNGSVORSCHLAG)) {
+			add(wrbPauschal, new GridBagConstraints(2, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+			add(wrbNachAufwand, new GridBagConstraints(3, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		}
 
 	}
 
@@ -1124,6 +1073,8 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	public void setVisibleZeileLieferterminposition(boolean bVisible) {
 		wlaLieferterminPosition.setVisible(bVisible);
 		wdfLieferterminPosition.setVisible(bVisible);
+		wrbNachAufwand.setVisible(false);
+		wrbPauschal.setVisible(false);
 	}
 
 	protected void setDefaults() throws Throwable {
@@ -1135,18 +1086,15 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		}
 		if (wcoEinheit != null) {
 			wcoEinheit.setKeyOfSelectedItem(SystemFac.EINHEIT_STUECK);
+			setzeAnzahlDimensionen();
 		}
 		/**
-		 * @todo MB->MB performance = katastrophal. wir muessen das wieder am
-		 *       client cachen. belegposition refresh mit gecachten mwst ~400ms,
-		 *       ohne ~900ms
+		 * @todo MB->MB performance = katastrophal. wir muessen das wieder am client
+		 *       cachen. belegposition refresh mit gecachten mwst ~400ms, ohne ~900ms
 		 */
 		if (wcoMwstsatz != null /* && !wcoMwstsatz.isMapSet() */) {
-			wcoMwstsatz.setMap(DelegateFactory
-					.getInstance()
-					.getMandantDelegate()
-					.getAllMwstsatz(LPMain.getTheClient().getMandant(),
-							getTBelegdatumMwstsatz()));
+			wcoMwstsatz.setMap(DelegateFactory.getInstance().getMandantDelegate()
+					.getAllMwstsatz(LPMain.getTheClient().getMandant(), getTBelegdatumMwstsatz()));
 		}
 
 		if (wnfRabattsatz != null) {
@@ -1213,8 +1161,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		}
 		if (wnfGesamtpreisMitAufschlag != null) {
 			wnfGesamtpreisMitAufschlag.setBigDecimal(new BigDecimal(0));
-			wnfGesamtpreisMitAufschlag
-					.setFractionDigits(iPreiseUINachkommastellen);
+			wnfGesamtpreisMitAufschlag.setFractionDigits(iPreiseUINachkommastellen);
 		}
 
 	}
@@ -1223,39 +1170,32 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	 * Wenn dieses Feld verlassen wird, muessen die Preisfelder neu berechnet
 	 * werden.
 	 * 
-	 * @param e
-	 *            Ereignis
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param e Ereignis
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	protected void wnfEinzelpreis_focusLost(FocusEvent e) throws Throwable {
-		if (wnfEinzelpreis.getBigDecimal() != null
-				&& wnfRabattsatz.getDouble() != null) {
+		if (wnfEinzelpreis.getBigDecimal() != null && wnfRabattsatz.getDouble() != null) {
 			berechneNettogesamtpreis();
 		}
 	}
 
-	protected void wnfGesamtpreisMitAufschlag_focusLost(FocusEvent e)
-			throws Throwable {
+	protected void wnfGesamtpreisMitAufschlag_focusLost(FocusEvent e) throws Throwable {
 		berechneNettogesamtpreis();
 	}
 
 	protected void wnfAufschlag_focusLost(FocusEvent e) throws Throwable {
-		if (wnfEinzelpreis.getBigDecimal() != null
-				&& wnfRabattsatz.getDouble() != null) {
+		if (wnfEinzelpreis.getBigDecimal() != null && wnfRabattsatz.getDouble() != null) {
 			berechneAufschlag();
 		}
 	}
 
 	/**
 	 * Nettopreis und Einzelpreis bestimmen den Rabattsatz. <br>
-	 * Hier muss mit 4 Stellen gerechnet werden, sonst stimmt das Rueckrechnen
-	 * nicht mehr.
+	 * Hier muss mit 4 Stellen gerechnet werden, sonst stimmt das Rueckrechnen nicht
+	 * mehr.
 	 * 
-	 * @param e
-	 *            Ereignis
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param e Ereignis
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	void wnfNettopreis_focusLost(FocusEvent e) throws Throwable {
 		berechneNettogesamtpreis();
@@ -1263,33 +1203,32 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		/*
 		 * final int iAnzahlNachkommastellen = 4;
 		 * 
-		 * if (wnfEinzelpreis.getBigDecimal() != null &&
-		 * wnfNettopreis.getBigDecimal() != null) { if
-		 * (wnfEinzelpreis.getBigDecimal().compareTo(new BigDecimal(0)) != 0) {
+		 * if (wnfEinzelpreis.getBigDecimal() != null && wnfNettopreis.getBigDecimal()
+		 * != null) { if (wnfEinzelpreis.getBigDecimal().compareTo(new BigDecimal(0)) !=
+		 * 0) {
 		 * 
 		 * BigDecimal nBetragVonEinzelpreisMinusRabattbetrag = null; if
-		 * (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal()
-		 * != null) { nBetragVonEinzelpreisMinusRabattbetrag = wnfNettopreis
-		 * .getBigDecimal(); } else { nBetragVonEinzelpreisMinusRabattbetrag =
-		 * wnfNettopreis .getBigDecimal(); }
+		 * (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null)
+		 * { nBetragVonEinzelpreisMinusRabattbetrag = wnfNettopreis .getBigDecimal(); }
+		 * else { nBetragVonEinzelpreisMinusRabattbetrag = wnfNettopreis
+		 * .getBigDecimal(); }
 		 * 
-		 * // die gesamte Rabattsumme ist eventuell zwischen Rabatt und //
-		 * Zusatzrabatt // aufgeteilt; der Zusatzrabattsatz wird nicht
-		 * veraendert if (wnfZusatzrabattsatz != null) { BigDecimal
-		 * nZusatzRabattsatz = wnfZusatzrabattsatz .getBigDecimal();
+		 * // die gesamte Rabattsumme ist eventuell zwischen Rabatt und // Zusatzrabatt
+		 * // aufgeteilt; der Zusatzrabattsatz wird nicht veraendert if
+		 * (wnfZusatzrabattsatz != null) { BigDecimal nZusatzRabattsatz =
+		 * wnfZusatzrabattsatz .getBigDecimal();
 		 * 
-		 * if (nZusatzRabattsatz != null && nZusatzRabattsatz.doubleValue() !=
-		 * 0) { BigDecimal nProzentsatzVonEinzelpreisMinusRabattbetrag = new
-		 * BigDecimal( 100).subtract(nZusatzRabattsatz);
+		 * if (nZusatzRabattsatz != null && nZusatzRabattsatz.doubleValue() != 0) {
+		 * BigDecimal nProzentsatzVonEinzelpreisMinusRabattbetrag = new BigDecimal(
+		 * 100).subtract(nZusatzRabattsatz);
 		 * 
 		 * nBetragVonEinzelpreisMinusRabattbetrag = new BigDecimal( 100)
 		 * .multiply(wnfNettopreis.getBigDecimal())
-		 * .divide(nProzentsatzVonEinzelpreisMinusRabattbetrag,
-		 * iAnzahlNachkommastellen, BigDecimal.ROUND_HALF_EVEN); // 2 // Stellen
-		 * // nicht // ausreichend
+		 * .divide(nProzentsatzVonEinzelpreisMinusRabattbetrag, iAnzahlNachkommastellen,
+		 * BigDecimal.ROUND_HALF_EVEN); // 2 // Stellen // nicht // ausreichend
 		 * 
-		 * wnfZusatzrabattsumme.setBigDecimal(wnfNettopreis .getBigDecimal()
-		 * .subtract( nBetragVonEinzelpreisMinusRabattbetrag) .negate()); } }
+		 * wnfZusatzrabattsumme.setBigDecimal(wnfNettopreis .getBigDecimal() .subtract(
+		 * nBetragVonEinzelpreisMinusRabattbetrag) .negate()); } }
 		 * 
 		 * // der Einzelpreis muss immer existieren BigDecimal bdRabattsumme =
 		 * wnfEinzelpreis.getBigDecimal().subtract(
@@ -1312,14 +1251,11 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	 * Wenn dieses Feld verlassen wird, muessen die Preisfelder neu berechnet
 	 * werden.
 	 * 
-	 * @param e
-	 *            Ereignis
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param e Ereignis
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public void wnfRabattsatz_focusLost(FocusEvent e) throws Throwable {
-		if (wnfEinzelpreis.getBigDecimal() != null
-				&& wnfRabattsatz.getDouble() != null) {
+		if (wnfEinzelpreis.getBigDecimal() != null && wnfRabattsatz.getDouble() != null) {
 			berechneNettogesamtpreis();
 		}
 	}
@@ -1328,21 +1264,17 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	 * Wenn dieses Feld verlassen wird, muessen die Preisfelder neu berechnet
 	 * werden.
 	 * 
-	 * @param e
-	 *            Ereignis
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param e Ereignis
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	protected void wnfZusatzrabattsatz_focusLost(FocusEvent e) throws Throwable {
-		if (wnfEinzelpreis.getBigDecimal() != null
-				&& wnfRabattsatz.getDouble() != null) {
+		if (wnfEinzelpreis.getBigDecimal() != null && wnfRabattsatz.getDouble() != null) {
 			berechneNettogesamtpreis();
 		}
 	}
 
 	protected void wnfMaterialzuschlag_focusLost(FocusEvent e) throws Throwable {
-		if (wnfEinzelpreis.getBigDecimal() != null
-				&& wnfRabattsatz.getDouble() != null) {
+		if (wnfEinzelpreis.getBigDecimal() != null && wnfRabattsatz.getDouble() != null) {
 			berechneNettogesamtpreis();
 		}
 	}
@@ -1350,8 +1282,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	/**
 	 * Wenn das Feld "Menge" verlassen wird.
 	 * 
-	 * @param e
-	 *            Ereignis
+	 * @param e Ereignis
 	 */
 	protected void wnfMenge_focusLost(FocusEvent e) {
 		// im Moment hier nix. ACHTUNG spezialbehandlung in den subklassen.
@@ -1368,13 +1299,10 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	/**
 	 * Es wurde ein neuer Mwsatsatz gewaehlt.
 	 * 
-	 * @param e
-	 *            enthaelt den neuen Mwstsatz
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @param e enthaelt den neuen Mwstsatz
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	protected void jComboBoxMwstsatz_itemStateChanged(ItemEvent e)
-			throws Throwable {
+	protected void jComboBoxMwstsatz_itemStateChanged(ItemEvent e) throws Throwable {
 		// erst dann berechnen, wenn die Preisfelder nicht mehr leer sind
 		if (wnfEinzelpreis.getBigDecimal() != null) {
 			berechneMwst();
@@ -1382,47 +1310,58 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	}
 
 	public void berechneAufschlag() throws Throwable {
-		if (wnfAufschlagBetrag != null && wnfAufschlagProzent != null
-				&& wnfGesamtpreisMitAufschlag != null) {
+		if (wnfAufschlagBetrag != null && wnfAufschlagProzent != null && wnfGesamtpreisMitAufschlag != null) {
 
 			if (wnfAufschlagBetrag.getWrbFixNumber().isSelected()) {
 				// Wenn Aufschlag(Prozent) fixiert, dann Gesamtpreis und
 				// Rabattsumme berechnen
 
-				if (wnfNettopreis.getBigDecimal() != null
-						&& wnfAufschlagProzent.getBigDecimal() != null) {
+				if (wnfNettopreis.getBigDecimal() != null && wnfAufschlagProzent.getBigDecimal() != null) {
 
-					BigDecimal aufschlagBetrag = Helper.getProzentWert(
-							wnfNettopreis.getBigDecimal(),
-							wnfAufschlagProzent.getBigDecimal(),
-							iPreiseUINachkommastellen);
+					BigDecimal aufschlagBetrag = Helper.getProzentWert(wnfNettopreis.getBigDecimal(),
+							wnfAufschlagProzent.getBigDecimal(), iPreiseUINachkommastellen);
 
 					wnfAufschlagBetrag.setBigDecimal(aufschlagBetrag);
 
-					wnfGesamtpreisMitAufschlag.setBigDecimal(wnfNettopreis
-							.getBigDecimal().add(aufschlagBetrag));
+					wnfGesamtpreisMitAufschlag.setBigDecimal(wnfNettopreis.getBigDecimal().add(aufschlagBetrag));
 				}
 
 			} else {
 				// Wenn Gesamtsumme fixiert, dann Rabatt berechnen
 
-				if (wnfGesamtpreisMitAufschlag.getBigDecimal() != null
-						&& wnfNettopreis.getBigDecimal() != null) {
+				if (wnfGesamtpreisMitAufschlag.getBigDecimal() != null && wnfNettopreis.getBigDecimal() != null) {
 
-					BigDecimal aufschlagBetrag = wnfGesamtpreisMitAufschlag
-							.getBigDecimal().subtract(
-									wnfNettopreis.getBigDecimal());
+					BigDecimal aufschlagBetrag = wnfGesamtpreisMitAufschlag.getBigDecimal()
+							.subtract(wnfNettopreis.getBigDecimal());
 
 					wnfAufschlagBetrag.setBigDecimal(aufschlagBetrag);
 
-					double satz = (aufschlagBetrag.doubleValue() / (wnfNettopreis
-							.getBigDecimal().doubleValue())) * 100;
+					double satz = (aufschlagBetrag.doubleValue() / (wnfNettopreis.getBigDecimal().doubleValue())) * 100;
 
 					wnfAufschlagProzent.setDouble(satz);
 				}
 
 			}
 
+		}
+
+	}
+
+	public void preisUebersteuern(BigDecimal bdPreisUebersteuertInMandantenwaehrung) throws Throwable {
+		if (bdPreisUebersteuertInMandantenwaehrung != null) {
+
+			BigDecimal bdPreisUebersteuertInBelegwaehrung = DelegateFactory.getInstance().getLocaleDelegate()
+					.rechneUmInAndereWaehrung(bdPreisUebersteuertInMandantenwaehrung,
+							LPMain.getTheClient().getSMandantenwaehrung(), getWaehrungCNr());
+
+			wnfEinzelpreis.setBigDecimal(bdPreisUebersteuertInBelegwaehrung);
+			wnfNettopreis.setBigDecimal(bdPreisUebersteuertInBelegwaehrung);
+			wnfRabattsatz.setDouble(0D);
+			wnfNettopreis.getWrbFixNumber().setSelected(true);
+			if (wnfZusatzrabattsatz != null) {
+				wnfZusatzrabattsatz.setDouble(0D);
+			}
+			berechneNettogesamtpreis();
 		}
 
 	}
@@ -1434,88 +1373,87 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	 */
 	private void berechneNettogesamtpreis() throws Throwable {
 
-		BigDecimal nRabattsumme = wnfEinzelpreis.getBigDecimal().multiply(
-				new BigDecimal(wnfRabattsatz.getDouble().doubleValue())
-						.movePointLeft(2));
+		BigDecimal nRabattsumme = Helper.rundeKaufmaennisch(
+				wnfEinzelpreis.getBigDecimal()
+						.multiply(new BigDecimal(wnfRabattsatz.getDouble().doubleValue()).movePointLeft(2)),
+				iPreiseUINachkommastellen);
 
 		BigDecimal nZusatzRabattsumme = new BigDecimal(0);
 
 		if (wnfNettopreis.getWrbFixNumber().isSelected()) {
 
+			// SP5332: Wenn Einzelpreis 0 und Nettopreis !=0, dann
+			// ist der Einzelpreis der Nettopreis minus dem Materialzuschlag, da
+			// Rabatt nicht berechnet werden kann ->
+			// Rabatt auf 0 setzen
+			if (wnfEinzelpreis.getBigDecimal().doubleValue() == 0 && wnfNettopreis.getBigDecimal().doubleValue() != 0) {
+
+				BigDecimal nettpreisOhneMaterialzuschlag = wnfNettopreis.getBigDecimal();
+
+				if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
+					nettpreisOhneMaterialzuschlag = wnfNettopreis.getBigDecimal()
+							.subtract(wnfMaterialzuschlag.getBigDecimal());
+				}
+				wnfEinzelpreis.setBigDecimal(nettpreisOhneMaterialzuschlag);
+				wnfRabattsatz.setDouble(0D);
+				nRabattsumme = new BigDecimal(0);
+
+				if (wnfZusatzrabattsatz != null) {
+					wnfZusatzrabattsatz.setDouble(0D);
+				}
+				nZusatzRabattsumme = new BigDecimal(0);
+			}
+
 			if (wnfZusatzrabattsatz != null) {
 
 				if (wnfZusatzrabattsatz.getDouble() == 100) {
-					nZusatzRabattsumme = wnfEinzelpreis.getBigDecimal()
-							.subtract(wnfRabattsumme.getBigDecimal());
+					nZusatzRabattsumme = wnfEinzelpreis.getBigDecimal().subtract(wnfRabattsumme.getBigDecimal());
 				} else {
 
-					if (wnfMaterialzuschlag != null
-							&& wnfMaterialzuschlag.getBigDecimal() != null) {
-						nZusatzRabattsumme = wnfNettopreis
-								.getBigDecimal()
-								.subtract(wnfMaterialzuschlag.getBigDecimal())
-								.divide(new BigDecimal(
-										1 - ((wnfZusatzrabattsatz.getDouble()
-												.doubleValue() / 100))), 4,
+					if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
+						nZusatzRabattsumme = wnfNettopreis.getBigDecimal().subtract(wnfMaterialzuschlag.getBigDecimal())
+								.divide(new BigDecimal(1 - ((wnfZusatzrabattsatz.getDouble().doubleValue() / 100))), 4,
 										BigDecimal.ROUND_HALF_EVEN)
-								.multiply(
-										new BigDecimal(
-												wnfZusatzrabattsatz.getDouble()
-														.doubleValue() / 100));
+								.multiply(new BigDecimal(wnfZusatzrabattsatz.getDouble().doubleValue() / 100));
 					} else {
-						nZusatzRabattsumme = wnfNettopreis
-								.getBigDecimal()
-								.divide(new BigDecimal(
-										1 - ((wnfZusatzrabattsatz.getDouble()
-												.doubleValue() / 100))), 4,
+						nZusatzRabattsumme = wnfNettopreis.getBigDecimal()
+								.divide(new BigDecimal(1 - ((wnfZusatzrabattsatz.getDouble().doubleValue() / 100))), 4,
 										BigDecimal.ROUND_HALF_EVEN)
-								.multiply(
-										new BigDecimal(
-												wnfZusatzrabattsatz.getDouble()
-														.doubleValue() / 100));
+								.multiply(new BigDecimal(wnfZusatzrabattsatz.getDouble().doubleValue() / 100));
 					}
 
 				}
 			}
 
-			if (wnfMaterialzuschlag != null
-					&& wnfMaterialzuschlag.getBigDecimal() != null) {
+			if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
 
-				nRabattsumme = wnfEinzelpreis.getBigDecimal().subtract(
-						wnfNettopreis.getBigDecimal().subtract(
-								wnfMaterialzuschlag.getBigDecimal()));
+				nRabattsumme = wnfEinzelpreis.getBigDecimal()
+						.subtract(wnfNettopreis.getBigDecimal().subtract(wnfMaterialzuschlag.getBigDecimal()));
 			} else {
-				nRabattsumme = wnfEinzelpreis.getBigDecimal().subtract(
-						wnfNettopreis.getBigDecimal());
+				nRabattsumme = wnfEinzelpreis.getBigDecimal().subtract(wnfNettopreis.getBigDecimal());
 			}
 		} else {
-			nRabattsumme = wnfEinzelpreis.getBigDecimal().multiply(
-					new BigDecimal(wnfRabattsatz.getDouble().doubleValue())
-							.movePointLeft(2));
-			if (wnfZusatzrabattsatz != null
-					&& wnfZusatzrabattsatz.getDouble() != null) {
-				nZusatzRabattsumme = wnfEinzelpreis
-						.getBigDecimal()
-						.subtract(nRabattsumme)
-						.multiply(
-								new BigDecimal(wnfZusatzrabattsatz.getDouble()
-										.doubleValue()).movePointLeft(2));
+			nRabattsumme = Helper.rundeKaufmaennisch(
+					wnfEinzelpreis.getBigDecimal()
+							.multiply(new BigDecimal(wnfRabattsatz.getDouble().doubleValue()).movePointLeft(2)),
+					iPreiseUINachkommastellen);
+			if (wnfZusatzrabattsatz != null && wnfZusatzrabattsatz.getDouble() != null) {
+				nZusatzRabattsumme = wnfEinzelpreis.getBigDecimal().subtract(nRabattsumme)
+						.multiply(new BigDecimal(wnfZusatzrabattsatz.getDouble().doubleValue()).movePointLeft(2));
 			}
 		}
 
 		nZusatzRabattsumme = Helper.rundeKaufmaennisch(nZusatzRabattsumme, 4);
 
 		if (wnfNettopreis.getWrbFixNumber().isSelected()) {
-			wnfRabattsumme.setBigDecimal(nRabattsumme
-					.subtract(nZusatzRabattsumme));
+			wnfRabattsumme.setBigDecimal(nRabattsumme.subtract(nZusatzRabattsumme));
 			nRabattsumme = nRabattsumme.subtract(nZusatzRabattsumme);
 		} else {
 			wnfRabattsumme.setBigDecimal(nRabattsumme);
 
 		}
 
-		BigDecimal nEinzelpreisMinusRabattsumme = wnfEinzelpreis
-				.getBigDecimal().subtract(nRabattsumme)
+		BigDecimal nEinzelpreisMinusRabattsumme = wnfEinzelpreis.getBigDecimal().subtract(nRabattsumme)
 				.subtract(nZusatzRabattsumme);
 		if (wnfZusatzrabattsumme != null) {
 
@@ -1524,22 +1462,17 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		// UW->WH Zusatzrabatt auf Einzelpreis - Rabattsumme
 		if (!wnfNettopreis.getWrbFixNumber().isSelected()) {
 			// Zusatzrabatt beruecksichtigen, wenn vorhanden
-			if (wnfZusatzrabattsatz != null
-					&& wnfZusatzrabattsatz.getBigDecimal() != null) {
+			if (wnfZusatzrabattsatz != null && wnfZusatzrabattsatz.getBigDecimal() != null) {
 
-				if (wnfMaterialzuschlag != null
-						&& wnfMaterialzuschlag.getBigDecimal() != null) {
-					wnfNettopreis.setBigDecimal(nEinzelpreisMinusRabattsumme
-							.add(wnfMaterialzuschlag.getBigDecimal()));
+				if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
+					wnfNettopreis.setBigDecimal(nEinzelpreisMinusRabattsumme.add(wnfMaterialzuschlag.getBigDecimal()));
 				} else {
 					wnfNettopreis.setBigDecimal(nEinzelpreisMinusRabattsumme);
 				}
 
 			} else {
-				if (wnfMaterialzuschlag != null
-						&& wnfMaterialzuschlag.getBigDecimal() != null) {
-					wnfNettopreis.setBigDecimal(nEinzelpreisMinusRabattsumme
-							.add(wnfMaterialzuschlag.getBigDecimal()));
+				if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
+					wnfNettopreis.setBigDecimal(nEinzelpreisMinusRabattsumme.add(wnfMaterialzuschlag.getBigDecimal()));
 				} else {
 					wnfNettopreis.setBigDecimal(nEinzelpreisMinusRabattsumme);
 				}
@@ -1556,20 +1489,15 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 				if (wnfNettopreis.getBigDecimal() != null) {
 					BigDecimal einzelpreis = wnfNettopreis.getBigDecimal();
 
-					if (wnfMaterialzuschlag != null
-							&& wnfMaterialzuschlag.getBigDecimal() != null) {
-						einzelpreis = einzelpreis.subtract(wnfMaterialzuschlag
-								.getBigDecimal());
+					if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
+						einzelpreis = einzelpreis.subtract(wnfMaterialzuschlag.getBigDecimal());
 					}
 
 					if (wnfRabattsumme.getBigDecimal() != null) {
-						einzelpreis = einzelpreis.add(wnfRabattsumme
-								.getBigDecimal());
+						einzelpreis = einzelpreis.add(wnfRabattsumme.getBigDecimal());
 					}
-					if (wnfZusatzrabattsumme != null
-							&& wnfZusatzrabattsumme.getBigDecimal() != null) {
-						einzelpreis = einzelpreis.add(wnfZusatzrabattsumme
-								.getBigDecimal());
+					if (wnfZusatzrabattsumme != null && wnfZusatzrabattsumme.getBigDecimal() != null) {
+						einzelpreis = einzelpreis.add(wnfZusatzrabattsumme.getBigDecimal());
 					}
 
 					wnfEinzelpreis.setBigDecimal(einzelpreis);
@@ -1578,8 +1506,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 
 					if (wnfEinzelpreis.getBigDecimal().doubleValue() != 0) {
 
-						satz = (nRabattsumme.doubleValue() / (wnfEinzelpreis
-								.getBigDecimal().doubleValue())) * 100;
+						satz = (nRabattsumme.doubleValue() / (wnfEinzelpreis.getBigDecimal().doubleValue())) * 100;
 					}
 
 					wnfRabattsatz.setDouble(satz);
@@ -1588,29 +1515,23 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			} else {
 				// Rabatt berechnen / Zusatzrabatt darf nicht beruehrt werden
 
-				if (wnfNettopreis.getBigDecimal() != null
-						&& wnfEinzelpreis.getBigDecimal() != null
+				if (wnfNettopreis.getBigDecimal() != null && wnfEinzelpreis.getBigDecimal() != null
 						&& wnfEinzelpreis.getBigDecimal().doubleValue() != 0) {
 
 					BigDecimal rabatt = null;
 
-					if (wnfMaterialzuschlag != null
-							&& wnfMaterialzuschlag.getBigDecimal() != null) {
-						rabatt = wnfEinzelpreis.getBigDecimal().subtract(
-								wnfNettopreis.getBigDecimal().subtract(
-										wnfMaterialzuschlag.getBigDecimal()));
+					if (wnfMaterialzuschlag != null && wnfMaterialzuschlag.getBigDecimal() != null) {
+						rabatt = wnfEinzelpreis.getBigDecimal()
+								.subtract(wnfNettopreis.getBigDecimal().subtract(wnfMaterialzuschlag.getBigDecimal()));
 					} else {
-						rabatt = wnfEinzelpreis.getBigDecimal().subtract(
-								wnfNettopreis.getBigDecimal());
+						rabatt = wnfEinzelpreis.getBigDecimal().subtract(wnfNettopreis.getBigDecimal());
 					}
 
 					if (wnfZusatzrabattsumme != null) {
 
-						rabatt = rabatt.subtract(wnfZusatzrabattsumme
-								.getBigDecimal());
+						rabatt = rabatt.subtract(wnfZusatzrabattsumme.getBigDecimal());
 					}
-					double satz = (rabatt.doubleValue() / (wnfEinzelpreis
-							.getBigDecimal().doubleValue())) * 100;
+					double satz = (rabatt.doubleValue() / (wnfEinzelpreis.getBigDecimal().doubleValue())) * 100;
 
 					wnfRabattsatz.setDouble(satz);
 					wnfRabattsatz_focusLost(null);
@@ -1629,18 +1550,13 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	 */
 	private void berechneMwst() throws Throwable {
 		if (wcoMwstsatz != null && wcoMwstsatz.getKeyOfSelectedItem() != null) {
-			Double ddMwstsatz = DelegateFactory
-					.getInstance()
-					.getMandantDelegate()
-					.mwstsatzFindByPrimaryKey(
-							(Integer) wcoMwstsatz.getKeyOfSelectedItem())
-					.getFMwstsatz();
+			Double ddMwstsatz = DelegateFactory.getInstance().getMandantDelegate()
+					.mwstsatzFindByPrimaryKey((Integer) wcoMwstsatz.getKeyOfSelectedItem()).getFMwstsatz();
 
-			wnfMwstsumme.setBigDecimal(wnfNettopreis.getBigDecimal().multiply(
-					new BigDecimal(ddMwstsatz.doubleValue()).movePointLeft(2)));
+			wnfMwstsumme.setBigDecimal(
+					wnfNettopreis.getBigDecimal().multiply(new BigDecimal(ddMwstsatz.doubleValue()).movePointLeft(2)));
 
-			wnfBruttopreis.setBigDecimal(wnfNettopreis.getBigDecimal().add(
-					wnfMwstsumme.getBigDecimal()));
+			wnfBruttopreis.setBigDecimal(wnfNettopreis.getBigDecimal().add(wnfMwstsumme.getBigDecimal()));
 		}
 	}
 
@@ -1663,17 +1579,12 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	/**
 	 * Behandle Ereignis Neu.
 	 * 
-	 * @param eventObject
-	 *            Ereignis
-	 * @param bLockMeI
-	 *            legt fest, ob keyForLockMe ueberschreiben
-	 * @param bNeedNoNewI
-	 *            boolean
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param eventObject Ereignis
+	 * @param bLockMeI    legt fest, ob keyForLockMe ueberschreiben
+	 * @param bNeedNoNewI boolean
+	 * @throws Throwable Ausnahme
 	 */
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false); // LockMeForNew setzen
 
 		setDefaults();
@@ -1681,35 +1592,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		setArtikelEingabefelderEditable(false);
 	}
 
-	public void setArtikelEingabefelderEditable(boolean bEditable) {
-		if (wtfBezeichnung != null) {
-			wtfBezeichnung.setEditable(bEditable);
-		}
-		if (wtfZusatzbezeichnung != null) {
-			wtfZusatzbezeichnung.setEditable(bEditable);
-		}
-
-		if (wnfMenge != null) {
-
-			if (this instanceof PanelPositionenArtikelVerkaufSNR) {
-				if (getArtikelDto() != null
-						&& getArtikelDto().getBSeriennrtragend() != null
-						&& getArtikelDto().getBChargennrtragend() != null
-						&& (Helper.short2boolean(getArtikelDto()
-								.getBSeriennrtragend()) || Helper
-								.short2boolean(getArtikelDto()
-										.getBChargennrtragend()))) {
-
-					wnfMenge.setEditable(false);
-				} else {
-					wnfMenge.setEditable(bEditable);
-				}
-
-			} else {
-				wnfMenge.setEditable(bEditable);
-			}
-
-		}
+	public void setPreisEingabefelderEditable(boolean bEditable) {
 
 		// PJ17059
 		if (bRechtDarfPreiseAendern == false && bEditable == true) {
@@ -1756,7 +1639,35 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			wnfRabattsumme.getWrbFixNumber().setEnabled(false);
 			wnfNettopreis.getWrbFixNumber().setSelected(true);
 		}
+	}
 
+	public void setArtikelEingabefelderEditable(boolean bEditable) {
+		if (wtfBezeichnung != null) {
+			wtfBezeichnung.setEditable(bEditable);
+		}
+		if (wtfZusatzbezeichnung != null) {
+			wtfZusatzbezeichnung.setEditable(bEditable);
+		}
+
+		if (wnfMenge != null) {
+
+			if (this instanceof PanelPositionenArtikelVerkaufSNR) {
+				if (getArtikelDto() != null && getArtikelDto().getBSeriennrtragend() != null
+						&& getArtikelDto().getBChargennrtragend() != null
+						&& (Helper.short2boolean(getArtikelDto().getBSeriennrtragend())
+								|| Helper.short2boolean(getArtikelDto().getBChargennrtragend()))) {
+
+					wnfMenge.setEditable(false);
+				} else {
+					wnfMenge.setEditable(bEditable);
+				}
+
+			} else {
+				wnfMenge.setEditable(bEditable);
+			}
+
+		}
+		setPreisEingabefelderEditable(bEditable);
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
@@ -1766,34 +1677,47 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			if (e.getSource() == wifArtikelauswahl) {
 				if (wifArtikelauswahl.getArtikelDto() != null) {
 
-					if (getInternalFrame().getBelegartCNr().equals(
-							LocaleFac.BELEGART_RECHNUNG)
-							|| getInternalFrame().getBelegartCNr().equals(
-									LocaleFac.BELEGART_LIEFERSCHEIN)) {
-						if (Helper.short2boolean(wifArtikelauswahl
-								.getArtikelDto().getBKalkulatorisch())) {
+					// SP6745
+					if (wnfMaterialzuschlag != null) {
+						wnfMaterialzuschlag.setBigDecimal(BigDecimal.ZERO);
+					}
+
+					if (getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_RECHNUNG)
+							|| getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_LIEFERSCHEIN)) {
+						if (Helper.short2boolean(wifArtikelauswahl.getArtikelDto().getBKalkulatorisch())) {
 							// SP1467 Kalkulatorischer Artikel in Rechnung nicht
 							// erlaubt
 
-							DialogFactory
-									.showModalDialog(
-											LPMain.getTextRespectUISPr("lp.info"),
-											LPMain.getTextRespectUISPr("lp.kalkulatorischer.artikel.darfin.rels.nichtverwendetwerden"));
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+									LPMain.getTextRespectUISPr(
+											"lp.kalkulatorischer.artikel.darfin.rels.nichtverwendetwerden"));
 							return;
+						}
+					}
+
+					if (getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_BESTELLUNG)) {
+						if (Helper.short2boolean(wifArtikelauswahl.getArtikelDto().getBKeineLagerzubuchung())) {
+							// PJ19999 Hinweis, wenn in BS und BV verwendet
+
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+									LPMain.getTextRespectUISPr("artikel.keinelagerzubuchung.hinweis.bs"));
 						}
 					}
 
 					setArtikelEingabefelderEditable(true);
 					setArtikelDto(wifArtikelauswahl.getArtikelDto());
+					// SP4058
+					if (pa != null) {
+						pa.clearMengenUndSetzeFocusAufKarton();
+					}
 					artikelDto2components();
 					getPanelStatusbar().clearStatusbar();
 
 					if (this instanceof PanelPositionenArtikelVerkaufSNR) {
 
 						if (getParent() instanceof PanelPositionen2) {
-							((PanelPositionen2) getParent())
-									.setStatusbarSpalte5(((PanelPositionenArtikelVerkaufSNR) this)
-											.getLagerstandFuerStatusbarSpalte5());
+							((PanelPositionen2) getParent()).setStatusbarSpalte5(
+									((PanelPositionenArtikelVerkaufSNR) this).getLagerstandFuerStatusbarSpalte5());
 						}
 					}
 
@@ -1801,8 +1725,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 					if (this instanceof PanelPositionenArtikelEingabeSNR) {
 						if (getParent() instanceof PanelAuftragPositionen2) {
 
-							((PanelAuftragPositionen2) getParent())
-									.aktualisiereStatusbar();
+							((PanelAuftragPositionen2) getParent()).aktualisiereStatusbar();
 						}
 					}
 
@@ -1815,8 +1738,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 					key = ((WwArtikellagerPK) key).getLager_i_id();
 				}
 
-				LagerDto lagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerFindByPrimaryKey((Integer) key);
 				wtfLager.setText(lagerDto.getCNr());
 				selectedlagerIId = lagerDto.getIId();
@@ -1830,39 +1752,84 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		}
 	}
 
+	protected void setzeAnzahlDimensionen() throws Throwable {
+
+		if (bDimensionserfassung == true && wlaMengeDimension != null) {
+			wlaMengeDimension.setVisible(false);
+			wnfMengeDimension.setVisible(false);
+			wlaBreiteDimension.setVisible(false);
+			wnfBreiteDimension.setVisible(false);
+			wlaHoeheDimension.setVisible(false);
+			wnfHoeheDimension.setVisible(false);
+			wlaTiefeDimension.setVisible(false);
+			wnfTiefeDimension.setVisible(false);
+
+			if (wcoEinheit != null && wcoEinheit.getKeyOfSelectedItem() != null) {
+
+				String einheit = (String) wcoEinheit.getKeyOfSelectedItem();
+				if (einheit.equals(SystemFac.EINHEIT_METER) || einheit.equals(SystemFac.EINHEIT_MILLIMETER)) {
+					wlaMengeDimension.setVisible(true);
+					wnfMengeDimension.setVisible(true);
+
+					wlaBreiteDimension.setVisible(true);
+					wnfBreiteDimension.setVisible(true);
+					wnfTiefeDimension.setBigDecimal(null);
+					wnfHoeheDimension.setBigDecimal(null);
+				} else if (einheit.equals(SystemFac.EINHEIT_QUADRATMETER)
+						|| einheit.equals(SystemFac.EINHEIT_QUADRATMILLIMETER)) {
+					wlaMengeDimension.setVisible(true);
+					wnfMengeDimension.setVisible(true);
+					wlaBreiteDimension.setVisible(true);
+					wnfBreiteDimension.setVisible(true);
+					wlaHoeheDimension.setVisible(true);
+					wnfHoeheDimension.setVisible(true);
+					wnfTiefeDimension.setBigDecimal(null);
+				} else if (einheit.equals(SystemFac.EINHEIT_KUBIKMETER)
+						|| einheit.equals(SystemFac.EINHEIT_KUBIKMILLIMETER)) {
+					wlaMengeDimension.setVisible(true);
+					wnfMengeDimension.setVisible(true);
+					wlaBreiteDimension.setVisible(true);
+					wnfBreiteDimension.setVisible(true);
+					wlaHoeheDimension.setVisible(true);
+					wnfHoeheDimension.setVisible(true);
+					wlaTiefeDimension.setVisible(true);
+					wnfTiefeDimension.setVisible(true);
+				}
+
+			}
+		}
+	}
+
 	/**
 	 * Die Eigenschaften des Artikels zur Anzeige bringen.
 	 * 
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public void artikelDto2components() throws Throwable {
 		// wtfArtikel.setText(getArtikelDto().getCNr());
 		wifArtikelauswahl.setArtikelDto(getArtikelDto());
 		if (getArtikelDto().getArtikelsprDto() != null) {
+			// Menge auf standardMenge setzten
+			mengeAufVerpackungsmittelmengeSetzten();
+
 			// MB->UW Einheit eingebaut
 			if (getArtikelDto().getEinheitCNr() != null) {
-				wcoEinheit
-						.setKeyOfSelectedItem(getArtikelDto().getEinheitCNr());
-			}
-			// CK->UW Gestehungspreis vorschlagen
-			if (wnfGestpreis.isVisible()
-					&& getArtikelDto().getArtikelartCNr() != null) {
+				wcoEinheit.setKeyOfSelectedItem(getArtikelDto().getEinheitCNr());
 
-				if (getArtikelDto().getArtikelartCNr().equals(
-						ArtikelFac.ARTIKELART_ARBEITSZEIT)) {
+			}
+			setzeAnzahlDimensionen();
+
+			// CK->UW Gestehungspreis vorschlagen
+			if (wnfGestpreis.isVisible() && getArtikelDto().getArtikelartCNr() != null) {
+
+				if (getArtikelDto().getArtikelartCNr().equals(ArtikelFac.ARTIKELART_ARBEITSZEIT)) {
 					try {
-						ArtikellieferantDto artikellieferantDto = DelegateFactory
-								.getInstance()
-								.getArtikelDelegate()
-								.getArtikelEinkaufspreis(
-										getArtikelDto().getIId(),
-										wnfMenge.getBigDecimal(),
-										wlaZielwaehrung2.getText());
+						ArtikellieferantDto artikellieferantDto = DelegateFactory.getInstance().getArtikelDelegate()
+								.getArtikelEinkaufspreisDesBevorzugtenLieferanten(getArtikelDto().getIId(),
+										wnfMenge.getBigDecimal(), wlaZielwaehrung2.getText());
 
 						if (artikellieferantDto != null) {
-							wnfGestpreis.setBigDecimal(artikellieferantDto
-									.getLief1Preis());
+							wnfGestpreis.setBigDecimal(artikellieferantDto.getLief1Preis());
 
 						} else {
 							wnfGestpreis.setBigDecimal(null);
@@ -1872,25 +1839,14 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 					}
 				} else {
 					try {
-						BigDecimal gestpreis = DelegateFactory
-								.getInstance()
-								.getLagerDelegate()
-								.getGemittelterGestehungspreisEinesLagers(
-										getArtikelDto().getIId(),
-										DelegateFactory.getInstance()
-												.getLagerDelegate()
-												.getHauptlagerDesMandanten()
-												.getIId());
+						BigDecimal gestpreis = DelegateFactory.getInstance().getLagerDelegate()
+								.getGemittelterGestehungspreisEinesLagers(getArtikelDto().getIId(), DelegateFactory
+										.getInstance().getLagerDelegate().getHauptlagerDesMandanten().getIId());
 
 						if (gestpreis != null) {
-							gestpreis = DelegateFactory
-									.getInstance()
-									.getLocaleDelegate()
-									.rechneUmInAndereWaehrung(
-											gestpreis,
-											LPMain.getTheClient()
-													.getSMandantenwaehrung(),
-											wlaZielwaehrung2.getText());
+							gestpreis = DelegateFactory.getInstance().getLocaleDelegate().rechneUmInAndereWaehrung(
+									gestpreis, LPMain.getTheClient().getSMandantenwaehrung(),
+									wlaZielwaehrung2.getText());
 							wnfGestpreis.setBigDecimal(gestpreis);
 						}
 					} catch (Throwable t) {
@@ -1903,22 +1859,56 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		// PJ15459 Wenn Materialzuschlag vorhanden, dann Zeile anzeigen
 		setVisibleZeileMaterialzuschlag(false);
 		if (getArtikelDto().getMaterialIId() != null) {
-			if (DelegateFactory
-					.getInstance()
-					.getMaterialDelegate()
-					.materialzuschlagFindAktuellenzuschlag(
-							getArtikelDto().getMaterialIId()) != null) {
+			if (DelegateFactory.getInstance().getMaterialDelegate()
+					.materialzuschlagFindAktuellenzuschlag(getArtikelDto().getMaterialIId()) != null) {
 				setVisibleZeileMaterialzuschlag(true);
 			}
 		}
 
+		if (wkvIndex != null) {
+			wkvIndex.setValue(getArtikelDto().getCIndex());
+		}
+		if (wkvRevision != null) {
+			wkvRevision.setValue(getArtikelDto().getCRevision());
+		}
+
+	}
+
+	private void mengeAufVerpackungsmittelmengeSetzten() throws ExceptionLP, Throwable {
+
+		// SP8477
+		if (!(this instanceof PanelPositionenArtikelEinkauf)) {
+
+			// SP9149
+			if (panelBasisFuerGetKeyWhenDetailPanel != null
+					&& panelBasisFuerGetKeyWhenDetailPanel.getKeyWhenDetailPanel() != null
+					&& panelBasisFuerGetKeyWhenDetailPanel.getKeyWhenDetailPanel().equals(LPMain.getLockMeForNew())) {
+				ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+						.getMandantparameterReturnsNull(ParameterFac.KATEGORIE_ALLGEMEIN,
+								ParameterFac.PARAMETER_VK_STANDARD_MENGE);
+				if (parametermandantDto != null) {
+					BigDecimal standardMenge = new BigDecimal(parametermandantDto.getCWert());
+					if (standardMenge.signum() == 0) {
+						wnfMenge.removeContent();
+					} else {
+
+						BigDecimal nVerpackungsmittelmenge = getArtikelDto().getNVerpackungsmittelmenge();
+						if (nVerpackungsmittelmenge != null && nVerpackungsmittelmenge.signum() == 1) {
+							// standardMenge auf naechst hoehere Verpackungsmittelmenge setzten
+							BigDecimal count = standardMenge.divide(nVerpackungsmittelmenge, 0, RoundingMode.UP);
+							standardMenge = nVerpackungsmittelmenge.multiply(count);
+						}
+						wnfMenge.setBigDecimal(standardMenge);
+					}
+				}
+			}
+		}
 	}
 
 	/**
 	 * Hier kommen die events meiner speziellen Buttons an.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -1949,10 +1939,22 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	 * @throws Throwable
 	 */
 	protected final void calculateFields() throws Throwable {
+
+		// SP3503
+		if (wifArtikelauswahl != null && wifArtikelauswahl.getWtfIdent() != null
+				&& wifArtikelauswahl.getWtfIdent().getText() != null && getArtikelDto().getIId() != null) {
+			String artikelnummerGewaehlt = wifArtikelauswahl.getWtfIdent().getText();
+			ArtikelDto aDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByCNrOhneExc(artikelnummerGewaehlt);
+			if (aDto == null || !aDto.getIId().equals(getArtikelDto().getIId())) {
+				getArtikelDto().setIId(null);
+			} else {
+				setArtikelDto(aDto);
+			}
+		}
+
 		// UW 25.04.06 Wenn hier eine ungueltige Artikelnummer steht...
-		if (wifArtikelauswahl != null
-				&& wifArtikelauswahl.getWtfIdent() != null
-				&& getArtikelDto().getIId() == null) {
+		if (wifArtikelauswahl != null && wifArtikelauswahl.getWtfIdent() != null && getArtikelDto().getIId() == null) {
 			// todo: Validate macht bereits einen Teil des nachfolgenden. Besser
 			// kombinieren.
 			// wifArtikelauswahl.validate();
@@ -1961,8 +1963,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			} else {
 				ArtikelDto aDto = null;
 				try {
-					aDto = DelegateFactory.getInstance().getArtikelDelegate()
-							.artikelFindByCNr(wtfArtikel.getText());
+					aDto = DelegateFactory.getInstance().getArtikelDelegate().artikelFindByCNr(wtfArtikel.getText());
 				} catch (ExceptionLP ex) {
 					switch (ex.getICode()) {
 					case EJBExceptionLP.FEHLER_BEI_FIND: {
@@ -1983,9 +1984,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 						bRefreshArtikeldaten = true;
 					} else {
 						// wenn b) ein anderer artikel ausgewaehlt wurde
-						if (getArtikelDto().getIId() == null
-								|| !getArtikelDto().getIId().equals(
-										aDto.getIId())) {
+						if (getArtikelDto().getIId() == null || !getArtikelDto().getIId().equals(aDto.getIId())) {
 							bRefreshArtikeldaten = true;
 						}
 					}
@@ -2004,12 +2003,66 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		// wnfNettopreis_focusLost(null);
 		wnfZusatzrabattsatz_focusLost(null);
 		jComboBoxMwstsatz_itemStateChanged(null);
+
+		if (wlaMengeDimension != null) {
+			if (wnfMengeDimension.hasFocus() || wnfBreiteDimension.hasFocus() || wnfHoeheDimension.hasFocus()
+					|| wnfTiefeDimension.hasFocus()) {
+				berechneMengeAusDimensionen();
+			}
+		}
+
 	}
 
 	public void focusGained(FocusEvent e) {
 	}
 
 	public void focusLost(FocusEvent e) {
+
+		if (e.getSource().equals(wnfMengeDimension) || e.getSource().equals(wnfBreiteDimension)
+				|| e.getSource().equals(wnfHoeheDimension) || e.getSource().equals(wnfTiefeDimension)) {
+			berechneMengeAusDimensionen();
+		}
+
+	}
+
+	private void berechneMengeAusDimensionen() {
+		try {
+
+			if (wcoEinheit != null && wcoEinheit.getKeyOfSelectedItem() != null) {
+
+				String einheit = (String) wcoEinheit.getKeyOfSelectedItem();
+
+				if (wnfMengeDimension.getBigDecimal() != null) {
+
+					BigDecimal menge = wnfMengeDimension.getBigDecimal();
+
+					if (wnfBreiteDimension.getBigDecimal() != null) {
+						menge = menge.multiply(wnfBreiteDimension.getBigDecimal());
+					}
+
+					if (wnfHoeheDimension.getBigDecimal() != null) {
+						menge = menge.multiply(wnfHoeheDimension.getBigDecimal());
+					}
+
+					if (wnfTiefeDimension.getBigDecimal() != null) {
+						menge = menge.multiply(wnfTiefeDimension.getBigDecimal());
+					}
+
+					if (einheit.equals(SystemFac.EINHEIT_METER)) {
+						menge = menge.divide(new BigDecimal(1000));
+					} else if (einheit.equals(SystemFac.EINHEIT_QUADRATMETER)) {
+						menge = menge.divide(new BigDecimal(1000000));
+					} else if (einheit.equals(SystemFac.EINHEIT_KUBIKMETER)) {
+						menge = menge.divide(new BigDecimal(1000000000));
+					}
+
+					wnfMenge.setBigDecimal(menge);
+
+				}
+			}
+		} catch (Throwable t) {
+			handleException(t, false);
+		}
 	}
 
 	public void setWaehrungCNr(String waehrungCNr) {
@@ -2056,6 +2109,9 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	}
 
 	public void setArtikelDto(ArtikelDto artikelDto) throws Throwable {
+
+		this.vorherigerArtikel = this.artikelDto;
+
 		this.artikelDto = artikelDto;
 		if (artikelDto != null) {
 			// als zuletzt verwendeten Artikel merken.
@@ -2064,11 +2120,15 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 			if (this.wtfArtikel != null) {
 				this.wtfArtikel.setText(artikelDto.getCNr());
 			}
+			pa.setVerpackungsmenge(artikelDto.getFVerpackungsmenge());
+
 		} else {
 			if (this.wtfArtikel != null) {
 				this.wtfArtikel.setText(null);
 			}
+			pa.setVerpackungsmenge(null);
 		}
+
 	}
 
 	public WrapperTextField getWtfArtikel() {
@@ -2078,8 +2138,7 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 	/**
 	 * Den Enable Zustand der Einheit steueren.
 	 * 
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public void setzeEinheitAenderbar() throws Throwable {
 		if (wcoEinheit != null) {
@@ -2087,17 +2146,46 @@ public abstract class PanelPositionenPreiseingabe extends PanelBasis implements
 		}
 	}
 
+	public void setzeMengeAenderbar(BelegpositionVerkaufDto dto) throws Throwable {
+		if (wnfMenge != null && zugehoerigenArtikelOhneRueckfrageAnlegen() == true && dto != null
+				&& dto.getPositionIIdZugehoerig() != null) {
+			wnfMenge.setEditable(false);
+		}
+	}
+
 	protected final String getLockMeWer() throws Exception {
 		return sLockMeWer;
 	}
+
+	public boolean zugehoerigenArtikelOhneRueckfrageAnlegen() throws Throwable {
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_DAZUGEHOERT_BERUECKSICHTIGEN,
+						ParameterFac.KATEGORIE_ALLGEMEIN, LPMain.getTheClient().getMandant());
+		int i = (Integer) parameter.getCWertAsObject();
+
+		if (i == 2) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public void propertyChange(PropertyChangeEvent evt) {
+		if (evt.getSource().equals(wnfMenge)) {
+			focusLost(new FocusEvent(wnfMenge, -1));
+		}
+	}
+
+	public ArtikelDto getVorherigerArtikel() {
+		return vorherigerArtikel;
+	}
+
 }
 
-class PanelPositionenPreiseingabe_wnfEinzelpreis_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfEinzelpreis_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfEinzelpreis_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfEinzelpreis_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2105,20 +2193,16 @@ class PanelPositionenPreiseingabe_wnfEinzelpreis_focusAdapter extends
 		try {
 			adaptee.wnfEinzelpreis_focusLost(e);
 		} catch (Throwable t) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
 		}
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfGesamtpreisMitAufschlag_focusAdapter
-		extends java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfGesamtpreisMitAufschlag_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfGesamtpreisMitAufschlag_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfGesamtpreisMitAufschlag_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2126,20 +2210,16 @@ class PanelPositionenPreiseingabe_wnfGesamtpreisMitAufschlag_focusAdapter
 		try {
 			adaptee.wnfGesamtpreisMitAufschlag_focusLost(e);
 		} catch (Throwable t) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
 		}
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfAufschlag_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfAufschlag_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfAufschlag_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfAufschlag_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2147,20 +2227,16 @@ class PanelPositionenPreiseingabe_wnfAufschlag_focusAdapter extends
 		try {
 			adaptee.wnfAufschlag_focusLost(e);
 		} catch (Throwable t) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
 		}
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfNettopreis_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfNettopreis_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfNettopreis_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfNettopreis_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2168,20 +2244,16 @@ class PanelPositionenPreiseingabe_wnfNettopreis_focusAdapter extends
 		try {
 			adaptee.wnfNettopreis_focusLost(e);
 		} catch (Throwable t) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
 		}
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfRabattsatz_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfRabattsatz_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfRabattsatz_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfRabattsatz_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2189,20 +2261,16 @@ class PanelPositionenPreiseingabe_wnfRabattsatz_focusAdapter extends
 		try {
 			adaptee.wnfRabattsatz_focusLost(e);
 		} catch (Throwable t) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
 		}
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfZusatzrabattsatz_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfZusatzrabattsatz_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfZusatzrabattsatz_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfZusatzrabattsatz_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2210,20 +2278,17 @@ class PanelPositionenPreiseingabe_wnfZusatzrabattsatz_focusAdapter extends
 		try {
 			adaptee.wnfZusatzrabattsatz_focusLost(e);
 		} catch (Throwable t) {
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.error"),
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
 					LPMain.getTextRespectUISPr("vkpf.error.zusatzrabattsatz"));
 			LPMain.getInstance().exitFrame(adaptee.getInternalFrame());
 		}
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfMaterialzuschlag_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfMaterialzuschlag_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfMaterialzuschlag_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfMaterialzuschlag_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2231,20 +2296,17 @@ class PanelPositionenPreiseingabe_wnfMaterialzuschlag_focusAdapter extends
 		try {
 			adaptee.wnfMaterialzuschlag_focusLost(e);
 		} catch (Throwable t) {
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.error"),
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
 					LPMain.getTextRespectUISPr("vkpf.error.zusatzrabattsatz"));
 			LPMain.getInstance().exitFrame(adaptee.getInternalFrame());
 		}
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfMenge_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelPositionenPreiseingabe_wnfMenge_focusAdapter extends java.awt.event.FocusAdapter {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfMenge_focusAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfMenge_focusAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2253,12 +2315,10 @@ class PanelPositionenPreiseingabe_wnfMenge_focusAdapter extends
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfMenge_keyAdapter implements
-		java.awt.event.KeyListener {
+class PanelPositionenPreiseingabe_wnfMenge_keyAdapter implements java.awt.event.KeyListener {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfMenge_keyAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfMenge_keyAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2276,12 +2336,10 @@ class PanelPositionenPreiseingabe_wnfMenge_keyAdapter implements
 	}
 }
 
-class PanelPositionenPreiseingabe_wnfNettopreis_keyAdapter implements
-		java.awt.event.KeyListener {
+class PanelPositionenPreiseingabe_wnfNettopreis_keyAdapter implements java.awt.event.KeyListener {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_wnfNettopreis_keyAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_wnfNettopreis_keyAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2299,12 +2357,10 @@ class PanelPositionenPreiseingabe_wnfNettopreis_keyAdapter implements
 	}
 }
 
-class PanelPositionenPreiseingabe_jComboBoxMwstsatz_itemAdapter implements
-		java.awt.event.ItemListener {
+class PanelPositionenPreiseingabe_jComboBoxMwstsatz_itemAdapter implements java.awt.event.ItemListener {
 	private PanelPositionenPreiseingabe adaptee;
 
-	PanelPositionenPreiseingabe_jComboBoxMwstsatz_itemAdapter(
-			PanelPositionenPreiseingabe adaptee) {
+	PanelPositionenPreiseingabe_jComboBoxMwstsatz_itemAdapter(PanelPositionenPreiseingabe adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -2312,10 +2368,8 @@ class PanelPositionenPreiseingabe_jComboBoxMwstsatz_itemAdapter implements
 		try {
 			adaptee.jComboBoxMwstsatz_itemStateChanged(e);
 		} catch (Throwable t) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.preisberechnungfehlgeschlagen"));
 		}
 	}
 }

@@ -64,9 +64,11 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JSpinner.DefaultEditor;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
@@ -86,8 +88,7 @@ import javax.swing.event.ChangeListener;
  * @version $LastChangedRevision: 85 $
  * @version $LastChangedDate: 2006-04-28 13:50:52 +0200 (Fr, 28 Apr 2006) $
  */
-public class JSpinField extends JPanel implements ChangeListener, CaretListener, ActionListener,
-		FocusListener {
+public class JSpinField extends JPanel implements ChangeListener, CaretListener, ActionListener, FocusListener {
 	/**
 	 * 
 	 */
@@ -111,12 +112,13 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	}
 
 	/**
-	 * JSpinField constructor with given minimum and maximum vaues and initial
-	 * value 0.
+	 * JSpinField constructor with given minimum and maximum vaues and initial value
+	 * 0.
 	 */
 	public JSpinField(int min, int max) {
 		super();
 		setName("JSpinField");
+		spinner = new JSpinner();
 		this.min = min;
 		if (max < min)
 			max = min;
@@ -129,26 +131,28 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 
 		darkGreen = new Color(0, 150, 0);
 		setLayout(new BorderLayout());
-		textField = new JTextField();
+		JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, "#");
+		spinner.setEditor(editor);
+		textField = editor.getTextField();
+
 		textField.addCaretListener(this);
 		textField.addActionListener(this);
 		textField.setHorizontalAlignment(SwingConstants.RIGHT);
 		textField.setBorder(BorderFactory.createEmptyBorder());
 		textField.setText(Integer.toString(value));
 		textField.addFocusListener(this);
-		spinner = new JSpinner() {
-			/**
-			 * 
-			 */
-			private static final long serialVersionUID = 1L;
-			private JTextField textField = new JTextField();
-
-			public Dimension getPreferredSize() {
-				Dimension size = super.getPreferredSize();
-				return new Dimension(size.width, textField.getPreferredSize().height);
-			}
-		};
-		spinner.setEditor(textField);
+//		spinner = new JSpinner() {
+//			/**
+//			 * 
+//			 */
+//			private static final long serialVersionUID = 1L;
+//			private JTextField textField = new JTextField();
+//
+//			public Dimension getPreferredSize() {
+//				Dimension size = super.getPreferredSize();
+//				return new Dimension(size.width, textField.getPreferredSize().height);
+//			}
+//		};
 		spinner.addChangeListener(this);
 		// spinner.setSize(spinner.getWidth(), textField.getHeight());
 		add(spinner, BorderLayout.CENTER);
@@ -165,8 +169,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Is invoked when the spinner model changes
 	 *
-	 * @param e
-	 *            the ChangeEvent
+	 * @param e the ChangeEvent
 	 */
 	public void stateChanged(ChangeEvent e) {
 		SpinnerNumberModel model = (SpinnerNumberModel) spinner.getModel();
@@ -177,10 +180,8 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Sets the value attribute of the JSpinField object.
 	 *
-	 * @param newValue
-	 *            The new value
-	 * @param updateTextField
-	 *            true if text field should be updated
+	 * @param newValue        The new value
+	 * @param updateTextField true if text field should be updated
 	 */
 	protected void setValue(int newValue, boolean updateTextField, boolean firePropertyChange) {
 		int oldValue = value;
@@ -205,8 +206,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Sets the value. This is a bound property.
 	 *
-	 * @param newValue
-	 *            the new value
+	 * @param newValue the new value
 	 *
 	 * @see #getValue
 	 */
@@ -227,8 +227,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Sets the minimum value.
 	 *
-	 * @param newMinimum
-	 *            the new minimum value
+	 * @param newMinimum the new minimum value
 	 *
 	 * @see #getMinimum
 	 */
@@ -248,8 +247,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Sets the maximum value and adjusts the preferred width.
 	 *
-	 * @param newMaximum
-	 *            the new maximum value
+	 * @param newMaximum the new maximum value
 	 *
 	 * @see #getMaximum
 	 */
@@ -260,8 +258,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Sets the horizontal alignment of the displayed value.
 	 *
-	 * @param alignment
-	 *            the horizontal alignment
+	 * @param alignment the horizontal alignment
 	 */
 	public void setHorizontalAlignment(int alignment) {
 		textField.setHorizontalAlignment(alignment);
@@ -279,8 +276,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Sets the font property.
 	 *
-	 * @param font
-	 *            the new font
+	 * @param font the new font
 	 */
 	public void setFont(Font font) {
 		if (textField != null) {
@@ -291,8 +287,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Sets the foreground
 	 *
-	 * @param fg
-	 *            the foreground
+	 * @param fg the foreground
 	 */
 	public void setForeground(Color fg) {
 		if (textField != null) {
@@ -304,8 +299,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	 * After any user input, the value of the textfield is proofed. Depending on
 	 * being an integer, the value is colored green or red.
 	 *
-	 * @param e
-	 *            the caret event
+	 * @param e the caret event
 	 */
 	public void caretUpdate(CaretEvent e) {
 		try {
@@ -313,7 +307,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 
 			if ((testValue >= min) && (testValue <= max)) {
 				textField.setForeground(darkGreen);
-				setValue(testValue, false, true);
+//				setValue(testValue, false, true);
 			} else {
 				textField.setForeground(Color.red);
 			}
@@ -333,8 +327,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	 * being an integer, the value is colored green or red. If the textfield is
 	 * green, the enter key is accepted and the new value is set.
 	 *
-	 * @param e
-	 *            Description of the Parameter
+	 * @param e Description of the Parameter
 	 */
 	public void actionPerformed(ActionEvent e) {
 		if (textField.getForeground().equals(darkGreen)) {
@@ -345,16 +338,14 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Enable or disable the JSpinField.
 	 *
-	 * @param enabled
-	 *            The new enabled value
+	 * @param enabled The new enabled value
 	 */
 	public void setEnabled(boolean enabled) {
 		super.setEnabled(enabled);
 		spinner.setEnabled(enabled);
 		textField.setEnabled(enabled);
 		/*
-		 * Fixes the background bug
-		 * 4991597 and sets the background explicitely to a
+		 * Fixes the background bug 4991597 and sets the background explicitely to a
 		 * TextField.inactiveBackground.
 		 */
 		if (!enabled) {
@@ -363,11 +354,9 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	}
 
 	/**
-	 * Returns the year chooser's spinner (which allow the focus to be set to
-	 * it).
+	 * Returns the year chooser's spinner (which allow the focus to be set to it).
 	 *
-	 * @return Component the spinner or null, if the month chooser has no
-	 *         spinner
+	 * @return Component the spinner or null, if the month chooser has no spinner
 	 */
 	public Component getSpinner() {
 		return spinner;
@@ -376,8 +365,7 @@ public class JSpinField extends JPanel implements ChangeListener, CaretListener,
 	/**
 	 * Creates a JFrame with a JSpinField inside and can be used for testing.
 	 *
-	 * @param s
-	 *            The command line arguments
+	 * @param s The command line arguments
 	 */
 	public static void main(String[] s) {
 		JFrame frame = new JFrame("JSpinField");

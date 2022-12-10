@@ -43,10 +43,12 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
@@ -66,7 +68,6 @@ import com.lp.server.finanz.service.FinanzReportFac;
 import com.lp.server.finanz.service.FinanzamtDto;
 import com.lp.server.finanz.service.ReportUvaKriterienDto;
 import com.lp.server.finanz.service.UvaverprobungDto;
-import com.lp.server.system.ejb.Parametermandant;
 import com.lp.server.system.service.GeschaeftsjahrMandantDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.system.service.MandantDto;
@@ -176,6 +177,7 @@ throws Throwable {
     	wcbVerprobung.setSelected(true);
     
     wlaLetzteVerprobung = new WrapperLabel(LPMain.getTextRespectUISPr("label.letzteverprobung"));
+   // wlaLetzteVerprobung.setHorizontalAlignment(SwingConstants.LEFT);
 	wlaFinanzamt = new WrapperLabel(LPMain.getTextRespectUISPr("label.finanzamt"));
 	wcoFinanzamt = new WrapperComboBox();
 	faDtos = DelegateFactory.getInstance().getFinanzDelegate().finanzamtFindAllByMandantCNr(LPMain.getTheClient());
@@ -185,19 +187,14 @@ throws Throwable {
 		}
 	}
 	
-	wlaGeschaeftsjahr.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-	wlaPeriode.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-	wlaFinanzamt.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
+    updateLetzteVerprobung(faDtos[wcoFinanzamt.getSelectedIndex()].getPartnerIId());
+
 	
-	wtfGeschaeftsjahr.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-	wcoPeriode.setPreferredSize(new Dimension(BREITE_SPALTE2,
-            Defaults.getInstance().getControlHeight()));
-	wcoFinanzamt.setPreferredSize(new Dimension(BREITE_SPALTE2 * 2,
-            Defaults.getInstance().getControlHeight()));
+	Dimension radioButtonDimension = HelperClient.getSizeFactoredDimension(BREITE_SPALTE2);
+	HelperClient.setMinimumAndPreferredSize(wlaVerprobung, radioButtonDimension);
+	HelperClient.setMinimumAndPreferredSize(wlaGeschaeftsjahr, radioButtonDimension);
+	HelperClient.setMinimumAndPreferredSize(wlaPeriode, radioButtonDimension);
+	HelperClient.setMinimumAndPreferredSize(wcoFinanzamt, HelperClient.getSizeFactoredDimension(140));
 
     jpaWorkingOn.add(wlaGeschaeftsjahr,
 			new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
@@ -251,10 +248,10 @@ throws Throwable {
 
 	jpaWorkingOn.add(wlaLetzteVerprobung,
 			new GridBagConstraints(2, iZeile, 2, 1, 0.0, 0.0,
-					GridBagConstraints.WEST,
+					GridBagConstraints.EAST,
 					GridBagConstraints.BOTH,
 					new Insets(2, 2, 2, 2),
-					150, 0));
+					0, 0));
 
 	jpaWorkingOn.add(wlaVerprobung,
 			new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0,

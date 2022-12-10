@@ -2833,10 +2833,10 @@ public static final String ACTION_SPECIAL_SAVE = "action_" + ALWAYSENABLED + "sa
 
     if (e.getActionCommand().equals(ACTION_ZIELLIEFERANT_AUSWAEHLEN)) {
       if (this.lieferantZielDto != null && this.lieferantZielDto.getIId() != null) {
-        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferantGoto(getInternalFrame(), this.lieferantZielDto.getIId(), true, false);
+        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(), this.lieferantZielDto.getIId(), true, false);
       }
       else if (this.lieferantQuellDto != null && this.lieferantQuellDto.getIId() != null) {
-        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferantGoto(getInternalFrame(), this.lieferantQuellDto.getIId(), true, false);
+        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(), this.lieferantQuellDto.getIId(), true, false);
       }
       else { // selektiere ersten lieferanten
         /* ToDo: wie finde ich den ersten lieferanten in der liste oder gibt es noch ein anderes panel flr? */
@@ -2857,10 +2857,10 @@ public static final String ACTION_SPECIAL_SAVE = "action_" + ALWAYSENABLED + "sa
 
     if (e.getActionCommand().equals(ACTION_QUELLLIEFERANT_AUSWAEHLEN)) {
       if (((this.lieferantQuellDto != null && this.lieferantQuellDto.getIId() == null) || (this.lieferantQuellDto == null)) && this.lieferantZielDto != null && this.lieferantZielDto.getIId() != null) {
-        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferantGoto(getInternalFrame(), this.lieferantZielDto.getIId(), true, false);
+        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(), this.lieferantZielDto.getIId(), true, false);
       }
       else if (this.lieferantQuellDto.getIId() != null) {
-        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferantGoto(getInternalFrame(), this.lieferantQuellDto.getIId(), true, false);
+        panelQueryLieferantFlr = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(), this.lieferantQuellDto.getIId(), true, false);
       }
       else { // selektiere ersten lieferanten
         /* ToDo: wie finde ich den ersten lieferanten in der liste oder gibt es noch ein anderes panel flr? */

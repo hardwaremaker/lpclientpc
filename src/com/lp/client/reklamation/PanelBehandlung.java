@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.reklamation;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -55,231 +54,206 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.reklamation.service.BehandlungDto;
+import com.lp.server.reklamation.service.BehandlungsprDto;
+import com.lp.server.reklamation.service.SchweresprDto;
 
 @SuppressWarnings("static-access")
-public class PanelBehandlung
-    extends PanelBasis
-{
+public class PanelBehandlung extends PanelBasis {
 
-  /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-//von hier ...
-  private GridBagLayout gridBagLayoutAll = null;
-  private JPanel jpaWorkingOn = new JPanel();
-  private JPanel jpaButtonAction = null;
-  private Border border = null;
-  private GridBagLayout gridBagLayoutWorkingPanel = null;
-  private WrapperLabel wlaKennung = new WrapperLabel();
-  private WrapperTextField wtfKennung = new WrapperTextField();
-  private BehandlungDto behandlungDto = null;
-  private WrapperLabel wlaBezeichnung = new WrapperLabel();
-  private WrapperTextField wtfBezeichnung = new WrapperTextField();
+	// von hier ...
+	private GridBagLayout gridBagLayoutAll = null;
+	private JPanel jpaWorkingOn = new JPanel();
+	private JPanel jpaButtonAction = null;
+	private Border border = null;
+	private GridBagLayout gridBagLayoutWorkingPanel = null;
+	private WrapperLabel wlaKennung = new WrapperLabel();
+	private WrapperTextField wtfKennung = new WrapperTextField();
+	private BehandlungDto behandlungDto = null;
+	private WrapperLabel wlaBezeichnung = new WrapperLabel();
+	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 
-  private WrapperLabel wlaPunkte = new WrapperLabel();
-  private WrapperNumberField wnfPunkte = new WrapperNumberField();
+	private WrapperLabel wlaPunkte = new WrapperLabel();
+	private WrapperNumberField wnfPunkte = new WrapperNumberField();
 
+	public PanelBehandlung(InternalFrame internalFrame, String add2TitleI,
+			Object pk) throws Throwable {
+		super(internalFrame, add2TitleI, pk);
+		jbInit();
+		setDefaults();
+		initComponents();
+		enableAllComponents(this, false);
+	}
 
-  public PanelBehandlung(InternalFrame internalFrame, String add2TitleI,
-                                  Object pk)
-      throws Throwable {
-    super(internalFrame, add2TitleI, pk);
-    jbInit();
-    setDefaults();
-    initComponents();
-    enableAllComponents(this, false);
-  }
+	protected void setDefaults() {
+	}
 
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wtfKennung;
+	}
 
-  protected void setDefaults() {
-  }
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
+			boolean bNeedNoNewI) throws Throwable {
+		super.eventActionNew(eventObject, true, false);
 
+		behandlungDto = new BehandlungDto();
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wtfKennung;
-  }
+		leereAlleFelder(this);
+	}
 
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+	}
 
-  public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws Throwable {
-    super.eventActionNew(eventObject, true, false);
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+	}
 
-    behandlungDto = new BehandlungDto();
+	private void jbInit() throws Throwable {
+		// von hier ...
+		border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+		setBorder(border);
+		// das Aussenpanel hat immer das Gridbaglayout.
+		gridBagLayoutAll = new GridBagLayout();
+		this.setLayout(gridBagLayoutAll);
 
-    leereAlleFelder(this);
-  }
+		// Actionpanel von Oberklasse holen und anhaengen.
+		jpaButtonAction = getToolsPanel();
+		this.setActionMap(null);
 
+		wlaKennung.setText(LPMain.getInstance().getTextRespectUISPr(
+				"label.kennung"));
+		wtfKennung.setColumnsMax(ArtikelFac.MAX_ARTIKELGRUPPE_NAME);
+		wtfKennung.setText("");
+		wtfKennung.setMandatoryField(true);
 
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-  }
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.bezeichnung"));
+		wlaPunkte.setText(LPMain.getInstance().getTextRespectUISPr(
+				"part.punkte"));
+		wnfPunkte.setFractionDigits(0);
+		wtfBezeichnung.setToolTipText("");
+		wtfBezeichnung.setColumnsMax(ArtikelFac.MAX_ARTIKELGRUPPE_BEZEICHNUNG);
+		wtfBezeichnung.setText("");
+		wtfBezeichnung.setMandatoryField(true);
+		wnfPunkte.setMandatoryField(true);
+		getInternalFrame().addItemChangedListener(this);
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
+						0, 0, 0), 0, 0));
 
+		// jetzt meine felder
+		jpaWorkingOn = new JPanel();
+		gridBagLayoutWorkingPanel = new GridBagLayout();
+		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
+				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, 0, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, 0, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(2, 0, 1, 1,
+				0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(3, 0, 1, 1,
+				0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaPunkte, new GridBagConstraints(0, 1, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfPunkte, new GridBagConstraints(1, 1, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    ItemChangedEvent e = (ItemChangedEvent) eI;
-  }
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
+				ACTION_DELETE, ACTION_DISCARD, };
 
+		enableToolsPanelButtons(aWhichButtonIUse);
 
-  private void jbInit()
-      throws Throwable {
-    //von hier ...
-    border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-    setBorder(border);
-    //das Aussenpanel hat immer das Gridbaglayout.
-    gridBagLayoutAll = new GridBagLayout();
-    this.setLayout(gridBagLayoutAll);
+	}
 
-    //Actionpanel von Oberklasse holen und anhaengen.
-    jpaButtonAction = getToolsPanel();
-    this.setActionMap(null);
+	protected String getLockMeWer() throws Exception {
+		return HelperClient.LOCKME_SCHWERE;
+	}
 
-    wlaKennung.setText(LPMain.getInstance().getTextRespectUISPr("label.kennung"));
-    wtfKennung.setColumnsMax(ArtikelFac.MAX_ARTIKELGRUPPE_NAME);
-    wtfKennung.setText("");
-    wtfKennung.setMandatoryField(true);
+	protected void eventActionDelete(ActionEvent e,
+			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+			throws Throwable {
+		DelegateFactory.getInstance().getReklamationDelegate()
+				.removeBehandlung(behandlungDto);
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false);
+	}
 
-    wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-        "lp.bezeichnung"));
-    wlaPunkte.setText(LPMain.getInstance().getTextRespectUISPr(
-        "part.punkte"));
-    wnfPunkte.setFractionDigits(0);
-    wtfBezeichnung.setToolTipText("");
-    wtfBezeichnung.setColumnsMax(ArtikelFac.MAX_ARTIKELGRUPPE_BEZEICHNUNG);
-    wtfBezeichnung.setText("");
-    wtfBezeichnung.setMandatoryField(true);
-    wnfPunkte.setMandatoryField(true);
-    getInternalFrame().addItemChangedListener(this);
-    this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.NONE,
-        new Insets(0, 0, 0, 0), 0, 0));
+	protected void components2Dto() throws Throwable {
+		behandlungDto.setCNr(wtfKennung.getText());
 
-    //jetzt meine felder
-    jpaWorkingOn = new JPanel();
-    gridBagLayoutWorkingPanel = new GridBagLayout();
-    jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-    this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0
-        , GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    jpaWorkingOn.add(wlaKennung,
-                        new GridBagConstraints(0, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wtfKennung,
-                        new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wlaBezeichnung,
-                        new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wtfBezeichnung,
-                        new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wlaPunkte,
-                       new GridBagConstraints(0, 1, 1, 1, 0.1, 0.0
-                                              , GridBagConstraints.CENTER,
-                                              GridBagConstraints.HORIZONTAL,
-                                              new Insets(2, 2, 2, 2), 0, 0));
-   jpaWorkingOn.add(wnfPunkte,
-                       new GridBagConstraints(1, 1, 1, 1, 0.1, 0.0
-                                              , GridBagConstraints.CENTER,
-                                              GridBagConstraints.HORIZONTAL,
-                                              new Insets(2, 2, 2, 2), 0, 0));
+		if (behandlungDto.getBehandlungsprDto() == null) {
+			behandlungDto.setBehandlungsprDto(new BehandlungsprDto());
+		}
 
-    String[] aWhichButtonIUse = {
-        ACTION_UPDATE,
-        ACTION_SAVE,
-        ACTION_DELETE,
-        ACTION_DISCARD,
-    };
+		behandlungDto.getBehandlungsprDto().setCBez(wtfBezeichnung.getText());
 
-    enableToolsPanelButtons(aWhichButtonIUse);
+		behandlungDto.setIPunkte(wnfPunkte.getInteger());
+	}
 
-  }
+	protected void dto2Components() throws Throwable {
+		wtfKennung.setText(behandlungDto.getCNr());
 
+		if (behandlungDto.getBehandlungsprDto() != null) {
+			wtfBezeichnung.setText(behandlungDto.getBehandlungsprDto()
+					.getCBez());
+		} else {
+			wtfBezeichnung.setText(null);
+		}
 
-  protected String getLockMeWer()
-      throws Exception {
-    return HelperClient.LOCKME_SCHWERE;
-  }
+		wnfPunkte.setInteger(behandlungDto.getIPunkte());
+	}
 
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
+			throws Throwable {
+		if (allMandatoryFieldsSetDlg()) {
+			components2Dto();
+			if (behandlungDto.getIId() == null) {
+				behandlungDto.setIId(DelegateFactory.getInstance()
+						.getReklamationDelegate()
+						.createBehandlung(behandlungDto));
+				setKeyWhenDetailPanel(behandlungDto.getIId());
+			} else {
+				DelegateFactory.getInstance().getReklamationDelegate()
+						.updateBehandlung(behandlungDto);
+			}
+			super.eventActionSave(e, true);
+			if (getInternalFrame().getKeyWasForLockMe() == null) {
+				getInternalFrame().setKeyWasForLockMe(
+						behandlungDto.getIId() + "");
+			}
+			eventYouAreSelected(false);
+		}
 
-  protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI,
-                                   boolean bNeedNoDeleteI)
-      throws Throwable {
-    DelegateFactory.getInstance().getReklamationDelegate().removeBehandlung(
-        behandlungDto);
-    this.setKeyWhenDetailPanel(null);
-    super.eventActionDelete(e, false, false);
-  }
+	}
 
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
+			throws Throwable {
 
-  protected void components2Dto() throws Throwable {
-    behandlungDto.setCNr(wtfKennung.getText());
-    behandlungDto.setCBez(wtfBezeichnung.
-        getText());
-    behandlungDto.setIPunkte(wnfPunkte.
-        getInteger());
-  }
-
-
-  protected void dto2Components()
-      throws Throwable {
-    wtfKennung.setText(behandlungDto.getCNr());
-    wtfBezeichnung.setText(behandlungDto.getCBez());
-    wnfPunkte.setInteger(behandlungDto.getIPunkte());
-  }
-
-
-  public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-      throws Throwable {
-    if (allMandatoryFieldsSetDlg()) {
-      components2Dto();
-      if (behandlungDto.getIId() == null) {
-        behandlungDto.setIId(DelegateFactory.getInstance().getReklamationDelegate().
-                                      createBehandlung(behandlungDto));
-        setKeyWhenDetailPanel(behandlungDto.getIId());
-      }
-      else {
-        DelegateFactory.getInstance().getReklamationDelegate().updateBehandlung(
-            behandlungDto);
-      }
-      super.eventActionSave(e, true);
-      if (getInternalFrame().getKeyWasForLockMe() == null) {
-        getInternalFrame().setKeyWasForLockMe(behandlungDto.getIId() + "");
-      }
-      eventYouAreSelected(false);
-    }
-
-  }
-
-
-  public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-      throws Throwable {
-
-    super.eventYouAreSelected(false);
-    Object key = getKeyWhenDetailPanel();
-    if (key == null
-        || (key.equals(LPMain.getLockMeForNew()))) {
-      leereAlleFelder(this);
-      clearStatusbar();
-    }
-    else {
-      behandlungDto = DelegateFactory.getInstance().getReklamationDelegate().
-          behandlungFindByPrimaryKey( (Integer) key);
-      dto2Components();
-    }
-  }
+		super.eventYouAreSelected(false);
+		Object key = getKeyWhenDetailPanel();
+		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
+			leereAlleFelder(this);
+			clearStatusbar();
+		} else {
+			behandlungDto = DelegateFactory.getInstance()
+					.getReklamationDelegate()
+					.behandlungFindByPrimaryKey((Integer) key);
+			dto2Components();
+		}
+	}
 }

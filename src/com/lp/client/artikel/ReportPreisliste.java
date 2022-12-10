@@ -37,6 +37,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
+import java.util.TreeMap;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -48,6 +49,7 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperSelectField;
@@ -65,6 +67,7 @@ import com.lp.server.artikel.service.VkPreisfindungFac;
 import com.lp.server.artikel.service.VkpfartikelpreislisteDto;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.TheClientDto;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
@@ -76,16 +79,18 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 	protected JPanel jpaWorkingOn = new JPanel();
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
-	static final private String ACTION_SPECIAL_FLR_PREISLISTEN = "ACTION_SPECIAL_FLR_PREISLISTEN";
 	static final private String ACTION_SPECIAL_FLR_ARTIKELGRUPPE = "ACTION_SPECIAL_FLR_ARTIKELGRUPPE";
 	static final private String ACTION_SPECIAL_FLR_ARTIKELKLASSE = "ACTION_SPECIAL_FLR_ARTIKELKLASSE";
-	private WrapperButton wbuPreislisteFLR = null;
-	private WrapperTextField wtfPreisliste = null;
+	private WrapperLabel wlaPreisliste = null;
 	private WrapperButton wbuArtikelgruppeFLR = null;
 	private WrapperTextField wtfArtikelgruppe = null;
 	private WrapperButton wbuArtikelklasseFLR = null;
 	private WrapperTextField wtfArtikelklasse = null;
 	private WrapperSelectField wsfShopgruppe = null;
+
+	private WrapperComboBox wcoPreisliste = new WrapperComboBox();
+
+	private WrapperComboBox wcbWaehrung = new WrapperComboBox();
 
 	private WrapperLabel wlaPreisgueltigkeit = new WrapperLabel();
 
@@ -105,15 +110,12 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 	static final public String ACTION_SPECIAL_ARTIKELVON_FROM_LISTE = "ACTION_SPECIAL_ARTIKELVON_FROM_LISTE";
 	static final public String ACTION_SPECIAL_ARTIKELBIS_FROM_LISTE = "ACTION_SPECIAL_ARTIKELBIS_FROM_LISTE";
 
-	private PanelQueryFLR panelQueryFLRPreislisten = null;
 	private PanelQueryFLR panelQueryFLRArtikelgruppe = null;
 	private PanelQueryFLR panelQueryFLRArtikelklasse = null;
-	Integer preislisteIId = null;
 	Integer artikelgruppeIId = null;
 	Integer artikelklasseIId = null;
 
-	public ReportPreisliste(InternalFrameArtikel internalFrame, String add2Title)
-			throws Throwable {
+	public ReportPreisliste(InternalFrameArtikel internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
 		LPMain.getInstance().getTextRespectUISPr("artikel.report.preisliste");
 		jbInit();
@@ -122,47 +124,33 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 	}
 
 	void dialogQueryArtikelFromListe_Von(ActionEvent e) throws Throwable {
-		panelQueryFLRArtikel_Von = ArtikelFilterFactory
-				.getInstance()
-				.createPanelFLRArtikel(getInternalFrame(), artikelIId_Von, true);
+		panelQueryFLRArtikel_Von = ArtikelFilterFactory.getInstance().createPanelFLRArtikel(getInternalFrame(),
+				artikelIId_Von, true);
 
 		new DialogQuery(panelQueryFLRArtikel_Von);
 	}
 
 	void dialogQueryArtikelFromListe_Bis(ActionEvent e) throws Throwable {
-		panelQueryFLRArtikel_Bis = ArtikelFilterFactory
-				.getInstance()
-				.createPanelFLRArtikel(getInternalFrame(), artikelIId_Bis, true);
+		panelQueryFLRArtikel_Bis = ArtikelFilterFactory.getInstance().createPanelFLRArtikel(getInternalFrame(),
+				artikelIId_Bis, true);
 
 		new DialogQuery(panelQueryFLRArtikel_Bis);
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_PREISLISTEN)) {
-			panelQueryFLRPreislisten = ArtikelFilterFactory
-					.getInstance()
-					.createPanelFLRPreisliste(getInternalFrame(), preislisteIId);
-			new DialogQuery(panelQueryFLRPreislisten);
-
-		} else if (e.getActionCommand()
-				.equals(ACTION_SPECIAL_FLR_ARTIKELGRUPPE)) {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_ARTIKELGRUPPE)) {
 			panelQueryFLRArtikelgruppe = ArtikelFilterFactory.getInstance()
-					.createPanelFLRArtikelgruppe(getInternalFrame(),
-							artikelgruppeIId);
+					.createPanelFLRArtikelgruppe(getInternalFrame(), artikelgruppeIId);
 			new DialogQuery(panelQueryFLRArtikelgruppe);
 
-		} else if (e.getActionCommand()
-				.equals(ACTION_SPECIAL_FLR_ARTIKELKLASSE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_ARTIKELKLASSE)) {
 			panelQueryFLRArtikelklasse = ArtikelFilterFactory.getInstance()
-					.createPanelFLRArtikelklasse(getInternalFrame(),
-							artikelklasseIId);
+					.createPanelFLRArtikelklasse(getInternalFrame(), artikelklasseIId);
 			new DialogQuery(panelQueryFLRArtikelklasse);
 
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ARTIKELVON_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ARTIKELVON_FROM_LISTE)) {
 			dialogQueryArtikelFromListe_Von(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ARTIKELBIS_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ARTIKELBIS_FROM_LISTE)) {
 			dialogQueryArtikelFromListe_Bis(e);
 		}
 	}
@@ -172,51 +160,35 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 
-			if (e.getSource() == panelQueryFLRPreislisten) {
-				Integer iId = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-
-				VkpfartikelpreislisteDto vkpfartikelpreislisteDto = DelegateFactory
-						.getInstance().getVkPreisfindungDelegate()
-						.vkpfartikelpreislisteFindByPrimaryKey(iId);
-				wtfPreisliste.setText(vkpfartikelpreislisteDto.getCNr());
-				preislisteIId = iId;
-			} else if (e.getSource() == panelQueryFLRArtikelgruppe) {
+			if (e.getSource() == panelQueryFLRArtikelgruppe) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtgruDto artgruDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtgruDto artgruDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artgruFindByPrimaryKey((Integer) key);
 				wtfArtikelgruppe.setText(artgruDto.getCNr());
 				artikelgruppeIId = (Integer) key;
 			} else if (e.getSource() == panelQueryFLRArtikelklasse) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtklaDto artklaDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtklaDto artklaDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artklaFindByPrimaryKey((Integer) key);
 				wtfArtikelklasse.setText(artklaDto.getCNr());
 				artikelklasseIId = (Integer) key;
 
 			} else if (e.getSource() == panelQueryFLRArtikel_Von) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtikelDto artikelDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey((Integer) key);
 				artikelIId_Von = artikelDto.getIId();
 				wtfArtikelnrVon.setText(artikelDto.getCNr());
 			} else if (e.getSource() == panelQueryFLRArtikel_Bis) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtikelDto artikelDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey((Integer) key);
 				artikelIId_Bis = artikelDto.getIId();
 				wtfArtikelnrBis.setText(artikelDto.getCNr());
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
-			if (e.getSource() == panelQueryFLRPreislisten) {
-				preislisteIId = null;
-				wtfPreisliste.setText("");
-			} else if (e.getSource() == panelQueryFLRArtikelgruppe) {
+			if (e.getSource() == panelQueryFLRArtikelgruppe) {
 				artikelgruppeIId = null;
 				wtfArtikelgruppe.setText("");
 			} else if (e.getSource() == panelQueryFLRArtikelklasse) {
@@ -241,27 +213,32 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 
 	private void jbInit() throws Throwable {
 
-		wbuPreislisteFLR = new WrapperButton();
-		wbuPreislisteFLR.setText(LPMain.getInstance().getTextRespectUISPr(
-				"vkpf.button.preislisten"));
-		wbuPreislisteFLR.setMandatoryField(true);
-		wbuPreislisteFLR.setActionCommand(ACTION_SPECIAL_FLR_PREISLISTEN);
-		wbuPreislisteFLR.addActionListener(this);
+		wlaPreisliste = new WrapperLabel();
+		wlaPreisliste.setText(LPMain.getInstance().getTextRespectUISPr("vkpf.preislisten.title.tab"));
 
-		wbuArtikelnrVon.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.artikelnummer")
-				+ " " + LPMain.getInstance().getTextRespectUISPr("lp.von"));
+		wcoPreisliste.setEmptyEntry(LPMain.getTextRespectUISPr("artikel.label.einzelverkaufspreis"));
 
-		wlaPreisgueltigkeit.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.preisliste.preisgueltigkeit"));
-		wsfShopgruppe = new WrapperSelectField(WrapperSelectField.SHOPGRUPPE,
-				getInternalFrame(), true);
+		TreeMap<Integer, String> m = new TreeMap<Integer, String>();
+		VkpfartikelpreislisteDto[] vkpreisbasisDtos = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+				.getAlleAktivenPreislisten();
+
+	
+		for (int i = 0; i < vkpreisbasisDtos.length; i++) {
+			m.put(vkpreisbasisDtos[i].getIId(), vkpreisbasisDtos[i].getCNr());
+		}
+
+		wcoPreisliste.setMap(m);
+
+		wbuArtikelnrVon.setText(LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer") + " "
+				+ LPMain.getInstance().getTextRespectUISPr("lp.von"));
+
+		wlaPreisgueltigkeit.setText(LPMain.getInstance().getTextRespectUISPr("artikel.preisliste.preisgueltigkeit"));
+		wsfShopgruppe = new WrapperSelectField(WrapperSelectField.SHOPGRUPPE, getInternalFrame(), true);
 		wbuArtikelnrVon.setActionCommand(ACTION_SPECIAL_ARTIKELVON_FROM_LISTE);
 		wbuArtikelnrVon.addActionListener(this);
 
-		wbuArtikelnrBis.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.artikelnummer")
-				+ " " + LPMain.getInstance().getTextRespectUISPr("lp.bis"));
+		wbuArtikelnrBis.setText(LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer") + " "
+				+ LPMain.getInstance().getTextRespectUISPr("lp.bis"));
 
 		wdfPreisgueltigkeit.setMandatoryField(true);
 		wdfPreisgueltigkeit.setDate(new java.util.Date());
@@ -270,91 +247,72 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 		wbuArtikelnrBis.addActionListener(this);
 
 		wbuArtikelgruppeFLR = new WrapperButton();
-		wbuArtikelgruppeFLR.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.artikelgruppe"));
+		wbuArtikelgruppeFLR.setText(LPMain.getInstance().getTextRespectUISPr("button.artikelgruppe"));
 		wbuArtikelgruppeFLR.setMandatoryField(true);
 		wbuArtikelgruppeFLR.setActionCommand(ACTION_SPECIAL_FLR_ARTIKELGRUPPE);
 		wbuArtikelgruppeFLR.addActionListener(this);
 
-		wcbVersteckte = new WrapperCheckBox(
-				LPMain.getTextRespectUISPr("lp.versteckte"));
+		wcbVersteckte = new WrapperCheckBox(LPMain.getTextRespectUISPr("lp.versteckte"));
 
 		wbuArtikelklasseFLR = new WrapperButton();
-		wbuArtikelklasseFLR.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.artikelklasse"));
+		wbuArtikelklasseFLR.setText(LPMain.getInstance().getTextRespectUISPr("button.artikelklasse"));
 		wbuArtikelklasseFLR.setMandatoryField(true);
 		wbuArtikelklasseFLR.setActionCommand(ACTION_SPECIAL_FLR_ARTIKELKLASSE);
 		wbuArtikelklasseFLR.addActionListener(this);
-
-		wtfPreisliste = new WrapperTextField(VkPreisfindungFac.MAX_CNR);
-		wtfPreisliste.setActivatable(false);
 
 		wtfArtikelgruppe = new WrapperTextField(VkPreisfindungFac.MAX_CNR);
 		wtfArtikelgruppe.setActivatable(false);
 		wtfArtikelklasse = new WrapperTextField(VkPreisfindungFac.MAX_CNR);
 		wtfArtikelklasse.setActivatable(false);
+		wcbWaehrung.setMandatoryField(true);
+		wcbWaehrung.setMap(DelegateFactory.getInstance().getLocaleDelegate().getAllWaehrungen());
+		wcbWaehrung.setKeyOfSelectedItem(LPMain.getTheClient().getSMandantenwaehrung());
 
 		getInternalFrame().addItemChangedListener(this);
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wbuPreislisteFLR, new GridBagConstraints(0, 0, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfPreisliste, new GridBagConstraints(1, 0, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaPreisgueltigkeit, new GridBagConstraints(2, 0, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaPreisliste, new GridBagConstraints(0, 0, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoPreisliste, new GridBagConstraints(1, 0, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 80, 0));
+		jpaWorkingOn.add(wlaPreisgueltigkeit, new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
-		jpaWorkingOn.add(wdfPreisgueltigkeit, new GridBagConstraints(3, 0, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wdfPreisgueltigkeit, new GridBagConstraints(3, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wbuArtikelgruppeFLR, new GridBagConstraints(0, 1, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikelgruppe, new GridBagConstraints(1, 1, 2, 1,
-				0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		if (DelegateFactory.getInstance().getTheJudgeDelegate()
-				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
-			jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(3, 1, 2, 1,
-					0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-					new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuArtikelgruppeFLR, new GridBagConstraints(0, 1, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfArtikelgruppe, new GridBagConstraints(1, 1, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
+			jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(3, 1, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		}
 
-		jpaWorkingOn.add(wbuArtikelklasseFLR, new GridBagConstraints(0, 2, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikelklasse, new GridBagConstraints(1, 2, 2, 1,
-				0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbWaehrung, new GridBagConstraints(3, 2, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wsfShopgruppe.getWrapperButton(),
-				new GridBagConstraints(0, 3, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(0, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wsfShopgruppe.getWrapperTextField(),
-				new GridBagConstraints(1, 3, 2, 1, 0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuArtikelklasseFLR, new GridBagConstraints(0, 2, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfArtikelklasse, new GridBagConstraints(1, 2, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wbuArtikelnrVon, new GridBagConstraints(0, 4, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 100, 0));
-		jpaWorkingOn.add(wtfArtikelnrVon, new GridBagConstraints(1, 4, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuArtikelnrBis, new GridBagConstraints(2, 4, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 100, 0));
-		jpaWorkingOn.add(wtfArtikelnrBis, new GridBagConstraints(3, 4, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfShopgruppe.getWrapperButton(), new GridBagConstraints(0, 3, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wsfShopgruppe.getWrapperTextField(), new GridBagConstraints(1, 3, 2, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wbuArtikelnrVon, new GridBagConstraints(0, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wtfArtikelnrVon, new GridBagConstraints(1, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuArtikelnrBis, new GridBagConstraints(2, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wtfArtikelnrBis, new GridBagConstraints(3, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
@@ -367,14 +325,10 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getArtikelReportDelegate()
-				.printVkPreisliste(preislisteIId, artikelgruppeIId,
-						artikelklasseIId, wsfShopgruppe.getIKey(), true,
-						wtfArtikelnrVon.getText(), wtfArtikelnrBis.getText(),
-						wcbVersteckte.isSelected(),
-						wdfPreisgueltigkeit.getDate());
+		return DelegateFactory.getInstance().getArtikelReportDelegate().printVkPreisliste(
+				(Integer) wcoPreisliste.getKeyOfSelectedItem(), artikelgruppeIId, artikelklasseIId,
+				wsfShopgruppe.getIKey(), true, wtfArtikelnrVon.getText(), wtfArtikelnrBis.getText(),
+				wcbVersteckte.isSelected(), wdfPreisgueltigkeit.getDate(), (String) wcbWaehrung.getKeyOfSelectedItem());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -382,8 +336,7 @@ public class ReportPreisliste extends PanelBasis implements PanelReportIfJRDS {
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

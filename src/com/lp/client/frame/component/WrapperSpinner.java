@@ -87,6 +87,8 @@ public class WrapperSpinner extends JSpinner implements IControl {
 		this.addFocusListener(new WrapperSpinner_focusAdapter(this));
 		editor.getTextField().addFocusListener(
 				new WrapperSpinner_focusAdapter(this));
+		
+		editor.getTextField().setBorder(null);
 	}
 	
 

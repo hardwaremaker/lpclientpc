@@ -32,6 +32,8 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.ArrayList;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
@@ -41,7 +43,10 @@ import com.lp.server.fertigung.service.FertigungServiceFac;
 import com.lp.server.fertigung.service.LosbereichDto;
 import com.lp.server.fertigung.service.LosklasseDto;
 import com.lp.server.fertigung.service.LosklassesprDto;
+import com.lp.server.fertigung.service.LospruefplanDto;
 import com.lp.server.fertigung.service.LosstatusDto;
+import com.lp.server.fertigung.service.PruefergebnisDto;
+import com.lp.server.media.service.EmailMediaFac;
 
 /**
  * <p>
@@ -70,8 +75,8 @@ public class FertigungServiceDelegate extends Delegate {
 	public FertigungServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			fertigungServiceFac = (FertigungServiceFac) context
-					.lookup("lpserver/FertigungServiceFacBean/remote");
+			fertigungServiceFac = lookupFac(context, FertigungServiceFac.class);	
+
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -109,6 +114,16 @@ public class FertigungServiceDelegate extends Delegate {
 		}
 	}
 
+	public Integer createLospruefplan(LospruefplanDto dto) throws ExceptionLP {
+		try {
+			return fertigungServiceFac.createLospruefplan(dto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
 	public void removeLosklasse(LosklasseDto losklasseDto) throws ExceptionLP {
 		try {
 			fertigungServiceFac.removeLosklasse(losklasseDto,
@@ -128,6 +143,14 @@ public class FertigungServiceDelegate extends Delegate {
 		}
 	}
 
+	public void removeLospruefplan(Integer iId) throws ExceptionLP {
+		try {
+			fertigungServiceFac.removeLospruefplan(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
 	public void updateLosklasse(LosklasseDto losklasseDto) throws ExceptionLP {
 		try {
 			fertigungServiceFac.updateLosklasse(losklasseDto,
@@ -142,6 +165,22 @@ public class FertigungServiceDelegate extends Delegate {
 		try {
 			fertigungServiceFac.updateLosbereich(losbereichDto,
 					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public void vertauscheLospruefplan(Integer iId1, Integer iId2)
+			throws ExceptionLP {
+		try {
+			fertigungServiceFac.vertauscheLospruefplan(iId1, iId2);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateLospruefplan(LospruefplanDto dto) throws ExceptionLP {
+		try {
+			fertigungServiceFac.updateLospruefplan(dto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -169,6 +208,16 @@ public class FertigungServiceDelegate extends Delegate {
 		}
 	}
 
+	public LospruefplanDto lospruefplanFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+		try {
+			return fertigungServiceFac.lospruefplanFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
 	public LosklassesprDto losklassesprFindByPrimaryKey(Integer losklasseIId,
 			String localeCNr) throws ExceptionLP {
 		try {
@@ -179,4 +228,45 @@ public class FertigungServiceDelegate extends Delegate {
 			return null;
 		}
 	}
+
+	public void updatePruefergebnisse(ArrayList<PruefergebnisDto> dtos,
+			Integer losablieferungIId) throws ExceptionLP {
+		try {
+			fertigungServiceFac.updatePruefergebnisse(dtos, losablieferungIId,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public void removePruefergebnisse(Integer losablieferungIId) throws ExceptionLP {
+		try {
+			fertigungServiceFac.removePruefergebnisse(losablieferungIId,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public ArrayList<LospruefplanDto> lospruefplanFindyByLosIId(Integer losIId)
+			throws ExceptionLP {
+		try {
+			return fertigungServiceFac.lospruefplanFindyByLosIId(losIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public ArrayList<PruefergebnisDto> pruefergebnisFindByLosablieferungIId(
+			Integer losablieferungIId) throws ExceptionLP {
+		try {
+			return fertigungServiceFac
+					.pruefergebnisFindByLosablieferungIId(losablieferungIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
 }
+

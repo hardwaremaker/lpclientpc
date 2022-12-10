@@ -88,6 +88,8 @@ public class ReportArtikelgruppen extends PanelBasis implements
 	private WrapperCheckBox wcbMitHandlagerbewegungen = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitFertigung = new WrapperCheckBox();
 
+	private WrapperCheckBox wcbNurVerrechnetePositionen = new WrapperCheckBox();
+	
 	public ReportArtikelgruppen(InternalFrameArtikel internalFrame,
 			String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
@@ -139,6 +141,10 @@ public class ReportArtikelgruppen extends PanelBasis implements
 		wcbVersteckte = new WrapperCheckBox(
 				LPMain.getTextRespectUISPr("lp.versteckte"));
 
+		wcbNurVerrechnetePositionen.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.materiabedarfsvorschau.nurverrechnete"));
+		wcbNurVerrechnetePositionen.setSelected(true);
+		
 		wcbMitHandlagerbewegungen
 				.setText(LPMain
 						.getInstance()
@@ -171,6 +177,10 @@ public class ReportArtikelgruppen extends PanelBasis implements
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
+		
+		jpaWorkingOn.add(wcbNurVerrechnetePositionen, new GridBagConstraints(2, 8, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcbMitFertigung, new GridBagConstraints(4, 8, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -207,7 +217,7 @@ public class ReportArtikelgruppen extends PanelBasis implements
 						Helper.short2Boolean(wcbMitHandlagerbewegungen
 								.getShort()),
 						Helper.short2Boolean(wcbMitFertigung.getShort()),
-						wcbVersteckte.isSelected());
+						wcbVersteckte.isSelected(),wcbNurVerrechnetePositionen.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

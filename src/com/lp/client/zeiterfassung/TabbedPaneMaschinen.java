@@ -57,6 +57,7 @@ import com.lp.client.personal.ReportMaschinenliste;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.Helper;
 
 /**
  * <p>
@@ -85,6 +86,10 @@ public class TabbedPaneMaschinen extends TabbedPane {
 	private PanelBasis panelSplitMaschinenkosten = null;
 	private PanelBasis panelBottomMaschinenkosten = null;
 
+	private PanelQuery panelQueryLeistungsfaktor = null;
+	private PanelBasis panelSplitLeistungsfaktor = null;
+	private PanelBasis panelBottomLeistungsfaktor = null;
+
 	private PanelQuery panelQueryZeitdaten = null;
 	private PanelBasis panelSplitZeitdaten = null;
 	private PanelBasis panelBottomZeitdaten = null;
@@ -95,15 +100,17 @@ public class TabbedPaneMaschinen extends TabbedPane {
 
 	private WrapperMenuBar wrapperMenuBar = null;
 
-	private final static int IDX_PANEL_AUSWAHL = 0;
-	private final static int IDX_PANEL_ZEITDATEN = 1;
-	private final static int IDX_PANEL_KOSTEN = 2;
-	private final static int IDX_PANEL_ZEITMODELL = 3;
+	public final static int IDX_PANEL_AUSWAHL = 0;
+	public final static int IDX_PANEL_ZEITDATEN = 1;
+	public final static int IDX_PANEL_KOSTEN = 2;
+	public final static int IDX_PANEL_LEISTUNGSFAKTOR = 3;
+	public final static int IDX_PANEL_ZEITMODELL = 4;
 
 	private final String MENUE_ACTION_MASCHINENLISTE = "MENUE_ACTION_MASCHINENLISTE";
 	private final String MENUE_ACTION_PRODUKTIVITAET = "MENUE_ACTION_PRODUKTIVITAET";
 	private final String MENUE_ACTION_MASCHINENZEITDATEN = "MENUE_ACTION_MASCHINENZEITDATEN";
 	private final String MENUE_ACTION_MASCHINENBELEGUNG = "MENUE_ACTION_MASCHINENBELEGUNG";
+	private final String MENUE_ACTION_VERWENDUNG = "MENUE_ACTION_VERWENDUNG";
 
 	public TabbedPaneMaschinen(InternalFrame internalFrameI) throws Throwable {
 		super(internalFrameI, LPMain
@@ -144,7 +151,7 @@ public class TabbedPaneMaschinen extends TabbedPane {
 				LPMain.getTextRespectUISPr("zeiterfassung.title.tab.maschinen"),
 				null);
 		panelSplitMaschinen = new PanelSplit(getInternalFrame(),
-				panelBottomMaschinen, panelQueryMaschinen, 270);
+				panelBottomMaschinen, panelQueryMaschinen, 200);
 		addTab(LPMain.getTextRespectUISPr("zeiterfassung.title.tab.maschinen"),
 				panelSplitMaschinen);
 
@@ -157,6 +164,8 @@ public class TabbedPaneMaschinen extends TabbedPane {
 
 		insertTab(LPMain.getTextRespectUISPr("lp.kosten"), null, null,
 				LPMain.getTextRespectUISPr("lp.kosten"), IDX_PANEL_KOSTEN);
+		insertTab(LPMain.getTextRespectUISPr("pers.maschinenleistungsfaktor"), null, null,
+				LPMain.getTextRespectUISPr("pers.maschinenleistungsfaktor"), IDX_PANEL_LEISTUNGSFAKTOR);
 		insertTab(LPMain.getTextRespectUISPr("lp.zeitmodell"), null, null,
 				LPMain.getTextRespectUISPr("lp.zeitmodell"),
 				IDX_PANEL_ZEITMODELL);
@@ -195,6 +204,36 @@ public class TabbedPaneMaschinen extends TabbedPane {
 							.createFKMaschinenkosten(maschineIId));
 		}
 	}
+	
+	private void createLeistungsfaktor(Integer maschineIId) throws Throwable {
+
+		if (panelQueryLeistungsfaktor == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
+
+			FilterKriterium[] filters = ZeiterfassungFilterFactory
+					.getInstance().createFKLeistungsfaktor(maschineIId);
+
+			panelQueryLeistungsfaktor = new PanelQuery(null, filters,
+					QueryParameters.UC_ID_MASCHINELEISTUNGSFAKTOR, aWhichButtonIUse,
+					getInternalFrame(),
+					LPMain.getTextRespectUISPr("pers.maschinenleistungsfaktor"), true);
+
+			panelBottomLeistungsfaktor = new PanelLeistungsfaktor(
+					getInternalFrame(),
+					LPMain.getTextRespectUISPr("pers.maschinenleistungsfaktor"), null);
+
+			panelSplitLeistungsfaktor = new PanelSplit(getInternalFrame(),
+					panelBottomLeistungsfaktor, panelQueryLeistungsfaktor, 350);
+
+			setComponentAt(IDX_PANEL_LEISTUNGSFAKTOR, panelSplitLeistungsfaktor);
+		} else {
+			// filter refreshen.
+			panelQueryLeistungsfaktor
+					.setDefaultFilter(ZeiterfassungFilterFactory.getInstance()
+							.createFKLeistungsfaktor(maschineIId));
+		}
+	}
+	
 
 	private void createZeitmodell(Integer maschineIId) throws Throwable {
 
@@ -277,6 +316,11 @@ public class TabbedPaneMaschinen extends TabbedPane {
 				panelBottomZeitmodell.setKeyWhenDetailPanel(iId);
 				panelBottomZeitmodell.eventYouAreSelected(false);
 				panelQueryZeitmodell.updateButtons();
+			} else if (e.getSource() == panelQueryLeistungsfaktor) {
+				Integer iId = (Integer) panelQueryLeistungsfaktor.getSelectedId();
+				panelBottomLeistungsfaktor.setKeyWhenDetailPanel(iId);
+				panelBottomLeistungsfaktor.eventYouAreSelected(false);
+				panelQueryLeistungsfaktor.updateButtons();
 			} else if (e.getSource() == panelQueryZeitdaten) {
 				Integer iId = (Integer) panelQueryZeitdaten.getSelectedId();
 				panelBottomZeitdaten.setKeyWhenDetailPanel(iId);
@@ -335,6 +379,9 @@ public class TabbedPaneMaschinen extends TabbedPane {
 			} else if (e.getSource() == panelQueryZeitdaten) {
 				panelBottomZeitdaten.eventActionNew(e, true, false);
 				panelBottomZeitdaten.eventYouAreSelected(false);
+			}else if (e.getSource() == panelQueryLeistungsfaktor) {
+				panelBottomLeistungsfaktor.eventActionNew(e, true, false);
+				panelBottomLeistungsfaktor.eventYouAreSelected(false);
 			}
 
 		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD
@@ -347,6 +394,8 @@ public class TabbedPaneMaschinen extends TabbedPane {
 				panelSplitZeitmodell.eventYouAreSelected(false);
 			} else if (e.getSource() == panelBottomZeitdaten) {
 				panelSplitZeitdaten.eventYouAreSelected(false);
+			}else if (e.getSource() == panelBottomLeistungsfaktor) {
+				panelSplitLeistungsfaktor.eventYouAreSelected(false);
 			}
 		}
 
@@ -362,6 +411,9 @@ public class TabbedPaneMaschinen extends TabbedPane {
 						PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomZeitdaten) {
 				panelQueryZeitdaten.updateButtons(new LockStateValue(
+						PanelBasis.LOCK_FOR_NEW));
+			} else if (e.getSource() == panelBottomLeistungsfaktor) {
+				panelQueryLeistungsfaktor.updateButtons(new LockStateValue(
 						PanelBasis.LOCK_FOR_NEW));
 			}
 		}
@@ -392,6 +444,12 @@ public class TabbedPaneMaschinen extends TabbedPane {
 				panelQueryZeitdaten.eventYouAreSelected(false);
 				panelQueryZeitdaten.setSelectedId(oKey);
 				panelSplitZeitdaten.eventYouAreSelected(false);
+
+			} else if (e.getSource() == panelBottomLeistungsfaktor) {
+				Object oKey = panelBottomLeistungsfaktor.getKeyWhenDetailPanel();
+				panelQueryLeistungsfaktor.eventYouAreSelected(false);
+				panelQueryLeistungsfaktor.setSelectedId(oKey);
+				panelSplitLeistungsfaktor.eventYouAreSelected(false);
 
 			}
 
@@ -425,7 +483,16 @@ public class TabbedPaneMaschinen extends TabbedPane {
 					panelQueryZeitdaten.setSelectedId(oNaechster);
 				}
 				panelSplitZeitdaten.eventYouAreSelected(false);
+			}else if (e.getSource() == panelBottomLeistungsfaktor) {
+				setKeyWasForLockMe();
+				if (panelBottomLeistungsfaktor.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryLeistungsfaktor
+							.getId2SelectAfterDelete();
+					panelQueryLeistungsfaktor.setSelectedId(oNaechster);
+				}
+				panelSplitLeistungsfaktor.eventYouAreSelected(false);
 			}
+
 
 		}
 
@@ -477,11 +544,28 @@ public class TabbedPaneMaschinen extends TabbedPane {
 					.getIId());
 			panelSplitMaschinenkosten.eventYouAreSelected(false);
 			panelQueryMaschinenkosten.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_LEISTUNGSFAKTOR) {
+			createLeistungsfaktor(getInternalFramePersonal().getMaschineDto()
+					.getIId());
+			panelSplitLeistungsfaktor.eventYouAreSelected(false);
+			panelQueryLeistungsfaktor.updateButtons();
 		} else if (selectedIndex == IDX_PANEL_ZEITDATEN) {
 			createZeitdaten(getInternalFramePersonal().getMaschineDto()
 					.getIId());
 			panelSplitZeitdaten.eventYouAreSelected(false);
 			panelQueryZeitdaten.updateButtons();
+			
+			if(Helper.short2boolean(getInternalFramePersonal().getMaschineDto().getBManuelleBedienung())) {
+				String add2Title = LPMain
+						.getTextRespectUISPr("zeiterfassung.report.maschinenzeitdaten");
+				getInternalFrame().showReportKriterien(
+						new ReportMaschinenzeitdaten(
+								(InternalFrameZeiterfassung) getInternalFrame(),
+								add2Title,true));
+				setSelectedIndex(IDX_PANEL_AUSWAHL);
+			} 
+			
+			
 		} else if (selectedIndex == IDX_PANEL_ZEITMODELL) {
 			createZeitmodell(getInternalFramePersonal().getMaschineDto()
 					.getIId());
@@ -514,6 +598,14 @@ public class TabbedPaneMaschinen extends TabbedPane {
 							(InternalFrameZeiterfassung) getInternalFrame(),
 							add2Title));
 
+		} else if (e.getActionCommand().equals(MENUE_ACTION_VERWENDUNG)) {
+			String add2Title = LPMain
+					.getTextRespectUISPr("zeiterfassung.report.maschinenverwendung");
+			getInternalFrame().showReportKriterien(
+					new ReportMaschinenverwendung(
+							(InternalFrameZeiterfassung) getInternalFrame(),
+							add2Title));
+
 		} else if (e.getActionCommand().equals(MENUE_ACTION_MASCHINENBELEGUNG)) {
 			String add2Title = LPMain
 					.getTextRespectUISPr("pers.zeiterfassung.report.maschinenbelegung");
@@ -529,15 +621,9 @@ public class TabbedPaneMaschinen extends TabbedPane {
 	protected JMenuBar getJMenuBar() throws Throwable {
 		if (wrapperMenuBar == null) {
 			wrapperMenuBar = new WrapperMenuBar(this);
-			// Produktivitaetisstatistik
+			
 			JMenu menuInfo = new WrapperMenu("lp.info", this);
-			JMenuItem menuItemProd = new JMenuItem(
-					LPMain.getTextRespectUISPr("zeiterfassung.report.produktivitaetsstatistik"));
-
-			menuItemProd.addActionListener(this);
-
-			menuItemProd.setActionCommand(MENUE_ACTION_PRODUKTIVITAET);
-			menuInfo.add(menuItemProd);
+		
 
 			// Maschinenzeitdaten
 			JMenuItem menuItemMaschinenzeitdaten = new JMenuItem(
@@ -548,6 +634,24 @@ public class TabbedPaneMaschinen extends TabbedPane {
 			menuItemMaschinenzeitdaten
 					.setActionCommand(MENUE_ACTION_MASCHINENZEITDATEN);
 			menuInfo.add(menuItemMaschinenzeitdaten);
+			// Produktivitaetisstatistik
+			JMenuItem menuItemProd = new JMenuItem(
+					LPMain.getTextRespectUISPr("zeiterfassung.report.produktivitaetsstatistik"));
+
+			menuItemProd.addActionListener(this);
+
+			menuItemProd.setActionCommand(MENUE_ACTION_PRODUKTIVITAET);
+			menuInfo.add(menuItemProd);
+			
+			// Verwendung
+			JMenuItem menuItemMaschinenverwendung = new JMenuItem(
+					LPMain.getTextRespectUISPr("zeiterfassung.report.maschinenverwendung"));
+
+			menuItemMaschinenverwendung.addActionListener(this);
+
+			menuItemMaschinenverwendung
+					.setActionCommand(MENUE_ACTION_VERWENDUNG);
+			menuInfo.add(menuItemMaschinenverwendung);
 
 			wrapperMenuBar.addJMenuItem(menuInfo);
 

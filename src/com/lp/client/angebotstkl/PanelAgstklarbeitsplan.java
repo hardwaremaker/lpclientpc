@@ -39,7 +39,6 @@ import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
 import java.util.EventObject;
 import java.util.Map;
-import java.util.TreeMap;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -69,8 +68,7 @@ import com.lp.client.zeiterfassung.ZeiterfassungFilterFactory;
 import com.lp.server.angebotstkl.service.AgstklarbeitsplanDto;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.personal.service.MaschineDto;
-import com.lp.server.stueckliste.service.StuecklisteFac;
-import com.lp.server.stueckliste.service.StuecklistepositionDto;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
@@ -148,6 +146,8 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 	private AgstklarbeitsplanDto agstklarbeitsplanDto = null;
 	private WrapperCheckBox wcbNurMaschinenzeit = new WrapperCheckBox();
 	private WrapperEditorField wefLangtext = null;
+	
+	private WrapperCheckBox wcbInitial = new WrapperCheckBox();
 
 	static final public String ACTION_SPECIAL_MASCHINE_FROM_LISTE = "action_maschine_from_liste";
 
@@ -168,10 +168,12 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 	}
 
 	private void setDefaults() throws Throwable {
-		Map<String, String> m = new TreeMap<String, String>();
-		m.put(StuecklisteFac.AGART_LAUFZEIT, StuecklisteFac.AGART_LAUFZEIT);
-		m.put(StuecklisteFac.AGART_UMSPANNZEIT,
-				StuecklisteFac.AGART_UMSPANNZEIT);
+		// Map<String, String> m = new TreeMap<String, String>();
+		// m.put(StuecklisteFac.AGART_LAUFZEIT, StuecklisteFac.AGART_LAUFZEIT);
+		// m.put(StuecklisteFac.AGART_UMSPANNZEIT,
+		// StuecklisteFac.AGART_UMSPANNZEIT);
+		Map<String, String> m = DelegateFactory.getInstance()
+				.getStuecklisteDelegate().getAllArbeitsgangarten();
 		wcoAgart.setMap(m);
 	}
 
@@ -266,6 +268,13 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
+		// SP4512
+		boolean b = internalFrameStueckliste.getTabbedPaneAngebotstkl()
+				.zeigeMeldungPreiseFixiertUndArchiviereDokumentBeiAenderung();
+		if (b == false) {
+			return;
+		}
+
 		Object[] o = internalFrameStueckliste.getTabbedPaneAngebotstkl()
 				.getAngebotstklArbeitsplanTop().getSelectedIds();
 		if (o != null) {
@@ -278,6 +287,7 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 
 			}
 		}
+
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
 	}
@@ -315,6 +325,8 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 		agstklarbeitsplanDto.setIAufspannung(wnfAufspannung.getInteger());
 		agstklarbeitsplanDto.setAgartCNr((String) wcoAgart
 				.getKeyOfSelectedItem());
+		
+		agstklarbeitsplanDto.setBInitial(wcbInitial.getShort());
 
 	}
 
@@ -390,7 +402,7 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 					.getInstance()
 					.getZeiterfassungDelegate()
 					.getMaschinenKostenZumZeitpunkt(
-							agstklarbeitsplanDto.getMaschineIId());
+							agstklarbeitsplanDto.getMaschineIId(), LocaleFac.BELEGART_AGSTUECKLISTE, agstklarbeitsplanDto.getIId());
 
 			if (agstklarbeitsplanDto.getIAufspannung() != null
 					&& agstklarbeitsplanDto.getIAufspannung() >= 1) {
@@ -534,6 +546,8 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 		wcoAgart.setKeyOfSelectedItem(agstklarbeitsplanDto.getAgartCNr());
 		wcbNurMaschinenzeit.setShort(agstklarbeitsplanDto
 				.getBNurmaschinenzeit());
+		wcbInitial.setShort(agstklarbeitsplanDto.getBInitial());
+		
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -541,6 +555,13 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 		wifArtikel.validate();
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
+			
+			boolean b = internalFrameStueckliste.getTabbedPaneAngebotstkl()
+					.zeigeMeldungPreiseFixiertUndArchiviereDokumentBeiAenderung();
+			if (b == false) {
+				return;
+			}
+			
 			if (agstklarbeitsplanDto.getIId() == null) {
 				agstklarbeitsplanDto.setIId(DelegateFactory.getInstance()
 						.getAngebotstklDelegate()
@@ -551,6 +572,8 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 						.updateAgstklarbeitsplan(agstklarbeitsplanDto);
 			}
 			super.eventActionSave(e, true);
+
+			
 
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
 				getInternalFrame().setKeyWasForLockMe(
@@ -646,6 +669,9 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 		wlaLangtext.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.kommentar"));
 
+		wcbInitial.setText(LPMain.getTextRespectUISPr("stkl.positionen.initialkosten"));
+		wcbInitial.setToolTipText(LPMain.getTextRespectUISPr("stkl.positionen.initialkosten.tooltip"));
+		
 		wnfAufspannung.setFractionDigits(0);
 
 		wlaStueckzeitUmgewandelt.setHorizontalAlignment(SwingConstants.LEFT);
@@ -889,6 +915,12 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wcbInitial,
+				new GridBagConstraints(7, zeile, 2, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+								2), 0, 0));
+		
 		zeile++;
 		jpaWorkingOn.add(wlaLangtext, new GridBagConstraints(0, zeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
@@ -906,7 +938,7 @@ public class PanelAgstklarbeitsplan extends PanelBasis {
 	}
 
 	protected String getLockMeWer() throws Exception {
-		return HelperClient.LOCKME_STUECKLISTE;
+		return HelperClient.LOCKME_AGSTKL;
 	}
 
 	void dialogQueryMaschineFromListe(ActionEvent e) throws Throwable {

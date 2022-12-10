@@ -78,21 +78,27 @@ public class InternalFramePersonal extends InternalFrame {
 	private TabbedPaneZeitmodell tabbedPaneZeitmodell = null;
 	private TabbedPaneBetriebskalender tabbedPaneBetriebskalender = null;
 	private TabbedPaneArtikelzulage tabbedPaneArtikelzulage = null;
+	private TabbedPaneArtikelzuschlag tabbedPaneArtikelzuschlag = null;
 	private TabbedPaneKollektiv tabbedPaneKollektiv = null;
 	private TabbedPanePersonalgruppe tabbedPanePersonalgruppe = null;
 	private TabbedPaneBereitschaft tabbedPaneBereitschaft = null;
 	private TabbedPaneFahrzeug tabbedPaneFahrzeug = null;
+	private TabbedPaneSchicht tabbedPaneSchicht = null;
+	private TabbedPaneDSGVO tabbedPaneDsgvo = null;
 	public SchichtzeitEinstellungen schichtzeitEinstellungen = null;
 
-	private int IDX_TABBED_PANE_PERSONAL = -1;
+	public int IDX_TABBED_PANE_PERSONAL = -1;
 	private int IDX_TABBED_PANE_ZEITMODELL = -1;
 	private int IDX_TABBED_PANE_BEREITSCHAFT = -1;
 	private int IDX_TABBED_PANE_BETRIEBSKALENDER = -1;
 	private int IDX_TABBED_PANE_ARTIKELZULAGE = -1;
+	private int IDX_TABBED_PANE_ARTIKELZUSCHLAG = -1;
 	private int IDX_TABBED_PANE_KOLLEKTIV = -1;
 	private int IDX_TABBED_PANE_PERSONALGRUPPEN = -1;
+	private int IDX_TABBED_PANE_DSGVO = -1;
 	private int IDX_TABBED_PANE_GRUNDDATEN = -1;
 	private int IDX_TABBED_PANE_FAHRZEUG = -1;
+	private int IDX_TABBED_PANE_SCHICHT = -1;
 
 	private PersonalDto personalDto = null;
 	private ZeitmodellDto zeitmodellDto = null;
@@ -136,6 +142,18 @@ public class InternalFramePersonal extends InternalFrame {
 
 	public TabbedPanePersonal getTabbedPanePersonal() {
 		return tabbedPanePersonal;
+	}
+
+	public TabbedPaneKollektiv getTabbedPaneKollektiv() {
+		return tabbedPaneKollektiv;
+	}
+
+	public TabbedPaneSchicht getTabbedPaneSchicht() {
+		return tabbedPaneSchicht;
+	}
+
+	public TabbedPaneDSGVO getTabbedPaneDSGVO() {
+		return tabbedPaneDsgvo;
 	}
 
 	public TabbedPanePersonalgruppe getTabbedPanePersonalgruppe() {
@@ -202,6 +220,14 @@ public class InternalFramePersonal extends InternalFrame {
 			}
 
 			tabIndex++;
+			IDX_TABBED_PANE_SCHICHT = tabIndex;
+
+			tabbedPaneRoot.insertTab(
+					LPMain.getTextRespectUISPr("pers.schicht"), null, null,
+					LPMain.getTextRespectUISPr("pers.schicht"),
+					IDX_TABBED_PANE_SCHICHT);
+
+			tabIndex++;
 			IDX_TABBED_PANE_BETRIEBSKALENDER = tabIndex;
 			tabbedPaneRoot
 					.insertTab(
@@ -217,6 +243,13 @@ public class InternalFramePersonal extends InternalFrame {
 					LPMain.getTextRespectUISPr("pers.artikelzulage"), null,
 					null, LPMain.getTextRespectUISPr("pers.artikelzulage"),
 					IDX_TABBED_PANE_ARTIKELZULAGE);
+
+			tabIndex++;
+			IDX_TABBED_PANE_ARTIKELZUSCHLAG = tabIndex;
+			tabbedPaneRoot.insertTab(
+					LPMain.getTextRespectUISPr("pers.artikelzuschlag"), null,
+					null, LPMain.getTextRespectUISPr("pers.artikelzuschlag"),
+					IDX_TABBED_PANE_ARTIKELZUSCHLAG);
 
 			tabIndex++;
 			IDX_TABBED_PANE_KOLLEKTIV = tabIndex;
@@ -237,6 +270,25 @@ public class InternalFramePersonal extends InternalFrame {
 					LPMain.getTextRespectUISPr("pers.fahrzeug"), null, null,
 					LPMain.getTextRespectUISPr("pers.fahrzeug"),
 					IDX_TABBED_PANE_FAHRZEUG);
+			if (LPMain
+					.getInstance()
+					.getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(
+							MandantFac.ZUSATZFUNKTION_DSGVO)) {
+
+				if (DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_FB_CHEFBUCHHALTER)
+						&& DelegateFactory.getInstance().getTheJudgeDelegate()
+								.hatRecht(RechteFac.RECHT_PERS_PERSONAL_CUD)) {
+
+					tabIndex++;
+					IDX_TABBED_PANE_DSGVO = tabIndex;
+					tabbedPaneRoot.insertTab(
+							LPMain.getTextRespectUISPr("pers.dsgvo"), null,
+							null, LPMain.getTextRespectUISPr("pers.dsgvo"),
+							IDX_TABBED_PANE_DSGVO);
+				}
+			}
 
 			// nur anzeigen wenn Benutzer Recht dazu hat
 			if (DelegateFactory.getInstance().getTheJudgeDelegate()
@@ -323,6 +375,17 @@ public class InternalFramePersonal extends InternalFrame {
 		}
 	}
 
+	private void createTabbedPaneArtikelzuschlag(JTabbedPane tabbedPane)
+			throws Throwable {
+		if (tabbedPane == null) {
+			// lazy loading
+			tabbedPaneArtikelzuschlag = new TabbedPaneArtikelzuschlag(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ARTIKELZUSCHLAG,
+					tabbedPaneArtikelzuschlag);
+			initComponents();
+		}
+	}
+
 	private void createTabbedPaneKollektiv(JTabbedPane tabbedPane)
 			throws Throwable {
 		if (tabbedPane == null) {
@@ -376,6 +439,35 @@ public class InternalFramePersonal extends InternalFrame {
 
 	}
 
+	private void createTabbedPaneDSGVO(JTabbedPane tabbedPane) throws Throwable {
+		if (tabbedPane == null) {
+			// lazy loading
+			tabbedPaneDsgvo = new TabbedPaneDSGVO(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_DSGVO,
+					tabbedPaneDsgvo);
+			if (tabbedPaneDsgvo.getPanelQueryPArtner().getSelectedId() == null) {
+				enableAllOberePanelsExceptMe(tabbedPaneDsgvo, 0, false);
+			}
+			initComponents();
+		}
+
+	}
+
+	private void createTabbedPaneSchicht(JTabbedPane tabbedPane)
+			throws Throwable {
+		if (tabbedPane == null) {
+			// lazy loading
+			tabbedPaneSchicht = new TabbedPaneSchicht(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_SCHICHT,
+					tabbedPaneSchicht);
+			if (tabbedPaneSchicht.getPanelQueryBereitschaft().getSelectedId() == null) {
+				enableAllOberePanelsExceptMe(tabbedPaneSchicht, 0, false);
+			}
+			initComponents();
+		}
+
+	}
+
 	public void lPStateChanged(EventObject e) throws Throwable {
 		JTabbedPane tabbedPane = (JTabbedPane) ((JTabbedPane) e.getSource())
 				.getSelectedComponent();
@@ -393,6 +485,14 @@ public class InternalFramePersonal extends InternalFrame {
 			createTabbedPaneBereitschaft(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.
 			tabbedPaneBereitschaft.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_SCHICHT) {
+			createTabbedPaneSchicht(tabbedPane);
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneSchicht.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_DSGVO) {
+			createTabbedPaneDSGVO(tabbedPane);
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneDsgvo.lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_BETRIEBSKALENDER) {
 			createTabbedPaneBetriebskalender(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.
@@ -405,6 +505,10 @@ public class InternalFramePersonal extends InternalFrame {
 			createTabbedPaneArtikelzulage(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.
 			tabbedPaneArtikelzulage.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_ARTIKELZUSCHLAG) {
+			createTabbedPaneArtikelzuschlag(tabbedPane);
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneArtikelzuschlag.lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_KOLLEKTIV) {
 			createTabbedPaneKollektiv(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.

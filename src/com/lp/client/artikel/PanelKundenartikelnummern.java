@@ -94,7 +94,7 @@ public class PanelKundenartikelnummern extends PanelBasis {
 	private Border innerBorder = null;
 	
 	private WrapperGotoButton wbuArtikel = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_ARTIKEL_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_ARTIKEL_AUSWAHL);
 	private WrapperTextField wtfArtikel = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
 	
 	private WrapperSelectField wsfKunde = new WrapperSelectField(

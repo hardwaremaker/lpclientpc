@@ -36,11 +36,14 @@ package com.lp.client.fertigung;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.LinkedHashMap;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -61,6 +64,9 @@ public class ReportLosGesamtkalkulation extends PanelBasis implements
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 
 	private Integer losIId = null;
+	
+	private WrapperLabel wlaBisEbene=new WrapperLabel();
+	private WrapperComboBox wcbBisEbene=new WrapperComboBox();
 
 	public ReportLosGesamtkalkulation(InternalFrameFertigung internalFrame,
 			String add2Title) throws Throwable {
@@ -82,6 +88,33 @@ public class ReportLosGesamtkalkulation extends PanelBasis implements
 	private void jbInit() throws Exception {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
+		
+		wcbBisEbene.setMandatoryField(true);
+		
+		wlaBisEbene.setText(LPMain.getInstance().getTextRespectUISPr(
+				"fert.gesamtkalkulation.bisebene"));
+		
+		LinkedHashMap hm=new LinkedHashMap();
+		
+		hm.put(1, 1);
+		hm.put(2, 2);
+		hm.put(3, 3);
+		hm.put(4, 4);
+		hm.put(5, 5);
+		hm.put(6, 6);
+		hm.put(7, 7);
+		hm.put(8, 8);
+		hm.put(999, LPMain.getInstance().getTextRespectUISPr(
+				"label.alle"));
+		
+		wcbBisEbene.setMap(hm);
+		wcbBisEbene.setSelectedItem(2);
+		
+		jpaWorkingOn.add(wlaBisEbene, new GridBagConstraints(0, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbBisEbene, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		
 
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
@@ -99,7 +132,7 @@ public class ReportLosGesamtkalkulation extends PanelBasis implements
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		return DelegateFactory.getInstance().getFertigungDelegate()
-				.printGesamtkalkulation(losIId);
+				.printGesamtkalkulation(losIId,(Integer)wcbBisEbene.getKeyOfSelectedItem());
 	}
 
 	public boolean getBErstelleReportSofort() {

@@ -45,11 +45,12 @@ import com.lp.server.system.jcr.service.JCRDocDto;
 import com.lp.server.system.jcr.service.docnode.DocNodeFile;
 import com.lp.server.system.jcr.service.docnode.DocNodeMail;
 import com.lp.server.system.jcr.service.docnode.DocPath;
+import com.lp.server.system.service.MediaFac;
 import com.lp.util.Helper;
 
 public class OutlookToJCR extends FileToJCR {
 
-	public static final String MIME = ".msg";
+	public static final String MIME = MediaFac.DATENFORMAT_MIMETYPE_TIKA_MSOFFICE;
 
 	@Override
 	protected List<JCRDocDto> createJCRImpl(File file, JCRDocDto jcr)
@@ -70,7 +71,14 @@ public class OutlookToJCR extends FileToJCR {
 
 		} catch (ChunkNotFoundException e) {
 			e.printStackTrace();
-			return null;
+			// wg. SP8831 auskommentiert 
+			//return null;
+			jcr.setsName(Helper.getName(file.getName()).replaceAll("'", "_"));
+			jcr.setsFilename(file.getName());
+			jcr.setsMIME(MediaFac.DATENFORMAT_MIMETYPE_UNBEKANNT);
+			jcr.setDocPath(new DocPath().add(new DocNodeFile(jcr.getsName())));
+			jcrs.add(jcr);
+			return jcrs;
 		}
 
 		jcr.setDocPath(new DocPath().add(new DocNodeMail(jcr.getsName())));
@@ -81,6 +89,9 @@ public class OutlookToJCR extends FileToJCR {
 
 		jcrs.add(jcr);
 
+		//SP8871
+		msg.close();
+		
 		return jcrs;
 	}
 
@@ -90,12 +101,12 @@ public class OutlookToJCR extends FileToJCR {
 		AttachmentChunks[] attachments = msg.getAttachmentFiles();
 		if(attachments != null) {
 			for(AttachmentChunks attachment:attachments) {
-				if(attachment.attachData == null)
+				if(attachment.getAttachData() == null)
 					continue;
 				JCRDocDto jcr = new JCRDocDto();
-				jcr.setbData(attachment.attachData.getValue());
-				String filename = attachment.attachLongFileName == null?
-						attachment.attachFileName.toString() : attachment.attachLongFileName.toString();
+				jcr.setbData(attachment.getAttachData().getValue());
+				String filename = attachment.getAttachLongFileName() == null?
+						attachment.getAttachFileName().toString() : attachment.getAttachLongFileName().toString();
 				jcr.setsFilename(filename);
 				jcr.setsMIME(Helper.getMime(filename));
 				jcr.setsName(Helper.getName(filename));

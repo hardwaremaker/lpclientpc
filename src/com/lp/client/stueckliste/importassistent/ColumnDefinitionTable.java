@@ -45,7 +45,6 @@ import javax.swing.JTable;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 
-import com.lp.server.stueckliste.service.FertigungsStklImportSpezifikation;
 import com.lp.service.StklImportSpezifikation;
 
 public class ColumnDefinitionTable extends JTable implements IColumnTypeDefiner {
@@ -100,8 +99,8 @@ public class ColumnDefinitionTable extends JTable implements IColumnTypeDefiner 
 
 	@Override
 	public void highlightColumnAt(Point p) {
-		Rectangle bounds = getBounds();
-		bounds.setLocation(0, 0);
+		Rectangle bounds = getBoundsOfTable();
+		
 		if(p == null || !bounds.contains(p)) hightlightColumn = null;
 		else {
 			int col = columnAtPoint(p);
@@ -112,12 +111,30 @@ public class ColumnDefinitionTable extends JTable implements IColumnTypeDefiner 
 
 	@Override
 	public void setColumnTypeAt(Point p, String type) {
-		Rectangle bounds = getBounds();
-		bounds.setLocation(0, 0);
+		Rectangle bounds = getBoundsOfTable();
+		
 		if(!bounds.contains(p)) return;
 		int col = columnAtPoint(p);
 		if(col >= 0)
 			fireColumnTypeSetEvent(col, type);
+	}
+	
+	/**
+	 * Liefert die Abmasse der Tabelle inkl. des TableHeaders, wobei die y-Position hier negativ wird.
+	 * Dient dazu, um zu pruefen, ob ein Punkt innerhalb der Tabelle bzw. innerhalb welcher Spalte liegt.
+	 * Da der Bezugspunkt sich auf die Tabelle ohne Header bezieht, liegt somit der Bezugspunkt, wenn
+	 * er sich im Header befindet, eben im negativen Bereich der y-Achse
+	 * 
+	 * @return
+	 */
+	private Rectangle getBoundsOfTable() {
+		Rectangle bounds = getBounds();
+		bounds.setLocation(0, 0);
+		
+		Double heightHeader = getTableHeader().getSize().getHeight();
+		bounds.setRect(bounds.getX(), bounds.getY() - heightHeader, bounds.getWidth(), bounds.getHeight() + heightHeader);
+		
+		return bounds;
 	}
 
 	@Override

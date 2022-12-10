@@ -42,7 +42,7 @@ public class MinMaxDateEvaluator implements IDateEvaluator {
 	private DateUtil dateUtil = new DateUtil();
 
 	public boolean isSpecial(Date date) {
-		return HelperClient.isFeiertag(date);
+		return HelperClient.isFeiertagOhneCutTimestamp(date);
 	}
 
 	public Color getSpecialForegroundColor() {

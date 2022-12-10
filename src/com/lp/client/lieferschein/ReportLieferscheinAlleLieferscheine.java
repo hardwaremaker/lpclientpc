@@ -43,6 +43,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -157,10 +158,13 @@ public class ReportLieferscheinAlleLieferscheine extends
 		jpaWorkingOn.add(getPanelVertreter(), new GridBagConstraints(2, iZeile,
 				4, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		
+		addProvisionsempfaenger();
 		iZeile++;
 		wcbNurOffene = new WrapperCheckBox();
 		wcbNurOffene.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.nuroffene"));
+		HelperClient.setMinimumAndPreferredSize(wcbNurOffene, HelperClient.getSizeFactoredDimension(80));
 		wcbRechnungsadresse = new WrapperCheckBox();
 		wcbRechnungsadresse.setText(LPMain
 				.getTextRespectUISPr("lsch.rechnungsadresseverwenden"));
@@ -189,7 +193,7 @@ public class ReportLieferscheinAlleLieferscheine extends
 
 		if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_EINER)) {
 			// wenn noch keiner gewaehlt ist, dann geht der Dialog auf
-			if (vertreterDto.getIId() == null) {
+			if (vertreterDto.getIId() == null && isInitialized()) {
 				wbuVertreter.doClick();
 			}
 

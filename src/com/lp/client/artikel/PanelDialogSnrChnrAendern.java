@@ -104,8 +104,7 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 
 	static final public String ACTION_SPECIAL_SNRCHNRAUSWAEHLEN = "ACTION_SPECIAL_SNRCHNRAUSWAEHLEN";
 
-	public PanelDialogSnrChnrAendern(InternalFrameArtikel internalFrame,
-			String title) throws Throwable {
+	public PanelDialogSnrChnrAendern(InternalFrameArtikel internalFrame, String title) throws Throwable {
 		super(internalFrame, title);
 		this.artikelDto = internalFrame.getArtikelDto();
 		init();
@@ -114,8 +113,7 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 
 		if (internalFrame.getArtikelDto() != null) {
 			wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
-			wtfArtikel.setText(internalFrame.getArtikelDto()
-					.formatArtikelbezeichnung());
+			wtfArtikel.setText(internalFrame.getArtikelDto().formatArtikelbezeichnung());
 			artikelIId = internalFrame.getArtikelDto().getIId();
 		}
 
@@ -128,13 +126,9 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 	 */
 	private void init() throws Throwable {
 
-		wlaArtikel
-				.setText(LPMain
-						.getTextRespectUISPr("artikel.report.artikelbestellt.selektierterartikel")
-						+ ": ");
+		wlaArtikel.setText(LPMain.getTextRespectUISPr("artikel.report.artikelbestellt.selektierterartikel") + ": ");
 
-		wlaVersion.setText(LPMain.getTextRespectUISPr("artikel.lager.version")
-				+ ": ");
+		wlaVersion.setText(LPMain.getTextRespectUISPr("artikel.lager.version") + ": ");
 
 		wtfArtikel.setActivatable(false);
 
@@ -142,13 +136,11 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 		wbuSnrChnr.setActionCommand(ACTION_SPECIAL_SNRCHNRAUSWAEHLEN);
 
 		if (Helper.short2boolean(artikelDto.getBChargennrtragend())) {
-			wbuSnrChnr.setText(LPMain
-					.getTextRespectUISPr("lp.chargennummer_lang"));
+			wbuSnrChnr.setText(LPMain.getTextRespectUISPr("lp.chargennummer_lang"));
 		} else if (Helper.short2boolean(artikelDto.getBSeriennrtragend())) {
 			wbuSnrChnr.setText(LPMain.getTextRespectUISPr("auft.seriennummer"));
 		} else {
-			DialogFactory.showModalDialog("Fehler",
-					"Artikel ist nicht Seriennumern-/Chargennumernbehaftet");
+			DialogFactory.showModalDialog("Fehler", "Artikel ist nicht Seriennumern-/Chargennumernbehaftet");
 			return;
 		}
 
@@ -157,98 +149,63 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 
 		wtfVersionVon.setActivatable(false);
 
-		wtfSeriennrVon
-				.addFocusListener(new PanelDialogSnrChnrAendern_wtfSeriennrVon_focusAdapter(
-						this));
-		wtfChargennrVon.getWtfCHNR()
-				.addFocusListener(new PanelDialogSnrChnrAendern_wtfChargennrVon_focusAdapter(
-						this));
+		wtfSeriennrVon.addFocusListener(new PanelDialogSnrChnrAendern_wtfSeriennrVon_focusAdapter(this));
+		wtfChargennrVon.getWtfCHNR().addFocusListener(new PanelDialogSnrChnrAendern_wtfChargennrVon_focusAdapter(this));
 
 		getInternalFrame().addItemChangedListener(this);
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(1, iZeile, 3, 1,
-				0.3, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(1, iZeile, 3, 1, 0.3, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wbuSnrChnr, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuSnrChnr, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
 
-		if (Helper.short2boolean(artikelDto.getBChargennrtragend())) {
+		jpaWorkingOn.add(wtfChargennrVon, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
 
-			jpaWorkingOn.add(wtfChargennrVon,
-					new GridBagConstraints(1, iZeile, 3, 1, 0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
-		} else {
-			jpaWorkingOn.add(wtfSeriennrVon, new GridBagConstraints(1, iZeile,
-					1, 1, 0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200,
-					0));
-			jpaWorkingOn.add(wlaVersion, new GridBagConstraints(2, iZeile, 1,
-					1, 0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100,
-					0));
-			jpaWorkingOn.add(wtfVersionVon, new GridBagConstraints(3, iZeile,
-					1, 1, 0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100,
-					0));
-		}
+		jpaWorkingOn.add(wtfSeriennrVon, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+		jpaWorkingOn.add(wlaVersion, new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wtfVersionVon, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
 
 		iZeile++;
 
-		jpaWorkingOn
-				.add(new WrapperLabel(LPMain
-						.getTextRespectUISPr("artikel.pflege.snrchnraendernin")),
-						new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
-								GridBagConstraints.CENTER,
-								GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-										2, 2), 0, 0));
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("artikel.pflege.snrchnraendernin")),
+				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		if (Helper.short2boolean(artikelDto.getBChargennrtragend())) {
-			jpaWorkingOn.add(wtfChargennrNach,
-					new GridBagConstraints(1, iZeile, 3, 1, 0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
+			jpaWorkingOn.add(wtfChargennrNach, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wtfVersionNach, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
 		} else {
-			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.PARAMETER_SERIENNUMMER_NUMERISCH,
-							ParameterFac.KATEGORIE_ARTIKEL,
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_SERIENNUMMER_NUMERISCH, ParameterFac.KATEGORIE_ARTIKEL,
 							LPMain.getTheClient().getMandant());
 			if ((Boolean) parameter.getCWertAsObject()) {
 				wtfSeriennrNach.setMaskNumerisch();
 			}
 
-			jpaWorkingOn.add(wtfSeriennrNach,
-					new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
-			jpaWorkingOn.add(wtfVersionNach, new GridBagConstraints(3, iZeile,
-					1, 1, 0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100,
-					0));
+			jpaWorkingOn.add(wtfSeriennrNach, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wtfVersionNach, new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
 		}
 
 		iZeile++;
-		jpaWorkingOn.add(wbuAendern, new GridBagConstraints(1, iZeile, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wbuAendern, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -258,89 +215,62 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 
 				if (Helper.short2boolean(artikelDto.getBChargennrtragend())) {
 
-					int iAnzahlVon = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.lagerbewegungFindByArtikelIIdCSeriennrChargennr(
-									artikelDto.getIId(),
+					int iAnzahlVon = DelegateFactory.getInstance().getLagerDelegate()
+							.lagerbewegungFindByArtikelIIdCSeriennrChargennr(artikelDto.getIId(),
 									wtfChargennrVon.getChargennummer()).length;
 
 					if (iAnzahlVon < 1) {
 
-						DialogFactory
-								.showModalDialog(
-										"Fehler",
-										"Es konnten keine vorhandenen Chargen mit der Nummer '"
-												+ wtfChargennrVon
-														.getChargennummer()
-												+ "' gefunden werden. Die \u00C4nderung kann nicht durchgef\u00FChrt werden");
+						DialogFactory.showModalDialog("Fehler",
+								"Es konnten keine vorhandenen Chargen mit der Nummer '"
+										+ wtfChargennrVon.getChargennummer()
+										+ "' gefunden werden. Die \u00C4nderung kann nicht durchgef\u00FChrt werden");
 						return;
 
 					}
 
-					int iAnzahlBis = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.lagerbewegungFindByArtikelIIdCSeriennrChargennr(
-									artikelDto.getIId(),
+					int iAnzahlBis = DelegateFactory.getInstance().getLagerDelegate()
+							.lagerbewegungFindByArtikelIIdCSeriennrChargennr(artikelDto.getIId(),
 									wtfChargennrNach.getChargennummer()).length;
 
 					if (iAnzahlBis > 0) {
 
-						boolean b = DialogFactory
-								.showModalJaNeinDialog(
-										getInternalFrame(),
-										"Es gibt bereits Chargen mit der Nummer '"
-												+ wtfChargennrNach
-														.getChargennummer()
-												+ "' im System. Wollen Sie diese wirklich dahingehend \u00E4ndern?");
+						boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+								"Es gibt bereits Chargen mit der Nummer '" + wtfChargennrNach.getChargennummer()
+										+ "' im System. Wollen Sie diese wirklich dahingehend \u00E4ndern?");
 
 						if (b == false) {
 							return;
 						}
 					}
 
-				} else if (Helper.short2boolean(artikelDto
-						.getBSeriennrtragend())) {
-					int iAnzahlVon = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.lagerbewegungFindByArtikelIIdCSeriennrChargennr(
-									artikelDto.getIId(),
+				} else if (Helper.short2boolean(artikelDto.getBSeriennrtragend())) {
+					int iAnzahlVon = DelegateFactory.getInstance().getLagerDelegate()
+							.lagerbewegungFindByArtikelIIdCSeriennrChargennr(artikelDto.getIId(),
 									wtfSeriennrVon.getText()).length;
 
 					if (iAnzahlVon < 1) {
 
-						DialogFactory
-								.showModalDialog(
-										"Fehler",
-										"Es konnte keine vorhandene Seriennummer '"
-												+ wtfSeriennrVon.getText()
-												+ "' gefunden werden. Die \u00C4nderung kann nicht durchgef\u00FChrt werden");
+						DialogFactory.showModalDialog("Fehler",
+								"Es konnte keine vorhandene Seriennummer '" + wtfSeriennrVon.getText()
+										+ "' gefunden werden. Die \u00C4nderung kann nicht durchgef\u00FChrt werden");
 						return;
 
 					}
 
-					if (wtfSeriennrVon.getText().equals(
-							wtfSeriennrNach.getText())) {
+					if (wtfSeriennrVon.getText().equals(wtfSeriennrNach.getText())) {
 						// Es wird nur die Version geaendert
 					} else {
 
-						int iAnzahlBis = DelegateFactory
-								.getInstance()
-								.getLagerDelegate()
-								.lagerbewegungFindByArtikelIIdCSeriennrChargennr(
-										artikelDto.getIId(),
+						int iAnzahlBis = DelegateFactory.getInstance().getLagerDelegate()
+								.lagerbewegungFindByArtikelIIdCSeriennrChargennr(artikelDto.getIId(),
 										wtfSeriennrNach.getText()).length;
 
 						if (iAnzahlBis > 0) {
 
-							DialogFactory
-									.showModalDialog(
-											"Fehler",
-											"Es gibt bereits eine Seriennummer '"
-													+ wtfSeriennrNach.getText()
-													+ "' im System. Die \u00C4nderung kann nicht durchgef\u00FChrt werden.");
+							DialogFactory.showModalDialog("Fehler",
+									"Es gibt bereits eine Seriennummer '" + wtfSeriennrNach.getText()
+											+ "' im System. Die \u00C4nderung kann nicht durchgef\u00FChrt werden.");
 
 							return;
 						}
@@ -350,36 +280,24 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 				int iGeaendert = 0;
 				if (Helper.short2boolean(artikelDto.getBChargennrtragend())) {
 
-					iGeaendert = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.aendereEinzelneSerienChargennummerEinesArtikel(
-									artikelIId,
-									wtfChargennrVon.getChargennummer(),
-									wtfChargennrNach.getChargennummer(), null,
-									null);
-				} else if (Helper.short2boolean(artikelDto
-						.getBSeriennrtragend())) {
-					iGeaendert = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.aendereEinzelneSerienChargennummerEinesArtikel(
-									artikelIId, wtfSeriennrVon.getText(),
-									wtfSeriennrNach.getText(),
-									wtfVersionVon.getText(),
-									wtfVersionNach.getText());
+					iGeaendert = DelegateFactory.getInstance().getLagerDelegate()
+							.aendereEinzelneSerienChargennummerEinesArtikel(artikelIId,
+									wtfChargennrVon.getChargennummer(), wtfChargennrNach.getChargennummer(),
+									wtfVersionVon.getText(), wtfVersionNach.getText());
+				} else if (Helper.short2boolean(artikelDto.getBSeriennrtragend())) {
+					iGeaendert = DelegateFactory.getInstance().getLagerDelegate()
+							.aendereEinzelneSerienChargennummerEinesArtikel(artikelIId, wtfSeriennrVon.getText(),
+									wtfSeriennrNach.getText(), wtfVersionVon.getText(), wtfVersionNach.getText());
 				}
 
-				DialogFactory.showModalDialog("Meldung", "Es wurden "
-						+ iGeaendert + " Buchungen erfolgreich ge\u00E4ndert.");
+				DialogFactory.showModalDialog("Meldung",
+						"Es wurden " + iGeaendert + " Buchungen erfolgreich ge\u00E4ndert.");
 
 				getInternalFrame().closePanelDialog();
 			}
 		} else if (e.getSource().equals(wbuSnrChnr)) {
-			DialogSnrChnrauswahlAlle d = new DialogSnrChnrauswahlAlle(
-					artikelIId, null, false, null);
-			LPMain.getInstance().getDesktop()
-					.platziereDialogInDerMitteDesFensters(d);
+			DialogSnrChnrauswahlAlle d = new DialogSnrChnrauswahlAlle(artikelIId, null, false, null);
+			LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
 			d.setVisible(true);
 
 			if (d.alSeriennummern != null && d.alSeriennummern.size() > 0) {
@@ -387,16 +305,17 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 				SeriennrChargennrMitMengeDto dto = selektierteSnrs.get(0);
 
 				if (Helper.short2boolean(artikelDto.getBChargennrtragend())) {
-					wtfChargennrVon
-							.setChagennummer(dto.getCSeriennrChargennr());
+					wtfChargennrVon.setChagennummer(dto.getCSeriennrChargennr());
+					wtfVersionVon.setText(dto.getCVersion());
+					wtfVersionNach.setText(wtfVersionVon.getText());
+
 				} else {
 					wtfSeriennrVon.setText(dto.getCSeriennrChargennr());
 					wtfVersionVon.setText(dto.getCVersion());
-					
+
 					wtfSeriennrNach.setText(wtfSeriennrVon.getText());
 					wtfVersionNach.setText(wtfVersionVon.getText());
-					
-					
+
 				}
 
 			}
@@ -407,8 +326,7 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 	/**
 	 * eventItemchanged.
 	 * 
-	 * @param eI
-	 *            EventObject
+	 * @param eI EventObject
 	 * @throws ExceptionForLPClients
 	 * @throws Throwable
 	 */
@@ -426,8 +344,7 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 	/**
 	 * Dialogfenster zur Artikelauswahl.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 
@@ -447,11 +364,8 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 		if (wtfSeriennrVon.getText() != null) {
 
 			try {
-				SeriennrChargennrAufLagerDto[] snrDtos = DelegateFactory
-						.getInstance()
-						.getLagerDelegate()
-						.getAllSerienChargennrAufLagerInfoDtos(artikelIId,
-								null, wtfSeriennrVon.getText(), true, null);
+				SeriennrChargennrAufLagerDto[] snrDtos = DelegateFactory.getInstance().getLagerDelegate()
+						.getAllSerienChargennrAufLagerInfoDtos(artikelIId, null, wtfSeriennrVon.getText(), true, null);
 
 				if (snrDtos != null && snrDtos.length > 0) {
 					wtfVersionVon.setText(snrDtos[0].getCVersion());
@@ -473,12 +387,10 @@ public class PanelDialogSnrChnrAendern extends PanelDialog {
 
 }
 
-class PanelDialogSnrChnrAendern_wtfSeriennrVon_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelDialogSnrChnrAendern_wtfSeriennrVon_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelDialogSnrChnrAendern adaptee;
 
-	PanelDialogSnrChnrAendern_wtfSeriennrVon_focusAdapter(
-			PanelDialogSnrChnrAendern adaptee) {
+	PanelDialogSnrChnrAendern_wtfSeriennrVon_focusAdapter(PanelDialogSnrChnrAendern adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -487,12 +399,10 @@ class PanelDialogSnrChnrAendern_wtfSeriennrVon_focusAdapter extends
 	}
 }
 
-class PanelDialogSnrChnrAendern_wtfChargennrVon_focusAdapter extends
-		java.awt.event.FocusAdapter {
+class PanelDialogSnrChnrAendern_wtfChargennrVon_focusAdapter extends java.awt.event.FocusAdapter {
 	PanelDialogSnrChnrAendern adaptee;
 
-	PanelDialogSnrChnrAendern_wtfChargennrVon_focusAdapter(
-			PanelDialogSnrChnrAendern adaptee) {
+	PanelDialogSnrChnrAendern_wtfChargennrVon_focusAdapter(PanelDialogSnrChnrAendern adaptee) {
 		this.adaptee = adaptee;
 	}
 

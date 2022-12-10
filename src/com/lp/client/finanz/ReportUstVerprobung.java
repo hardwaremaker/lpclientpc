@@ -32,16 +32,11 @@
  *******************************************************************************/
 package com.lp.client.finanz;
 
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-
 import javax.swing.JPanel;
 
-import net.miginfocom.swing.MigLayout;
-
-import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperComboBoxPeriode;
 import com.lp.client.frame.component.WrapperLabel;
@@ -57,6 +52,8 @@ import com.lp.server.finanz.service.ReportUvaKriterienDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
+import net.miginfocom.swing.MigLayout;
+
 public class ReportUstVerprobung extends PanelBasis implements
 		PanelReportIfJRDS {
 	
@@ -68,6 +65,7 @@ public class ReportUstVerprobung extends PanelBasis implements
 	private WrapperTextField wtfGeschaeftsjahr;
 	private WrapperComboBox wcoFinanzamt;
 	private WrapperComboBoxPeriode wcoPeriode;
+	private WrapperCheckBox wcbDetails;
 	
 	public ReportUstVerprobung(InternalFrame internalFrame, String sAdd2Title, String geschaeftsjahr) throws Throwable {
 	    // reporttitel: das PanelReport kriegt einen Titel, der wird vom Framework hergenommen
@@ -85,6 +83,8 @@ public class ReportUstVerprobung extends PanelBasis implements
 		wtfGeschaeftsjahr.setText(geschaeftsjahr);
 		wcoFinanzamt = new WrapperComboBox();
 		wcoPeriode = new WrapperComboBoxPeriode(geschaeftsjahr);
+		wcbDetails = new WrapperCheckBox(); 
+		wcbDetails.setToolTipText(LPMain.getTextRespectUISPr("fb.ustverprobung.details.tooltip"));
 		faDtos = DelegateFactory.getInstance().getFinanzDelegate().finanzamtFindAllByMandantCNr(LPMain.getTheClient());
 		if (faDtos != null) {
 			for (int i=0; i<faDtos.length; i++) {
@@ -98,7 +98,10 @@ public class ReportUstVerprobung extends PanelBasis implements
 		p.add(new WrapperLabel(LPMain.getTextRespectUISPr("label.geschaeftsjahr")));
 		p.add(wtfGeschaeftsjahr, "wrap");
 		
-		p.add(new WrapperLabel(LPMain.getTextRespectUISPr("label.periode")), "skip 2");
+		p.add(new WrapperLabel(LPMain.getTextRespectUISPr("fb.ustverprobung.details")));
+		p.add(wcbDetails);
+		
+		p.add(new WrapperLabel(LPMain.getTextRespectUISPr("label.periode")));
 		p.add(wcoPeriode, "wrap");
 	}
 
@@ -130,6 +133,7 @@ public class ReportUstVerprobung extends PanelBasis implements
 	    krit.setIPeriode(wcoPeriode.getPeriode());
 	    krit.setSPeriode(wcoPeriode.getSelectedItem().toString());
 	    krit.setSAbrechnungszeitraum(FinanzFac.UVA_ABRECHNUNGSZEITRAUM_MONAT);
+	    krit.setDetails(wcbDetails.isSelected());
 		return DelegateFactory.getInstance().getFinanzReportDelegate().printUstVerprobung(krit);
 	}
 

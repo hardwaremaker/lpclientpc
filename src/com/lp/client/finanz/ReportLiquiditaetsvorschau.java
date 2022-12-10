@@ -65,6 +65,7 @@ import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
+import com.lp.client.frame.component.WrapperSpinner;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -73,6 +74,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.finanz.service.FinanzReportFac;
 import com.lp.server.finanz.service.LiquititaetsvorschauImportDto;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.report.JasperPrintLP;
@@ -108,18 +110,27 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 	private WrapperLabel wlaBetrachtungszeitraum = new WrapperLabel();
 	private WrapperLabel wlaKreditlimit = new WrapperLabel();
 	private WrapperNumberField wnfKreditlimit = new WrapperNumberField();
-	private JSpinner wspBetrachtungszeitraum = new JSpinner();
+	private WrapperSpinner wspBetrachtungszeitraum = new WrapperSpinner(0, 0,
+			999);
 	private WrapperNumberField wnfKontostand = new WrapperNumberField();
 	private WrapperLabel wlaBerechnungZieltage = new WrapperLabel();
 	private WrapperCheckBox wcbMitPlankosten = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitOffenenAngeboten = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitOffenenBestellungen = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitOffenenAuftraegen = new WrapperCheckBox();
+	private WrapperCheckBox wcbMitAbgaben = new WrapperCheckBox();
+	private WrapperCheckBox wcbMitABZahlungsUndZeitplan = new WrapperCheckBox();
 	private WrapperButton wbRefreshKontostand;
+	private WrapperCheckBox wcbOhneAndereMandanten = new WrapperCheckBox();
 
 	private ButtonGroup buttonGroup = new ButtonGroup();
 	WrapperRadioButton wrbZahlungsmoral = new WrapperRadioButton();
 	WrapperRadioButton wrbVereinbZahlungsziel = new WrapperRadioButton();
+
+	private WrapperLabel wlaERZieldatum = new WrapperLabel();
+	private ButtonGroup buttonGroupER = new ButtonGroup();
+	WrapperRadioButton wrbERBelegdatum = new WrapperRadioButton();
+	WrapperRadioButton wrbERFreigabedatum = new WrapperRadioButton();
 
 	protected JPanel jpaWorkingOn = new JPanel();
 
@@ -137,15 +148,16 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 	}
 
 	protected void jbInit() throws Throwable {
-		
+
 		this.setLayout(new GridBagLayout());
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
 
-		wbRefreshKontostand = new WrapperButton("", HelperClient.createImageIcon("refresh.png"));
+		wbRefreshKontostand = new WrapperButton("",
+				HelperClient.createImageIcon("refresh.png"));
 		wbRefreshKontostand.addActionListener(this);
-		
+
 		wlaKontostand
 				.setText(LPMain
 						.getTextRespectUISPr("fb.report.liquiditaetsvorschau.kontostand"));
@@ -153,6 +165,16 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 				.setText(LPMain
 						.getTextRespectUISPr("fb.report.liquiditaetsvorschau.betrachtungszeitraum"));
 		wlaKreditlimit.setText(LPMain.getTextRespectUISPr("part.kreditlimit"));
+
+		wlaERZieldatum
+				.setText(LPMain
+						.getTextRespectUISPr("fb.report.liquiditaetsvorschau.erzieldatum"));
+		wrbERBelegdatum
+				.setText(LPMain
+						.getTextRespectUISPr("fb.report.liquiditaetsvorschau.erzieldatum.belegdatum"));
+		wrbERFreigabedatum
+				.setText(LPMain
+						.getTextRespectUISPr("fb.report.liquiditaetsvorschau.erzieldatum.freigabedatum"));
 
 		wlaBerechnungZieltage
 				.setText(LPMain
@@ -166,6 +188,8 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 		wcbMitPlankosten
 				.setText(LPMain
 						.getTextRespectUISPr("finanz.liquiditaetsvorschau.mitplankosten"));
+		wcbMitAbgaben.setText(LPMain
+				.getTextRespectUISPr("finanz.liquiditaetsvorschau.mitabgaben"));
 
 		wcbMitPlankosten
 				.setText(LPMain
@@ -176,13 +200,26 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 		wcbMitOffenenAuftraegen
 				.setText(LPMain
 						.getTextRespectUISPr("finanz.liquiditaetsvorschau.mitoffenenauftraegen"));
+		wcbMitOffenenAuftraegen.addActionListener(this);
 		wcbMitOffenenBestellungen
 				.setText(LPMain
 						.getTextRespectUISPr("finanz.liquiditaetsvorschau.mitoffenenbestellungen"));
+		wcbMitABZahlungsUndZeitplan
+				.setText(LPMain
+						.getTextRespectUISPr("finanz.liquiditaetsvorschau.mitzahlungszeitplan"));
+		wcbMitABZahlungsUndZeitplan.setEnabled(false);
 
+		
+		wcbOhneAndereMandanten.setText(LPMain.getTextRespectUISPr(
+		        "rech.umsatz.ohneanderemandanten"));
+		
 		buttonGroup.add(wrbZahlungsmoral);
 		buttonGroup.add(wrbVereinbZahlungsziel);
 		wrbZahlungsmoral.setSelected(true);
+
+		buttonGroupER.add(wrbERBelegdatum);
+		buttonGroupER.add(wrbERFreigabedatum);
+		wrbERBelegdatum.setSelected(true);
 
 		String sKreditlimit = DelegateFactory
 				.getInstance()
@@ -198,12 +235,15 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 			}
 		}
 
-		wspBetrachtungszeitraum.setValue(20);
+		wspBetrachtungszeitraum.setValue(new Integer(20));
 		wnfKontostand.setMandatoryField(true);
 		wnfKreditlimit.setMandatoryField(true);
 
-		jpaWorkingOn.setLayout(new MigLayout("wrap 11", "[15%,fill|10%,fill|5%,fill|5%,fill|10%,fill|10%,fill|5%,fill|10%,fill|10%,fill|10%,fill|5%,fill]"));
-		
+		jpaWorkingOn
+				.setLayout(new MigLayout(
+						"wrap 11",
+						"[15%,fill|10%,fill|5%,fill|5%,fill|10%,fill|10%,fill|5%,fill|10%,fill|10%,fill|10%,fill|5%,fill]"));
+
 		jpaWorkingOn.add(wlaKontostand);
 		jpaWorkingOn.add(wnfKontostand);
 		jpaWorkingOn.add(new JLabel(LPMain.getTheClient()
@@ -211,24 +251,43 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 		jpaWorkingOn.add(wbRefreshKontostand);
 		jpaWorkingOn.add(wlaBetrachtungszeitraum, "span 2");
 		jpaWorkingOn.add(wspBetrachtungszeitraum);
-		jpaWorkingOn.add(new JLabel(LPMain.getTextRespectUISPr("fb.report.liquiditaetsvorschau.wochen")));
+		jpaWorkingOn.add(new JLabel(LPMain
+				.getTextRespectUISPr("fb.report.liquiditaetsvorschau.wochen")));
 		jpaWorkingOn.add(wlaKreditlimit);
 		jpaWorkingOn.add(wnfKreditlimit);
-		jpaWorkingOn.add(new JLabel(LPMain.getTheClient().getSMandantenwaehrung()));
+		jpaWorkingOn.add(new JLabel(LPMain.getTheClient()
+				.getSMandantenwaehrung()));
 
-		jpaWorkingOn.add(wlaBerechnungZieltage, "span 2");
-		jpaWorkingOn.add(wrbZahlungsmoral, "span 3");
+		jpaWorkingOn.add(wlaBerechnungZieltage, "span 1");
+		jpaWorkingOn.add(wrbZahlungsmoral, "span 2");
+		jpaWorkingOn.add(wrbVereinbZahlungsziel, "span 2");
 		jpaWorkingOn.add(wcbMitPlankosten, "span 3");
 		jpaWorkingOn.add(wcbMitOffenenAuftraegen, "span");
 
-		jpaWorkingOn.add(wrbVereinbZahlungsziel, "skip 2, span 3");
+		jpaWorkingOn.add(wlaERZieldatum, "span 1");
+		jpaWorkingOn.add(wrbERBelegdatum, "span 2");
+		jpaWorkingOn.add(wrbERFreigabedatum, "span 2");
+
 		jpaWorkingOn.add(wcbMitOffenenBestellungen, "span 3");
 		jpaWorkingOn.add(wcbMitOffenenAngeboten, "span");
+
+		jpaWorkingOn.add(new WrapperLabel(), "skip 2, span 3");
+		jpaWorkingOn.add(wcbMitAbgaben, "span 3");
+		jpaWorkingOn.add(wcbOhneAndereMandanten, "span ");
+
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_ERWEITERTE_PROJEKTSTEUERUNG)) {
+
+			jpaWorkingOn.add(wcbMitABZahlungsUndZeitplan, "span");
+		}
 
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
-//		ItemChangedEvent e = (ItemChangedEvent) eI;
+		// ItemChangedEvent e = (ItemChangedEvent) eI;
 	}
 
 	private void initPanel() throws Throwable {
@@ -236,13 +295,22 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 	}
 
 	private void setDefaults() {
-
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if(e.getSource() ==  wbRefreshKontostand) {
-			Integer geschaeftsjahrIId = LPMain.getTheClient().getGeschaeftsJahr();
-			wnfKontostand.setBigDecimal(DelegateFactory.getInstance().getFinanzServiceDelegate().getLiquiditaetsKontostand(geschaeftsjahrIId));
+		if (e.getSource() == wbRefreshKontostand) {
+			Integer geschaeftsjahrIId = LPMain.getTheClient()
+					.getGeschaeftsJahr();
+			wnfKontostand.setBigDecimal(DelegateFactory.getInstance()
+					.getFinanzServiceDelegate()
+					.getLiquiditaetsKontostand(geschaeftsjahrIId));
+		}
+		if (e.getSource() == wcbMitOffenenAuftraegen) {
+			if (wcbMitOffenenAuftraegen.isSelected()) {
+				wcbMitABZahlungsUndZeitplan.setEnabled(true);
+			} else {
+				wcbMitABZahlungsUndZeitplan.setEnabled(false);
+			}
 		}
 	}
 
@@ -278,7 +346,7 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 			if (f.exists() == false) {
 				DialogFactory
 						.showModalDialog("Fehler", "Die angegebene Datei '"
-								+ sPfad + "' exisitert nicht.");
+								+ sPfad + "' existiert nicht.");
 				return null;
 			}
 			Workbook workbook = Workbook.getWorkbook(f);
@@ -297,7 +365,7 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 				}
 				if (cells.length > 1 && cells[1] != null
 						&& cells[1].getType() != CellType.EMPTY) {
-					if (cells[1].getType() == CellType.DATE) {
+					if (cells[1].getType() == CellType.DATE || cells[1].getType() == CellType.DATE_FORMULA) {
 						Date d = ((DateCell) cells[1]).getDate();
 						zeile.setDatum(d);
 					}
@@ -343,17 +411,25 @@ public class ReportLiquiditaetsvorschau extends PanelBasis implements
 
 		}
 
+		boolean bMitZahlungsplan = false;
+		if (wcbMitABZahlungsUndZeitplan.isSelected()
+				&& wcbMitOffenenAuftraegen.isSelected()) {
+			bMitZahlungsplan = true;
+		}
+
 		return DelegateFactory
 				.getInstance()
 				.getFinanzReportDelegate()
 				.printLiquiditaetsvorschau(wnfKontostand.getBigDecimal(),
 						wnfKreditlimit.getBigDecimal(),
-						(Integer) wspBetrachtungszeitraum.getValue(),
+						 wspBetrachtungszeitraum.getInteger(),
 						wrbZahlungsmoral.isSelected(),
 						wcbMitPlankosten.isSelected(), alPlankosten,
 						wcbMitOffenenAngeboten.isSelected(),
 						wcbMitOffenenBestellungen.isSelected(),
-						wcbMitOffenenAuftraegen.isSelected());
+						wcbMitOffenenAuftraegen.isSelected(),
+						wcbMitAbgaben.isSelected(),
+						wrbERFreigabedatum.isSelected(), bMitZahlungsplan, wcbOhneAndereMandanten.isSelected());
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {

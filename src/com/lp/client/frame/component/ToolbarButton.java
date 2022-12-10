@@ -38,6 +38,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 
+import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -68,7 +69,7 @@ public class ToolbarButton
 	 */
 	private static final long serialVersionUID = 1L;
 public final static String ACTION_RESTORE = "_restore";
-  private JButton jbuStart = null;
+  private BorderButton jbuStart = null;
   private JButton jbuRestore = null;
   private JButton jbuStartNewInstance = null;
   private String sActionCommand = null;
@@ -103,33 +104,24 @@ public final static String ACTION_RESTORE = "_restore";
   private void jbInit()
       throws Throwable {
     this.setLayout(new GridBagLayout());
+    this.setMinimumSize(new Dimension(28, 38));
     this.setMaximumSize(new Dimension(34, 38));
     this.setPreferredSize(new Dimension(34, 38));
-    jbuStart = new JButton();
-    jbuRestore = new JButton();
-    jbuStartNewInstance = new JButton();
-    jbuRestore.setActionCommand(sActionCommand + ACTION_RESTORE);
-    jbuRestore.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-        "lp.tooltip.wiederherstellen"));
+    
+    jbuStart = new BorderButton();
     jbuStart.setActionCommand(sActionCommand);
     jbuStart.setIcon(icon);
     jbuStart.setToolTipText(sToolTipText);
-    jbuRestore.setEnabled(false);
-    jbuRestore.setVisible(false);
-    jbuRestore.setMinimumSize(new Dimension(13, 7));
-    jbuRestore.setMaximumSize(new Dimension(13, 7));
-    jbuRestore.setPreferredSize(new Dimension(13, 7));
-    jbuStartNewInstance.setEnabled(false);
-    jbuStartNewInstance.setVisible(false);
-    jbuStartNewInstance.setMinimumSize(new Dimension(13, 7));
-    jbuStartNewInstance.setMaximumSize(new Dimension(13, 7));
-    jbuStartNewInstance.setPreferredSize(new Dimension(13, 7));
-//    jbuStart.setEnabled(false);
+      
+    HelperClient.setButtonBackgroundBorderColor(jbuStart, 
+    		Defaults.getInstance().getLpModulToolbarButtonBgColor(), 
+    		Defaults.getInstance().getLpModulToolbarButtonBorderColor());
+//  jbuStart.getModel().addChangeListener(this);
+    jbuStart.setEnabled(false);
+    jbuStart.setDefaultBorder(jbuStart.getBorder());
+
     if (bRestoreVisible) {
-      this.add(jbuRestore,
-               new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-                                      GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0,
-                                      0));
+    	createRestoreButton();
       //this.add(jbuStartNewInstance, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0
       //    , GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0,
       //    0));
@@ -142,6 +134,9 @@ public final static String ACTION_RESTORE = "_restore";
 
 
   public JButton getJbuRestore() {
+	  if(jbuRestore == null){
+		  createRestoreButton();
+	  }
     return jbuRestore;
   }
 
@@ -152,11 +147,13 @@ public final static String ACTION_RESTORE = "_restore";
 
 
   public JButton getJbuStartNewInstance() {
-    return jbuStartNewInstance;
+    if(jbuStartNewInstance == null){
+    	createStartNewInstanceButton();
+    }
+	  return jbuStartNewInstance;
   }
 
-
-  public String getActionCommand() {
+public String getActionCommand() {
     return sActionCommand;
   }
 
@@ -188,5 +185,54 @@ public final static String ACTION_RESTORE = "_restore";
     getJbuStart().setEnabled(showStartNewInstance);
     */
    jbuStart.setEnabled(iStatus == LPModul.STATUS_ENABLED);
+  }
+  
+//	@Override
+//	public void stateChanged(ChangeEvent e) {
+//		ButtonModel model = (ButtonModel)e.getSource();
+//		if (model.isRollover()) {
+//		    this.setBorder(BorderFactory.createLineBorder(ColorFactory.getOrangeHeliumV(), 1));
+//			this.setBackground(Color.WHITE);
+//		} else {
+//		    this.setBorder(BorderFactory.createLineBorder(new Color(220,220,220)));
+//			this.setBackground(ColorFactory.getColorByBelegart(sActionCommand));
+//		}
+//	}
+
+  public void redraw() {
+	    HelperClient.setButtonBackgroundBorderColor(jbuStart, 
+	    		Defaults.getInstance().getLpModulToolbarButtonBgColor(), 
+	    		Defaults.getInstance().getLpModulToolbarButtonBorderColor());
+	    if (Defaults.getInstance().getLpModulToolbarButtonBgColor() == null) {
+			jbuStart.setBorder(BorderFactory.createEmptyBorder());
+		}	    
+	    jbuStart.setDefaultBorder(jbuStart.getBorder());
+	    this.invalidate();
+  }
+  
+  private void createRestoreButton(){
+	  jbuRestore = new JButton();
+	  jbuRestore.setEnabled(false);
+	  jbuRestore.setVisible(false);
+	  jbuRestore.setActionCommand(sActionCommand + ACTION_RESTORE);
+	  jbuRestore.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
+	        "lp.tooltip.wiederherstellen"));
+	  jbuRestore.setMinimumSize(new Dimension(13, 7));
+	  jbuRestore.setMaximumSize(new Dimension(13, 7));
+	  jbuRestore.setPreferredSize(new Dimension(13, 7));
+	  this.add(jbuRestore,
+              new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+                                     GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0,
+                                     0));
+  }
+
+
+  private void createStartNewInstanceButton() {
+	  jbuStartNewInstance = new JButton();
+	  jbuStartNewInstance.setEnabled(false);
+	  jbuStartNewInstance.setVisible(false);
+	  jbuStartNewInstance.setMinimumSize(new Dimension(13, 7));
+	  jbuStartNewInstance.setMaximumSize(new Dimension(13, 7));
+	  jbuStartNewInstance.setPreferredSize(new Dimension(13, 7));
   }
 }

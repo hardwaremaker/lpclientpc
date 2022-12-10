@@ -36,15 +36,17 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.EventObject;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
-import com.lp.client.artikel.PanelArtikelgruppen;
-import com.lp.client.finanz.FinanzFilterFactory;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
@@ -54,13 +56,12 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
-import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
-import com.lp.server.auftrag.service.AuftragFac;
-import com.lp.server.auftrag.service.AuftragServiceFac;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.DokumentenlinkDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
@@ -88,6 +89,10 @@ public class PanelDokumentenlink extends PanelBasis {
 	private WrapperTextField wtfMenuetext = new WrapperTextField();
 	private WrapperCheckBox wcbPfadabsolut = new WrapperCheckBox();
 	private WrapperCheckBox wcbUrl = new WrapperCheckBox();
+	private WrapperCheckBox wcbPfadAusArbeitsplatzparameter = new WrapperCheckBox();
+	private WrapperCheckBox wcbTitel = new WrapperCheckBox();
+	private WrapperLabel wlaRecht = new WrapperLabel();
+	private WrapperComboBox wcoRecht = new WrapperComboBox();
 
 	private String ACTION_SPECIAL_FLR_BELEGART = "ACTION_SPECIAL_FLR_BELEGART";
 
@@ -121,6 +126,7 @@ public class PanelDokumentenlink extends PanelBasis {
 		// getInternalFrame().setKeyWasForLockMe(LPMain.getLockMeForNew());
 
 		leereAlleFelder(this);
+		wcoRecht.setKeyOfSelectedItem(null);
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -138,12 +144,13 @@ public class PanelDokumentenlink extends PanelBasis {
 					+ LocaleFac.BELEGART_LOS + "','"
 					+ LocaleFac.BELEGART_EINGANGSRECHNUNG + "','"
 					+ LocaleFac.BELEGART_ZUSATZKOSTEN + "','"
+					+ LocaleFac.BELEGART_EINKAUFSANGEBOT + "','"
 					+ LocaleFac.BELEGART_REKLAMATION + "','"
 					+ LocaleFac.BELEGART_PARTNER + "','"
 					+ LocaleFac.BELEGART_LIEFERANT + "','"
 					+ LocaleFac.BELEGART_PROJEKT + "','"
 					+ LocaleFac.BELEGART_KUNDE + "','"
-					+ LocaleFac.BELEGART_LIEFERANT+ "')",
+					+ LocaleFac.BELEGART_LIEFERANT + "')",
 					FilterKriterium.OPERATOR_IN, false);
 
 			kriterien[0] = krit1;
@@ -176,10 +183,14 @@ public class PanelDokumentenlink extends PanelBasis {
 		dokumentenlinkDto.setCOrdner(wtfOrdner.getText());
 		dokumentenlinkDto.setBPfadabsolut(wcbPfadabsolut.getShort());
 		dokumentenlinkDto.setBUrl(wcbUrl.getShort());
+		dokumentenlinkDto
+				.setBPfadAusArbeitsplatzparameter(wcbPfadAusArbeitsplatzparameter
+						.getShort());
 		dokumentenlinkDto.setMandantCNr(internalFramePersonal.getMandantDto()
 				.getCNr());
 		dokumentenlinkDto.setBelegartCNr(wtfBelegart.getText());
-
+		dokumentenlinkDto.setBTitel(wcbTitel.getShort());
+		dokumentenlinkDto.setRechtCNr((String) wcoRecht.getKeyOfSelectedItem());
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -189,13 +200,28 @@ public class PanelDokumentenlink extends PanelBasis {
 		wtfBelegart.setText(dokumentenlinkDto.getBelegartCNr());
 		wcbPfadabsolut.setShort(dokumentenlinkDto.getBPfadabsolut());
 		wcbUrl.setShort(dokumentenlinkDto.getBUrl());
-		if (dokumentenlinkDto.getBelegartCNr().equals(
-				LocaleFac.BELEGART_ARTIKEL)) {
-			wcbPfadabsolut.setVisible(true);
-		} else {
-			wcbPfadabsolut.setVisible(false);
+		wcbPfadAusArbeitsplatzparameter.setShort(dokumentenlinkDto
+				.getBPfadAusArbeitsplatzparameter());
+		wcbTitel.setShort(dokumentenlinkDto.getBTitel());
+		if(dokumentenlinkDto.getRechtCNr()!=null){
+			wcoRecht.setKeyOfSelectedItem(dokumentenlinkDto.getRechtCNr().trim());	
+		} else{
+			wcoRecht.setKeyOfSelectedItem(null);
 		}
+		
 
+		setDependentComponentsVisibleByBelegart(dokumentenlinkDto
+				.getBelegartCNr());
+	}
+
+	private void setDependentComponentsVisibleByBelegart(String belegart) {
+		wcbPfadabsolut.setVisible(LocaleFac.BELEGART_ARTIKEL.equals(belegart));
+		wcbTitel.setVisible(LocaleFac.BELEGART_PROJEKT.equals(belegart)
+				&& !wcbUrl.isSelected());
+	}
+
+	private void setDependentComponentsInvisible() {
+		setDependentComponentsVisibleByBelegart(null);
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -229,13 +255,8 @@ public class PanelDokumentenlink extends PanelBasis {
 			if (e.getSource() == panelQueryFLRBelegart) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				wtfBelegart.setText((String) key);
-				
-				if(wtfBelegart.getText().equals(LocaleFac.BELEGART_ARTIKEL)){
-					wcbPfadabsolut.setVisible(true);
-					} else {
-						wcbPfadabsolut.setVisible(false);
-					}
-				
+
+				setDependentComponentsVisibleByBelegart(wtfBelegart.getText());
 			}
 		}
 	}
@@ -252,14 +273,40 @@ public class PanelDokumentenlink extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
+		wcbTitel.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.dokumentenlink.mittitel"));
 		wcbPfadabsolut.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.dokumentenlink.pfadabsolut"));
 
 		wcbUrl.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.dokumentenlink.weblink"));
+		wcbUrl.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				setDependentComponentsVisibleByBelegart(wtfBelegart.getText());
+			}
+		});
+
+		wcbPfadAusArbeitsplatzparameter.setText(LPMain.getInstance()
+				.getTextRespectUISPr("lp.dokumentenlink.pfadausparameter"));
+
+		wlaRecht.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.dokumentenlink.recht"));
 
 		wlaBasispfad.setText(LPMain.getInstance().getTextRespectUISPr(
 				"system.dokumentenlink.basispfad"));
+
+		Map m = new LinkedHashMap();
+		m.put(RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_0_CU,
+				RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_0_CU);
+		m.put(RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_1_CU,
+				RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_1_CU);
+		m.put(RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_2_CU,
+				RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_2_CU);
+		m.put(RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_3_CU,
+				RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_3_CU);
+
+		wcoRecht.setMap(m);
 
 		wtfBasispfad.setMandatoryField(true);
 		wtfBasispfad.setColumnsMax(300);
@@ -336,6 +383,24 @@ public class PanelDokumentenlink extends PanelBasis {
 		jpaWorkingOn.add(wcbUrl, new GridBagConstraints(2, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbPfadAusArbeitsplatzparameter,
+				new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbTitel, new GridBagConstraints(1, iZeile, 2, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wlaRecht, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoRecht, new GridBagConstraints(1, iZeile, 2, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
@@ -353,8 +418,9 @@ public class PanelDokumentenlink extends PanelBasis {
 
 		super.eventYouAreSelected(false);
 
-		wcbPfadabsolut.setVisible(false);
-		
+		// wcbPfadabsolut.setVisible(false);
+		setDependentComponentsInvisible();
+
 		Object key = getKeyWhenDetailPanel();
 
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {

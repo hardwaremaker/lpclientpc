@@ -228,6 +228,8 @@ public class PanelEingangsrechnungKopfdatenZuordnung extends PanelBasis {
 		wlaAbstand4.setPreferredSize(new Dimension(100, Defaults.getInstance()
 				.getControlHeight()));
 		
+		HelperClient.setMinimumAndPreferredSize(wcbMehrfachkontierung, HelperClient.getSizeFactoredDimension(180));
+		
 
 		// Actionpanel
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
@@ -556,26 +558,37 @@ public class PanelEingangsrechnungKopfdatenZuordnung extends PanelBasis {
 		getTabbedPane().setEingangsrechnungDto(erDto);
 	}
 
+	private boolean mehrfachKontierungUI(EingangsrechnungDto erDto) throws Throwable {
+		boolean mehrfach = erDto.getKontoIId() == null
+				|| erDto.getKostenstelleIId() == null;
+		wcbMehrfachkontierung.setSelected(mehrfach);
+		updateMehrfach();
+		return mehrfach;
+	}
+	
 	private void dto2Components() throws Throwable {
 		EingangsrechnungDto erDto = getTabbedPane().getEingangsrechnungDto();
 		holeKostenstelle(erDto.getKostenstelleIId());
 		holeKonto(erDto.getKontoIId());
 
-		boolean bMehrfach = erDto.getKontoIId() == null
-				|| erDto.getKostenstelleIId() == null;
-		wcbMehrfachkontierung.setSelected(bMehrfach);
-		updateMehrfach();
+		boolean bMehrfach = mehrfachKontierungUI(erDto);
+//		boolean bMehrfach = erDto.getKontoIId() == null
+//				|| erDto.getKostenstelleIId() == null;
+//		wcbMehrfachkontierung.setSelected(bMehrfach);
+//		updateMehrfach();
 		// vollstaendig kontiert?
 		if (bMehrfach) {
 			BigDecimal bdNochNichtKontiert = DelegateFactory.getInstance()
 					.getEingangsrechnungDelegate().getWertNochNichtKontiert(
 							erDto.getIId());
 			// falls noch was offen ist
-			if (bdNochNichtKontiert.compareTo(new BigDecimal(0)) != 0) {
-				wlaNochNichtKontiert.setVisible(true);
-			} else {
-				wlaNochNichtKontiert.setVisible(false);
-			}
+			boolean offen = bdNochNichtKontiert.signum() != 0;
+			wlaNochNichtKontiert.setVisible(offen);
+//			if (bdNochNichtKontiert.compareTo(new BigDecimal(0)) != 0) {
+//				wlaNochNichtKontiert.setVisible(true);
+//			} else {
+//				wlaNochNichtKontiert.setVisible(false);
+//			}
 		} else {
 			wlaNochNichtKontiert.setVisible(false);
 		}
@@ -636,7 +649,7 @@ public class PanelEingangsrechnungKopfdatenZuordnung extends PanelBasis {
 		QueryType[] qt = null;
 		// nur Sachkonten dieses Mandanten
 		FilterKriterium[] filters = FinanzFilterFactory.getInstance()
-				.createFKSachkonten();
+				.createFKSachkontenFuerER();
 		panelQueryFLRKonto = new PanelQueryFLR(qt, filters,
 				QueryParameters.UC_ID_FINANZKONTEN, aWhichButtonIUse,
 				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
@@ -684,6 +697,14 @@ public class PanelEingangsrechnungKopfdatenZuordnung extends PanelBasis {
 		eventYouAreSelected(false);
 	}
 
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
+			throws Throwable {
+		super.eventActionUpdate(aE, bNeedNoUpdateI);
+		
+		EingangsrechnungDto erDto = getTabbedPane().getEingangsrechnungDto();
+		mehrfachKontierungUI(erDto);
+	}
+	
 	public void setMyComponents(EingangsrechnungDto eingangsrechnungDto)
 			throws Throwable {
 		holeKostenstelle(eingangsrechnungDto.getKostenstelleIId());

@@ -94,9 +94,8 @@ public abstract class WrapperTextFieldWithIconButton extends JPanel implements
 	
 	protected void initComponents(ImageIcon imageIcon) {
 		wtfText = new WrapperTextField();
-		jButton = new JButton();
+		jButton = ButtonFactory.createJButtonNotEnabled(imageIcon);
 		jButton.addActionListener(this);
-		jButton.setIcon(imageIcon);
 	}
 	
 	protected void setProperties(String toolTipToken) {

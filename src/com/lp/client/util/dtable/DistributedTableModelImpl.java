@@ -32,9 +32,12 @@
  ******************************************************************************/
 package com.lp.client.util.dtable;
 
+import java.util.List;
+
 import javax.swing.table.DefaultTableModel;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.component.frameposition.ClientPerspectiveManager;
 import com.lp.client.util.logger.LpLogger;
 import com.lp.server.util.fastlanereader.service.query.QueryResult;
 import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
@@ -44,15 +47,15 @@ import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
  * 
  * @author werner
  */
-public class DistributedTableModelImpl extends DefaultTableModel implements
-		DistributedTableModel {
+public class DistributedTableModelImpl extends DefaultTableModel implements DistributedTableModel {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this
-			.getClass());
+	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this.getClass());
+
+	protected List<Integer> listPositions = null;
 
 	/**
 	 * the underlying data source.
@@ -62,37 +65,57 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	/**
 	 * Creates a new instance. This instance will fetch data from dataSource.
 	 * 
-	 * @param dataSource
-	 *            the data source to get data from.
+	 * @param dataSource the data source to get data from.
 	 */
 	public DistributedTableModelImpl(DistributedTableDataSource dataSource) {
 		this.dataSource = dataSource;
+
+		List<Integer> listPositionsForUse = ClientPerspectiveManager.getInstance()
+				.loadQueryColumnPositions(dataSource.getUseCaseId());
+		try {
+			if (listPositionsForUse != null
+					&& listPositionsForUse.size() == this.dataSource.getTableInfo().getColumnClasses().length) {
+				listPositions = listPositionsForUse;
+			}
+
+		} catch (ExceptionLP ex) {
+//todo
+		}
 	}
 
 	public DistributedTableDataSource getDataSource() throws ExceptionLP {
 		return dataSource;
 	}
 
+	public boolean hasSavedPositions() {
+		if (listPositions != null) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	/**
-	 * sets a new query that will change the underlying data. This method
-	 * delegates to dataSource.setQuery(query).
+	 * sets a new query that will change the underlying data. This method delegates
+	 * to dataSource.setQuery(query).
 	 * 
 	 * @see DistributedTableModel#setQuery(java.lang.Object)
-	 * @param query
-	 *            Object
+	 * @param query Object
 	 * @throws ExceptionLP
 	 */
-	public void setQuery(Object query)
-      throws ExceptionLP { try {
-    	  this.dataSource.setQuery(query);
-    	  
-    	  dataSource.setReturnNullOnGetValueAt(false);
-      } catch (ExceptionLP e) {
-    	  // Damit im Falle eines Fehler keine alten Daten in der Tabelle angezeigt werden
-    	  dataSource.setReturnNullOnGetValueAt(true);
-    	  throw e;
-      }
-  }
+	public void setQuery(Object query) throws ExceptionLP {
+		try {
+			this.dataSource.setQuery(query);
+
+			dataSource.setReturnNullOnGetValueAt(false);
+		} catch (ExceptionLP e) {
+			// Damit im Falle eines Fehler keine alten Daten in der Tabelle angezeigt werden
+			dataSource.setReturnNullOnGetValueAt(true);
+
+			myLogger.warn("Query throwed", e);
+			throw e;
+		}
+	}
 
 	/**
 	 * gets the number of columns of the table. This method delegates to the
@@ -133,10 +156,8 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	 * returns always false since FastLaneReader tables cannot be editable.
 	 * 
 	 * @see javax.swing.table.TableModel#isCellEditable(int, int)
-	 * @param arg0
-	 *            int
-	 * @param arg1
-	 *            int
+	 * @param arg0 int
+	 * @param arg1 int
 	 * @return boolean
 	 */
 	public boolean isCellEditable(int arg0, int arg1) {
@@ -148,16 +169,16 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	 * Renderers in the table.
 	 * 
 	 * @see javax.swing.table.TableModel#getColumnClass(int)
-	 * @param col
-	 *            int
+	 * @param col int
 	 * @return Class
 	 */
 	public Class getColumnClass(int col) {
 
+		col = getSavedPosition(col);
+
 		Class<Object> columnClass = null;
 		try {
-			if (this.dataSource != null
-					&& this.dataSource.getColumnCount() > col && col >= 0) {
+			if (this.dataSource != null && this.dataSource.getColumnCount() > col && col >= 0) {
 				columnClass = this.dataSource.getColumnClasses()[col];
 			}
 		} catch (ExceptionLP ex) {
@@ -174,13 +195,14 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	 * gets the data of the specified cell. This method delegates to dataSource.
 	 * 
 	 * @see javax.swing.table.TableModel#getValueAt(int, int)
-	 * @param row
-	 *            int
-	 * @param col
-	 *            int
+	 * @param row int
+	 * @param col int
 	 * @return Object
 	 */
 	public Object getValueAt(int row, int col) {
+
+		col = getSavedPosition(col);
+
 		Object value = null;
 		try {
 			if (this.dataSource != null) {
@@ -200,8 +222,7 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	 * dataSource.
 	 * 
 	 * @see javax.swing.table.TableModel#getToolTipAt(int)
-	 * @param row
-	 *            int
+	 * @param row int
 	 * @return Object
 	 */
 	public String getToolTipAt(int row) {
@@ -223,12 +244,9 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	 * this method does nothing since editing is not allowed here.
 	 * 
 	 * @see javax.swing.table.TableModel#setValueAt(java.lang.Object, int, int)
-	 * @param arg0
-	 *            Object
-	 * @param arg1
-	 *            int
-	 * @param arg2
-	 *            int
+	 * @param arg0 Object
+	 * @param arg1 int
+	 * @param arg2 int
 	 */
 	public void setValueAt(Object arg0, int arg1, int arg2) {
 		// read only, so no set available!
@@ -238,27 +256,54 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	 * gets the column's name. Delegates to dataSource.getColumnHeaderValue().
 	 * 
 	 * @see javax.swing.table.TableModel#getColumnName(int)
-	 * @param col
-	 *            int
+	 * @param col int
 	 * @return String
 	 */
 	public String getColumnName(int col) {
+		col = getSavedPosition(col);
+
 		String columnName = "Column " + col;
-		if (this.dataSource != null
-				&& this.dataSource.getColumnHeaderValues() != null
-				&& this.dataSource.getColumnHeaderValues().length > col
-				&& col >= 0) {
-			columnName = this.dataSource.getColumnHeaderValues()[col]
-					.toString();
+		if (this.dataSource != null && this.dataSource.getColumnHeaderValues() != null
+				&& this.dataSource.getColumnHeaderValues().length > col && col >= 0) {
+			columnName = this.dataSource.getColumnHeaderValues()[col].toString();
+
 		}
 
 		return columnName;
 	}
 
+	public int getSavedPosition(int col) {
+
+		if (col > 0 && listPositions != null && listPositions.size() > col) {
+			col = listPositions.get(col);
+		}
+		return col;
+	}
+
+	/**
+	 * gets the column's tooltip
+	 * 
+	 * @param col
+	 * @return
+	 */
+	public String getColumnToolTip(int col) {
+		String toolTip = null;
+		try {
+			if (this.dataSource != null && col >= 0 && this.dataSource.getColumnHeaderToolTips().length > col) {
+
+				toolTip = this.dataSource.getColumnHeaderToolTips()[col];
+			}
+		} catch (Throwable t) {
+			myLogger.error("ToolTip kann nicht befuellt werden.", t);
+		}
+
+		return toolTip;
+	}
+
 	/**
 	 * gets the index of the previously selected row after a sort or filter
-	 * operation. Used to scroll to the new position of the row in order to keep
-	 * it visible.
+	 * operation. Used to scroll to the new position of the row in order to keep it
+	 * visible.
 	 * 
 	 * @return int
 	 */
@@ -274,16 +319,14 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 	 * sorts the table according to the specified sort criterias and returns the
 	 * page of sorted data that contains the row with the selected id.
 	 * 
-	 * @param sortierKriterien
-	 *            the sort criterias to use for sorting.
-	 * @param selectedId
-	 *            the id of the currently selected row in the gui's table.
-	 * @return the sorted data containing the page where the row with the
-	 *         selectedId is located.
+	 * @param sortierKriterien the sort criterias to use for sorting.
+	 * @param selectedId       the id of the currently selected row in the gui's
+	 *                         table.
+	 * @return the sorted data containing the page where the row with the selectedId
+	 *         is located.
 	 * @throws ExceptionLP
 	 */
-	public QueryResult sort(SortierKriterium[] sortierKriterien,
-			Object selectedId) throws ExceptionLP {
+	public QueryResult sort(SortierKriterium[] sortierKriterien, Object selectedId) throws ExceptionLP {
 
 		QueryResult result = null;
 
@@ -293,4 +336,17 @@ public class DistributedTableModelImpl extends DefaultTableModel implements
 
 		return result;
 	}
+	
+	public QueryResult sort(SortierKriterium[] sortierKriterien,Object query, Object selectedId) throws ExceptionLP {
+
+		QueryResult result = null;
+
+		if (this.dataSource != null) {
+			this.dataSource.setQuery(query);
+			result = this.dataSource.sort(sortierKriterien, selectedId);
+		}
+
+		return result;
+	}
+	
 }

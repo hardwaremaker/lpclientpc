@@ -48,7 +48,6 @@ import java.util.EventObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 
 import javax.swing.BorderFactory;
@@ -66,23 +65,23 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import net.miginfocom.swing.MigLayout;
-
 import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.l2fprod.gui.plaf.skin.impl.gtk.parser.Token;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.filechooser.open.WrapperFile;
 import com.lp.client.util.logger.LpLogger;
 import com.lp.server.system.service.LpHvDirekthilfeDto;
+import com.lp.server.util.HvOptional;
+
+import net.miginfocom.swing.MigLayout;
 
 public class PflegeHvDirekthilfe implements IPflegefunktion, ActionListener, ListSelectionListener, FocusListener {
 	
@@ -504,6 +503,19 @@ public class PflegeHvDirekthilfe implements IPflegefunktion, ActionListener, Lis
 	private class ActionDateiAuswahl implements Action {
 		@Override
 		public void doAction(EventObject event) {
+			HvOptional<WrapperFile> wf = HelperClient
+					.showOpenFileDialog(file, panelMain, FILE_EXT);
+			file = wf.isPresent() ? wf.get().getFile() : null;
+			dateiPfad.setText(file != null ? file.getAbsolutePath() : "");
+			statisticsLabel.setText("");
+			loadTexte();
+			
+			if(file != null) {
+				lookForAenderungen();
+			} else {
+				aenderungenList.setModel(new DefaultListModel<ListEntry>());
+			}
+/*			
 			List<File> files = HelperClient.showOpenFileDialog(file, panelMain, false, FILE_EXT);
 			if(files != null && files.size() == 1)
 				file = files.get(0);
@@ -516,6 +528,7 @@ public class PflegeHvDirekthilfe implements IPflegefunktion, ActionListener, Lis
 				lookForAenderungen();
 			else 
 				aenderungenList.setModel(new DefaultListModel<ListEntry>());
+*/				
 		}
 	}
 	

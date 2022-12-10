@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.partner;
@@ -51,7 +51,6 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.KundeDto;
-import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.system.service.LockMeDto;
 import com.lp.util.EJBExceptionLP;
 
@@ -72,7 +71,7 @@ public class PanelKundeRechnungsadresse
     extends PanelPartnerDetail
 {
   /**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private final static String EXTRA_NEU_AUS_KUNDE = "neu_aus_kunde";
@@ -82,12 +81,23 @@ public class PanelKundeRechnungsadresse
 	private LockMeDto lockMePartnerZuKunde = null;
 
 	private WrapperGotoButton wbuKunde = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_KUNDE_AUSWAHL) ;
-	
-	public PanelKundeRechnungsadresse(InternalFrame internalFrame,
-			String add2TitleI, Object keyI) throws Throwable {
+			com.lp.util.GotoHelper.GOTO_KUNDE_AUSWAHL) ;
 
-		super(internalFrame, add2TitleI, keyI);
+//	public PanelKundeRechnungsadresse(InternalFrame internalFrame,
+//			String add2TitleI, Object keyI) throws Throwable {
+//
+//		super(internalFrame, add2TitleI, keyI);
+//
+//		jbInit();
+//		initComponents();
+//
+//		disableUpdateButton();
+//	}
+
+	public PanelKundeRechnungsadresse(InternalFrame internalFrame,
+			String add2TitleI, Object keyI, IPartnerDtoService partnerDtoService) throws Throwable {
+
+		super(internalFrame, add2TitleI, keyI, partnerDtoService);
 
 		jbInit();
 		initComponents();
@@ -102,15 +112,15 @@ public class PanelKundeRechnungsadresse
 				LPMain.getInstance().getTextRespectUISPr(
 						"part.tooltip.rechnungsadr_from_kunde"),
 				PanelBasis.ACTION_MY_OWN_NEW + EXTRA_NEU_AUS_KUNDE);
-		
+
 		wbuKunde.setText(LPMain.getTextRespectUISPr("button.kunde"));
 		wbuKunde.setToolTipText(LPMain
 				.getTextRespectUISPr("button.kunde.tooltip"));
 		wbuKunde.setVisible(true) ;
-		
+
 		jpaWorkingOn.add(wbuKunde, new GridBagConstraints(2, 0, 1, 1,
 				0.4, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));		
+				GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 	}
 
 	protected void setDefaults() throws Throwable {
@@ -123,8 +133,7 @@ public class PanelKundeRechnungsadresse
 	 */
 	protected void disableUpdateButton() {
 		LPButtonAction buttonItem = getHmOfButtons().get(ACTION_UPDATE);
-		buttonItem.setEnable(false);
-		buttonItem.getButton().setEnabled(false);
+		buttonItem.setEnabled(false);
 	}
 
   	protected void synchronizeKundeGotoButton(Integer newValue) {
@@ -133,14 +142,14 @@ public class PanelKundeRechnungsadresse
 		wbuKunde.setEnabled(false) ;
   	}
 
-  	protected void setPartnerDto(PartnerDto partnerDto) {
-		getInternalFrameKunde().getKundeDto().setPartnerRechnungsadresseDto(
-				partnerDto);
-	}
-
-	protected PartnerDto getPartnerDto() {
-		return getInternalFrameKunde().getKundeDto().getPartnerRechnungsadresseDto();
-	}
+//  	protected void setPartnerDto(PartnerDto partnerDto) {
+//		getInternalFrameKunde().getKundeDto().setPartnerRechnungsadresseDto(
+//				partnerDto);
+//	}
+//
+//	protected PartnerDto getPartnerDto() {
+//		return getInternalFrameKunde().getKundeDto().getPartnerRechnungsadresseDto();
+//	}
 
 	private InternalFrameKunde getInternalFrameKunde() {
 		return (InternalFrameKunde) getInternalFrame();
@@ -160,21 +169,21 @@ public class PanelKundeRechnungsadresse
 
   		return null ;
   	}
-  	
+
 	@Override
 	protected void dto2Components() throws Throwable {
 		super.dto2Components();
 		synchronizeKundeGotoButton(getKundeIIdFromRechnungsadresseIId(getPartnerDto().getIId())) ;
 	}
 
-	
+
 public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
       throws Throwable {
 
     super.eventYouAreSelected(true);
 
     disableUpdateButton() ;
-    
+
     if (!bNeedNoYouAreSelectedI) {
       Object iId = getInternalFrameKunde().getKundeDto().getIId();
 
@@ -200,7 +209,7 @@ public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
             getInternalFrameKunde().getKundeDto().getPartnerDto().formatTitelAnrede());
 
         wbuKunde.setActivatable(true) ;
-        
+
         setStatusbar();
 
         String t1 = getInternalFrameKunde().getKundeDto().getPartnerDto().
@@ -254,8 +263,8 @@ public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
   private void clearRE() throws Throwable {
     setPartnerDto(null);
     getInternalFrameKunde().getKundeDto().setPartnerIIdRechnungsadresse(null);
-    synchronizeKundeGotoButton(null) ; 	
-    
+    synchronizeKundeGotoButton(null) ;
+
     super.eventActionUnlock(null);
     super.eventActionRefresh(null, false);
 
@@ -362,7 +371,7 @@ public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
 		disableUpdateButton();
 	}
 
-	
+
 
 	protected void eventItemchanged(EventObject eI)
       throws Throwable {
@@ -376,7 +385,7 @@ public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
       if (e.getSource() == panelKunde) {
     	  // Neu aus Partner.
           beReadonly() ;
-    	  
+
         Integer iIdKundeRE = (Integer) panelKunde.getSelectedId();
 
         eventYouAreSelected(false);
@@ -401,9 +410,9 @@ public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
         getInternalFrameKunde().getKundeDto().setPartnerRechnungsadresseDto(kundeDto.getPartnerDto());
 
         dto2Components();
-        
+
         // Goto soll noch nicht aktivierbar sein, da Satz noch nicht gespeichert.
-        wbuKunde.getWrapperButtonGoTo().setEnabled(false) ; 
+        wbuKunde.getWrapperButtonGoTo().setEnabled(false) ;
         beReadonly() ;
       }
       clearStatusbar();

@@ -33,6 +33,7 @@
 package com.lp.client.zutritt;
 
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -44,6 +45,7 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
@@ -302,6 +304,11 @@ private GridBagLayout gridBagLayoutAll = null;
     this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
         , GridBagConstraints.WEST, GridBagConstraints.NONE,
         new Insets(0, 0, 0, 0), 0, 0));
+    
+    Dimension dimension = HelperClient.getSizeFactoredDimension(180);
+	HelperClient.setMinimumAndPreferredSize(wdfBis, dimension);
+	HelperClient.setMinimumAndPreferredSize(wdfVon, dimension);
+	
 
     //jetzt meine felder
     jpaWorkingOn = new JPanel();
@@ -323,7 +330,7 @@ private GridBagLayout gridBagLayoutAll = null;
                      new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0
                                             , GridBagConstraints.WEST,
                                             GridBagConstraints.NONE,
-                                            new Insets(2, 2, 2, 2), 180, 0));
+                                            new Insets(2, 2, 2, 2), 0, 0));
     jpaWorkingOn.add(wlaBis,
                      new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0
                                             , GridBagConstraints.CENTER,
@@ -333,7 +340,7 @@ private GridBagLayout gridBagLayoutAll = null;
                      new GridBagConstraints(3, 0, 1, 1, 0.1, 0.0
                                             , GridBagConstraints.WEST,
                                             GridBagConstraints.NONE,
-                                            new Insets(2, 2, 2, 2), 180, 0));
+                                            new Insets(2, 2, 2, 2), 0, 0));
     jpaWorkingOn.add(wbuZutrittsklasse, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
         0, 0));

@@ -32,16 +32,23 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.List;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.ExtralisteRueckgabeTabelleDto;
+import com.lp.server.system.service.MergePrintTypeParams;
 import com.lp.server.system.service.SystemReportFac;
 import com.lp.server.system.service.VersandauftragDto;
+import com.lp.server.util.DatumsfilterVonBis;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.server.util.report.JasperPrintLP;
+
+import net.sf.jasperreports.engine.JRPrintElement;
+import net.sf.jasperreports.engine.JasperPrint;
 
 public class SystemReportDelegate extends Delegate {
 	private Context context;
@@ -50,55 +57,78 @@ public class SystemReportDelegate extends Delegate {
 	public SystemReportDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			systemReportFac = (SystemReportFac) context
-					.lookup("lpserver/SystemReportFacBean/remote");
+			systemReportFac = lookupFac(context, SystemReportFac.class);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public JasperPrintLP printUseCaseHandler(String uuid, QueryParameters q,
-			int iAnzahlZeilen, String ueberschrift) throws ExceptionLP {
+	public JasperPrintLP printUseCaseHandler(String uuid, QueryParameters q, int iAnzahlZeilen, String ueberschrift,
+			int[] columnHeaderWidthsFromClientPerspective) throws ExceptionLP {
 		try {
-			return systemReportFac.printUseCaseHandler(uuid, q, iAnzahlZeilen,
-					ueberschrift, LPMain.getTheClient());
+
+			return systemReportFac.printUseCaseHandler(uuid, q, iAnzahlZeilen, ueberschrift,
+					columnHeaderWidthsFromClientPerspective, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printEntitylog(String filterKey, String filterId,
-			String cDatensatz) throws ExceptionLP {
+	public JasperPrintLP printDashboard() throws ExceptionLP {
 		try {
-			return systemReportFac.printEntitylog(filterKey, filterId,
-					cDatensatz, LPMain.getTheClient());
+
+			return systemReportFac.printDashboard(LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printExtraliste(
-			ExtralisteRueckgabeTabelleDto extralisteRueckgabeTabelleDto, Integer extralisteIId)
-			throws ExceptionLP {
+	public JasperPrintLP printStatistik(DatumsfilterVonBis vonBis, Integer iOption, String sOption) throws ExceptionLP {
 		try {
-			return systemReportFac.printExtraliste(
-					extralisteRueckgabeTabelleDto, extralisteIId, LPMain.getTheClient());
+
+			return systemReportFac.printStatistik(vonBis, iOption, sOption, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return null;
 		}
 	}
 
-	public JasperPrintLP[] printVersandAuftrag(
-			VersandauftragDto versandauftragDto, Integer iAnzahlKopien)
+	public JasperPrintLP printEntitylog(String filterKey, String filterId, String cDatensatz) throws ExceptionLP {
+		try {
+			return systemReportFac.printEntitylog(filterKey, filterId, cDatensatz, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printModulberechtigungen() throws ExceptionLP {
+		try {
+			return systemReportFac.printModulberechtigungen(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printExtraliste(ExtralisteRueckgabeTabelleDto extralisteRueckgabeTabelleDto,
+			Integer extralisteIId) throws ExceptionLP {
+		try {
+			return systemReportFac.printExtraliste(extralisteRueckgabeTabelleDto, extralisteIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public JasperPrintLP[] printVersandAuftrag(VersandauftragDto versandauftragDto, Integer iAnzahlKopien)
 			throws ExceptionLP {
 		myLogger.entry();
 		JasperPrintLP[] print = null;
 		try {
-			print = systemReportFac.printVersandAuftrag(versandauftragDto,
-					iAnzahlKopien, LPMain.getTheClient());
+			print = systemReportFac.printVersandAuftrag(versandauftragDto, iAnzahlKopien, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -106,4 +136,22 @@ public class SystemReportDelegate extends Delegate {
 		return print;
 	}
 
+	public List<JRPrintElement> getReportCopy(JasperPrint originalPrint, String modul) throws ExceptionLP {
+		try {
+			return systemReportFac.getReportCopy(originalPrint, modul, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public JasperPrint mergeWithPrintTypePrint(JasperPrint originalPrint, String druckType) throws ExceptionLP {
+		try {
+			return systemReportFac.mergeWithPrintTypePrint(new MergePrintTypeParams(originalPrint, druckType),
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
 }

@@ -77,7 +77,7 @@ public class DialogFehlmengen extends JDialog {
 			String[] cSeriennrchargennr, BigDecimal bdVerfuegbareMenge,
 			InternalFrame internalFrame) throws Throwable {
 		super(LPMain.getInstance().getDesktop(), LPMain.getInstance()
-				.getTextRespectUISPr("artikel.fehlmengen.aufloesen"), true);
+				.getTextRespectUISPr("artikel.fehlmengen.aufloesen") +"  ("+artikelDto.formatArtikelbezeichnung()+")", true);
 
 		this.internalFrame = internalFrame;
 		this.bdVerfuegbareMenge = bdVerfuegbareMenge;

@@ -32,10 +32,14 @@
  ******************************************************************************/
 package com.lp.client.zeiterfassung;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.Date;
 import java.util.EventObject;
 
 import javax.swing.BorderFactory;
@@ -44,32 +48,41 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.fertigung.FertigungFilterFactory;
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperSelectField;
+import com.lp.client.frame.component.WrapperSlider;
+import com.lp.client.frame.component.WrapperSpinner;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.component.WrapperTimestampField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.auftrag.service.AuftragDto;
+import com.lp.server.auftrag.service.AuftragpositionDto;
 import com.lp.server.fertigung.service.LosDto;
 import com.lp.server.fertigung.service.LossollarbeitsplanDto;
 import com.lp.server.personal.service.MaschinenkostenDto;
 import com.lp.server.personal.service.MaschinenzeitdatenDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.Helper;
 
-public class PanelMaschinenzeitdaten extends PanelBasis {
+public class PanelMaschinenzeitdaten extends PanelBasis implements PropertyChangeListener {
 
 	/**
 	 * 
@@ -83,8 +96,7 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 	private GridBagLayout gridBagLayoutWorkingPanel = null;
 	private InternalFrameZeiterfassung internalFrameZeiterfassung = null;
 	private MaschinenzeitdatenDto maschinenzeitdatenDto = null;
-	private WrapperGotoButton wbuLos = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_FERTIGUNG_AUSWAHL);
+	private WrapperGotoButton wbuLos = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_FERTIGUNG_AUSWAHL);
 
 	private WrapperLabel wlaVon = new WrapperLabel();
 	private WrapperTimestampField wdfVon = new WrapperTimestampField();
@@ -95,15 +107,18 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 	private WrapperTextField wtfLos = new WrapperTextField();
 	private WrapperSelectField wsfPersonal = null;
 
+	private WrapperComboBox wcbVerrechenbar = createWcbVerrechenbar();
+
 	private PanelQueryFLR panelQueryFLRLos = null;
 	private PanelQueryFLR panelQueryFLRLossollarbeitsplan = null;
 	private boolean bZeitdatenAufErledigteBuchbar = false;
 	private boolean bZeitdatenAufAngelegteLoseBuchbar = false;
 
+	private WrapperCheckBox wcbParallelbedienung = new WrapperCheckBox();
+
 	static final public String ACTION_SPECIAL_LOS_FROM_LISTE = "action_los_from_liste";
 
-	public PanelMaschinenzeitdaten(InternalFrame internalFrame,
-			String add2TitleI, Object pk) throws Throwable {
+	public PanelMaschinenzeitdaten(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameZeiterfassung = (InternalFrameZeiterfassung) internalFrame;
 		jbInit();
@@ -122,27 +137,22 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 
 	void dialogQueryLosFromListe(ActionEvent e) throws Throwable {
 
-		panelQueryFLRLos = FertigungFilterFactory.getInstance()
-				.createPanelFLRBebuchbareLose(getInternalFrame(),
-						bZeitdatenAufErledigteBuchbar, true, bZeitdatenAufAngelegteLoseBuchbar, null, false);
+		panelQueryFLRLos = FertigungFilterFactory.getInstance().createPanelFLRBebuchbareLose(getInternalFrame(),
+				bZeitdatenAufErledigteBuchbar, true, bZeitdatenAufAngelegteLoseBuchbar, null, false);
 		new DialogQuery(panelQueryFLRLos);
 
 	}
 
-	void dialogQueryLossollarbeitsplanFromListe(Integer selectedLosIId)
-			throws Throwable {
+	void dialogQueryLossollarbeitsplanFromListe(Integer selectedLosIId) throws Throwable {
 		if (selectedLosIId != null) {
-			panelQueryFLRLossollarbeitsplan = FertigungFilterFactory
-					.getInstance().createPanelFLRLossollarbeitsplan(
-							getInternalFrame(), selectedLosIId,
-							maschinenzeitdatenDto.getLossollarbeitsplanIId());
+			panelQueryFLRLossollarbeitsplan = FertigungFilterFactory.getInstance().createPanelFLRLossollarbeitsplan(
+					getInternalFrame(), selectedLosIId, maschinenzeitdatenDto.getLossollarbeitsplanIId());
 			new DialogQuery(panelQueryFLRLossollarbeitsplan);
 		}
 
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
@@ -151,12 +161,11 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 
 			leereAlleFelder(this);
 			clearStatusbar();
-			wdfVon.setTimestamp(new java.sql.Timestamp(System
-					.currentTimeMillis()));
+			wdfVon.setTimestamp(new java.sql.Timestamp(System.currentTimeMillis()));
+			wcbVerrechenbar.setKeyOfSelectedItem(100D);
 
 		} else {
-			maschinenzeitdatenDto = DelegateFactory.getInstance()
-					.getZeiterfassungDelegate()
+			maschinenzeitdatenDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
 					.maschinenzeitdatenFindByPrimaryKey((Integer) key);
 
 			dto2Components();
@@ -165,10 +174,10 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		leereAlleFelder(this);
+		wcbVerrechenbar.setKeyOfSelectedItem(100D);
 		maschinenzeitdatenDto = new MaschinenzeitdatenDto();
 
 	}
@@ -178,30 +187,27 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 		wdfBis.setTimestamp(maschinenzeitdatenDto.getTBis());
 		wtfBemerkung.setText(maschinenzeitdatenDto.getCBemerkung());
 
+		wcbVerrechenbar.setKeyOfSelectedItem(maschinenzeitdatenDto.getFVerrechenbar());
+		wcbParallelbedienung.setShort(maschinenzeitdatenDto.getBParallel());
+
 		wsfPersonal.setKey(maschinenzeitdatenDto.getPersonalIIdGestartet());
 
-		LossollarbeitsplanDto sollarbeitsplanDto = DelegateFactory
-				.getInstance().getFertigungDelegate()
-				.lossollarbeitsplanFindByPrimaryKey(
-						maschinenzeitdatenDto.getLossollarbeitsplanIId());
+		LossollarbeitsplanDto sollarbeitsplanDto = DelegateFactory.getInstance().getFertigungDelegate()
+				.lossollarbeitsplanFindByPrimaryKey(maschinenzeitdatenDto.getLossollarbeitsplanIId());
 
 		LosDto losDto = DelegateFactory.getInstance().getFertigungDelegate()
 				.losFindByPrimaryKey(sollarbeitsplanDto.getLosIId());
-		
-		String los=losDto.getCNr() + " AG:"
-		+ sollarbeitsplanDto.getIArbeitsgangnummer();
-		if(sollarbeitsplanDto.getIUnterarbeitsgang()!=null){
-			los+=" UAG:"+sollarbeitsplanDto.getIUnterarbeitsgang();
+
+		String los = losDto.getCNr() + " AG:" + sollarbeitsplanDto.getIArbeitsgangnummer();
+		if (sollarbeitsplanDto.getIUnterarbeitsgang() != null) {
+			los += " UAG:" + sollarbeitsplanDto.getIUnterarbeitsgang();
 		}
 		wtfLos.setText(los);
-		
-		
-		
 
-		this.setStatusbarPersonalIIdAendern(maschinenzeitdatenDto
-				.getPersonalIIdAendern());
-		this.setStatusbarPersonalIIdAnlegen(maschinenzeitdatenDto
-				.getPersonalIIdAnlegen());
+		wbuLos.setOKey(losDto.getIId());
+
+		this.setStatusbarPersonalIIdAendern(maschinenzeitdatenDto.getPersonalIIdAendern());
+		this.setStatusbarPersonalIIdAnlegen(maschinenzeitdatenDto.getPersonalIIdAnlegen());
 		this.setStatusbarTAnlegen(maschinenzeitdatenDto.getTAnlegen());
 		this.setStatusbarTAendern(maschinenzeitdatenDto.getTAendern());
 	}
@@ -210,36 +216,86 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryFLRLos) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					dialogQueryLossollarbeitsplanFromListe(key);
 				}
 			} else if (e.getSource() == panelQueryFLRLossollarbeitsplan) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				LossollarbeitsplanDto sollarbeitsplanDto = DelegateFactory
-						.getInstance().getFertigungDelegate()
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				LossollarbeitsplanDto sollarbeitsplanDto = DelegateFactory.getInstance().getFertigungDelegate()
 						.lossollarbeitsplanFindByPrimaryKey(key);
 
-				LosDto losDto = DelegateFactory.getInstance()
-						.getFertigungDelegate().losFindByPrimaryKey(
-								sollarbeitsplanDto.getLosIId());
+				LosDto losDto = DelegateFactory.getInstance().getFertigungDelegate()
+						.losFindByPrimaryKey(sollarbeitsplanDto.getLosIId());
 				maschinenzeitdatenDto.setLossollarbeitsplanIId(key);
-				wtfLos.setText(losDto.getCNr() + " AG:"
-						+ sollarbeitsplanDto.getIArbeitsgangnummer());
+				wtfLos.setText(losDto.getCNr() + " AG:" + sollarbeitsplanDto.getIArbeitsgangnummer());
+
+				if (losDto.getAuftragpositionIId() != null) {
+					AuftragpositionDto auftragposDto = DelegateFactory.getInstance().getAuftragpositionDelegate()
+							.auftragpositionFindByPrimaryKey(losDto.getAuftragpositionIId());
+					if (Helper.short2boolean(auftragposDto.getBPauschal())) {
+						wcbVerrechenbar.setKeyOfSelectedItem(0D);
+					} else {
+						wcbVerrechenbar.setKeyOfSelectedItem(100D);
+					}
+
+				}
+
 			}
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void propertyChange(PropertyChangeEvent e) {
+		System.out.println("PROPERTY-NAME:" + e.getPropertyName());
+
+		System.out.println("NEW-VALUE:" + e.getNewValue());
+
+		boolean bDateField = (e.getSource() == wdfVon.getWdfDatum().getDisplay() && e.getNewValue() instanceof Date
+				&& e.getPropertyName().equals("date"));
+
+		boolean bTimeField = (e.getSource() instanceof WrapperSpinner
+				&& (e.getPropertyName().equals("SPIN.SPNP_DOWN") || e.getPropertyName().equals("SPIN.SPNP_UP"))
+				&& e.getNewValue().toString().equals("PRESSED"));
+
+		if (bDateField || bTimeField) {
+			wdfBis.setMandatoryField(false);
+			if (bDateField) {
+				wdfVon.getWdfDatum().setDate((Date) e.getNewValue());
+				wdfVon.getWtfZeit().setTime(new java.sql.Time(((Date) e.getNewValue()).getTime()));
+			}
+
+			try {
+
+				// SP9349
+				if (wdfVon.getTimestamp() != null) {
+
+					if (DelegateFactory.getInstance().getZeiterfassungDelegate()
+							.isMaschinenZeitbuchungNachZeitpunktVorhanden(
+									internalFrameZeiterfassung.getMaschineDto().getIId(), wdfVon.getTimestamp())) {
+						wdfBis.setMandatoryField(true);
+					}
+				}
+
+				LockStateValue lv = this.getLockedstateDetailMainKey();
+				if (lv.getIState() != LOCK_IS_LOCKED_BY_ME) {
+
+					wdfBis.setEnabled(false);
+					
+				}
+
+			} catch (Throwable ex) {
+				// brauche ich
+				handleException(ex, false);
+			}
+		}
+	}
+
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		boolean bDatumgueltig = true;
 		if (wdfVon.getTimestamp() != null) {
 			if (wdfBis.getTimestamp() != null) {
 
-				if (wdfBis.getTimestamp().getTime() < wdfVon.getTimestamp()
-						.getTime()) {
+				if (wdfBis.getTimestamp().getTime() < wdfVon.getTimestamp().getTime()) {
 					bDatumgueltig = false;
 				}
 			}
@@ -248,11 +304,8 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 			if (allMandatoryFieldsSetDlg()) {
 				components2Dto();
 				if (maschinenzeitdatenDto.getIId() == null) {
-					maschinenzeitdatenDto
-							.setMaschineIId(internalFrameZeiterfassung
-									.getMaschineDto().getIId());
-					maschinenzeitdatenDto.setIId(DelegateFactory.getInstance()
-							.getZeiterfassungDelegate()
+					maschinenzeitdatenDto.setMaschineIId(internalFrameZeiterfassung.getMaschineDto().getIId());
+					maschinenzeitdatenDto.setIId(DelegateFactory.getInstance().getZeiterfassungDelegate()
 							.createMaschinenzeitdaten(maschinenzeitdatenDto));
 					setKeyWhenDetailPanel(maschinenzeitdatenDto.getIId());
 				} else {
@@ -262,16 +315,14 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 				super.eventActionSave(e, true);
 
 				if (getInternalFrame().getKeyWasForLockMe() == null) {
-					getInternalFrame().setKeyWasForLockMe(
-							internalFrameZeiterfassung.getMaschineDto()
-									.getIId().toString());
+					getInternalFrame()
+							.setKeyWasForLockMe(internalFrameZeiterfassung.getMaschineDto().getIId().toString());
 				}
 				eventYouAreSelected(false);
 			}
 		} else {
-			DialogFactory.showModalDialog(LPMain
-					.getTextRespectUISPr("lp.error"), LPMain
-					.getTextRespectUISPr("lp.error.bisvorvon"));
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getTextRespectUISPr("lp.error.bisvorvon"));
 		}
 	}
 
@@ -280,18 +331,17 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 		maschinenzeitdatenDto.setCBemerkung(wtfBemerkung.getText());
 		maschinenzeitdatenDto.setTBis(wdfBis.getTimestamp());
 
-		maschinenzeitdatenDto.setMaschineIId(internalFrameZeiterfassung
-				.getMaschineDto().getIId());
+		maschinenzeitdatenDto.setMaschineIId(internalFrameZeiterfassung.getMaschineDto().getIId());
 		maschinenzeitdatenDto.setPersonalIIdGestartet(wsfPersonal.getIKey());
+		maschinenzeitdatenDto.setFVerrechenbar((Double) wcbVerrechenbar.getKeyOfSelectedItem());
+		maschinenzeitdatenDto.setBParallel(wcbParallelbedienung.getShort());
 
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
-		DelegateFactory.getInstance().getZeiterfassungDelegate()
-				.removeMaschinenzeitdaten(maschinenzeitdatenDto);
+		DelegateFactory.getInstance().getZeiterfassungDelegate().removeMaschinenzeitdaten(maschinenzeitdatenDto);
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
 
@@ -320,33 +370,25 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 
 		wlaBemerkung.setText(LPMain.getTextRespectUISPr("lp.bemerkung"));
 
-		wbuLos.setText(LPMain.getTextRespectUISPr("fert.tab.unten.los.title")
-				+ "...");
+		wcbParallelbedienung.setText(LPMain.getTextRespectUISPr("pers.maschinenzeitdaten.parallelbedienung"));
+
+		wbuLos.setText(LPMain.getTextRespectUISPr("fert.tab.unten.los.title") + "...");
 		wbuLos.setActionCommand(ACTION_SPECIAL_LOS_FROM_LISTE);
 		wbuLos.addActionListener(this);
 
-		wsfPersonal = new WrapperSelectField(WrapperSelectField.PERSONAL,
-				getInternalFrame(), false);
+		wsfPersonal = new WrapperSelectField(WrapperSelectField.PERSONAL, getInternalFrame(), false);
 		wsfPersonal.setMandatoryField(true);
 
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_ZEITBUCHUNG_AUF_ERLEDIGTE_MOEGLICH,
-						ParameterFac.KATEGORIE_PERSONAL,
-						LPMain.getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_ZEITBUCHUNG_AUF_ERLEDIGTE_MOEGLICH,
+						ParameterFac.KATEGORIE_PERSONAL, LPMain.getTheClient().getMandant());
 
 		if (parameter.getCWert() != null && parameter.getCWert().equals("1")) {
 			bZeitdatenAufErledigteBuchbar = true;
 		}
-		parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_ZEITBUCHUNG_AUF_ANGELEGTE_LOSE_MOEGLICH,
-						ParameterFac.KATEGORIE_PERSONAL,
-						LPMain.getTheClient().getMandant());
+		parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate().getParametermandant(
+				ParameterFac.PARAMETER_ZEITBUCHUNG_AUF_ANGELEGTE_LOSE_MOEGLICH, ParameterFac.KATEGORIE_PERSONAL,
+				LPMain.getTheClient().getMandant());
 
 		if (parameter.getCWert() != null && parameter.getCWert().equals("1")) {
 			bZeitdatenAufAngelegteLoseBuchbar = true;
@@ -355,75 +397,86 @@ public class PanelMaschinenzeitdaten extends PanelBasis {
 		getInternalFrame().addItemChangedListener(this);
 
 		wdfVon.setMandatoryField(true);
+
+		wdfVon.getWdfDatum().getDisplay().addPropertyChangeListener(this);
+		wdfVon.getWtfZeit().getWspStunden().addPropertyChangeListener(this);
+		wdfVon.getWtfZeit().getWspMinuten().addPropertyChangeListener(this);
+
 		wtfLos.setMandatoryField(true);
 		wtfLos.setActivatable(false);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+
+		Dimension dimension = HelperClient.getSizeFactoredDimension(230);
+		HelperClient.setMinimumAndPreferredSize(wdfBis, dimension);
+		HelperClient.setMinimumAndPreferredSize(wdfVon, dimension);
+		HelperClient.setMinimumAndPreferredSize(wlaBis, HelperClient.getSizeFactoredDimension(80));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaVon, new GridBagConstraints(0, iZeile, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wdfVon, new GridBagConstraints(1, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wdfBis, new GridBagConstraints(3, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
-
-		iZeile++;
-
-		jpaWorkingOn.add(wbuLos, new GridBagConstraints(0, iZeile, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wtfLos, new GridBagConstraints(1, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
-
-		iZeile++;
-
-		jpaWorkingOn.add(wsfPersonal.getWrapperButton(),
-				new GridBagConstraints(0, iZeile, 1, 1, 0.05, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-
-		jpaWorkingOn.add(wsfPersonal.getWrapperTextField(),
-				new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-						0, 0));
-		iZeile++;
-
-		jpaWorkingOn.add(wlaBemerkung, new GridBagConstraints(0, iZeile, 1, 1,
-				0.05, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaVon, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wtfBemerkung, new GridBagConstraints(1, iZeile, 3, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wdfVon, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1, 0.00, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wdfBis, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 2, 0, 0), 0, 0));
+
+		iZeile++;
+
+		jpaWorkingOn.add(wbuLos, new GridBagConstraints(0, iZeile, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wtfLos, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ABRECHNUNGSVORSCHLAG)) {
+
+			wcbVerrechenbar.setVisible(true);
+
+			jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("pers.zeiterfassung.verrechenbar")),
+					new GridBagConstraints(2, iZeile, 1, 1, 0.00, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 90, 0));
+
+			jpaWorkingOn.add(wcbVerrechenbar, new GridBagConstraints(3, iZeile, 1, 1, 0.00, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
+
+			wcbVerrechenbar.setKeyOfSelectedItem(100D);
+		}
+
+		iZeile++;
+
+		jpaWorkingOn.add(wsfPersonal.getWrapperButton(), new GridBagConstraints(0, iZeile, 1, 1, 0.05, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wsfPersonal.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+
+		jpaWorkingOn.add(wcbParallelbedienung, new GridBagConstraints(2, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+
+		jpaWorkingOn.add(wlaBemerkung, new GridBagConstraints(0, iZeile, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wtfBemerkung, new GridBagConstraints(1, iZeile, 3, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 

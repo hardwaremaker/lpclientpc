@@ -56,6 +56,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.InventurDto;
 import com.lp.server.artikel.service.InventurFac;
 import com.lp.server.artikel.service.LagerDto;
 import com.lp.server.system.service.MailtextDto;
@@ -84,6 +85,7 @@ public class ReportInventurstand extends PanelBasis implements
 	private WrapperRadioButton wrbSortArtikelklasse = new WrapperRadioButton();
 	private WrapperRadioButton wrbSortArtikelgruppe = new WrapperRadioButton();
 	private WrapperRadioButton wrbSortLagerplatz = new WrapperRadioButton();
+	private WrapperRadioButton wrbSortReferenznummer = new WrapperRadioButton();
 	private ButtonGroup buttonGroupSortierung = new ButtonGroup();
 
 	private WrapperLabel wlaSortierung = new WrapperLabel();
@@ -97,9 +99,23 @@ public class ReportInventurstand extends PanelBasis implements
 		jbInit();
 		initComponents();
 		if (inventurIId != null) {
-			wtfInventur.setText(DelegateFactory.getInstance()
+		
+			
+			InventurDto inventurDto = DelegateFactory.getInstance()
 					.getInventurDelegate()
-					.inventurFindByPrimaryKey(inventurIId).getCBez());
+					.inventurFindByPrimaryKey(inventurIId);
+			wtfInventur.setText(inventurDto.getCBez());
+
+			if (inventurDto.getLagerIId() != null) {
+				lagerIId = inventurDto.getLagerIId();
+				LagerDto lagerDto = DelegateFactory.getInstance()
+						.getLagerDelegate()
+						.lagerFindByPrimaryKey(inventurDto.getLagerIId());
+				wtfLager.setText(lagerDto.getCNr());
+				wbuLager.setEnabled(false);
+			}
+
+			
 		}
 	}
 
@@ -134,10 +150,13 @@ public class ReportInventurstand extends PanelBasis implements
 				"lp.artikelklasse"));
 		wrbSortLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.inventurstand.sortierung.lagerplatz"));
+		wrbSortReferenznummer.setText(LPMain
+				.getTextRespectUISPr("lp.referenznummer"));
 		buttonGroupSortierung.add(wrbSortArtikelnr);
 		buttonGroupSortierung.add(wrbSortArtikelgruppe);
 		buttonGroupSortierung.add(wrbSortArtikelklasse);
 		buttonGroupSortierung.add(wrbSortLagerplatz);
+		buttonGroupSortierung.add(wrbSortReferenznummer);
 
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
@@ -163,14 +182,17 @@ public class ReportInventurstand extends PanelBasis implements
 		jpaWorkingOn.add(wrbSortArtikelnr, new GridBagConstraints(1, 2, 1, 1,
 				0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortReferenznummer, new GridBagConstraints(1, 3, 1, 1,
+				0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wrbSortArtikelklasse, new GridBagConstraints(1, 3, 1,
+		jpaWorkingOn.add(wrbSortArtikelklasse, new GridBagConstraints(1, 4, 1,
 				1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortArtikelgruppe, new GridBagConstraints(1, 4, 1,
+		jpaWorkingOn.add(wrbSortArtikelgruppe, new GridBagConstraints(1, 5, 1,
 				1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortLagerplatz, new GridBagConstraints(1, 5, 1, 1,
+		jpaWorkingOn.add(wrbSortLagerplatz, new GridBagConstraints(1, 6, 1, 1,
 				0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 	}
@@ -230,6 +252,8 @@ public class ReportInventurstand extends PanelBasis implements
 			iOptionSortierung = InventurFac.REPORT_INVENTURSTAND_SORTIERUNG_ARTIKELKLASSE;
 		} else if (wrbSortLagerplatz.isSelected()) {
 			iOptionSortierung = InventurFac.REPORT_INVENTURSTAND_SORTIERUNG_LAGERPLATZ;
+		}else if (wrbSortReferenznummer.isSelected()) {
+			iOptionSortierung = InventurFac.REPORT_INVENTURSTAND_SORTIERUNG_REFERENZNUMMER;
 		}
 
 		return DelegateFactory.getInstance().getInventurDelegate()

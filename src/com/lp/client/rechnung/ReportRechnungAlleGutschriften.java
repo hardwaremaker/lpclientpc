@@ -36,6 +36,7 @@ package com.lp.client.rechnung;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -72,6 +73,7 @@ private WrapperCheckBox wcbNurOffene = null;
    wcbNurOffene.setText(LPMain.getInstance().getTextRespectUISPr("lp.nuroffene"));
    wcbStatistikadresse = new WrapperCheckBox();
    wcbStatistikadresse.setText(LPMain.getTextRespectUISPr("rech.statistikadresseverwenden"));
+   HelperClient.setMinimumAndPreferredSize(wcbNurOffene, HelperClient.getSizeFactoredDimension(80));
    jpaWorkingOn.add(wcbNurOffene,
                     new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
                                            GridBagConstraints.WEST,

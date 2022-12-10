@@ -67,11 +67,11 @@ import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.frame.assistent.view.AssistentPageView;
 import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.pc.LPMain;
 import com.lp.server.stueckliste.service.MontageartDto;
-import com.lp.server.stueckliste.service.FertigungsStklImportSpezifikation;
 import com.lp.service.StklImportSpezifikation;
 
 public class StklImportPage2View extends AssistentPageView {
@@ -85,6 +85,7 @@ public class StklImportPage2View extends AssistentPageView {
 	private WrapperRadioButton fixedWidth;
 	private JTextField separatorChar;
 	private WrapperComboBox montageart;
+	private WrapperCheckBox withHiddenArticles;
 	private ColumnDefinitionTable table;
 	private FixedWidthDefinitionField fwdField;
 	private JPanel viewPanel;
@@ -93,6 +94,7 @@ public class StklImportPage2View extends AssistentPageView {
 	private DraggableLabel draggingLabel;
 	private JLayeredPane layeredPane;
 	private IColumnTypeDefiner definer;
+	private String title;
 
 	public StklImportPage2View(StklImportPage2Ctrl controller, InternalFrame iFrame) {
 		super(controller, iFrame);
@@ -106,6 +108,7 @@ public class StklImportPage2View extends AssistentPageView {
 		separated.setSelected(!spezifikation.isFixedWidth());
 		fixedWidth.setSelected(spezifikation.isFixedWidth());
 		montageart.setSelectedItem(getController().getMontageart());
+		withHiddenArticles.setSelected(spezifikation.isWithHiddenArticles());
 		
 		if(!separatorChar.getText().equals(getController().getImportSpezifikation().getSeparator()))
 			separatorChar.setText(spezifikation.getSeparator());
@@ -127,6 +130,7 @@ public class StklImportPage2View extends AssistentPageView {
 				table.scrollRectToVisible(viewRect);
 		}
 		updateColumnTypes();
+		validate();
 	}
 	
 	protected void updateColumnTypes() {
@@ -151,9 +155,15 @@ public class StklImportPage2View extends AssistentPageView {
 
 	@Override
 	public String getTitle() {
-		return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
+		return title != null
+				? title
+				: LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
 	}
 	
+	public void setTitle(String pageTitle) {
+		this.title = pageTitle;
+	}
+
 	protected void initTable() {
 		table = new ColumnDefinitionTable(controller.getTableModel());
 		setComponentToViewPanel(new JScrollPane(table));
@@ -188,6 +198,7 @@ public class StklImportPage2View extends AssistentPageView {
 		fixedWidth = new WrapperRadioButton(LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.fixebreite"));
 		separatorChar = new JTextField(2);
 		separatorChar.setToolTipText(LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.tooltiptrennzeichen"));
+		withHiddenArticles = new WrapperCheckBox(LPMain.getTextRespectUISPr("lp.versteckte"));
 		viewPanel = new JPanel();
 		columnTypePanel = new JPanel(new FlowLayout());
 		try {
@@ -220,13 +231,14 @@ public class StklImportPage2View extends AssistentPageView {
 		fixedWidth.addActionListener(l);
 		separatorChar.addKeyListener(l);
 		separatorChar.addFocusListener(l);
+		withHiddenArticles.addItemListener(l);
 		montageart.addItemListener(l);
 		
 		setLayout(new MigLayout("wrap 3, hidemode 3, fillx", "[fill][fill]push[]", "[][][][][fill, grow]"));
 		
 		add(new JLabel(LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.abzeile")));
 		add(fromRow);
-		add(columnTypePanel, "span 1 4, w 0:pref:max, growy");
+		add(columnTypePanel, "span 1 3, w 0:pref:max, growy");
 		
 		add(separated);
 		add(separatorChar, "wrap");
@@ -239,7 +251,7 @@ public class StklImportPage2View extends AssistentPageView {
 		} else {
 			add(viewPanel, "newline, span");
 		}
-		
+		add(withHiddenArticles, "cell 2 3, align right, width 110");
 
 	}
 	
@@ -380,6 +392,8 @@ public class StklImportPage2View extends AssistentPageView {
 		public void itemStateChanged(ItemEvent e) {
 			if(e.getSource() == montageart) {
 				getController().setMontageart((MontageartDto)montageart.getSelectedItem());
+			} else if (e.getSource() == withHiddenArticles) {
+				getController().setWithHiddenArticles(withHiddenArticles.isSelected());
 			}
 		}
 	}

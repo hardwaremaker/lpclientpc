@@ -37,10 +37,10 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungFac;
 import com.lp.server.media.service.EmailMediaFac;
 import com.lp.server.media.service.MediaEmailMetaDto;
 import com.lp.server.media.service.MediaStoreBelegDto;
-import com.lp.server.system.service.TheClientDto;
 
 public class EmailMediaDelegate extends Delegate {
 	private EmailMediaFac emailMediaFac ;
@@ -49,7 +49,7 @@ public class EmailMediaDelegate extends Delegate {
 	public EmailMediaDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			emailMediaFac = (EmailMediaFac) context.lookup("lpserver/EmailMediaFacBean/remote");
+			emailMediaFac = lookupFac(context, EmailMediaFac.class);	
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}		

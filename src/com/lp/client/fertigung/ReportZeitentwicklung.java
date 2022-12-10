@@ -56,6 +56,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.fertigung.service.FertigungReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class ReportZeitentwicklung extends PanelBasis implements
@@ -169,8 +170,8 @@ public class ReportZeitentwicklung extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp = Helper.addiereTageZuTimestamp(wdfBis
+				.getTimestamp(),1);
 
 		return DelegateFactory.getInstance().getFertigungDelegate()
 				.printZeitentwicklung(wdfVon.getTimestamp(), wdfBisTemp,

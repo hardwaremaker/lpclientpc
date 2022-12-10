@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.partner;
@@ -52,16 +52,16 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperEditorFieldKommentar;
-import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperMediaControl;
 import com.lp.client.frame.component.WrapperMediaControlKommentar;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperSelectField;
-import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.IconFactory;
+import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.PartnerServicesFac;
 import com.lp.server.partner.service.PartnerkommentarDto;
 import com.lp.server.partner.service.PartnerkommentardruckDto;
@@ -73,7 +73,7 @@ import com.lp.util.Helper;
 public class PanelKundeLieferantKommentar extends PanelBasis {
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	// von hier ...
@@ -94,6 +94,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 	private WrapperCheckBox wcbBestellung = new WrapperCheckBox();
 	private WrapperCheckBox wcbLieferschein = new WrapperCheckBox();
 	private WrapperCheckBox wcbRechnung = new WrapperCheckBox();
+	private WrapperCheckBox wcbZahlung = new WrapperCheckBox();
 
 	private WrapperCheckBox wcbGutschrift = new WrapperCheckBox();
 	private WrapperCheckBox wcbReklamation = new WrapperCheckBox();
@@ -108,7 +109,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 	private ButtonGroup bg = new ButtonGroup();
 
 	private WrapperMediaControl wmcBild = new WrapperMediaControlKommentar(
-			getInternalFrame(), "", false);
+			getInternalFrame(), "", false, this);
 
 	private boolean bKunde = true;
 
@@ -124,6 +125,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 
 	protected void setDefaults() {
 		wefText.getLpEditor().setText(null);
+		getHmOfButtons().get(PanelBasis.ACTION_TEXT).getButton().setVisible(false);
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -146,13 +148,13 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 
 	public void eventActionText(ActionEvent e) throws Throwable {
 
-		if (!wmcBild.getMimeType().startsWith("image")) {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("artikel.texteingabezuartikelbild.error"));
-			return;
-		}
+//		if (!wmcBild.getMimeType().startsWith("image")) {
+//			DialogFactory
+//					.showModalDialog(
+//							LPMain.getTextRespectUISPr("lp.error"),
+//							LPMain.getTextRespectUISPr("artikel.texteingabezuartikelbild.error"));
+//			return;
+//		}
 
 		super.eventActionText(e);
 		if (getLockedstateDetailMainKey().getIState() == PanelBasis.LOCK_IS_LOCKED_BY_ME) {
@@ -169,6 +171,9 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
 			boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
+
+		resetEditorButton();
+
 		leereAlleFelder(this);
 
 		wmcBild.setOMediaImage(null);
@@ -190,6 +195,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 		wcbBestellung.setSelected(false);
 		wcbReklamation.setSelected(false);
 		wcbRechnung.setSelected(false);
+		wcbZahlung.setSelected(false);
 
 		wcbLieferschein.setSelected(false);
 		wcbGutschrift.setSelected(false);
@@ -210,10 +216,14 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 		this.setStatusbarPersonalIIdAendern(partnerkommentarDto
 				.getPersonalIIdAendern());
 		this.setStatusbarTAendern(partnerkommentarDto.getTAendern());
+		
+		Integer partnerIId = getPartnerIId();
+		PartnerDto partnerDto = DelegateFactory.getInstance().getPartnerDelegate().partnerFindByPrimaryKey(partnerIId);
 
 		if (partnerkommentarDto.getDatenformatCNr().equals(
 				MediaFac.DATENFORMAT_MIMETYPE_TEXT_HTML)) {
 			wmcBild.setOMediaText(partnerkommentarDto.getXKommentar());
+			wmcBild.setRechtschreibpruefungLocale(Helper.string2Locale(partnerDto.getLocaleCNrKommunikation()));
 		} else {
 
 			wmcBild.setOMediaImage(partnerkommentarDto.getOMedia());
@@ -250,6 +260,9 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 				} else if (dtos[i].getBelegartCNr().equals(
 						LocaleFac.BELEGART_RECHNUNG)) {
 					wcbRechnung.setSelected(true);
+				}  else if (dtos[i].getBelegartCNr().equals(
+						LocaleFac.BELEGART_REZAHLUNG)) {
+					wcbZahlung.setSelected(true);
 				} else if (dtos[i].getBelegartCNr().equals(
 						LocaleFac.BELEGART_GUTSCHRIFT)) {
 					wcbGutschrift.setSelected(true);
@@ -299,6 +312,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 				+ wcbBestellung.getShort().shortValue()
 				+ wcbLieferschein.getShort().shortValue()
 				+ wcbRechnung.getShort().shortValue()
+				+ wcbZahlung.getShort().shortValue()
 				+ wcbGutschrift.getShort().shortValue()
 				+ wcbReklamation.getShort().shortValue()
 				+ wcbEingangsrechnung.getShort().shortValue();
@@ -352,6 +366,12 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 		if (wcbRechnung.isSelected()) {
 			PartnerkommentardruckDto dto = new PartnerkommentardruckDto();
 			dto.setBelegartCNr(LocaleFac.BELEGART_RECHNUNG);
+			dtos[iLaufend] = dto;
+			iLaufend++;
+		}
+		if (wcbZahlung.isSelected()) {
+			PartnerkommentardruckDto dto = new PartnerkommentardruckDto();
+			dto.setBelegartCNr(LocaleFac.BELEGART_REZAHLUNG);
 			dtos[iLaufend] = dto;
 			iLaufend++;
 		}
@@ -411,6 +431,8 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 				"label.lieferschein"));
 		wcbRechnung.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.rechnung.modulname"));
+		wcbZahlung.setText(LPMain.getInstance().getTextRespectUISPr(
+				"rechnung.tab.oben.zahlungen.title"));
 		wcbGutschrift.setText(LPMain.getInstance().getTextRespectUISPr(
 				"rechnung.gutschrift"));
 		wcbReklamation.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -441,7 +463,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 				0.08, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wsfKommentarart.getWrapperTextField(),
-				new GridBagConstraints(1, 1, 2, 1, 0.1, 0.0,
+				new GridBagConstraints(1, 1, 3, 1, 0.1, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
 						0, 0));
@@ -452,6 +474,8 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 		jpaWorkingOn.add(wrbHinweis, new GridBagConstraints(0, 4, 1, 1, 0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbAnhang, new GridBagConstraints(0, 5, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		/*
 		 * jpaWorkingOn.add(wrbAnhang, new GridBagConstraints(0, 5, 1, 1, 0,
 		 * 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new
@@ -469,7 +493,11 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
-
+			jpaWorkingOn.add(wcbZahlung,
+					new GridBagConstraints(3, 3, 1, 1, 0.1, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
 			jpaWorkingOn.add(wcbLieferschein,
 					new GridBagConstraints(1, 4, 1, 1, 0, 0.0,
 							GridBagConstraints.CENTER,
@@ -490,6 +518,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
+			
 		} else {
 			jpaWorkingOn.add(wcbAnfrage,
 					new GridBagConstraints(1, 3, 1, 1, 0.1, 0.0,
@@ -512,13 +541,13 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
-			
+
 			jpaWorkingOn.add(wcbLieferschein,
 					new GridBagConstraints(1, 5, 1, 1, 0, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
-			
+
 
 		}
 
@@ -547,6 +576,13 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
+		
+		boolean bLoeschen = DialogFactory.kommentarWirklichLoeschen(getInternalFrame());
+
+		if (bLoeschen == false) {
+			return;
+		}
+		
 		boolean b = DelegateFactory
 				.getInstance()
 				.getArtikelkommentarDelegate()
@@ -596,6 +632,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 			partnerkommentarDto = DelegateFactory.getInstance()
 					.getPartnerServicesDelegate()
 					.partnerkommentarFindByPrimaryKey((Integer) key);
+			setEditorButtonColor();
 			dto2Components();
 		}
 
@@ -617,7 +654,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 
 			/*
 			 * PJ 15045
-			 * 
+			 *
 			 * // Wenn Hinweis, dann darf nur TEXT/HTML ausgew&auml;hlt werden
 			 * if (wrbHinweis.isSelected() &&
 			 * !artikelkommentarDto.getDatenformatCNr().equals(
@@ -626,7 +663,7 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 			 * .getInstance().getTextRespectUISPr("lp.error"), LPMain
 			 * .getInstance().getTextRespectUISPr(
 			 * "artikel.artikelkommentar.error"));
-			 * 
+			 *
 			 * return; }
 			 */
 
@@ -662,4 +699,15 @@ public class PanelKundeLieferantKommentar extends PanelBasis {
 			eventYouAreSelected(false);
 		}
 	}
+
+	private void setEditorButtonColor(){
+		getHmOfButtons().get(ACTION_TEXT).getButton().setIcon(
+				partnerkommentarDto.getXKommentar() != null
+				&& partnerkommentarDto.getXKommentar().length() > 0 ?
+						IconFactory.getCommentExist() : IconFactory.getEditorEdit());
+	}
+	private void resetEditorButton(){
+		getHmOfButtons().get(ACTION_TEXT).getButton().setIcon(IconFactory.getEditorEdit());
+	}
+
 }

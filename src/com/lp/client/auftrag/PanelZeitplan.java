@@ -39,6 +39,7 @@ import java.awt.event.ActionEvent;
 import java.util.EventObject;
 
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
@@ -57,9 +58,9 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.ZeitplanDto;
+import com.lp.server.personal.service.PersonalDto;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 /**
  * <p>In diesem Fenster werden Auftragteilnehmer erfasst.
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -109,6 +110,12 @@ public class PanelZeitplan extends PanelBasis {
 	WrapperEditorField wefKommentarLang = new WrapperEditorField(
 			getInternalFrame(), "");
 
+	WrapperLabel wlaErledigtDauer = new WrapperLabel();
+	WrapperLabel wlaErledigtMaterial = new WrapperLabel();
+	
+	static final public String ACTION_SPECIAL_TOGGLE_MATERIAL_ERLEDIGT = "action_special_toggle_material_erledigt";
+	static final public String ACTION_SPECIAL_TOGGLE_DAUER_ERLEDIGT = "action_special_toggle_dauer_erledigt";
+
 	public PanelZeitplan(InternalFrame internalFrame, String add2TitleI,
 			Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
@@ -157,30 +164,32 @@ public class PanelZeitplan extends PanelBasis {
 		// wegen Dialogauswahl auf FLR events hoeren
 		getInternalFrame().addItemChangedListener(this);
 
-		wlaTermin.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.termin"));
-		wlaDauer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.dauer"));
-		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.kommentar"));
-		wlaMaterial.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.material"));
-		wlaKommentarLang.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.kommentar"));
+		wlaTermin.setText(LPMain.getTextRespectUISPr("auft.zeitplan.termin"));
+		wlaDauer.setText(LPMain.getTextRespectUISPr("auft.zeitplan.dauer"));
+		wlaKommentar.setText(LPMain.getTextRespectUISPr("auft.zeitplan.kommentar"));
+		wlaMaterial.setText(LPMain.getTextRespectUISPr("auft.zeitplan.material"));
+		wlaKommentarLang.setText(LPMain.getTextRespectUISPr("auft.zeitplan.kommentar"));
 
-		wlaDauerUrsprung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.dauer.ursprung"));
-		wlaMaterialUrsprung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.material.ursprung"));
+		wlaDauerUrsprung.setText(LPMain.getTextRespectUISPr("auft.zeitplan.dauer.ursprung"));
+		wlaMaterialUrsprung.setText(LPMain.getTextRespectUISPr("auft.zeitplan.material.ursprung"));
 
 		wtfKommentar.setColumnsMax(300);
 
 		wdfTermin.setMandatoryField(true);
 		wnfMaterial.setMandatoryField(true);
 		wnfDauer.setMandatoryField(true);
+		
+		HelperClient.setMinimumAndPreferredSize(wlaTermin, HelperClient.getSizeFactoredDimension(120));
 
-		wnfMaterialUrsprung.setActivatable(false);
-		wnfDauerUrsprung.setActivatable(false);
+		if (!DelegateFactory
+				.getInstance()
+				.getTheJudgeDelegate()
+				.hatRecht(
+						com.lp.server.benutzer.service.RechteFac.RECHT_AUFT_DARF_AUFTRAG_ERLEDIGEN)) {
+
+			wnfMaterialUrsprung.setActivatable(false);
+			wnfDauerUrsprung.setActivatable(false);
+		}
 
 		wlaWaehrungMaterial.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaEinheitDauer.setHorizontalAlignment(SwingConstants.LEFT);
@@ -190,7 +199,7 @@ public class PanelZeitplan extends PanelBasis {
 
 		jPanelWorkingOn.add(wlaTermin, new GridBagConstraints(0, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 100, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jPanelWorkingOn.add(wdfTermin, new GridBagConstraints(1, iZeile, 4, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -206,6 +215,9 @@ public class PanelZeitplan extends PanelBasis {
 		jPanelWorkingOn.add(wlaWaehrungMaterial, new GridBagConstraints(2,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 40, 0));
+		jPanelWorkingOn.add(wlaErledigtMaterial, new GridBagConstraints(3,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 300, 0));
 		iZeile++;
 		jPanelWorkingOn.add(wlaMaterialUrsprung, new GridBagConstraints(0,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
@@ -224,6 +236,9 @@ public class PanelZeitplan extends PanelBasis {
 		jPanelWorkingOn.add(wlaEinheitDauer, new GridBagConstraints(2, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaErledigtDauer, new GridBagConstraints(3,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
@@ -238,7 +253,7 @@ public class PanelZeitplan extends PanelBasis {
 		jPanelWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 1,
+		jPanelWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 3,
 				1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -246,17 +261,30 @@ public class PanelZeitplan extends PanelBasis {
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jPanelWorkingOn.add(wefKommentarLang, new GridBagConstraints(1, iZeile,
-				1, 1, 0.1, 0.1, GridBagConstraints.CENTER,
+				3, 1, 0.1, 0.1, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
+		createAndSaveAndShowButton(
+				"/com/lp/client/res/document_check16x16.png",
+				LPMain.getTextRespectUISPr("auft.zeitplan.togglematerialerledigt"),
+				ACTION_SPECIAL_TOGGLE_MATERIAL_ERLEDIGT, null);
+
+		
+		createAndSaveAndShowButton(
+				"/com/lp/client/res/document_ok.png",
+				LPMain.getTextRespectUISPr("auft.zeitplan.toggledauererledigt"),
+				ACTION_SPECIAL_TOGGLE_DAUER_ERLEDIGT, null);
+
+		
 	}
 
 	private void setDefaults() throws Throwable {
 		leereAlleFelder(this);
 
-		wdfTermin.setMaximumValue(tpAuftrag.getAuftragDto().getDLiefertermin());
-		wlaWaehrungMaterial.setText(tpAuftrag.getAuftragDto()
-				.getCAuftragswaehrung());
+		wdfTermin.setMaximumValue(tpAuftrag.getAuftragDto().getDFinaltermin());
+		wlaWaehrungMaterial.setText(LPMain.getTheClient().getSMandantenwaehrung());
+		wlaErledigtDauer.setText("");
+		wlaErledigtMaterial.setText("");
 
 	}
 
@@ -301,40 +329,42 @@ public class PanelZeitplan extends PanelBasis {
 
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
 			boolean bNeedNoNewI) throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
 
-			super.eventActionNew(eventObject, true, false);
+		super.eventActionNew(eventObject, true, false);
 
-			this.resetPanel();
+		this.resetPanel();
 
-		} else {
-			tpAuftrag.getAuftragTeilnehmerTop().updateButtons(
-					tpAuftrag.getAuftragTeilnehmerBottom()
-							.getLockedstateDetailMainKey());
-		}
-	}
-
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
-			super.eventActionUpdate(aE, false);
-		}
 	}
 
 	protected void eventActionDelete(ActionEvent e,
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
-			DelegateFactory.getInstance().getAuftragServiceDelegate()
-					.removeZeitplan(zeitplanDto);
-			this.setKeyWhenDetailPanel(null);
-			super.eventActionDelete(e, false, false); // keyWasForLockMe nicht
-														// ueberschreiben
-		}
+
+		DelegateFactory.getInstance().getAuftragServiceDelegate()
+				.removeZeitplan(zeitplanDto);
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false); // keyWasForLockMe nicht
+													// ueberschreiben
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_TOGGLE_DAUER_ERLEDIGT)) {
+			DelegateFactory.getInstance().getAuftragServiceDelegate()
+					.toggleZeitplanDauerErledigt(zeitplanDto.getIId());
 
+			tpAuftrag.getAuftragZeitplanTop().eventYouAreSelected(false);
+
+			eventYouAreSelected(false);
+		} else if (e.getActionCommand().equals(
+				ACTION_SPECIAL_TOGGLE_MATERIAL_ERLEDIGT)) {
+			DelegateFactory.getInstance().getAuftragServiceDelegate()
+					.toggleZeitplanMaterialErledigt(zeitplanDto.getIId());
+
+			tpAuftrag.getAuftragZeitplanTop().eventYouAreSelected(false);
+
+			eventYouAreSelected(false);
+		}
 	}
 
 	private void resetPanel() throws Throwable {
@@ -355,8 +385,51 @@ public class PanelZeitplan extends PanelBasis {
 
 		wtfKommentar.setText(zeitplanDto.getCKommentar());
 
-		wdfTermin.setDate(Helper.addiereTageZuDatum(tpAuftrag.getAuftragDto()
-				.getDLiefertermin(), -zeitplanDto.getITerminVorLiefertermin()));
+		wdfTermin.setDate(zeitplanDto.getTTermin());
+		
+		
+		if (zeitplanDto.getPersonalIIdDauerErledigt() != null) {
+			PersonalDto personalDtoVerrechnen = DelegateFactory
+					.getInstance()
+					.getPersonalDelegate()
+					.personalFindByPrimaryKey(
+							zeitplanDto.getPersonalIIdDauerErledigt());
+
+			wlaErledigtDauer
+					.setText(LPMain
+							.getTextRespectUISPr("auft.zeitplan.dauererledigtam")
+							+ " "
+							+ Helper.formatTimestamp(
+									zeitplanDto.getTDauerErledigt(),
+									LPMain.getTheClient().getLocUi())
+							+ ", "
+							+ personalDtoVerrechnen.formatAnrede());
+
+		} else {
+			wlaErledigtDauer.setText("");
+		}
+		
+		if (zeitplanDto.getPersonalIIdMaterialErledigt() != null) {
+			PersonalDto personalDtoVerrechnen = DelegateFactory
+					.getInstance()
+					.getPersonalDelegate()
+					.personalFindByPrimaryKey(
+							zeitplanDto.getPersonalIIdMaterialErledigt());
+
+			wlaErledigtMaterial
+					.setText(LPMain
+							.getTextRespectUISPr("auft.zeitplan.materialerledigtam")
+							+ " "
+							+ Helper.formatTimestamp(
+									zeitplanDto.getTMaterialErledigt(),
+									LPMain.getTheClient().getLocUi())
+							+ ", "
+							+ personalDtoVerrechnen.formatAnrede());
+
+		} else {
+			wlaErledigtMaterial.setText("");
+		}
+		
 
 	}
 
@@ -370,9 +443,12 @@ public class PanelZeitplan extends PanelBasis {
 				new java.sql.Date(tpAuftrag.getAuftragDto().getDLiefertermin()
 						.getTime()));
 
-		zeitplanDto.setITerminVorLiefertermin(i);
+		zeitplanDto.setTTermin(wdfTermin.getTimestamp());
 		zeitplanDto.setNDauer(wnfDauer.getBigDecimal());
 		zeitplanDto.setNMaterial(wnfMaterial.getBigDecimal());
+
+		zeitplanDto.setNDauerUrsprung(wnfDauerUrsprung.getBigDecimal());
+		zeitplanDto.setNMaterialUrsprung(wnfMaterialUrsprung.getBigDecimal());
 
 		zeitplanDto.setCKommentar(wtfKommentar.getText());
 		zeitplanDto.setXText(wefKommentarLang.getText());
@@ -397,10 +473,7 @@ public class PanelZeitplan extends PanelBasis {
 
 		}
 
-		tpAuftrag.setTitleAuftrag(LPMain.getInstance().getTextRespectUISPr(
-				"auft.title.panel.teilnehmer"));
-
-		tpAuftrag.enablePanelsNachBitmuster();
+		tpAuftrag.setTitleAuftrag(LPMain.getTextRespectUISPr("auft.title.panel.teilnehmer"));
 
 		aktualisiereStatusbar();
 	}
@@ -415,30 +488,12 @@ public class PanelZeitplan extends PanelBasis {
 		setStatusbarStatusCNr(tpAuftrag.getAuftragStatus());
 	}
 
-	/**
-	 * Verwerfen der aktuelle Usereingabe und zurueckgehen auf den bestehenden
-	 * Datensatz, wenn einer existiert.
-	 * 
-	 * @param e
-	 *            Ereignis
-	 * @throws Throwable
-	 *             Ausnahme
-	 */
-	protected void eventActionDiscard(ActionEvent e) throws Throwable {
-		super.eventActionDiscard(e);
-
-		tpAuftrag.enablePanelsNachBitmuster();
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wdfTermin.getDateEditor().getUiComponent();
 	}
-
+	
 	protected String getLockMeWer() throws Exception {
 		return HelperClient.LOCKME_AUFTRAG;
-	}
-
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
-		super.eventActionRefresh(e, bNeedNoRefreshI);
-
-		tpAuftrag.enablePanelsNachBitmuster();
 	}
 
 	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
@@ -448,10 +503,6 @@ public class PanelZeitplan extends PanelBasis {
 		if (tpAuftrag.getAuftragDto().getIId() != null) {
 			if (tpAuftrag.getAuftragDto().getStatusCNr()
 					.equals(AuftragServiceFac.AUFTRAGSTATUS_STORNIERT)
-					|| tpAuftrag
-							.getAuftragDto()
-							.getStatusCNr()
-							.equals(AuftragServiceFac.AUFTRAGSTATUS_TEILERLEDIGT)
 					|| tpAuftrag.getAuftragDto().getStatusCNr()
 							.equals(AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
 				lsv = new LockStateValue(

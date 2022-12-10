@@ -80,13 +80,7 @@ public interface IDesktopController {
 	
 	public void setDarfDirekthilfeTexteEditieren(boolean b);
 
-	/**
-	 * Gibt es bereits aufgeloeste Fehlmengen die noch gedruckt werden sollen?
-	 * 
-	 * @return true wenn es noch Fehlmengen gibt, die gedruckt werden sollen
-	 */
-	boolean hatAufgeloesteFehlmengen() ;
-	
+
 	/**
 	 * Gibt es im gesamten System &Auml;nderungen (an Daten) die vor der Beendigung behandelt werden m&uuml;ssen?</br>
 	 * <p> Die Behandlung von offenen Modulen und deren damit verbundenen Daten ist nicht im Scope, das macht das 
@@ -94,7 +88,7 @@ public interface IDesktopController {
 	 * 
 	 * @return true wenn es noch zu behandelnde &Auml;nderungen gibt.
 	 */
-	boolean hatOffeneAenderungen() ;
+	boolean hatOffeneAenderungen() throws Throwable;
 	
 	/**
 	 * Im System befindliche Daten&auml;nderungen "persistieren"/behandlen/verwerfen/...
@@ -104,4 +98,17 @@ public interface IDesktopController {
 	void behandleOffeneAenderungen(List<ModulStatus> offeneModule) throws Throwable ;
 	
 	void behandleOffeneFehlmengen(InternalFrame internalFrame) throws Throwable ;
+	
+	/**
+	 * Ist die Zusatzfunktion "DEBUGMODUS" freigeschaltet?
+	 * @return true wenn die Zusatzfunktion "DEBUGMODUS" freigeschaltet ist
+	 */
+	boolean hatTestFeature();
+	
+	/**
+	 * Ist die Zusatzfunktion "FORECAST AUFTRAG VERTEILUNG" freigeschaltet?
+	 * @return true wenn die Zusatzfunktion "FORECAST AUFTRAG VERTEILUNG"
+	 *   freigeschaltet ist
+	 */
+	boolean hatZusatzForecastVerteilen();
 }

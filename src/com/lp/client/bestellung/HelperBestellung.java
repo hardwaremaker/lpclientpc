@@ -33,6 +33,7 @@
 package com.lp.client.bestellung;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -203,16 +204,21 @@ public class HelperBestellung implements Comparator<Object> {
 			WrapperNumberField wnfRabattsatz,
 			WrapperFixableNumberField wnfRabattsumme,
 			WrapperNumberField wnfEinzelpreis, LieferantDto lieferantDto,
-			String mandantWaehrung, boolean umrechnenInMandantwaehrung)
-			throws ExceptionLP, Throwable {
+			String mandantWaehrung, boolean umrechnenInMandantwaehrung,
+			Integer gebindeIId) throws ExceptionLP, Throwable {
 
 		// nachschauen ob es artikelieferant gibt fuer diesen artikel
 		ArtikellieferantDto artlieferantDto = null;
 		if (lieferantDto != null) {
-			
+
 			artlieferantDto = DelegateFactory
 					.getInstance()
-					.getArtikelDelegate().getArtikelEinkaufspreis(artikelDto.getIId(),lieferantDto.getIId(), BigDecimal.ONE,LPMain.getTheClient().getSMandantenwaehrung(),new java.sql.Date(System.currentTimeMillis()));
+					.getArtikelDelegate()
+					.getArtikelEinkaufspreisMitOptionGebinde(artikelDto.getIId(),
+							lieferantDto.getIId(), BigDecimal.ONE,
+							LPMain.getTheClient().getSMandantenwaehrung(),
+							new java.sql.Date(System.currentTimeMillis()),
+							gebindeIId);
 
 		}
 
@@ -410,17 +416,14 @@ public class HelperBestellung implements Comparator<Object> {
 				}
 
 				// setzen der werte
-				wnfNettopreis.setBigDecimal(artlieferantDto.getNNettopreis()
-						.multiply(wechselkursLieferantnachMandantWaehrung));
+				wnfNettopreis.setBigDecimal(artlieferantDto.getNNettopreis());
 
 				wnfRabattsatz.setBigDecimal(new BigDecimal(artlieferantDto
 						.getFRabatt().doubleValue()));
 
 				// ausrechnen der Rabattsumme
 				BigDecimal bdRabattsumme = wnfEinzelpreis
-						.getBigDecimal()
-						.multiply(wechselkursLieferantnachMandantWaehrung)
-						.multiply(
+						.getBigDecimal().multiply(
 								wnfRabattsatz.getBigDecimal().movePointLeft(2));
 				wnfRabattsumme.setBigDecimal(bdRabattsumme);
 
@@ -646,15 +649,19 @@ public class HelperBestellung implements Comparator<Object> {
 		// setzen der werte
 		BigDecimal bdEinzelpreis = new BigDecimal(0);
 		if (artlieferantDto.getNEinzelpreis() != null) {
-			bdEinzelpreis = artlieferantDto.getNEinzelpreis().multiply(
-					wechselkursLieferantnachMandantWaehrung);
+			bdEinzelpreis = artlieferantDto.getNEinzelpreis();
 		}
 
 		wnfNettopreis.setBigDecimal(artikellieferanStaffelDto.getNNettopreis()
 				.multiply(wechselkursLieferantnachMandantWaehrung));
 
-		wnfRabattsatz.setBigDecimal(new BigDecimal(artikellieferanStaffelDto
-				.getFRabatt().doubleValue()));
+		if(artikellieferanStaffelDto.getFRabatt()!=null) {
+			wnfRabattsatz.setBigDecimal(new BigDecimal(artikellieferanStaffelDto
+					.getFRabatt().doubleValue()));
+		}else {
+			wnfRabattsatz.setBigDecimal(BigDecimal.ZERO);
+		}
+		
 
 		wnfEinzelpreis.setBigDecimal(bdEinzelpreis);
 		// ausrechnen der Rabattsumme
@@ -679,6 +686,37 @@ public class HelperBestellung implements Comparator<Object> {
 		} else {
 			return -1;
 		}
+	}
+	/**
+	 * PJ19299 Holt einen Artikellieferanten. Diese Methode soll verwendet werden,
+	 * wo fr&uuml;her
+	 * {@link ArtikelFac#getArtikelEinkaufspreis(Integer, Integer, BigDecimal, String, Date, com.lp.server.system.service.TheClientDto)}
+	 * verwedent wurde, aber auch ein Artikellieferant ben&ouml;tigt wird, wenn kein Einkaufspreis definiert ist (f&uuml;r Mindestbestellmenge usw.)
+	 * 
+	 * @param artikelIID
+	 * @param artikelLieferantIID
+	 * @param nMenge
+	 * @param waehrungCNr
+	 * @param tBelegdatum
+	 * @param gebindeIId
+	 * @return
+	 * @throws Throwable
+	 */
+	public static ArtikellieferantDto getArtikellieferantDtoEinkaufspreis(Integer artikelIID, Integer artikelLieferantIID, BigDecimal nMenge,
+			String waehrungCNr, java.sql.Date tBelegdatum, Integer gebindeIId) throws Throwable {
+	
+		ArtikellieferantDto artlief;
+		artlief = DelegateFactory.getInstance().getArtikelDelegate().getArtikelEinkaufspreisMitOptionGebinde(artikelIID,
+				artikelLieferantIID, nMenge, waehrungCNr, tBelegdatum, gebindeIId);
+	
+		// PJ19299, Auch wenn kein Preis, trotzdem Artikellieferant fuer
+		// Mindestbestellmenge und andere Felder
+		if (artlief == null) {
+			artlief = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikellieferantFindByArtikellIIdLieferantIIdTPreisgueltigabKleiner(artikelIID,
+							artikelLieferantIID, tBelegdatum, gebindeIId);
+		}
+		return artlief;
 	}
 
 	/**

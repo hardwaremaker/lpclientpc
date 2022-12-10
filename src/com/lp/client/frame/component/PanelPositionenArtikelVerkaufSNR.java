@@ -94,8 +94,8 @@ public class PanelPositionenArtikelVerkaufSNR extends
 	 */
 	public PanelPositionenArtikelVerkaufSNR(InternalFrame internalFrame,
 			String add2TitleI, Object key, String sLockMeWer,
-			int iSpaltenbreite1I) throws Throwable {
-		super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I); // VKPF
+			int iSpaltenbreite1I,PanelBasis panelBasisFuerGetKeyWhenDetailPanel) throws Throwable {
+		super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I, panelBasisFuerGetKeyWhenDetailPanel); // VKPF
 		jbInitPanel();
 		initComponents();
 	}
@@ -112,11 +112,11 @@ public class PanelPositionenArtikelVerkaufSNR extends
 
 	private void addWtfSerienchargennummer() {
 		if (wnfMaterialzuschlag != null) {
-			this.add(wtfSerienchargennummer, new GridBagConstraints(1, 8, 3, 1,
+			this.add(wtfSerienchargennummer, new GridBagConstraints(1, 9, 3, 1,
 					0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 					new Insets(2, 2, 2, 2), 0, 0));
 		} else {
-			this.add(wtfSerienchargennummer, new GridBagConstraints(1, 7, 3, 1,
+			this.add(wtfSerienchargennummer, new GridBagConstraints(1, 8, 3, 1,
 					0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 					new Insets(2, 2, 2, 2), 0, 0));
 		}
@@ -126,12 +126,12 @@ public class PanelPositionenArtikelVerkaufSNR extends
 
 		if (wnfMaterialzuschlag != null) {
 			this.add(wtfSerienchargennummer.getButtonSnrAuswahl(),
-					new GridBagConstraints(0, 8, 1, 1, 0.0, 0.0,
+					new GridBagConstraints(0, 9, 1, 1, 0.0, 0.0,
 							GridBagConstraints.WEST, GridBagConstraints.BOTH,
 							new Insets(2, 2, 2, 2), 0, 0));
 		} else {
 			this.add(wtfSerienchargennummer.getButtonSnrAuswahl(),
-					new GridBagConstraints(0, 7, 1, 1, 0.0, 0.0,
+					new GridBagConstraints(0, 8, 1, 1, 0.0, 0.0,
 							GridBagConstraints.WEST, GridBagConstraints.BOTH,
 							new Insets(2, 2, 2, 2), 0, 0));
 		}
@@ -190,9 +190,9 @@ public class PanelPositionenArtikelVerkaufSNR extends
 		// wenn der Lieferschein gerade gelockt ist, die Eingabefelder
 		// freischalten
 		if (getLockedstateDetailMainKey().getIState() == PanelBasis.LOCK_IS_LOCKED_BY_ME) {
-			zeigeSerienchargennummer(true, false);
+			zeigeSerienchargennummer(true, false, true);
 		} else {
-			zeigeSerienchargennummer(false, false);
+			zeigeSerienchargennummer(false, false, false);
 		}
 	}
 
@@ -205,7 +205,7 @@ public class PanelPositionenArtikelVerkaufSNR extends
 	public void artikelDto2components() throws Throwable {
 		super.artikelDto2components();
 
-		zeigeSerienchargennummer(true, true);
+		zeigeSerienchargennummer(true, true, true);
 	}
 
 	/**
@@ -216,11 +216,12 @@ public class PanelPositionenArtikelVerkaufSNR extends
 	 *            true, wenn eine Eingabe moeglich sein soll
 	 * @param bSerienchargennrLeer
 	 *            true, wenn die Eingabe zurueckgesetzt werden soll
+	 * @param bAeltesteChargeVorschlagenWennNeu TODO
 	 * @throws java.lang.Throwable
 	 *             Ausnahme
 	 */
 	public void zeigeSerienchargennummer(boolean bEditableI,
-			boolean bSerienchargennrLeer) throws Throwable {
+			boolean bSerienchargennrLeer, boolean bAeltesteChargeVorschlagenWennNeu) throws Throwable {
 		ParametermandantDto parametermandantDto = DelegateFactory
 				.getInstance()
 				.getParameterDelegate()
@@ -249,7 +250,10 @@ public class PanelPositionenArtikelVerkaufSNR extends
 								.getLagerDelegate()
 								.getAllSerienChargennrAufLager(
 										getArtikelDto().getIId(), iIdLager);
-						if (avChargennummer)
+						
+						
+						
+						if (avChargennummer && bAeltesteChargeVorschlagenWennNeu == true)
 							if (chnr.length != 0) {
 
 								wtfSerienchargennummer

@@ -188,7 +188,7 @@ public class ReportOffenePosten extends PanelBasis implements PanelReportIfJRDS 
 		}
 				
 		wlaGeschaeftsjahr = new WrapperLabel(LPMain.getTextRespectUISPr("label.geschaeftsjahr")
-				+ " " + ((InternalFrameFinanz) getInternalFrame()).getAktuellesGeschaeftsjahr() );
+				+ " " + ((InternalFrameFinanz) getInternalFrame()).getIAktuellesGeschaeftsjahr() );
 		
 		getInternalFrame().addItemChangedListener(this);
 

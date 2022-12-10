@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.system;
@@ -44,41 +44,25 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
-import com.lp.client.artikel.PanelArtikelgruppen;
-import com.lp.client.finanz.FinanzFilterFactory;
 import com.lp.client.frame.HelperClient;
-import com.lp.client.frame.component.DialogQuery;
-import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
-import com.lp.client.frame.component.PanelQueryFLR;
-import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
-import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
-import com.lp.server.auftrag.service.AuftragFac;
-import com.lp.server.auftrag.service.AuftragServiceFac;
-import com.lp.server.system.service.DokumentenlinkDto;
-import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.ZahlungszielDto;
 import com.lp.server.system.service.ZahlungszielsprDto;
-import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
-import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 public class PanelZahlungsziel extends PanelBasis {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
+
 	private GridBagLayout gridBagLayoutAll = null;
 	private JPanel jpaWorkingOn = new JPanel();
 	private JPanel jpaButtonAction = null;
@@ -102,6 +86,12 @@ public class PanelZahlungsziel extends PanelBasis {
 	private WrapperLabel wlaSkonto2 = new WrapperLabel();
 	private WrapperNumberField wnfSkonto2 = new WrapperNumberField();
 
+	private WrapperLabel wlaFolgemonatSkontotage1 = new WrapperLabel();
+	private WrapperNumberField wnfFolgemonatSkontotage1 = new WrapperNumberField();
+
+	private WrapperLabel wlaFolgemonatSkontotage2 = new WrapperLabel();
+	private WrapperNumberField wnfFolgemonatSkontotage2 = new WrapperNumberField();
+
 	private WrapperRadioButton wrbStichtag = new WrapperRadioButton();
 	private WrapperRadioButton wrbLaufzeit = new WrapperRadioButton();
 
@@ -116,8 +106,12 @@ public class PanelZahlungsziel extends PanelBasis {
 	private WrapperCheckBox wcbVersteckt = new WrapperCheckBox();
 	private WrapperCheckBox wcbInZahlungsvorschlagBeruecksichtigen = new WrapperCheckBox();
 
-	public PanelZahlungsziel(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	private WrapperCheckBox wcbLastschrift = new WrapperCheckBox();
+
+	private WrapperLabel wlaAnzahlung = new WrapperLabel();
+	private WrapperNumberField wnfAnzahlung = new WrapperNumberField();
+
+	public PanelZahlungsziel(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameSystem = (InternalFrameSystem) internalFrame;
 		jbInit();
@@ -134,8 +128,7 @@ public class PanelZahlungsziel extends PanelBasis {
 
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		zahlungszielDto = new ZahlungszielDto();
 		// getInternalFrame().setKeyWasForLockMe(LPMain.getLockMeForNew());
@@ -184,8 +177,7 @@ public class PanelZahlungsziel extends PanelBasis {
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
-		if (e.getSource().equals(wrbLaufzeit)
-				|| e.getSource().equals(wrbStichtag)) {
+		if (e.getSource().equals(wrbLaufzeit) || e.getSource().equals(wrbStichtag)) {
 			aktualisiereKomponenten();
 
 		}
@@ -198,11 +190,9 @@ public class PanelZahlungsziel extends PanelBasis {
 		}
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		DelegateFactory.getInstance().getMandantDelegate()
-				.removeZahlungsziel(zahlungszielDto);
+		DelegateFactory.getInstance().getMandantDelegate().removeZahlungsziel(zahlungszielDto);
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
 	}
@@ -212,29 +202,30 @@ public class PanelZahlungsziel extends PanelBasis {
 		if (zahlungszielDto.getZahlungszielsprDto() == null) {
 			zahlungszielDto.setZahlungszielsprDto(new ZahlungszielsprDto());
 		}
-		zahlungszielDto.getZahlungszielsprDto().setCBezeichnung(
-				wtfBezeichnung.getText());
-		zahlungszielDto.getZahlungszielsprDto().setLocaleCNr(
-				LPMain.getTheClient().getLocUiAsString());
+		zahlungszielDto.getZahlungszielsprDto().setCBezeichnung(wtfBezeichnung.getText());
+		zahlungszielDto.getZahlungszielsprDto().setLocaleCNr(LPMain.getTheClient().getLocUiAsString());
 
 		zahlungszielDto.setAnzahlZieltageFuerNetto(wnfTageNetto.getInteger());
-		zahlungszielDto
-				.setBInzahlungsvorschlagberuecksichtigen(wcbInZahlungsvorschlagBeruecksichtigen
-						.getShort());
+		zahlungszielDto.setBInzahlungsvorschlagberuecksichtigen(wcbInZahlungsvorschlagBeruecksichtigen.getShort());
+		zahlungszielDto.setBLastschrift(wcbLastschrift.getShort());
 		zahlungszielDto.setBVersteckt(wcbVersteckt.getShort());
 		zahlungszielDto.setCBez(wtfKennung.getText());
 		zahlungszielDto.setSkontoAnzahlTage1(wnfSkontoTage1.getInteger());
 		zahlungszielDto.setSkontoAnzahlTage2(wnfSkontoTage2.getInteger());
 		zahlungszielDto.setSkontoProzentsatz1(wnfSkonto1.getBigDecimal());
 		zahlungszielDto.setSkontoProzentsatz2(wnfSkonto2.getBigDecimal());
+		
+		zahlungszielDto.setNAnzahlungProzent(wnfAnzahlung.getBigDecimal());
 
 		zahlungszielDto.setBStichtag(wrbStichtag.getShort());
 
 		zahlungszielDto.setIStichtag(wnfFaelligkeitstag.getInteger());
 		zahlungszielDto.setIFolgemonat(wnfFaelligkeitsmonat.getInteger());
 
-		zahlungszielDto.setBStichtagMonatsletzter(wcbStichtagMonatsletzter
-				.getShort());
+		zahlungszielDto.setIFolgemonatSkontotage1(wnfFolgemonatSkontotage1.getInteger());
+		zahlungszielDto.setIFolgemonatSkontotage2(wnfFolgemonatSkontotage2.getInteger());
+
+		zahlungszielDto.setBStichtagMonatsletzter(wcbStichtagMonatsletzter.getShort());
 
 		if (wcbStichtagMonatsletzter.isSelected()) {
 			zahlungszielDto.setIStichtag(null);
@@ -247,13 +238,14 @@ public class PanelZahlungsziel extends PanelBasis {
 	protected void dto2Components() throws Throwable {
 		wtfKennung.setText(zahlungszielDto.getCBez());
 		wnfTageNetto.setInteger(zahlungszielDto.getAnzahlZieltageFuerNetto());
-		wcbInZahlungsvorschlagBeruecksichtigen.setShort(zahlungszielDto
-				.getBInzahlungsvorschlagberuecksichtigen());
+		wcbInZahlungsvorschlagBeruecksichtigen.setShort(zahlungszielDto.getBInzahlungsvorschlagberuecksichtigen());
+		wcbLastschrift.setShort(zahlungszielDto.getBLastschrift());
 		wcbVersteckt.setShort(zahlungszielDto.getBVersteckt());
 
 		if (zahlungszielDto.getZahlungszielsprDto() != null) {
-			wtfBezeichnung.setText(zahlungszielDto.getZahlungszielsprDto()
-					.getCBezeichnung());
+			wtfBezeichnung.setText(zahlungszielDto.getZahlungszielsprDto().getCBezeichnung());
+		} else {
+			wtfBezeichnung.setText(null);
 		}
 
 		wnfTageNetto.setInteger(zahlungszielDto.getAnzahlZieltageFuerNetto());
@@ -262,6 +254,8 @@ public class PanelZahlungsziel extends PanelBasis {
 		wnfSkonto1.setBigDecimal(zahlungszielDto.getSkontoProzentsatz1());
 		wnfSkonto2.setBigDecimal(zahlungszielDto.getSkontoProzentsatz2());
 
+		wnfAnzahlung.setBigDecimal(zahlungszielDto.getNAnzahlungProzent());
+		
 		if (Helper.short2boolean(zahlungszielDto.getBStichtag())) {
 			wrbStichtag.setSelected(true);
 		} else {
@@ -270,8 +264,7 @@ public class PanelZahlungsziel extends PanelBasis {
 
 		wnfFaelligkeitsmonat.setInteger(zahlungszielDto.getIFolgemonat());
 
-		wcbStichtagMonatsletzter.setShort(zahlungszielDto
-				.getBStichtagMonatsletzter());
+		wcbStichtagMonatsletzter.setShort(zahlungszielDto.getBStichtagMonatsletzter());
 		if (Helper.short2boolean(zahlungszielDto.getBStichtagMonatsletzter())) {
 			wnfFaelligkeitstag.setInteger(null);
 		} else {
@@ -282,25 +275,21 @@ public class PanelZahlungsziel extends PanelBasis {
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (zahlungszielDto.getIId() == null) {
-				zahlungszielDto.setIId(DelegateFactory.getInstance()
-						.getMandantDelegate()
-						.createZahlungsziel(zahlungszielDto));
+				zahlungszielDto
+						.setIId(DelegateFactory.getInstance().getMandantDelegate().createZahlungsziel(zahlungszielDto));
 				setKeyWhenDetailPanel(zahlungszielDto.getIId());
 
 			} else {
-				DelegateFactory.getInstance().getMandantDelegate()
-						.updateZahlungsziel(zahlungszielDto);
+				DelegateFactory.getInstance().getMandantDelegate().updateZahlungsziel(zahlungszielDto);
 			}
 			super.eventActionSave(e, true);
 
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
-				getInternalFrame().setKeyWasForLockMe(
-						zahlungszielDto.getIId() + "");
+				getInternalFrame().setKeyWasForLockMe(zahlungszielDto.getIId() + "");
 			}
 			eventYouAreSelected(false);
 		}
@@ -323,33 +312,29 @@ public class PanelZahlungsziel extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaKennung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.kennung"));
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.bezeichnung_lang"));
-		wlaTageNetto.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.skonto.tagenetto"));
-		wlaSkontoTage1.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.skonto.tage1"));
-		wlaSkontoTage2.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.skonto.tage2"));
-		wlaSkonto1.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.skonto.prozentsatz1"));
-		wlaSkonto2.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.skonto.prozentsatz2"));
+		wlaKennung.setText(LPMain.getTextRespectUISPr("label.kennung"));
+		wlaBezeichnung.setText(LPMain.getTextRespectUISPr("label.bezeichnung_lang"));
+		wlaTageNetto.setText(LPMain.getTextRespectUISPr("lp.skonto.tagenetto"));
+		wlaSkontoTage1.setText(LPMain.getTextRespectUISPr("lp.skonto.tage1"));
+		wlaSkontoTage2.setText(LPMain.getTextRespectUISPr("lp.skonto.tage2"));
+		wlaSkonto1.setText(LPMain.getTextRespectUISPr("lp.skonto.prozentsatz1"));
+		wlaSkonto2.setText(LPMain.getTextRespectUISPr("lp.skonto.prozentsatz2"));
 
-		wcbVersteckt.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.versteckt"));
-		wcbInZahlungsvorschlagBeruecksichtigen.setText(LPMain.getInstance()
-				.getTextRespectUISPr(
-						"lp.zahlungsziel.inzahlungsvorschlagberuecksichtigen"));
+		wlaFolgemonatSkontotage1.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.faelligkeitsfolgemonat"));
+		wlaFolgemonatSkontotage2.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.faelligkeitsfolgemonat"));
 
-		wlaFaelligkeitstag.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.zahlungsziel.faelligkeitstag"));
-		wlaFaelligkeitsmonat.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.zahlungsziel.faelligkeitsfolgemonat"));
-		wcbStichtagMonatsletzter.setText(LPMain.getInstance()
-				.getTextRespectUISPr("lp.zahlungsziel.monatsletzter"));
+		wlaAnzahlung.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.anzahlungsrechnung"));
+		wnfAnzahlung.setMaximumValue(0);
+		wnfAnzahlung.setMaximumValue(100);
+		
+		wcbVersteckt.setText(LPMain.getTextRespectUISPr("lp.versteckt"));
+		wcbInZahlungsvorschlagBeruecksichtigen
+				.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.inzahlungsvorschlagberuecksichtigen"));
+		wcbLastschrift.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.lastschrift"));
+
+		wlaFaelligkeitstag.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.faelligkeitstag"));
+		wlaFaelligkeitsmonat.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.faelligkeitsfolgemonat"));
+		wcbStichtagMonatsletzter.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.monatsletzter"));
 		wnfFaelligkeitstag.setFractionDigits(0);
 		wnfFaelligkeitstag.setMaximumValue(28);
 
@@ -365,6 +350,7 @@ public class PanelZahlungsziel extends PanelBasis {
 
 		wnfSkontoTage1.setMaximumValue(0);
 		wnfSkontoTage1.setMaximumValue(999);
+
 		wnfSkontoTage2.setMaximumValue(0);
 		wnfSkontoTage2.setMaximumValue(999);
 
@@ -373,10 +359,8 @@ public class PanelZahlungsziel extends PanelBasis {
 		wnfSkonto2.setMaximumValue(0);
 		wnfSkonto2.setMaximumValue(99);
 
-		wrbLaufzeit.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.zahlungsziel.art.laufzeit"));
-		wrbStichtag.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.zahlungsziel.art.stichtag"));
+		wrbLaufzeit.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.art.laufzeit"));
+		wrbStichtag.setText(LPMain.getTextRespectUISPr("lp.zahlungsziel.art.stichtag"));
 		wrbLaufzeit.setSelected(true);
 		buttonGroup.add(wrbLaufzeit);
 		buttonGroup.add(wrbStichtag);
@@ -385,120 +369,120 @@ public class PanelZahlungsziel extends PanelBasis {
 		wrbStichtag.addActionListener(this);
 		wcbStichtagMonatsletzter.addActionListener(this);
 
+		wnfFolgemonatSkontotage1.setFractionDigits(0);
+		wnfFolgemonatSkontotage2.setFractionDigits(0);
+
+		wnfSkontoTage1.setMaximumValue(999);
+		wnfSkontoTage2.setFractionDigits(0);
+
+		wnfSkontoTage1.setFractionDigits(0);
+		wnfSkontoTage2.setFractionDigits(0);
+		wnfTageNetto.setFractionDigits(0);
+
 		getInternalFrame().addItemChangedListener(this);
 
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, iZeile, 1, 1,
-				0.35, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, iZeile, 5, 1,
-				0.10, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 5,
-				1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wrbLaufzeit, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbStichtag, new GridBagConstraints(4, iZeile, 2, 1,
-				0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, iZeile, 1, 1, 0.35, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 150, 0));
+		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, iZeile, 3, 1, 0.10, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbVersteckt, new GridBagConstraints(6, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 7, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wrbLaufzeit, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbStichtag, new GridBagConstraints(6, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 130, 0));
 
 		iZeile++;
 
-		jpaWorkingOn.add(wlaTageNetto, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaTageNetto, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.2, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 60, 0));
+
+		jpaWorkingOn.add(wnfTageNetto, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wnfTageNetto, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wlaFaelligkeitstag, new GridBagConstraints(4, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wlaFaelligkeitstag, new GridBagConstraints(6, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 70, 0));
-		jpaWorkingOn.add(wnfFaelligkeitstag, new GridBagConstraints(5, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wlaSkontoTage1, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfSkontoTage1, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wlaSkonto1, new GridBagConstraints(2, iZeile, 1, 1,
-				0.05, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
-		jpaWorkingOn.add(wnfSkonto1, new GridBagConstraints(3, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), -80, 0));
-
-		jpaWorkingOn.add(wcbStichtagMonatsletzter, new GridBagConstraints(4,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+		jpaWorkingOn.add(wnfFaelligkeitstag, new GridBagConstraints(7, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaSkontoTage2, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaSkontoTage1, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfSkontoTage2, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfSkontoTage1, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -70, 0));
 
-		jpaWorkingOn.add(wlaSkonto2, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfSkonto2, new GridBagConstraints(3, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 80), -80, 0));
+		jpaWorkingOn.add(wlaFolgemonatSkontotage1, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 60, 0));
 
-		jpaWorkingOn.add(wlaFaelligkeitsmonat, new GridBagConstraints(4,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfFaelligkeitsmonat, new GridBagConstraints(5,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfFolgemonatSkontotage1, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+
+		jpaWorkingOn.add(wlaSkonto1, new GridBagConstraints(4, iZeile, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 60, 0));
+		jpaWorkingOn.add(wnfSkonto1, new GridBagConstraints(5, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 40, 0));
+
+		jpaWorkingOn.add(wcbStichtagMonatsletzter, new GridBagConstraints(6, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wcbVersteckt, new GridBagConstraints(1, iZeile, 2, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaSkontoTage2, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfSkontoTage2, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -70, 0));
+
+		jpaWorkingOn.add(wlaFolgemonatSkontotage2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 60, 0));
+
+		jpaWorkingOn.add(wnfFolgemonatSkontotage2, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+
+		jpaWorkingOn.add(wlaSkonto2, new GridBagConstraints(4, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfSkonto2, new GridBagConstraints(5, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 80), 40, 0));
+
+		jpaWorkingOn.add(wlaFaelligkeitsmonat, new GridBagConstraints(6, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfFaelligkeitsmonat, new GridBagConstraints(7, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wcbInZahlungsvorschlagBeruecksichtigen,
-				new GridBagConstraints(1, iZeile, 3, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		jpaWorkingOn.add(wlaAnzahlung, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfAnzahlung, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -70, 0));
+		iZeile++;
+		jpaWorkingOn.add(wcbInZahlungsvorschlagBeruecksichtigen, new GridBagConstraints(1, iZeile, 4, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbLastschrift, new GridBagConstraints(6, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -508,8 +492,7 @@ public class PanelZahlungsziel extends PanelBasis {
 		return HelperClient.LOCKME_MANDANT;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 
@@ -522,8 +505,7 @@ public class PanelZahlungsziel extends PanelBasis {
 			clearStatusbar();
 			wcbInZahlungsvorschlagBeruecksichtigen.setSelected(true);
 		} else {
-			zahlungszielDto = DelegateFactory.getInstance()
-					.getMandantDelegate()
+			zahlungszielDto = DelegateFactory.getInstance().getMandantDelegate()
 					.zahlungszielFindByPrimaryKey((Integer) key);
 
 			dto2Components();

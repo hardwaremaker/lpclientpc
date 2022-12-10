@@ -32,6 +32,8 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.ArrayList;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
@@ -41,6 +43,7 @@ import com.lp.server.system.service.PanelDto;
 import com.lp.server.system.service.PanelFac;
 import com.lp.server.system.service.PanelbeschreibungDto;
 import com.lp.server.system.service.PaneldatenDto;
+import com.lp.server.system.service.PanelsperrenDto;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
@@ -50,15 +53,25 @@ public class PanelDelegate extends Delegate {
 
 	public PanelDelegate() throws Exception {
 		context = new InitialContext();
-		panelFac = (PanelFac) context.lookup("lpserver/PanelFacBean/remote");
+		panelFac = lookupFac(context, PanelFac.class);
 	}
 
 	public void createPaneldaten(PaneldatenDto[] paneldatenDto)
 			throws ExceptionLP {
 		try {
-			panelFac.createPaneldaten(paneldatenDto);
+			panelFac.createPaneldaten(paneldatenDto, LPMain.getInstance()
+					.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
+		}
+	}
+	public Integer createPanelsperren(PanelsperrenDto panelsperrenDto)
+			throws ExceptionLP {
+		try {
+			return panelFac.createPanelsperren(panelsperrenDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
 		}
 	}
 
@@ -88,10 +101,52 @@ public class PanelDelegate extends Delegate {
 								.getMandant(), partnerklasseIId);
 	}
 
+	public PanelbeschreibungDto[] panelbeschreibungFindByPanelCNrMandantCNrBereichIId(
+			String panelCNr, Integer bereichIId, String projekttypCNr)
+			throws Throwable {
+		return panelFac.panelbeschreibungFindByPanelCNrMandantCNrBereichIId(
+				panelCNr, LPMain.getInstance().getTheClient().getMandant(),
+				bereichIId, projekttypCNr);
+	}
+
+	public PanelbeschreibungDto[] panelbeschreibungFindByPanelCNrMandantCNrKostenstelleIId(
+			String panelCNr, Integer kostenstelleIId, String projekttypCNr)
+			throws Throwable {
+		return panelFac
+				.panelbeschreibungFindByPanelCNrMandantCNrKostenstelleIId(
+						panelCNr, LPMain.getInstance().getTheClient()
+								.getMandant(), kostenstelleIId, projekttypCNr);
+	}
+
 	public PaneldatenDto paneldatenFindByPrimaryKey(Integer iId)
 			throws Throwable {
 		try {
 			return panelFac.paneldatenFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+	
+	public ArrayList<PanelsperrenDto> panelsperrenFindByBelegartCNrMandantCNr(String belegartCNr, String mandantCNr)
+			throws Throwable {
+		try {
+			return panelFac.panelsperrenFindByBelegartCNrMandantCNr(belegartCNr, mandantCNr);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public String pruefUndImportierePaneldaten(String panelCNr,
+			byte[] xlsDatei, boolean bImportierenWennKeinFehler)
+			throws Throwable {
+		try {
+			return panelFac.pruefUndImportierePaneldaten(panelCNr, xlsDatei,
+					bImportierenWennKeinFehler, LPMain.getInstance()
+							.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -120,6 +175,18 @@ public class PanelDelegate extends Delegate {
 
 	}
 
+	public boolean panelbeschreibungVorhanden(String cNr, Integer artgruIId)
+			throws Throwable {
+		try {
+			return panelFac.panelbeschreibungVorhanden(cNr, LPMain
+					.getInstance().getTheClient().getMandant(), artgruIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return false;
+		}
+
+	}
+
 	public PanelbeschreibungDto panelbeschreibungFindByPrimaryKey(Integer iId)
 			throws Throwable {
 		try {
@@ -130,7 +197,16 @@ public class PanelDelegate extends Delegate {
 		}
 
 	}
+	public PanelsperrenDto panelsperrenFindByPrimaryKey(Integer iId)
+			throws Throwable {
+		try {
+			return panelFac.panelsperrenFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
 
+	}
 	public PaneldatenDto[] paneldatenFindByPanelCNrCKey(String panelCNr,
 			String cKey) throws Throwable {
 		try {
@@ -163,6 +239,17 @@ public class PanelDelegate extends Delegate {
 
 	}
 
+	
+	
+	public void updatePanelsperren(PanelsperrenDto panelsperrenDto) throws Throwable {
+		try {
+			panelFac.updatePanelsperren(panelsperrenDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
+
 	public void removePanelbeschreibung(Integer iId) throws Throwable {
 
 		try {
@@ -172,7 +259,15 @@ public class PanelDelegate extends Delegate {
 		}
 
 	}
+	public void removePanelsperren(Integer iId) throws Throwable {
 
+		try {
+			panelFac.removePanelsperren(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
 	public JasperPrintLP printPanel(String panelCNr, String report, String cKey)
 			throws Throwable {
 		try {

@@ -39,15 +39,16 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 import javax.swing.JDialog;
 
-import net.miginfocom.swing.MigLayout;
-
+import com.lp.client.frame.AttachmentDialog;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.DialogError;
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -64,9 +65,15 @@ import com.lp.server.system.service.VersandanhangDto;
 import com.lp.server.system.service.VersandauftragDto;
 import com.lp.util.Helper;
 
+import net.miginfocom.swing.MigLayout;
+
 public class DialogEmailHeader extends JDialog implements ActionListener {
 	private static final long serialVersionUID = 3658438666700459228L;
 	private PanelVersandEmail panelEmail ;
+	public PanelVersandEmail getPanelEmail() {
+		return panelEmail;
+	}
+
 	private WrapperHtmlField htmlField ;
 	private InternalFrame internalFrame ;
 	private PartnerDto partnerDto ;
@@ -113,7 +120,9 @@ public class DialogEmailHeader extends JDialog implements ActionListener {
 
 //			mtDto.setMailText(htmlField.getText()) ;
 			mtDto.setParamMandantCNr(LPMain.getTheClient().getMandant());
-			mtDto.setParamXslFile(""); 
+			if (mtDto.getParamXslFile() == null) {
+				mtDto.setParamXslFile(""); 
+			}
 			mtDto.setParamLocale(LPMain.getTheClient().getLocUi());
 
 //			if (mtDto != null) {
@@ -176,6 +185,25 @@ public class DialogEmailHeader extends JDialog implements ActionListener {
 									+ " (" + maxsize + "KB)");
 			return false ;
 		}
+
+/*		
+		List<VersandanhangDto> dtos = new ArrayList<VersandanhangDto>();
+		for (String attachment : attachments) {
+			File f = new File(attachment);
+			VersandanhangDto dto = new VersandanhangDto();
+			dto.setVersandauftragIId(versandauftragDto.getIId());
+			dto.setCDateiname(f.getName());
+			FileInputStream fiStream = new FileInputStream(f);
+			byte[] fileData = new byte[(int) f.length()];
+			fiStream.read(fileData);
+			fiStream.close();
+			dto.setOInhalt(fileData);
+			dtos.add(dto);
+		}
+		DelegateFactory.getInstance()
+			.getVersandDelegate()
+			.createVersandanhaenge(dtos);
+*/	
 		
 		VersandanhangDto versandanhangDto = new VersandanhangDto();
 		for (String attachment : attachments) {
@@ -191,7 +219,7 @@ public class DialogEmailHeader extends JDialog implements ActionListener {
 					.getVersandDelegate()
 					.createVersandanhang(versandanhangDto);
 		}
-		
+
 		return true ;
 	}
 	
@@ -203,7 +231,7 @@ public class DialogEmailHeader extends JDialog implements ActionListener {
 				String mailText = htmlField.getHtmlText() ;
 				mailText = mailText.replaceFirst("<head>", 
 						"<head>" +
-								"<meta name=\"Generator\" content=\"HELIUM V 5 11 8140\">" +
+								"<meta name=\"Generator\" content=\"" + LPMain.getSVersionHVAllTogether() + "\">" +
 								"<meta name=\"ReferenceId\" content=\"" + mailtextDto.getMailBelegnummer() + "\"") ;
 				dto.setCText(mailText);
 				
@@ -229,17 +257,31 @@ public class DialogEmailHeader extends JDialog implements ActionListener {
 				dispose();
 			} else if (e.getActionCommand().equals(
 					PanelVersandEmail.ACTION_SPECIAL_ATTACHMENT)) {
-				String sAttachments = panelEmail.getjtfAnhaengeText();
-				File[] files = HelperClient.chooseFile(this, "*.*", true);
-				if (files != null && files.length > 0) {
-					for (int i = 0; i < files.length; i++) {
-						sAttachments += files[i].getAbsolutePath() + ";";
-					}
-					panelEmail.setjtfAnhaengeText(sAttachments);
-				}
+				doActionAttachment();
+			} else if (e.getActionCommand().equals(
+					PanelVersandEmail.ACTION_SPECIAL_REMOVE_ATTACHMENT)) {
+				doActionRemoveAttachment();
 			}
 		} catch(Throwable t) {
-			System.out.println("Throwable t " + t.getMessage()) ;
+			new DialogError(LPMain.getInstance().getDesktop(), t, DialogError.TYPE_ERROR);
 		}		
+	}
+	
+	private void doActionAttachment() {
+		AttachmentDialog attachmentDialog = new AttachmentDialog(
+				panelEmail.getjtfAnhaengeText());
+		if (attachmentDialog.chooseFiles(this.getInternalFrame())) {
+			panelEmail.setjtfAnhaengeText(
+					attachmentDialog.getAttachmentPathsAsString());
+		}
+	}
+	
+	private void doActionRemoveAttachment() throws Throwable {
+		AttachmentDialog attachmentDialog = new AttachmentDialog(
+				panelEmail.getjtfAnhaengeText());
+		if (attachmentDialog.remove()) {
+			panelEmail.setjtfAnhaengeText(
+					attachmentDialog.getAttachmentPathsAsString());
+		}
 	}
 }	

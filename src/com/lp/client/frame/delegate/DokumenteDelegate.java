@@ -38,6 +38,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.finanz.service.BuchenFac;
 import com.lp.server.system.service.BelegartdokumentDto;
 import com.lp.server.system.service.DokumentDto;
 import com.lp.server.system.service.DokumenteFac;
@@ -50,7 +51,9 @@ public class DokumenteDelegate
   public DokumenteDelegate()
       throws Exception {
     context = new InitialContext();
-    dokumneteFac = (DokumenteFac) context.lookup("lpserver/DokumenteFacBean/remote");
+    dokumneteFac = lookupFac(context, DokumenteFac.class);	
+
+    
   }
 
 

@@ -45,6 +45,7 @@ import javax.swing.JPanel;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.ItemChangedEvent;
@@ -54,6 +55,7 @@ import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
@@ -74,8 +76,7 @@ import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class ReportArtikeletikett extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportArtikeletikett extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -90,7 +91,17 @@ public class ReportArtikeletikett extends PanelBasis implements
 
 	private WrapperButton wbuSnrChnr = new WrapperButton();
 	private WrapperTextField wtfSnrChnr = new WrapperTextField();
+
+	private WrapperLabel wlaLfdNr = new WrapperLabel();
+	private WrapperTextField wtfLfdNr = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
+
+	private WrapperLabel wlaTrennzeichenLfdNr = new WrapperLabel();
+	private WrapperTextField wtfTrennzeichenLfdNr = new WrapperTextField();
+
 	static final public String ACTION_SPECIAL_SNRCHNR_FROM_LISTE = "ACTION_SPECIAL_SNRCHNR_FROM_LISTE";
+
+	private WrapperSelectField wsfLagerfuerChargenlagerstand = new WrapperSelectField(WrapperSelectField.LAGER,
+			getInternalFrame(), true);
 
 	private PanelQueryFLR panelQueryFLRSnrChnrAuswahl = null;
 
@@ -101,52 +112,41 @@ public class ReportArtikeletikett extends PanelBasis implements
 	protected JPanel jpaWorkingOn = new JPanel();
 	private InternalFrameArtikel internalFrame = null;
 
-	public ReportArtikeletikett(InternalFrameArtikel internalFrame,
-			String add2Title) throws Throwable {
+	public ReportArtikeletikett(InternalFrameArtikel internalFrame, String add2Title) throws Throwable {
 		super(internalFrame, add2Title);
 		this.internalFrame = internalFrame;
 		jbInit();
 		initComponents();
 
 		if (internalFrame.getArtikelDto() != null) {
-			wtfArtikel.setText(internalFrame.getArtikelDto()
-					.formatArtikelbezeichnung());
+			wtfArtikel.setText(internalFrame.getArtikelDto().formatArtikelbezeichnung());
 			artikelIId = internalFrame.getArtikelDto().getIId();
 		}
 	}
 
 	void dialogQuerySnrChnrFromListe() throws Throwable {
-		String[] aWhichButtonIUse = SystemFilterFactory.getInstance()
-				.createButtonArray(false, true);
+		String[] aWhichButtonIUse = SystemFilterFactory.getInstance().createButtonArray(false, true);
 
 		FilterKriterium[] filtersI = new FilterKriterium[2];
 
-		filtersI[0] = new FilterKriterium(""
-				+ LagerFac.FLR_LAGERBEWEGUNG_ARTIKEL_I_ID, true, artikelIId
-				+ "", FilterKriterium.OPERATOR_EQUAL, false);
-		filtersI[1] = new FilterKriterium(""
-				+ LagerFac.FLR_LAGERBEWEGUNG_B_ABGANG, true, "0",
+		filtersI[0] = new FilterKriterium("" + LagerFac.FLR_LAGERBEWEGUNG_ARTIKEL_I_ID, true, artikelIId + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
+		filtersI[1] = new FilterKriterium("" + LagerFac.FLR_LAGERBEWEGUNG_B_ABGANG, true, "0",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
-		panelQueryFLRSnrChnrAuswahl = new PanelQueryFLR(null, filtersI,
-				QueryParameters.UC_ID_ALLESNRCHNR, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"rekla.snchrnauswahl"));
+		panelQueryFLRSnrChnrAuswahl = new PanelQueryFLR(null, filtersI, QueryParameters.UC_ID_ALLESNRCHNR,
+				aWhichButtonIUse, getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("rekla.snchrnauswahl"));
 		panelQueryFLRSnrChnrAuswahl.setMultipleRowSelectionEnabled(true);
 
-		FilterKriteriumDirekt fkdSeriennummer = ArtikelFilterFactory
-				.getInstance().createFKDSnrChnrReklamation();
+		FilterKriteriumDirekt fkdSeriennummer = ArtikelFilterFactory.getInstance().createFKDSnrChnrReklamation();
 
-		panelQueryFLRSnrChnrAuswahl.befuellePanelFilterkriterienDirekt(
-				fkdSeriennummer, null);
+		panelQueryFLRSnrChnrAuswahl.befuellePanelFilterkriterienDirekt(fkdSeriennummer, null);
 
-		if (fkdSeriennummer.value != null
-				&& !fkdSeriennummer.value.trim().equals("")) {
+		if (fkdSeriennummer.value != null && !fkdSeriennummer.value.trim().equals("")) {
 			panelQueryFLRSnrChnrAuswahl.eventActionRefresh(null, false);
 		}
 
-		panelQueryFLRSnrChnrAuswahl.setSize(800,
-				panelQueryFLRSnrChnrAuswahl.getHeight());
+		panelQueryFLRSnrChnrAuswahl.setSize(800, panelQueryFLRSnrChnrAuswahl.getHeight());
 
 		new DialogQuery(panelQueryFLRSnrChnrAuswahl);
 	}
@@ -159,105 +159,101 @@ public class ReportArtikeletikett extends PanelBasis implements
 
 	private void jbInit() throws Exception {
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		jpaWorkingOn.setLayout(new GridBagLayout());
 		getInternalFrame().addItemChangedListener(this);
 		wlaExemplare = new WrapperLabel();
-		wlaExemplare.setText(LPMain.getInstance().getTextRespectUISPr(
-				"report.exemplare"));
-		wlaExemplare.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaExemplare.setPreferredSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
+		wlaExemplare.setText(LPMain.getInstance().getTextRespectUISPr("report.exemplare"));
+		HelperClient.setMinimumAndPreferredSize(wlaExemplare, HelperClient.getSizeFactoredDimension(120));
 
-		wlaArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.report.artikelbestellt.selektierterartikel")
-				+ ": ");
+		wlaArtikel.setText(
+				LPMain.getInstance().getTextRespectUISPr("artikel.report.artikelbestellt.selektierterartikel") + ": ");
 		wtfArtikel.setActivatable(false);
 		wtfArtikel.setMandatoryField(true);
 		wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 		wtfArtikel.setSaveReportInformation(false);
-		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.report.artikeletikett.Kommentar")
-				+ ": ");
+		wlaKommentar
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.report.artikeletikett.Kommentar") + ": ");
 		wtfKommentar.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
+
+		wlaMenge.setText(LPMain.getInstance().getTextRespectUISPr("artikel.report.artikeletikett.Menge") + ": ");
+
+		wlaLfdNr.setText(LPMain.getInstance().getTextRespectUISPr("artikel.etikett.lfdnr") + ": ");
+
+		wlaTrennzeichenLfdNr.setText(LPMain.getInstance().getTextRespectUISPr("artikel.etikett.lfdnr.trennzeichen")) ;
+		wtfTrennzeichenLfdNr.setColumnsMax(1);
 		
-		wlaMenge.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.report.artikeletikett.Menge")
-				+ ": ");
+		wnfMenge.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
+		wnfMenge.setPreferredSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
 
-		wnfMenge.setMinimumSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
-		wnfMenge.setPreferredSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
-
-		wbuSnrChnr.setText(LPMain.getInstance().getTextRespectUISPr(
-				"rekla.snchrnauswahl"));
+		wbuSnrChnr.setText(LPMain.getInstance().getTextRespectUISPr("rekla.snchrnauswahl"));
 		wbuSnrChnr.setActionCommand(ACTION_SPECIAL_SNRCHNR_FROM_LISTE);
 		wbuSnrChnr.addActionListener(this);
 		wtfSnrChnr.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 		wtfSnrChnr.setActivatable(false);
 		wnfExemplare = new WrapperNumberField();
-		wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wnfExemplare.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
+		wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wnfExemplare.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
 		wnfExemplare.setFractionDigits(0);
-		wnfExemplare.setMaximumIntegerDigits(2);
 		wnfExemplare.setMandatoryField(true);
 		wnfExemplare.setInteger(1);
 
-		jpaWorkingOn.add(wlaExemplare, new GridBagConstraints(0, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfExemplare, new GridBagConstraints(1, iZeile, 1, 1,
-				0.3, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 300, 0));
+		jpaWorkingOn.add(wlaExemplare, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		jpaWorkingOn.add(wnfExemplare, new GridBagConstraints(1, iZeile, 3, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
 		iZeile++;
 
-		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(1, iZeile, 2, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(1, iZeile, 3, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 2, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 3, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaMenge, new GridBagConstraints(0, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfMenge, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaMenge, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfMenge, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		if (internalFrame.getArtikelDto() != null
-				&& (Helper.short2Boolean(internalFrame.getArtikelDto()
-						.getBChargennrtragend()) || Helper
-						.short2Boolean(internalFrame.getArtikelDto()
-								.getBSeriennrtragend()))) {
-			jpaWorkingOn.add(wbuSnrChnr,
-					new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
-			jpaWorkingOn.add(wtfSnrChnr,
-					new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
+				&& (Helper.short2Boolean(internalFrame.getArtikelDto().getBChargennrtragend())
+						|| Helper.short2Boolean(internalFrame.getArtikelDto().getBSeriennrtragend()))) {
+			jpaWorkingOn.add(wbuSnrChnr, new GridBagConstraints(0, iZeile, 1, 1, 0.11, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wtfSnrChnr, new GridBagConstraints(1, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			iZeile++;
+
+			wsfLagerfuerChargenlagerstand.getWrapperButton()
+					.setText(LPMain.getInstance().getTextRespectUISPr("artikel.etiektt.lagerfuerchargenlagherstand"));
+			jpaWorkingOn.add(wsfLagerfuerChargenlagerstand.getWrapperButton(),
+					new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+			jpaWorkingOn.add(wsfLagerfuerChargenlagerstand.getWrapperTextField(),
+					new GridBagConstraints(1, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			iZeile++;
+
 		}
-		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+
+		jpaWorkingOn.add(wlaLfdNr, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfLfdNr, new GridBagConstraints(1, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 70), 300, 0));
+		jpaWorkingOn.add(wlaTrennzeichenLfdNr, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfTrennzeichenLfdNr, new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 10, 0));
+		iZeile++;
+
+		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	public String getKommentar() {
@@ -277,12 +273,9 @@ public class ReportArtikeletikett extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getArtikelReportDelegate()
-				.printArtikeletikett(artikelIId, wtfKommentar.getText(),
-						wnfMenge.getBigDecimal(), wnfExemplare.getInteger(),
-						oSelectedSnrs);
+		return DelegateFactory.getInstance().getArtikelReportDelegate().printArtikeletikett(artikelIId,
+				wtfKommentar.getText(), wnfMenge.getBigDecimal(), wnfExemplare.getInteger(), oSelectedSnrs,
+				wsfLagerfuerChargenlagerstand.getIKey(), wtfLfdNr.getText(), wtfTrennzeichenLfdNr.getText());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -290,8 +283,7 @@ public class ReportArtikeletikett extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 

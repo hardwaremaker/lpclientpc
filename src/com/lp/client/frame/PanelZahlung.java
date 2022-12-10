@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame;
@@ -55,9 +55,8 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
-import net.miginfocom.swing.MigLayout;
-
 import com.lp.client.finanz.FinanzFilterFactory;
+import com.lp.client.frame.component.AutoAuszugsnummerField;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -70,10 +69,13 @@ import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
+import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.rechnung.PanelRechnungZahlung;
 import com.lp.client.rechnung.TabbedPaneGutschrift;
@@ -88,34 +90,38 @@ import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.rechnung.service.RechnungFac;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.ZahlungszielDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
 
+import net.miginfocom.swing.MigLayout;
+
 /**
  * <p>
  * <I>Diese Klasse ist ein gemeinsames Panel zur Eingabe von Zahlungen</I>
  * </p>
- * 
+ *
  * <p>
  * Copyright Logistik Pur Software GmbH (c) 2004-2008 / 2005
  * </p>
- * 
+ *
  * <p>
  * Erstellungsdatum <I>29.03.05</I>
  * </p>
- * 
+ *
  * <p>
  * </p>
- * 
+ *
  * @author Martin Bluehweis
  * @version 1.0
  */
 public abstract class PanelZahlung extends PanelBasis {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	protected BankverbindungDto bankverbindungDto = null;
@@ -154,7 +160,7 @@ public abstract class PanelZahlung extends PanelBasis {
 	private WrapperLabel wlaGesUST = new WrapperLabel();
 	private WrapperTextField wtfBankverbindungBezeichnung = new WrapperTextField();
 	private WrapperLabel wlaAuszug = new WrapperLabel();
-	private WrapperButton wbuEingangsrechnung = new WrapperButton();
+	protected WrapperGotoButton wbuEingangsrechnung = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_EINGANGSRECHNUNG_AUSWAHL);
 	protected WrapperTextField wtfEingangsrechnung = new WrapperTextField();
 	private WrapperButton wbuKassenbuch = new WrapperButton();
 	protected WrapperButton wbuGutschrift = new WrapperButton();
@@ -190,7 +196,7 @@ public abstract class PanelZahlung extends PanelBasis {
 	protected WrapperDateField wdfDatum = new WrapperDateField();
 	protected WrapperNumberField wnfBetrag = new WrapperNumberField();
 	protected WrapperNumberField wnfBetragUST = new WrapperNumberField();
-	protected WrapperNumberField wtnfAuszug = new WrapperNumberField();
+	protected WrapperTextNumberField wtnfAuszug = new WrapperTextNumberField();
 	protected WrapperCheckBox wcbErledigt = new WrapperCheckBox();
 	protected WrapperCheckBox wcbErledigtGutschrift = new WrapperCheckBox();
 	protected WrapperNumberField wnfBetragSkonto1 = new WrapperNumberField();
@@ -244,12 +250,29 @@ public abstract class PanelZahlung extends PanelBasis {
 		initPanel();
 	}
 
+	private boolean automatischeAuszugsnummer() {
+		try {
+			ParametermandantDto pm = DelegateFactory
+					.getInstance().getParameterDelegate()
+					.getMandantparameter(LPMain.getTheClient().getMandant(),
+							ParameterFac.KATEGORIE_FINANZ,
+							ParameterFac.PARAMETER_AUSZUGSNUMMER_BEI_BANK_ANGEBEN);
+			return pm != null && !(Boolean)pm.getCWertAsObject();
+		} catch (Throwable e) {
+			return false;
+		}
+	}
+
 	private void jbInit() throws Throwable {
 		this.setLayout(gridBagLayout1);
 		this.setBorder(BorderFactory.createEtchedBorder());
 		JPanel panelButtonAction = getToolsPanel();
+//		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
+//				ACTION_DELETE, ACTION_DISCARD };
+
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD };
+				ACTION_DELETE, ACTION_DISCARD, ACTION_TEXT } ;
+
 		enableToolsPanelButtons(aWhichButtonIUse);
 		// ... bis hier ist's immer gleich
 		// wegen dialogFLR
@@ -260,6 +283,9 @@ public abstract class PanelZahlung extends PanelBasis {
 		wdfDatum.setActivatable(true);
 		wdfDatum.setMandatoryField(false);
 		wdfDatum.setMandatoryFieldDB(true);
+		if (automatischeAuszugsnummer()) {
+			wtnfAuszug = new AutoAuszugsnummerField(wdfDatum);
+		}
 		wcoZahlungsart.setMandatoryField(false);
 		wcoZahlungsart.setMandatoryFieldDB(true);
 		wlaDatum.setMinimumSize(new Dimension(130, Defaults.getInstance()
@@ -596,7 +622,7 @@ public abstract class PanelZahlung extends PanelBasis {
 
 	/**
 	 * Befuellen der Comboboxen. Befuellung erfolgt nur beim ersten Aufruf
-	 * 
+	 *
 	 * @throws Throwable
 	 */
 	private void initPanel() throws Throwable {
@@ -645,6 +671,10 @@ public abstract class PanelZahlung extends PanelBasis {
 			m.remove(RechnungFac.ZAHLUNGSART_GUTSCHRIFT);
 		}
 
+		if(!isVorauszahlungErlaubt()) {
+			m.remove(RechnungFac.ZAHLUNGSART_VORAUSZAHLUNG);
+		}
+		
 		wcoZahlungsart.setMap(m);
 	}
 
@@ -766,29 +796,45 @@ public abstract class PanelZahlung extends PanelBasis {
 	protected BigDecimal berechneSkonto(BigDecimal wert, BigDecimal prozent) {
 		if (prozent == null)
 			return wert;
-		prozent = BigDecimal.ONE.subtract(prozent.divide(new BigDecimal(
-				"100.00"), 4, BigDecimal.ROUND_HALF_EVEN));
-		return wert.multiply(prozent);
+		return Helper.getProzentWert(wert, prozent, FinanzFac.NACHKOMMASTELLEN);
+//		prozent = prozent.divide(new BigDecimal(
+//				"100.00"), 4, BigDecimal.ROUND_HALF_EVEN);
+//		return wert.multiply(prozent);
+	}
+
+	protected BigDecimal berechneSkontiertenWert(BigDecimal wert, BigDecimal prozent) {
+		if (prozent == null)
+			return wert;
+		return Helper.getWertPlusProzent(wert, prozent, FinanzFac.NACHKOMMASTELLEN);
+//		prozent = BigDecimal.ONE.subtract(prozent.divide(new BigDecimal(
+// 				"100.00"), 4, BigDecimal.ROUND_HALF_EVEN));
+//		return wert.multiply(prozent);
 	}
 
 	private void berechneSkontovorschlaege() throws ExceptionLP, Throwable {
-		// Skontovorschlaege erstellen
-		if (wnfSkontoProzent1.isVisible()) {
-			BigDecimal dSkonto1 = wnfSkontoProzent1.getBigDecimal();
-			if (dSkonto1 != null) {
-				wnfBetragSkonto1.setBigDecimal(berechneSkonto(getWert(),
-						dSkonto1).subtract(getWertBereitsBezahlt()).subtract(
-						getWertAnzahlungen()));
-			}
+		if (!hasSkonto())
+			return;
+		
+		BigDecimal wertOffen = getWertOffen();
+		berechneSkontovorschlaege(wnfSkontoProzent1, wnfBetragSkonto1, wertOffen);
+		berechneSkontovorschlaege(wnfSkontoProzent2, wnfBetragSkonto2, wertOffen);
+	}
+	
+	private boolean hasSkonto() {
+		return wnfSkontoProzent1.isVisible() || wnfSkontoProzent2.isVisible();
+	}
+	
+	private void berechneSkontovorschlaege(WrapperNumberField skontoProzentField, WrapperNumberField skontoBetragField,
+			BigDecimal wertOffen) throws ExceptionLP, Throwable {
+		BigDecimal skontoProzent = skontoProzentField.getBigDecimal();
+		if (!skontoProzentField.isVisible()
+				|| skontoProzent == null) {
+			return;
 		}
-		if (wnfSkontoProzent2.isVisible()) {
-			BigDecimal dSkonto2 = wnfSkontoProzent2.getBigDecimal();
-			if (dSkonto2 != null) {
-				wnfBetragSkonto2.setBigDecimal(berechneSkonto(getWert(),
-						dSkonto2).subtract(getWertBereitsBezahlt()).subtract(
-						getWertAnzahlungen()));
-			}
-		}
+		
+		// SP9786 Skonto immer vom Gesamtwert des Belegs berechnen
+		BigDecimal skontoBetrag = berechneSkonto(getWert(), skontoProzent);
+		skontoBetragField.setBigDecimal(wertOffen.subtract(skontoBetrag));
 	}
 
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
@@ -922,8 +968,9 @@ public abstract class PanelZahlung extends PanelBasis {
 
 	protected void dto2ComponentsBankverbindung() throws Throwable {
 		if (bankverbindungDto != null) {
+			BankverbindungFormatter bvFormatter = new BankverbindungFormatter();
 			wtfBankverbindungNummer
-					.setText(bankverbindungDto.getCKontonummer());
+					.setText(bvFormatter.formatNummerFuerTextfeldEinerAuswahl(bankverbindungDto));
 			PartnerDto partner = DelegateFactory.getInstance()
 					.getPartnerDelegate()
 					.partnerFindByPrimaryKey(bankverbindungDto.getBankIId());
@@ -944,25 +991,51 @@ public abstract class PanelZahlung extends PanelBasis {
 	}
 
 	protected void dto2ComponentsVorauszahlung() throws ExceptionLP, Throwable {
-		enableToolsPanelButtons(false, ACTION_UPDATE);
 		wnfBetrag.setBigDecimal(null);
 		berechneOffen();
+
+		wtfVorauszahlung.setText(null);
+
 		if (buchungdetailDto != null) {
-			wtfVorauszahlung.setText(DelegateFactory.getInstance()
-					.getBuchenDelegate()
-					.buchungFindByPrimaryKey(buchungdetailDto.getBuchungIId())
-					.getCText());
-			BuchungDto buchungDto = DelegateFactory.getInstance()
-					.getBuchenDelegate()
-					.buchungFindByPrimaryKey(buchungdetailDto.getBuchungIId());
-			wdfDatum.setDate(buchungDto.getDBuchungsdatum());
-			if (buchungdetailDto.getNBetrag().compareTo(
-					wnfGesOffen.getBigDecimal()) > 0)
-				wnfBetrag.setBigDecimal(getWertOffen());
-			else
-				wnfBetrag.setBigDecimal(buchungdetailDto.getNBetrag());
-		} else {
-			wtfVorauszahlung.setText(null);
+			if(buchungdetailDto.getNUst().signum() != 0) {
+				/* Eine Vorauszahlung die UST hat wollen/koennen wir nicht behandeln */
+				DialogFactory.showMeldung(
+						textFromToken("finanz.vorauszahlung_ohne_ust"),
+						textFromToken("lp.hint.vorauszahlung_ohne_ust"),
+						javax.swing.JOptionPane.DEFAULT_OPTION) ;
+			} else {
+				BuchungDto buchungDto = DelegateFactory.getInstance()
+						.getBuchenDelegate()
+						.buchungFindByPrimaryKey(buchungdetailDto.getBuchungIId());
+				wtfVorauszahlung.setText(buchungDto.getCText());
+				wdfDatum.setDate(buchungDto.getDBuchungsdatum());
+				
+				String sMandantWaehrung = LPMain.getTheClient().getSMandantenwaehrung();
+				BigDecimal fwBetrag = DelegateFactory
+						.getInstance()
+						.getLocaleDelegate()
+						.rechneUmInAndereWaehrungGerundetZuDatum(
+								buchungdetailDto.getNBetrag(),
+								sMandantWaehrung,
+								getWaehrung(),
+								wdfDatum.getDate());
+	
+				if (fwBetrag.compareTo(
+						wnfGesOffen.getBigDecimal()) > 0) {
+					wnfBetrag.setBigDecimal(getWertOffen());
+				} else {
+					wnfBetrag.setBigDecimal(fwBetrag);
+				}
+				wdfDatum.setEnabled(false);
+				
+//				if (buchungdetailDto.getNBetrag().compareTo(
+//						wnfGesOffen.getBigDecimal()) > 0) {
+//					wnfBetrag.setBigDecimal(getWertOffen());
+//				} else {
+//					wnfBetrag.setBigDecimal(buchungdetailDto.getNBetrag());
+//				}
+//				wdfDatum.setEnabled(false);
+			}
 		}
 		berechneOffen();
 	}
@@ -1002,7 +1075,13 @@ public abstract class PanelZahlung extends PanelBasis {
 	}
 
 	protected void wdfDatumFocusLost() throws Throwable {
-		setDefaults();
+		// SP3671 Beim Aendern einer bestehenden Zahlung erfolgt kein Neusetzen der
+		// Felder
+		// SP8937 Neusetzen der Felder nach Datumsaenderung nicht sinnvoll -> keine
+		// Datumsabhaengigen Felder werden in setDefaults gesetzt.
+//		if(isKeyWhenDetailNew()) {
+//			setDefaults();
+//		}
 	}
 
 	protected void dialogQueryBank(ActionEvent e) throws Throwable {
@@ -1081,7 +1160,6 @@ public abstract class PanelZahlung extends PanelBasis {
 		wlaAuszug.setVisible(bIsBank);
 		wtnfAuszug.setVisible(bIsBank);
 		wtnfAuszug.setMandatoryField(bIsBank);
-		wtnfAuszug.setFractionDigits(0);
 		// bar
 		wbuKassenbuch.setVisible(bIsKassenbuch);
 		wtfKassenbuch.setVisible(bIsKassenbuch);
@@ -1115,8 +1193,26 @@ public abstract class PanelZahlung extends PanelBasis {
 			wtfRechnung.setVisible(bIsGegenverrechnung);
 		}
 
+		wdfDatum.setEnabled(!bIsVorauszahlung);
 	}
 
+	protected void pruefeStellenKontoauszugsnummmer() {
+		if (wcoZahlungsart.getSelectedItem().equals(RechnungFac.ZAHLUNGSART_BANK)) {
+
+			if (bankverbindungDto.getIStellenAuszugsnummer() != null
+					&& bankverbindungDto.getIStellenAuszugsnummer() > 0) {
+
+				if (wtnfAuszug.getText() == null
+						|| wtnfAuszug.getText().length() != bankverbindungDto.getIStellenAuszugsnummer()) {
+
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+							LPMain.getMessageTextRespectUISPr("fb.stellen.kontoauszugsnummer.falsch",
+									bankverbindungDto.getIStellenAuszugsnummer() + ""));
+				}
+			}
+		}
+	}
+	
 	protected void berechneOffen() throws Throwable {
 		BigDecimal bdOffen = getWert();
 		if (bdOffen == null) {
@@ -1167,20 +1263,21 @@ public abstract class PanelZahlung extends PanelBasis {
 		wnfGesOffenUST.setBigDecimal(gesOffenUst);
 
 		// das erledigt-hakerl
-		myLogger.info("Zahlung VORHER isLocked: " + isLocked()
+		myLogger.info("Zahlung VORHER isLockedByMe: " + isLockedByMe()
 				+ " offener Betrag: " + bdOffen + ", signum: "
 				+ bdOffen.signum() + ", wcbErledigt >> "
 				+ (bdOffen.signum() == 0));
-		if (isLocked()) {
-			wcbErledigt.setSelected(bdOffen.signum() <= 0);
+		if (isLockedByMe()) {
+			//SP6613 Nur wenn Offen genau 0, dann erledigt
+			wcbErledigt.setSelected(bdOffen.signum() == 0);
 		}
-		myLogger.info("Zahlung NACHHER isLocked: " + isLocked()
+		myLogger.info("Zahlung NACHHER isLockedByMe: " + isLockedByMe()
 				+ " offener Betrag: " + bdOffen + ", signum: "
 				+ bdOffen.signum() + ", wcbErledigt = "
 				+ wcbErledigt.isSelected());
 	}
 
-	private BigDecimal getWertOffen() throws Throwable {
+	protected BigDecimal getWertOffen() throws Throwable {
 		return getWert().subtract(getWertBereitsBezahlt()).subtract(
 				getWertAnzahlungen());
 	}
@@ -1191,9 +1288,9 @@ public abstract class PanelZahlung extends PanelBasis {
 	}
 
 	protected void initializeGutschriftButton() {
-		wbuGutschrift.setText(LPMain.getTextRespectUISPr("rechnung.gutschrift"));		
+		wbuGutschrift.setText(LPMain.getTextRespectUISPr("rechnung.gutschrift"));
 	}
-	
+
 	protected abstract BigDecimal getWertGesamtOffenExklusiveZahlung()
 			throws Throwable;
 
@@ -1219,6 +1316,8 @@ public abstract class PanelZahlung extends PanelBasis {
 	protected abstract java.sql.Date getDBelegdatum();
 
 	protected abstract boolean isGutschriftErlaubt();
+	
+	protected abstract boolean isVorauszahlungErlaubt();
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
 		return wdfDatum;
@@ -1227,6 +1326,7 @@ public abstract class PanelZahlung extends PanelBasis {
 	protected abstract Integer getKontoIIdAnzahlung() throws Throwable;
 
 	protected abstract boolean darfManuellErledigen() throws Throwable;
+
 }
 
 class PanelZahlung_wdfDatumFocusAdapter implements FocusListener {

@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.fertigung;
@@ -53,8 +53,6 @@ import javax.swing.SwingConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import net.miginfocom.swing.MigLayout;
-
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
@@ -78,12 +76,17 @@ import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.stueckliste.StuecklisteFilterFactory;
 import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.server.artikel.service.ArtikellieferantDto;
 import com.lp.server.artikel.service.LagerDto;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.fertigung.service.LossollmaterialDto;
 import com.lp.server.stueckliste.service.MontageartDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.util.Helper;
+
+import net.miginfocom.swing.MigLayout;
 
 /**
  * <p>
@@ -101,10 +104,9 @@ import com.lp.server.system.service.ParametermandantDto;
  * @author Martin Bluehweis
  * @version $Revision: 1.13 $
  */
-public class PanelLosMaterial extends PanelBasis implements
-		ListSelectionListener {
+public class PanelLosMaterial extends PanelBasis implements ListSelectionListener {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 
@@ -120,6 +122,8 @@ public class PanelLosMaterial extends PanelBasis implements
 
 	private static final String ACTION_SPECIAL_LAGER = "action_special_los_lager";
 	private static final String ACTION_SPECIAL_MONTAGEART = "action_special_los_montageart";
+
+	public final static String MY_OWN_NEW_ERSATZTYP = PanelBasis.ACTION_MY_OWN_NEW + "ERSATZTYP";
 
 	private PanelQueryFLR panelQueryFLRLager = null;
 	private PanelQueryFLR panelQueryFLRMontageart = null;
@@ -174,25 +178,24 @@ public class PanelLosMaterial extends PanelBasis implements
 	private WrapperLabel wlaKommentar = null;
 	private WrapperTextField wtfKommentar = null;
 
+	private WrapperCheckBox wcbRuestmenge = new WrapperCheckBox();
+
 	private MontageartDto defaultMontageartDto = null;
 
 	JList list = null;
 	Map<?, ?> mBestellungen = new TreeMap<Object, Object>();
-	protected WrapperGotoButton wbuBestellung = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_BESTELLUNG_POSITION);
+	protected WrapperGotoButton wbuBestellung = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_BESTELLUNG_POSITION);
 
-	public PanelLosMaterial(InternalFrame internalFrame, String add2TitleI,
-			Object key, TabbedPaneLos tabbedPaneLos) throws Throwable {
+	private PanelQueryFLR panelQueryFLRSollmaterial = null;
+
+	public PanelLosMaterial(InternalFrame internalFrame, String add2TitleI, Object key, TabbedPaneLos tabbedPaneLos)
+			throws Throwable {
 		super(internalFrame, add2TitleI, key);
 		this.tabbedPaneLos = tabbedPaneLos;
 
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_FRUEHZEITIGE_BESCHAFFUNG,
-						ParameterFac.KATEGORIE_STUECKLISTE,
-						LPMain.getTheClient().getMandant());
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_FRUEHZEITIGE_BESCHAFFUNG,
+						ParameterFac.KATEGORIE_STUECKLISTE, LPMain.getTheClient().getMandant());
 		bFruehzeitigeBeschaffung = (Boolean) parameter.getCWertAsObject();
 
 		jbInit();
@@ -202,14 +205,12 @@ public class PanelLosMaterial extends PanelBasis implements
 	}
 
 	private void initPanel() throws Throwable {
-		String sMandantenWaehrung = LPMain.getTheClient()
-				.getSMandantenwaehrung();
+		String sMandantenWaehrung = LPMain.getTheClient().getSMandantenwaehrung();
 		wlaWaehrung1.setText(sMandantenWaehrung);
 		wlaWaehrung2.setText(sMandantenWaehrung);
 		wlaWaehrung3.setText(sMandantenWaehrung);
 
-		MontageartDto[] dtos = DelegateFactory.getInstance()
-				.getStuecklisteDelegate().montageartFindByMandantCNr();
+		MontageartDto[] dtos = DelegateFactory.getInstance().getStuecklisteDelegate().montageartFindByMandantCNr();
 
 		if (dtos != null && dtos.length > 0) {
 			defaultMontageartDto = dtos[0];
@@ -222,11 +223,17 @@ public class PanelLosMaterial extends PanelBasis implements
 	}
 
 	protected void eventActionPrint(ActionEvent e) throws Throwable {
-		String add2Title = LPMain
-				.getTextRespectUISPr("fert.report.materialliste");
-		getInternalFrame().showReportKriterien(
-				new ReportMaterialliste((InternalFrameFertigung) tabbedPaneLos
-						.getInternalFrame(), add2Title));
+		String add2Title = LPMain.getTextRespectUISPr("fert.report.materialliste");
+
+		getInternalFrame()
+				.showReportKriterien(new ReportMaterialliste((InternalFrameFertigung) tabbedPaneLos.getInternalFrame(),
+						tabbedPaneLos.getPanelQueryMaterial(true).getSelectedIdsAsInteger(), add2Title));
+	}
+
+	void dialogQueryLossollmaterialFromListe() throws Throwable {
+		panelQueryFLRSollmaterial = FertigungFilterFactory.getInstance().createPanelFLRLossollmaterialOhneErsatzartikel(
+				getInternalFrame(), getTabbedPaneLos().getLosDto().getIId(), losmatDto.getIId(), false);
+		new DialogQuery(panelQueryFLRSollmaterial);
 	}
 
 	private void jbInit() throws Throwable {
@@ -234,18 +241,13 @@ public class PanelLosMaterial extends PanelBasis implements
 		boolean bDarfCUD = DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_FERT_DARF_SOLLMATERIAL_CUD);
 
-		String[] aWhichButtonIUse = new String[] { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, ACTION_PRINT };
+		String[] aWhichButtonIUse = new String[] { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD,
+				ACTION_PRINT };
 
-		boolean hatRecht = DelegateFactory
-				.getInstance()
-				.getTheJudgeDelegate()
-				.hatRecht(
-						RechteFac.RECHT_FERT_LOS_DARF_ISTMATERIAL_MANUELL_NACHBUCHEN);
+		boolean hatRecht = DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_FERT_LOS_DARF_ISTMATERIAL_MANUELL_NACHBUCHEN);
 
-		if (getTabbedPaneLos().getRechtModulweit().equals(
-				RechteFac.RECHT_MODULWEIT_READ)
-				&& hatRecht == true) {
+		if (getTabbedPaneLos().getRechtModulweit().equals(RechteFac.RECHT_MODULWEIT_READ) && hatRecht == true) {
 			aWhichButtonIUse = new String[] {};
 		}
 
@@ -285,23 +287,24 @@ public class PanelLosMaterial extends PanelBasis implements
 		wnfDifferenzWert = new WrapperNumberField();
 		wlaWaehrung3 = new WrapperLabel();
 		// identfield: 12 new() in jbInit
-		wifArtikel = new WrapperIdentField(getInternalFrame(), this);
+		wifArtikel = new WrapperIdentField(getInternalFrame(), this, true, false);
 
-		wnfMenge.setFractionDigits(3);
-		wnfAusgegeben.setFractionDigits(3);
-		wnfSollmenge.setFractionDigits(3);
-		wnfDifferenzMenge.setFractionDigits(3);
-		wnfSollpreis.setFractionDigits(4);
-		wnfIstpreis.setFractionDigits(4);
-		wnfDifferenzWert.setFractionDigits(4);
+		// SP3599
+		wnfMenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		wnfAusgegeben.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		wnfSollmenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		wnfDifferenzMenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+		wnfSollpreis.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseAllgemein());
+		wnfIstpreis.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseAllgemein());
+		wnfDifferenzWert.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseAllgemein());
+
+		wcbRuestmenge.setText(LPMain.getTextRespectUISPr("stkl.ruestmenge"));
 
 		this.setLayout(gridBagLayout1);
 		wbuLager.setText(LPMain.getTextRespectUISPr("button.lager"));
-		wbuLager.setToolTipText(LPMain
-				.getTextRespectUISPr("button.lager.tooltip"));
+		wbuLager.setToolTipText(LPMain.getTextRespectUISPr("button.lager.tooltip"));
 		wbuMontageart.setText(LPMain.getTextRespectUISPr("button.montageart"));
-		wbuMontageart.setToolTipText(LPMain
-				.getTextRespectUISPr("button.montageart.tooltip"));
+		wbuMontageart.setToolTipText(LPMain.getTextRespectUISPr("button.montageart.tooltip"));
 		wlaMenge.setText(LPMain.getTextRespectUISPr("fert.sollmenge"));
 		wlaAusgegeben.setText(LPMain.getTextRespectUISPr("fert.ausgegeben"));
 		wlaSollmenge.setText(LPMain.getTextRespectUISPr("fert.sollsatzmenge"));
@@ -309,8 +312,7 @@ public class PanelLosMaterial extends PanelBasis implements
 		wlaIstpreis.setText(LPMain.getTextRespectUISPr("fert.istpreis"));
 		wlaDifferenzMenge.setText(LPMain.getTextRespectUISPr("lp.differenz"));
 
-		wlaKommentar = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.kommentar"));
+		wlaKommentar = new WrapperLabel(LPMain.getTextRespectUISPr("lp.kommentar"));
 		wtfKommentar = new WrapperTextField(80);
 		JPanel panelButtonAction = getToolsPanel();
 		getInternalFrame().addItemChangedListener(this);
@@ -319,8 +321,7 @@ public class PanelLosMaterial extends PanelBasis implements
 		wbuLager.setActionCommand(ACTION_SPECIAL_LAGER);
 		wbuMontageart.addActionListener(this);
 		wbuMontageart.setActionCommand(ACTION_SPECIAL_MONTAGEART);
-		wnfMenge.addFocusListener(new PanelLosMaterial_wnfMenge_focusAdapter(
-				this));
+		wnfMenge.addFocusListener(new PanelLosMaterial_wnfMenge_focusAdapter(this));
 
 		wlaEinheit1.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaEinheit2.setHorizontalAlignment(SwingConstants.LEFT);
@@ -341,8 +342,7 @@ public class PanelLosMaterial extends PanelBasis implements
 		wnfSollmenge.setActivatable(false);
 		wnfAusgegeben.setActivatable(false);
 
-		bDarfGestpreiseaendern = DelegateFactory.getInstance()
-				.getTheJudgeDelegate()
+		bDarfGestpreiseaendern = DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_WW_ARTIKEL_GESTPREISE_CU);
 
 		if (!bDarfGestpreiseaendern) {
@@ -361,55 +361,47 @@ public class PanelLosMaterial extends PanelBasis implements
 		wnfMenge.setMandatoryFieldDB(true);
 
 		// identfield: 14 optional: dimensions so setzen
-		wifArtikel.getWbuArtikel().setMinimumSize(
-				new Dimension(110, Defaults.getInstance().getControlHeight()));
-		wifArtikel.getWbuArtikel().setPreferredSize(
-				new Dimension(110, Defaults.getInstance().getControlHeight()));
-		wifArtikel.getWtfIdent().setMinimumSize(
-				new Dimension(100, Defaults.getInstance().getControlHeight()));
-		wifArtikel.getWtfIdent().setPreferredSize(
-				new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wifArtikel.getWbuArtikel().setMinimumSize(new Dimension(110, Defaults.getInstance().getControlHeight()));
+		wifArtikel.getWbuArtikel().setPreferredSize(new Dimension(110, Defaults.getInstance().getControlHeight()));
+		wifArtikel.getWtfIdent().setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wifArtikel.getWtfIdent().setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
 
-		wlaAusgegeben.setMinimumSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
-		wlaAusgegeben.setPreferredSize(new Dimension(80, Defaults.getInstance()
-				.getControlHeight()));
-		wnfAusgegeben.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wnfAusgegeben.setPreferredSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
-		wlaEinheit1.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wlaEinheit1.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wlaEinheit2.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wlaEinheit2.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
+		wlaAusgegeben.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
+		wlaAusgegeben.setPreferredSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
+		wnfAusgegeben.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wnfAusgegeben.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaEinheit1.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wlaEinheit1.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wlaEinheit2.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wlaEinheit2.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
 
 		jPanelWorkingOn.setLayout(new MigLayout("wrap 9", "[15%][20%][5%][15%][10%][5%][15%][10%][5%]"));
-		
-		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
-		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
-		
+
+		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
 		// identfield: 15 die komponenten ins panel haengen
 		jPanelWorkingOn.add(wifArtikel.getWbuArtikel(), "growx");
 		jPanelWorkingOn.add(wifArtikel.getWtfIdent(), "growx");
 		jPanelWorkingOn.add(wifArtikel.getWtfBezeichnung(), "growx, span");
-		
+
 		jPanelWorkingOn.add(wifArtikel.getWtfZusatzBezeichnung(), "skip 2, growx, span, wrap 20");
 
 		jPanelWorkingOn.add(wlaKommentar, "growx");
 		jPanelWorkingOn.add(wtfKommentar, "growx, span");
-		
+
 		jPanelWorkingOn.add(wbuMontageart, "growx");
 		jPanelWorkingOn.add(wtfMontageart, "growx, wrap");
-		
+
 		jPanelWorkingOn.add(wlaSollmenge, "growx");
 		jPanelWorkingOn.add(wnfSollmenge, "growx");
-		jPanelWorkingOn.add(wlaEinheit3, "growx, wrap");
-		
+		jPanelWorkingOn.add(wlaEinheit3, "growx");
+		jPanelWorkingOn.add(wcbRuestmenge, "skip,growx, wrap");
+
 		jPanelWorkingOn.add(wlaMenge, "growx");
 		jPanelWorkingOn.add(wnfMenge, "growx");
 		jPanelWorkingOn.add(wlaEinheit1, "growx");
@@ -431,12 +423,10 @@ public class PanelLosMaterial extends PanelBasis implements
 		jPanelWorkingOn.add(wlaWaehrung3, "growx, wrap");
 
 		if (bFruehzeitigeBeschaffung == true) {
-			wcbSofortigeBestellung.setText(LPMain
-					.getTextRespectUISPr("stk.positionen.sofortigebestellung"));
+			wcbSofortigeBestellung.setText(LPMain.getTextRespectUISPr("stk.positionen.sofortigebestellung"));
 			jPanelWorkingOn.add(wcbSofortigeBestellung, "skip 4, growx, span, wrap");
 		} else {
-			wlaBeginnterminOffset.setText(LPMain
-					.getTextRespectUISPr("stk.positionen.beginnterminoffset"));
+			wlaBeginnterminOffset.setText(LPMain.getTextRespectUISPr("stk.positionen.beginnterminoffset"));
 			jPanelWorkingOn.add(wlaBeginnterminOffset, "skip 5, growx, span 2");
 			wnfBeginnterminOffset.setMandatoryField(true);
 			wnfBeginnterminOffset.setFractionDigits(0);
@@ -451,15 +441,10 @@ public class PanelLosMaterial extends PanelBasis implements
 		JScrollPane listScroller = new JScrollPane(list);
 		listScroller.setPreferredSize(new Dimension(250, 80));
 		list.addListSelectionListener(this);
-		wbuBestellung.setText(LPMain
-				.getTextRespectUISPr("bes.bestellung.tooltip"));
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_VERKNUEPFTE_BESTELLDETAILS_ANZEIGEN,
-						ParameterFac.KATEGORIE_FERTIGUNG,
-						LPMain.getTheClient().getMandant());
+		wbuBestellung.setText(LPMain.getTextRespectUISPr("bes.bestellung.tooltip"));
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_VERKNUEPFTE_BESTELLDETAILS_ANZEIGEN,
+						ParameterFac.KATEGORIE_FERTIGUNG, LPMain.getTheClient().getMandant());
 		if ((Boolean) parameter.getCWertAsObject()) {
 
 			WrapperLabel wla = new WrapperLabel(
@@ -470,6 +455,15 @@ public class PanelLosMaterial extends PanelBasis implements
 
 			jPanelWorkingOn.add(wbuBestellung, "growx");
 			jPanelWorkingOn.add(listScroller, "height min:1000:1000, grow, span");
+		}
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ERSATZTYPENVERWALTUNG)) {
+
+			getToolBar().addButtonRight("/com/lp/client/res/gear_replace.png",
+					LPMain.getTextRespectUISPr("fert.losmaterial.alsersatztypdefinieren"), MY_OWN_NEW_ERSATZTYP, null,
+					RechteFac.RECHT_FERT_LOS_CUD);
+
 		}
 
 	}
@@ -498,8 +492,7 @@ public class PanelLosMaterial extends PanelBasis implements
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		// identfield: 20 die Eingabe muss vor dem speichern geprueft werden
 		wifArtikel.validate();
 		if (allMandatoryFieldsSetDlg()) {
@@ -508,8 +501,7 @@ public class PanelLosMaterial extends PanelBasis implements
 
 				letzterArtikelIId = losmatDto.getArtikelIId();
 
-				LossollmaterialDto savedDto = DelegateFactory.getInstance()
-						.getFertigungDelegate()
+				LossollmaterialDto savedDto = DelegateFactory.getInstance().getFertigungDelegate()
 						.updateLossollmaterial(losmatDto);
 				this.losmatDto = savedDto;
 				setKeyWhenDetailPanel(losmatDto.getIId());
@@ -545,25 +537,20 @@ public class PanelLosMaterial extends PanelBasis implements
 				losmatDto.setIBeginnterminoffset(0);
 			}
 		} else {
-			losmatDto
-					.setIBeginnterminoffset(wnfBeginnterminOffset.getInteger());
+			losmatDto.setIBeginnterminoffset(wnfBeginnterminOffset.getInteger());
 		}
 
-		BigDecimal sollPreis = DelegateFactory
-				.getInstance()
-				.getLagerDelegate()
-				.getGemittelterGestehungspreisEinesLagers(
-						wifArtikel.getArtikelDto().getIId(),
-						DelegateFactory.getInstance().getLagerDelegate()
-								.getHauptlagerDesMandanten().getIId());
+		BigDecimal sollPreis = DelegateFactory.getInstance().getLagerDelegate()
+				.getGemittelterGestehungspreisEinesLagers(wifArtikel.getArtikelDto().getIId(),
+						DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten().getIId());
 
 		if (wnfSollpreis.getBigDecimal() != null && bDarfGestpreiseaendern) {
 			sollPreis = wnfSollpreis.getBigDecimal();
 		}
 		losmatDto.setNSollpreis(sollPreis);
 
-		losmatDto.setISort(new Integer(0));
 		losmatDto.setCKommentar(wtfKommentar.getText());
+		losmatDto.setBRuestmenge(wcbRuestmenge.getShort());
 
 	}
 
@@ -583,6 +570,16 @@ public class PanelLosMaterial extends PanelBasis implements
 			wlaEinheit2.setText(losmatDto.getEinheitCNr().trim());
 			wlaEinheit3.setText(losmatDto.getEinheitCNr().trim());
 			wlaEinheit4.setText(losmatDto.getEinheitCNr().trim());
+
+			if (wifArtikel.getArtikelDto() != null && wifArtikel.getArtikelDto().getEinheitCNr() != null) {
+				wlaEinheit1.setText(wifArtikel.getArtikelDto().getEinheitCNr().trim());
+				wlaEinheit2.setText(wifArtikel.getArtikelDto().getEinheitCNr().trim());
+				wlaEinheit3.setText(wifArtikel.getArtikelDto().getEinheitCNr().trim());
+				wlaEinheit4.setText(wifArtikel.getArtikelDto().getEinheitCNr().trim());
+			}
+
+			wcbRuestmenge.setShort(losmatDto.getBRuestmenge());
+
 			losmatDto.getFDimension1();
 			/** @todo anzeigen PJ 5009 */
 			losmatDto.getFDimension2();
@@ -604,8 +601,7 @@ public class PanelLosMaterial extends PanelBasis implements
 					wcbSofortigeBestellung.setSelected(false);
 				}
 			} else {
-				wnfBeginnterminOffset.setInteger(losmatDto
-						.getIBeginnterminoffset());
+				wnfBeginnterminOffset.setInteger(losmatDto.getIBeginnterminoffset());
 			}
 
 			wnfMenge.setBigDecimal(losmatDto.getNMenge());
@@ -613,15 +609,12 @@ public class PanelLosMaterial extends PanelBasis implements
 
 			wnfSollpreis.setBigDecimal(losmatDto.getNSollpreis());
 
-			wnfAusgegeben.setBigDecimal(DelegateFactory.getInstance()
-					.getFertigungDelegate()
-					.getAusgegebeneMenge(losmatDto.getIId()));
-			wnfIstpreis.setBigDecimal(DelegateFactory.getInstance()
-					.getFertigungDelegate()
-					.getAusgegebeneMengePreis(losmatDto.getIId()));
+			wnfAusgegeben.setBigDecimal(
+					DelegateFactory.getInstance().getFertigungDelegate().getAusgegebeneMenge(losmatDto.getIId()));
+			wnfIstpreis.setBigDecimal(
+					DelegateFactory.getInstance().getFertigungDelegate().getAusgegebeneMengePreis(losmatDto.getIId()));
 
-			mBestellungen = DelegateFactory.getInstance()
-					.getBestellungDelegate()
+			mBestellungen = DelegateFactory.getInstance().getBestellungDelegate()
 					.getListeDerVerknuepftenBestellungen(losmatDto.getIId());
 
 			list.removeAll();
@@ -631,11 +624,9 @@ public class PanelLosMaterial extends PanelBasis implements
 			list.setListData(tempZeilen);
 
 			// Statusleiste
-			this.setStatusbarPersonalIIdAendern(losmatDto
-					.getPersonalIIdAendern());
+			this.setStatusbarPersonalIIdAendern(losmatDto.getPersonalIIdAendern());
 			this.setStatusbarTAendern(losmatDto.getTAendern());
-			this.setStatusbarStatusCNr(getTabbedPaneLos().getLosDto()
-					.getStatusCNr());
+			this.setStatusbarStatusCNr(getTabbedPaneLos().getLosDto().getStatusCNr());
 		}
 	}
 
@@ -655,32 +646,28 @@ public class PanelLosMaterial extends PanelBasis implements
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject,
-			boolean bChangeKeyLockMeI, boolean bNeedNoNewI) throws Throwable {
-		super.eventActionNew(eventObject, false, false);
+	public void eventActionNew(EventObject eventObject, boolean bChangeKeyLockMeI, boolean bNeedNoNewI)
+			throws Throwable {
+		// super.eventActionNew(eventObject, false, false);
+		super.eventActionNew(eventObject, true, false);
 		losmatDto = null;
 		// identfield: 17 bei new artikelDto=null setzen
 		wifArtikel.setArtikelDto(null);
 		this.lagerDto = null;
 		this.leereAlleFelder(this);
-		lagerDto = DelegateFactory.getInstance().getLagerDelegate()
-				.getHauptlagerDesMandanten();
+		lagerDto = DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten();
 		dto2ComponentsLager();
 	}
 
 	/**
 	 * Stornieren einer Rechnung bzw Gutschrift
 	 * 
-	 * @param e
-	 *            ActionEvent
-	 * @param bAdministrateLockKeyI
-	 *            boolean
-	 * @param bNeedNoDeleteI
-	 *            boolean
+	 * @param e                     ActionEvent
+	 * @param bAdministrateLockKeyI boolean
+	 * @param bNeedNoDeleteI        boolean
 	 * @throws Throwable
 	 */
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 		if (this.losmatDto != null) {
 			if (losmatDto.getIId() != null) {
@@ -689,23 +676,16 @@ public class PanelLosMaterial extends PanelBasis implements
 					// Im Sollarbeitsplan
 
 					// In der Bestellposition
-					String s = DelegateFactory
-							.getInstance()
-							.getFertigungDelegate()
-							.verknuepfungZuBestellpositionUndArbeitsplanDarstellen(
-									losmatDto.getIId());
+					String s = DelegateFactory.getInstance().getFertigungDelegate()
+							.verknuepfungZuBestellpositionUndArbeitsplanDarstellen(losmatDto.getIId());
 					if (s != null && !s.equals("")) {
 
-						DialogFactory
-								.showModalDialog(
-										LPMain.getTextRespectUISPr("lp.error"),
-										LPMain.getTextRespectUISPr("fert.sollmat.loeschen.abhaengigkeiten")
-												+ s);
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+								LPMain.getTextRespectUISPr("fert.sollmat.loeschen.abhaengigkeiten") + s);
 						return;
 					} else {
 
-						DelegateFactory.getInstance().getFertigungDelegate()
-								.removeLossollmaterial(losmatDto);
+						DelegateFactory.getInstance().getFertigungDelegate().removeLossollmaterial(losmatDto);
 					}
 					this.losmatDto = null;
 					this.leereAlleFelder(this);
@@ -725,14 +705,27 @@ public class PanelLosMaterial extends PanelBasis implements
 			dialogQueryLager();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_MONTAGEART)) {
 			dialogQueryMontageart();
+		} else if (e.getActionCommand().equals(MY_OWN_NEW_ERSATZTYP)) {
+			if (losmatDto.getLossollmaterialIIdOriginal() != null) {
+				boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("fert.losmaterial.alsersatztypdefinieren.istbereits"));
+
+				if (b == true) {
+					losmatDto.setLossollmaterialIIdOriginal(null);
+					DelegateFactory.getInstance().getFertigungDelegate().updateLossollmaterial(losmatDto);
+					getTabbedPaneLos().getPanelSplitMaterial(true).eventYouAreSelected(false);
+				}
+
+			} else {
+				dialogQueryLossollmaterialFromListe();
+			}
 		}
 	}
 
 	/**
 	 * eventItemchanged.
 	 * 
-	 * @param eI
-	 *            EventObject
+	 * @param eI EventObject
 	 * @throws ExceptionForLPClients
 	 * @throws Throwable
 	 */
@@ -745,14 +738,43 @@ public class PanelLosMaterial extends PanelBasis implements
 			} else if (e.getSource() == panelQueryFLRMontageart) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				holeMontageart((Integer) key);
+			} else if (e.getSource() == wifArtikel.getPanelQueryFLRArtikel()) {
+				// SP4878
+				if (wifArtikel.getArtikelDto() != null && wifArtikel.getArtikelDto().getIId() != null) {
+
+					BigDecimal bdMenge = BigDecimal.ONE;
+
+					if (wnfMenge.getBigDecimal() != null) {
+						bdMenge = wnfMenge.getBigDecimal();
+					}
+
+					ArtikellieferantDto alDto = DelegateFactory.getInstance().getArtikelDelegate()
+							.getArtikelEinkaufspreisDesBevorzugtenLieferanten(wifArtikel.getArtikelDto().getIId(),
+									bdMenge, LPMain.getTheClient().getSMandantenwaehrung());
+
+					if (alDto != null && alDto.getLief1Preis() != null) {
+						wnfSollpreis.setBigDecimal(alDto.getLief1Preis());
+					}
+
+				}
+
+			} else if (e.getSource() == panelQueryFLRSollmaterial) {
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				LossollmaterialDto lossollmaterialDto = DelegateFactory.getInstance().getFertigungDelegate()
+						.lossollmaterialFindByPrimaryKey(key);
+
+				losmatDto.setLossollmaterialIIdOriginal(key);
+
+				DelegateFactory.getInstance().getFertigungDelegate().updateLossollmaterial(losmatDto);
+				getTabbedPaneLos().getPanelSplitMaterial(true).eventYouAreSelected(false);
+
 			}
 		}
 	}
 
 	private void holeLager(Integer key) throws Throwable {
 		if (key != null) {
-			lagerDto = DelegateFactory.getInstance().getLagerDelegate()
-					.lagerFindByPrimaryKey(key);
+			lagerDto = DelegateFactory.getInstance().getLagerDelegate().lagerFindByPrimaryKey(key);
 		} else {
 			lagerDto = null;
 		}
@@ -762,8 +784,7 @@ public class PanelLosMaterial extends PanelBasis implements
 	private void holeArtikel(Integer key) throws Throwable {
 		ArtikelDto artikelDto;
 		if (key != null) {
-			artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
-					.artikelFindByPrimaryKey(key);
+			artikelDto = DelegateFactory.getInstance().getArtikelDelegate().artikelFindByPrimaryKey(key);
 		} else {
 			artikelDto = null;
 		}
@@ -773,16 +794,14 @@ public class PanelLosMaterial extends PanelBasis implements
 
 	private void holeMontageart(Integer key) throws Throwable {
 		if (key != null) {
-			montageartDto = DelegateFactory.getInstance()
-					.getStuecklisteDelegate().montageartFindByPrimaryKey(key);
+			montageartDto = DelegateFactory.getInstance().getStuecklisteDelegate().montageartFindByPrimaryKey(key);
 		} else {
 			montageartDto = null;
 		}
 		dto2ComponentsMontageart();
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		if (!bNeedNoYouAreSelectedI) {
 			Object key = getKeyWhenDetailPanel();
@@ -803,27 +822,21 @@ public class PanelLosMaterial extends PanelBasis implements
 				}
 
 				if (letzterArtikelIId != null) {
-					wifArtikel.setArtikelDto(DelegateFactory.getInstance()
-							.getArtikelDelegate()
+					wifArtikel.setArtikelDto(DelegateFactory.getInstance().getArtikelDelegate()
 							.artikelFindByPrimaryKey(letzterArtikelIId));
 				}
 
 			} else {
 				// einen alten Eintrag laden.
-				losmatDto = DelegateFactory.getInstance()
-						.getFertigungDelegate()
+				losmatDto = DelegateFactory.getInstance().getFertigungDelegate()
 						.lossollmaterialFindByPrimaryKey((Integer) key);
 				dto2Components();
 			}
 			// Differenz
-			if (wnfMenge.getBigDecimal() != null
-					&& wnfAusgegeben.getBigDecimal() != null) {
-				wnfDifferenzMenge.setBigDecimal(wnfMenge.getBigDecimal()
-						.subtract(wnfAusgegeben.getBigDecimal()));
-				BigDecimal bdSoll = wnfMenge.getBigDecimal().multiply(
-						wnfSollpreis.getBigDecimal());
-				BigDecimal bdIst = wnfAusgegeben.getBigDecimal().multiply(
-						wnfIstpreis.getBigDecimal());
+			if (wnfMenge.getBigDecimal() != null && wnfAusgegeben.getBigDecimal() != null) {
+				wnfDifferenzMenge.setBigDecimal(wnfMenge.getBigDecimal().subtract(wnfAusgegeben.getBigDecimal()));
+				BigDecimal bdSoll = wnfMenge.getBigDecimal().multiply(wnfSollpreis.getBigDecimal());
+				BigDecimal bdIst = wnfAusgegeben.getBigDecimal().multiply(wnfIstpreis.getBigDecimal());
 				wnfDifferenzWert.setBigDecimal(bdSoll.subtract(bdIst));
 			} else {
 				wnfDifferenzMenge.setBigDecimal(new BigDecimal(0));
@@ -833,8 +846,7 @@ public class PanelLosMaterial extends PanelBasis implements
 		}
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		super.eventActionUpdate(aE, bNeedNoUpdateI);
 	}
 
@@ -843,8 +855,8 @@ public class PanelLosMaterial extends PanelBasis implements
 	}
 
 	private void dialogQueryLager() throws Throwable {
-		panelQueryFLRLager = ArtikelFilterFactory.getInstance()
-				.createPanelFLRLager(getInternalFrame(), lagerDto.getIId());
+		panelQueryFLRLager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(),
+				lagerDto.getIId());
 		if (lagerDto != null) {
 			panelQueryFLRLager.setSelectedId(lagerDto.getIId());
 		}
@@ -852,8 +864,8 @@ public class PanelLosMaterial extends PanelBasis implements
 	}
 
 	private void dialogQueryMontageart() throws Throwable {
-		panelQueryFLRMontageart = StuecklisteFilterFactory.getInstance()
-				.createPanelFLRMontageart(getInternalFrame(), null);
+		panelQueryFLRMontageart = StuecklisteFilterFactory.getInstance().createPanelFLRMontageart(getInternalFrame(),
+				null);
 		new DialogQuery(panelQueryFLRMontageart);
 	}
 
@@ -864,9 +876,19 @@ public class PanelLosMaterial extends PanelBasis implements
 
 	protected void focusLostWnfMenge() throws Throwable {
 		if (wnfMenge.getBigDecimal() != null) {
-			wnfSollmenge.setBigDecimal(wnfMenge.getBigDecimal().divide(
-					getTabbedPaneLos().getLosDto().getNLosgroesse(),
-					BigDecimal.ROUND_HALF_EVEN));
+
+			if (wcbRuestmenge.isSelected()) {
+				if (wnfMenge.getBigDecimal().doubleValue() < 0) {
+					wnfSollmenge.setBigDecimal(new BigDecimal(-1));
+				} else {
+					wnfSollmenge.setBigDecimal(BigDecimal.ONE);
+				}
+
+			} else {
+				wnfSollmenge.setBigDecimal(wnfMenge.getBigDecimal()
+						.divide(getTabbedPaneLos().getLosDto().getNLosgroesse(), BigDecimal.ROUND_HALF_EVEN));
+			}
+
 		} else {
 			wnfSollmenge.setBigDecimal(null);
 		}
@@ -877,8 +899,7 @@ public class PanelLosMaterial extends PanelBasis implements
 	}
 }
 
-class PanelLosMaterial_wnfMenge_focusAdapter implements
-		java.awt.event.FocusListener {
+class PanelLosMaterial_wnfMenge_focusAdapter implements java.awt.event.FocusListener {
 	private PanelLosMaterial adaptee;
 
 	PanelLosMaterial_wnfMenge_focusAdapter(PanelLosMaterial adaptee) {

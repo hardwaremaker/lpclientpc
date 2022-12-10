@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.bestellung;
 
-
 import java.awt.event.ActionEvent;
 
 import javax.swing.JComponent;
@@ -42,158 +41,161 @@ import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelDialogKommentar;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.system.service.LockMeDto;
 
-
 /**
- * <p><I>Dialog zur Eingabe des internen Kommentars fuer ein Angebot.</I> </p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>30.09.05</I></p>
- * <p> </p>
+ * <p>
+ * <I>Dialog zur Eingabe des internen Kommentars fuer ein Angebot.</I>
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>30.09.05</I>
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Josef Erlinger
  * @version $Revision: 1.3 $
  */
-public class PanelDialogBestellungWEPInternKommentar
-    extends PanelDialogKommentar
-{
-  /**
+public class PanelDialogBestellungWEPInternKommentar extends PanelDialogKommentar {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private final InternalFrameBestellung intFrame;
-  private final TabbedPaneBestellung tpBestellung;
+	private final InternalFrameBestellung intFrame;
+	private final TabbedPaneBestellung tpBestellung;
 
-  /** Wenn der Dialog von aussen geoeffnet wird, muss ein Lock gesetzt werden. */
-  private LockMeDto lockMeBestellung = null;
+	/**
+	 * Wenn der Dialog von aussen geoeffnet wird, muss ein Lock gesetzt werden.
+	 */
+	private LockMeDto lockMeBestellung = null;
 
-  /** Der Kommentar kann intern oder extern sein. */
-  private boolean bInternerKommentar = true;
+	/** Der Kommentar kann intern oder extern sein. */
+	private boolean bInternerKommentar = true;
 
-  public PanelDialogBestellungWEPInternKommentar(InternalFrame internalFrame,
-                                                 String add2TitleI,
-                                                 boolean bInternerKommentarI)
-      throws Throwable {
-    super(internalFrame, add2TitleI);
+	public PanelDialogBestellungWEPInternKommentar(InternalFrame internalFrame, String add2TitleI,
+			boolean bInternerKommentarI) throws Throwable {
+		super(internalFrame, add2TitleI);
 
-    intFrame = (InternalFrameBestellung) getInternalFrame();
-    tpBestellung = intFrame.getTabbedPaneBestellung();
-    bInternerKommentar = bInternerKommentarI;
+		intFrame = (InternalFrameBestellung) getInternalFrame();
+		tpBestellung = intFrame.getTabbedPaneBestellung();
+		bInternerKommentar = bInternerKommentarI;
 
-    jbInit();
-    initComponents();
-    dto2Components();
-  }
+		jbInit();
+		initComponents();
+		dto2Components();
+	}
 
+	private void jbInit() throws Throwable {
+		if (tpBestellung.getBesDto() != null) {
+			lockMeBestellung = new LockMeDto(HelperClient.LOCKME_BESTELLUNG, tpBestellung.getBesDto().getIId() + "",
+					LPMain.getInstance().getCNrUser());
+		}
 
-  private void jbInit()
-      throws Throwable {
-    if (tpBestellung.getBesDto() != null) {
-      lockMeBestellung = new LockMeDto(
-          HelperClient.LOCKME_BESTELLUNG,
-          tpBestellung.getBesDto().getIId() + "",
-          LPMain.getInstance().getCNrUser());
-    }
+		// explizit ausloesen, weil weder new noch update aufgerufen werden
+		eventActionLock(null);
+	}
 
-    // explizit ausloesen, weil weder new noch update aufgerufen werden
-    eventActionLock(null);
-  }
+	private void dto2Components() throws Throwable {
+		if (this.bInternerKommentar) {
+			getLpEditor().setText(tpBestellung.getWareneingangspositionenDto().getXInternerKommentar());
+			setCBestehenderKommentar(tpBestellung.getWareneingangspositionenDto().getXInternerKommentar());
+		} else {
+			getLpEditor().setText(tpBestellung.getWareneingangspositionenDto().getXInternerKommentar());
+			setCBestehenderKommentar(tpBestellung.getWareneingangspositionenDto().getXInternerKommentar());
+		}
+	}
 
+	@Override
+	protected boolean isEditable() throws Throwable {
+		return true;
+		
+		// tpBestellung ist zu diesem Zeitpunkt noch nicht gesetzt (aus dem Constructor aufgerufen)
+//		boolean editable = 
+//				tpBestellung.getCachedRights().containsKey(RechteFac.RECHT_BES_BESTELLUNG_CUD) ||
+//				tpBestellung.getCachedRights().containsKey(RechteFac.RECHT_BES_WARENEINGANG_CUD);
+//		return editable;
+	}
 
-  private void dto2Components()
-      throws Throwable {
-    if (this.bInternerKommentar) {
-      getLpEditor().setText(tpBestellung.getWareneingangspositionenDto().
-                            getXInternerKommentar());
-      setCBestehenderKommentar(tpBestellung.getWareneingangspositionenDto().
-                               getXInternerKommentar());
-    }
-    else {
-      getLpEditor().setText(tpBestellung.getWareneingangspositionenDto().
-                            getXInternerKommentar());
-      setCBestehenderKommentar(tpBestellung.getWareneingangspositionenDto().
-                               getXInternerKommentar());
-    }
-  }
+	public void setEditable() throws Throwable {
+		boolean editable = 
+				tpBestellung.getCachedRights().getValueOfKey(RechteFac.RECHT_BES_BESTELLUNG_CUD) ||
+				tpBestellung.getCachedRights().getValueOfKey(RechteFac.RECHT_BES_WARENEINGANG_CUD);
+		
+		LPButtonAction lpAction = getHmOfButtons().get(ACTION_SPECIAL_SAVE);
+		lpAction.getButton().setVisible(editable);
+	}
+	
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		super.eventActionSpecial(e);
+		if (super.bHandleEventInSuperklasse) {
+			// explizit aufrufen, weil weder save noch discard aufgerufen werden
+			eventActionUnlock(null);
+			tpBestellung.refreshAktuellesPanel(); // den Titel des aktuellen
+													// Panels setzen
+		}
+	}
 
+	/**
+	 * Den Kommentar im Angebot abspeichern.
+	 * 
+	 * @throws Throwable
+	 *             Ausnahme
+	 */
+	public void saveKommentar() throws Throwable {
+		if (lockMeBestellung != null) {
+			checkLockedDlg(lockMeBestellung);
+		}
+		if (this.bInternerKommentar) {
+			tpBestellung.getWareneingangspositionenDto().setXInternerKommentar(getLpEditor().getText());
+		} else {
+			tpBestellung.getWareneingangspositionenDto().setXInternerKommentar(getLpEditor().getText());
+		}
+		DelegateFactory.getInstance().getWareneingangDelegate()
+				.updateWareneingangspositionInternenKommentar(tpBestellung.getWareneingangspositionenDto());
+	}
 
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-    super.eventActionSpecial(e);
-    if(super.bHandleEventInSuperklasse) {
-      // explizit aufrufen, weil weder save noch discard aufgerufen werden
-      eventActionUnlock(null);
-      tpBestellung.refreshAktuellesPanel(); // den Titel des aktuellen Panels setzen
-    }
-  }
+	protected String getLockMeWer() {
+		return HelperClient.LOCKME_BESTELLUNG;
+	}
 
+	protected void eventActionLock(ActionEvent e) throws Throwable {
+		if (lockMeBestellung != null) {
+			// Zugehoerige Bestellung locken.
+			super.lock(lockMeBestellung);
+		}
+	}
 
-  /**
-   * Den Kommentar im Angebot abspeichern.
-   * @throws Throwable Ausnahme
-   */
-  public void saveKommentar()
-      throws Throwable {
-    if (lockMeBestellung != null) {
-      checkLockedDlg(lockMeBestellung);
-    }
-    if (this.bInternerKommentar) {
-      tpBestellung.getWareneingangspositionenDto().setXInternerKommentar(getLpEditor().
-          getText());
-    }
-    else {
-      tpBestellung.getWareneingangspositionenDto().setXInternerKommentar(getLpEditor().
-          getText());
-    }
-    DelegateFactory.getInstance().getWareneingangDelegate().
-        updateWareneingangspositionInternenKommentar(tpBestellung.
-        getWareneingangspositionenDto());
-  }
+	protected void eventActionUnlock(ActionEvent e) throws Throwable {
+		if (lockMeBestellung != null) {
+			// Zugehoeriges Angebot locken.
+			super.unlock(lockMeBestellung);
+		}
+	}
 
+	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
 
-  protected String getLockMeWer() {
-    return HelperClient.LOCKME_BESTELLUNG;
-  }
+		LockStateValue lockstateValue = super.getLockedstateDetailMainKey();
+		if (lockstateValue.getIState() == LOCK_IS_NOT_LOCKED && lockMeBestellung != null) {
+			int iLockstate = getLockedByWerWas(lockMeBestellung);
 
+			if (iLockstate == LOCK_IS_LOCKED_BY_ME) {
+				iLockstate = LOCK_IS_LOCKED_BY_OTHER_USER; // anderes Modul hat
+															// gelock zB Partner
+			}
 
-  protected void eventActionLock(ActionEvent e)
-      throws Throwable {
-    if (lockMeBestellung != null) {
-      // Zugehoerige Bestellung locken.
-      super.lock(lockMeBestellung);
-    }
-  }
+			lockstateValue.setIState(iLockstate);
+		}
 
+		return lockstateValue;
+	}
 
-  protected void eventActionUnlock(ActionEvent e)
-      throws Throwable {
-    if (lockMeBestellung != null) {
-      // Zugehoeriges Angebot locken.
-      super.unlock(lockMeBestellung);
-    }
-  }
-
-
-  public LockStateValue getLockedstateDetailMainKey()
-      throws Throwable {
-
-    LockStateValue lockstateValue = super.getLockedstateDetailMainKey();
-    if (lockstateValue.getIState() == LOCK_IS_NOT_LOCKED && lockMeBestellung != null) {
-      int iLockstate = getLockedByWerWas(lockMeBestellung);
-
-      if (iLockstate == LOCK_IS_LOCKED_BY_ME) {
-        iLockstate = LOCK_IS_LOCKED_BY_OTHER_USER; // anderes Modul hat gelock zB Partner
-      }
-
-      lockstateValue.setIState(iLockstate);
-    }
-
-    return lockstateValue;
-  }
-
-
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return NO_VALUE_THATS_OK_JCOMPONENT;
-  }
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return NO_VALUE_THATS_OK_JCOMPONENT;
+	}
 }

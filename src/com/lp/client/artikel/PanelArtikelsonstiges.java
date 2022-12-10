@@ -40,9 +40,13 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.EventObject;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
@@ -52,7 +56,11 @@ import javax.swing.border.EtchedBorder;
 import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.finanz.FinanzFilterFactory;
+import com.lp.client.frame.Defaults;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -61,11 +69,13 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperFormattedTextField;
 import com.lp.client.frame.component.WrapperGotoButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
@@ -74,8 +84,12 @@ import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.SollverkaufDto;
 import com.lp.server.finanz.service.WarenverkehrsnummerDto;
+import com.lp.server.stueckliste.service.StuecklisteDto;
+import com.lp.server.stueckliste.service.StuecklisteFac;
 import com.lp.server.system.service.LandDto;
 import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
@@ -103,9 +117,18 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	private WrapperLabel wlaMinutenfaktor1 = new WrapperLabel();
 	private WrapperNumberField wrapperNumberFieldMinutenfaktor1 = new WrapperNumberField();
 	private WrapperLabel wlaMinutenfaktor2 = new WrapperLabel();
+
+	private WrapperLabel wlaMinutenfaktor1Einheit = new WrapperLabel();
+	private WrapperLabel wlaMinutenfaktor2Einheit = new WrapperLabel();
+
+	private WrapperCheckBox wcbVKPreispflichtig = new WrapperCheckBox();
+	
 	private WrapperNumberField wnfMinutenfaktor2 = new WrapperNumberField();
 	private WrapperLabel wlaVerpackungsmenge = new WrapperLabel();
 	private WrapperNumberField wnfVerpackungsmenge = new WrapperNumberField();
+	private WrapperLabel wlaMindestverkaufsmenge = new WrapperLabel();
+	private WrapperNumberField wnfMindestverkaufsmenge = new WrapperNumberField();
+
 	private WrapperNumberField wnfMindestdeckungsbeitrag = new WrapperNumberField();
 	private WrapperLabel wlaMindestdeckungsbeitrag = new WrapperLabel();
 	private WrapperLabel wla8 = new WrapperLabel();
@@ -121,17 +144,23 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	private WrapperTextField wtfVerpackungsean = new WrapperTextField();
 	private WrapperButton wbuWarenverkehrsnummer = new WrapperButton();
 	private WrapperFormattedTextField wtfWarenverkehrsnummer = new WrapperFormattedTextField();
-	private WrapperCheckBox wcoSeriennummer = new WrapperCheckBox();
 	private WrapperCheckBox wcoLagerbewertet = new WrapperCheckBox();
-	private WrapperCheckBox wcoChargennummer = new WrapperCheckBox();
 	private WrapperCheckBox wcoRabattierbar = new WrapperCheckBox();
+	private WrapperCheckBox wcoRahmenartikel = new WrapperCheckBox();
+	private WrapperCheckBox wcoKommissionieren = new WrapperCheckBox();
+	private WrapperCheckBox wcoKeineLagerzubuchung = new WrapperCheckBox();
 	private WrapperCheckBox wcoDokumentenpflicht = new WrapperCheckBox();
 	private WrapperCheckBox wcoLagerbewirtschaftet = new WrapperCheckBox();
 	private WrapperCheckBox wcoVerleih = new WrapperCheckBox();
 	private WrapperCheckBox wcoWerbeabgabepflichtig = new WrapperCheckBox();
+	private WrapperCheckBox wcoAZInABNachkalkulation = new WrapperCheckBox();
+
+	private WrapperComboBox wcoSnrChnr = new WrapperComboBox();
+
+	private WrapperNumberField wnfLaengeSnrMin = new WrapperNumberField();
+	private WrapperNumberField wnfLaengeSnrMax = new WrapperNumberField();
 
 	private WrapperLabel wlaLetzteWartung = new WrapperLabel();
-	private WrapperLabel wlaLetzteWartungPersonal = new WrapperLabel();
 	private WrapperDateField wdfLetzteWartung = new WrapperDateField();
 
 	private WrapperLabel wlaWartungsintervall = new WrapperLabel();
@@ -140,18 +169,29 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	private WrapperNumberField wnfSofortverbrauch = new WrapperNumberField();
 
 	private WrapperGotoButton wbuZugehoerigerArtikel = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_ARTIKEL_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_ARTIKEL_AUSWAHL);
 
 	private WrapperTextField wtfZugehoerigerArtikel = new WrapperTextField();
+	private WrapperNumberField wnfZugehoerigerArtikelMultiplikator = new WrapperNumberField();
+	private WrapperCheckBox wcoMultiplikatorEinsDurch = new WrapperCheckBox();
+	private WrapperCheckBox wcoMultiplikatorAufrunden = new WrapperCheckBox();
+	
 
 	private WrapperButton wbuUrsprungsland = new WrapperButton();
 	private WrapperTextField wtfUrsprungsland = new WrapperTextField();
 
-	private WrapperGotoButton wbuErsatzArtikel = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_ARTIKEL_AUSWAHL);
+	private WrapperGotoButton wbuErsatzArtikel = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_ARTIKEL_AUSWAHL);
 
 	private WrapperTextField wtfErsatzArtikel = new WrapperTextField();
 
+	private WrapperLabel wlaVerpackungsmittelMenge = new WrapperLabel();
+	private WrapperNumberField wnfVerpackungsmittelMenge = new WrapperNumberField();
+	private WrapperSelectField wsfVerpackungsmittel = new WrapperSelectField(WrapperSelectField.VERPACKUNGSMITTEL,
+			getInternalFrame(), true);
+
+	private WrapperCheckBox wcoBewilligungspflichtig = new WrapperCheckBox();
+	private WrapperCheckBox wcoMeldepflichtig = new WrapperCheckBox();
+	
 	private PanelQueryFLR panelQueryFLRArtikel = null;
 	private PanelQueryFLR panelQueryFLRErsatzArtikel = null;
 	private PanelQueryFLR panelQueryFLRWarenverkehrsnummer = null;
@@ -160,7 +200,8 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	static final public String ACTION_SPECIAL_ARTIKELERSATZ_FROM_LISTE = "ACTION_SPECIAL_ARTIKELERSATZ_FROM_LISTE";
 	static final public String ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE = "ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE";
 	static final public String ACTION_SPECIAL_LAND_FROM_LISTE = "ACTION_SPECIAL_LAND_FROM_LISTE";
-	private WrapperLabel wlaDummy = new WrapperLabel();
+	static final private String ACTION_SPECIAL_GENERIERE_VERKAUFSEAN = "ACTION_SPECIAL_GENERIERE_VERKAUFSEAN";
+
 	private WrapperLabel wlaZBez2 = new WrapperLabel();
 	private WrapperLabel wlaZbez = new WrapperLabel();
 	private WrapperLabel wlaBezeichnung = new WrapperLabel();
@@ -169,12 +210,16 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	private WrapperTextField wtfZBezStd = new WrapperTextField();
 	private WrapperTextField wtfZBez2Std = new WrapperTextField();
 	private WrapperTextField wtfArtikelnummer = new WrapperTextField();
-	private Border border1;
 	private WrapperLabel wla1 = new WrapperLabel();
 	private WrapperLabel wla3 = new WrapperLabel();
+	private WrapperLabel wlaArtikeleinheit = new WrapperLabel();
+	private WrapperButton wbuGeneriereVerkaufsean = new WrapperButton();
+	private JPanel panelVerkaufsean = new JPanel();
 
-	public PanelArtikelsonstiges(InternalFrame internalFrame,
-			String add2TitleI, Object pk) throws Throwable {
+	private WrapperLabel wlaPreisZugehoerigerartikel = new WrapperLabel();
+	private WrapperNumberField wnfPreisZugehoerigerartikel = new WrapperNumberField();
+	
+	public PanelArtikelsonstiges(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameArtikel = (InternalFrameArtikel) internalFrame;
 		jbInit();
@@ -193,70 +238,51 @@ public class PanelArtikelsonstiges extends PanelBasis {
 
 	void dialogQueryArtikelFromListe(ActionEvent e) throws Throwable {
 
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-				PanelBasis.ACTION_LEEREN };
-		panelQueryFLRArtikel = new PanelQueryFLR(
-				null,
-				ArtikelFilterFactory.getInstance().createFKArtikelliste(),
-				com.lp.server.util.fastlanereader.service.query.QueryParameters.UC_ID_ARTIKELLISTE,
-				aWhichButtonIUse, getInternalFrame(), LPMain.getInstance()
-						.getTextRespectUISPr("title.artikelauswahlliste"),
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_LEEREN };
+		panelQueryFLRArtikel = new PanelQueryFLR(null, ArtikelFilterFactory.getInstance().createFKArtikelliste(),
+				com.lp.server.util.fastlanereader.service.query.QueryParameters.UC_ID_ARTIKELLISTE, aWhichButtonIUse,
+				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("title.artikelauswahlliste"),
 				ArtikelFilterFactory.getInstance().createFKVArtikel(), null);
-		panelQueryFLRArtikel.setFilterComboBox(DelegateFactory.getInstance()
-				.getArtikelDelegate().getAllSprArtgru(), new FilterKriterium(
-				"ag.i_id", true, "" + "", FilterKriterium.OPERATOR_IN, false),
-				false, LPMain.getTextRespectUISPr("lp.alle"),false);
+		panelQueryFLRArtikel.setFilterComboBox(DelegateFactory.getInstance().getArtikelDelegate().getAllSprArtgru(),
+				new FilterKriterium("ag.i_id", true, "" + "", FilterKriterium.OPERATOR_IN, false), false,
+				LPMain.getTextRespectUISPr("lp.alle"), false);
 		panelQueryFLRArtikel.befuellePanelFilterkriterienDirekt(
-				ArtikelFilterFactory.getInstance().createFKDArtikelnummer(
-						internalFrameArtikel), ArtikelFilterFactory
-						.getInstance().createFKDVolltextsuche());
-		panelQueryFLRArtikel
-				.setSelectedId(artikelDto.getArtikelIIdZugehoerig());
+				ArtikelFilterFactory.getInstance().createFKDArtikelnummer(internalFrameArtikel),
+				ArtikelFilterFactory.getInstance().createFKDVolltextsuche());
+		panelQueryFLRArtikel.setSelectedId(artikelDto.getArtikelIIdZugehoerig());
 		new DialogQuery(panelQueryFLRArtikel);
 	}
 
 	void dialogQueryErsatzArtikelFromListe(ActionEvent e) throws Throwable {
 
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-				PanelBasis.ACTION_LEEREN };
-		panelQueryFLRErsatzArtikel = new PanelQueryFLR(
-				null,
-				ArtikelFilterFactory.getInstance().createFKArtikelliste(),
-				com.lp.server.util.fastlanereader.service.query.QueryParameters.UC_ID_ARTIKELLISTE,
-				aWhichButtonIUse, getInternalFrame(), LPMain.getInstance()
-						.getTextRespectUISPr("title.artikelauswahlliste"),
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_LEEREN };
+		panelQueryFLRErsatzArtikel = new PanelQueryFLR(null, ArtikelFilterFactory.getInstance().createFKArtikelliste(),
+				com.lp.server.util.fastlanereader.service.query.QueryParameters.UC_ID_ARTIKELLISTE, aWhichButtonIUse,
+				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("title.artikelauswahlliste"),
 				ArtikelFilterFactory.getInstance().createFKVArtikel(), null);
-		panelQueryFLRErsatzArtikel.setFilterComboBox(DelegateFactory
-				.getInstance().getArtikelDelegate().getAllSprArtgru(),
-				new FilterKriterium("ag.i_id", true, "" + "",
-						FilterKriterium.OPERATOR_IN, false), false, LPMain
-						.getTextRespectUISPr("lp.alle"),false);
+		panelQueryFLRErsatzArtikel.setFilterComboBox(
+				DelegateFactory.getInstance().getArtikelDelegate().getAllSprArtgru(),
+				new FilterKriterium("ag.i_id", true, "" + "", FilterKriterium.OPERATOR_IN, false), false,
+				LPMain.getTextRespectUISPr("lp.alle"), false);
 		panelQueryFLRErsatzArtikel.befuellePanelFilterkriterienDirekt(
-				ArtikelFilterFactory.getInstance().createFKDArtikelnummer(
-						internalFrameArtikel), ArtikelFilterFactory
-						.getInstance().createFKDVolltextsuche());
-		panelQueryFLRErsatzArtikel.setSelectedId(artikelDto
-				.getArtikelIIdErsatz());
+				ArtikelFilterFactory.getInstance().createFKDArtikelnummer(internalFrameArtikel),
+				ArtikelFilterFactory.getInstance().createFKDVolltextsuche());
+		panelQueryFLRErsatzArtikel.setSelectedId(artikelDto.getArtikelIIdErsatz());
 		new DialogQuery(panelQueryFLRErsatzArtikel);
 	}
 
-	void dialogQueryWarenverkehrsnummerFromListe(ActionEvent e)
-			throws Throwable {
+	void dialogQueryWarenverkehrsnummerFromListe(ActionEvent e) throws Throwable {
 		panelQueryFLRWarenverkehrsnummer = FinanzFilterFactory.getInstance()
-				.createPanelFLRWarenverkehrsnummer(getInternalFrame(),
-						wtfWarenverkehrsnummer.getFormattedText());
+				.createPanelFLRWarenverkehrsnummer(getInternalFrame(), wtfWarenverkehrsnummer.getFormattedText());
 		new DialogQuery(panelQueryFLRWarenverkehrsnummer);
 
 	}
 
 	void dialogQueryLandFromListe(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRLand = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_LAND, aWhichButtonIUse,
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"title.landauswahlliste"));
+		panelQueryFLRLand = new PanelQueryFLR(null, null, QueryParameters.UC_ID_LAND, aWhichButtonIUse,
+				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("title.landauswahlliste"));
 
 		panelQueryFLRLand.setSelectedId(artikelDto.getLandIIdUrsprungsland());
 
@@ -266,56 +292,63 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_ARTIKEL_FROM_LISTE)) {
 			dialogQueryArtikelFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ARTIKELERSATZ_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ARTIKELERSATZ_FROM_LISTE)) {
 			dialogQueryErsatzArtikelFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE)) {
 			dialogQueryWarenverkehrsnummerFromListe(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LAND_FROM_LISTE)) {
 			dialogQueryLandFromListe(e);
+		} else if (ACTION_SPECIAL_GENERIERE_VERKAUFSEAN.equals(e.getActionCommand())) {
+			actionGeneriereVerkaufsean();
 		}
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	private void actionGeneriereVerkaufsean() throws ExceptionLP, Throwable {
+		String verkaufsean = DelegateFactory.getInstance().getArtikelDelegate()
+				.generiereGTIN13Nummer(artikelDto.getIId());
+		wtfVerkaufsean.setText(verkaufsean);
+	}
+
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 
-			ArtikelDto artikelTempDto = DelegateFactory.getInstance()
-					.getArtikelDelegate()
+			if (artikelDto.getArtikelIIdZugehoerig() != null) {
+				StuecklisteDto stklDto = DelegateFactory.getInstance().getStuecklisteDelegate()
+						.stuecklisteFindByMandantCNrArtikelIIdOhneExc(artikelDto.getIId());
+				if (stklDto != null
+						&& stklDto.getStuecklisteartCNr().equals(StuecklisteFac.STUECKLISTEART_SETARTIKEL)) {
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"), LPMain
+							.getInstance().getTextRespectUISPr("artikel.zugehoerigerartikel.undsetnichtmoeglich"));
+
+					return;
+				}
+			}
+
+			ArtikelDto artikelTempDto = DelegateFactory.getInstance().getArtikelDelegate()
 					.artikelFindByPrimaryKey(artikelDto.getIId());
 
 			if (Helper.short2boolean(artikelTempDto.getBLagerbewirtschaftet()) == true
-					&& Helper.short2boolean(artikelDto
-							.getBLagerbewirtschaftet()) == false) {
+					&& Helper.short2boolean(artikelDto.getBLagerbewirtschaftet()) == false) {
 
-				boolean b = DialogFactory.showModalJaNeinDialog(
-						getInternalFrame(),
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.error.wechsel.lagerbewirtschaftet"),
-						LPMain.getTextRespectUISPr("lp.warning"),
-						JOptionPane.WARNING_MESSAGE, JOptionPane.NO_OPTION);
+				boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("artikel.error.wechsel.lagerbewirtschaftet"),
+						LPMain.getTextRespectUISPr("lp.warning"), JOptionPane.WARNING_MESSAGE, JOptionPane.NO_OPTION);
 
 				if (b == false) {
 					return;
 				}
 
 				Object[] aOptionen = new Object[2];
-				aOptionen[0] = LPMain
-						.getInstance()
-						.getTextRespectUISPr(
-								"artikel.error.wechsel.lagerbewirtschaftet.nichtdurchfuehren");
-				aOptionen[1] = LPMain.getInstance().getTextRespectUISPr(
-						"artikel.error.wechsel.lagerbewirtschaftet.jasicher");
+				aOptionen[0] = LPMain.getInstance()
+						.getTextRespectUISPr("artikel.error.wechsel.lagerbewirtschaftet.nichtdurchfuehren");
+				aOptionen[1] = LPMain.getInstance()
+						.getTextRespectUISPr("artikel.error.wechsel.lagerbewirtschaftet.jasicher");
 
-				int iAuswahl = DialogFactory.showModalDialog(
-						getInternalFrame(),
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.error.wechsel.lagerbewirtschaftet2"),
-						LPMain.getInstance().getTextRespectUISPr("lp.warning"),
-						aOptionen, aOptionen[0]);
+				int iAuswahl = DialogFactory.showModalDialog(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("artikel.error.wechsel.lagerbewirtschaftet2"),
+						LPMain.getInstance().getTextRespectUISPr("lp.warning"), aOptionen, aOptionen[0]);
 
 				if (iAuswahl != 1) {
 					return;
@@ -326,29 +359,21 @@ public class PanelArtikelsonstiges extends PanelBasis {
 			// PJ16141
 			if (Helper.short2boolean(artikelTempDto.getBChargennrtragend()) != Helper
 					.short2boolean(artikelDto.getBChargennrtragend())
-					&& DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.sindBereitsLagerbewegungenVorhanden(
-									artikelDto.getIId())) {
-				boolean b = DialogFactory.showModalJaNeinDialog(
-						getInternalFrame(),
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.error.wechsel.chnrbehaftet"));
+					&& DelegateFactory.getInstance().getLagerDelegate()
+							.sindBereitsLagerbewegungenVorhanden(artikelDto.getIId())) {
+				boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("artikel.error.wechsel.chnrbehaftet"));
 				if (b == true) {
-					DelegateFactory.getInstance().getArtikelDelegate()
-							.updateArtikel(artikelDto);
+					DelegateFactory.getInstance().getArtikelDelegate().updateArtikel(artikelDto);
 				}
 
 			} else {
-				DelegateFactory.getInstance().getArtikelDelegate()
-						.updateArtikel(artikelDto);
+				DelegateFactory.getInstance().getArtikelDelegate().updateArtikel(artikelDto);
 			}
 
 			artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 					.artikelFindByPrimaryKey(artikelDto.getIId());
-			((InternalFrameArtikel) getInternalFrame())
-					.setArtikelDto(artikelDto);
+			((InternalFrameArtikel) getInternalFrame()).setArtikelDto(artikelDto);
 			super.eventActionSave(e, true);
 		}
 		eventYouAreSelected(false);
@@ -360,47 +385,29 @@ public class PanelArtikelsonstiges extends PanelBasis {
 
 			if (e.getSource() == panelQueryFLRArtikel) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtikelDto artikelTempDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto artikelTempDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey((Integer) key);
-				if (artikelTempDto.getIId().equals(
-						internalFrameArtikel.getArtikelDto().getIId())) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.error"),
-									LPMain.getInstance()
-											.getTextRespectUISPr(
-													"artikel.error.kannnichtselbstzugeordnetwerden"));
+				if (artikelTempDto.getIId().equals(internalFrameArtikel.getArtikelDto().getIId())) {
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+							LPMain.getInstance().getTextRespectUISPr("artikel.error.kannnichtselbstzugeordnetwerden"));
 				} else {
-					wtfZugehoerigerArtikel.setText(artikelTempDto
-							.formatArtikelbezeichnung());
+					wtfZugehoerigerArtikel.setText(artikelTempDto.formatArtikelbezeichnung());
 					artikelDto.setArtikelIIdZugehoerig(artikelTempDto.getIId());
 				}
 			} else if (e.getSource() == panelQueryFLRErsatzArtikel) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtikelDto artikelTempDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto artikelTempDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey((Integer) key);
-				if (artikelTempDto.getIId().equals(
-						internalFrameArtikel.getArtikelDto().getIId())) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.error"),
-									LPMain.getInstance()
-											.getTextRespectUISPr(
-													"artikel.error.kannnichtselbstzugeordnetwerden"));
+				if (artikelTempDto.getIId().equals(internalFrameArtikel.getArtikelDto().getIId())) {
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+							LPMain.getInstance().getTextRespectUISPr("artikel.error.kannnichtselbstzugeordnetwerden"));
 				} else {
-					wtfErsatzArtikel.setText(artikelTempDto
-							.formatArtikelbezeichnung());
+					wtfErsatzArtikel.setText(artikelTempDto.formatArtikelbezeichnung());
 					artikelDto.setArtikelIIdErsatz(artikelTempDto.getIId());
 				}
 			} else if (e.getSource() == panelQueryFLRLand) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LandDto landDto = DelegateFactory.getInstance()
-						.getSystemDelegate()
-						.landFindByPrimaryKey((Integer) key);
+				LandDto landDto = DelegateFactory.getInstance().getSystemDelegate().landFindByPrimaryKey((Integer) key);
 				wtfUrsprungsland.setText(landDto.getCLkz());
 				artikelDto.setLandIIdUrsprungsland(landDto.getIID());
 			}
@@ -429,18 +436,33 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	}
 
 	protected void dto2Components() throws Throwable {
-		wnfMaxvertreterprovision.setDouble(artikelDto
-				.getFVertreterprovisionmax());
-		wnfMindestdeckungsbeitrag.setDouble(artikelDto
-				.getFMindestdeckungsbeitrag());
-		wrapperNumberFieldMinutenfaktor1.setDouble(artikelDto
-				.getFMinutenfaktor1());
+
+		wnfLaengeSnrMin.setInteger(artikelDto.getILaengeminSnrchnr());
+		wnfLaengeSnrMax.setInteger(artikelDto.getILaengemaxSnrchnr());
+
+		wcbVKPreispflichtig.setShort(artikelDto.getBVkpreispflichtig());
+		
+		wnfMaxvertreterprovision.setDouble(artikelDto.getFVertreterprovisionmax());
+		wnfMindestdeckungsbeitrag.setDouble(artikelDto.getFMindestdeckungsbeitrag());
+		wrapperNumberFieldMinutenfaktor1.setDouble(artikelDto.getFMinutenfaktor1());
 		wnfMinutenfaktor2.setDouble(artikelDto.getFMinutenfaktor2());
 		wnfVerpackungsmenge.setDouble(artikelDto.getFVerpackungsmenge());
 
-		wlaEinheitVerpackungsmenge.setText(artikelDto.getEinheitCNr());
+		wnfMindestverkaufsmenge.setBigDecimal(artikelDto.getNMindestverkaufsmenge());
+
+		wlaEinheitVerpackungsmenge.setText(artikelDto.getEinheitCNr().trim());
+		wlaArtikeleinheit.setText(artikelDto.getEinheitCNr().trim());
 
 		wtfEccn.setText(artikelDto.getCEccn());
+
+		wnfZugehoerigerArtikelMultiplikator.setDouble(artikelDto.getFMultiplikatorZugehoerigerartikel());
+		wcoMultiplikatorAufrunden.setShort(artikelDto.getBMultiplikatorAufrunden());
+		wcoMultiplikatorEinsDurch.setShort(artikelDto.getBMultiplikatorInvers());
+		
+		wcoMeldepflichtig.setShort(artikelDto.getBMeldepflichtig());
+		wcoBewilligungspflichtig.setShort(artikelDto.getBBewilligungspflichtig());
+		
+		wcoAZInABNachkalkulation.setShort(artikelDto.getBAzinabnachkalk());
 
 		wtfVerkaufsean.setText(artikelDto.getCVerkaufseannr());
 		wtfVerpackungsean.setText(artikelDto.getCVerpackungseannr());
@@ -451,23 +473,46 @@ public class PanelArtikelsonstiges extends PanelBasis {
 
 		wdfLetzteWartung.setTimestamp(artikelDto.getTLetztewartung());
 
+		wnfVerpackungsmittelMenge.setBigDecimal(artikelDto.getNVerpackungsmittelmenge());
+		wsfVerpackungsmittel.setKey(artikelDto.getVerpackungsmittelIId());
+
+		wlaLetzteWartung.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.letztewartung"));
+
 		if (artikelDto.getPersonalIIdLetztewartung() != null) {
-			wlaLetzteWartungPersonal.setText(DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
-					.personalFindByPrimaryKey(
-							artikelDto.getPersonalIIdLetztewartung())
-					.getCKurzzeichen());
-		} else {
-			wlaLetzteWartungPersonal.setText(null);
+			wlaLetzteWartung.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.letztewartung") + " ("
+					+ DelegateFactory.getInstance().getPersonalDelegate()
+							.personalFindByPrimaryKey(artikelDto.getPersonalIIdLetztewartung()).getCKurzzeichen()
+					+ ")");
+		}
+
+		wlaWartungsintervall.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.wartungsintervall"));
+		if (wdfLetzteWartung.getTimestamp() != null && wnfWartungsintervall.getInteger() != null) {
+			Calendar c = Calendar.getInstance();
+			c.setTimeInMillis(wdfLetzteWartung.getTimestamp().getTime());
+			c.add(Calendar.MONTH, wnfWartungsintervall.getInteger());
+
+			String s = "<font color=\"#FF0000\">"
+					+ LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.naechstewartung") + "</font>";
+
+			if (c.getTime().before(new java.util.Date())) {
+				s = "<font color=\"#FF0000\">"
+						+ LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.naechstewartung") +  Helper.formatDatum(c.getTime(), LPMain.getTheClient().getLocUi()) + "</font>" +"&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp "+LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.wartungsintervall");
+			} else {
+				s = LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.naechstewartung") +  Helper.formatDatum(c.getTime(), LPMain.getTheClient().getLocUi()) + "&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp "+LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.wartungsintervall");
+			
+			}
+
+			
+			s="<html>"+s+"<body></body><2html>";
+			
+			wlaWartungsintervall.setText(s);
+
 		}
 
 		if (artikelDto.getCWarenverkehrsnummer() == null
-				|| Helper.checkWarenverkehrsnummer(artikelDto
-						.getCWarenverkehrsnummer().trim())
+				|| Helper.checkWarenverkehrsnummer(artikelDto.getCWarenverkehrsnummer().trim())
 				|| artikelDto.getCWarenverkehrsnummer().length() == 0) {
-			wtfWarenverkehrsnummer.setForeground(new WrapperTextField()
-					.getForeground());
+			wtfWarenverkehrsnummer.setForeground(new WrapperTextField().getForeground());
 		} else {
 			wtfWarenverkehrsnummer.setForeground(Color.red);
 		}
@@ -480,8 +525,18 @@ public class PanelArtikelsonstiges extends PanelBasis {
 			wtfUrsprungsland.setText(null);
 		}
 
-		wcoSeriennummer.setShort(artikelDto.getBSeriennrtragend());
-		wcoChargennummer.setShort(artikelDto.getBChargennrtragend());
+		wcoRahmenartikel.setShort(artikelDto.getBRahmenartikel());
+		wcoKeineLagerzubuchung.setShort(artikelDto.getBKeineLagerzubuchung());
+		wcoKommissionieren.setShort(artikelDto.getBKommissionieren());
+
+		if (artikelDto.isChargennrtragend()) {
+			wcoSnrChnr.setKeyOfSelectedItem(ArtikelFac.SNRCHNR_CHNRBEHAFTET);
+		} else if (artikelDto.isSeriennrtragend()) {
+			wcoSnrChnr.setKeyOfSelectedItem(ArtikelFac.SNRCHNR_SNRBEHAFTET);
+		} else {
+			wcoSnrChnr.setKeyOfSelectedItem(ArtikelFac.SNRCHNR_OHNE);
+		}
+
 		wcoRabattierbar.setShort(artikelDto.getBRabattierbar());
 		wcoDokumentenpflicht.setShort(artikelDto.getBDokumentenpflicht());
 		wcoWerbeabgabepflichtig.setShort(artikelDto.getBWerbeabgabepflichtig());
@@ -490,18 +545,13 @@ public class PanelArtikelsonstiges extends PanelBasis {
 		wcoLagerbewirtschaftet.setShort(artikelDto.getBLagerbewirtschaftet());
 		wnfGarantiezeit.setInteger(artikelDto.getIGarantiezeit());
 		if (artikelDto.getSollverkaufDto() != null) {
-			wnfAufschlag.setDouble(artikelDto.getSollverkaufDto()
-					.getFAufschlag());
+			wnfAufschlag.setDouble(artikelDto.getSollverkaufDto().getFAufschlag());
 			wnfSoll.setDouble(artikelDto.getSollverkaufDto().getFSollverkauf());
 		}
 		if (artikelDto.getArtikelIIdZugehoerig() != null) {
-			ArtikelDto artikelDtoTemp = DelegateFactory
-					.getInstance()
-					.getArtikelDelegate()
-					.artikelFindByPrimaryKey(
-							artikelDto.getArtikelIIdZugehoerig());
-			wtfZugehoerigerArtikel.setText(artikelDtoTemp
-					.formatArtikelbezeichnung());
+			ArtikelDto artikelDtoTemp = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(artikelDto.getArtikelIIdZugehoerig());
+			wtfZugehoerigerArtikel.setText(artikelDtoTemp.formatArtikelbezeichnung());
 		} else {
 			wtfZugehoerigerArtikel.setText(null);
 		}
@@ -509,8 +559,7 @@ public class PanelArtikelsonstiges extends PanelBasis {
 		wbuZugehoerigerArtikel.setOKey(artikelDto.getArtikelIIdZugehoerig());
 
 		if (artikelDto.getArtikelIIdErsatz() != null) {
-			ArtikelDto artikelDtoTemp = DelegateFactory.getInstance()
-					.getArtikelDelegate()
+			ArtikelDto artikelDtoTemp = DelegateFactory.getInstance().getArtikelDelegate()
 					.artikelFindByPrimaryKey(artikelDto.getArtikelIIdErsatz());
 			wtfErsatzArtikel.setText(artikelDtoTemp.formatArtikelbezeichnung());
 
@@ -518,8 +567,10 @@ public class PanelArtikelsonstiges extends PanelBasis {
 			wtfErsatzArtikel.setText(null);
 		}
 
-		ArrayList<String> s = DelegateFactory.getInstance()
-				.getArtikelDelegate().getVorgaengerArtikel(artikelDto.getIId());
+		wnfPreisZugehoerigerartikel.setBigDecimal(artikelDto.getNPreisZugehoerigerartikel());
+		
+		ArrayList<String> s = DelegateFactory.getInstance().getArtikelDelegate()
+				.getVorgaengerArtikel(artikelDto.getIId());
 
 		StringBuffer str = new StringBuffer("Vorg\u00E4nger: ");
 		for (int i = 0; i < s.size(); i++) {
@@ -545,53 +596,69 @@ public class PanelArtikelsonstiges extends PanelBasis {
 	}
 
 	protected void components2Dto() throws Throwable {
-		artikelDto.setFVertreterprovisionmax(wnfMaxvertreterprovision
-				.getDouble());
-		artikelDto.setFMindestdeckungsbeitrag(wnfMindestdeckungsbeitrag
-				.getDouble());
-		artikelDto.setFMinutenfaktor1(wrapperNumberFieldMinutenfaktor1
-				.getDouble());
+		artikelDto.setFVertreterprovisionmax(wnfMaxvertreterprovision.getDouble());
+		artikelDto.setFMindestdeckungsbeitrag(wnfMindestdeckungsbeitrag.getDouble());
+		artikelDto.setFMinutenfaktor1(wrapperNumberFieldMinutenfaktor1.getDouble());
 		artikelDto.setFMinutenfaktor2(wnfMinutenfaktor2.getDouble());
 		artikelDto.setIGarantiezeit(wnfGarantiezeit.getInteger());
 		artikelDto.setBRabattierbar(wcoRabattierbar.getShort());
 		artikelDto.setBDokumentenpflicht(wcoDokumentenpflicht.getShort());
 		artikelDto.setBWerbeabgabepflichtig(wcoWerbeabgabepflichtig.getShort());
-		artikelDto.setBSeriennrtragend(wcoSeriennummer.getShort());
-		artikelDto.setBChargennrtragend(wcoChargennummer.getShort());
+		artikelDto.setBVkpreispflichtig(wcbVKPreispflichtig.getShort());
+
+		if (wcoSnrChnr.getKeyOfSelectedItem().equals(ArtikelFac.SNRCHNR_CHNRBEHAFTET)) {
+			artikelDto.setBChargennrtragend(Helper.boolean2Short(true));
+			artikelDto.setBSeriennrtragend(Helper.boolean2Short(false));
+		} else if (wcoSnrChnr.getKeyOfSelectedItem().equals(ArtikelFac.SNRCHNR_SNRBEHAFTET)) {
+			artikelDto.setBChargennrtragend(Helper.boolean2Short(false));
+			artikelDto.setBSeriennrtragend(Helper.boolean2Short(true));
+		} else {
+			artikelDto.setBChargennrtragend(Helper.boolean2Short(false));
+			artikelDto.setBSeriennrtragend(Helper.boolean2Short(false));
+		}
+
+		artikelDto.setILaengeminSnrchnr(wnfLaengeSnrMin.getInteger());
+		artikelDto.setILaengemaxSnrchnr(wnfLaengeSnrMax.getInteger());
+
 		artikelDto.setBLagerbewertet(wcoLagerbewertet.getShort());
 		artikelDto.setBVerleih(wcoVerleih.getShort());
 		artikelDto.setBLagerbewirtschaftet(wcoLagerbewirtschaftet.getShort());
+		artikelDto.setBRahmenartikel(wcoRahmenartikel.getShort());
+		artikelDto.setBKommissionieren(wcoKommissionieren.getShort());
+		artikelDto.setBKeineLagerzubuchung(wcoKeineLagerzubuchung.getShort());
+		artikelDto.setBAzinabnachkalk(wcoAZInABNachkalkulation.getShort());
+		
+		artikelDto.setBMultiplikatorAufrunden(wcoMultiplikatorAufrunden.getShort());
+		artikelDto.setBMultiplikatorInvers(wcoMultiplikatorEinsDurch.getShort());
+		
+		artikelDto.setBMeldepflichtig(wcoMeldepflichtig.getShort());
+		artikelDto.setBBewilligungspflichtig(wcoBewilligungspflichtig.getShort());
+		
 
+		artikelDto.setFMultiplikatorZugehoerigerartikel(wnfZugehoerigerArtikelMultiplikator.getDouble());
 		artikelDto.setIWartungsintervall(wnfWartungsintervall.getInteger());
 		artikelDto.setTLetztewartung(wdfLetzteWartung.getTimestamp());
 		artikelDto.setISofortverbrauch(wnfSofortverbrauch.getInteger());
+		artikelDto.setNMindestverkaufsmenge(wnfMindestverkaufsmenge.getBigDecimal());
+		artikelDto.setNVerpackungsmittelmenge(wnfVerpackungsmittelMenge.getBigDecimal());
+		artikelDto.setVerpackungsmittelIId(wsfVerpackungsmittel.getIKey());
 
 		String sWVN = wtfWarenverkehrsnummer.getFormattedText();
 		if (sWVN != null && !sWVN.equals("")) {
 			// MB: Format pruefen.
-			if (Helper.checkWarenverkehrsnummer(wtfWarenverkehrsnummer
-					.getFormattedText().trim())) {
-				WarenverkehrsnummerDto dto = DelegateFactory
-						.getInstance()
-						.getFinanzServiceDelegate()
-						.warenverkehrsnummerFindByPrimaryKeyOhneExc(
-								wtfWarenverkehrsnummer.getFormattedText()
-										.trim());
+			if (Helper.checkWarenverkehrsnummer(wtfWarenverkehrsnummer.getFormattedText().trim())) {
+				WarenverkehrsnummerDto dto = DelegateFactory.getInstance().getFinanzServiceDelegate()
+						.warenverkehrsnummerFindByPrimaryKeyOhneExc(wtfWarenverkehrsnummer.getFormattedText().trim());
 				if (dto == null) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.warning"),
-									LPMain.getTextRespectUISPr("artikel.error.warenverkehrsnummer"));
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+							LPMain.getTextRespectUISPr("artikel.error.warenverkehrsnummer"));
 				}
 
-				artikelDto.setCWarenverkehrsnummer(wtfWarenverkehrsnummer
-						.getFormattedText());
+				artikelDto.setCWarenverkehrsnummer(wtfWarenverkehrsnummer.getFormattedText());
 
 			} else {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.warning"),
-								LPMain.getTextRespectUISPr("artikel.error.warenverkehrsnummer.format"));
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+						LPMain.getTextRespectUISPr("artikel.error.warenverkehrsnummer.format"));
 			}
 		} else {
 			artikelDto.setCWarenverkehrsnummer(null);
@@ -606,27 +673,34 @@ public class PanelArtikelsonstiges extends PanelBasis {
 		artikelDto.getSollverkaufDto().setFAufschlag(wnfAufschlag.getDouble());
 		artikelDto.getSollverkaufDto().setFSollverkauf(wnfSoll.getDouble());
 		artikelDto.setFVerpackungsmenge(wnfVerpackungsmenge.getDouble());
+		artikelDto.setNPreisZugehoerigerartikel(wnfPreisZugehoerigerartikel.getBigDecimal());
 
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
+
+		wbuZugehoerigerArtikel.setVisible(true);
+		wtfZugehoerigerArtikel.setVisible(true);
+		wnfZugehoerigerArtikelMultiplikator.setVisible(true);
+
 		leereAlleFelder(this);
-		artikelDto = DelegateFactory
-				.getInstance()
-				.getArtikelDelegate()
-				.artikelFindByPrimaryKey(
-						((InternalFrameArtikel) getInternalFrame())
-								.getArtikelDto().getIId());
+		artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+				.artikelFindByPrimaryKey(((InternalFrameArtikel) getInternalFrame()).getArtikelDto().getIId());
+
+		if (Helper.short2boolean(artikelDto.getBKalkulatorisch())) {
+			wbuZugehoerigerArtikel.setVisible(false);
+			wtfZugehoerigerArtikel.setVisible(false);
+			wnfZugehoerigerArtikelMultiplikator.setVisible(false);
+
+		}
+
 		dto2Components();
+		wcoSeriennummer_actionPerformed(null);
 	}
 
 	private void jbInit() throws Throwable {
-		// border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-		border1 = new EtchedBorder(EtchedBorder.RAISED, Color.white, new Color(
-				165, 163, 151));
 		// das Aussenpanel hat immer das Gridbaglayout.
 		gridBagLayoutAll = new GridBagLayout();
 		this.setLayout(gridBagLayoutAll);
@@ -636,46 +710,93 @@ public class PanelArtikelsonstiges extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 		wlaMaxvertreterprovision
-				.setText(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.sonstiges.maxvertreterprovision"));
-		wlaGarantiezeit.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.garantiezeit"));
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.maxvertreterprovision"));
+		wlaGarantiezeit.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.garantiezeit"));
 		wla2.setHorizontalAlignment(SwingConstants.LEFT);
 		wla2.setText("%");
-		wlaInMonaten.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.inmonaten"));
-		wlaMinutenfaktor1.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.minutenfaktor")
-				+ " 1");
-		wlaMinutenfaktor2.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.minutenfaktor")
-				+ " 2");
 
-		wlaVerpackungsmenge.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.verpackungsmenge"));
+		// PJ20380
+		Map m = new LinkedHashMap();
+		wcoSnrChnr.setMandatoryField(true);
+		m.put(ArtikelFac.SNRCHNR_OHNE, LPMain.getTextRespectUISPr("artikel.snrchnr.ohne"));
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SERIENNUMMERN)) {
+
+			m.put(ArtikelFac.SNRCHNR_SNRBEHAFTET, LPMain.getTextRespectUISPr("artikel.snrchnr.snr"));
+		}
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_CHARGENNUMMERN)) {
+
+			m.put(ArtikelFac.SNRCHNR_CHNRBEHAFTET, LPMain.getTextRespectUISPr("artikel.snrchnr.chnr"));
+		}
+
+		wcoSnrChnr.setMap(m, false);
+
+		wnfLaengeSnrMin.setFractionDigits(0);
+		wnfLaengeSnrMax.setFractionDigits(0);
+
+		wnfLaengeSnrMin.setMinimumValue(0);
+		wnfLaengeSnrMax.setMinimumValue(0);
+
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+				ParameterFac.PARAMETER_ARTIKEL_MINDESTLAENGE_SERIENNUMMER);
+
+		Integer iMinlaenge = (Integer) parameter.getCWertAsObject();
+
+		wnfLaengeSnrMin
+				.setToolTipText(LPMain.getMessageTextRespectUISPr("artikel.snrchnr.min.tooltip", iMinlaenge + ""));
+
+		parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+				ParameterFac.PARAMETER_ARTIKEL_MAXIMALELAENGE_SERIENNUMMER);
+
+		Integer iMaxlaenge = (Integer) parameter.getCWertAsObject();
+		wnfLaengeSnrMax
+				.setToolTipText(LPMain.getMessageTextRespectUISPr("artikel.snrchnr.max.tooltip", iMaxlaenge + ""));
+
+		wlaInMonaten.setHorizontalAlignment(SwingConstants.LEFT);
+		wlaMinutenfaktor1Einheit.setHorizontalAlignment(SwingConstants.LEFT);
+		wlaMinutenfaktor2Einheit.setHorizontalAlignment(SwingConstants.LEFT);
+
+		wlaPreisZugehoerigerartikel.setText(LPMain.getInstance().getTextRespectUISPr("artikel.preiszugehoerigerartikel"));
+		wnfPreisZugehoerigerartikel.setFractionDigits(Defaults.getInstance().getIUINachkommastellenPreiseVK());
+		
+		wlaInMonaten.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.inmonaten"));
+		wlaMinutenfaktor1.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.minutenfaktor1"));
+		wlaMinutenfaktor2.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.minutenfaktor2"));
+		wlaMinutenfaktor1Einheit
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.minutenfaktor1einheit"));
+		wlaMinutenfaktor2Einheit
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.minutenfaktor2einheit"));
+
+		wlaVerpackungsmittelMenge.setText(LPMain.getInstance().getTextRespectUISPr("artikel.verpackungsmittelmenge"));
+
+		wnfVerpackungsmittelMenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+
+		wlaMindestverkaufsmenge.setText(LPMain.getInstance().getTextRespectUISPr("artikel.mindestverkaufsmenge"));
+		wnfMindestverkaufsmenge.setFractionDigits(Defaults.getInstance().getIUINachkommastellenMenge());
+
+		wlaVerpackungsmenge.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.verpackungsmenge"));
 		wlaMindestdeckungsbeitrag
-				.setText(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.sonstiges.mindestdeckungsbeitrag"));
-		wlaLetzteWartung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.letztewartung"));
-		wlaLetzteWartungPersonal.setHorizontalAlignment(SwingConstants.LEFT);
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.mindestdeckungsbeitrag"));
+		wlaLetzteWartung.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.letztewartung"));
 		wla8.setHorizontalAlignment(SwingConstants.LEFT);
-		wla8.setText("%");
-		wlaAufschlag.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.aufschlag"));
-		wlaSoll.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.soll"));
-		wlaEccn.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.eccn"));
-		wlaVerkaufsean.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.verkaufsean"));
-		wlaVerpackungsean.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.verpackungsean"));
 
-		wlaWartungsintervall.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.wartungsintervall"));
-		wlaSofortverbrauch.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.sofortverbrauch"));
+		wlaArtikeleinheit.setHorizontalAlignment(SwingConstants.LEFT);
+		wlaEinheitVerpackungsmenge.setHorizontalAlignment(SwingConstants.LEFT);
+
+		wcbVKPreispflichtig.setText(LPMain.getTextRespectUISPr("artikel.vkpreisflichtig"));
+		
+		wla8.setText("%");
+		wlaAufschlag.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.aufschlag"));
+		wlaSoll.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.soll"));
+		wlaEccn.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.eccn"));
+		wlaVerpackungsean.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.verpackungsean"));
+		wlaWartungsintervall.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.wartungsintervall"));
+		wlaSofortverbrauch.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.sofortverbrauch"));
 		wnfWartungsintervall.setFractionDigits(0);
 		wnfSofortverbrauch.setFractionDigits(0);
 
@@ -684,63 +805,55 @@ public class PanelArtikelsonstiges extends PanelBasis {
 		wtfVerpackungsean.setColumnsMax(ArtikelFac.MAX_ARTIKEL_VERKAUFEANNR);
 		wtfVerkaufsean.setText("");
 		wbuWarenverkehrsnummer.setToolTipText("");
-		wbuWarenverkehrsnummer.setText(LPMain.getInstance()
-				.getTextRespectUISPr("artikel.sonstiges.warenverkehrsnummer")
-				+ "...");
-		wtfWarenverkehrsnummer
-				.setColumnsMax(ArtikelFac.MAX_ARTIKEL_WARENVERKEHRSNUMMER);
-		wtfWarenverkehrsnummer
-				.setFormat(ArtikelFac.PATTERN_WARENVERKEHRSNUMMER);
-		wtfWarenverkehrsnummer.removeContent();
-		wcoSeriennummer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.seriennummernbehaftet"));
-		wcoSeriennummer
-				.addActionListener(new PanelArtikelsonstiges_wrapperCheckBoxSeriennummer_actionAdapter(
-						this));
-		wcoChargennummer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.chargennummernbehaftet"));
-		wcoChargennummer
-				.addActionListener(new PanelArtikelsonstiges_wrapperCheckBoxChargennummer_actionAdapter(
-						this));
-		wcoRabattierbar.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.rabattierbar"));
-
-		wcoDokumentenpflicht.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.dokumentenpflicht"));
-		wcoWerbeabgabepflichtig.setText(LPMain.getInstance()
-				.getTextRespectUISPr("artikel.werbeabgabepflichtig"));
-
-		wcoLagerbewirtschaftet.setText(LPMain.getInstance()
-				.getTextRespectUISPr("artikel.sonstiges.lagerbewirtschaftet"));
-		wcoLagerbewertet.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.lagerbewertet"));
-		wcoVerleih.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.verleih"));
-		wcoVerleih
-				.addActionListener(new PanelArtikelsonstiges_wrapperCheckBoxVerleih_actionAdapter(
-						this));
-		wbuZugehoerigerArtikel.setText(LPMain.getInstance()
-				.getTextRespectUISPr("artikel.sonstiges.zugehoerigerartikel")
-				+ "...");
-		wbuZugehoerigerArtikel
-				.setActionCommand(PanelArtikelsonstiges.ACTION_SPECIAL_ARTIKEL_FROM_LISTE);
-		wbuZugehoerigerArtikel.addActionListener(this);
 		wbuWarenverkehrsnummer
-				.setActionCommand(PanelArtikelsonstiges.ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE);
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.warenverkehrsnummer") + "...");
+		wtfWarenverkehrsnummer.setColumnsMax(ArtikelFac.MAX_ARTIKEL_WARENVERKEHRSNUMMER);
+		wtfWarenverkehrsnummer.setFormat(ArtikelFac.PATTERN_WARENVERKEHRSNUMMER);
+		wtfWarenverkehrsnummer.removeContent();
+		wcoSnrChnr.addActionListener(new PanelArtikelsonstiges_wrapperCheckBoxSeriennummer_actionAdapter(this));
+
+		wcoRabattierbar.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.rabattierbar"));
+
+		wcoDokumentenpflicht.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.dokumentenpflicht"));
+
+		wcoRahmenartikel.setText(LPMain.getInstance().getTextRespectUISPr("artikel.rahmenartikel"));
+		wcoKommissionieren.setText(LPMain.getInstance().getTextRespectUISPr("artikel.kommissionieren"));
+		wcoKeineLagerzubuchung.setText(LPMain.getInstance().getTextRespectUISPr("artikel.keinelagerzubuchung"));
+		wcoAZInABNachkalkulation
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.azinabnachkalkulation"));
+
+		wcoWerbeabgabepflichtig.setText(LPMain.getInstance().getTextRespectUISPr("artikel.werbeabgabepflichtig"));
+
+		wcoLagerbewirtschaftet
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.lagerbewirtschaftet"));
+		wcoLagerbewertet.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.lagerbewertet"));
+		wcoVerleih.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.verleih"));
+		wcoVerleih.addActionListener(new PanelArtikelsonstiges_wrapperCheckBoxVerleih_actionAdapter(this));
+		wbuZugehoerigerArtikel
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.zugehoerigerartikel") + "...");
+		wbuZugehoerigerArtikel.setActionCommand(PanelArtikelsonstiges.ACTION_SPECIAL_ARTIKEL_FROM_LISTE);
+		wbuZugehoerigerArtikel.addActionListener(this);
+
+		wnfZugehoerigerArtikelMultiplikator
+				.setToolTipText(LPMain.getInstance().getTextRespectUISPr("artikel.zugehoerigerartikel.multiplikator"));
+
+		wcoMultiplikatorEinsDurch.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.multiplikator.einsdurch"));
+		wcoMultiplikatorAufrunden.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.multiplikator.aufrunden"));
+
+		wbuWarenverkehrsnummer.setActionCommand(PanelArtikelsonstiges.ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE);
 		wbuWarenverkehrsnummer.addActionListener(this);
 
-		wbuUrsprungsland.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.ursprungsland")
-				+ "...");
+		wcoMeldepflichtig.setText(LPMain.getInstance().getTextRespectUISPr("artikel.meldepflichtig"));
+		wcoBewilligungspflichtig.setText(LPMain.getInstance().getTextRespectUISPr("artikel.bewilligungspflichtig"));
+		
+		
+		wbuUrsprungsland.setText(LPMain.getInstance().getTextRespectUISPr("artikel.ursprungsland") + "...");
 		wbuUrsprungsland.setActionCommand(ACTION_SPECIAL_LAND_FROM_LISTE);
 		wbuUrsprungsland.addActionListener(this);
 
-		wbuErsatzArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.sonstiges.ersatzartikel")
-				+ "...");
+		wbuErsatzArtikel.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.ersatzartikel") + "...");
 
-		wbuErsatzArtikel
-				.setActionCommand(PanelArtikelsonstiges.ACTION_SPECIAL_ARTIKELERSATZ_FROM_LISTE);
+		wbuErsatzArtikel.setActionCommand(PanelArtikelsonstiges.ACTION_SPECIAL_ARTIKELERSATZ_FROM_LISTE);
 		wbuErsatzArtikel.addActionListener(this);
 		wtfErsatzArtikel.setActivatable(false);
 		wtfErsatzArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
@@ -748,20 +861,12 @@ public class PanelArtikelsonstiges extends PanelBasis {
 
 		wtfZugehoerigerArtikel.setText("");
 		wtfZugehoerigerArtikel.setActivatable(false);
-		wlaDummy.setBorder(border1);
-		wlaDummy.setMinimumSize(new Dimension(2, 4));
-		wlaDummy.setPreferredSize(new Dimension(2, 4));
-		wlaDummy.setText("");
+
 		wlaZBez2.setRequestFocusEnabled(true);
-		wlaZBez2.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.zusatzbezeichnung")
-				+ " 2");
-		wlaZbez.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.zusatzbezeichnung"));
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
-		wlaArtikelnummer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.artikelnummer"));
+		wlaZBez2.setText(LPMain.getInstance().getTextRespectUISPr("lp.zusatzbezeichnung") + " 2");
+		wlaZbez.setText(LPMain.getInstance().getTextRespectUISPr("lp.zusatzbezeichnung"));
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
+		wlaArtikelnummer.setText(LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer"));
 		wftBezeichnungStd.setActivatable(false);
 		wftBezeichnungStd.setText("");
 		wtfZBezStd.setActivatable(false);
@@ -778,28 +883,33 @@ public class PanelArtikelsonstiges extends PanelBasis {
 		wnfMindestdeckungsbeitrag.setMandatoryField(true);
 		wnfMaxvertreterprovision.setMinimumValue(new BigDecimal(0));
 
+		int iLaengenBezeichung = DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
+		wftBezeichnungStd.setColumnsMax(iLaengenBezeichung);
+		wtfZBezStd.setColumnsMax(iLaengenBezeichung);
+		wtfZBez2Std.setColumnsMax(iLaengenBezeichung);
+		
+		wtfUrsprungsland.setActivatable(false);
+
 		wla1.setRequestFocusEnabled(true);
 		wla1.setHorizontalAlignment(SwingConstants.LEFT);
 		wla1.setText("%");
 		wla3.setRequestFocusEnabled(true);
 		wla3.setHorizontalAlignment(SwingConstants.LEFT);
 		wla3.setText("%");
+		jbInitVerkaufseanPanel();
 
-		jpaWorkingOn = new JPanel(new MigLayout("wrap 6",
-				"[fill, 25%|fill,20%|fill,5%|fill, 20%|fill, 10%|fill, 15%]"));
+		jpaWorkingOn = new JPanel(
+				new MigLayout("ins 0, wrap 6 ", "[fill, 25%|fill,20%|fill,5%|fill, 20%|fill, 10%|fill, 15%]","[]2[]"));
 
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 9, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		jpaWorkingOn.add(wlaArtikelnummer);
-		jpaWorkingOn.add(wtfArtikelnummer, "wrap");
+		jpaWorkingOn.add(wtfArtikelnummer, " wrap");
 
 		jpaWorkingOn.add(wlaBezeichnung);
 		jpaWorkingOn.add(wftBezeichnungStd, "span");
@@ -809,8 +919,6 @@ public class PanelArtikelsonstiges extends PanelBasis {
 
 		jpaWorkingOn.add(wlaZBez2);
 		jpaWorkingOn.add(wtfZBez2Std, "span");
-
-		jpaWorkingOn.add(wlaDummy, "span");
 
 		jpaWorkingOn.add(wlaMaxvertreterprovision);
 		jpaWorkingOn.add(wnfMaxvertreterprovision);
@@ -824,113 +932,182 @@ public class PanelArtikelsonstiges extends PanelBasis {
 		jpaWorkingOn.add(wla8);
 		jpaWorkingOn.add(wlaSofortverbrauch);
 		jpaWorkingOn.add(wnfSofortverbrauch);
-		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.sonstiges.sofortverbrauch.intagen")), "wrap");
+		WrapperLabel wlaInTagen = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.sofortverbrauch.intagen"));
+		wlaInTagen.setHorizontalAlignment(SwingConstants.LEFT);
+		jpaWorkingOn.add(wlaInTagen, "wrap");
 
 		jpaWorkingOn.add(wlaLetzteWartung);
 		jpaWorkingOn.add(wdfLetzteWartung);
-		jpaWorkingOn.add(wlaLetzteWartungPersonal);
-		jpaWorkingOn.add(wlaWartungsintervall);
+
+		jpaWorkingOn.add(wlaWartungsintervall, "span 2");
 		jpaWorkingOn.add(wnfWartungsintervall);
-		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.sonstiges.wartungsintervall.inmonaten")),
-				"wrap");
+		WrapperLabel wlaWartungsintervallEinheit = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.wartungsintervall.inmonaten"));
+		wlaWartungsintervallEinheit.setHorizontalAlignment(SwingConstants.LEFT);
+		jpaWorkingOn.add(wlaWartungsintervallEinheit, "wrap");
 
 		jpaWorkingOn.add(wlaAufschlag);
 		jpaWorkingOn.add(wnfAufschlag);
 		jpaWorkingOn.add(wla1);
 		jpaWorkingOn.add(wlaMinutenfaktor1);
-		jpaWorkingOn.add(wrapperNumberFieldMinutenfaktor1, "wrap");
+		jpaWorkingOn.add(wrapperNumberFieldMinutenfaktor1);
+		jpaWorkingOn.add(wlaMinutenfaktor1Einheit, "wrap");
 
 		jpaWorkingOn.add(wlaSoll);
 		jpaWorkingOn.add(wnfSoll);
 		jpaWorkingOn.add(wla3);
 		jpaWorkingOn.add(wlaMinutenfaktor2);
-		jpaWorkingOn.add(wnfMinutenfaktor2, "wrap");
+		jpaWorkingOn.add(wnfMinutenfaktor2);
+		jpaWorkingOn.add(wlaMinutenfaktor2Einheit, "wrap");
 
-		jpaWorkingOn.add(wlaVerkaufsean);
+		jpaWorkingOn.add(wsfVerpackungsmittel.getWrapperButton());
+		jpaWorkingOn.add(wsfVerpackungsmittel.getWrapperTextField());
+
+		jpaWorkingOn.add(wlaVerpackungsmittelMenge, "skip");
+		jpaWorkingOn.add(wnfVerpackungsmittelMenge);
+		jpaWorkingOn.add(wlaArtikeleinheit, "wrap");
+
+		jpaWorkingOn.add(panelVerkaufsean);
 		jpaWorkingOn.add(wtfVerkaufsean);
 		jpaWorkingOn.add(wlaVerpackungsmenge, "skip");
 		jpaWorkingOn.add(wnfVerpackungsmenge);
 		jpaWorkingOn.add(wlaEinheitVerpackungsmenge, "wrap");
 
+		jpaWorkingOn.add(wlaVerpackungsean, "skip 3");
+		jpaWorkingOn.add(wtfVerpackungsean, "wrap");
+
 		jpaWorkingOn.add(wlaEccn);
 		jpaWorkingOn.add(wtfEccn);
-		jpaWorkingOn.add(wlaVerpackungsean, "skip");
-		jpaWorkingOn.add(wtfVerpackungsean, "wrap");
+		jpaWorkingOn.add(wlaMindestverkaufsmenge, "skip");
+		jpaWorkingOn.add(wnfMindestverkaufsmenge, "wrap");
 
 		jpaWorkingOn.add(wbuWarenverkehrsnummer);
 		jpaWorkingOn.add(wtfWarenverkehrsnummer);
 		jpaWorkingOn.add(wbuUrsprungsland, "skip");
+
+		// PJ19598
+		if (internalFrameArtikel.getTabbedPaneArtikel().isUrsprungslandIstPflichtfeld()) {
+			wtfUrsprungsland.setMandatoryField(true);
+		}
+
 		jpaWorkingOn.add(wtfUrsprungsland, "wrap");
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_SERIENNUMMERN)) {
+		jpaWorkingOn.add(wcoSnrChnr);
 
-			jpaWorkingOn.add(wcoSeriennummer, "span 3");
-		}
-
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_CHARGENNUMMERN)) {
-
-			jpaWorkingOn.add(wcoChargennummer, "span 3");
-		}
+		jpaWorkingOn.add(wnfLaengeSnrMin, "split 3");
+		jpaWorkingOn.add(new WrapperLabel("-"));
+		jpaWorkingOn.add(wnfLaengeSnrMax);
+		jpaWorkingOn.add(new WrapperLabel());
+		jpaWorkingOn.add(wcoRahmenartikel);
+		jpaWorkingOn.add(wcoKommissionieren, "span");
 
 		jpaWorkingOn.add(wcoLagerbewirtschaftet, "newline");
 		jpaWorkingOn.add(wcoLagerbewertet, "span 2");
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_VERLEIH)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_VERLEIH)) {
 
-			jpaWorkingOn.add(wcoVerleih, "span 3");
+			jpaWorkingOn.add(wcoVerleih);
+			jpaWorkingOn.add(wcoWerbeabgabepflichtig,"span 2");
+		} else {
+			jpaWorkingOn.add(wcoAZInABNachkalkulation);
+			jpaWorkingOn.add(wcoWerbeabgabepflichtig,"span 2");
 		}
 
 		jpaWorkingOn.add(wcoRabattierbar, "newline");
 		jpaWorkingOn.add(wcoDokumentenpflicht, "span 2");
-		jpaWorkingOn.add(wcoWerbeabgabepflichtig, "span");
+		jpaWorkingOn.add(wcbVKPreispflichtig);
+		jpaWorkingOn.add(wcoKeineLagerzubuchung, "span");
 
-		jpaWorkingOn.add(wbuZugehoerigerArtikel);
-		jpaWorkingOn.add(wtfZugehoerigerArtikel, "span");
-
-		jpaWorkingOn.add(wbuErsatzArtikel);
+		
+		
+		jpaWorkingOn.add(wcoMeldepflichtig);
+		jpaWorkingOn.add(wcoBewilligungspflichtig);
+		
+		if (!LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_DUAL_USE)) {
+			wcoMeldepflichtig.setVisible(false);
+			wcoBewilligungspflichtig.setVisible(false);
+		}
+		
+		jpaWorkingOn.add(wbuErsatzArtikel, "skip");
 		jpaWorkingOn.add(wtfErsatzArtikel, "span");
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD, ACTION_PREVIOUS, ACTION_NEXT, };
+		
+		jpaWorkingOn.add(wbuZugehoerigerArtikel, "newline");
+
+		jpaWorkingOn.add(wtfZugehoerigerArtikel);
+		jpaWorkingOn.add(wnfZugehoerigerArtikelMultiplikator);
+		jpaWorkingOn.add(wcoMultiplikatorEinsDurch);
+		jpaWorkingOn.add(wcoMultiplikatorAufrunden,"span");
+		
+		jpaWorkingOn.add(wlaPreisZugehoerigerartikel, "newline");
+		jpaWorkingOn.add(wnfPreisZugehoerigerartikel);
+		jpaWorkingOn.add(new JLabel(LPMain.getInstance().getTheClient().getSMandantenwaehrung()));
+		
+		
+		
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD, ACTION_PREVIOUS, ACTION_NEXT, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
+	}
+
+	private void jbInitVerkaufseanPanel() throws Throwable {
+		wlaVerkaufsean.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.verkaufsean"));
+
+		HelperClient.setMinimumAndPreferredSize(wlaVerkaufsean, HelperClient.getSizeFactoredDimension(120));
+
+		wbuGeneriereVerkaufsean.setText("G");
+		wbuGeneriereVerkaufsean.setToolTipText(LPMain.getTextRespectUISPr("artikel.generiereverkaufsean"));
+		wbuGeneriereVerkaufsean.setPreferredSize(new Dimension(40, 23));
+		wbuGeneriereVerkaufsean.setMinimumSize(new Dimension(40, 23));
+		wbuGeneriereVerkaufsean.setEnabled(enableVerkaufseanButton());
+		wbuGeneriereVerkaufsean.setActivatable(enableVerkaufseanButton());
+		wbuGeneriereVerkaufsean.setActionCommand(ACTION_SPECIAL_GENERIERE_VERKAUFSEAN);
+		wbuGeneriereVerkaufsean.addActionListener(this);
+
+		HvLayout layoutVerkausean = HvLayoutFactory.create(panelVerkaufsean, "ins 0", "push[][]", "");
+		layoutVerkausean.add(wlaVerkaufsean, "al right").add(wbuGeneriereVerkaufsean, "al right");
+	}
+
+	private boolean enableVerkaufseanButton() throws Throwable {
+		String basisnummerGTIN = DelegateFactory.getInstance().getParameterDelegate().getGS1BasisnummerGTIN();
+		return !Helper.isStringEmpty(basisnummerGTIN);
 	}
 
 	protected void setDefaults() {
 		wcoLagerbewirtschaftet.setSelected(true);
 		wcoLagerbewertet.setSelected(true);
 
+		if (getInternalFrame().bRechtDarfPreiseSehenEinkauf && getInternalFrame().bRechtDarfPreiseSehenVerkauf) {
+
+		} else {
+			// SP5756
+			wlaMindestdeckungsbeitrag.setVisible(false);
+			wnfMindestdeckungsbeitrag.setVisible(false);
+			wla8.setVisible(false);
+		}
+
 	}
 
 	void wcoSeriennummer_actionPerformed(ActionEvent e) {
-		if (wcoSeriennummer.isSelected()) {
-			wcoChargennummer.setSelected(false);
+		wnfLaengeSnrMin.setVisible(false);
+		wnfLaengeSnrMax.setVisible(false);
+
+		if (wcoSnrChnr.getKeyOfSelectedItem().equals(ArtikelFac.SNRCHNR_SNRBEHAFTET)) {
+
+			wcoLagerbewirtschaftet.setSelected(true);
+			wnfLaengeSnrMin.setVisible(true);
+			wnfLaengeSnrMax.setVisible(true);
+		} else if (wcoSnrChnr.getKeyOfSelectedItem().equals(ArtikelFac.SNRCHNR_CHNRBEHAFTET)) {
+
 			wcoLagerbewirtschaftet.setSelected(true);
 		}
 	}
 
 	void wcoChargennummer_actionPerformed(ActionEvent e) {
-		if (wcoChargennummer.isSelected()) {
-			wcoSeriennummer.setSelected(false);
-			wcoLagerbewirtschaftet.setSelected(true);
-		}
 
 	}
 
@@ -943,12 +1120,10 @@ public class PanelArtikelsonstiges extends PanelBasis {
 
 }
 
-class PanelArtikelsonstiges_wrapperCheckBoxSeriennummer_actionAdapter implements
-		java.awt.event.ActionListener {
+class PanelArtikelsonstiges_wrapperCheckBoxSeriennummer_actionAdapter implements java.awt.event.ActionListener {
 	PanelArtikelsonstiges adaptee;
 
-	PanelArtikelsonstiges_wrapperCheckBoxSeriennummer_actionAdapter(
-			PanelArtikelsonstiges adaptee) {
+	PanelArtikelsonstiges_wrapperCheckBoxSeriennummer_actionAdapter(PanelArtikelsonstiges adaptee) {
 		this.adaptee = adaptee;
 	}
 
@@ -957,26 +1132,10 @@ class PanelArtikelsonstiges_wrapperCheckBoxSeriennummer_actionAdapter implements
 	}
 }
 
-class PanelArtikelsonstiges_wrapperCheckBoxChargennummer_actionAdapter
-		implements java.awt.event.ActionListener {
+class PanelArtikelsonstiges_wrapperCheckBoxVerleih_actionAdapter implements java.awt.event.ActionListener {
 	PanelArtikelsonstiges adaptee;
 
-	PanelArtikelsonstiges_wrapperCheckBoxChargennummer_actionAdapter(
-			PanelArtikelsonstiges adaptee) {
-		this.adaptee = adaptee;
-	}
-
-	public void actionPerformed(ActionEvent e) {
-		adaptee.wcoChargennummer_actionPerformed(e);
-	}
-}
-
-class PanelArtikelsonstiges_wrapperCheckBoxVerleih_actionAdapter implements
-		java.awt.event.ActionListener {
-	PanelArtikelsonstiges adaptee;
-
-	PanelArtikelsonstiges_wrapperCheckBoxVerleih_actionAdapter(
-			PanelArtikelsonstiges adaptee) {
+	PanelArtikelsonstiges_wrapperCheckBoxVerleih_actionAdapter(PanelArtikelsonstiges adaptee) {
 		this.adaptee = adaptee;
 	}
 

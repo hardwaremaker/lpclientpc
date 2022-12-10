@@ -35,6 +35,9 @@ package com.lp.client.frame.component;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.util.regex.Pattern;
 
 import javax.swing.JTextField;
@@ -92,14 +95,24 @@ public class WrapperSNRField extends JTextField implements IControl,
 
 	}
 
+	public static String getRegexSNR() {
+		return "^[a-zA-Z_0-9\\.\\-/,|\"]*$";
+	}
+	
 	public void setMask() throws Throwable {
 
-		this.regPattern = Pattern.compile("^[a-zA-Z_0-9\\.\\-/,]*$");
+		this.regPattern = Pattern.compile(getRegexSNR());
 
 	}
 
 	public void setMaskNumerisch() throws Throwable {
 		this.regPattern = Pattern.compile("^[0-9-,]*$");
+
+	}
+	
+	
+	public void setMaskAllesErlaubt() throws Throwable {
+		this.regPattern = Pattern.compile(".*");
 
 	}
 
@@ -123,6 +136,28 @@ public class WrapperSNRField extends JTextField implements IControl,
 		}
 	}
 
+	public void paste(){
+		try {
+			Clipboard systemClipboard = Toolkit.getDefaultToolkit()
+					.getSystemClipboard();
+			Transferable transferData = systemClipboard.getContents(null);
+			if (transferData != null
+					&& transferData.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+				String s = (String) transferData
+						.getTransferData(DataFlavor.stringFlavor);
+				if(s!=null){
+					s=s.replaceAll(" ", "");
+					setText(s);
+				}
+				
+			}
+		}  catch (Throwable e1) {
+			//Kann eigentlich nichts passieren
+		}
+	
+	
+	}
+	
 	public String getText() {
 		// Originalmethode aufrufen und String gleich trimmen
 		String s = super.getText();

@@ -37,13 +37,13 @@ import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.component.InternalFrame;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.PanelTabelle;
 import com.lp.client.frame.component.WrapperKeyValueField;
 import com.lp.client.frame.component.WrapperLabel;
@@ -108,7 +108,7 @@ public class PanelTabelleAngebotzeiten extends PanelTabelle {
 		setColumnWidth(AuftragFac.IDX_SPALTE_KOSTEN, 0); // hide Kosten
 
 		// die optionale zweite Zeile initialisieren
-		wkvDauer = new WrapperKeyValueField(50);
+		wkvDauer = new WrapperKeyValueField(Defaults.sizeFactor(50));
 		wkvDauer.setKey(LPMain.getInstance().getTextRespectUISPr("lp.dauer"));
 
 		wlaEinheit = new WrapperLabel(SystemFac.EINHEIT_STUNDE.trim());
@@ -122,19 +122,24 @@ public class PanelTabelleAngebotzeiten extends PanelTabelle {
 
 		
 		
-		wkvKosten = new WrapperKeyValueField(50);
+		wkvKosten = new WrapperKeyValueField(Defaults.sizeFactor(50));
 		wkvKosten.setKey(LPMain.getInstance().getTextRespectUISPr("lp.kosten"));
 
-		wkvSollzeit = new WrapperKeyValueField(60);
+		wkvSollzeit = new WrapperKeyValueField(Defaults.sizeFactor(60));
 		wkvSollzeit.setKey(LPMain.getInstance().getTextRespectUISPr("lp.sollzeit"));
+		
+		Dimension dimension = HelperClient.getSizeFactoredDimension(150);
+		HelperClient.setMinimumAndPreferredSize(wkvSollzeit, dimension);
+		HelperClient.setMinimumAndPreferredSize(wkvDauer, dimension);
+		HelperClient.setMinimumAndPreferredSize(wkvKosten, dimension);
 		
 		wlaWaehrung = new WrapperLabel(LPMain.getTheClient()
 				.getSMandantenwaehrung());
-		wlaWaehrung.setMaximumSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setMaximumSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
-		wlaWaehrung.setMinimumSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setMinimumSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
-		wlaWaehrung.setPreferredSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setPreferredSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
 		wlaWaehrung.setHorizontalAlignment(SwingConstants.LEFT);
 
@@ -142,12 +147,12 @@ public class PanelTabelleAngebotzeiten extends PanelTabelle {
 				wkvSollzeit,
 				new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wkvDauer,
 				new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wlaEinheit,
 				new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
@@ -158,7 +163,7 @@ public class PanelTabelleAngebotzeiten extends PanelTabelle {
 				new GridBagConstraints(3, 0, 1, 1, 0.0,
 
 				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wlaWaehrung,
 				new GridBagConstraints(5, 0, 1, 1, 0.0, 0.0,
@@ -182,7 +187,7 @@ public class PanelTabelleAngebotzeiten extends PanelTabelle {
 		} catch (ExceptionLP ex) {
 			if(ex.getCause()!=null && ex.getCause().getCause() instanceof EJBExceptionLP){
 				EJBExceptionLP exp=(EJBExceptionLP)ex.getCause().getCause();
-            ArrayList<?> al = exp.getAlInfoForTheClient();
+            List<?> al = exp.getAlInfoForTheClient();
 				String s = "";
 				if (al != null && al.size() > 1) {
 					if (al.get(0) instanceof Integer) {
@@ -303,7 +308,7 @@ public class PanelTabelleAngebotzeiten extends PanelTabelle {
 
 		} catch (ExceptionLP ex) {
 			if (ex.getICode() == EJBExceptionLP.FEHLER_IN_ZEITDATEN) {
-				ArrayList<?> al = ex.getAlInfoForTheClient();
+				List<?> al = ex.getAlInfoForTheClient();
 				String s = "";
 				if (al != null && al.size() > 1) {
 					if (al.get(0) instanceof Integer) {

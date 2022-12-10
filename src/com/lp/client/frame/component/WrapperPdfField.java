@@ -37,25 +37,34 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.math.BigDecimal;
+import java.util.Properties;
+import java.util.ResourceBundle;
 
-import javax.swing.JButton;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
+
+import org.icepdf.ri.common.ComponentKeyBinding;
+import org.icepdf.ri.common.SwingController;
+import org.icepdf.ri.common.SwingViewBuilder;
+import org.icepdf.ri.util.PropertiesManager;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
-import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.PdfFile;
+import com.lp.client.frame.filechooser.open.PdfFileOpener;
 import com.lp.client.pc.LPMain;
-import com.lp.server.system.service.ParameterFac;
-import com.lp.server.system.service.ParametermandantDto;
+import com.lp.client.util.IconFactory;
+import com.lp.server.util.HvOptional;
 import com.lp.util.Helper;
 
 /*
@@ -73,27 +82,48 @@ import com.lp.util.Helper;
  *
  * @todo texte uebersetzen PJ 3416
  */
-public class WrapperPdfField extends PanelBasis {
+public class WrapperPdfField extends PanelBasis implements IControl {
 
 	private static final long serialVersionUID = 1L;
 	private final static String ACTION_SPECIAL_DATEI = "action_special_datei";
 	static final public String ACTION_SPECIAL_ANZEIGEN = "ACTION_SPECIAL_ANZEIGEN";
-	private WrapperLabel wlaDatei = new WrapperLabel();
+	private final static String ACTION_SPECIAL_SPEICHERN = "ACTION_SPECIAL_SPEICHERN";
+	private final static String ACTION_SPECIAL_GROSS_ANZEIGEN = "ACTION_SPECIAL_GROSS_ANZEIGEN";
+
+	private final String ACTION_SPECIAL_BILD_ENTFERNEN = "ACTION_SPECIAL_BILD_ENTFERNEN";
+
+	private WrapperTextField wtfDatei = new WrapperTextField(300);
 	private WrapperButton wbuDatei = new WrapperButton();
-	private JButton wbuAnzeigen = new JButton();
+	private WrapperButton wbuAnzeigen = new WrapperButton();
+	private WrapperButton wbuSpeichern = new WrapperButton();
 	private WrapperTextField fieldToDisplayFileName = null;
-	private File sLetzteDatei = null;
+
+	private WrapperButton wbuGrossAnzeigen = new WrapperButton();
+
+	private JFrame grosseAnzeige = null;
+
+	private JPanel viewerComponentPanel = null;
+
+	private SwingController controllerVorschau = new SwingController();
+	private SwingController controllerGrosseAnzeige = new SwingController();
+
+	private WrapperButton wbuBildEntfernen = new WrapperButton();
+
+	boolean bMitLoeschenButton = false;
+
+	WrapperButton buttonAnzeigen = null;
+
+	private boolean bPDFVorschau = true;
+
+	private static String ANZEIGEN = "ANZEIGEN";
 
 //	private String pdfExtension = new String(".pdf");
 	private JPanel jpaWorkingOn = new JPanel();
 	byte[] pdf = null;
+	private boolean isActivatable = true;
 
 	public WrapperButton getButtonDatei() {
 		return wbuDatei;
-	}
-
-	public WrapperLabel getLabelDatei() {
-		return wlaDatei;
 	}
 
 	public WrapperPdfField(InternalFrame internalFrame, String addTitel) throws Throwable {
@@ -110,9 +140,18 @@ public class WrapperPdfField extends PanelBasis {
 		initComponents();
 	}
 
+	public WrapperPdfField(InternalFrame internalFrame, String addTitel, WrapperTextField fieldToDisplayFileName,
+			boolean bMitLoeschenButton) throws Throwable {
+		super(internalFrame, addTitel);
+		this.fieldToDisplayFileName = fieldToDisplayFileName;
+		this.bMitLoeschenButton = bMitLoeschenButton;
+		jbInit();
+		initComponents();
+	}
+
 	private void jbInit() throws Throwable {
 		this.setLayout(new GridBagLayout());
-		wlaDatei.setText(LPMain.getTextRespectUISPr("lp.dateiname"));
+
 		wbuDatei.setText(LPMain.getTextRespectUISPr("lp.datei"));
 		jpaWorkingOn.setLayout(new GridBagLayout());
 		wbuDatei.setMinimumSize(new Dimension(80, Defaults.getInstance().getControlHeight()));
@@ -122,124 +161,253 @@ public class WrapperPdfField extends PanelBasis {
 		wbuAnzeigen.setActionCommand(ACTION_SPECIAL_ANZEIGEN);
 		wbuAnzeigen.addActionListener(this);
 		wbuAnzeigen.setText(LPMain.getTextRespectUISPr("lp.anzeigen"));
+		wbuSpeichern.setActionCommand(ACTION_SPECIAL_SPEICHERN);
+		wbuSpeichern.addActionListener(this);
+		wbuSpeichern.setText(LPMain.getTextRespectUISPr("lp.speichern"));
+		wtfDatei.setActivatable(false);
+
+		wbuBildEntfernen = new WrapperButton();
+		wbuBildEntfernen.setIcon(new ImageIcon(getClass().getResource("/com/lp/client/res/leeren.png")));
+		wbuBildEntfernen.setActionCommand(ACTION_SPECIAL_BILD_ENTFERNEN);
+		wbuBildEntfernen.addActionListener(this);
+
+		wbuGrossAnzeigen = new WrapperButton();
+		wbuGrossAnzeigen.setIcon(new ImageIcon(getClass().getResource("/com/lp/client/res/table_sql_view.png")));
+		wbuGrossAnzeigen.setActionCommand(ACTION_SPECIAL_GROSS_ANZEIGEN);
+		wbuGrossAnzeigen.addActionListener(this);
+
+		Properties myProperties = new Properties();
+		myProperties.setProperty("application.showLocalStorageDialogs", "false");
+
+		PropertiesManager properties = new PropertiesManager(System.getProperties(), myProperties,
+								ResourceBundle.getBundle(PropertiesManager.DEFAULT_MESSAGE_BUNDLE));
+		
+//		PropertiesManager properties = PropertiesManager.getInstance();
+		properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_ANNOTATION, Boolean.FALSE);
+		// properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_ANNOTATION_HIGHLIGHT,
+		// Boolean.FALSE);
+		// properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_ANNOTATION_SELECTION,
+		// Boolean.FALSE);
+		// properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_ANNOTATION_TEXT,
+		// Boolean.FALSE);
+		properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_FIT, Boolean.FALSE);
+		properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_FORMS, Boolean.FALSE);
+//		properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_SEARCH, Boolean.FALSE);
+		// properties.setBoolean(PropertiesManager.PROPERTY_SHOW_TOOLBAR_TOOL,
+		// Boolean.FALSE);
+
+		// Build a SwingViewFactory configured with the controller
+		SwingViewBuilder factory = new SwingViewBuilder(controllerVorschau, properties);
+
+		// Use the factory to build a JPanel that is pre-configured
+		// with a complete, active Viewer UI.
+		viewerComponentPanel = factory.buildViewerPanel();
+
+		// add copy keyboard command
+		ComponentKeyBinding.install(controllerVorschau, viewerComponentPanel);
+
+		// add interactive mouse link annotation support via callback
+		controllerVorschau.getDocumentViewController().setAnnotationCallback(
+				new org.icepdf.ri.common.MyAnnotationCallback(controllerVorschau.getDocumentViewController()));
+
+		ImageIcon anzeigen = new ImageIcon(getClass().getResource("/com/lp/client/res/refresh.png"));
+		buttonAnzeigen = new WrapperButton();
+		buttonAnzeigen.setToolTipText(LPMain.getTextRespectUISPr("lp.naechstes"));
+		buttonAnzeigen.setActionCommand(ANZEIGEN);
+		buttonAnzeigen.setIcon(anzeigen);
+		buttonAnzeigen.addActionListener(new WrapperPdfField_buttonAnzeigen_actionAdapter(this));
 
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		jpaWorkingOn.add(wbuDatei, new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER,
-				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuGrossAnzeigen, new GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 15, 0));
+		jpaWorkingOn.add(wbuDatei, new GridBagConstraints(0, 1, 1, 1, 0.4, 0, GridBagConstraints.EAST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 30, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfDatei, new GridBagConstraints(1, 1, 1, 1, 3, 0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(buttonAnzeigen, new GridBagConstraints(2, 1, 1, 1, 00, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 0, 2, 0), 15, 0));
+
+		jpaWorkingOn.add(wbuAnzeigen, new GridBagConstraints(3, 1, 1, 1, 1, 0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuSpeichern, new GridBagConstraints(4, 1, 1, 1, 1, 0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		buttonAnzeigen.setVisible(false);
+
+		if (bMitLoeschenButton) {
+			jpaWorkingOn.add(wbuBildEntfernen, new GridBagConstraints(5, 1, 0, 1, 0, 0, GridBagConstraints.EAST,
+					GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 50, 0));
+		}
+
 		wbuAnzeigen.setEnabled(true);
 		wbuDatei.setEnabled(true);
 
-		jpaWorkingOn.add(wbuAnzeigen, new GridBagConstraints(0, 4, 2, 1, 1, 1, GridBagConstraints.CENTER,
-				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
+		// Bild
+		JPanel panelVorschau = new JPanel();
+		panelVorschau.setLayout(new GridBagLayout());
+
+		panelVorschau.add(viewerComponentPanel, new GridBagConstraints(0, 1, 4, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+
+		jpaWorkingOn.add(panelVorschau, new GridBagConstraints(0, 6, 10, 1, 1, 15, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), -20, 0));
 
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equalsIgnoreCase(ACTION_SPECIAL_DATEI)) {
-			JFileChooser fc = new JFileChooser();
-
-			if (sLetzteDatei != null) {
-				fc.setCurrentDirectory(sLetzteDatei);
-			}
-
-//			fc.setFileFilter(new FileFilter() {
-//				public boolean accept(File f) {
-//					return f.getName().toLowerCase().endsWith(pdfExtension) || f.isDirectory();
-//				}
-//
-//				public String getDescription() {
-//					return "PDF";
-//				}
-//			});
-
-			FileFilter imageFilter = new FileNameExtensionFilter(
-					"PDF", "pdf");
-
-			fc.setFileFilter(imageFilter);
-
-			int returnVal = fc.showOpenDialog(getInternalFrame());
-
-			File file = fc.getSelectedFile();
-
-			boolean fileExist = true;
-			if (file != null) {
-				fileExist = file.exists();
-				if (!fileExist)
-					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
-							LPMain.getMessageTextRespectUISPr("lp.warning.dateinichtvorhanden", file.getName()));
-			}
-
-			if (returnVal == JFileChooser.APPROVE_OPTION && fileExist) {
-
-				sLetzteDatei = file;
-				pdf = Helper.getBytesFromFile(file);
-				double groesseInKB = ((double) file.length()) / ((double) 1024);
-				ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate()
-						.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
-								ParameterFac.PARAMETER_ALLGEMEIN_DOKUMENTE_MAXIMALE_GROESSE);
-				if (groesseInKB > (Integer) parameter.getCWertAsObject()) {
-					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.dateizugross"));
-				} else {
-					// darstellen
-
-					if (!Files.probeContentType(file.toPath()).equals("application/pdf")) {
-						setPdf((byte[]) null);
-						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain
-								.getMessageTextRespectUISPr("lp.error.dateifalschermimetype", file.getName(), "PDF"));
-
-					} else {
-
-						if (fieldToDisplayFileName != null) {
-							fieldToDisplayFileName.setText(file.getName());
-
-						}
-
-						wlaDatei.setToolTipText(file.getName());
-						wbuDatei.setToolTipText(file.getAbsolutePath());
-					}
-				}
-			} else {
-				// keine auswahl
-				setPdf((byte[]) null);
-			}
+		if (ACTION_SPECIAL_DATEI.equalsIgnoreCase(e.getActionCommand())) {
+			actionSelectFile();
+		} else if (ACTION_SPECIAL_SPEICHERN.equalsIgnoreCase(e.getActionCommand())) {
+			actionSaveFile();
+		} else if (ACTION_SPECIAL_BILD_ENTFERNEN.equalsIgnoreCase(e.getActionCommand())) {
+			setPdf(null);
+			setDateiname(null);
 		} else if (e.getSource().equals(wbuAnzeigen)) {
-			if (pdf != null) {
-				java.io.File f = File.createTempFile("hvd", ".pdf");
-				try {
+			actionShowFile();
+		} else if (e.getSource().equals(wbuGrossAnzeigen)) {
 
-					java.io.FileOutputStream out = new java.io.FileOutputStream(f);
-					out.write(pdf);
-					out.close();
-				} catch (FileNotFoundException ex) {
-					ex.printStackTrace();
-				} catch (IOException ex) {
+			if (pdf != null) {
+
+				String titel = "PDF";
+				if (wtfDatei.getText() != null) {
+					titel = wtfDatei.getText();
 				}
-				// PJ 15451
-				HelperClient.desktopOpenEx(f);
-				// java.awt.Desktop.getDesktop().open(f);
-				f.deleteOnExit();
+
+				if (grosseAnzeige == null) {
+					SwingViewBuilder factory = new SwingViewBuilder(controllerGrosseAnzeige);
+
+					// Use the factory to build a JPanel that is pre-configured
+					// with a complete, active Viewer UI.
+					JPanel viewerComponentPanel = factory.buildViewerPanel();
+
+					// add copy keyboard command
+					ComponentKeyBinding.install(controllerGrosseAnzeige, viewerComponentPanel);
+
+					grosseAnzeige = new JFrame(titel);
+
+//					grosseAnzeige.setIconImage(ImageIO.read(getClass().getResource("/com/lp/client/res/heliumv.png")));
+					grosseAnzeige.setIconImage(IconFactory.getHeliumv().getImage());
+					grosseAnzeige.getContentPane().add(viewerComponentPanel);
+
+					grosseAnzeige.pack();
+					grosseAnzeige.setVisible(true);
+
+					controllerGrosseAnzeige.openDocument(pdf, 0, pdf.length, titel, "/" + titel);
+				} else {
+					grosseAnzeige.setTitle(titel);
+					controllerGrosseAnzeige.openDocument(pdf, 0, pdf.length, titel, "/" + titel);
+					grosseAnzeige.setVisible(true);
+				}
 
 			}
+
 		}
 	}
 
+	private void actionSaveFile() throws IOException {
+		File temp = createTempFile();
+		HelperClient.showSaveFileDialog(temp, getDateiname() != null ? new File(getDateiname()) : null,
+				getInternalFrame(), getDateiname() != null ? Helper.getMime(getDateiname()) : null);
+	}
+
+	private void actionShowFile() throws IOException {
+		File temp = createTempFile();
+		// PJ 15451
+		HelperClient.desktopOpenEx(temp);
+
+		temp.deleteOnExit();
+
+	}
+
+	private File createTempFile() throws IOException {
+		if (pdf != null) {
+			java.io.File f = File.createTempFile("hvd", ".pdf");
+			try {
+
+				java.io.FileOutputStream out = new java.io.FileOutputStream(f);
+				out.write(pdf);
+				out.close();
+			} catch (FileNotFoundException ex) {
+				ex.printStackTrace();
+			} catch (IOException ex) {
+			}
+			return f;
+		}
+		return null;
+	}
+
+	public void setPDFVorschauAnzeigen(boolean bPDFVorschau) {
+		this.bPDFVorschau = bPDFVorschau;
+
+		buttonAnzeigen.setVisible(!bPDFVorschau);
+
+	}
+
+	public void buttonAnzeigen_actionPerformed(ActionEvent e) {
+		if (pdf != null) {
+			controllerVorschau.openDocument(pdf, 0, pdf.length, "DESCRIPTION", "PFAD.PDF");
+		}
+	}
+
+	/**
+	 * @throws IOException
+	 * @throws ExceptionLP
+	 * @throws Throwable
+	 */
+	private void actionSelectFile() throws IOException, ExceptionLP, Throwable {
+		HvOptional<PdfFile> wf = new PdfFileOpener(
+				getInternalFrame(), FileChooserConfigToken.ImportLast)
+				.selectSingle();
+		if (!wf.isPresent()) return ;
+		
+		FileValidator validator = new FileValidator();
+		long size = wf.get().getFile().length() / 1024l;
+		if (!validator.validateFileSize(new BigDecimal(size))) {
+			setPdf((byte[]) null);
+			return;
+		}
+		
+		setPdf(wf.get().getBytes());
+		File file = wf.get().getFile();
+		if (fieldToDisplayFileName != null) {
+			fieldToDisplayFileName.setText(file.getName());
+		}
+
+		wtfDatei.setText(file.getName());
+		wbuDatei.setToolTipText(file.getAbsolutePath());
+	}
+
 	public String getDateiname() {
-		return wlaDatei.getToolTipText();
+		return wtfDatei.getText();
 	}
 
 	public void setDateiname(String dateiname) {
-		wlaDatei.setToolTipText(dateiname);
+		wtfDatei.setText(dateiname);
 	}
+
 
 	public byte[] getPdf() {
 		return pdf;
 	}
 
-	public void setPdf(byte[] pdf) {
+	public void setPdf(byte[] pdf) throws Throwable {
 		this.pdf = pdf;
+		// Open a PDF document to view
+
+		if (pdf != null && bPDFVorschau) {
+
+			String titel = "PDF";
+			if (wtfDatei.getText() != null) {
+				titel = wtfDatei.getText();
+			}
+
+			controllerVorschau.openDocument(pdf, 0, pdf.length, titel, "/" + titel);
+		} else {
+			controllerVorschau.closeDocument();
+		}
 
 	}
 
@@ -247,4 +415,59 @@ public class WrapperPdfField extends PanelBasis {
 		return wbuDatei;
 	}
 
+	@Override
+	public void removeContent() throws Throwable {
+		setPdf(null);
+		setDateiname(null);
+	}
+
+	@Override
+	public boolean hasContent() throws Throwable {
+		return wtfDatei.hasContent();
+	}
+
+	@Override
+	public boolean isMandatoryField() {
+		return wtfDatei.isMandatoryField();
+	}
+
+	@Override
+	public void setMandatoryField(boolean isMandatoryField) {
+		wtfDatei.setMandatoryField(isMandatoryField);
+	}
+
+	@Override
+	public boolean isActivatable() {
+		return isActivatable;
+	}
+
+	@Override
+	public void setActivatable(boolean isActivatable) {
+		this.isActivatable = isActivatable;
+		if (!isActivatable) {
+			setEnabled(false);
+		}
+	}
+
+	@Override
+	public void setEnabled(boolean enabled) {
+		super.setEnabled(enabled);
+		wbuDatei.setEnabled(enabled);
+		wbuAnzeigen.setEnabled(!enabled && getPdf() != null);
+		wbuSpeichern.setEnabled(!enabled && getPdf() != null);
+		wbuBildEntfernen.setEnabled(enabled);
+	}
+
+}
+
+class WrapperPdfField_buttonAnzeigen_actionAdapter implements ActionListener {
+	private WrapperPdfField adaptee;
+
+	WrapperPdfField_buttonAnzeigen_actionAdapter(WrapperPdfField adaptee) {
+		this.adaptee = adaptee;
+	}
+
+	public void actionPerformed(ActionEvent e) {
+		adaptee.buttonAnzeigen_actionPerformed(e);
+	}
 }

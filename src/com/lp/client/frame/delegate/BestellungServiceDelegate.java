@@ -40,7 +40,9 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.bestellung.service.BSZahlungsplanDto;
 import com.lp.server.bestellung.service.BestellpositionartDto;
+import com.lp.server.bestellung.service.BestellungFac;
 import com.lp.server.bestellung.service.BestellungServiceFac;
 import com.lp.server.bestellung.service.BestellungsartDto;
 import com.lp.server.bestellung.service.BestellungstatusDto;
@@ -70,8 +72,8 @@ public class BestellungServiceDelegate extends Delegate {
 	public BestellungServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			bestellungServiceFac = (BestellungServiceFac) context
-					.lookup("lpserver/BestellungServiceFacBean/remote");
+			bestellungServiceFac = lookupFac(context, BestellungServiceFac.class);	
+
 		} catch (Throwable t) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, t.toString(), null);
 		}
@@ -233,6 +235,18 @@ public class BestellungServiceDelegate extends Delegate {
 
 	}
 
+	public Integer createBSZahlungsplan(BSZahlungsplanDto zahlungsplanDto)
+			throws ExceptionLP {
+		try {
+			return bestellungServiceFac.createBSZahlungsplan(zahlungsplanDto, LPMain
+					.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
 	public void removeBestellungsart(BestellungsartDto bestellungartDto)
 			throws ExceptionLP {
 		try {
@@ -248,6 +262,16 @@ public class BestellungServiceDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			bestellungServiceFac.removeMahngruppe(mahngruppeDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
+
+	public void removeBSZahlungsplan(BSZahlungsplanDto zahlungsplanDto)
+			throws ExceptionLP {
+		try {
+			bestellungServiceFac.removeBSZahlungsplan(zahlungsplanDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -273,11 +297,32 @@ public class BestellungServiceDelegate extends Delegate {
 		}
 
 	}
+	public void toggleBSZahlungsplanErledigt(Integer bszahlungsplanIId)
+			throws ExceptionLP {
+		try {
+			bestellungServiceFac.toggleBSZahlungsplanErledigt(bszahlungsplanIId, LPMain
+					.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
 
 	public void updateBestellungsart(BestellungsartDto bestellungartDto)
 			throws ExceptionLP {
 		try {
 			bestellungServiceFac.updateBestellungart(bestellungartDto, LPMain
+					.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+	}
+
+	public void updateBSZahlungsplan(BSZahlungsplanDto zahlungsplanDto)
+			throws ExceptionLP {
+		try {
+			bestellungServiceFac.updateBSZahlungsplan(zahlungsplanDto, LPMain
 					.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -310,12 +355,22 @@ public class BestellungServiceDelegate extends Delegate {
 		return dto;
 	}
 
-
 	public MahngruppeDto mahngruppeFindByPrimaryKey(Integer artgruIId)
 			throws ExceptionLP {
 		MahngruppeDto dto = null;
 		try {
 			dto = bestellungServiceFac.mahngruppeFindByPrimaryKey(artgruIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return dto;
+	}
+
+	public BSZahlungsplanDto bszahlungsplanFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+		BSZahlungsplanDto dto = null;
+		try {
+			dto = bestellungServiceFac.bszahlungsplanFindByPrimaryKey(iId);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}

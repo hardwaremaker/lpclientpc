@@ -42,6 +42,7 @@ import javax.swing.JPanel;
 
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperDateRangeController;
 import com.lp.client.frame.component.WrapperLabel;
@@ -65,11 +66,18 @@ public class ReportAenderungenZeiterfassung extends PanelBasis implements
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 
-	private WrapperLabel wlaVon = new WrapperLabel();
-	private WrapperDateField wdfVon = new WrapperDateField();
-	private WrapperLabel wlaBis = new WrapperLabel();
-	private WrapperDateField wdfBis = new WrapperDateField();
+	private WrapperLabel wlaZeitbuchungVon = new WrapperLabel();
+	private WrapperDateField wdfZeitbuchungVon = new WrapperDateField();
+	private WrapperLabel wlaZeitbuchungBis = new WrapperLabel();
+	private WrapperDateField wdfZeitbuchungBis = new WrapperDateField();
+	private WrapperLabel wlaAenderungVon = new WrapperLabel();
+	private WrapperDateField wdfAenderungVon = new WrapperDateField();
+	private WrapperLabel wlaAenderungBis = new WrapperLabel();
+	private WrapperDateField wdfAenderungBis = new WrapperDateField();
 	private WrapperLabel wbuPersonal = new WrapperLabel();
+	
+	private WrapperLabel wlaSortierung = new WrapperLabel();
+	private WrapperComboBox wcbSortierung = new WrapperComboBox();
 
 	private WrapperCheckBox wcbInserts = new WrapperCheckBox();
 	private WrapperCheckBox wcbUpdates = new WrapperCheckBox();
@@ -78,7 +86,8 @@ public class ReportAenderungenZeiterfassung extends PanelBasis implements
 	private WrapperTextField wtfPersonal = new WrapperTextField();
 
 	private Integer personalIId = null;
-	private WrapperDateRangeController wdrBereich = null;
+	private WrapperDateRangeController wdrZeitbuchungBereich = null;
+	private WrapperDateRangeController wdrAenderungBereich = null;
 
 	public ReportAenderungenZeiterfassung(
 			InternalFrameZeiterfassung internalFrame, String add2Title)
@@ -91,13 +100,13 @@ public class ReportAenderungenZeiterfassung extends PanelBasis implements
 		wtfPersonal.setText(internalFrame.getPersonalDto().formatAnrede());
 		personalIId = internalFrame.getPersonalDto().getIId();
 
-		wdrBereich.doClickDown();
-		wdrBereich.doClickUp();
+		wdrZeitbuchungBereich.doClickDown();
+		wdrZeitbuchungBereich.doClickUp();
 
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
-		return wdfVon;
+		return wdfZeitbuchungVon;
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
@@ -105,17 +114,22 @@ public class ReportAenderungenZeiterfassung extends PanelBasis implements
 		return DelegateFactory
 				.getInstance()
 				.getZeiterfassungReportDelegate()
-				.printAenderungen(personalIId, wdrBereich.getDatumsfilterVonBis(), wcbInserts.isSelected(),
-						wcbUpdates.isSelected(), wcbDeletes.isSelected());
+				.printAenderungen(personalIId, wdrZeitbuchungBereich.getDatumsfilterVonBis(),
+						wdrAenderungBereich.getDatumsfilterVonBis(), wcbInserts.isSelected(), 
+						wcbUpdates.isSelected(), wcbDeletes.isSelected(), wcbSortierung.getSelectedIndex());
 	}
 
 	private void jbInit() throws Throwable {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 
-		wlaVon.setText(LPMain.getTextRespectUISPr("lp.zeitraum") + " "
+		wlaZeitbuchungVon.setText(LPMain.getTextRespectUISPr("lp.zeitraum") + " "
 				+ LPMain.getTextRespectUISPr("lp.von"));
-		wlaBis.setText(LPMain.getTextRespectUISPr("lp.bis"));
+		wlaZeitbuchungBis.setText(LPMain.getTextRespectUISPr("lp.bis"));
+		
+		wlaAenderungVon.setText(LPMain.getTextRespectUISPr("lp.report.aenderungen") + " "
+				+ LPMain.getTextRespectUISPr("lp.von"));
+		wlaAenderungBis.setText(LPMain.getTextRespectUISPr("lp.bis"));
 
 		wbuPersonal
 				.setText(LPMain
@@ -132,46 +146,74 @@ public class ReportAenderungenZeiterfassung extends PanelBasis implements
 		wtfPersonal.setActivatable(false);
 		wtfPersonal.setEditable(false);
 		wtfPersonal.setSaveReportInformation(false);
-		wdrBereich = new WrapperDateRangeController(wdfVon, wdfBis);
-		wdfVon.setMandatoryField(true);
-		wdfBis.setMandatoryField(true);
+		wdrZeitbuchungBereich = new WrapperDateRangeController(wdfZeitbuchungVon, wdfZeitbuchungBis);
+		wdrAenderungBereich = new WrapperDateRangeController(wdfAenderungVon, wdfAenderungBis);
+		wdfZeitbuchungVon.setMandatoryField(true);
+		wdfZeitbuchungBis.setMandatoryField(true);
+		wlaSortierung.setText("Sortieren nach");
+		wcbSortierung = new WrapperComboBox(new String[] {
+				LPMain.getTextRespectUISPr("lp.report.zeitbuchungen"), 
+				LPMain.getTextRespectUISPr("pers.zeiterfassung.aenderungenreport.sort.aenderungszeitpunkt")});
+		
+		wcbSortierung.setSelectedIndex(0);
+		
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wlaVon, new GridBagConstraints(0, 5, 1, 1, 0.1, 0.0,
+		jpaWorkingOn.add(wlaZeitbuchungVon, new GridBagConstraints(0, 5, 1, 1, 0.2, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfVon, new GridBagConstraints(2, 5, 1, 1, 0.1, 0.0,
+		jpaWorkingOn.add(wdfZeitbuchungVon, new GridBagConstraints(1, 5, 1, 1, 0.0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaBis, new GridBagConstraints(3, 5, 1, 1, 0.1, 0.0,
+		jpaWorkingOn.add(wlaZeitbuchungBis, new GridBagConstraints(2, 5, 1, 1, 0.05, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfBis, new GridBagConstraints(4, 5, 1, 1, 0.1, 0.0,
+		jpaWorkingOn.add(wdfZeitbuchungBis, new GridBagConstraints(3, 5, 1, 1, 0.1, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdrBereich, new GridBagConstraints(5, 5, 1, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+//		jpaWorkingOn.add(wdrZeitbuchungBereich, new GridBagConstraints(3, 5, 1, 1, 0.1,
+//				0.0, GridBagConstraints.WEST, GridBagConstraints.VERTICAL,
+//				new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wlaAenderungVon, new GridBagConstraints(0, 6, 1, 1, 0.2, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(1, 1, 1, 1), 0, 0));
+		jpaWorkingOn.add(wdfAenderungVon, new GridBagConstraints(1, 6, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaAenderungBis, new GridBagConstraints(2, 6, 1, 1, 0.05, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfAenderungBis, new GridBagConstraints(3, 6, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wtfPersonal, new GridBagConstraints(2, 2, 3, 1, 0.0,
+		jpaWorkingOn.add(wcbInserts, new GridBagConstraints(1, 7, 1, 1, 0.05, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbUpdates, new GridBagConstraints(3, 7, 1, 1, 0.05, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbDeletes, new GridBagConstraints(5, 7, 1, 1, 0.2, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(6, 7, 1, 1, 0.3, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbSortierung, new GridBagConstraints(7, 7, 1, 1, 0.2, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wtfPersonal, new GridBagConstraints(1, 2, 5, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wbuPersonal, new GridBagConstraints(0, 2, 1, 1, 0.0,
+		jpaWorkingOn.add(wbuPersonal, new GridBagConstraints(0, 2, 1, 1, 0.2,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 		
-		
-		jpaWorkingOn.add(wcbInserts, new GridBagConstraints(0, 6, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbUpdates, new GridBagConstraints(2, 6, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbDeletes, new GridBagConstraints(3, 6, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
 		
 	}
 

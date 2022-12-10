@@ -32,8 +32,6 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
-
-
 import java.rmi.RemoteException;
 import java.sql.Timestamp;
 
@@ -43,99 +41,103 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.pc.LPMain;
+import com.lp.server.shop.service.ShopTimerFac;
 import com.lp.server.system.service.AutoPaternosterFac;
 import com.lp.server.system.service.AutomatikjobDto;
 import com.lp.server.system.service.AutomatikjobFac;
+import com.lp.server.system.service.AutomatikjobSyncResultDto;
 import com.lp.server.system.service.AutomatikjobtypeDto;
 import com.lp.server.system.service.AutomatikjobtypeFac;
 import com.lp.server.system.service.AutomatiktimerDto;
 import com.lp.server.system.service.AutomatiktimerFac;
+import com.lp.server.system.service.TheClientDto;
+import com.lp.util.EJBExceptionLP;
 
+public class AutomatikDelegate extends Delegate {
+	private Context context;
+	private AutomatikjobFac automatikjobFac;
+	private AutomatiktimerFac automatiktimerFac;
+	private AutomatikjobtypeFac automatikjobtypeFac;
+	private AutoPaternosterFac autopaternosterFac;
+	private ShopTimerFac shopTimerFacBean;
 
-public class AutomatikDelegate
-    extends Delegate
-{
-  private Context context;
-  private AutomatikjobFac automatikjobFac;
-  private AutomatiktimerFac automatiktimerFac;
-  private AutomatikjobtypeFac automatikjobtypeFac;
-  private AutoPaternosterFac autopaternosterFac;
+	public AutomatikDelegate() throws ExceptionLP {
+		try {
+			context = new InitialContext();
+			automatikjobFac = lookupFac(context, AutomatikjobFac.class);
+			automatiktimerFac = lookupFac(context, AutomatiktimerFac.class);
+			automatikjobtypeFac = lookupFac(context, AutomatikjobtypeFac.class);
+			autopaternosterFac = lookupFac(context, AutoPaternosterFac.class);
+			shopTimerFacBean = lookupFac(context, ShopTimerFac.class);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-  public AutomatikDelegate()
-      throws ExceptionLP {
-    try {
-    	context = new InitialContext();
-      automatikjobFac = (AutomatikjobFac) context.lookup("lpserver/AutomatikjobFacBean/remote");
-      automatiktimerFac = (AutomatiktimerFac) context.lookup("lpserver/AutomatiktimerFacBean/remote");
-      automatikjobtypeFac = (AutomatikjobtypeFac) context.lookup("lpserver/AutomatikjobtypeFacBean/remote");
-      autopaternosterFac = (AutoPaternosterFac) context.lookup("lpserver/AutoPaternosterFacBean/remote");
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+	}
 
+	public void updateAutomatikjobs(AutomatikjobDto[] automatikjobDtos) throws RemoteException {
+		automatikjobFac.updateAutomatikjobs(automatikjobDtos);
+	}
 
-  }
+	public void updateAutomatikjob(AutomatikjobDto automatikjobDto) throws RemoteException {
+		automatikjobFac.updateAutomatikjob(automatikjobDto);
+	}
 
+	public AutomatikjobDto automatikjobFindByPrimaryKey(Integer iId) throws FinderException, RemoteException {
+		return automatikjobFac.automatikjobFindByPrimaryKey(iId);
+	}
 
-  public void updateAutomatikjobs(AutomatikjobDto[] automatikjobDtos)
-      throws RemoteException {
-    automatikjobFac.updateAutomatikjobs(automatikjobDtos);
-  }
+	public AutomatikjobDto automatikjobFindByISort(Integer iSort) throws FinderException, RemoteException {
+		return automatikjobFac.automatikjobFindByISort(iSort);
+	}
 
-  public void updateAutomatikjob(AutomatikjobDto automatikjobDto)
-      throws RemoteException {
-    automatikjobFac.updateAutomatikjob(automatikjobDto);
-  }
+	public AutomatikjobDto[] automatikjobFindByBActive(Integer bActive) throws RemoteException, FinderException {
+		return automatikjobFac.automatikjobFindByBActive(bActive);
+	}
 
-  public AutomatikjobDto automatikjobFindByPrimaryKey(Integer iId)
-      throws FinderException, RemoteException {
-    return automatikjobFac.automatikjobFindByPrimaryKey(iId);
-  }
+	public AutomatikjobDto[] automatikjobFindByBMonthjob(Integer bMonthjob) throws FinderException, RemoteException {
+		return automatikjobFac.automatikjobFindByBMonthjob(bMonthjob);
+	}
 
-  public AutomatikjobDto automatikjobFindByISort(Integer iSort)
-      throws FinderException, RemoteException {
-    return automatikjobFac.automatikjobFindByISort(iSort);
-  }
+	public AutomatikjobDto[] automatikjobFindBydNextperform(Timestamp dNextPerform)
+			throws FinderException, RemoteException {
+		return automatikjobFac.automatikjobFindBydNextperform(dNextPerform);
+	}
 
-  public AutomatikjobDto[] automatikjobFindByBActive(Integer bActive)
-      throws RemoteException, FinderException {
-    return automatikjobFac.automatikjobFindByBActive(bActive);
-  }
+	public void updateAutomatiktimer(AutomatiktimerDto automatiktimerDto) throws RemoteException {
+		automatiktimerFac.updateAutomatiktimer(automatiktimerDto);
+	}
 
-  public AutomatikjobDto[] automatikjobFindByBMonthjob(Integer bMonthjob)
-      throws FinderException, RemoteException {
-    return automatikjobFac.automatikjobFindByBMonthjob(bMonthjob);
-  }
+	public AutomatiktimerDto automatiktimerFindByPrimaryKey(Integer iId) throws FinderException, RemoteException {
+		return automatiktimerFac.automatiktimerFindByPrimaryKey(iId);
+	}
 
-  public AutomatikjobDto[] automatikjobFindBydNextperform(Timestamp dNextPerform)
-      throws FinderException, RemoteException {
-    return automatikjobFac.automatikjobFindBydNextperform(dNextPerform);
-  }
+	public AutomatikjobtypeDto automatikjobtypeFindByPrimaryKey(Integer iId) throws FinderException, RemoteException {
+		return automatikjobtypeFac.automatikjobtypeFindByPrimaryKey(iId);
+	}
 
-  public AutomatikjobDto automatikjobFindByCName(String cName)
-      throws FinderException, RemoteException {
-    return automatikjobFac.automatikjobFindByCName(cName);
-  }
+	public void setTimer(long millisTillPerform) throws RemoteException, EJBException {
+		automatiktimerFac.setTimer(millisTillPerform);
+		autopaternosterFac.setTimer(millisTillPerform);
+		shopTimerFacBean.setTimer(ShopTimerFac.DEFAULT_DURATION);
+	}
 
-  public void updateAutomatiktimer(AutomatiktimerDto automatiktimerDto)
-      throws RemoteException {
-    automatiktimerFac.updateAutomatiktimer(automatiktimerDto);
-  }
+	public AutomatikjobSyncResultDto syncAutomatikjobs() throws ExceptionLP {
+		try {
+			TheClientDto theClient = LPMain.getTheClient();
+			return automatikjobFac.synchronisiereAutomatikjobsZwischenMandanten(theClient.getMandant(), theClient);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
 
-  public AutomatiktimerDto automatiktimerFindByPrimaryKey(Integer iId)
-      throws FinderException, RemoteException {
-    return automatiktimerFac.automatiktimerFindByPrimaryKey(iId);
-  }
-
-  public AutomatikjobtypeDto automatikjobtypeFindByPrimaryKey(Integer iId)
-      throws FinderException, RemoteException {
-    return automatikjobtypeFac.automatikjobtypeFindByPrimaryKey(iId);
-  }
-
-  public void setTimer(long millisTillPerform)
-      throws RemoteException, EJBException {
-    automatiktimerFac.setTimer(millisTillPerform);
-    autopaternosterFac.setTimer(millisTillPerform);
-  }
+	public void vertauscheAutomatikjobs(Integer idPos1, Integer idPos2) throws ExceptionLP {
+		try {
+			automatikjobFac.vertauscheAutomatikjobs(idPos1, idPos2);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 }

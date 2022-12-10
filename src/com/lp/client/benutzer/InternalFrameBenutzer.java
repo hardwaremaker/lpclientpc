@@ -40,6 +40,7 @@ import javax.swing.JTabbedPane;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.pc.LPMain;
 import com.lp.server.benutzer.service.SystemrolleDto;
+import com.lp.server.system.service.MandantFac;
 
 @SuppressWarnings("static-access")
 /*
@@ -60,11 +61,17 @@ public class InternalFrameBenutzer extends InternalFrame {
 	private TabbedPaneBenutzer tabbedPaneBenutzer = null;
 	private TabbedPaneRollen tabbedPaneRollen = null;
 	private TabbedPaneNachrichten tabbedPaneNachrichten = null;
+	private TabbedPaneHvma tabbedPaneHvma = null;
+
+	public TabbedPaneHvma getTabbedPaneHvma() {
+		return tabbedPaneHvma;
+	}
 
 	private final int IDX_TABBED_PANE_BENUTZER = 0;
 	private final int IDX_TABBED_PANE_BENUTZERMANDANTSYSTEMROLLE = 1;
 	private final int IDX_TABBED_PANE_SYSTEMROLLE = 2;
 	private final int IDX_TABBED_PANE_NACHRICHTEN = 3;
+	private final int IDX_TABBED_PANE_HVMA = 4;
 
 	private SystemrolleDto systemrolleDto = null;
 
@@ -105,6 +112,18 @@ public class InternalFrameBenutzer extends InternalFrame {
 				"ben.nachrichten"), null, null, LPMain.getInstance()
 				.getTextRespectUISPr("ben.nachrichten"),
 				IDX_TABBED_PANE_NACHRICHTEN);
+		
+		
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_HVMA2)) {
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr(
+				"pers.hvma"), null, null, LPMain.getInstance()
+				.getTextRespectUISPr("pers.hvma"),
+				IDX_TABBED_PANE_HVMA);
+		}
 
 		registerChangeListeners();
 		createTabbedPaneBenutzer(null);
@@ -151,6 +170,16 @@ public class InternalFrameBenutzer extends InternalFrame {
 			initComponents();
 		}
 	}
+	private void createTabbedPaneHvma()
+			throws Throwable {
+		if (tabbedPaneHvma == null) {
+			// lazy loading
+			tabbedPaneHvma = new TabbedPaneHvma(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_HVMA,
+					tabbedPaneHvma);
+			initComponents();
+		}
+	}
 
 	private void createTabbedPaneBenutzer(JTabbedPane tabbedPane)
 			throws Throwable {
@@ -184,6 +213,10 @@ public class InternalFrameBenutzer extends InternalFrame {
 			createTabbedPaneNachrichten(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.
 			tabbedPaneNachrichten.lPEventObjectChanged(null);
+		}else if (selectedCur == IDX_TABBED_PANE_HVMA) {
+			createTabbedPaneHvma();
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneHvma.lPEventObjectChanged(null);
 		}
 
 	}

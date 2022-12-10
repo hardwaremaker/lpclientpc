@@ -48,6 +48,7 @@ import com.lp.server.finanz.service.PrintKontoblaetterModel;
 import com.lp.server.finanz.service.ReportErfolgsrechnungKriterienDto;
 import com.lp.server.finanz.service.ReportSaldenlisteKriterienDto;
 import com.lp.server.finanz.service.ReportUvaKriterienDto;
+import com.lp.server.finanz.service.SepaImportFac;
 import com.lp.server.system.service.ReportJournalKriterienDto;
 import com.lp.server.util.report.JasperPrintLP;
 
@@ -74,8 +75,7 @@ public class FinanzReportDelegate extends Delegate {
 	public FinanzReportDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			finanzReportFac = (FinanzReportFac) context
-					.lookup("lpserver/FinanzReportFacBean/remote");
+			finanzReportFac = lookupFac(context, FinanzReportFac.class);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -157,21 +157,22 @@ public class FinanzReportDelegate extends Delegate {
 	 * @return JasperPrint
 	 * @throws ExceptionLP
 	 */
-//	public JasperPrintLP printBuchungsjournal(Integer buchungsjournalIId,
-//			Date dVon, Date dBis, boolean storniert,
-//			boolean bDatumsfilterIstBuchungsdatum, String text,
-//			String belegnummer, BigDecimal betrag, String kontonummer) throws ExceptionLP {
-//		JasperPrintLP print = null;
-//		try {
-//			print = this.finanzReportFac.printBuchungsjournal(
-//					LPMain.getTheClient(), buchungsjournalIId, dVon, dBis,
-//					storniert, bDatumsfilterIstBuchungsdatum, text,
-//					belegnummer, betrag, kontonummer);
-//		} catch (Throwable ex) {
-//			handleThrowable(ex);
-//		}
-//		return print;
-//	}
+	// public JasperPrintLP printBuchungsjournal(Integer buchungsjournalIId,
+	// Date dVon, Date dBis, boolean storniert,
+	// boolean bDatumsfilterIstBuchungsdatum, String text,
+	// String belegnummer, BigDecimal betrag, String kontonummer) throws
+	// ExceptionLP {
+	// JasperPrintLP print = null;
+	// try {
+	// print = this.finanzReportFac.printBuchungsjournal(
+	// LPMain.getTheClient(), buchungsjournalIId, dVon, dBis,
+	// storniert, bDatumsfilterIstBuchungsdatum, text,
+	// belegnummer, betrag, kontonummer);
+	// } catch (Throwable ex) {
+	// handleThrowable(ex);
+	// }
+	// return print;
+	// }
 
 	/**
 	 * Das detailierte Buchungsjournal drucken
@@ -180,7 +181,8 @@ public class FinanzReportDelegate extends Delegate {
 	 * @return den Ausdruck
 	 * @throws ExceptionLP
 	 */
-	public JasperPrintLP printBuchungsjournal(BuchungsjournalReportParameter params) throws ExceptionLP {
+	public JasperPrintLP printBuchungsjournal(
+			BuchungsjournalReportParameter params) throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
 			print = this.finanzReportFac.printBuchungsjournal(
@@ -188,10 +190,9 @@ public class FinanzReportDelegate extends Delegate {
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
-		return print;		
+		return print;
 	}
 
-	
 	/**
 	 * RA-Schreiben drucken.
 	 * 
@@ -247,6 +248,43 @@ public class FinanzReportDelegate extends Delegate {
 		try {
 			print = this.finanzReportFac.printMahnungAusMahnlauf(
 					LPMain.getTheClient(), mahnungIId, bMitLogo);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return print;
+	}
+
+	public JasperPrintLP printEinfacheErfolgsrechnung(Integer iGeschaeftsjahr,
+			boolean bMitLagerwert, boolean bMitHalbfertiglager, boolean bMitPersonalstunden,boolean bMitMaschinenstunden)
+			throws ExceptionLP {
+		JasperPrintLP print = null;
+		try {
+			print = this.finanzReportFac.printEinfacheErfolgsrechnung(
+					LPMain.getTheClient(), iGeschaeftsjahr, bMitLagerwert,
+					bMitHalbfertiglager,bMitPersonalstunden, bMitMaschinenstunden);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return print;
+	}
+
+	public JasperPrintLP printKassenjournal(Integer kassabuchIId,
+			Integer iGeschaeftsjahr) throws ExceptionLP {
+		JasperPrintLP print = null;
+		try {
+			print = this.finanzReportFac.printKassenjournal(kassabuchIId,
+					iGeschaeftsjahr, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return print;
+	}
+
+	
+	public JasperPrintLP printUeberweisungsliste(Integer zahlungsvorschlaglaufIId) throws ExceptionLP {
+		JasperPrintLP print = null;
+		try {
+			print = this.finanzReportFac.printUeberweisungsliste(zahlungsvorschlaglaufIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -326,14 +364,17 @@ public class FinanzReportDelegate extends Delegate {
 			boolean bTerminNachZahlungsmoral, boolean bMitPlankosten,
 			ArrayList<LiquititaetsvorschauImportDto> alPlankosten,
 			boolean bMitOffenenAngeboten, boolean bMitOffenenBestellungen,
-			boolean bMitOffenenAuftraegen) throws ExceptionLP {
+			boolean bMitOffenenAuftraegen, boolean bMitAbgaben,
+			boolean bERTerminNachFreigabedatum,
+			boolean bMitABZahlungsUndZeitplan, boolean bOhneAndereMandanten) throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
 			print = this.finanzReportFac.printLiquiditaetsvorschau(kontostand,
 					kreditlimit, kalenderwochen, bTerminNachZahlungsmoral,
 					bMitPlankosten, alPlankosten, bMitOffenenAngeboten,
 					bMitOffenenBestellungen, bMitOffenenAuftraegen,
-					LPMain.getTheClient());
+					bMitAbgaben, bERTerminNachFreigabedatum,
+					bMitABZahlungsUndZeitplan, bOhneAndereMandanten, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -498,12 +539,12 @@ public class FinanzReportDelegate extends Delegate {
 
 	public JasperPrintLP printErfolgsrechnung(
 			ReportErfolgsrechnungKriterienDto kriterien, boolean bBilanz,
-			boolean bDetails) throws ExceptionLP {
+			boolean bDetails, boolean bEroeffnungsbilanz) throws ExceptionLP {
 		JasperPrintLP print = null;
 		try {
 			print = this.finanzReportFac.printErfolgsrechnung(LPMain
 					.getTheClient().getMandant(), kriterien, bBilanz, bDetails,
-					LPMain.getTheClient());
+					bEroeffnungsbilanz, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}

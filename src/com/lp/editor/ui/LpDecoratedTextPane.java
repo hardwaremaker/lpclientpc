@@ -36,7 +36,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Insets;
-import java.awt.Toolkit;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Vector;
@@ -104,7 +103,7 @@ public class LpDecoratedTextPane extends LpTextPane {
 	public Dimension getPreferredSize() {
 		Dimension preferredSize = getPageFormatNoBordersWithZoom();
 //		preferredSize.height = getParent().getHeight();
-		if(super.getPreferredSize().height > preferredSize.height)
+		if (super.getPreferredSize().height > preferredSize.height)
 			preferredSize.height = super.getPreferredSize().height;
 		return preferredSize;
 	}
@@ -140,7 +139,8 @@ public class LpDecoratedTextPane extends LpTextPane {
 
 	/**
 	 * Setzt die Breite der Seite (72 dpi!)
-	 * @param iPageWidth 
+	 * 
+	 * @param iPageWidth
 	 */
 	public void setPageWidth(int iPageWidth) {
 		setPageWidth(iPageWidth, UNIT_PIXEL, JASPER_DPI);
@@ -162,8 +162,9 @@ public class LpDecoratedTextPane extends LpTextPane {
 
 	/**
 	 * Setzt die Gr&ouml;&szlig;e der Seite (72 dpi!)
-	 * @param dim 
-	 * @param unit 
+	 * 
+	 * @param dim
+	 * @param unit
 	 */
 	public void setPageFormat(Dimension dim, int unit) {
 		setPageWidth(dim.width, unit, JASPER_DPI);
@@ -185,17 +186,17 @@ public class LpDecoratedTextPane extends LpTextPane {
 
 	/**
 	 * Setzt die Gr&ouml;&szlig;e der Seite in Pixel (72 dpi!)
-	 * @param dim 
+	 * 
+	 * @param dim
 	 */
 	public void setPageFormat(Dimension dim) {
 		setPageFormat(dim, UNIT_PIXEL);
 	}
 
 	private Dimension multiplyDimension(Dimension d, double factor) {
-		return new Dimension((int)Math.round(d.width * factor),
-				(int) Math.round(d.height * factor));
+		return new Dimension((int) Math.round(d.width * factor), (int) Math.round(d.height * factor));
 	}
-	
+
 	private Dimension addPageBorders(Dimension pageFormatPixel) {
 		Dimension dim = new Dimension();
 		Insets margin = getPageMargin();
@@ -206,16 +207,15 @@ public class LpDecoratedTextPane extends LpTextPane {
 
 	/**
 	 * @return die dargestellte, zoomabh&auml;ngige Aufl&ouml;sung des Textbereiches
-	 * (= Seitengr&ouml;&szlig;e - R&auml;nder) in Pixel
+	 *         (= Seitengr&ouml;&szlig;e - R&auml;nder) in Pixel
 	 */
 	public Dimension getPageFormatNoBordersWithZoom() {
 		return multiplyDimension(pageFormatPixel, getZoomFactor());
 	}
 
-
 	/**
-	 * @return die dargestellte, zoomabh&auml;ngige Aufl&ouml;sung der Seite inklusive R&auml;nder
-	 * in Pixel
+	 * @return die dargestellte, zoomabh&auml;ngige Aufl&ouml;sung der Seite
+	 *         inklusive R&auml;nder in Pixel
 	 */
 	public Dimension getPageFormatWithZoom() {
 		return multiplyDimension(addPageBorders(pageFormatPixel), getZoomFactor());
@@ -224,6 +224,7 @@ public class LpDecoratedTextPane extends LpTextPane {
 	/**
 	 * Gibt die wirkliche, zoomunabh&auml;ngige Aufl&ouml;sung der Seite zur&uuml;ck
 	 * (72 dpi!)
+	 * 
 	 * @param unit
 	 * @return die wirkliche, zoomunabh&auml;ngige Aufl&ouml;sung der Seite
 	 */
@@ -237,11 +238,11 @@ public class LpDecoratedTextPane extends LpTextPane {
 			return pageFormatMM;
 		}
 	}
-	
+
 	@Override
 	public void paste() {
 		String parsed = ClipboardParser.parseToLpEditorFormat(getToolkit().getSystemClipboard());
-		if(parsed != null) {
+		if (parsed != null) {
 			replaceSelection("");
 			try {
 				getEditorKit().read(new StringReader(parsed), getDocument(), getCaretPosition());
@@ -258,8 +259,9 @@ public class LpDecoratedTextPane extends LpTextPane {
 	}
 
 	/**
-	 * Gibt die wirkliche, zoomunabh&auml;ngige Aufl&ouml;sung der Seite in Pixel zur&uuml;ck
-	 * (72 dpi!)
+	 * Gibt die wirkliche, zoomunabh&auml;ngige Aufl&ouml;sung der Seite in Pixel
+	 * zur&uuml;ck (72 dpi!)
+	 * 
 	 * @return die wirkliche, zoomunabh&auml;ngige Aufl&ouml;sung der Seite in Pixel
 	 */
 	public Dimension getPageFormat() {
@@ -283,20 +285,20 @@ public class LpDecoratedTextPane extends LpTextPane {
 	}
 
 	public Insets getPageMarginWithZoom() {
-		int top = (int) Math.round(margin.top*getZoomFactor());
-		int left = (int) Math.round(margin.left*getZoomFactor());
-		int bottom = (int) Math.round(margin.bottom*getZoomFactor());
-		int right = (int) Math.round(margin.right*getZoomFactor());
+		int top = (int) Math.round(margin.top * getZoomFactor());
+		int left = (int) Math.round(margin.left * getZoomFactor());
+		int bottom = (int) Math.round(margin.bottom * getZoomFactor());
+		int right = (int) Math.round(margin.right * getZoomFactor());
 		return new Insets(top, left, bottom, right);
 	}
 
 	public Insets getPageMargin() {
 		return margin;
 	}
-	
+
 	@Override
 	public Insets getInsets() {
-		return new Insets(0,0,0,0);
+		return new Insets(0, 0, 0, 0);
 	}
 
 	public void addOverflowRange(Position start, Position end) {
@@ -308,7 +310,7 @@ public class LpDecoratedTextPane extends LpTextPane {
 		vecStartOverflow.remove(start);
 		vecEndOverflow.remove(end);
 	}
-	
+
 	@Override
 	public void repaint(int x, int y, int width, int height) {
 		// TODO Auto-generated method stub
@@ -323,11 +325,9 @@ public class LpDecoratedTextPane extends LpTextPane {
 			g.setColor(Color.lightGray);
 			g.setXORMode(Color.white);
 			Insets insets = getInsets();
-			int numBreaks = (getSize().height - insets.top - insets.bottom)
-					/ getPageFormatNoBordersWithZoom().height;
+			int numBreaks = (getSize().height - insets.top - insets.bottom) / getPageFormatNoBordersWithZoom().height;
 			for (int i = 0; i < numBreaks; i++) {
-				g.drawLine(insets.left, pageFormatWithZoom.height * (i + 1)
-						+ insets.top, pageFormatWithZoom.width,
+				g.drawLine(insets.left, pageFormatWithZoom.height * (i + 1) + insets.top, pageFormatWithZoom.width,
 						pageFormatWithZoom.height * (i + 1) + insets.top);
 			}
 		}
@@ -341,6 +341,9 @@ public class LpDecoratedTextPane extends LpTextPane {
 			for (int i = 0; i < vecStartOverflow.size(); i++) {
 				Position posStart = (Position) vecStartOverflow.get(i);
 				Position posEnd = (Position) vecEndOverflow.get(i);
+				if (posStart == null || posEnd == null)
+					continue;
+
 				int ps = 0;
 				try {
 					ps = posStart.getOffset();
@@ -360,8 +363,7 @@ public class LpDecoratedTextPane extends LpTextPane {
 					g.drawLine(2, start, 4, start);
 					g.drawLine(2, end, 4, end);
 				} catch (BadLocationException exc) {
-					LpLogger.getInstance(LpDecoratedTextPane.class).error(
-							exc.getLocalizedMessage());
+					LpLogger.getInstance(LpDecoratedTextPane.class).error(exc.getLocalizedMessage());
 				}
 			}
 		}
@@ -397,21 +399,28 @@ public class LpDecoratedTextPane extends LpTextPane {
 //		}
 //
 //	}
-	
+
 	public void setZoomFactor(double factor) {
 		cachedZoom = factor;
-		factor *= new Double(Toolkit.getDefaultToolkit()
-			.getScreenResolution()) / JASPER_DPI;
+
+		// Real position
+		/*
+		 * AxD: Den Zoom-Faktor DPI-Abhaengig zu machen macht keinen Sinn fuer die UI,
+		 * da andere Texte auch nicht abhaengig davon skaliert werden. Auszerdem fuehrt
+		 * es zu Problemen, wenn mit Windows der Hauptbildschirm skaliert wird. Um
+		 * kompatibilitaet mit dem alten Verhalten zu haben, wird hier fix 96 DPI
+		 * verwendet
+		 */
+		double legacyZoomFaktor = (double) (96.0) / JASPER_DPI;
+		factor *= legacyZoomFaktor;
 		getDocument().putProperty(LpDecoratedTextPane.ZoomfactorProperty, factor);
 		applyPageFormat();
 	}
 
 	private Double getZoomFactor() {
-		if(getDocument().getProperty(
-				LpDecoratedTextPane.ZoomfactorProperty) == null)
-			setZoomFactor(new Double(cachedZoom));
-		Double fZoom = (Double) getDocument().getProperty(
-				LpDecoratedTextPane.ZoomfactorProperty);
+		if (getDocument().getProperty(LpDecoratedTextPane.ZoomfactorProperty) == null)
+			setZoomFactor(cachedZoom);
+		Double fZoom = (Double) getDocument().getProperty(LpDecoratedTextPane.ZoomfactorProperty);
 		return fZoom == null ? cachedZoom : fZoom;
 	}
 }

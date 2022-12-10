@@ -186,8 +186,8 @@ public class ReportLoszeiten extends PanelBasis implements PanelReportIfJRDS {
 		return DelegateFactory
 				.getInstance()
 				.getFertigungDelegate()
-				.printLoszeiten(losIId, iSort, wdfVon.getTimestamp(),
-						wdfBis.getTimestamp());
+				.printLoszeiten(losIId, iSort, wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis());
 	}
 
 	public boolean getBErstelleReportSofort() {

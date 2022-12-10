@@ -45,6 +45,7 @@ import javax.swing.JComponent;
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.auftrag.AuftragFilterFactory;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -136,10 +137,7 @@ public class ReportBestellungWareneingang extends PanelReportJournalEinkauf
 				.getTextRespectUISPr("button.artikelklasse"));
 		wbuArtikelklasse.setToolTipText(LPMain
 				.getTextRespectUISPr("button.artikelklasse.tooltip"));
-		wbuArtikelklasse.setMinimumSize(new Dimension(BREITE_BUTTONS, Defaults
-				.getInstance().getControlHeight()));
-		wbuArtikelklasse.setPreferredSize(new Dimension(BREITE_BUTTONS,
-				Defaults.getInstance().getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wbuArtikelklasse, HelperClient.getSizeFactoredDimension(BREITE_BUTTONS));
 		wbuArtikelgruppe = new WrapperButton(LPMain
 				.getTextRespectUISPr("button.artikelgruppe"));
 		wbuArtikelgruppe.setToolTipText(LPMain

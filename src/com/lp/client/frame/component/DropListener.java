@@ -37,6 +37,6 @@ import java.util.List;
 
 public interface DropListener {
 	
-	public void filesDropped(DragAndDropTarget source, List<File> files);
+	public void filesDropped(List<File> files);
 
 }

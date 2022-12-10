@@ -375,6 +375,8 @@ public class PanelZutrittsobjekt
     this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
         , GridBagConstraints.WEST, GridBagConstraints.NONE,
         new Insets(0, 0, 0, 0), 0, 0));
+    
+    HelperClient.setMinimumAndPreferredSize(wlaOeffnung, HelperClient.getSizeFactoredDimension(80));
 
     //jetzt meine felder
     jpaWorkingOn = new JPanel();

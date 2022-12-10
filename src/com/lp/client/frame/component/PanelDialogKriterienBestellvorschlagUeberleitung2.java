@@ -43,8 +43,10 @@ import javax.swing.ButtonGroup;
 import com.lp.client.bestellung.BestellungFilterFactory;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
+import com.lp.server.bestellung.service.BestellvorschlagDto;
 import com.lp.server.bestellung.service.BestellvorschlagUeberleitungKriterienDto;
 import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.personal.service.PersonalDto;
@@ -57,19 +59,29 @@ import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /**
- * <p><I>Dialog zur Eingabe der Kriterien fuer die Ueberleitung des Bestellvorschlags in Belege.</I></p>
- * <p>Dieser Dialog wird aus den folgenden Modulen aufgerufen:</p>
+ * <p>
+ * <I>Dialog zur Eingabe der Kriterien fuer die Ueberleitung des
+ * Bestellvorschlags in Belege.</I>
+ * </p>
+ * <p>
+ * Dieser Dialog wird aus den folgenden Modulen aufgerufen:
+ * </p>
  * <ul>
  * <li>Bestellung/Bestellvorschlag
  * <li>Anfrage/Anfragevorschlag
  * </ul>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>22.11.05</I></p>
- * <p> </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>22.11.05</I>
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @version $Revision: 1.6 $
  */
-public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
-		PanelDialogKriterien {
+public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends PanelDialogKriterien {
 	/**
 	 * 
 	 */
@@ -106,10 +118,20 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 	private PanelQueryFLR panelQueryKostenstelle = null;
 
 	private WrapperCheckBox wcbRichtpreisUebernehmen = null;
+	private WrapperCheckBox wcbErsatztypenUebernehmen = null;
+	private WrapperCheckBox wcbNurMarkierte = null;
+	private WrapperCheckBox wcbRahmenbestellungenErstellen = null;
+
+	private WrapperCheckBox wcbGemeinsameArtikelBestellen = null;
 
 	private WrapperCheckBox wcbProjektklammerBeruecksichtigen = null;
+	
+	private WrapperCheckBox wcbInclGesperrteArtikel = null;
 
 	private boolean bAnfragevorschlag;
+
+	private WrapperLabel wlaStandort = null;
+	private WrapperComboBox wcbStandort = null;
 
 	private static final String ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINLIEFERANT = "action_special_belegeinlieferanteinterminlieferant";
 	private static final String ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINTERMIN = "action_special_belegeinlieferanteintermintermin";
@@ -126,11 +148,13 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 
 	PersonalDto personalDto = null;
 
-	public PanelDialogKriterienBestellvorschlagUeberleitung2(
-			boolean bAnfragevorschlag, InternalFrame oInternalFrameI,
-			String title) throws Throwable {
+	private BestellvorschlagDto bestellvorschlagDto = null;
+
+	public PanelDialogKriterienBestellvorschlagUeberleitung2(boolean bAnfragevorschlag, InternalFrame oInternalFrameI,
+			BestellvorschlagDto bestellvorschlagDto, String title) throws Throwable {
 		super(oInternalFrameI, title);
 		this.bAnfragevorschlag = bAnfragevorschlag;
+		this.bestellvorschlagDto = bestellvorschlagDto;
 		jbInit();
 		setDefaults();
 		initComponents();
@@ -138,100 +162,102 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 
 	private void jbInit() throws Throwable {
 		getInternalFrame().addItemChangedListener(this);
-		personalDto = DelegateFactory
-				.getInstance()
-				.getPersonalDelegate()
+		personalDto = DelegateFactory.getInstance().getPersonalDelegate()
 				.personalFindByPrimaryKey(LPMain.getTheClient().getIDPersonal());
 		jbgKriterien = new ButtonGroup();
+		wlaStandort = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("system.standort"));
+		wcbStandort = new WrapperComboBox();
+		wcbStandort.setEmptyEntry(LPMain.getInstance().getTextRespectUISPr("lp.alle"));
+		wcbStandort.setMap(DelegateFactory.getInstance().getLagerDelegate().getAlleStandorte());
 
 		if (bAnfragevorschlag) {
-			wrbBelegprolieferantprotermin = new WrapperRadioButton(LPMain
-					.getInstance().getTextRespectUISPr("anf.radiobutton1"));
+			wrbBelegprolieferantprotermin = new WrapperRadioButton(
+					LPMain.getInstance().getTextRespectUISPr("anf.radiobutton1"));
 		} else {
-			wrbBelegprolieferantprotermin = new WrapperRadioButton(LPMain
-					.getInstance().getTextRespectUISPr("bes.radiobutton1"));
+			wrbBelegprolieferantprotermin = new WrapperRadioButton(
+					LPMain.getInstance().getTextRespectUISPr("bes.radiobutton1"));
 		}
-		wrbBelegprolieferantprotermin
-				.setActionCommand(ACTION_RADIOBUTTON_BELEGPROLIEFERANTPROTERMIN);
+		wrbBelegprolieferantprotermin.setActionCommand(ACTION_RADIOBUTTON_BELEGPROLIEFERANTPROTERMIN);
 		wrbBelegprolieferantprotermin.addActionListener(this);
 		if (bAnfragevorschlag) {
-			wrbBelegprolieferant = new WrapperRadioButton(LPMain.getInstance()
-					.getTextRespectUISPr("anf.radiobutton2"));
+			wrbBelegprolieferant = new WrapperRadioButton(LPMain.getInstance().getTextRespectUISPr("anf.radiobutton2"));
 		} else {
-			wrbBelegprolieferant = new WrapperRadioButton(LPMain.getInstance()
-					.getTextRespectUISPr("bes.radiobutton2"));
+			wrbBelegprolieferant = new WrapperRadioButton(LPMain.getInstance().getTextRespectUISPr("bes.radiobutton2"));
 		}
-		wrbBelegprolieferant
-				.setActionCommand(ACTION_RADIOBUTTON_BELEGPROLIEFERANT);
+		wrbBelegprolieferant.setActionCommand(ACTION_RADIOBUTTON_BELEGPROLIEFERANT);
 		wrbBelegprolieferant.addActionListener(this);
 		if (bAnfragevorschlag) {
-			wrbBelegeinlieferanteintermin = new WrapperRadioButton(LPMain
-					.getInstance().getTextRespectUISPr("anf.radiobutton3"));
+			wrbBelegeinlieferanteintermin = new WrapperRadioButton(
+					LPMain.getInstance().getTextRespectUISPr("anf.radiobutton3"));
 		} else {
-			wrbBelegeinlieferanteintermin = new WrapperRadioButton(LPMain
-					.getInstance().getTextRespectUISPr("bes.radiobutton3"));
+			wrbBelegeinlieferanteintermin = new WrapperRadioButton(
+					LPMain.getInstance().getTextRespectUISPr("bes.radiobutton3"));
 		}
-		wrbBelegeinlieferanteintermin
-				.setActionCommand(ACTION_RADIOBUTTON_BELEGEINLIEFERANTEINTERMIN);
+		wrbBelegeinlieferanteintermin.setActionCommand(ACTION_RADIOBUTTON_BELEGEINLIEFERANTEINTERMIN);
 		wrbBelegeinlieferanteintermin.addActionListener(this);
-		wrbAbrufeZuRahmen = new WrapperRadioButton(LPMain.getInstance()
-				.getTextRespectUISPr("bes.radiobutton5"));
+		wrbAbrufeZuRahmen = new WrapperRadioButton(LPMain.getInstance().getTextRespectUISPr("bes.radiobutton5"));
 		wrbAbrufeZuRahmen.setActionCommand(ACTION_RADIOBUTTON_ABRUFEZURAHMEN);
 		wrbAbrufeZuRahmen.addActionListener(this);
 
-		wcbRichtpreisUebernehmen = new WrapperCheckBox(LPMain.getInstance()
-				.getTextRespectUISPr("anf.richtpreisuebernehmen"));
+		wcbRichtpreisUebernehmen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("anf.richtpreisuebernehmen"));
 		wcbRichtpreisUebernehmen.setSelected(true);
 
-		wcbProjektklammerBeruecksichtigen = new WrapperCheckBox(LPMain
-				.getInstance().getTextRespectUISPr(
-						"bes.bestellvorschlag.projektklammerberuecksichtigen"));
+		wcbErsatztypenUebernehmen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("anf.ersatztypenhinzufuegen"));
+		wcbErsatztypenUebernehmen.setSelected(true);
 
+		wcbNurMarkierte = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.bestellvorschlag.ueberleiten.markierte"));
+		wcbRahmenbestellungenErstellen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.bestellvorschlag.ueberleiten.rahmenbestellungen"));
+
+		wcbGemeinsameArtikelBestellen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.bestellvorschlag.ueberleiten.gemeinsame"));
+
+		wcbProjektklammerBeruecksichtigen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.bestellvorschlag.projektklammerberuecksichtigen"));
+
+		wcbInclGesperrteArtikel = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.bestellvorschlag.inklgesperrteartikel"));
+
+		
 		wlaEmpty = new WrapperLabel();
 		HelperClient.setDefaultsToComponent(wlaEmpty, 15);
-		wbuBelegeinlieferanteinterminLieferant = new WrapperButton(LPMain
-				.getInstance().getTextRespectUISPr("label.lieferant"));
-		wbuBelegeinlieferanteinterminLieferant
-				.setActionCommand(ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINLIEFERANT);
+		wbuBelegeinlieferanteinterminLieferant = new WrapperButton(
+				LPMain.getInstance().getTextRespectUISPr("label.lieferant"));
+		wbuBelegeinlieferanteinterminLieferant.setActionCommand(ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINLIEFERANT);
 		wbuBelegeinlieferanteinterminLieferant.addActionListener(this);
 		wtfBelegeinlieferanteinterminLieferant = new WrapperTextField();
 		wtfBelegeinlieferanteinterminLieferant.setEditable(false);
-		wtfBelegeinlieferanteinterminLieferant
-				.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
+		wtfBelegeinlieferanteinterminLieferant.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 
-		wbuBelegeinlieferanteinterminTermin = new WrapperButton(LPMain
-				.getInstance().getTextRespectUISPr("label.termin"));
-		wbuBelegeinlieferanteinterminTermin
-				.setActionCommand(ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINTERMIN);
+		wbuBelegeinlieferanteinterminTermin = new WrapperButton(
+				LPMain.getInstance().getTextRespectUISPr("label.termin"));
+		wbuBelegeinlieferanteinterminTermin.setActionCommand(ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINTERMIN);
 		wbuBelegeinlieferanteinterminTermin.addActionListener(this);
 		wtfBelegeinlieferanteinterminTermin = new WrapperTextField();
 		wtfBelegeinlieferanteinterminTermin.setEditable(false);
 		if (bAnfragevorschlag) {
-			wrbBelegeinlieferant = new WrapperRadioButton(LPMain.getInstance()
-					.getTextRespectUISPr("anf.radiobutton4"));
+			wrbBelegeinlieferant = new WrapperRadioButton(LPMain.getInstance().getTextRespectUISPr("anf.radiobutton4"));
 		} else {
-			wrbBelegeinlieferant = new WrapperRadioButton(LPMain.getInstance()
-					.getTextRespectUISPr("bes.radiobutton4"));
+			wrbBelegeinlieferant = new WrapperRadioButton(LPMain.getInstance().getTextRespectUISPr("bes.radiobutton4"));
 		}
-		wrbBelegeinlieferant
-				.setActionCommand(ACTION_RADIOBUTTON_BELEGEINLIEFERANT);
+		wrbBelegeinlieferant.setActionCommand(ACTION_RADIOBUTTON_BELEGEINLIEFERANT);
 		wrbBelegeinlieferant.addActionListener(this);
 
-		wbuBelegeinlieferant = new WrapperButton(LPMain.getInstance()
-				.getTextRespectUISPr("label.lieferant"));
-		wbuBelegeinlieferant
-				.setActionCommand(ACTION_SPECIAL_FLR_BELEGEINLIEFERANT);
+		wbuBelegeinlieferant = new WrapperButton(LPMain.getInstance().getTextRespectUISPr("label.lieferant"));
+		wbuBelegeinlieferant.setActionCommand(ACTION_SPECIAL_FLR_BELEGEINLIEFERANT);
 		wbuBelegeinlieferant.addActionListener(this);
 		wtfBelegeinlieferant = new WrapperTextField();
 		wtfBelegeinlieferant.setEditable(false);
 		wtfBelegeinlieferant.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 
-		wbuKostenstelle = new WrapperButton(LPMain.getInstance()
-				.getTextRespectUISPr("label.kostenstelle"));
+		wbuKostenstelle = new WrapperButton(LPMain.getInstance().getTextRespectUISPr("label.kostenstelle"));
 		wbuKostenstelle.setActionCommand(ACTION_SPECIAL_FLR_KOSTENSTELLE);
 		wbuKostenstelle.addActionListener(this);
 		HelperClient.setDefaultsToComponent(wbuKostenstelle, 120);
-		wtfKostenstelle = new WrapperTextField();
+		wtfKostenstelle = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
 		wtfKostenstelle.setMandatoryField(false);
 		wtfKostenstelle.setEditable(false);
 
@@ -241,94 +267,100 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 		jbgKriterien.add(wrbBelegeinlieferant);
 		jbgKriterien.add(wrbAbrufeZuRahmen);
 
-		jpaWorkingOn.add(wrbBelegprolieferantprotermin, new GridBagConstraints(
-				0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbNurMarkierte, new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		iZeile++;
-		jpaWorkingOn.add(wrbBelegprolieferant, new GridBagConstraints(0,
-				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		if (DelegateFactory.getInstance().getParameterDelegate().getPersoenlicherBestellvorschlag()) {
+			jpaWorkingOn.add(wcbGemeinsameArtikelBestellen, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
 
 		iZeile++;
-		jpaWorkingOn.add(wrbBelegeinlieferanteintermin, new GridBagConstraints(
-				0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaEmpty, new GridBagConstraints(0, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuBelegeinlieferanteinterminLieferant,
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBelegeinlieferanteinterminLieferant,
-				new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbRahmenbestellungenErstellen, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuBelegeinlieferanteinterminTermin,
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
 
-		jpaWorkingOn.add(wtfBelegeinlieferanteinterminTermin,
-				new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+				ParameterFac.PARAMETER_LAGERMIN_JE_LAGER);
+		boolean lagerminjelager = (Boolean) parameter.getCWertAsObject();
+		if (lagerminjelager) {
+			jpaWorkingOn.add(wlaStandort, new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wcbStandort, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			iZeile++;
+		}
+
+		jpaWorkingOn.add(wrbBelegprolieferantprotermin, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wrbBelegeinlieferant, new GridBagConstraints(0,
-				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbBelegprolieferant, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wrbBelegeinlieferanteintermin, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaEmpty, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuBelegeinlieferant, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBelegeinlieferant, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuBelegeinlieferanteinterminLieferant, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBelegeinlieferanteinterminLieferant, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuBelegeinlieferanteinterminTermin, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wtfBelegeinlieferanteinterminTermin, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wrbBelegeinlieferant, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuBelegeinlieferant, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBelegeinlieferant, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuKostenstelle, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuKostenstelle, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKostenstelle, new GridBagConstraints(2, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfKostenstelle, new GridBagConstraints(2, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 		iZeile++;
 		if (!bAnfragevorschlag) {
-			jpaWorkingOn.add(wrbAbrufeZuRahmen, new GridBagConstraints(0,
-					iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wrbAbrufeZuRahmen, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 		} else {
-			jpaWorkingOn.add(wcbRichtpreisUebernehmen, new GridBagConstraints(
-					0, iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wcbRichtpreisUebernehmen, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+			iZeile++;
+			jpaWorkingOn.add(wcbErsatztypenUebernehmen, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 		}
+		
 		iZeile++;
-		boolean bProjektklammer = LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER);
+		jpaWorkingOn.add(wcbInclGesperrteArtikel, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+		
+		iZeile++;
+		boolean bProjektklammer = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER);
 		if (bProjektklammer) {
 			wcbProjektklammerBeruecksichtigen.setSelected(true);
-			jpaWorkingOn.add(wcbProjektklammerBeruecksichtigen,
-					new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
-							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-							new Insets(10, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wcbProjektklammerBeruecksichtigen, new GridBagConstraints(0, iZeile, 3, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 		}
 
 	}
@@ -336,36 +368,29 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 	private void setDefaults() throws Throwable {
 		// per default wird 1 Beleg pro Lieferant mit all seinen Positionen
 		// angelegt
-		
-		
-		//PJ18414
-		int iDefault=4;
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_DEFAULT_BESTELLVORSCHLAG_UEBERLEITUNG,
-						ParameterFac.KATEGORIE_BESTELLUNG,
-						LPMain.getTheClient().getMandant());
+
+		// PJ18414
+		int iDefault = 4;
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_DEFAULT_BESTELLVORSCHLAG_UEBERLEITUNG,
+						ParameterFac.KATEGORIE_BESTELLUNG, LPMain.getTheClient().getMandant());
 
 		if (parameter.getCWertAsObject() != null) {
-			iDefault=(Integer) parameter.getCWertAsObject();
+			iDefault = (Integer) parameter.getCWertAsObject();
 		}
-		
-		
-		if(iDefault==1){
+
+		if (iDefault == 1) {
 			wrbBelegprolieferantprotermin.setSelected(true);
-		}else if(iDefault==2){
+		} else if (iDefault == 2) {
 			wrbBelegprolieferant.setSelected(true);
-		}else if(iDefault==3){
+		} else if (iDefault == 3) {
 			wrbBelegeinlieferanteintermin.setSelected(true);
-		}else if(iDefault==4){
+		} else if (iDefault == 4) {
 			wrbBelegeinlieferant.setSelected(true);
-		}else if(iDefault==5){
+		} else if (iDefault == 5) {
 			wrbAbrufeZuRahmen.setSelected(true);
 		}
-		
-		
+
 		wtfBelegeinlieferant.setMandatoryField(true);
 
 		wbuBelegeinlieferanteinterminLieferant.setEnabled(false);
@@ -377,38 +402,48 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 
 		belegeinlieferanteinterminLieferantDto = new LieferantDto();
 		belegeinlieferantLieferantDto = new LieferantDto();
+
+		if (bestellvorschlagDto != null && bestellvorschlagDto.getILieferantId() != null) {
+			if (iDefault == 3) {
+				belegeinlieferanteinterminLieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
+						.lieferantFindByPrimaryKey(bestellvorschlagDto.getILieferantId());
+				wtfBelegeinlieferanteinterminLieferant
+						.setText(belegeinlieferanteinterminLieferantDto.getPartnerDto().formatAnrede());
+			} else if (iDefault == 4) {
+				belegeinlieferantLieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
+						.lieferantFindByPrimaryKey(bestellvorschlagDto.getILieferantId());
+				wtfBelegeinlieferant.setText(belegeinlieferantLieferantDto.getPartnerDto().formatAnrede());
+			}
+		}
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equals(
-				ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINLIEFERANT)) {
-			panelQueryBelegeinlieferanteinterminLieferant = BestellungFilterFactory
-					.getInstance()
-					.createPanelFLRBestellvorschlagAlleLieferanten(
-							getInternalFrame());
+		if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINLIEFERANT)) {
+
+			panelQueryBelegeinlieferanteinterminLieferant = PartnerFilterFactory.getInstance().createPanelFLRLieferant(
+					getInternalFrame(), null, true, true,
+					DelegateFactory.getInstance().getBestellvorschlagDelegate()
+							.getAllLieferantenDesBestellvorschlages(),
+					LPMain.getTextRespectUISPr("title.lieferantenauswahlliste"));
 			new DialogQuery(panelQueryBelegeinlieferanteinterminLieferant);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_FLR_BELEGEINLIEFERANT)) {
-			panelQueryBelegeinlieferant = BestellungFilterFactory.getInstance()
-					.createPanelFLRBestellvorschlagAlleLieferanten(
-							getInternalFrame());
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_BELEGEINLIEFERANT)) {
+			panelQueryBelegeinlieferant = PartnerFilterFactory.getInstance().createPanelFLRLieferant(getInternalFrame(),
+					null, true, true,
+					DelegateFactory.getInstance().getBestellvorschlagDelegate()
+							.getAllLieferantenDesBestellvorschlages(),
+					LPMain.getTextRespectUISPr("title.lieferantenauswahlliste"));
 			new DialogQuery(panelQueryBelegeinlieferant);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINTERMIN)) {
-			panelQueryBelegeinlieferanteinterminTermin = BestellungFilterFactory
-					.getInstance()
-					.createPanelFLRBestellvorschlagBelegeInLieferant(
-							getInternalFrame());
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_BELEGEINLIEFERANTEINTERMINTERMIN)) {
+			panelQueryBelegeinlieferanteinterminTermin = BestellungFilterFactory.getInstance()
+					.createPanelFLRBestellvorschlagBelegeInLieferant(getInternalFrame());
 			new DialogQuery(panelQueryBelegeinlieferanteinterminTermin);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_KOSTENSTELLE)) {
-			panelQueryKostenstelle = SystemFilterFactory.getInstance()
-					.createPanelFLRKostenstelle(getInternalFrame(), false,
-							true, kostenstelleDto.getIId());
+			panelQueryKostenstelle = SystemFilterFactory.getInstance().createPanelFLRKostenstelle(getInternalFrame(),
+					false, true, kostenstelleDto.getIId());
 			new DialogQuery(panelQueryKostenstelle);
-		} else if (e.getActionCommand().equals(
-				ACTION_RADIOBUTTON_BELEGPROLIEFERANTPROTERMIN)
-				|| e.getActionCommand().equals(
-						ACTION_RADIOBUTTON_BELEGPROLIEFERANT)) {
+		} else if (e.getActionCommand().equals(ACTION_RADIOBUTTON_BELEGPROLIEFERANTPROTERMIN)
+				|| e.getActionCommand().equals(ACTION_RADIOBUTTON_BELEGPROLIEFERANT)) {
 			wbuBelegeinlieferanteinterminLieferant.setEnabled(false);
 			wtfBelegeinlieferanteinterminLieferant.setMandatoryField(false);
 			wtfBelegeinlieferanteinterminLieferant.setText("");
@@ -428,8 +463,7 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 				kostenstelleDto = personalDto.getKostenstelleDto_Stamm();
 				wtfKostenstelle.setText(kostenstelleDto.getCBez());
 			}
-		} else if (e.getActionCommand().equals(
-				ACTION_RADIOBUTTON_BELEGEINLIEFERANTEINTERMIN)) {
+		} else if (e.getActionCommand().equals(ACTION_RADIOBUTTON_BELEGEINLIEFERANTEINTERMIN)) {
 			wbuBelegeinlieferanteinterminLieferant.setEnabled(true);
 			wtfBelegeinlieferanteinterminLieferant.setMandatoryField(true);
 			wtfBelegeinlieferanteinterminLieferant.setText("");
@@ -449,8 +483,7 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 				kostenstelleDto = personalDto.getKostenstelleDto_Stamm();
 				wtfKostenstelle.setText(kostenstelleDto.getCBez());
 			}
-		} else if (e.getActionCommand().equals(
-				ACTION_RADIOBUTTON_BELEGEINLIEFERANT)) {
+		} else if (e.getActionCommand().equals(ACTION_RADIOBUTTON_BELEGEINLIEFERANT)) {
 			wbuBelegeinlieferanteinterminLieferant.setEnabled(false);
 			wtfBelegeinlieferanteinterminLieferant.setMandatoryField(false);
 			wtfBelegeinlieferanteinterminLieferant.setText("");
@@ -471,8 +504,7 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 				kostenstelleDto = personalDto.getKostenstelleDto_Stamm();
 				wtfKostenstelle.setText(kostenstelleDto.getCBez());
 			}
-		} else if (e.getActionCommand().equals(
-				ACTION_RADIOBUTTON_ABRUFEZURAHMEN)) {
+		} else if (e.getActionCommand().equals(ACTION_RADIOBUTTON_ABRUFEZURAHMEN)) {
 			wbuBelegeinlieferanteinterminLieferant.setEnabled(false);
 			wtfBelegeinlieferanteinterminLieferant.setMandatoryField(false);
 			wtfBelegeinlieferanteinterminLieferant.setText("");
@@ -497,8 +529,7 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 
 				super.eventActionSpecial(e);
 			}
-		} else if (e.getActionCommand()
-				.equals(ACTION_SPECIAL_CLOSE_PANELDIALOG)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_CLOSE_PANELDIALOG)) {
 			super.eventActionSpecial(e);
 		}
 	}
@@ -508,36 +539,25 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryBelegeinlieferanteinterminTermin) {
-				tBestelltermin = (java.sql.Date) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				wtfBelegeinlieferanteinterminTermin.setText(Helper.formatDatum(
-						tBestelltermin, LPMain.getInstance().getTheClient()
-								.getLocUi()));
+				tBestelltermin = (java.sql.Date) ((ISourceEvent) e.getSource()).getIdSelected();
+				wtfBelegeinlieferanteinterminTermin
+						.setText(Helper.formatDatum(tBestelltermin, LPMain.getInstance().getTheClient().getLocUi()));
 			} else if (e.getSource() == panelQueryBelegeinlieferanteinterminLieferant) {
-				Integer iIdLieferant = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				belegeinlieferanteinterminLieferantDto = DelegateFactory
-						.getInstance().getLieferantDelegate()
+				Integer iIdLieferant = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				belegeinlieferanteinterminLieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
 						.lieferantFindByPrimaryKey(iIdLieferant);
 				wtfBelegeinlieferanteinterminLieferant
-						.setText(belegeinlieferanteinterminLieferantDto
-								.getPartnerDto().formatAnrede());
+						.setText(belegeinlieferanteinterminLieferantDto.getPartnerDto().formatAnrede());
 			} else if (e.getSource() == panelQueryBelegeinlieferant) {
-				Integer iIdLieferant = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				belegeinlieferantLieferantDto = DelegateFactory.getInstance()
-						.getLieferantDelegate()
+				Integer iIdLieferant = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				belegeinlieferantLieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
 						.lieferantFindByPrimaryKey(iIdLieferant);
-				wtfBelegeinlieferant.setText(belegeinlieferantLieferantDto
-						.getPartnerDto().formatAnrede());
+				wtfBelegeinlieferant.setText(belegeinlieferantLieferantDto.getPartnerDto().formatAnrede());
 				// PJ14880
-				DelegateFactory.getInstance().getBestellvorschlagDelegate()
-						.pruefeMindestbestellwert(iIdLieferant);
+				DelegateFactory.getInstance().getBestellvorschlagDelegate().pruefeMindestbestellwert(iIdLieferant);
 			} else if (e.getSource() == panelQueryKostenstelle) {
-				Integer iIdKostenstelle = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
-				kostenstelleDto = DelegateFactory.getInstance()
-						.getSystemDelegate()
+				Integer iIdKostenstelle = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				kostenstelleDto = DelegateFactory.getInstance().getSystemDelegate()
 						.kostenstelleFindByPrimaryKey(iIdKostenstelle);
 				wtfKostenstelle.setText(kostenstelleDto.getCBez());
 			}
@@ -552,22 +572,23 @@ public class PanelDialogKriterienBestellvorschlagUeberleitung2 extends
 	private BestellvorschlagUeberleitungKriterienDto buildBenutzerKriterien() {
 		kritDto = new BestellvorschlagUeberleitungKriterienDto();
 
-		kritDto.setBBelegprolieferantprotermin(wrbBelegprolieferantprotermin
-				.isSelected());
+		kritDto.setBBelegprolieferantprotermin(wrbBelegprolieferantprotermin.isSelected());
 		kritDto.setBBelegprolieferant(wrbBelegprolieferant.isSelected());
-		kritDto.setBBelegeinlieferanteintermin(wrbBelegeinlieferanteintermin
-				.isSelected());
+		kritDto.setBBelegeinlieferanteintermin(wrbBelegeinlieferanteintermin.isSelected());
 		kritDto.setBBelegeinlieferant(wrbBelegeinlieferant.isSelected());
-		kritDto.setBelegeinlieferanteinterminLieferantIId(belegeinlieferanteinterminLieferantDto
-				.getIId());
-		kritDto.setBelegeinlieferantLieferantIId(belegeinlieferantLieferantDto
-				.getIId());
+		kritDto.setBelegeinlieferanteinterminLieferantIId(belegeinlieferanteinterminLieferantDto.getIId());
+		kritDto.setBelegeinlieferantLieferantIId(belegeinlieferantLieferantDto.getIId());
 		kritDto.setTBelegeinlieferanteinterminTermin(tBestelltermin);
 		kritDto.setKostenstelleIId(kostenstelleDto.getIId());
 		kritDto.setBAbrufeZuRahmen(wrbAbrufeZuRahmen.isSelected());
 		kritDto.setBRichtpreisUebernehmen(wcbRichtpreisUebernehmen.isSelected());
-		kritDto.setBBeruecksichtigeProjektklammer(wcbProjektklammerBeruecksichtigen
-				.isSelected());
+		kritDto.setBErsatztypenUebernehmen(wcbErsatztypenUebernehmen.isSelected());
+		kritDto.setbNurMarkierte(wcbNurMarkierte.isSelected());
+		kritDto.setbRahmenbestellungenErzeugen(wcbRahmenbestellungenErstellen.isSelected());
+		kritDto.setbGemeinsameArtikelBestellen(wcbGemeinsameArtikelBestellen.isSelected());
+		kritDto.setBBeruecksichtigeProjektklammer(wcbProjektklammerBeruecksichtigen.isSelected());
+		kritDto.setBInclGesperrteArtikel(wcbInclGesperrteArtikel.isSelected());
+		kritDto.setPartnerIIdStandort((Integer) wcbStandort.getKeyOfSelectedItem());
 		return kritDto;
 	}
 

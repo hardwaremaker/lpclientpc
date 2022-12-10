@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.zeiterfassung;
 
-
 import javax.swing.event.ChangeEvent;
 
 import com.lp.client.frame.LockStateValue;
@@ -44,217 +43,240 @@ import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.component.WrapperMenuBar;
+import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-
 /**
- * <p>&UUml;berschrift: </p>
- * <p>Beschreibung: </p>
- * <p>Copyright: Copyright (c) 2004</p>
- * <p>Organisation: </p>
+ * <p>
+ * &UUml;berschrift:
+ * </p>
+ * <p>
+ * Beschreibung:
+ * </p>
+ * <p>
+ * Copyright: Copyright (c) 2004
+ * </p>
+ * <p>
+ * Organisation:
+ * </p>
+ * 
  * @author Christian Kollmann
  * @version $Revision: 1.3 $
  */
 
-
-public class TabbedPaneZeiterfassunggrunddaten
-    extends TabbedPane
-{
-  /**
+public class TabbedPaneZeiterfassunggrunddaten extends TabbedPane {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private PanelQuery panelQueryMaschinengruppe = null;
-  private PanelBasis panelSplitMaschinengruppe = null;
-  private PanelBasis panelBottomMaschinengruppe = null;
+	private PanelQuery panelQueryMaschinengruppe = null;
+	private PanelBasis panelSplitMaschinengruppe = null;
+	private PanelBasis panelBottomMaschinengruppe = null;
 
+	private final static int IDX_PANEL_MASCHINENGRUPPE = 0;
 
-  private final static int IDX_PANEL_MASCHINENGRUPPE = 0;
+	private WrapperMenuBar wrapperMenuBar = null;
 
-  private WrapperMenuBar wrapperMenuBar = null;
+	public TabbedPaneZeiterfassunggrunddaten(InternalFrame internalFrameI)
+			throws Throwable {
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
+				"pers.title.tab.grunddaten"));
 
-  public TabbedPaneZeiterfassunggrunddaten(InternalFrame internalFrameI)
-      throws Throwable {
-    super(internalFrameI,
-          LPMain.getInstance().getTextRespectUISPr("pers.title.tab.grunddaten"));
+		jbInit();
+		initComponents();
+	}
 
-    jbInit();
-    initComponents();
-  }
+	public InternalFrameZeiterfassung getInternalFrameZeiterfassung() {
+		return (InternalFrameZeiterfassung) getInternalFrame();
+	}
 
+	private void createKollektiv() throws Throwable {
+		if (panelSplitMaschinengruppe == null) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
+					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1 };
 
-  public InternalFrameZeiterfassung getInternalFrameZeiterfassung() {
-    return (InternalFrameZeiterfassung) getInternalFrame();
-  }
+			panelQueryMaschinengruppe = new PanelQuery(null, null,
+					QueryParameters.UC_ID_MASCHINENGRUPPE, aWhichButtonIUse,
+					getInternalFrame(),
+					LPMain.getTextRespectUISPr("pers.maschinengruppe"), true);
 
+			panelQueryMaschinengruppe
+					.befuelleFilterkriteriumKey(SystemFilterFactory
+							.getInstance().createFKMandantCNr());
 
-  private void createKollektiv()
-      throws Throwable {
-    if (panelSplitMaschinengruppe == null) {
-      String[] aWhichButtonIUse = {
-          PanelBasis.ACTION_NEW};
+			panelQueryMaschinengruppe.befuellePanelFilterkriterienDirekt(
+					SystemFilterFactory.getInstance().createFKDBezeichnung(),
+					null);
+			panelBottomMaschinengruppe = new PanelMaschinengruppe(
+					getInternalFrame(),
+					LPMain.getTextRespectUISPr("pers.maschinengruppe"), null);
+			panelSplitMaschinengruppe = new PanelSplit(getInternalFrame(),
+					panelBottomMaschinengruppe, panelQueryMaschinengruppe, 300);
 
-      panelQueryMaschinengruppe = new PanelQuery(
-          null,
-          null,
-          QueryParameters.UC_ID_MASCHINENGRUPPE,
-          aWhichButtonIUse,
-          getInternalFrame(),
-          LPMain.getInstance().getTextRespectUISPr(
-              "pers.maschinengruppe"), true);
+			setComponentAt(IDX_PANEL_MASCHINENGRUPPE, panelSplitMaschinengruppe);
+		}
+	}
 
-      panelQueryMaschinengruppe.befuellePanelFilterkriterienDirekt(SystemFilterFactory.
-          getInstance().createFKDBezeichnung(), null);
+	private void jbInit() throws Throwable {
+		// Kollektiv
 
-      panelBottomMaschinengruppe = new PanelMaschinengruppe(
-          getInternalFrame(),
-          LPMain.getInstance().getTextRespectUISPr(
-              "pers.maschinengruppe"), null);
-      panelSplitMaschinengruppe = new PanelSplit(
-          getInternalFrame(),
-          panelBottomMaschinengruppe,
-          panelQueryMaschinengruppe,
-          400);
+		// 1 tab oben: QP1 PartnerFLR; lazy loading
+		insertTab(LPMain.getTextRespectUISPr("pers.maschinengruppe"), null,
+				null, LPMain.getTextRespectUISPr("pers.maschinengruppe"),
+				IDX_PANEL_MASCHINENGRUPPE);
 
-      setComponentAt(IDX_PANEL_MASCHINENGRUPPE, panelSplitMaschinengruppe);
-    }
-  }
+		createKollektiv();
 
+		// Itemevents an MEIN Detailpanel senden kann.
+		this.addChangeListener(this);
+		getInternalFrame().addItemChangedListener(this);
 
-  private void jbInit()
-      throws Throwable {
-    //Kollektiv
+	}
 
-    //1 tab oben: QP1 PartnerFLR; lazy loading
-    insertTab(
-        LPMain.getInstance().getTextRespectUISPr("pers.maschinengruppe"),
-        null,
-        null,
-        LPMain.getInstance().getTextRespectUISPr("pers.maschinengruppe"),
-        IDX_PANEL_MASCHINENGRUPPE);
+	public void lPEventItemChanged(ItemChangedEvent e) throws Throwable {
 
+		if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
+			if (e.getSource() == panelQueryMaschinengruppe) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				panelBottomMaschinengruppe.setKeyWhenDetailPanel(key);
+				panelBottomMaschinengruppe.eventYouAreSelected(false);
+				panelQueryMaschinengruppe.updateButtons();
+			}
 
+		} else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
+			refreshTitle();
+			panelSplitMaschinengruppe.eventYouAreSelected(false);
+		} else if (e.getID() == ItemChangedEvent.ACTION_NEW) {
+			if (e.getSource() == panelQueryMaschinengruppe) {
+				panelBottomMaschinengruppe.eventActionNew(e, true, false);
+				panelBottomMaschinengruppe.eventYouAreSelected(false);
+			}
 
-    createKollektiv();
+		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
+			if (e.getSource() == panelBottomMaschinengruppe) {
+				panelQueryMaschinengruppe.updateButtons(new LockStateValue(
+						PanelBasis.LOCK_FOR_NEW));
+			}
 
-    // Itemevents an MEIN Detailpanel senden kann.
-    this.addChangeListener(this);
-    getInternalFrame().addItemChangedListener(this);
+		}
 
-  }
+		else if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
+			if (e.getSource() == panelBottomMaschinengruppe) {
+				panelSplitMaschinengruppe.eventYouAreSelected(false);
+			}
 
+		} else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
+			if (e.getSource() == panelBottomMaschinengruppe) {
+				Object oKey = panelBottomMaschinengruppe
+						.getKeyWhenDetailPanel();
+				panelQueryMaschinengruppe.eventYouAreSelected(false);
+				panelQueryMaschinengruppe.setSelectedId(oKey);
+				panelSplitMaschinengruppe.eventYouAreSelected(false);
+			}
 
-  public void lPEventItemChanged(ItemChangedEvent e)
-      throws Throwable {
+		} else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
+			if (e.getSource() == panelBottomMaschinengruppe) {
+				Object oKey = panelQueryMaschinengruppe.getSelectedId();
+				if (oKey != null) {
+					getInternalFrame().setKeyWasForLockMe(oKey.toString());
+				} else {
+					getInternalFrame().setKeyWasForLockMe(null);
+				}
+				if (panelBottomMaschinengruppe.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryMaschinengruppe
+							.getId2SelectAfterDelete();
+					panelQueryMaschinengruppe.setSelectedId(oNaechster);
+				}
+				panelSplitMaschinengruppe.eventYouAreSelected(false);
+			}
 
-    if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
-      if (e.getSource() == panelQueryMaschinengruppe) {
-        Object key = ( (ISourceEvent) e.getSource()).getIdSelected();
-        panelBottomMaschinengruppe.setKeyWhenDetailPanel(key);
-        panelBottomMaschinengruppe.eventYouAreSelected(false);
-        panelQueryMaschinengruppe.updateButtons();
-      }
+		} else if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
+			if (e.getSource() == panelQueryMaschinengruppe) {
+				int iPos = panelQueryMaschinengruppe.getTable()
+						.getSelectedRow();
 
+				// wenn die Position nicht die erste ist
+				if (iPos > 0) {
+					Integer iIdPosition = (Integer) panelQueryMaschinengruppe
+							.getSelectedId();
 
-    }
-    else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
-      refreshTitle();
-      panelSplitMaschinengruppe.eventYouAreSelected(false);
-    }
-    else if (e.getID() == ItemChangedEvent.ACTION_NEW) {
-      if (e.getSource() == panelQueryMaschinengruppe) {
-        panelBottomMaschinengruppe.eventActionNew(e, true, false);
-        panelBottomMaschinengruppe.eventYouAreSelected(false);
-      }
+					Integer iIdPositionMinus1 = (Integer) panelQueryMaschinengruppe
+							.getTable().getValueAt(iPos - 1, 0);
 
-    }
-    else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
-       if (e.getSource() == panelBottomMaschinengruppe) {
-        panelQueryMaschinengruppe.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
-      }
+					DelegateFactory
+							.getInstance()
+							.getZeiterfassungDelegate()
+							.vertauscheMaschinengruppe(iIdPosition,
+									iIdPositionMinus1);
 
-    }
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelQueryMaschinengruppe.setSelectedId(iIdPosition);
+				}
+			}
+		} else if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
+			if (e.getSource() == panelQueryMaschinengruppe) {
+				int iPos = panelQueryMaschinengruppe.getTable()
+						.getSelectedRow();
 
-    else if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
-      if (e.getSource() == panelBottomMaschinengruppe) {
-        panelSplitMaschinengruppe.eventYouAreSelected(false);
-      }
+				// wenn die Position nicht die letzte ist
+				if (iPos < panelQueryMaschinengruppe.getTable().getRowCount() - 1) {
+					Integer iIdPosition = (Integer) panelQueryMaschinengruppe
+							.getSelectedId();
 
-    }
-    else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
-      if (e.getSource() == panelBottomMaschinengruppe) {
-        Object oKey = panelBottomMaschinengruppe.getKeyWhenDetailPanel();
-        panelQueryMaschinengruppe.eventYouAreSelected(false);
-        panelQueryMaschinengruppe.setSelectedId(oKey);
-        panelSplitMaschinengruppe.eventYouAreSelected(false);
-      }
+					Integer iIdPositionPlus1 = (Integer) panelQueryMaschinengruppe
+							.getTable().getValueAt(iPos + 1, 0);
 
-    }
-    else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
-      if (e.getSource() == panelBottomMaschinengruppe) {
-        Object oKey = panelQueryMaschinengruppe.getSelectedId();
-        if (oKey != null) {
-          getInternalFrame().setKeyWasForLockMe(oKey.toString());
-        }
-        else {
-          getInternalFrame().setKeyWasForLockMe(null);
-        }
-        if (panelBottomMaschinengruppe.getKeyWhenDetailPanel() == null) {
-          Object oNaechster = panelQueryMaschinengruppe.getId2SelectAfterDelete();
-          panelQueryMaschinengruppe.setSelectedId(oNaechster);
-        }
-        panelSplitMaschinengruppe.eventYouAreSelected(false);
-      }
+					DelegateFactory
+							.getInstance()
+							.getZeiterfassungDelegate()
+							.vertauscheMaschinengruppe(iIdPosition,
+									iIdPositionPlus1);
 
-    }
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelQueryMaschinengruppe.setSelectedId(iIdPosition);
+				}
+			}
+		}
+	}
 
-  }
+	private void refreshTitle() {
 
+		getInternalFrame().setLpTitle(
+				InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
+				LPMain.getInstance().getTextRespectUISPr(
+						"pers.title.tab.grunddaten"));
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
+				((PanelBasis) this.getSelectedComponent()).getAdd2Title());
+		getInternalFrame().setLpTitle(3, "");
 
-  private void refreshTitle() {
+	}
 
-    getInternalFrame().setLpTitle(
-        InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
-        LPMain.getInstance().getTextRespectUISPr(
-            "pers.title.tab.grunddaten"));
-    getInternalFrame().setLpTitle(
-        InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
-        ( (PanelBasis)this.getSelectedComponent()).getAdd2Title());
-    getInternalFrame().setLpTitle(
-        3, "");
+	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
+		super.lPEventObjectChanged(e);
+		int selectedIndex = this.getSelectedIndex();
 
-  }
+		if (selectedIndex == IDX_PANEL_MASCHINENGRUPPE) {
+			createKollektiv();
+			panelSplitMaschinengruppe.eventYouAreSelected(false);
+			panelQueryMaschinengruppe.updateButtons();
+		}
 
+	}
 
-  public void lPEventObjectChanged(ChangeEvent e)
-      throws Throwable {
-    super.lPEventObjectChanged(e);
-    int selectedIndex = this.getSelectedIndex();
+	protected void lPActionEvent(java.awt.event.ActionEvent e) {
 
-    if (selectedIndex == IDX_PANEL_MASCHINENGRUPPE) {
-      createKollektiv();
-      panelSplitMaschinengruppe.eventYouAreSelected(false);
-      panelQueryMaschinengruppe.updateButtons();
-    }
+	}
 
-
-
-  }
-
-
-  protected void lPActionEvent(java.awt.event.ActionEvent e) {
-
-  }
-
-
-  public javax.swing.JMenuBar getJMenuBar()
-      throws Throwable {
-    if (wrapperMenuBar == null) {
-      wrapperMenuBar = new WrapperMenuBar(this);
-    }
-    return wrapperMenuBar;
-  }
+	public javax.swing.JMenuBar getJMenuBar() throws Throwable {
+		if (wrapperMenuBar == null) {
+			wrapperMenuBar = new WrapperMenuBar(this);
+		}
+		return wrapperMenuBar;
+	}
 
 }

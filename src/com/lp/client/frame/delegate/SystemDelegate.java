@@ -34,6 +34,7 @@ package com.lp.client.frame.delegate;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -42,8 +43,6 @@ import java.util.Map;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
-import net.sf.jasperreports.engine.JasperReport;
-
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -51,7 +50,12 @@ import com.lp.server.angebot.service.AngebotDto;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.lieferschein.service.LieferscheinDto;
 import com.lp.server.rechnung.service.RechnungDto;
+import com.lp.server.system.mail.service.MailPropertyDto;
+import com.lp.server.system.mail.service.MailPropertyEnum;
 import com.lp.server.system.service.AnwenderDto;
+import com.lp.server.system.service.BelegDateFieldDataDto;
+import com.lp.server.system.service.BelegDatumClient;
+import com.lp.server.system.service.EditorContentDto;
 import com.lp.server.system.service.EinheitDto;
 import com.lp.server.system.service.EinheitKonvertierungDto;
 import com.lp.server.system.service.EinheitsprDto;
@@ -59,11 +63,13 @@ import com.lp.server.system.service.ExtralisteDto;
 import com.lp.server.system.service.ExtralisteRueckgabeTabelleDto;
 import com.lp.server.system.service.GeschaeftsjahrMandantDto;
 import com.lp.server.system.service.JavaInfoDto;
+import com.lp.server.system.service.KennungDto;
 import com.lp.server.system.service.KeyvalueDto;
 import com.lp.server.system.service.KostenstelleDto;
 import com.lp.server.system.service.LandDto;
 import com.lp.server.system.service.LandplzortDto;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.LpHvDirekthilfeDto;
 import com.lp.server.system.service.OrtDto;
 import com.lp.server.system.service.PingPacket;
 import com.lp.server.system.service.ServerJavaAndOSInfo;
@@ -72,11 +78,15 @@ import com.lp.server.system.service.SystemFac;
 import com.lp.server.system.service.SystemMultilanguageFac;
 import com.lp.server.system.service.SystemServicesFac;
 import com.lp.server.system.service.TextDto;
-import com.lp.server.system.service.LpHvDirekthilfeDto;
+import com.lp.server.util.EditorBlockIId;
+import com.lp.server.util.EditorContentIId;
+import com.lp.server.util.KennungId;
 import com.lp.service.BelegVerkaufDto;
 import com.lp.service.BelegpositionVerkaufDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
+
+import net.sf.jasperreports.engine.JasperReport;
 
 @SuppressWarnings("static-access")
 public class SystemDelegate extends Delegate {
@@ -88,18 +98,12 @@ public class SystemDelegate extends Delegate {
 
 	private JasperReport dreispalter = null;
 
-	public SystemDelegate() throws ExceptionLP {
-		try {
-			context = new InitialContext(); // getInitialContext();
-			systemFac = (SystemFac) context
-					.lookup("lpserver/SystemFacBean/remote");
-			systemMultilanguageFac = (SystemMultilanguageFac) context
-					.lookup("lpserver/SystemMultilanguageFacBean/remote");
-			systemServicesFac = (SystemServicesFac) context
-					.lookup("lpserver/SystemServicesFacBean/remote");
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-		}
+	public SystemDelegate() throws Exception {
+		context = new InitialContext();
+		systemFac = lookupFac(context, SystemFac.class);
+		systemMultilanguageFac = lookupFac(context, SystemMultilanguageFac.class);
+		systemServicesFac = lookupFac(context, SystemServicesFac.class);
+
 	}
 
 	public byte[] getHintergrundbild() throws ExceptionLP {
@@ -223,6 +227,18 @@ public class SystemDelegate extends Delegate {
 		return kostenstelleDto;
 	}
 
+	public KennungDto kennungFindByPrimaryKey(Integer kennungId)
+			throws ExceptionLP {
+		KennungDto kennungDto = null;
+		try {
+			kennungDto = systemFac.kennungFindByPrimaryKey(new KennungId(kennungId));
+		} catch (Throwable ex) {
+			// so fange ich Exceptions vom server und verarbeite sie
+			handleThrowable(ex);
+		}
+		return kennungDto;
+	}
+
 	public KostenstelleDto[] kostenstelleFindByMandant(String pMandant)
 			throws ExceptionLP {
 		KostenstelleDto[] kostenstelleDto = null;
@@ -264,6 +280,16 @@ public class SystemDelegate extends Delegate {
 		return arten;
 	}
 
+	public Map<?, ?> getAllKostenstelle() throws ExceptionLP {
+		Map<?, ?> arten = null;
+		try {
+			arten = systemFac.getAllKostenstelle(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return arten;
+	}
+	
 	/**
 	 * 
 	 * @return Map
@@ -338,7 +364,7 @@ public class SystemDelegate extends Delegate {
 
 	public void updateLand(LandDto landDto) throws ExceptionLP {
 		try {
-			systemFac.updateLand(landDto);
+			systemFac.updateLand(landDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -560,7 +586,20 @@ public class SystemDelegate extends Delegate {
 	public LandDto landFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		LandDto landDto = null;
 		try {
-			landDto = systemFac.landFindByPrimaryKey(iId);
+			landDto = systemFac
+					.landFindByPrimaryKey(iId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			// so fange ich Exceptions vom server und verarbeite sie
+			handleThrowable(ex);
+		}
+		return landDto;
+
+	}
+	public LandDto landFindByLkz(String cLkz) throws ExceptionLP {
+		LandDto landDto = null;
+		try {
+			landDto = systemFac
+					.landFindByLkz(cLkz);
 		} catch (Throwable ex) {
 			// so fange ich Exceptions vom server und verarbeite sie
 			handleThrowable(ex);
@@ -851,7 +890,7 @@ public class SystemDelegate extends Delegate {
 	 * Ermittelt die Locale & Timezone die am Server verwendet wird.
 	 * 
 	 * @return die Locale&Timeinfo vom Server
-	 * @throws ExceptionLP 
+	 * @throws ExceptionLP
 	 */
 	public ServerLocaleInfo getLocaleInfo() throws ExceptionLP {
 		try {
@@ -862,7 +901,7 @@ public class SystemDelegate extends Delegate {
 
 		return null;
 	}
-	
+
 	public ServerJavaAndOSInfo getJavaAndOSInfo() throws ExceptionLP {
 		try {
 			return systemFac.getJavaAndOSInfo();
@@ -936,31 +975,26 @@ public class SystemDelegate extends Delegate {
 								belegVerkaufDto, LPMain.getTheClient());
 				if (b == true) {
 
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.warning"),
-									LPMain.getInstance()
-											.getTextRespectUISPr(
-													"lp.vkbelege.error.kundesteuerfrei"));
+					DialogFactory.showModalDialog(
+							LPMain.getInstance().getTextRespectUISPr(
+									"lp.warning"),
+							LPMain.getInstance().getTextRespectUISPr(
+									"lp.vkbelege.error.kundesteuerfrei"));
 				}
-				
-				
+
 				b = systemFac
 						.enthaeltEineVKPositionKeineMwstObwohlKundeSteuerpflichtig(
 								kundeIId, belegpositionVerkaufDtos,
 								belegVerkaufDto, LPMain.getTheClient());
 				if (b == true) {
 
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.warning"),
-									LPMain.getInstance()
-											.getTextRespectUISPr(
-													"lp.vkbelege.error.kundesteuerpflichtig"));
+					DialogFactory.showModalDialog(
+							LPMain.getInstance().getTextRespectUISPr(
+									"lp.warning"),
+							LPMain.getInstance().getTextRespectUISPr(
+									"lp.vkbelege.error.kundesteuerpflichtig"));
 				}
-				
+
 			}
 
 		} catch (Throwable t) {
@@ -969,94 +1003,196 @@ public class SystemDelegate extends Delegate {
 		}
 	}
 
-	public String getScriptContentFromLPDir(String modulI, String filenameI) throws ExceptionLP {
+	public String getScriptContentFromLPDir(String modulI, String filenameI)
+			throws ExceptionLP {
 		try {
 			return systemFac.getScriptContentFromLPDir(modulI, filenameI,
-				LPMain.getTheClient().getMandant(), LPMain.getTheClient().getLocMandant(), null) ;
-		} catch(Throwable t) {
-			handleThrowable(t) ;
+					LPMain.getTheClient().getMandant(), LPMain.getTheClient()
+							.getLocMandant(), null);
+		} catch (Throwable t) {
+			handleThrowable(t);
 		}
-		
-		return null ;
+
+		return null;
 	}
 
 	/**
-	 * @see SystemMultilanguageFac#getAllDirekthilfeTexte(com.lp.server.system.service.TheClientDto, boolean)
+	 * @see SystemMultilanguageFac#getAllDirekthilfeTexte(com.lp.server.system.service.TheClientDto,
+	 *      boolean)
 	 * @return eine Map mit dem Token als Key und dem Text als Value
-	 * @throws ExceptionLP 
+	 * @throws ExceptionLP
 	 */
 	public Map<String, String> getAnwenderDirekthilfeTexte() throws ExceptionLP {
 		try {
-			return systemMultilanguageFac.getAllDirekthilfeTexte(LPMain.getTheClient(), true);
-		} catch(Throwable t) {
+			return systemMultilanguageFac.getAllDirekthilfeTexte(
+					LPMain.getTheClient(), true);
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return null;
 	}
-	
+
 	/**
-	 * @see SystemMultilanguageFac#getAllDirekthilfeTexte(com.lp.server.system.service.TheClientDto, boolean)
+	 * @see SystemMultilanguageFac#getAllDirekthilfeTexte(com.lp.server.system.service.TheClientDto,
+	 *      boolean)
 	 * @return eine Map mit dem Token als Key und dem Text als Value
-	 * @throws ExceptionLP 
+	 * @throws ExceptionLP
 	 */
 	public Map<String, String> getHvDirekthilfeTexte() throws ExceptionLP {
 		try {
-			return systemMultilanguageFac.getAllDirekthilfeTexte(LPMain.getTheClient(), false);
-		} catch(Throwable t) {
+			return systemMultilanguageFac.getAllDirekthilfeTexte(
+					LPMain.getTheClient(), false);
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return null;
 	}
-	
 
-	public void putAnwenderDirekthilfeText(String token, String text) throws ExceptionLP {
+	public void putAnwenderDirekthilfeText(String token, String text)
+			throws ExceptionLP {
 		try {
-			systemMultilanguageFac.putDirekthilfeText(token, text, true, LPMain.getTheClient());
-		} catch(Throwable t) {
+			systemMultilanguageFac.putDirekthilfeText(token, text, true,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
-	
-	public void putHvDirekthilfeText(String token, String text) throws ExceptionLP {
+
+	public void putHvDirekthilfeText(String token, String text)
+			throws ExceptionLP {
 		try {
-			systemMultilanguageFac.putDirekthilfeText(token, text, false, LPMain.getTheClient());
-		} catch(Throwable t) {
+			systemMultilanguageFac.putDirekthilfeText(token, text, false,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
-	
-	public void putHvDirekthilfeText(LpHvDirekthilfeDto hvdh) throws ExceptionLP {
+
+	public void putHvDirekthilfeText(LpHvDirekthilfeDto hvdh)
+			throws ExceptionLP {
 		try {
-			systemMultilanguageFac.putHvDirekthilfeText(hvdh.getcToken(), hvdh.getcLocale(), hvdh.getcText(), hvdh.gettAendern(), LPMain.getTheClient());
-		} catch(Throwable t) {
+			systemMultilanguageFac.putHvDirekthilfeText(hvdh.getcToken(),
+					hvdh.getcLocale(), hvdh.getcText(), hvdh.gettAendern(),
+					LPMain.getTheClient());
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
-	
-	public List<LpHvDirekthilfeDto> getAllHvDirekthilfeDtos() throws ExceptionLP {
+
+	public List<LpHvDirekthilfeDto> getAllHvDirekthilfeDtos()
+			throws ExceptionLP {
 		try {
 			return systemMultilanguageFac.getAllHvDirekthilfeDtos();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public String getServerWebPort() throws ExceptionLP {
+		try {
+			return systemFac.getServerWebPort();
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public JavaInfoDto getServerJavaInfo() throws ExceptionLP {
+		try {
+			return systemFac.getServerJavaInfo();
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public BelegDateFieldDataDto getBelegDateFieldData(BelegDatumClient bdc)
+			throws ExceptionLP {
+		try {
+			return systemFac.getBelegDateFieldData(bdc, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public List<String> getServerSystemReportFonts() throws ExceptionLP {
+		try {
+			return systemFac.getServerSystemReportFonts();
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 		return null;
 	}
 	
-	public String getServerWebPort() throws ExceptionLP {
+	public boolean isEUMitglied(LandDto landDto) throws ExceptionLP {
 		try {
-			return systemFac.getServerWebPort() ;
-		} catch(Throwable t) {
+			return systemFac.isEUMitglied(landDto);
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
-		return null ;
+		return false;
 	}
 	
-	public JavaInfoDto getServerJavaInfo() throws ExceptionLP  {
+	public List<MailPropertyDto> getAllMailProperties() throws ExceptionLP {
 		try {
-			return systemFac.getServerJavaInfo();
-		} catch(Throwable t) {
+			return systemFac.getAllMailProperties(LPMain.getTheClient());
+		} catch (Throwable t) {
 			handleThrowable(t);
 		}
-		return null ;
+		return new ArrayList<MailPropertyDto>();
+	}
+	
+	public Map<MailPropertyEnum, MailPropertyDto> getMapAllKnownMailProperties() throws ExceptionLP {
+		try {
+			return systemFac.getMapAllKnownMailProperties(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return new HashMap<MailPropertyEnum, MailPropertyDto>();
+	}
+
+	public void updateMailProperties(List<MailPropertyDto> properties) throws ExceptionLP {
+		try {
+			systemFac.updateOrCreateMailProperties(properties, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	public MailPropertyDto updateMailProperty(MailPropertyDto dto) throws ExceptionLP {
+		try {
+			return systemFac.updateMailProperty(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public void resetMailProperty(String cnr) throws ExceptionLP {
+		try {
+			systemFac.resetMailProperty(cnr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	
+	public MailPropertyDto mailpropertyFindByCnr(String cnr) throws ExceptionLP {
+		try {
+			return systemFac.mailpropertyFindByCnr(cnr, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public MailPropertyDto createMailProperty(MailPropertyDto dto) throws ExceptionLP {
+		try {
+			return systemFac.createMailProperty(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
 	}
 }

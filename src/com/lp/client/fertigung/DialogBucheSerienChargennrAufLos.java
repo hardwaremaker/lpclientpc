@@ -32,9 +32,11 @@
  ******************************************************************************/
 package com.lp.client.fertigung;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -42,13 +44,16 @@ import java.awt.event.KeyListener;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
@@ -60,8 +65,7 @@ import com.lp.server.fertigung.service.LoslagerentnahmeDto;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class DialogBucheSerienChargennrAufLos extends JDialog implements
-		ActionListener, KeyListener {
+public class DialogBucheSerienChargennrAufLos extends JDialog implements ActionListener, KeyListener {
 	/**
 	 * 
 	 */
@@ -71,6 +75,9 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 	WrapperLabel wlaSumme = new WrapperLabel();
 	public boolean bEsIstNichtsAufLager = true;
 	JButton jButtonUebernehmen = new JButton();
+
+	WrapperLabel wlaSuche = new WrapperLabel();
+	WrapperTextField wtfSuche = new WrapperTextField();
 
 	private Integer losIId = null;
 	private ArtikelDto artikelDto = null;
@@ -85,9 +92,10 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 	public boolean bAbbruch = false;
 	private ArrayList alBereitsGebucht = new ArrayList();
 
-	public static SeriennrChargennrAufLagerDto[] bereinigeBereitsVerbrauchteSnrChnr(
-			ArrayList al, SeriennrChargennrAufLagerDto[] snrchnrauflagerDtos,
-			Integer artikelIId, Integer lagerIId) {
+	private JScrollPane scrollPane = null;
+
+	public static SeriennrChargennrAufLagerDto[] bereinigeBereitsVerbrauchteSnrChnr(ArrayList al,
+			SeriennrChargennrAufLagerDto[] snrchnrauflagerDtos, Integer artikelIId, Integer lagerIId) {
 
 		ArrayList<SeriennrChargennrAufLagerDto> alVorhandene = new ArrayList<SeriennrChargennrAufLagerDto>();
 
@@ -96,25 +104,17 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 		}
 
 		for (int i = 0; i < al.size(); i++) {
-			BucheSerienChnrAufLosDto bucheSerienChnrAufLosDto = (BucheSerienChnrAufLosDto) al
-					.get(i);
+			BucheSerienChnrAufLosDto bucheSerienChnrAufLosDto = (BucheSerienChnrAufLosDto) al.get(i);
 			for (int j = 0; j < alVorhandene.size(); j++) {
-				SeriennrChargennrAufLagerDto dto = (SeriennrChargennrAufLagerDto) alVorhandene
-						.get(j);
+				SeriennrChargennrAufLagerDto dto = (SeriennrChargennrAufLagerDto) alVorhandene.get(j);
 				if (bucheSerienChnrAufLosDto.getArtikelIId().equals(artikelIId)) {
-					if (bucheSerienChnrAufLosDto.getLagerIId().equals(
-							lagerIId)) {
-						if (dto.getCSeriennrChargennr().equals(
-								bucheSerienChnrAufLosDto
-										.getCSeriennrChargennr())) {
+					if (bucheSerienChnrAufLosDto.getLagerIId().equals(lagerIId)) {
+						if (dto.getCSeriennrChargennr().equals(bucheSerienChnrAufLosDto.getCSeriennrChargennr())) {
 							// dto entfernen, bzw. verringern
-							if (bucheSerienChnrAufLosDto.getNMenge()
-									.doubleValue() >= dto.getNMenge()
-									.doubleValue()) {
+							if (bucheSerienChnrAufLosDto.getNMenge().doubleValue() >= dto.getNMenge().doubleValue()) {
 								alVorhandene.remove(j);
 							} else {
-								dto.setNMenge(dto.getNMenge().subtract(
-										bucheSerienChnrAufLosDto.getNMenge()));
+								dto.setNMenge(dto.getNMenge().subtract(bucheSerienChnrAufLosDto.getNMenge()));
 								alVorhandene.set(j, dto);
 							}
 
@@ -123,8 +123,7 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 				}
 			}
 		}
-		SeriennrChargennrAufLagerDto[] temp = new SeriennrChargennrAufLagerDto[alVorhandene
-				.size()];
+		SeriennrChargennrAufLagerDto[] temp = new SeriennrChargennrAufLagerDto[alVorhandene.size()];
 		return (SeriennrChargennrAufLagerDto[]) alVorhandene.toArray(temp);
 	}
 
@@ -132,15 +131,13 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 
 	GridBagLayout gridBagLayout2 = new GridBagLayout();
 
-	public DialogBucheSerienChargennrAufLos(Integer losIId,String losnummer,
-			ArtikelDto artikelDto, BigDecimal gesamtmenge,
-			ArrayList alBereitsGebucht) throws Throwable {
-		super(LPMain.getInstance().getDesktop(), LPMain.getInstance()
-				.getTextRespectUISPr(
-						"artikel.handlagerbewegung.seriennrchargennr")
-				+ " " + artikelDto.formatArtikelbezeichnung()+ ", "+LPMain.getInstance()
-				.getTextRespectUISPr(
-						"label.losnummer") +" "+losnummer, true);
+	public DialogBucheSerienChargennrAufLos(Integer losIId, String losnummer, ArtikelDto artikelDto,
+			BigDecimal gesamtmenge, ArrayList alBereitsGebucht) throws Throwable {
+		super(LPMain.getInstance().getDesktop(),
+				LPMain.getInstance().getTextRespectUISPr("artikel.handlagerbewegung.seriennrchargennr") + " "
+						+ artikelDto.formatArtikelbezeichnung() + ", "
+						+ LPMain.getInstance().getTextRespectUISPr("label.losnummer") + " " + losnummer,
+				true);
 		this.losIId = losIId;
 		this.alBereitsGebucht = alBereitsGebucht;
 		this.artikelDto = artikelDto;
@@ -153,7 +150,7 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 				bAbbruch = true;
 			}
 		});
-		
+
 		jbInit();
 		pack();
 
@@ -163,14 +160,11 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 		if (e.getSource().equals(jButtonUebernehmen)) {
 
 			try {
-				if (getGewaehlteMenge().doubleValue() != gesamtmenge
-						.doubleValue()) {
+				if (getGewaehlteMenge().doubleValue() != gesamtmenge.doubleValue()) {
 
 					boolean b = DialogFactory.showModalJaNeinDialog(null,
-							LPMain.getInstance().getTextRespectUISPr(
-									"fert.error.zuwenigsnrchnrausgewaehlt"),
-							LPMain.getInstance()
-									.getTextRespectUISPr("lp.frage"));
+							LPMain.getInstance().getTextRespectUISPr("fert.error.zuwenigsnrchnrausgewaehlt"),
+							LPMain.getInstance().getTextRespectUISPr("lp.frage"));
 					if (b == true) {
 						this.setVisible(false);
 					}
@@ -193,8 +187,7 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 					WrapperNumberField wnf = (WrapperNumberField) oTemp[COMPONENTE];
 					BigDecimal aufLager = (BigDecimal) oTemp[LAGERSTAND];
 					try {
-						BigDecimal diff = gesamtmenge
-								.subtract(getGewaehlteMenge());
+						BigDecimal diff = gesamtmenge.subtract(getGewaehlteMenge());
 						if (diff.doubleValue() >= aufLager.doubleValue()) {
 							wnf.setBigDecimal(aufLager);
 						} else {
@@ -203,8 +196,7 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 						}
 						getGewaehlteMenge();
 					} catch (Throwable ex) {
-						LPMain.getInstance().getDesktop()
-								.exitClientNowErrorDlg(ex);
+						LPMain.getInstance().getDesktop().exitClientNowErrorDlg(ex);
 					}
 
 				}
@@ -226,26 +218,77 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 
 			try {
 				wlaSumme.setText("Gew\u00E4hlt: "
-						+ Helper.formatZahl(getGewaehlteMenge(), 4, LPMain
-								.getInstance().getTheClient().getLocUi()));
+						+ Helper.formatZahl(getGewaehlteMenge(), 4, LPMain.getInstance().getTheClient().getLocUi()));
 
 			} catch (Throwable ex) {
 				LPMain.getInstance().getDesktop().exitClientNowErrorDlg(ex);
 			}
 		}
 
+		// PJ22065
+		if (e.getSource().equals(wtfSuche) && e.getKeyCode() == KeyEvent.VK_ENTER) {
+
+			if (wtfSuche.getText() != null && wtfSuche.getText().length() > 0) {
+
+				String sText = wtfSuche.getText();
+
+				for (int i = 0; i < komponenten.size(); i++) {
+					Object[] zeile = komponenten.get(i);
+
+					JButton button = (JButton) zeile[BUTTON];
+					WrapperNumberField wnfMenge = (WrapperNumberField) zeile[COMPONENTE];
+					String buttonText = button.getText();
+					if (buttonText.equals(sText)) {
+
+						try {
+							if (wnfMenge.getBigDecimal() != null) {
+
+								button.requestFocusInWindow();
+								wtfSuche.setText(null);
+								scrollPane.getViewport().scrollRectToVisible(button.getBounds());
+
+								// DIALOG
+								DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+										LPMain.getInstance()
+												.getTextRespectUISPr("fert.dialogsnrchr.suche.error.bereitsgewaehlt"));
+
+								return;
+
+							} else {
+								actionPerformed(new ActionEvent(button, 1, ""));
+								wtfSuche.setText(null);
+								wtfSuche.requestFocusInWindow();
+								return;
+							}
+
+						} catch (Throwable ex) {
+							LPMain.getInstance().getDesktop().exitClientNowErrorDlg(ex);
+						}
+
+					}
+
+				}
+
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+						LPMain.getInstance().getTextRespectUISPr("fert.dialogsnrchr.suche.error.nichtgefunden"));
+				wtfSuche.setText(null);
+				wtfSuche.requestFocusInWindow();
+				return;
+
+			}
+
+		}
+
 	}
 
-	public ArrayList<BucheSerienChnrAufLosDto> getDaten(
-			Integer lossollmaterialIId) throws Throwable {
+	public ArrayList<BucheSerienChnrAufLosDto> getDaten(Integer lossollmaterialIId) throws Throwable {
 		ArrayList<BucheSerienChnrAufLosDto> alSnrchnr = new ArrayList<BucheSerienChnrAufLosDto>();
 
 		for (int i = 0; i < komponenten.size(); i++) {
 			Object[] oTemp = (Object[]) komponenten.get(i);
 			WrapperNumberField wnf = (WrapperNumberField) oTemp[COMPONENTE];
 
-			if (wnf.getBigDecimal() != null
-					&& wnf.getBigDecimal().doubleValue() != 0) {
+			if (wnf.getBigDecimal() != null && wnf.getBigDecimal().doubleValue() != 0) {
 				BucheSerienChnrAufLosDto dtoTemp = new BucheSerienChnrAufLosDto();
 				dtoTemp.setArtikelIId(artikelDto.getIId());
 				dtoTemp.setLagerIId((Integer) oTemp[LAGER]);
@@ -271,11 +314,23 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 
 		}
 
-		wlaSumme.setText("Gew\u00E4hlt: "
-				+ Helper.formatZahl(gewaehlt, 3, LPMain.getInstance()
-						.getTheClient().getLocUi()));
+		wlaSumme.setText(
+				"Gew\u00E4hlt: " + Helper.formatZahl(gewaehlt, 3, LPMain.getInstance().getTheClient().getLocUi()));
 
 		return gewaehlt;
+	}
+
+	@Override
+	public Dimension getPreferredSize() {
+
+		Toolkit kit = Toolkit.getDefaultToolkit();
+		Dimension screenSize = kit.getScreenSize();
+		int maxHeight = screenSize.height - 150;
+
+		Dimension dim = super.getPreferredSize();
+		if (dim.height > maxHeight)
+			dim.height = maxHeight;
+		return dim;
 	}
 
 	private void jbInit() throws Throwable {
@@ -283,47 +338,54 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 		this.getContentPane().setLayout(gridBagLayout2);
 		panelSnrChnr.setLayout(gridBagLayout1);
 
-		jButtonUebernehmen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.uebernehmen"));
+		jButtonUebernehmen.setText(LPMain.getInstance().getTextRespectUISPr("lp.uebernehmen"));
 		jButtonUebernehmen.addActionListener(this);
 
 		wlaSumme.setText("Gew\u00E4hlt: "
-				+ Helper.formatZahl(getGewaehlteMenge(), 3, LPMain
-						.getInstance().getTheClient().getLocUi()));
+				+ Helper.formatZahl(getGewaehlteMenge(), 3, LPMain.getInstance().getTheClient().getLocUi()));
+
+		scrollPane = new JScrollPane(panelSnrChnr);
+		scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 10, 15, 10));
 
 		this.getContentPane().add(
-				panelSnrChnr,
-				new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(10, 10, 10, 10), 0, 0));
+//				panelSnrChnr,
+				scrollPane, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+						GridBagConstraints.BOTH, new Insets(0, 0, 10, 10), 0, 0));
 		int iZeile = 0;
-		panelSnrChnr.add(new JLabel("Es werden Gesamt "
-				+ Helper.formatZahl(gesamtmenge, 3, LPMain.getInstance()
-						.getTheClient().getLocUi()) + " "
-				+ artikelDto.getEinheitCNr().trim() + " ben\u00F6tigt:"),
-				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL,
-						new Insets(10, 2, 10, 2), 0, 0));
+		panelSnrChnr.add(
+				new JLabel("Es werden gesamt "
+						+ Helper.formatZahl(gesamtmenge, 3, LPMain.getInstance().getTheClient().getLocUi()) + " "
+						+ artikelDto.getEinheitCNr().trim() + " ben\u00F6tigt:"),
+				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(10, 2, 10, 2), 0, 0));
+
+		wlaSuche.setText(LPMain.getInstance().getTextRespectUISPr("fert.dialogsnrchr.suche"));
+
+		wlaSuche.setLabelFor(wtfSuche);
+		wlaSuche.setDisplayedMnemonic('S');
+
+		wtfSuche.addKeyListener(this);
+
+		panelSnrChnr.add(wlaSuche, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(10, 2, 10, 2), 0, 0));
+		panelSnrChnr.add(wtfSuche, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(10, 2, 10, 2), 0, 0));
 
 		iZeile++;
 
 		// Anzahl der Chargen
-		LoslagerentnahmeDto[] laeger = DelegateFactory.getInstance()
-				.getFertigungDelegate().loslagerentnahmeFindByLosIId(losIId);
+		LoslagerentnahmeDto[] laeger = DelegateFactory.getInstance().getFertigungDelegate()
+				.loslagerentnahmeFindByLosIId(losIId);
 
 		for (int i = 0; i < laeger.length; i++) {
-			SeriennrChargennrAufLagerDto[] snrchnrauflagerDtos = DelegateFactory
-					.getInstance().getLagerDelegate()
-					.getAllSerienChargennrAufLagerInfoDtos(artikelDto.getIId(),
-							laeger[i].getLagerIId());
+			SeriennrChargennrAufLagerDto[] snrchnrauflagerDtos = DelegateFactory.getInstance().getLagerDelegate()
+					.getAllSerienChargennrAufLagerInfoDtos(artikelDto.getIId(), laeger[i].getLagerIId());
 
-			snrchnrauflagerDtos = bereinigeBereitsVerbrauchteSnrChnr(
-					alBereitsGebucht, snrchnrauflagerDtos, artikelDto.getIId(),laeger[i].getLagerIId());
+			snrchnrauflagerDtos = bereinigeBereitsVerbrauchteSnrChnr(alBereitsGebucht, snrchnrauflagerDtos,
+					artikelDto.getIId(), laeger[i].getLagerIId());
 
-			LagerDto lagerDto = DelegateFactory.getInstance()
-					.getLagerDelegate().lagerFindByPrimaryKey(
-							laeger[i].getLagerIId());
+			LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
+					.lagerFindByPrimaryKey(laeger[i].getLagerIId());
 
 			if (snrchnrauflagerDtos.length > 0) {
 				bEsIstNichtsAufLager = false;
@@ -352,32 +414,23 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 				button.addActionListener(this);
 				o[BUTTON] = button;
 
-				panelSnrChnr.add(button, new GridBagConstraints(0, iZeile, 1,
-						1, 0.0, 0.0, GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-				panelSnrChnr.add(new JLabel("vom "
-						+ Helper.formatTimestamp(dto.getTBuchungszeit(), LPMain
-								.getInstance().getTheClient().getLocUi())),
-						new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-								GridBagConstraints.CENTER,
-								GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-										2, 2), 0, 0));
+				panelSnrChnr.add(button, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+				panelSnrChnr.add(
+						new JLabel("vom " + Helper.formatTimestamp(dto.getTBuchungszeit(),
+								LPMain.getInstance().getTheClient().getLocUi())),
+						new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+								GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-				panelSnrChnr.add(wnfMenge, new GridBagConstraints(2, iZeile, 1,
-						1, 0, 0, GridBagConstraints.CENTER,
+				panelSnrChnr.add(wnfMenge, new GridBagConstraints(2, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
 						GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
-				panelSnrChnr.add(new JLabel(lagerDto.getCNr()),
-						new GridBagConstraints(3, iZeile, 1, 1, 0.5, 0,
-								GridBagConstraints.CENTER,
-								GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-										2, 2), 0, 0));
-				panelSnrChnr.add(new JLabel(Helper.formatZahl(dto.getNMenge(),
-						3, LPMain.getInstance().getTheClient().getLocUi())),
-						new GridBagConstraints(4, iZeile, 1, 1, 0.5, 0,
-								GridBagConstraints.CENTER,
-								GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-										2, 2), 0, 0));
+				panelSnrChnr.add(new JLabel(lagerDto.getCNr()), new GridBagConstraints(3, iZeile, 1, 1, 0.5, 0,
+						GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+				panelSnrChnr.add(
+						new JLabel(
+								Helper.formatZahl(dto.getNMenge(), 3, LPMain.getInstance().getTheClient().getLocUi())),
+						new GridBagConstraints(4, iZeile, 1, 1, 0.5, 0, GridBagConstraints.CENTER,
+								GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 				o[COMPONENTE] = wnfMenge;
 
@@ -389,13 +442,14 @@ public class DialogBucheSerienChargennrAufLos extends JDialog implements
 
 		}
 
-		panelSnrChnr.add(wlaSumme, new GridBagConstraints(2, iZeile, 1, 1, 0,
-				0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		panelSnrChnr.add(jButtonUebernehmen, new GridBagConstraints(0, iZeile,
-				5, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE,
-				new Insets(2, 2, 2, 2), 0, 0));
+		panelSnrChnr.add(wlaSumme, new GridBagConstraints(2, iZeile, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		this.getContentPane().add(
+
+				jButtonUebernehmen, new GridBagConstraints(0, 1, 1, 1, 1.0, 0, GridBagConstraints.CENTER,
+						GridBagConstraints.NONE, new Insets(0, 0, 10, 10), 0, 0));
+		
 
 	}
 }

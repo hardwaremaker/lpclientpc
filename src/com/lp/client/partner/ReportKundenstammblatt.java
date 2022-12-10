@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.partner;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -40,7 +39,9 @@ import java.awt.Insets;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -49,73 +50,67 @@ import com.lp.server.partner.service.KundeReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access") 
-public class ReportKundenstammblatt
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+@SuppressWarnings("static-access")
+public class ReportKundenstammblatt extends PanelBasis implements PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  private Integer kundeIId = null;
-  public ReportKundenstammblatt(InternalFrameKunde internalFrame, String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    kundeIId=internalFrame.getKundeDto().getIId();
-    LPMain.getInstance().getTextRespectUISPr("lp.stammblatt");
-    jbInit();
-    initComponents();
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
 
-  }
+	private WrapperCheckBox wcbStatistikadresse = new WrapperCheckBox();
 
+	private Integer kundeIId = null;
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return NO_VALUE_THATS_OK_JCOMPONENT;
-  }
+	public ReportKundenstammblatt(InternalFrame internalFrame,Integer kundeIId, String add2Title) throws Throwable {
+		super(internalFrame, add2Title);
+		this.kundeIId = kundeIId;
+		LPMain.getInstance().getTextRespectUISPr("lp.stammblatt");
+		jbInit();
+		initComponents();
 
+	}
 
-  private void jbInit()
-      throws Exception {
-    this.setLayout(gridBagLayout1);
-    jpaWorkingOn.setLayout(gridBagLayout2);
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return NO_VALUE_THATS_OK_JCOMPONENT;
+	}
 
-    this.add(jpaWorkingOn,
-             new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
-                                    GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+	private void jbInit() throws Exception {
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
 
-  }
+		wcbStatistikadresse.setText(LPMain.getTextRespectUISPr("rech.statistikadresseverwenden"));
 
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-  public String getModul() {
-    return KundeReportFac.REPORT_MODUL;
-  }
+		jpaWorkingOn.add(wcbStatistikadresse, new GridBagConstraints(0, iZeile, 1, 1, 1,
+				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+		
+	}
 
+	public String getModul() {
+		return KundeReportFac.REPORT_MODUL;
+	}
 
-  public String getReportname() {
-    return KundeReportFac.REPORT_KUNDENSTAMMBLATT;
-  }
+	public String getReportname() {
+		return KundeReportFac.REPORT_KUNDENSTAMMBLATT;
+	}
 
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		return DelegateFactory.getInstance().getKundeDelegate().printKundenstammblatt(kundeIId,
+				wcbStatistikadresse.isSelected());
+	}
 
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    return DelegateFactory.getInstance().getKundeDelegate().
-        printKundenstammblatt(
-            kundeIId);
-  }
+	public boolean getBErstelleReportSofort() {
+		return true;
+	}
 
-
-  public boolean getBErstelleReportSofort() {
-    return true;
-  }
-
-
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

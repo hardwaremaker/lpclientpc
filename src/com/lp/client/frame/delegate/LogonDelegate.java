@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
-
 import java.sql.Timestamp;
 import java.util.Locale;
 
@@ -40,81 +39,77 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.pc.LPMain;
 import com.lp.client.util.ClientConfiguration;
 import com.lp.server.benutzer.service.LogonFac;
 import com.lp.server.system.service.TheClientDto;
 import com.lp.util.Helper;
 
-
 /**
- * <p><I>Diese Klasse kuemmert sich um das Einloggen.</I> </p>
- *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- *
- * <p>Erstellungsdatum <I>dd.mm.04</I></p>
- *
- * <p> </p>
+ * <p>
+ * <I>Diese Klasse kuemmert sich um das Einloggen.</I>
+ * </p>
+ * 
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * 
+ * <p>
+ * Erstellungsdatum <I>dd.mm.04</I>
+ * </p>
+ * 
+ * <p>
+ * </p>
+ * 
  * @author $Author: adi $
  * @version $Revision: 1.10 $
  */
-public class LogonDelegate
-    extends Delegate
-{
+public class LogonDelegate extends Delegate {
 
-  Context context = null;
-  LogonFac logonFac = null;
+	private Context context = null;
+	private LogonFac logonFac = null;
 
-  public LogonDelegate()
-      throws Exception {
-    context = new InitialContext();
-    logonFac = (LogonFac) context.lookup("lpserver/LogonFacBean/remote");
-  }
+	public LogonDelegate() throws Exception {
+		try {
+			context = new InitialContext();
+			logonFac = lookupFac(context, LogonFac.class);			
+		} catch(Throwable t) {
+			handleThrowable(t);		
+		}
+	}
 
+	public TheClientDto logon(String benutzer, char[] kennwort,
+			Locale uILocale, String sMandantI) throws ExceptionLP {
 
-  public TheClientDto logon(String benutzer, char[] kennwort, Locale uILocale, String sMandantI)
-      throws ExceptionLP {
+		String name = benutzer.substring(0, benutzer.indexOf("|"));
 
-	String name = benutzer.substring(0,benutzer.indexOf("|"));
-	
-	try {
-      return logonFac.logon(
-          benutzer,
-          Helper.getMD5Hash((name + new String(kennwort)).toCharArray()),
-          uILocale,
-          sMandantI,
-          ClientConfiguration.getBuildNumber(),
-          new Timestamp(System.currentTimeMillis()));
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-    return null;
-  } 
+		try {
+			return logonFac.logon(benutzer, Helper
+					.getMD5Hash((name + new String(kennwort)).toCharArray()),
+					uILocale, sMandantI, ClientConfiguration.getBuildNumber(),
+					new Timestamp(System.currentTimeMillis()));
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return null;
+	}
 
+	public void logout(TheClientDto theClientDto) throws ExceptionLP {
+		try {
+			logonFac.logout(theClientDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
 
-  public void logout(TheClientDto theClientDto)
-      throws ExceptionLP {
-    try {
-      logonFac.logout(theClientDto);
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
+	}
 
-  }
-
-
-  public Integer getIBenutzerFrei(TheClientDto theClient)
-  throws ExceptionLP {
-	  Integer benutzerFrei = null;
-	  try {
-		  benutzerFrei = logonFac.getIBenutzerFrei(theClient);
-	  }
-	  catch (Throwable ex) {
-		  handleThrowable(ex);
-	  }
-	  return benutzerFrei;
-  }
+	public Integer getIBenutzerFrei(TheClientDto theClient) throws ExceptionLP {
+		Integer benutzerFrei = null;
+		try {
+			benutzerFrei = logonFac.getIBenutzerFrei(theClient);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+		return benutzerFrei;
+	}
 
 }

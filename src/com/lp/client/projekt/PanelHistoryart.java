@@ -76,6 +76,8 @@ public class PanelHistoryart extends PanelBasis {
 	private WrapperLabel wlaBezeichnung = new WrapperLabel();
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 	private WrapperCheckBox wcbAktualisiereZieltermin = new WrapperCheckBox();
+	
+	private WrapperCheckBox wcbInAuswahllisteAnzeigen = new WrapperCheckBox();
 
 	private WrapperButton wbuColor = new WrapperButton();
 	private JTextField wtfColor = new JTextField();
@@ -154,7 +156,12 @@ public class PanelHistoryart extends PanelBasis {
 
 		wcbAktualisiereZieltermin.setText(LPMain.getInstance()
 				.getTextRespectUISPr("proj.aktualisierezieltermin"));
+		wcbInAuswahllisteAnzeigen.setText(LPMain.getInstance()
+				.getTextRespectUISPr("proj.historyart.inauswahllisteanzeigen"));
 
+		
+		
+		
 		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.bezeichnung"));
 		wtfBezeichnung.setMandatoryField(true);
@@ -191,6 +198,9 @@ public class PanelHistoryart extends PanelBasis {
 		jpaWorkingOn.add(wcbAktualisiereZieltermin, new GridBagConstraints(1, 2, 1, 1, 0.2, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbInAuswahllisteAnzeigen, new GridBagConstraints(1, 3, 1, 1, 0.2, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 		
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
@@ -216,6 +226,7 @@ public class PanelHistoryart extends PanelBasis {
 		historyartDto.setCBez(wtfBezeichnung.getText());
 		historyartDto.setBAktualisierezieltermin(wcbAktualisiereZieltermin
 				.getShort());
+		historyartDto.setBInAuswahllisteAnzeigen(wcbInAuswahllisteAnzeigen.getShort());
 
 	}
 
@@ -227,6 +238,7 @@ public class PanelHistoryart extends PanelBasis {
 		wtfColor.setBackground(c);
 		wcbAktualisiereZieltermin.setShort(historyartDto
 				.getBAktualisierezieltermin());
+		wcbInAuswahllisteAnzeigen.setShort(historyartDto.getBInAuswahllisteAnzeigen());
 
 	}
 

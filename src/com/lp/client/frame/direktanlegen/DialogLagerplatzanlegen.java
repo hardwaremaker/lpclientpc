@@ -59,17 +59,20 @@ private PanelBasis panelDetailFehlmengen = null;
   private GridBagLayout gridBagLayout2 = new GridBagLayout();
   private InternalFrame internalFrame = null;
 
+  Integer vorhandene_LagerplatzIId=null;
+  
   public DialogLagerplatzanlegen() {
     // nothing here
   }
 
 
-  public DialogLagerplatzanlegen(InternalFrame internalFrame)
+  public DialogLagerplatzanlegen(InternalFrame internalFrame,Integer vorhandene_LagerplatzIId )
       throws Throwable {
     super(LPMain.getInstance().getDesktop(),LPMain.getInstance().getTextRespectUISPr(
                 "lp.neuenlagerplatzanlegen"), true);
 
     this.internalFrame = internalFrame;
+    this.vorhandene_LagerplatzIId=vorhandene_LagerplatzIId;
     setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
     jbInit();
@@ -104,7 +107,10 @@ private PanelBasis panelDetailFehlmengen = null;
         new PanelLagerplatzFuerPanelQueryFLR(
             internalFrame,
             LPMain.getInstance().getTextRespectUISPr(
-                "artikel.fehlmengen.aufloesen"),this);
+                "artikel.fehlmengen.aufloesen"),this, vorhandene_LagerplatzIId);
+    
+    panelDetailFehlmengen.setKeyWhenDetailPanel(vorhandene_LagerplatzIId);
+    
     panelDetailFehlmengen.eventYouAreSelected(false);
 
     this.getContentPane().setLayout(gridBagLayout2);

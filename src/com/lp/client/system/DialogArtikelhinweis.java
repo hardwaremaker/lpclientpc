@@ -73,7 +73,7 @@ public class DialogArtikelhinweis extends JDialog implements ActionListener, Key
 
 	private MultipleImageViewer wmcBild = null;
 
-	public DialogArtikelhinweis(ArrayList<byte[]> bilder, InternalFrame internalFrame)
+	public DialogArtikelhinweis(ArrayList<byte[]> bilder,String title, InternalFrame internalFrame)
 			throws Throwable {
 		super(LPMain.getInstance().getDesktop(), "", true);
 
@@ -86,7 +86,7 @@ public class DialogArtikelhinweis extends JDialog implements ActionListener, Key
 		}
 		this.setSize(800, 600);
 
-		setTitle(LPMain.getInstance().getTextRespectUISPr("lp.hinweis"));
+		setTitle(title);
 
 		this.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {

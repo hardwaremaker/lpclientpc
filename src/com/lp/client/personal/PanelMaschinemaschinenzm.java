@@ -168,35 +168,7 @@ public class PanelMaschinemaschinenzm extends PanelBasis {
 			components2Dto();
 			if (maschinemaschinenzmDto.getIId() == null) {
 
-				// SP 550
-				int iAnzahl = DelegateFactory
-						.getInstance()
-						.getPersonalDelegate()
-						.getAnzahlDerZeitmodelleEinerPerson(
-								internalFramePersonal.getPersonalDto().getIId());
-
-				if (iAnzahl == 0) {
-					// Es muss immer ein Zeitmodell zum 1.1 geben
-
-					Calendar c = Calendar.getInstance();
-					c.setTimeInMillis(maschinemaschinenzmDto.getTGueltigab()
-							.getTime());
-					if (c.get(Calendar.DAY_OF_MONTH) == 1
-							&& c.get(Calendar.MONTH) == Calendar.JANUARY) {
-
-					} else {
-						// Meldung, dass das erste Zeimodell immer zum 1.1 sein
-						// muss
-
-						DialogFactory.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.info"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"pers.zeitmodell.erstes.error"));
-						return;
-					}
-
-				}
+				
 
 				maschinemaschinenzmDto.setIId(DelegateFactory.getInstance()
 						.getMaschineDelegate()

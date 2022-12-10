@@ -34,15 +34,20 @@ package com.lp.client.finanz;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.pc.LPMain;
 import com.lp.server.finanz.service.FinanzamtDto;
+import com.lp.server.finanz.service.ReversechargeartDto;
+import com.lp.server.finanz.service.SteuerkategorieDto;
 import com.lp.server.system.service.TheClientDto;
 
 public class FinanzamtController implements IFinanzamtController {
 
 	private Integer finanzamtIId ;
 	private Integer steuerkategorieIId ;
+	private Integer reversechargeartId ;
 	private TheClientDto theClientDto ;
+	
+	private ReversechargeartDto reversechargeartDto ;
+	private SteuerkategorieDto steuerkategorieDto ;
 	
 	public FinanzamtController(TheClientDto theClientDto) {
 		this.theClientDto = theClientDto ;
@@ -51,6 +56,7 @@ public class FinanzamtController implements IFinanzamtController {
 	@Override
 	public void setFinanzamtIId(Integer finanzamtIId) {
 		this.finanzamtIId = finanzamtIId ;
+		setReversechargeartIId(null); 
 		setSteuerkategorieIId(null) ;
 	}
 
@@ -76,16 +82,32 @@ public class FinanzamtController implements IFinanzamtController {
 	@Override
 	public void setSteuerkategorieIId(Integer steuerkategorieIId) {
 		this.steuerkategorieIId = steuerkategorieIId;
+		
+		if(this.steuerkategorieIId != null) {
+			try {
+				steuerkategorieDto = DelegateFactory.getInstance()
+						.getFinanzServiceDelegate().steuerkategorieFindByPrimaryKey(this.steuerkategorieIId) ;
+			} catch (ExceptionLP e) {
+			} catch (Throwable e) {
+			}
+		} else {
+			steuerkategorieDto = null ;
+		}
 	}
 
+	public SteuerkategorieDto getSteuerkategorieDto() {
+		return steuerkategorieDto ;
+	}
+	
 	@Override
 	public boolean createDefaultSteuerkategorie(Integer finanzamtIId) {
 		if(null == finanzamtIId) return false ;
-
+		if(null == reversechargeartId) return false ;
+		
 		boolean result = false ;
 		try {
 			DelegateFactory.getInstance().getFinanzServiceDelegate()
-				.createIfNeededSteuerkategorieForFinanzamtIId(finanzamtIId) ;
+				.createIfNeededSteuerkategorieForFinanzamtIId(finanzamtIId, getReversechargeartIId()) ;
 			result = true ;
 		} catch(ExceptionLP e) {
 		} catch(Throwable t) {
@@ -121,4 +143,46 @@ public class FinanzamtController implements IFinanzamtController {
 		return createDefaultSteuerkategoriekonto(getFinanzamtIId()) ;
 	}
 
+	@Override
+	public Integer getReversechargeartIId() {
+		return reversechargeartId ;
+	}	
+	
+	@Override
+	public void setReversechargeartIId(Integer reversechargeartId) {
+		this.reversechargeartId = reversechargeartId ;
+		setSteuerkategorieIId(null);
+		
+		if(this.reversechargeartId != null) {
+			try {
+				reversechargeartDto = DelegateFactory.getInstance()
+						.getFinanzServiceDelegate().reversechargeartFindByPrimaryKey(this.reversechargeartId) ;
+			} catch (ExceptionLP e) {
+			} catch (Throwable e) {
+			}
+		} else {
+			reversechargeartDto = null ;
+		}
+	}
+
+	public ReversechargeartDto getReversechargeartDto() {
+		return reversechargeartDto ;
+	}
+	
+	@Override
+	public boolean createDefaultReversechargeart() {
+		return false;
+	}
+	
+	public Integer createSteuerkategorie(SteuerkategorieDto steuerkategorieDto) throws Throwable {
+		steuerkategorieDto.setReversechargeartId(getReversechargeartIId());
+		return DelegateFactory.getInstance()
+				.getFinanzServiceDelegate().createSteuerkategorie(steuerkategorieDto);
+	}
+	
+	public void updateSteuerkategorie(SteuerkategorieDto steuerkategorieDto) throws Throwable {
+		steuerkategorieDto.setReversechargeartId(getReversechargeartIId());
+		DelegateFactory.getInstance().getFinanzServiceDelegate()
+			.updateSteuerkategorie(steuerkategorieDto);		
+	}
 }

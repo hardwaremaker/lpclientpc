@@ -37,11 +37,8 @@ import java.awt.event.ActionListener;
 import java.util.EventObject;
 
 import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
-
-import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.frame.assistent.view.AssistentPageView;
@@ -60,24 +57,30 @@ public class StklImportPage3View extends AssistentPageView {
 
 	private static final long serialVersionUID = -6204532490804255105L;
 	
-	private StklImportPage3Ctrl controller;
+	protected StklImportPage3Ctrl controller;
 	
-	private JProgressBar progressBar;
-	private JTable table;
-	private WrapperCheckBox zusammengefasst;
-	private WrapperButton mitHandartikelBefuellen;
-	private WrapperTristateCheckbox selektiereSokoUpdates;
-	private WrapperCheckBox updateArtikelCB;
+	protected JProgressBar progressBar;
+	protected JTable table;
+	protected WrapperCheckBox zusammengefasst;
+	protected WrapperButton mitHandartikelBefuellen;
+	protected WrapperTristateCheckbox wtcMappingUpdate;
+	protected WrapperButton mitArtikelErzeugen;
 
-	private PanelQueryFLR panelQueryFLRArtikel;
-	private Listener l;
+	protected PanelQueryFLR panelQueryFLRArtikel;
+	protected Listener l;
+	protected ResultTableCellEditorChooser cellEditorChooser;
+	private String title;
 	
 	public StklImportPage3View(StklImportPage3Ctrl controller, InternalFrame iFrame) {
 		super(controller, iFrame);
-		l = new Listener();
+		this.controller = controller;
+		cellEditorChooser = new ResultTableCellEditorChooser();
+	}
+	
+	protected void setAndAddListener(Listener l) {
+		this.l = l;
 		getInternalFrame().addItemChangedListener(l);
 		controller.setArtikelAuswahlListener(l);
-		this.controller = controller;
 	}
 
 	@Override
@@ -87,8 +90,6 @@ public class StklImportPage3View extends AssistentPageView {
 		
 		zusammengefasst.setVisible(!getController().isBusyImporting());
 		zusammengefasst.setSelected(getController().isZusammengefasst());
-		updateArtikelCB.setVisible(!getController().isBusyImporting());
-		updateArtikelCB.setEnabled(getController().darfArtikelUpdaten());
 		
 		mitHandartikelBefuellen.setVisible(!getController().isBusyImporting());
 		table.setVisible(!getController().isBusyImporting());
@@ -99,12 +100,13 @@ public class StklImportPage3View extends AssistentPageView {
 		table.getTableHeader().setReorderingAllowed(false);
 		ColumnsAutoSizer.sizeColumnsToFit(table);
 
-		int status = getController().getSokoUpdateTristateCheckboxStatus();
+		
+		int status = getController().getMappingUpdateStatus();
 		if(status != WrapperTristateCheckbox.DISABLE) {
-			selektiereSokoUpdates.setVisible(!getController().isBusyImporting());
-			selektiereSokoUpdates.setSelection(status);
+			wtcMappingUpdate.setVisible(!getController().isBusyImporting());
+			wtcMappingUpdate.setSelection(status);
 		} else {
-			selektiereSokoUpdates.setVisible(false);
+			wtcMappingUpdate.setVisible(false);
 		}
 	}
 
@@ -115,9 +117,15 @@ public class StklImportPage3View extends AssistentPageView {
 
 	@Override
 	public String getTitle() {
-		return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
+		return title != null
+				? title
+				: LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
 	}
 	
+	public void setTitle(String pageTitle) {
+		this.title = pageTitle;
+	}
+
 	@Override
 	protected boolean mustInitView() {
 		return true;
@@ -126,55 +134,48 @@ public class StklImportPage3View extends AssistentPageView {
 	@Override
 	protected void initViewImpl() {
 		Listener l = new Listener();
-		setLayout(new MigLayout("wrap 5, hidemode 2, fill", "[fill, grow]push[fill, grow|fill, grow|align right|align right]", "[fill|fill|fill, grow]"));
 
 		progressBar = new JProgressBar(getController().getProgressModel());
 		progressBar.setStringPainted(true);
-		add(progressBar, "span");
 		
 		zusammengefasst = new WrapperCheckBox(
 				LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.zusammengefasst"));
 		zusammengefasst.addActionListener(l);
-		add(zusammengefasst);
 		
 		mitHandartikelBefuellen = new WrapperButton(
 				LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.undefiniertemithandartikelfuellen"));
 		mitHandartikelBefuellen.addActionListener(l);
-		add(mitHandartikelBefuellen);
+		
+		mitArtikelErzeugen = new WrapperButton(
+				LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.undefinierteartikelerzeugen"));
+		mitArtikelErzeugen.addActionListener(l);
 
-		updateArtikelCB = new WrapperCheckBox(
-				LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.artikelupdaten"));
-		updateArtikelCB.addActionListener(l);
-		add(updateArtikelCB, "skip, width 110");
-
-		selektiereSokoUpdates = new WrapperTristateCheckbox(
-				LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.sokoupdate.tristatecheckbox"));
-		selektiereSokoUpdates.addActionListener(l);
-		selektiereSokoUpdates.setSelected(true);
-		selektiereSokoUpdates.setHorizontalTextPosition(SwingConstants.RIGHT);
-		add(selektiereSokoUpdates, "width 90");
+		wtcMappingUpdate = new WrapperTristateCheckbox(
+				getController().getMappingUpdateTristateCheckboxText());
+		wtcMappingUpdate.addActionListener(l);
+		wtcMappingUpdate.setSelected(true);
+		wtcMappingUpdate.setHorizontalTextPosition(SwingConstants.RIGHT);
 
 		table = new JTable();
-		table.setDefaultRenderer(Object.class, new ResultTableCellRenderer());
-		table.setDefaultRenderer(IStklImportResult.class, new ResultTableCellRendererChooser());
+		table.setDefaultRenderer(Object.class, new ResultTableCellRenderer(getController()));
+		table.setDefaultRenderer(IStklImportResult.class, new ResultTableCellRendererChooser(getController()));
 		table.setDefaultRenderer(Boolean.class, new ResultTableCellRendererCheckbox());
-		table.setDefaultEditor(IStklImportResult.class, new ResultTableCellEditorChooser());
+		table.setDefaultEditor(IStklImportResult.class, cellEditorChooser);
 		table.setVisible(false);
-		add(new JScrollPane(table), "newline, span");
 	}
 	
-	private class Listener implements ActionListener, ItemChangedListener, INeedArtikelAuswahlListener{
+	protected class Listener implements ActionListener, ItemChangedListener, INeedArtikelAuswahlListener {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			if(e.getSource() == zusammengefasst) {
 				getController().setZusammengefasst(zusammengefasst.isSelected());
-			} else if(e.getSource() == updateArtikelCB) {
-				getController().setUpdateArtikel(updateArtikelCB.isSelected());
 			} else if(e.getSource() == mitHandartikelBefuellen) {
 				getController().undefinierteMitHandartikelBefuellen();
-			} else if(e.getSource() == selektiereSokoUpdates) {
-				getController().selektiereSokoUpdate(selektiereSokoUpdates.getSelection());
+			} else if(e.getSource() == wtcMappingUpdate) {
+				getController().selektiereMappingUpdate(wtcMappingUpdate.getSelection());
+			} else if (e.getSource() == mitArtikelErzeugen) {
+				getController().undefinierteAlsArtikelerzeugen();
 			}
 		}
 
@@ -184,7 +185,7 @@ public class StklImportPage3View extends AssistentPageView {
 				ItemChangedEvent ice = (ItemChangedEvent) e;
 				if (ice.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL && ice.getSource() == panelQueryFLRArtikel) {
 					Integer iid = (Integer) panelQueryFLRArtikel.getSelectedId();
-					getController().setChoosenArtikelIId(iid);
+					getController().setChosenArtikelIId(iid);
 					getController().tableModelValueChanged();
 				}
 			}
@@ -202,6 +203,8 @@ public class StklImportPage3View extends AssistentPageView {
 				getInternalFrame().handleException(e, true);
 			}
 		}
+
+
 	}
 
 }

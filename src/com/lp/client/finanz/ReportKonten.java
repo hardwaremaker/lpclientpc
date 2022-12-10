@@ -44,6 +44,7 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
@@ -89,7 +90,7 @@ public class ReportKonten extends PanelBasis implements PanelReportIfJRDS {
 	private ButtonGroup jbgKontotyp = null;
 	private WrapperCheckBox wcbMitVersteckten = new WrapperCheckBox();
 
-	private final static int BREITE_SPALTE2 = 80;
+	private final static int BREITE_SPALTE2 = 90;
 
 	protected JPanel jpaWorkingOn = new JPanel();
 
@@ -120,12 +121,12 @@ public class ReportKonten extends PanelBasis implements PanelReportIfJRDS {
 		wrbDebitoren = new WrapperRadioButton("Debitoren");
 		wrbKreditoren = new WrapperRadioButton("Kreditoren");
 
-		wrbSachkonten.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
-		wrbDebitoren.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
-		wrbKreditoren.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
+		
+		Dimension radioButtonDimension = HelperClient.getSizeFactoredDimension(BREITE_SPALTE2);
+		HelperClient.setMinimumAndPreferredSize(wrbSachkonten, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wrbKreditoren, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wrbDebitoren, radioButtonDimension);
+
 
 		jbgKontotyp = new ButtonGroup();
 		jbgKontotyp.add(wrbSachkonten);

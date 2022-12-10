@@ -47,6 +47,7 @@ import com.lp.server.inserat.service.InseratartikelDto;
 import com.lp.server.inserat.service.InseraterDto;
 import com.lp.server.inserat.service.InseratrechnungDto;
 import com.lp.server.inserat.service.ReportJournalInseratDto;
+import com.lp.server.personal.service.HvmaFac;
 import com.lp.server.rechnung.service.RechnungDto;
 import com.lp.server.system.service.TheClientDto;
 import com.lp.server.util.report.JasperPrintLP;
@@ -61,10 +62,9 @@ public class InseratDelegate extends Delegate {
 	public InseratDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			inseratFac = (InseratFac) context
-					.lookup("lpserver/InseratFacBean/remote");
-			inseratReportFac = (InseratReportFac) context
-					.lookup("lpserver/InseratReportFacBean/remote");
+			
+			inseratFac = lookupFac(context, InseratFac.class);
+			inseratReportFac = lookupFac(context, InseratReportFac.class);
 		} catch (Throwable t) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
 		}
@@ -170,10 +170,10 @@ public class InseratDelegate extends Delegate {
 		}
 	}
 
-	public BigDecimal berechneWerbeabgabeLFEinesInserates(Integer inseratIId)
+	public BigDecimal berechneWerbeabgabeLFEinesInserates(Integer inseratIId, BigDecimal teilbetrag)
 			throws ExceptionLP {
 		try {
-			return inseratFac.berechneWerbeabgabeLFEinesInserates(inseratIId,
+			return inseratFac.berechneWerbeabgabeLFEinesInserates(inseratIId,teilbetrag,
 					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);

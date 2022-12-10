@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -41,6 +40,8 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -49,92 +50,146 @@ import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelReportFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
-public class ReportBewegungsvorschau
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+public class ReportBewegungsvorschau extends PanelBasis implements
+		PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  private WrapperLabel wlaArtikel = new WrapperLabel();
-  private WrapperTextField wtfArtikel = new WrapperTextField();
-  private Integer artikelIId = null;
-  public ReportBewegungsvorschau(InternalFrameArtikel internalFrame, String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    LPMain.getInstance().getTextRespectUISPr("bes.bewegungsvorschau");
-    jbInit();
-    initComponents();
-    if (internalFrame.getArtikelDto() != null) {
-      wtfArtikel.setText(internalFrame.getArtikelDto().formatArtikelbezeichnung());
-      artikelIId = internalFrame.getArtikelDto().getIId();
-    }
-  }
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	private WrapperLabel wlaArtikel = new WrapperLabel();
+	private WrapperTextField wtfArtikel = new WrapperTextField();
+	private Integer artikelIId = null;
 
+	private WrapperLabel wlaStandort = new WrapperLabel();
+	private WrapperComboBox wcbStandort = new WrapperComboBox();
+	private WrapperCheckBox wcbMitRahmen = new WrapperCheckBox();
+	private WrapperCheckBox wcbUeberAlleMandanten = new WrapperCheckBox();
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return NO_VALUE_THATS_OK_JCOMPONENT;
-  }
+	public ReportBewegungsvorschau(InternalFrameArtikel internalFrame,
+			String add2Title) throws Throwable {
+		super(internalFrame, add2Title);
+		LPMain.getInstance().getTextRespectUISPr("bes.bewegungsvorschau");
+		jbInit();
+		initComponents();
+		if (internalFrame.getArtikelDto() != null) {
+			wtfArtikel.setText(internalFrame.getArtikelDto()
+					.formatArtikelbezeichnung());
+			artikelIId = internalFrame.getArtikelDto().getIId();
+		}
+	}
 
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return NO_VALUE_THATS_OK_JCOMPONENT;
+	}
 
-  private void jbInit()
-      throws Exception {
-    this.setLayout(gridBagLayout1);
-    jpaWorkingOn.setLayout(gridBagLayout2);
-    wlaArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
-        "artikel.report.artikelbestellt.selektierterartikel") + ": ");
-    wtfArtikel.setActivatable(false);
-    wtfArtikel.setEditable(false);
-    wtfArtikel.setMandatoryField(true);
-    wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
+	private void jbInit() throws Throwable {
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
+		wlaArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.report.artikelbestellt.selektierterartikel")
+				+ ": ");
+		wtfArtikel.setActivatable(false);
+		wtfArtikel.setEditable(false);
+		wtfArtikel.setMandatoryField(true);
+		wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 
-    this.add(jpaWorkingOn,
-             new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
-                                    GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		wlaStandort = new WrapperLabel(
+				LPMain.getTextRespectUISPr("system.standort"));
+		wcbStandort.setMap(DelegateFactory.getInstance().getLagerDelegate()
+				.getAlleStandorte());
 
-    jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(2, 2, 3, 1, 0.1, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 2, 1, 1, 0.1, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-  }
+		wcbMitRahmen
+				.setText(LPMain
+						.getTextRespectUISPr("artikel.bewegungsvorschau.rahmenberuecksichtigen"));
 
+		wcbUeberAlleMandanten.setText(LPMain.getInstance().getTextRespectUISPr(
+				"stkl.gesamtkalkulation.ueberallemandanten"));
 
-  public String getModul() {
-    return ArtikelReportFac.REPORT_MODUL;
-  }
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
+						0, 0, 0), 0, 0));
 
+		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(2, 2, 3, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 2, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
-  public String getReportname() {
-    return ArtikelReportFac.REPORT_BEWEGUNGSVORSCHAU;
-  }
+		ParametermandantDto parameter = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_ARTIKEL,
+						ParameterFac.PARAMETER_LAGERMIN_JE_LAGER);
+		boolean lagerminJeLager = ((Boolean) parameter.getCWertAsObject());
 
+		if (lagerminJeLager) {
+			jpaWorkingOn.add(wcbStandort,
+					new GridBagConstraints(2, 3, 3, 1, 0.1, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+			jpaWorkingOn.add(wlaStandort,
+					new GridBagConstraints(0, 3, 1, 1, 0.1, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
 
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-    return DelegateFactory.getInstance().getArtikelReportDelegate().
-        printBewegungsvorschau(
-            artikelIId, true);
-  }
+		jpaWorkingOn.add(wcbMitRahmen, new GridBagConstraints(2, 4, 3, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
+		if (LPMain
+				.getInstance()
+				.getDesktopController()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)) {
+			jpaWorkingOn.add(wcbUeberAlleMandanten,
+					new GridBagConstraints(2, 5, 3, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
 
-  public boolean getBErstelleReportSofort() {
-    return true;
-  }
+	}
 
+	public String getModul() {
+		return ArtikelReportFac.REPORT_MODUL;
+	}
 
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+	public String getReportname() {
+		return ArtikelReportFac.REPORT_BEWEGUNGSVORSCHAU;
+	}
+
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		return DelegateFactory
+				.getInstance()
+				.getArtikelReportDelegate()
+				.printBewegungsvorschau(artikelIId, true,
+						(Integer) wcbStandort.getKeyOfSelectedItem(),
+						wcbMitRahmen.isSelected(),
+						wcbUeberAlleMandanten.isSelected());
+	}
+
+	public boolean getBErstelleReportSofort() {
+		return true;
+	}
+
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien
+				.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

@@ -41,11 +41,13 @@ import java.util.EventObject;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
@@ -71,8 +73,10 @@ public class PanelMaterial extends PanelBasis {
 	private WrapperLabel wlaBezeichnung = new WrapperLabel();
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 
-	public PanelMaterial(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	private WrapperLabel wlaSpezGew = new WrapperLabel();
+	private WrapperNumberField wnfSpezGew = new WrapperNumberField();
+
+	public PanelMaterial(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameArtikel = (InternalFrameArtikel) internalFrame;
 		jbInit();
@@ -84,18 +88,15 @@ public class PanelMaterial extends PanelBasis {
 	protected void setDefaults() {
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		internalFrameArtikel.materialDto = new MaterialDto();
 		leereAlleFelder(this);
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		DelegateFactory.getInstance().getMaterialDelegate()
-				.removeMaterial(internalFrameArtikel.materialDto.getIId());
+		DelegateFactory.getInstance().getMaterialDelegate().removeMaterial(internalFrameArtikel.materialDto.getIId());
 		super.eventActionDelete(e, false, false);
 	}
 
@@ -103,8 +104,7 @@ public class PanelMaterial extends PanelBasis {
 		return wtfKennung;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = null;
@@ -113,33 +113,27 @@ public class PanelMaterial extends PanelBasis {
 			key = internalFrameArtikel.materialDto.getIId();
 		}
 
-		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
+		if (key == null) {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {
-			internalFrameArtikel.materialDto = DelegateFactory
-					.getInstance()
-					.getMaterialDelegate()
-					.materialFindByPrimaryKey(
-							internalFrameArtikel.materialDto.getIId());
+			internalFrameArtikel.materialDto = DelegateFactory.getInstance().getMaterialDelegate()
+					.materialFindByPrimaryKey(internalFrameArtikel.materialDto.getIId());
 			wtfKennung.setText(internalFrameArtikel.materialDto.getCNr());
+
+			wnfSpezGew.setBigDecimal(internalFrameArtikel.materialDto.getNGewichtInKG());
+			
 			if (internalFrameArtikel.materialDto.getMaterialsprDto() != null) {
-				wtfBezeichnung.setText(internalFrameArtikel.materialDto
-						.getMaterialsprDto().getCBez());
+				wtfBezeichnung.setText(internalFrameArtikel.materialDto.getMaterialsprDto().getCBez());
 			}
 			String sBezeichnung = "";
 			if (internalFrameArtikel.materialDto.getMaterialsprDto() != null) {
-				sBezeichnung = internalFrameArtikel.materialDto
-						.getMaterialsprDto().getCBez() + "";
+				sBezeichnung = internalFrameArtikel.materialDto.getMaterialsprDto().getCBez() + "";
 			}
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_AS_I_LIKE,
-					LPMain.getInstance().getTextRespectUISPr("label.material")
-							+ ": "
-							+ internalFrameArtikel.materialDto.getCNr()
-							+ ", "
-							+ LPMain.getInstance().getTextRespectUISPr(
-									"label.bezeichnung") + ": " + sBezeichnung);
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+					LPMain.getInstance().getTextRespectUISPr("label.material") + ": "
+							+ internalFrameArtikel.materialDto.getCNr() + ", "
+							+ LPMain.getInstance().getTextRespectUISPr("label.bezeichnung") + ": " + sBezeichnung);
 		}
 	}
 
@@ -157,45 +151,44 @@ public class PanelMaterial extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaKennung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.material"));
+		wlaKennung.setText(LPMain.getInstance().getTextRespectUISPr("lp.material"));
 		wtfKennung.setColumnsMax(ArtikelFac.MAX_MATERIAL_NAME);
 		wtfKennung.setText("");
 		wtfKennung.setMandatoryField(true);
 		getInternalFrame().addItemChangedListener(this);
 
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
 		wtfBezeichnung.setColumnsMax(ArtikelFac.MAX_MATERIAL_BEZEICHNUNG);
 		wtfBezeichnung.setText("");
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+
+		wlaSpezGew.setText(LPMain.getInstance().getTextRespectUISPr("artikel.material.spezifischesgewicht"));
+
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, 0, 1, 1, 0.05,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, 0, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(2, 0, 1, 1,
-				0.05, 0.0, GridBagConstraints.CENTER,
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaKennung, new GridBagConstraints(0, 0, 1, 1, 0.05, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(3, 0, 1, 1,
-				0.2, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfKennung, new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(2, 0, 1, 1, 0.09, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(3, 0, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+
+		jpaWorkingOn.add(wlaSpezGew, new GridBagConstraints(2, 1, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfSpezGew, new GridBagConstraints(3, 1, 1, 1, 0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -205,36 +198,31 @@ public class PanelMaterial extends PanelBasis {
 		return HelperClient.LOCKME_MATERIAL;
 	}
 
-	protected void components2Dto() {
+	protected void components2Dto() throws Exception {
 		internalFrameArtikel.materialDto.setCNr(wtfKennung.getText());
 		if (internalFrameArtikel.materialDto.getMaterialsprDto() == null) {
-			internalFrameArtikel.materialDto
-					.setMaterialsprDto(new MaterialsprDto());
+			internalFrameArtikel.materialDto.setMaterialsprDto(new MaterialsprDto());
 		}
-		internalFrameArtikel.materialDto.getMaterialsprDto().setCBez(
-				wtfBezeichnung.getText());
+		internalFrameArtikel.materialDto.getMaterialsprDto().setCBez(wtfBezeichnung.getText());
+		internalFrameArtikel.materialDto.setNGewichtInKG(wnfSpezGew.getBigDecimal());
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (internalFrameArtikel.materialDto.getIId() == null) {
 				// Create
-				internalFrameArtikel.materialDto.setIId(DelegateFactory
-						.getInstance().getMaterialDelegate()
+				internalFrameArtikel.materialDto.setIId(DelegateFactory.getInstance().getMaterialDelegate()
 						.createMaterial(internalFrameArtikel.materialDto));
 				internalFrameArtikel.materialDto = internalFrameArtikel.materialDto;
 				// diesem panel den key setzen.
 				setKeyWhenDetailPanel(internalFrameArtikel.materialDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getMaterialDelegate()
-						.updateMaterial(internalFrameArtikel.materialDto);
+				DelegateFactory.getInstance().getMaterialDelegate().updateMaterial(internalFrameArtikel.materialDto);
 			}
 			super.eventActionSave(e, true);
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
-				getInternalFrame().setKeyWasForLockMe(
-						internalFrameArtikel.materialDto.getIId().toString());
+				getInternalFrame().setKeyWasForLockMe(internalFrameArtikel.materialDto.getIId().toString());
 			}
 			eventYouAreSelected(false);
 		}

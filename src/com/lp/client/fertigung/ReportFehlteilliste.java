@@ -100,6 +100,8 @@ public class ReportFehlteilliste extends PanelBasis implements
 		
 		wcbNurPositionenMitFehlmengen.setText(LPMain.getTextRespectUISPr(
 		"fert.report.fehlteilliste.nurpositionenmitfehlmengen"));
+		//PJ20689
+		wcbNurPositionenMitFehlmengen.setSelected(true);
 		
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,

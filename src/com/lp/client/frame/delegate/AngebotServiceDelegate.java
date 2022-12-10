@@ -40,11 +40,15 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.angebot.service.AkquisestatusDto;
+import com.lp.server.angebot.service.AngebotReportFac;
 import com.lp.server.angebot.service.AngebotServiceFac;
 import com.lp.server.angebot.service.AngebotartDto;
+import com.lp.server.angebot.service.AngebotauftragDto;
 import com.lp.server.angebot.service.AngeboterledigungsgrundDto;
 import com.lp.server.angebot.service.AngebotpositionartDto;
 import com.lp.server.angebot.service.AngebottextDto;
+import com.lp.server.fertigung.service.ZusatzstatusDto;
 import com.lp.server.system.service.MediaFac;
 
 @SuppressWarnings("static-access")
@@ -61,8 +65,8 @@ public class AngebotServiceDelegate extends Delegate {
 
 	public AngebotServiceDelegate() throws Exception {
 		context = new InitialContext();
-		angebotServiceFac = (AngebotServiceFac) context
-				.lookup("lpserver/AngebotServiceFacBean/remote");
+		
+		angebotServiceFac = lookupFac(context, AngebotServiceFac.class);	
 	}
 
 	public AngebottextDto angebottextFindByPrimaryKey(Integer iId)
@@ -285,11 +289,11 @@ public class AngebotServiceDelegate extends Delegate {
 		return angeboterledigungsgrundCNr;
 	}
 
-	public void removeAngeboterledigungsgrund(String cNrAngeboterledigungsgrundI)
+	public void removeAngeboterledigungsgrund(AngeboterledigungsgrundDto angeboterledigungsgrundDtoI)
 			throws ExceptionLP {
 		try {
 			angebotServiceFac.removeAngeboterledigungsgrund(
-					cNrAngeboterledigungsgrundI, LPMain.getTheClient());
+					angeboterledigungsgrundDtoI.getCNr(), LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -400,6 +404,49 @@ public class AngebotServiceDelegate extends Delegate {
 			handleThrowable(t);
 		}
 	}
+	
+	
+	public Integer createAkquisestatus(AkquisestatusDto akquisestatusDto) throws ExceptionLP {
+		try {
+			return angebotServiceFac.createAkquisestatus(akquisestatusDto,LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public AkquisestatusDto akquisestatusFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return angebotServiceFac.akquisestatusFindByPrimaryKey(iId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	
+	public AngebotauftragDto angebotauftragFindByPrimaryKey(Integer iId) throws ExceptionLP {
+		try {
+			return angebotServiceFac.angebotauftragFindByPrimaryKey(iId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+	public void updateAkquisestatus(AkquisestatusDto akquisestatusDto) throws ExceptionLP {
+		try {
+			angebotServiceFac.updateAkquisestatus(akquisestatusDto,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	public void removeAkquisestatus(AkquisestatusDto akquisestatusDto) throws ExceptionLP {
+		try {
+			angebotServiceFac.removeAkquisestatus(akquisestatusDto);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
 	public AngebotpositionartDto angebotpositionartFindByPrimaryKey(
 			String cNrAngebotpositionartI) throws ExceptionLP {
@@ -416,6 +463,16 @@ public class AngebotServiceDelegate extends Delegate {
 		return angebotpositionartDto;
 	}
 
+	public void vertauscheAkquisestatus(Integer iIdPosition1I,
+			Integer iIdPosition2I) throws ExceptionLP {
+		try {
+			angebotServiceFac.vertauscheAkquisestatus(iIdPosition1I,
+					iIdPosition2I);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	
 	/**
 	 * Die in Stunden hinterlegte Lieferzeit in die gewuenschte Angebotseinheit
 	 * umrechnen.
@@ -428,13 +485,13 @@ public class AngebotServiceDelegate extends Delegate {
 	 * @throws ExceptionLP
 	 *             Ausnahme
 	 */
-	public Integer getLieferzeitInAngeboteinheit(Integer iIdAngebotI,
+	public Integer getLieferzeitInAngeboteinheit(Integer iIdAngebotI, Integer angebotpositionIId,
 			String cNrAngeboteinheitI) throws ExceptionLP {
 		Integer iiLieferzeit = null;
 
 		try {
 			iiLieferzeit = angebotServiceFac.getLieferzeitInAngeboteinheit(
-					iIdAngebotI, cNrAngeboteinheitI, LPMain.getTheClient());
+					iIdAngebotI, angebotpositionIId, cNrAngeboteinheitI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

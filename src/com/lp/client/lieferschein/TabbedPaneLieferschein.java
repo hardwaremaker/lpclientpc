@@ -32,12 +32,19 @@
  ******************************************************************************/
 package com.lp.client.lieferschein;
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -48,11 +55,18 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.table.TableModel;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.xml.sax.SAXException;
 
 import com.lp.client.angebot.AngebotFilterFactory;
+import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.auftrag.AuftragFilterFactory;
+import com.lp.client.auftrag.PanelDialogAuftragKommentar;
+import com.lp.client.forecast.ForecastFilterFactory;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.DialogImportAllgemein;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.ICopyPaste;
 import com.lp.client.frame.LockStateValue;
@@ -63,21 +77,30 @@ import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelPositionenArtikelVerkauf;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.PanelTabelle;
 import com.lp.client.frame.component.TabbedPaneBasis;
+import com.lp.client.frame.component.WrapperMenu;
 import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.component.WrapperMenuItem;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.FileChooserBuilder;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.FileOpenerFactory;
+import com.lp.client.frame.filechooser.open.XmlFile;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.DialogDatumseingabe;
 import com.lp.client.system.SystemFilterFactory;
+import com.lp.client.util.HelperTimestamp;
 import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.angebot.service.AngebotDto;
+import com.lp.server.angebot.service.AngebotServiceFac;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.LagerDto;
 import com.lp.server.artikel.service.SeriennrChargennrAufLagerDto;
@@ -85,6 +108,10 @@ import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.server.artikel.service.VerkaufspreisDto;
 import com.lp.server.artikel.service.VkpreisfindungDto;
 import com.lp.server.auftrag.service.AuftragDto;
+import com.lp.server.auftrag.service.AuftragServiceFac;
+import com.lp.server.auftrag.service.AuftragpositionDto;
+import com.lp.server.auftrag.service.ImportAmazonCsvDto;
+import com.lp.server.auftrag.service.ImportShopifyCsvDto;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.lieferschein.service.LieferscheinDto;
 import com.lp.server.lieferschein.service.LieferscheinFac;
@@ -95,6 +122,8 @@ import com.lp.server.lieferschein.service.LieferscheintextDto;
 import com.lp.server.lieferschein.service.VerkettetDto;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.KundeDto;
+import com.lp.server.rechnung.service.RechnungDto;
+import com.lp.server.rechnung.service.RechnungFac;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.MandantFac;
@@ -102,6 +131,7 @@ import com.lp.server.system.service.MediaFac;
 import com.lp.server.system.service.MwstsatzDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.util.HvOptional;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
@@ -129,6 +159,8 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	private PanelBasis lsKopfdaten = null;
 	private PanelBasis lsKonditionen = null;
 
+	private PanelBasis lsVersandinfos = null;
+
 	private PanelQuery lsPositionenTop = null; // FLR 1:n Liste
 	private PanelLieferscheinPositionen lsPositionenBottom = null;
 	private PanelSplit lsPositionen = null;
@@ -151,14 +183,13 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	private boolean bKriterienLsUmsatzUeberMenueAufgerufen = false;
 	private PanelTabelleLieferscheinUmsatz ptLieferscheinUmsatz = null;
 
-	public final static int IDX_PANEL_LIEFERSCHEINAUSWAHL = 0;
-	private final static int IDX_PANEL_LIEFERSCHEINKOPFDATEN = 1;
-	private final static int IDX_PANEL_LIEFERSCHEINPOSITIONEN = 2;
+	public static int IDX_PANEL_LIEFERSCHEINAUSWAHL = -1;
+	public static int IDX_PANEL_LIEFERSCHEINKOPFDATEN = -1;
+	public static int IDX_PANEL_LIEFERSCHEINPOSITIONEN = -1;
 	private int IDX_PANEL_LIEFERSCHEINAUFTRAEGE = -1;
 	private int IDX_PANEL_LIEFERSCHEINPOSITIONENSICHTAUFTRAG = -1;
 	private int IDX_PANEL_LIEFERSCHEINKONDITIONEN = -1;
-	// private final int IDX_PANEL_LIEFERSCHEINUEBERSICHT = 5; // ptclient: 1
-	// Index des Panels
+	private int IDX_PANEL_VERSANDINFOS = -1;
 	private int IDX_PANEL_LIEFERSCHEINUMSATZ = -1;
 	private int IDX_PANEL_VERKETTET = -1;
 
@@ -172,23 +203,33 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	private LieferscheintextDto fusstextDto = null;
 	private AuftragDto auftragDtoSichtAuftrag = null;
 
+	private PanelDialogLieferscheinKommentar pdLieferscheinInternerKommentar = null;
+	
 	private PanelQueryFLR panelQueryFLRMandant = null;
 	private PanelQueryFLR panelQueryFLRRechnungsadresseauswahl = null;
 	private PanelQueryFLR panelQueryFLRLieferschein = null;
 	private PanelQueryFLR panelQueryFLRLieferscheinVerketten = null;
+	private PanelQueryFLR panelQueryFLRForecastpositionen = null;
+
+	private PanelQueryFLR panelQueryFLRLager_Amazon = null;
+	private PanelQueryFLR panelQueryFLRLager_Shopify = null;
 
 	private final String MENU_ACTION_DATEI_LIEFERSCHEIN = "MENU_ACTION_DATEI_LIEFERSCHEIN";
 	private final String MENU_ACTION_DATEI_LIEFERSCHEINETIKETT = "MENU_ACTION_DATEI_LIEFERSCHEINETIKETT";
 	private final String MENU_ACTION_DATEI_LIEFERSCHEINWAETIKETT = "MENU_ACTION_DATEI_LIEFERSCHEINWAETIKETT";
-	private final String MENU_ACTION_DATEI_VERANDETIKETTEN = "MENU_ACTION_DATEI_VERANDETIKETTEN";
+	private final String MENU_ACTION_DATEI_VERSANDETIKETTEN = "MENU_ACTION_DATEI_VERANDETIKETTEN";
+	private final String MENU_ACTION_DATEI_IMPORT_EASYDATA_STOCK_MOVEMENT = "MENU_ACTION_DATEI_IMPORT_EASYDATA_STOCK_MOVEMENT";
+	private final String MENU_ACTION_DATEI_PLC_VERSANDETIKETTEN = "MENU_ACTION_DATEI_PLC_VERSANDETIKETTEN";
 
 	private final String MENU_ACTION_JOURNAL_ANGELEGT = "MENU_ACTION_JOURNAL_ANGELEGT";
 	private final String MENU_ACTION_JOURNAL_OFFEN = "MENU_ACTION_JOURNAL_OFFEN";
+	private final String MENU_ACTION_JOURNAL_OFFENE_RUECKGABEN = "MENU_ACTION_JOURNAL_OFFENE_RUECKGABEN";
 	private final String MENU_ACTION_JOURNAL_ALLE = "MENU_ACTION_JOURNAL_ALLE";
 	private final String MENU_ACTION_JOURNAL_UEBERSICHT = // ptclient: 2 Menue
-	// Action definieren
-	"MENU_ACTION_JOURNAL_UEBERSICHT";
+			// Action definieren
+			"MENU_ACTION_JOURNAL_UEBERSICHT";
 	private final String MENU_ACTION_JOURNAL_UMSATZUEBERSICHT = "MENU_ACTION_JOURNAL_UMSATZUEBERSICHT";
+	private final String MENU_ACTION_JOURNAL_PACKSTUECKE = "MENU_ACTION_JOURNAL_PACKSTUECKE";
 
 	private final String MENU_BEARBEITEN_MANUELL_ERLEDIGEN = "MENU_BEARBEITEN_MANUELL_ERLEDIGEN";
 	private final String MENU_BEARBEITEN_BEGRUENDUNG = "MENU_BEARBEITEN_BEGRUENDUNG";
@@ -196,6 +237,8 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	private final String MENU_BEARBEITEN_RE_ADRESSE_AENDERN = "MENU_BEARBEITEN_RE_ADRESSE_AENDERN";
 
+	private final String MENU_BEARBEITEN_INTERNER_KOMMENTAR = "MENU_BEARBEITEN_INTERNER_KOMMENTAR";
+	
 	// diese Action sitzt auf dem extra Neu Knopf
 	public final static String EXTRA_NEU_AUS_AUFTRAG = "aus_auftrag";
 	public final static String EXTRA_NEU_AUS_LIEFERSCHEIN = "aus_lieferschein";
@@ -204,9 +247,15 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	public final static String MY_OWN_NEW_AUS_LIEFERSCHEIN = PanelBasis.ACTION_MY_OWN_NEW + EXTRA_NEU_AUS_LIEFERSCHEIN;
 
+	public final static String MY_OWN_NEW_LIEFERAVISO_BARCODE = PanelBasis.ACTION_MY_OWN_NEW + "lieferaviso_barcode";
+
 	public final static String MY_OWN_NEW_AUS_AUFTRAG = PanelBasis.ACTION_MY_OWN_NEW + EXTRA_NEU_AUS_AUFTRAG;
 	public final static String MY_OWN_NEW_AUS_ANGEBOT = PanelBasis.ACTION_MY_OWN_NEW + EXTRA_NEU_AUS_ANGEBOT;
-	public final static String MY_OWN_NEW_ALLE_POSITIONEN_AUS_AUFTRAG_UEBERNEHMEN = PanelBasis.ACTION_MY_OWN_NEW
+
+	public final static String MY_OWN_NEW_POSITION_AUS_FORECAST = PanelBasis.ACTION_MY_OWN_NEW
+			+ "POSITION_AUS_FORECAST";
+
+	public final static String MY_OWN_NEW_ALLE_POSITIONEN_AUS_AUFTRAG_UEBERNEHMEN = PanelBasis.ACTION_MY_OWN_NEW_ENABLED_ON_MULTISELECT
 			+ EXTRA_NEU_ALLE_POSITIONEN_AUS_AUFTRAG_UEBERNEHMEN;
 
 	public final static String EXTRA_NEU_MEHRERE_LIEFERSCHEINE_VERKETTEN = "mehrere_lieferscheine_verketten";
@@ -214,6 +263,20 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			+ EXTRA_NEU_MEHRERE_LIEFERSCHEINE_VERKETTEN;
 
 	public final static String MY_OWN_NEW_SNRBARCODEERFASSUNG = PanelBasis.ACTION_MY_OWN_NEW + "SNRBARCODEERFASSUNG";
+
+	private static final String ACTION_SPECIAL_SORTIERE_LS_NACH_AUFTRAGSNUMMER = "ACTION_SPECIAL_SORTIERE_LS_NACH_AUFTRAGSNUMMER";
+	private final String BUTTON_SORTIERE_LS_NACH_AUFTRAGSNUMMER = PanelBasis.ACTION_MY_OWN_NEW
+			+ ACTION_SPECIAL_SORTIERE_LS_NACH_AUFTRAGSNUMMER;
+
+	private final String BUTTON_SORTIERE_LS_NACH_ARTIKELNUMMER = PanelBasis.ACTION_MY_OWN_NEW
+			+ "ACTION_SPECIAL_SORTIERE_LS_NACH_ARTIKELNUMMER";
+
+	private static final String ACTION_SPECIAL_SCHNELLERFASSUNG_LSPOSITIONEN = "ACTION_SPECIAL_SCHNELLERFASSUNG_LSPOSITIONEN";
+	private final String BUTTON_SCHNELLERFASSUNG_LIEFERSCHEINPOSITIONEN = PanelBasis.ACTION_MY_OWN_NEW
+			+ ACTION_SPECIAL_SCHNELLERFASSUNG_LSPOSITIONEN;
+
+	private static final String ACTION_SPECIAL_PREISE_NEU_KALKULIEREN = PanelBasis.ACTION_MY_OWN_NEW
+			+ "ACTION_SPECIAL_PREISE_NEU_KALKULIEREN";
 
 	private PanelQueryFLR panelQueryFLRAuftragauswahl = null;
 	private PanelQueryFLR panelQueryFLRAuftragauswahlZusatz = null;
@@ -223,6 +286,10 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	private PanelQueryFLR panelQueryFLRAnsprechpartner_Rechungsadresse = null;
 
 	private final boolean bSammellieferschein;
+	private Boolean bZusatzfunktion4Vending;
+
+	private static final String ACTION_SPECIAL_CSVIMPORT_SHOPIFY = "ACTION_SPECIAL_CSVIMPORT_SHOPIFY";
+	private static final String ACTION_SPECIAL_CSVIMPORT_AMAZON = "ACTION_SPECIAL_CSVIMPORT_AMAZON";
 
 	public TabbedPaneLieferschein(InternalFrame internalFrameI) throws Throwable {
 		super(internalFrameI, LPMain.getTextRespectUISPr("ls.modulname"));
@@ -231,6 +298,47 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_SAMMELLIEFERSCHEIN);
 		jbInit();
 		initComponents();
+	}
+
+	// PJ20146
+	public boolean lieferscheinGehtAnEinenAnderenMandanten() throws Throwable {
+
+		if (LPMain.getInstance().getDesktopController()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)) {
+
+			Integer partnerIId_Lieferadresse = DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(getLieferscheinDto().getKundeIIdLieferadresse()).getPartnerIId();
+
+			MandantDto[] dtos = DelegateFactory.getInstance().getMandantDelegate().mandantFindAll();
+
+			if (dtos != null && dtos.length > 0) {
+
+				for (int i = 0; i < dtos.length; i++) {
+
+					String mandantCNr = dtos[i].getCNr();
+
+					if (!mandantCNr.equals(LPMain.getTheClient().getMandant())) {
+						// SP7745
+						if (dtos[i].getPartnerIId().equals(partnerIId_Lieferadresse)
+								|| (dtos[i].getPartnerIIdLieferadresse() != null
+										&& dtos[i].getPartnerIIdLieferadresse().equals(partnerIId_Lieferadresse))) {
+
+							boolean b = DelegateFactory.getInstance().getMandantDelegate()
+									.darfAnwenderAufZusatzfunktionZugreifen(
+											MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM, mandantCNr);
+
+							if (b == true) {
+								return true;
+							}
+						}
+
+					}
+
+				}
+			}
+		}
+		return false;
+
 	}
 
 	private void dialogQueryLieferschein() throws Throwable {
@@ -255,47 +363,41 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		resetDtos();
 		initializePanelsEnabled();
 
-		insertTab(LPMain.getTextRespectUISPr("ls.title.panel.auswahl"), null, lsAuswahl,
-				LPMain.getTextRespectUISPr("ls.title.tooltip.auswahl"), IDX_PANEL_LIEFERSCHEINAUSWAHL);
+		IDX_PANEL_LIEFERSCHEINAUSWAHL = reiterHinzufuegen(LPMain.getTextRespectUISPr("ls.title.panel.auswahl"), null,
+				lsAuswahl, LPMain.getTextRespectUISPr("ls.title.tooltip.auswahl"));
 
 		// die restlichen Panels erst bei Bedarf laden
-		insertTab(LPMain.getTextRespectUISPr("ls.title.panel.kopfdaten"), null, null,
-				LPMain.getTextRespectUISPr("ls.title.tooltip.kopfdaten"), IDX_PANEL_LIEFERSCHEINKOPFDATEN);
+		IDX_PANEL_LIEFERSCHEINKOPFDATEN = reiterHinzufuegen(LPMain.getTextRespectUISPr("ls.title.panel.kopfdaten"),
+				null, null, LPMain.getTextRespectUISPr("ls.title.tooltip.kopfdaten"));
 
-		insertTab(LPMain.getTextRespectUISPr("ls.title.panel.positionen"), null, null,
-				LPMain.getTextRespectUISPr("ls.title.tooltip.positionen"), IDX_PANEL_LIEFERSCHEINPOSITIONEN);
-		// Der naechste Index
-		int index = IDX_PANEL_LIEFERSCHEINPOSITIONEN + 1;
+		IDX_PANEL_LIEFERSCHEINPOSITIONEN = reiterHinzufuegen(LPMain.getTextRespectUISPr("ls.title.panel.positionen"),
+				null, null, LPMain.getTextRespectUISPr("ls.title.tooltip.positionen"));
 		// optional die Auftraege
 		if (bSammellieferschein) {
-			IDX_PANEL_LIEFERSCHEINAUFTRAEGE = index;
-			insertTab(LPMain.getTextRespectUISPr("ls.title.panel.auftraege"), null, null,
-					LPMain.getTextRespectUISPr("ls.title.tooltip.auftraege"), IDX_PANEL_LIEFERSCHEINAUFTRAEGE);
-			index++;
+
+			IDX_PANEL_LIEFERSCHEINAUFTRAEGE = reiterHinzufuegen(LPMain.getTextRespectUISPr("ls.title.panel.auftraege"),
+					null, null, LPMain.getTextRespectUISPr("ls.title.tooltip.auftraege"));
+
 		}
 
-		IDX_PANEL_LIEFERSCHEINPOSITIONENSICHTAUFTRAG = index;
-		insertTab(LPMain.getTextRespectUISPr("ls.title.panel.sichtauftrag"), null, null,
-				LPMain.getTextRespectUISPr("ls.title.tooltip.sichtauftrag"),
-				IDX_PANEL_LIEFERSCHEINPOSITIONENSICHTAUFTRAG);
-		index++;
+		IDX_PANEL_LIEFERSCHEINPOSITIONENSICHTAUFTRAG = reiterHinzufuegen(
+				LPMain.getTextRespectUISPr("ls.title.panel.sichtauftrag"), null, null,
+				LPMain.getTextRespectUISPr("ls.title.tooltip.sichtauftrag"));
 
-		IDX_PANEL_LIEFERSCHEINKONDITIONEN = index;
-		insertTab(LPMain.getTextRespectUISPr("ls.title.panel.konditionen"), null, null,
-				LPMain.getTextRespectUISPr("ls.title.tooltip.konditionen"), IDX_PANEL_LIEFERSCHEINKONDITIONEN);
-		index++;
+		IDX_PANEL_LIEFERSCHEINKONDITIONEN = reiterHinzufuegen(LPMain.getTextRespectUISPr("ls.title.panel.konditionen"),
+				null, null, LPMain.getTextRespectUISPr("ls.title.tooltip.konditionen"));
 
-		IDX_PANEL_LIEFERSCHEINUMSATZ = index;
-		insertTab(LPMain.getTextRespectUISPr("lp.umsatzuebersicht"), null, null,
-				LPMain.getTextRespectUISPr("lp.umsatzuebersicht"), IDX_PANEL_LIEFERSCHEINUMSATZ);
-		index++;
+		IDX_PANEL_VERSANDINFOS = reiterHinzufuegen(LPMain.getTextRespectUISPr("ls.versandinfos"), null, null,
+				LPMain.getTextRespectUISPr("ls.versandinfos"));
+
+		IDX_PANEL_LIEFERSCHEINUMSATZ = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.umsatzuebersicht"), null, null,
+				LPMain.getTextRespectUISPr("lp.umsatzuebersicht"));
 
 		if (LPMain.getInstance().getDesktop()
 				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_LIEFERSCHEINE_VERKETTEN)) {
-			IDX_PANEL_VERKETTET = index;
-			insertTab(LPMain.getTextRespectUISPr("ls.verkettet"), null, null,
-					LPMain.getTextRespectUISPr("ls.verkettet"), IDX_PANEL_VERKETTET);
-			index++;
+			IDX_PANEL_VERKETTET = reiterHinzufuegen(LPMain.getTextRespectUISPr("ls.verkettet"), null, null,
+					LPMain.getTextRespectUISPr("ls.verkettet"));
+
 		}
 
 		createLieferscheinAuswahl();
@@ -314,7 +416,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	/**
 	 * Die Auswahlliste der Lieferscheine ist das erste Panel im Modul.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void createLieferscheinAuswahl() throws Throwable {
@@ -334,28 +436,45 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		// dem PanelQuery die direkten FilterKriterien setzen
 		FilterKriteriumDirekt fkDirekt1 = LieferscheinFilterFactory.getInstance().createFKDLieferscheinnummer();
 
-		FilterKriteriumDirekt fkDirekt2 = LieferscheinFilterFactory.getInstance().createFKDKundenname();
+		FilterKriteriumDirekt fkDirekt2 = LieferscheinFilterFactory.getInstance().createFKDKundeLieferadresse();
 
 		lsAuswahl.befuellePanelFilterkriterienDirekt(fkDirekt1, fkDirekt2);
 
 		lsAuswahl.addDirektFilter(LieferscheinFilterFactory.getInstance().createFKDProjekt());
 
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_LIEFERSCHEIN,
+				ParameterFac.PARAMETER_RECHNUNGSADRESSE_IN_LIEFERSCHEINAUSWAHL);
+
+		if ((Boolean) parameter.getCWertAsObject()) {
+			lsAuswahl.addDirektFilter(LieferscheinFilterFactory.getInstance().createFKDKundeRechnungsadresse());
+		}
+
 		lsAuswahl.addDirektFilter(LieferscheinFilterFactory.getInstance().createFKDAuftragsnummmer());
+
+		lsAuswahl.addDirektFilter(LieferscheinFilterFactory.getInstance().createFKDTextSuchen());
 
 		lsAuswahl.befuelleFilterkriteriumSchnellansicht(
 				LieferscheinFilterFactory.getInstance().createFKLieferscheineSchnellansicht());
-
-		lsAuswahl.createAndSaveAndShowButton("/com/lp/client/res/auftrag16x16.png",
-				LPMain.getTextRespectUISPr("lp.tooltip.datenausbestehendemauftrag"), MY_OWN_NEW_AUS_AUFTRAG,
-				RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
 
 		lsAuswahl.createAndSaveAndShowButton("/com/lp/client/res/presentation_chart16x16.png",
 				LPMain.getTextRespectUISPr("lp.tooltip.datenausbestehendemangebot"), MY_OWN_NEW_AUS_ANGEBOT,
 				RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
 
+		lsAuswahl.createAndSaveAndShowButton("/com/lp/client/res/auftrag16x16.png",
+				LPMain.getTextRespectUISPr("lp.tooltip.datenausbestehendemauftrag"), MY_OWN_NEW_AUS_AUFTRAG,
+				RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+
 		lsAuswahl.createAndSaveAndShowButton("/com/lp/client/res/truck_red16x16.png",
 				LPMain.getTextRespectUISPr("lp.tooltip.datenausbestehendemls"), MY_OWN_NEW_AUS_LIEFERSCHEIN,
 				RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_VERSANDWEG)) {
+			lsAuswahl.createAndSaveAndShowButton("/com/lp/client/res/scanner16x16.png",
+					LPMain.getTextRespectUISPr("ls.lieferaviso"), MY_OWN_NEW_LIEFERAVISO_BARCODE,
+					RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+		}
 
 		setComponentAt(IDX_PANEL_LIEFERSCHEINAUSWAHL, lsAuswahl);
 	}
@@ -363,10 +482,9 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	// TODO-AGILCHANGES
 	/**
 	 * AGILPRO CHANGES Changed visiblity from protected to public
-	 *
+	 * 
 	 * @author Lukas Lisowski
-	 * @param e
-	 *            ChangeEvent
+	 * @param e ChangeEvent
 	 * @throws Throwable
 	 */
 	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
@@ -410,6 +528,10 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			lsPositionen.eventYouAreSelected(false);
 
 			lsPositionenTop.updateButtons(lsPositionenBottom.getLockedstateDetailMainKey());
+
+			// SP20146
+			neuButtonsDerPositionenDeaktivieren();
+
 		} else if (selectedIndex == IDX_PANEL_VERKETTET) {
 			refreshVerkettet();
 
@@ -449,6 +571,8 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			}
 		} else if (selectedIndex == IDX_PANEL_LIEFERSCHEINKONDITIONEN) {
 			getLieferscheinKonditionen().eventYouAreSelected(false);
+		} else if (selectedIndex == IDX_PANEL_VERSANDINFOS) {
+			getLieferscheinVersandinfos().eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_PANEL_LIEFERSCHEINUMSATZ) {
 			if (!bKriterienLsUmsatzUeberMenueAufgerufen) {
 				getKriterienLieferscheinUmsatz();
@@ -457,6 +581,35 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		} else if (selectedIndex == IDX_PANEL_LIEFERSCHEINAUFTRAEGE) {
 			getLieferscheinAuftraege().eventYouAreSelected(false);
 			getLieferscheinAuftraege().updateButtons(new LockStateValue(null, null, PanelBasis.LOCK_IS_NOT_LOCKED));
+		}
+	}
+
+	private void neuButtonsDerPositionenDeaktivieren() throws Throwable {
+		// PJ20146
+
+		if (lieferscheinGehtAnEinenAnderenMandanten()) {
+			if (lsPositionenTop.getHmOfButtons().containsKey(PanelBasis.ACTION_NEW)) {
+				lsPositionenTop.getHmOfButtons().get(PanelBasis.ACTION_NEW).getButton().setEnabled(false);
+			}
+			if (lsPositionenTop.getHmOfButtons().containsKey(PanelBasis.ACTION_EINFUEGEN_LIKE_NEW)) {
+				lsPositionenTop.getHmOfButtons().get(PanelBasis.ACTION_EINFUEGEN_LIKE_NEW).getButton()
+						.setEnabled(false);
+			}
+			if (lsPositionenTop.getHmOfButtons().containsKey(MY_OWN_NEW_SNRBARCODEERFASSUNG)) {
+				lsPositionenTop.getHmOfButtons().get(MY_OWN_NEW_SNRBARCODEERFASSUNG).getButton().setEnabled(false);
+			}
+			if (lsPositionenTop.getHmOfButtons().containsKey(MY_OWN_NEW_POSITION_AUS_FORECAST)) {
+				lsPositionenTop.getHmOfButtons().get(MY_OWN_NEW_POSITION_AUS_FORECAST).getButton().setEnabled(false);
+			}
+			if (lsPositionenTop.getHmOfButtons().containsKey(PanelBasis.ACTION_POSITION_VORPOSITIONEINFUEGEN)) {
+				lsPositionenTop.getHmOfButtons().get(PanelBasis.ACTION_POSITION_VORPOSITIONEINFUEGEN).getButton()
+						.setEnabled(false);
+			}
+			if (lsPositionenTop.getHmOfButtons().containsKey(BUTTON_SCHNELLERFASSUNG_LIEFERSCHEINPOSITIONEN)) {
+				lsPositionenTop.getHmOfButtons().get(BUTTON_SCHNELLERFASSUNG_LIEFERSCHEINPOSITIONEN).getButton()
+						.setEnabled(false);
+			}
+
 		}
 	}
 
@@ -509,10 +662,8 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 				/*
 				 * refreshLieferscheinPositionen();
 				 * lsPositionenTop.setDefaultFilter(LieferscheinFilterFactory
-				 * .getInstance().createFKFlrlieferscheiniid(
-				 * getLieferscheinDto().getIId()));
-				 * lsPositionenBottom.setKeyWhenDetailPanel(pkLieferschein); //
-				 * pk
+				 * .getInstance().createFKFlrlieferscheiniid( getLieferscheinDto().getIId()));
+				 * lsPositionenBottom.setKeyWhenDetailPanel(pkLieferschein); // pk
 				 */
 				// fuer
 				// erste
@@ -549,6 +700,9 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 				// im QP die Buttons in den Zustand nolocking/save setzen.
 				lsPositionenTop.updateButtons(lsPositionenBottom.getLockedstateDetailMainKey());
+
+				// SP20146
+				neuButtonsDerPositionenDeaktivieren();
 			} else if (e.getSource() == lsVerkettetTop) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 				lsVerkettetBottom.setKeyWhenDetailPanel(key);
@@ -612,6 +766,9 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 				} else if (sAspectInfo.equals(MY_OWN_NEW_AUS_LIEFERSCHEIN)) {
 					// der Benutzer muss einen Lieferschein auswaehlen
 					dialogQueryLieferschein();
+				} else if (sAspectInfo.equals(MY_OWN_NEW_LIEFERAVISO_BARCODE)) {
+
+					dialogLieferaviso();
 				}
 			} else if (e.getSource() == lsVerkettetTop) {
 
@@ -619,7 +776,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 					FilterKriterium[] filters = null;
 
-					filters = new FilterKriterium[6];
+					filters = new FilterKriterium[7];
 					filters[0] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_MANDANT_C_NR, true,
 							"'" + LPMain.getTheClient().getMandant() + "'", FilterKriterium.OPERATOR_EQUAL, false);
 					filters[1] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_KUNDE_I_ID_LIEFERADRESSE, true,
@@ -639,6 +796,9 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 					filters[5] = new FilterKriterium(LieferscheinServiceFac.LS_HANDLER_OHNE_VERKETTETE, true, "",
 							FilterKriterium.OPERATOR_NOT_EQUAL, false);
+					filters[6] = new FilterKriterium(LieferscheinFac.FLR_LIEFERSCHEIN_LIEFERSCHEINSTATUS_STATUS_C_NR,
+							true, "'" + LieferscheinFac.LSSTATUS_VERRECHNET + "'", FilterKriterium.OPERATOR_NOT_EQUAL,
+							false);
 
 					String sTitle = LPMain.getTextRespectUISPr("ls.title.tooltip.auswahl");
 
@@ -653,105 +813,103 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			} else if (e.getSource() == lsPositionenTop) {
 
 				if (sAspectInfo.equals(PanelBasis.ACTION_EINFUEGEN_LIKE_NEW)) {
-					einfuegenHV();
+					if (istAktualisierenLieferscheinErlaubt()) {
+						einfuegenHV();
+					}
+				} else if (sAspectInfo.equals(BUTTON_SCHNELLERFASSUNG_LIEFERSCHEINPOSITIONEN)) {
+
+					if (istAktualisierenLieferscheinErlaubt()) {
+
+						DialogPositionenSchnellerfassung d = new DialogPositionenSchnellerfassung(lsPositionen,
+								getLieferscheinDto());
+						LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+						d.setVisible(true);
+					}
+					lsPositionen.eventYouAreSelected(false); // refresh
+				} else if (sAspectInfo.equals(BUTTON_SORTIERE_LS_NACH_AUFTRAGSNUMMER)) {
+
+					// Vorher fragen
+					if (istAktualisierenLieferscheinErlaubt()) {
+
+						boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+								LPMain.getTextRespectUISPr("ls.sortierenach.frage"));
+
+						if (b == true) {
+
+							DelegateFactory.getInstance().getLieferscheinpositionDelegate()
+									.sortiereNachAuftragsnummer(getLieferscheinDto().getIId());
+
+							lsPositionenTop.eventYouAreSelected(false);
+
+						}
+					}
+				} else if (sAspectInfo.equals(BUTTON_SORTIERE_LS_NACH_ARTIKELNUMMER)) {
+
+					// Vorher fragen
+					if (istAktualisierenLieferscheinErlaubt()) {
+
+						boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+								LPMain.getTextRespectUISPr("ls.sortierenach.frage"));
+
+						if (b == true) {
+
+							DelegateFactory.getInstance().getLieferscheinpositionDelegate()
+									.sortiereNachArtikelnummer(getLieferscheinDto().getIId());
+
+							lsPositionenTop.eventYouAreSelected(false);
+
+						}
+					}
 				} else {
 
 					if (istAktualisierenLieferscheinErlaubt()) {
 						if (sAspectInfo.equals(MY_OWN_NEW_SNRBARCODEERFASSUNG)) {
-							DialogPositionenBarcodeerfassung d = new DialogPositionenBarcodeerfassung(
-									getLieferscheinDto().getLagerIId(), getInternalFrame());
-							LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
-
-							d.setVisible(true);
-							List<SeriennrChargennrMitMengeDto> alSeriennummern = d.alSeriennummern;
-
-							if (alSeriennummern.size() > 0 && d.artikelIId != null) {
-								ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
-										.artikelFindByPrimaryKey(d.artikelIId);
-								LieferscheinpositionDto lsPos = new LieferscheinpositionDto();
-								lsPos.setBelegIId(getLieferscheinDto().getIId());
-								lsPos.setArtikelIId(d.artikelIId);
-								lsPos.setPositionsartCNr(LocaleFac.POSITIONSART_IDENT);
-
-								lsPos.setSeriennrChargennrMitMenge(alSeriennummern);
-
-								lsPos.setBNettopreisuebersteuert(Helper.boolean2Short(false));
-
-								KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
-										.kundeFindByPrimaryKey(getLieferscheinDto().getKundeIIdRechnungsadresse());
-
-								MwstsatzDto mwstsatzDtoAktuell = DelegateFactory.getInstance().getMandantDelegate()
-										.mwstsatzFindByMwstsatzbezIIdAktuellster(kundeDto.getMwstsatzbezIId());
-
-								VkpreisfindungDto vkpreisfindungDto = DelegateFactory.getInstance()
-										.getVkPreisfindungDelegate().verkaufspreisfindung(artikelDto.getIId(),
-												kundeDto.getIId(), new BigDecimal(alSeriennummern.size()),
-												new java.sql.Date(System.currentTimeMillis()),
-												kundeDto.getVkpfArtikelpreislisteIIdStdpreisliste(),
-												mwstsatzDtoAktuell.getIId(), getLieferscheinDto().getWaehrungCNr());
-
-								VerkaufspreisDto preisDtoInMandantenwaehrung = null;
-								try {
-									preisDtoInMandantenwaehrung = Helper.getVkpreisBerechnet(vkpreisfindungDto);
-								} catch (Throwable t) {
-									t.printStackTrace();
-								}
-
-								VerkaufspreisDto verkaufspreisDtoInZielwaehrung = null;
-								if (preisDtoInMandantenwaehrung != null) {
-									if (preisDtoInMandantenwaehrung.waehrungCNr != null
-											&& preisDtoInMandantenwaehrung.waehrungCNr
-													.equals(getLieferscheinDto().getWaehrungCNr())) {
-										verkaufspreisDtoInZielwaehrung = preisDtoInMandantenwaehrung;
-										// TODO: Runden auf wieviele Stellen
-										verkaufspreisDtoInZielwaehrung.einzelpreis = Helper
-												.rundeKaufmaennisch(verkaufspreisDtoInZielwaehrung.einzelpreis
-														.multiply(verkaufspreisDtoInZielwaehrung.tempKurs), 4);
-										verkaufspreisDtoInZielwaehrung.rabattsumme = verkaufspreisDtoInZielwaehrung.einzelpreis
-												.subtract(verkaufspreisDtoInZielwaehrung.nettopreis);
-										// TODO: Rabattsatz hat wieviele Stellen
-										// ?
-										verkaufspreisDtoInZielwaehrung.rabattsatz = new Double(
-												Helper.getProzentsatz(verkaufspreisDtoInZielwaehrung.einzelpreis,
-														verkaufspreisDtoInZielwaehrung.rabattsumme, 4));
-
-									} else {
-										verkaufspreisDtoInZielwaehrung = DelegateFactory.getInstance()
-												.getVkPreisfindungDelegate()
-												.getPreisdetailsInFremdwaehrung(preisDtoInMandantenwaehrung,
-														new BigDecimal(getLieferscheinDto()
-																.getFWechselkursmandantwaehrungzubelegwaehrung()
-																.doubleValue()));
-									}
-								}
-								lsPos.setMwstsatzIId(mwstsatzDtoAktuell.getIId());
-
-								if (verkaufspreisDtoInZielwaehrung != null) {
-									lsPos.setNEinzelpreis(verkaufspreisDtoInZielwaehrung.nettopreis);
-									lsPos.setNNettoeinzelpreis(verkaufspreisDtoInZielwaehrung.nettopreis);
-									lsPos.setNBruttoeinzelpreis(verkaufspreisDtoInZielwaehrung.bruttopreis);
-									lsPos.setNMwstbetrag(verkaufspreisDtoInZielwaehrung.mwstsumme);
-									lsPos.setMwstsatzIId(verkaufspreisDtoInZielwaehrung.mwstsatzIId);
-								} else {
-									lsPos.setNEinzelpreis(new BigDecimal(0));
-									lsPos.setNNettoeinzelpreis(new BigDecimal(0));
-									lsPos.setNBruttoeinzelpreis(new BigDecimal(0));
-								}
-
-								lsPos.setFRabattsatz(0D);
-								lsPos.setFZusatzrabattsatz(0D);
-								lsPos.setNMenge(new BigDecimal(alSeriennummern.size()));
-								lsPos.setEinheitCNr(artikelDto.getEinheitCNr());
-
-								DelegateFactory.getInstance().getLieferscheinpositionDelegate()
-										.createLieferscheinposition(lsPos, false);
-
-							}
+							dialogBarcodeerfassung(false);
 							lsPositionenTop.eventYouAreSelected(false);
 
 						}
 					}
 				}
+
+				if (sAspectInfo.equals(MY_OWN_NEW_POSITION_AUS_FORECAST)) {
+
+					panelQueryFLRForecastpositionen = ForecastFilterFactory.getInstance()
+							.createPanelFLRForecastpositionen(getInternalFrame(),
+									DelegateFactory.getInstance().getForecastDelegate()
+											.getAktuellFreigegebenenForecastauftragEinerLieferadresse(
+													getLieferscheinDto().getKundeIIdLieferadresse()),
+									false);
+
+					DialogQuery dialog = new DialogQuery(panelQueryFLRForecastpositionen);
+
+				} else if (sAspectInfo.endsWith(ACTION_SPECIAL_PREISE_NEU_KALKULIEREN)) {
+
+					if (getLieferscheinDto().getStatusCNr().equals(AuftragServiceFac.AUFTRAGSTATUS_ANGELEGT)) {
+
+						//
+						PanelPositionenArtikelVerkauf panelBottom = ((PanelPositionenArtikelVerkauf) lsPositionenBottom.panelArtikel);
+
+						LieferscheinpositionDto[] dtos = DelegateFactory.getInstance().getLieferscheinpositionDelegate()
+								.lieferscheinpositionFindByLieferscheinIId(getLieferscheinDto().getIId());
+
+						for (int i = 0; i < dtos.length; i++) {
+							if (dtos[i].getPositionsartCNr().equals(AngebotServiceFac.ANGEBOTPOSITIONART_IDENT)) {
+								lsPositionenTop.setSelectedId(dtos[i].getIId());
+								lsPositionenTop.eventYouAreSelected(false);
+								panelBottom.setKeyWhenDetailPanel(dtos[i].getIId());
+								panelBottom.update();
+								panelBottom.berechneVerkaufspreis(false);
+								panelBottom.pruefeNettoPreis();
+								lsPositionenBottom.eventActionSave(null, false);
+							}
+						}
+					} else {
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+								LPMain.getTextRespectUISPr("auft.error.neuberechnen"));
+					}
+
+				}
+
 			} else if (e.getSource() == lsPositionenSichtAuftragTop) {
 				if (sAspectInfo.equals(MY_OWN_NEW_ALLE_POSITIONEN_AUS_AUFTRAG_UEBERNEHMEN)) {
 					if (lsPositionenSichtAuftragTop.getTable().getRowCount() > 0) {
@@ -763,6 +921,14 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 						// n
 						// Panel
 						// aktualisieren
+					}
+				}
+
+				if (istAktualisierenLieferscheinErlaubt()) {
+					if (sAspectInfo.equals(MY_OWN_NEW_SNRBARCODEERFASSUNG)) {
+						dialogBarcodeerfassung(true);
+						lsPositionenSichtAuftragTop.eventYouAreSelected(false);
+
 					}
 				}
 			}
@@ -789,6 +955,26 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 				lsPositionenSichtAuftragBottom.eventYouAreSelected(false);
 				setSelectedComponent(lsPositionenSichtAuftrag); // ui
 			} else if (e.getSource() == lsAuftraege) {
+
+				// SP8559
+				if (getLieferscheinDto().getAuftragIId() != null) {
+					AuftragDto auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
+							.auftragFindByPrimaryKey(getLieferscheinDto().getAuftragIId());
+
+					for (RechnungDto re : DelegateFactory.getInstance().getRechnungDelegate()
+							.rechnungFindByAuftragIId(auftragDto.getIId())) {
+
+						if (re.getStatusCNr().equals(RechnungFac.STATUS_STORNIERT))
+							continue;
+						if (re.getRechnungartCNr().equals(RechnungFac.RECHNUNGART_ANZAHLUNG)) {
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+									LPMain.getTextRespectUISPr("ls.sammellieferschein.anzahlungsrechnung.error"));
+							return;
+						}
+					}
+
+				}
+
 				dialogQueryAuftragFromListeZusatz(null);
 				getLieferscheinAuftraege().updateButtons();
 			}
@@ -837,7 +1023,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		// nostayinmypanel: 0 Das Event ACTION_STAY_IN_MY_PANEL wird ersetzt
 		// durch
 		// ACTION_SAVE und ACTION_DISCARD
-			if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
+		if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
 
 			if (e.getSource() == lsKopfdaten) {
 				Object pkLieferschein = lsKopfdaten.getKeyWhenDetailPanel();
@@ -883,7 +1069,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 		// wir landen hier bei der Abfolge Button Aendern -> xx -> Button
 		// Discard
-				if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
+		if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
 			if (e.getSource() == lsPositionenBottom) {
 				lsPositionen.eventYouAreSelected(false); // refresh auf das
 				// gesamte 1:n panel
@@ -901,7 +1087,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		} else
 
 		// der OK Button in einem PanelDialog wurde gedrueckt
-					if (e.getID() == ItemChangedEvent.ACTION_KRITERIEN_HAVE_BEEN_SELECTED) {
+		if (e.getID() == ItemChangedEvent.ACTION_KRITERIEN_HAVE_BEEN_SELECTED) {
 
 			if (e.getSource() == pdKriterienLsUebersicht) { // ptclient: 5
 				// die Kriterien fuer PanelTabelle abholen
@@ -940,7 +1126,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 		// Einer der Knoepfe zur Reihung der Positionen auf einem PanelQuery
 		// wurde gedrueckt
-						if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
+		if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
 			if (e.getSource() == lsPositionenTop) {
 				if (getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ANGELEGT)) {
 					int iPos = lsPositionenTop.getTable().getSelectedRow();
@@ -1046,13 +1232,249 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	}
 
+	private void dialogLieferaviso() throws Throwable {
+		DialogLieferavisoBarcode d = new DialogLieferavisoBarcode(lsAuswahl);
+		LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+		d.setVisible(true);
+
+		if (d.getLieferscheinDto() != null) {
+			processLieferaviso(d.getLieferscheinDto());
+
+			// PJ21441
+			dialogLieferaviso();
+
+		}
+	}
+
+	private void processLieferaviso(LieferscheinDto lsDto) throws Throwable {
+		if (!LocaleFac.STATUS_GELIEFERT.equals(lsDto.getStatusCNr())) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("ls.dialog.barcodeaviso.statusfalsch.title"),
+					LPMain.getMessageTextRespectUISPr("ls.dialog.barcodeaviso.statusfalsch.text", lsDto.getCNr(),
+							lsDto.getStatusCNr().trim()));
+			return;
+		}
+
+		if (!DelegateFactory.getInstance().getLsDelegate().hatLieferscheinVersandweg(lsDto)) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("ls.dialog.barcodeaviso.versandweg.title"),
+					LPMain.getMessageTextRespectUISPr("ls.dialog.barcodeaviso.versandweg.text", lsDto.getCNr()));
+			return;
+		}
+
+		boolean hasLieferaviso = lsDto.getTLieferaviso() != null;
+		boolean enable = lsDto.getIId() != null && lsDto.getTLieferaviso() == null;
+		if (hasLieferaviso) {
+			enable = true;
+		}
+
+		if (enable) {
+			DelegateFactory.getInstance().getLsDelegate().setzeAuslieferdatumAufJetzt(lsDto.getIId());
+
+			if (lsDto.getTLieferaviso() == null) {
+				dialogLieferavisoErzeugen(lsDto);
+			} else {
+				boolean yes = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("ls.bereitsavisiert"));
+				if (yes) {
+					DelegateFactory.getInstance().getLsDelegate().resetLieferscheinAviso(lsDto.getIId());
+					dialogLieferavisoErzeugen(lsDto);
+				}
+			}
+		}
+	}
+
+	private void dialogLieferavisoErzeugen(LieferscheinDto lsDto) throws Throwable {
+		DialogLieferaviso dlgLieferaviso = new DialogLieferaviso() {
+
+			@Override
+			protected void processed(LieferscheinDto lsDto) throws Throwable {
+			}
+
+			@Override
+			protected void processException(Throwable t) {
+			}
+		};
+
+		dlgLieferaviso.showModal(LPMain.getInstance().getDesktop(), lsDto);
+
+		if (dlgLieferaviso.getThrowable() != null) {
+			throw dlgLieferaviso.getThrowable();
+		}
+	}
+
+	public void dialogBarcodeerfassung(boolean bSichtAuftrag) throws Throwable, ExceptionLP {
+
+		if (bSichtAuftrag == false) {
+
+			if (getLieferscheinDto().getLieferscheinartCNr().equals(LieferscheinFac.LSART_AUFTRAG)) {
+				// einmalige Warnung aussprechen
+				if (!((InternalFrameLieferschein) getInternalFrame()).bWarnungAusgesprochen) {
+					((InternalFrameLieferschein) getInternalFrame()).bWarnungAusgesprochen = true;
+					if (DialogFactory.showMeldung(
+							LPMain.getTextRespectUISPr("ls.warning.reduziertnichtdieoffenemengeimauftrag"),
+							LPMain.getTextRespectUISPr("lp.warning"),
+							javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.NO_OPTION) {
+
+						return;
+					}
+
+				}
+			}
+		}
+
+		DialogPositionenBarcodeerfassung d = new DialogPositionenBarcodeerfassung(getLieferscheinDto().getLagerIId(),
+				getInternalFrame());
+		LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+
+		d.setVisible(true);
+		List<SeriennrChargennrMitMengeDto> alSeriennummern = d.alSeriennummern;
+
+		if (alSeriennummern.size() > 0 && d.artikelIId != null) {
+			ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.artikelFindByPrimaryKey(d.artikelIId);
+
+			LieferscheinpositionDto lsPos = new LieferscheinpositionDto();
+			lsPos.setBelegIId(getLieferscheinDto().getIId());
+			lsPos.setArtikelIId(d.artikelIId);
+			lsPos.setPositionsartCNr(LocaleFac.POSITIONSART_IDENT);
+
+			lsPos.setSeriennrChargennrMitMenge(alSeriennummern);
+
+			lsPos.setBNettopreisuebersteuert(Helper.boolean2Short(false));
+			lsPos.setNMenge(new BigDecimal(alSeriennummern.size()));
+			lsPos.setEinheitCNr(artikelDto.getEinheitCNr());
+
+			if (bSichtAuftrag == true && getAuftragDtoSichtAuftrag() != null
+					&& getAuftragDtoSichtAuftrag().getIId() != null) {
+				// Zuerst entsprechende Auftragspositionen suchen
+
+				AuftragpositionDto[] auftragspositionDtos = DelegateFactory.getInstance().getAuftragpositionDelegate()
+						.auftragpositionFindByAuftragOffeneMenge(getAuftragDtoSichtAuftrag().getIId());
+
+				AuftragpositionDto auftragspositionDto = null;
+
+				for (int i = 0; i < auftragspositionDtos.length; i++) {
+
+					if (auftragspositionDtos[i].getArtikelIId() != null
+							&& auftragspositionDtos[i].getArtikelIId().equals(lsPos.getArtikelIId())) {
+						auftragspositionDto = auftragspositionDtos[i];
+						break;
+					}
+
+				}
+
+				if (auftragspositionDto != null) {
+
+					lsPos.setBMwstsatzuebersteuert(auftragspositionDto.getBMwstsatzuebersteuert());
+					lsPos.setBNettopreisuebersteuert(auftragspositionDto.getBNettopreisuebersteuert());
+					lsPos.setBRabattsatzuebersteuert(auftragspositionDto.getBRabattsatzuebersteuert());
+
+					lsPos.setEinheitCNr(auftragspositionDto.getEinheitCNr());
+					lsPos.setFRabattsatz(auftragspositionDto.getFRabattsatz());
+					lsPos.setFZusatzrabattsatz(auftragspositionDto.getFZusatzrabattsatz());
+
+					lsPos.setNMaterialzuschlagKurs(auftragspositionDto.getNMaterialzuschlagKurs());
+					lsPos.setTMaterialzuschlagDatum(auftragspositionDto.getTMaterialzuschlagDatum());
+
+					lsPos.setAuftragpositionIId(auftragspositionDto.getIId());
+					lsPos.setMwstsatzIId(auftragspositionDto.getMwstsatzIId());
+					lsPos.setNBruttoeinzelpreis(auftragspositionDto.getNBruttoeinzelpreis());
+
+					lsPos.setNMwstbetrag(auftragspositionDto.getNMwstbetrag());
+					lsPos.setNEinzelpreis(auftragspositionDto.getNEinzelpreis());
+
+					lsPos.setNMaterialzuschlag(auftragspositionDto.getNMaterialzuschlag());
+
+					lsPos.setNNettoeinzelpreis(auftragspositionDto.getNNettoeinzelpreis());
+
+					lsPos.setNRabattbetrag(auftragspositionDto.getNRabattbetrag());
+					lsPos.setTypCNr(auftragspositionDto.getTypCNr());
+					lsPos.setVerleihIId(auftragspositionDto.getVerleihIId());
+
+				} else {
+
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+							LPMain.getTextRespectUISPr("ls.error.barcodeerfassung.keineoffeneposition") + " "
+									+ artikelDto.getCNr());
+					return;
+				}
+
+			} else {
+
+				KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+						.kundeFindByPrimaryKey(getLieferscheinDto().getKundeIIdRechnungsadresse());
+
+				Timestamp belegDatum = HelperTimestamp.belegDatum(getLieferscheinDto());
+				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory.getInstance().getMandantDelegate()
+						.mwstsatzFindZuDatum(kundeDto.getMwstsatzbezIId(), belegDatum);
+				/*
+				 * MwstsatzDto mwstsatzDtoAktuell =
+				 * DelegateFactory.getInstance().getMandantDelegate()
+				 * .mwstsatzFindByMwstsatzbezIIdAktuellster(kundeDto.getMwstsatzbezIId());
+				 */
+				VkpreisfindungDto vkpreisfindungDto = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+						.verkaufspreisfindung(artikelDto.getIId(), kundeDto.getIId(),
+								new BigDecimal(alSeriennummern.size()), new java.sql.Date(System.currentTimeMillis()),
+								kundeDto.getVkpfArtikelpreislisteIIdStdpreisliste(), mwstsatzDtoAktuell.getIId(),
+								getLieferscheinDto().getWaehrungCNr());
+
+				VerkaufspreisDto preisDtoInMandantenwaehrung = null;
+				try {
+					preisDtoInMandantenwaehrung = Helper.getVkpreisBerechnet(vkpreisfindungDto);
+				} catch (Throwable t) {
+					t.printStackTrace();
+				}
+
+				VerkaufspreisDto verkaufspreisDtoInZielwaehrung = null;
+				if (preisDtoInMandantenwaehrung != null) {
+					if (preisDtoInMandantenwaehrung.waehrungCNr != null
+							&& preisDtoInMandantenwaehrung.waehrungCNr.equals(getLieferscheinDto().getWaehrungCNr())) {
+						verkaufspreisDtoInZielwaehrung = preisDtoInMandantenwaehrung;
+						// TODO: Runden auf wieviele Stellen
+						verkaufspreisDtoInZielwaehrung.einzelpreis = Helper
+								.rundeKaufmaennisch(verkaufspreisDtoInZielwaehrung.einzelpreis
+										.multiply(verkaufspreisDtoInZielwaehrung.tempKurs), 4);
+						verkaufspreisDtoInZielwaehrung.rabattsumme = verkaufspreisDtoInZielwaehrung.einzelpreis
+								.subtract(verkaufspreisDtoInZielwaehrung.nettopreis);
+						// TODO: Rabattsatz hat wieviele Stellen
+						// ?
+						verkaufspreisDtoInZielwaehrung.rabattsatz = new Double(
+								Helper.getProzentsatz(verkaufspreisDtoInZielwaehrung.einzelpreis,
+										verkaufspreisDtoInZielwaehrung.rabattsumme, 4));
+
+					} else {
+						verkaufspreisDtoInZielwaehrung = DelegateFactory.getInstance().getVkPreisfindungDelegate()
+								.getPreisdetailsInFremdwaehrung(preisDtoInMandantenwaehrung,
+										new BigDecimal(getLieferscheinDto()
+												.getFWechselkursmandantwaehrungzubelegwaehrung().doubleValue()));
+					}
+				}
+				lsPos.setMwstsatzIId(mwstsatzDtoAktuell.getIId());
+
+				if (verkaufspreisDtoInZielwaehrung != null) {
+					lsPos.setNEinzelpreis(verkaufspreisDtoInZielwaehrung.nettopreis);
+					lsPos.setNNettoeinzelpreis(verkaufspreisDtoInZielwaehrung.nettopreis);
+					lsPos.setNBruttoeinzelpreis(verkaufspreisDtoInZielwaehrung.bruttopreis);
+					lsPos.setNMwstbetrag(verkaufspreisDtoInZielwaehrung.mwstsumme);
+					lsPos.setMwstsatzIId(verkaufspreisDtoInZielwaehrung.mwstsatzIId);
+				} else {
+					lsPos.setNEinzelpreis(new BigDecimal(0));
+					lsPos.setNNettoeinzelpreis(new BigDecimal(0));
+					lsPos.setNBruttoeinzelpreis(new BigDecimal(0));
+				}
+
+				lsPos.setFRabattsatz(0D);
+				lsPos.setFZusatzrabattsatz(0D);
+			}
+			DelegateFactory.getInstance().getLieferscheinpositionDelegate().createLieferscheinposition(lsPos, false);
+
+		}
+	}
+
 	/**
 	 * Verarbeitung von ItemChangedEvent.GOTO_DETAIL_PANEL.
-	 *
-	 * @param e
-	 *            ItemChangedEvent
-	 * @throws Throwable
-	 *             Ausnahme
+	 * 
+	 * @param e ItemChangedEvent
+	 * @throws Throwable Ausnahme
 	 */
 	private void handleGotoDetailPanel(ItemChangedEvent e) throws Throwable {
 		if (e.getSource() == lsAuswahl) {
@@ -1083,7 +1505,9 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 			}
 
-			panelQueryFLRLieferscheinVerketten.getDialog().setVisible(false);
+			if (panelQueryFLRLieferscheinVerketten.getDialog() != null) {
+				panelQueryFLRLieferscheinVerketten.getDialog().setVisible(false);
+			}
 
 			lsVerkettetSplit.eventYouAreSelected(false);
 		} else if (e.getSource() == panelQueryFLRAuftragauswahl) {
@@ -1098,6 +1522,19 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 						.pruefeKreditlimitMitJaNeinFrage(getInternalFrame(), auftragDto.getKundeIIdRechnungsadresse());
 
 				if (b == true) {
+
+					// SP4131
+					AuftragDto aDto = DelegateFactory.getInstance().getAuftragDelegate()
+							.auftragFindByPrimaryKey(iIdAuftragBasis);
+					if (aDto.getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_WIEDERHOLEND)) {
+						boolean bJa = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+								LPMain.getTextRespectUISPr("ls.warnung.lsauswiederholendemauftrag"));
+
+						if (bJa == false) {
+							return;
+						}
+					}
+
 					Integer lieferscheinIId = DelegateFactory.getInstance().getAuftragDelegate()
 							.erzeugeLieferscheinAusAuftrag(iIdAuftragBasis, null, getInternalFrame());
 
@@ -1135,6 +1572,19 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			if (iIdAuftrag != null) {
 				AuftragDto auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
 						.auftragFindByPrimaryKey(iIdAuftrag);
+
+				// PJ19958
+
+				boolean bVerrechnbarAuftrag = Helper
+						.short2boolean(DelegateFactory.getInstance().getAuftragServiceDelegate()
+								.verrechenbarFindByPrimaryKey(auftragDto.getVerrechenbarIId()).getBVerrechenbar());
+				boolean bVerrechnbarLieferschein = Helper.short2boolean(getLieferscheinDto().getBVerrechenbar());
+				if (bVerrechnbarAuftrag != bVerrechnbarLieferschein) {
+					// Hinweis
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+							LPMain.getTextRespectUISPr("auftrag.verrechenbar.ungleich.lieferschein"));
+
+				}
 
 				// PJ17887
 				if (e.getSource() == panelQueryFLRAuftragauswahlZusatz) {
@@ -1195,6 +1645,18 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 					lsKonditionen.eventYouAreSelected(false);
 				}
 			}
+		} else if (e.getSource() == panelQueryFLRLager_Amazon) {
+
+			if (e.getSource() == panelQueryFLRLager_Amazon) {
+				Integer lagerIId = (Integer) panelQueryFLRLager_Amazon.getSelectedId();
+				importCSV_Amazon(lagerIId);
+			}
+		} else if (e.getSource() == panelQueryFLRLager_Shopify) {
+
+			if (e.getSource() == panelQueryFLRLager_Shopify) {
+				Integer lagerIId = (Integer) panelQueryFLRLager_Shopify.getSelectedId();
+				importCSV_Shopify(lagerIId);
+			}
 		}
 
 		else if (e.getSource() == panelQueryFLRAnsprechpartner_Rechungsadresse) {
@@ -1207,6 +1669,15 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 				lsKopfdaten.eventYouAreSelected(false);
 			}
 
+		}
+
+		else if (e.getSource() == panelQueryFLRForecastpositionen) {
+
+			Integer forecastpositionIId = (Integer) panelQueryFLRForecastpositionen.getSelectedId();
+
+			lsPositionenBottom.eventActionNew(e, true, false);
+			lsPositionenBottom.eventYouAreSelected(false);
+			lsPositionenBottom.positionMitForecastdatenVorbesetzen(forecastpositionIId);
 		}
 
 		else if (e.getSource() == panelQueryFLRRechnungsadresseauswahl) {
@@ -1402,6 +1873,15 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 					aWhichButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("ls.title.panel.positionen"),
 					true);
 
+			boolean bForecast = LPMain.getInstance().getDesktop()
+					.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_FORECAST);
+
+			if (bForecast) {
+				lsPositionenTop.createAndSaveAndShowButton("/com/lp/client/res/document_chart.png",
+						LPMain.getTextRespectUISPr("ls.positionen.neuausforecastposition"),
+						MY_OWN_NEW_POSITION_AUS_FORECAST, RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+			}
+
 			ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
 					LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
 					ParameterFac.PARAMETER_SERIENNUMMER_EINEINDEUTIG);
@@ -1411,6 +1891,22 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 						LPMain.getTextRespectUISPr("ls.positionen.barcodeerfassung"), MY_OWN_NEW_SNRBARCODEERFASSUNG,
 						RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
 			}
+
+			lsPositionenTop.createAndSaveAndShowButton("/com/lp/client/res/scanner16x16.png",
+					LPMain.getTextRespectUISPr("auftrag.positionen.schnelleingabe"),
+					BUTTON_SCHNELLERFASSUNG_LIEFERSCHEINPOSITIONEN, RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+
+			lsPositionenTop.createAndSaveAndShowButton("/com/lp/client/res/down_plus.png",
+					LPMain.getTextRespectUISPr("ls.sortierenachabnummer"), BUTTON_SORTIERE_LS_NACH_AUFTRAGSNUMMER,
+					null);
+
+			lsPositionenTop.createAndSaveAndShowButton("/com/lp/client/res/sort_az_descending.png",
+					LPMain.getTextRespectUISPr("ls.sortierenachartikelnummer"), BUTTON_SORTIERE_LS_NACH_ARTIKELNUMMER,
+					null);
+
+			lsPositionenTop.createAndSaveAndShowButton("/com/lp/client/res/calculator16x16.png",
+					LPMain.getTextRespectUISPr("auft.preise.neuberechnen"), ACTION_SPECIAL_PREISE_NEU_KALKULIEREN,
+					RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
 
 			lsPositionen = new PanelSplit(getInternalFrame(), lsPositionenBottom, lsPositionenTop, 165);
 
@@ -1479,9 +1975,19 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		return lsKonditionen;
 	}
 
+	private PanelBasis getLieferscheinVersandinfos() throws Throwable {
+		if (lsVersandinfos == null) {
+			lsVersandinfos = new PanelLieferscheinVersandinfos(getInternalFrame(),
+					LPMain.getTextRespectUISPr("ls.versandinfos"), getLieferscheinDto().getIId());
+			setComponentAt(IDX_PANEL_VERSANDINFOS, lsVersandinfos);
+		}
+
+		return lsVersandinfos;
+	}
+
 	/**
 	 * Fuer lazy loading.
-	 *
+	 * 
 	 * @return PanelBasis
 	 * @throws Throwable
 	 */
@@ -1504,9 +2010,25 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			lsPositionenSichtAuftragTop.getCbSchnellansicht()
 					.setText(LPMain.getTextRespectUISPr("ls.sichtauftrag.offeneanzeigen"));
 
+			Dimension d = new Dimension(200, Defaults.getInstance().getControlHeight());
+
+			lsPositionenSichtAuftragTop.getCbSchnellansicht().setPreferredSize(d);
+			lsPositionenSichtAuftragTop.getCbSchnellansicht().setMaximumSize(d);
+
+			lsPositionenSichtAuftragTop.setMultipleRowSelectionEnabled(true);
 			lsPositionenSichtAuftragTop.createAndSaveAndShowButton("/com/lp/client/res/auftrag16x16.png",
 					LPMain.getTextRespectUISPr("ls.allepositionenausauftrag"),
 					MY_OWN_NEW_ALLE_POSITIONEN_AUS_AUFTRAG_UEBERNEHMEN, RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+
+			ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+					LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ARTIKEL,
+					ParameterFac.PARAMETER_SERIENNUMMER_EINEINDEUTIG);
+
+			if ((Boolean) parameter.getCWertAsObject()) {
+				lsPositionenSichtAuftragTop.createAndSaveAndShowButton("/com/lp/client/res/laserpointer.png",
+						LPMain.getTextRespectUISPr("ls.positionen.barcodeerfassung"), MY_OWN_NEW_SNRBARCODEERFASSUNG,
+						RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+			}
 
 			FilterKriteriumDirekt fkDirekt1 = LieferscheinFilterFactory.getInstance().createFKDArtikelnummer();
 
@@ -1555,7 +2077,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	/**
 	 * Alle dtos zuruecksetzen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	public void resetDtos() throws Throwable {
@@ -1565,13 +2087,10 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	}
 
 	/**
-	 * Nachdem ein Lieferschein geaehlt wurde, jetzt alle abhaengigen Dtos
-	 * setzen.
-	 *
-	 * @param iIdLieferscheinI
-	 *            PK des Lieferscheins
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * Nachdem ein Lieferschein geaehlt wurde, jetzt alle abhaengigen Dtos setzen.
+	 * 
+	 * @param iIdLieferscheinI PK des Lieferscheins
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public void initializeDtos(Integer iIdLieferscheinI) throws Throwable {
 		if (iIdLieferscheinI != null) {
@@ -1609,9 +2128,8 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	/**
 	 * Den Text der Titelleiste ueberschreiben.
-	 *
-	 * @param panelTitle
-	 *            der Title des aktuellen panel
+	 * 
+	 * @param panelTitle der Title des aktuellen panel
 	 * @throws Throwable
 	 */
 	public void setTitleLieferschein(String panelTitle) throws Throwable {
@@ -1641,12 +2159,10 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	/**
 	 * Default Lieferscheinfusstext in einer bestimmten Sprache holen.
-	 *
-	 * @param sLocAsString
-	 *            gewuenschtes Locale
+	 * 
+	 * @param sLocAsString gewuenschtes Locale
 	 * @return LieferscheintextDto
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public LieferscheintextDto getDefaultFusstext(String sLocAsString) throws Throwable {
 		return DelegateFactory.getInstance().getLieferscheinServiceDelegate()
@@ -1654,14 +2170,11 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	}
 
 	/**
-	 * Default Kopftext fuer diesen Lieferschein in der Sprache des Kunden
-	 * holen.
-	 *
-	 * @param sLocAsString
-	 *            gewuenschtes Locale
+	 * Default Kopftext fuer diesen Lieferschein in der Sprache des Kunden holen.
+	 * 
+	 * @param sLocAsString gewuenschtes Locale
 	 * @return LieferscheintextDto
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public LieferscheintextDto getDefaultKopftext(String sLocAsString) throws Throwable {
 		return DelegateFactory.getInstance().getLieferscheinServiceDelegate()
@@ -1676,7 +2189,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		return lsPositionenTop;
 	}
 
-	public PanelBasis getLieferscheinPositionenBottom() {
+	public PanelLieferscheinPositionen getLieferscheinPositionenBottom() {
 		return lsPositionenBottom;
 	}
 
@@ -1703,12 +2216,11 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	/**
 	 * Diese Methode prueft, ob zum aktuellen Lieferschein Konditionen erfasst
 	 * wurden. <br>
-	 * Wenn der Benutzer aufgrund von KONDITIONEN_BESTAETIGEN die Konditionen
-	 * nicht bestaetigen muss, muessen die Default Texte vorbelegt werden.
-	 *
+	 * Wenn der Benutzer aufgrund von KONDITIONEN_BESTAETIGEN die Konditionen nicht
+	 * bestaetigen muss, muessen die Default Texte vorbelegt werden.
+	 * 
 	 * @return boolean true, wenn die Konditionen gueltig erfasst wurden
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @throws Throwable Ausnahme
 	 */
 	protected boolean pruefeKonditionen() throws Throwable {
 		boolean bErfasst = true;
@@ -1738,12 +2250,11 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	}
 
 	/**
-	 * Je nach Mandantenparameter muss der Benutzer die Konditionen nicht
-	 * erfassen. Damit der Lieferschein gedruckt werden kann, muessen die
-	 * Konditionen aber initialisiert worden sein.
-	 *
-	 * @throws Throwable
-	 *             Ausnahme
+	 * Je nach Mandantenparameter muss der Benutzer die Konditionen nicht erfassen.
+	 * Damit der Lieferschein gedruckt werden kann, muessen die Konditionen aber
+	 * initialisiert worden sein.
+	 * 
+	 * @throws Throwable Ausnahme
 	 */
 	public void initLieferscheinKonditionen() throws Throwable {
 		initLieferscheintexte(); // Kopf- und Fusstext werden initialisiert
@@ -1756,38 +2267,35 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 	/**
 	 * Kopf- und Fusstext vorbelegen.
-	 *
-	 * @throws Throwable
-	 *             Ausnahme
+	 * 
+	 * @throws Throwable Ausnahme
 	 */
 	public void initLieferscheintexte() throws Throwable {
-		if (kopftextDto == null || kopftextDto.getIId() == null) {
-			try {
-				kopftextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
-						.lieferscheintextFindByMandantLocaleCNr(
-								getKundeLieferadresseDto().getPartnerDto().getLocaleCNrKommunikation(),
-								MediaFac.MEDIAART_KOPFTEXT);
-			} catch (Throwable t) {
-				// wenn es keinen Kopftext gibt
-				String localeCNr = LPMain.getTheClient().getLocUiAsString();
-				kopftextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
-						.createDefaultLieferscheintext(MediaFac.MEDIAART_KOPFTEXT, localeCNr);
-			}
+
+		try {
+			kopftextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
+					.lieferscheintextFindByMandantLocaleCNr(
+							getKundeLieferadresseDto().getPartnerDto().getLocaleCNrKommunikation(),
+							MediaFac.MEDIAART_KOPFTEXT);
+		} catch (Throwable t) {
+			// wenn es keinen Kopftext gibt
+			String localeCNr = LPMain.getTheClient().getLocUiAsString();
+			kopftextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
+					.createDefaultLieferscheintext(MediaFac.MEDIAART_KOPFTEXT, localeCNr);
 		}
 
-		if (fusstextDto == null || fusstextDto.getIId() == null) {
-			try {
-				fusstextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
-						.lieferscheintextFindByMandantLocaleCNr(
-								getKundeLieferadresseDto().getPartnerDto().getLocaleCNrKommunikation(),
-								MediaFac.MEDIAART_FUSSTEXT);
-			} catch (Throwable t) {
-				// wenn es keinen Fusstext gibt
-				String localeCNr = LPMain.getTheClient().getLocUiAsString();
-				fusstextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
-						.createDefaultLieferscheintext(MediaFac.MEDIAART_FUSSTEXT, localeCNr);
-			}
+		try {
+			fusstextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
+					.lieferscheintextFindByMandantLocaleCNr(
+							getKundeLieferadresseDto().getPartnerDto().getLocaleCNrKommunikation(),
+							MediaFac.MEDIAART_FUSSTEXT);
+		} catch (Throwable t) {
+			// wenn es keinen Fusstext gibt
+			String localeCNr = LPMain.getTheClient().getLocUiAsString();
+			fusstextDto = DelegateFactory.getInstance().getLieferscheinServiceDelegate()
+					.createDefaultLieferscheintext(MediaFac.MEDIAART_FUSSTEXT, localeCNr);
 		}
+
 	}
 
 	public boolean esGibtOffeneLieferscheine() throws Throwable {
@@ -1824,7 +2332,16 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			printLieferscheinetikett();
 		} else if (e.getActionCommand().equals(MENU_ACTION_DATEI_LIEFERSCHEINWAETIKETT)) {
 			printLieferscheinwaetikett(null);
-		} else if (e.getActionCommand().equals(MENU_ACTION_DATEI_VERANDETIKETTEN)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_CSVIMPORT_SHOPIFY)) {
+			panelQueryFLRLager_Shopify = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(),
+					null);
+			new DialogQuery(panelQueryFLRLager_Shopify);
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_CSVIMPORT_AMAZON)) {
+
+			panelQueryFLRLager_Amazon = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(),
+					null);
+			new DialogQuery(panelQueryFLRLager_Amazon);
+		} else if (e.getActionCommand().equals(MENU_ACTION_DATEI_VERSANDETIKETTEN)) {
 			ReportVersandetiketten ve = new ReportVersandetiketten(getInternalFrame(), getLieferscheinDto(),
 					getTitleDruck());
 			ve.eventYouAreSelected(false);
@@ -1848,15 +2365,23 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 					new ReportLieferscheinOffene(getInternalFrame(),
 							LPMain.getTextRespectUISPr("ls.print.listeoffene")),
 					getKundeLieferadresseDto().getPartnerDto(), getLieferscheinDto().getAnsprechpartnerIId(), false);
+		} else if (e.getActionCommand().equals(MENU_ACTION_JOURNAL_OFFENE_RUECKGABEN)) {
+			getInternalFrame().showReportKriterien(
+					new ReportLieferscheinOffeneRueckgaben(getInternalFrame(),
+							LPMain.getTextRespectUISPr("ls.print.listeoffene.rueckgaben")),
+					getKundeLieferadresseDto().getPartnerDto(), getLieferscheinDto().getAnsprechpartnerIId(), false);
 		} else
-			// ptclient: 6 Die Ubersicht wurde ueber das Menue gewaehlt
-			if (e.getActionCommand().equals(MENU_ACTION_JOURNAL_UEBERSICHT)) {
+		// ptclient: 6 Die Ubersicht wurde ueber das Menue gewaehlt
+		if (e.getActionCommand().equals(MENU_ACTION_JOURNAL_UEBERSICHT)) {
 			getKriterienLieferscheinUmsatz();
 			getInternalFrame().showPanelDialog(pdKriterienLsUebersicht);
 		} else if (e.getActionCommand().equals(MENU_ACTION_JOURNAL_UMSATZUEBERSICHT)) {
 			getKriterienLieferscheinUmsatz();
 			getInternalFrame().showPanelDialog(pdKriterienLsUmsatz);
 			bKriterienLsUmsatzUeberMenueAufgerufen = true;
+		} else if (e.getActionCommand().equals(MENU_ACTION_JOURNAL_PACKSTUECKE)) {
+			String add2Title = LPMain.getTextRespectUISPr("ls.report.packstuecke");
+			getInternalFrame().showReportKriterien(new ReportPackstuecke(getInternalFrame(), add2Title));
 		} else if (e.getActionCommand().equals(MENU_BEARBEITEN_FUELLE_FEHLEMGEN_DES_ANDEREN_MANDANTEN_NACH)) {
 			// Zuerst Mandant auswaehlen
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
@@ -1877,6 +2402,18 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 					.createPanelFLRBegruendung(getInternalFrame(), null, true);
 			new DialogQuery(panelQueryFLRBegruendung);
 
+		}else if (e.getActionCommand().equals(MENU_BEARBEITEN_INTERNER_KOMMENTAR)) {
+			if (pruefeAktuellenLieferschein()) {
+				if (!refreshLieferscheinKopfdaten().isLockedDlg()) {
+				
+
+					pdLieferscheinInternerKommentar = new PanelDialogLieferscheinKommentar(getInternalFrame(),
+							LPMain.getTextRespectUISPr("lp.internerkommentar"), true);
+					
+					getInternalFrame().showPanelDialog(pdLieferscheinInternerKommentar);
+					setTitleLieferschein(LPMain.getTextRespectUISPr("lp.internerkommentar"));
+				}
+			}
 		} else if (e.getActionCommand().equals(MENU_BEARBEITEN_MANUELL_ERLEDIGEN)) {
 			if (pruefeAktuellenLieferschein()) {
 				if (!refreshLieferscheinKopfdaten().isLockedDlg()) {
@@ -1924,6 +2461,22 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 				}
 			}
 
+		} else if (MENU_ACTION_DATEI_IMPORT_EASYDATA_STOCK_MOVEMENT.equals(e.getActionCommand())) {
+			actionImportEasydataStockMovementsXML();
+		} else if (MENU_ACTION_DATEI_PLC_VERSANDETIKETTEN.equals(e.getActionCommand())) {
+			boolean plcVersand = DelegateFactory.getInstance().getLsDelegate()
+					.isPaketEtikettErzeugbar(lieferscheinDto.getIId());
+			if (!plcVersand)
+				return;
+
+			ReportPostVersandetiketten ve = new ReportPostVersandetiketten(getInternalFrame(), getLieferscheinDto(),
+					getTitleDruck());
+			ve.eventYouAreSelected(false);
+			ve.setKeyWhenDetailPanel(getLieferscheinDto().getIId());
+
+			getInternalFrame().showReportKriterien(ve, getKundeLieferadresseDto().getPartnerDto(),
+					getLieferscheinDto().getAnsprechpartnerIId(), false);
+			ve.updateButtons();
 		}
 	}
 
@@ -1992,17 +2545,17 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	public void printLieferscheinetikett() throws Throwable {
 
 		if (pruefeAktuellenLieferschein()) {
-			if (aktuellerLieferscheinHatPositionen()) {
-				boolean bHatVersandRecht = DelegateFactory.getInstance().getTheJudgeDelegate()
-						.hatRecht(RechteFac.RECHT_LS_LIEFERSCHEIN_VERSAND);
-				ReportLieferscheinAdressetikett rla = new ReportLieferscheinAdressetikett(getInternalFrame(),
-						getLieferscheinDto(), getTitleDruck());
-				rla.eventYouAreSelected(false);
-				rla.setKeyWhenDetailPanel(getLieferscheinDto().getIId());
-				getInternalFrame().showReportKriterien(rla, getKundeLieferadresseDto().getPartnerDto(),
-						getLieferscheinDto().getAnsprechpartnerIId(), false);
-				rla.updateButtons(bHatVersandRecht);
-			}
+
+			boolean bHatVersandRecht = DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_LS_LIEFERSCHEIN_VERSAND);
+			ReportLieferscheinAdressetikett rla = new ReportLieferscheinAdressetikett(getInternalFrame(),
+					getLieferscheinDto(), getTitleDruck());
+			rla.eventYouAreSelected(false);
+			rla.setKeyWhenDetailPanel(getLieferscheinDto().getIId());
+			getInternalFrame().showReportKriterien(rla, getKundeLieferadresseDto().getPartnerDto(),
+					getLieferscheinDto().getAnsprechpartnerIId(), false);
+			rla.updateButtons(bHatVersandRecht);
+
 		}
 	}
 
@@ -2012,12 +2565,8 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 			if (aktuellerLieferscheinHatPositionen()) {
 				ReportLieferscheinWAEetikett rwae = new ReportLieferscheinWAEetikett(getInternalFrame(),
 						getLieferscheinDto(), lieferscheinpositionIId, getTitleDruck());
-				rwae.eventYouAreSelected(false);
-				rwae.setKeyWhenDetailPanel(getLieferscheinDto().getIId());
-				// man kann unabhaengig vom Status beliebig oft drucken
 				getInternalFrame().showReportKriterien(rwae, getKundeLieferadresseDto().getPartnerDto(),
 						getLieferscheinDto().getAnsprechpartnerIId(), false);
-				rwae.updateButtons();
 			}
 		}
 	}
@@ -2085,9 +2634,8 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	/**
 	 * Diese Methode setzt des aktuellen Auftrag aus der Auswahlliste als den zu
 	 * lockenden Auftrag.
-	 *
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * 
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public void setKeyWasForLockMe() throws Throwable {
 		Object oKey = lsAuswahl.getSelectedId();
@@ -2108,7 +2656,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	 * LPMain.getInstance().getTextRespectUISPr( "ls.title.panel.uebersicht"),
 	 * getInternalFrame()); setComponentAt(IDX_PANEL_LIEFERSCHEINUEBERSICHT,
 	 * ptLieferscheinUebersicht); }
-	 *
+	 * 
 	 * return ptLieferscheinUebersicht; }
 	 */
 
@@ -2123,19 +2671,26 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	}
 
 	/**
-	 * Der Status des Lieferscheins kann in einigen Faellen ueber den Update
-	 * Button geaendert werden.
-	 *
-	 * @return boolean true, wenn der aktuelle Lieferschein geaendert werden
-	 *         darf
-	 * @throws Throwable
-	 *             Ausnahme
+	 * Der Status des Lieferscheins kann in einigen Faellen ueber den Update Button
+	 * geaendert werden.
+	 * 
+	 * @return boolean true, wenn der aktuelle Lieferschein geaendert werden darf
+	 * @throws Throwable Ausnahme
 	 */
 
 	public boolean aktualisiereLieferscheinstatusDurchButtonUpdate() throws Throwable {
 		boolean bIstAktualisierenErlaubt = false;
 
 		if (pruefeAktuellenLieferschein()) {
+
+			// SP7403
+			RechnungDto reDto = DelegateFactory.getInstance().getRechnungDelegate()
+					.istLieferscheinBereitsInProformarechnung(getLieferscheinDto().getIId());
+			if (reDto != null) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getMessageTextRespectUISPr("ls.hint.bereitsinproformarechnung", reDto.getCNr()));
+				return false;
+			}
 
 			if (getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ANGELEGT)) {
 				bIstAktualisierenErlaubt = true;
@@ -2148,14 +2703,19 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 				if (bIstAktualisierenErlaubt == true) {
 					DelegateFactory.getInstance().getLsDelegate().setzeStatusLieferschein(getLieferscheinDto().getIId(),
-							LieferscheinFac.LSSTATUS_ANGELEGT, null);
+							LieferscheinFac.LSSTATUS_ANGELEGT);
 				}
 
 			}
 
 			else if (getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_STORNIERT)) {
-				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
-						LPMain.getTextRespectUISPr("ls.stornoaufheben"));
+
+				if (DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("ls.stornoaufheben"))) {
+					DelegateFactory.getInstance().getLsDelegate().stornoAufheben(getLieferscheinDto().getIId());
+					bIstAktualisierenErlaubt = true;
+				}
+
 			}
 
 			else if (getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ERLEDIGT)) {
@@ -2223,17 +2783,26 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	// }
 
 	/**
-	 * Diese Methode prueft den Status des aktuellen Lieferscheins und legt
-	 * fest, ob eine Aenderung in den Kopfdaten bzw. Konditionen erlaubt ist.
-	 *
+	 * Diese Methode prueft den Status des aktuellen Lieferscheins und legt fest, ob
+	 * eine Aenderung in den Kopfdaten bzw. Konditionen erlaubt ist.
+	 * 
 	 * @return boolean true, wenn ein update erlaubt ist
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 	public boolean istAktualisierenLieferscheinErlaubt() throws Throwable {
 		boolean bIstAenderungErlaubtO = false;
 
 		if (pruefeAktuellenLieferschein()) {
+
+			// SP7403
+			RechnungDto reDto = DelegateFactory.getInstance().getRechnungDelegate()
+					.istLieferscheinBereitsInProformarechnung(getLieferscheinDto().getIId());
+			if (reDto != null) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getMessageTextRespectUISPr("ls.hint.bereitsinproformarechnung", reDto.getCNr()));
+				return false;
+			}
+
 			if (getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ANGELEGT)) {
 				bIstAenderungErlaubtO = true;
 			} else if (getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_OFFEN)
@@ -2243,7 +2812,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 						javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.YES_OPTION);
 				if (bZuruecknehmen == true) {
 					DelegateFactory.getInstance().getLsDelegate().setzeStatusLieferschein(getLieferscheinDto().getIId(),
-							LieferscheinFac.LSSTATUS_ANGELEGT, null);
+							LieferscheinFac.LSSTATUS_ANGELEGT);
 				}
 				return bZuruecknehmen;
 			}
@@ -2255,6 +2824,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 		return bIstAenderungErlaubtO;
 	}
+
 	// public boolean istAktualisierenLieferscheinErlaubt() throws Throwable {
 	// boolean bIstAenderungErlaubtO = false;
 	//
@@ -2282,10 +2852,43 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		JMenu jmModul = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_MODUL);
 
 		jmModul.add(new JSeparator(), 0);
+		if (hasZusatzfunktion4Vending()) {
+			JMenu menuDateiImport = new WrapperMenu("lp.import", this);
+			JMenuItem menuItemDateiImportEasydata = new JMenuItem(
+					LPMain.getTextRespectUISPr("ls.menu.datei.4vending.lagerumbuchung"));
+			menuItemDateiImportEasydata.addActionListener(this);
+			menuItemDateiImportEasydata.setActionCommand(MENU_ACTION_DATEI_IMPORT_EASYDATA_STOCK_MOVEMENT);
+			menuDateiImport.add(menuItemDateiImportEasydata);
+			jmModul.add(menuDateiImport, 0);
+		}
+
+		boolean bSchreibrecht = false;
+		if (getInternalFrame().getRechtModulweit().equals(RechteFac.RECHT_MODULWEIT_UPDATE)) {
+			bSchreibrecht = true;
+		}
+
+		if (bSchreibrecht) {
+			JMenu abimport = new JMenu(LPMain.getTextRespectUISPr("lp.import"));
+			jmModul.add(abimport, jmModul.getItemCount() - 2);
+
+			JMenuItem menuItemImportShopify = new JMenuItem(LPMain.getTextRespectUISPr("auft.import.shopify"));
+			menuItemImportShopify.addActionListener(this);
+			menuItemImportShopify.setActionCommand(ACTION_SPECIAL_CSVIMPORT_SHOPIFY);
+			abimport.add(menuItemImportShopify);
+
+			/*
+			 * JMenuItem menuItemImportAmazon = new
+			 * JMenuItem(LPMain.getTextRespectUISPr("auft.import.amazon"));
+			 * menuItemImportAmazon.addActionListener(this);
+			 * menuItemImportAmazon.setActionCommand(ACTION_SPECIAL_CSVIMPORT_AMAZON);
+			 * abimport.add(menuItemImportAmazon);
+			 */
+		}
+
 		JMenuItem menuItemDateiVersandetikett = new JMenuItem(
 				LPMain.getTextRespectUISPr("ls.versandetiketten") + "...");
 		menuItemDateiVersandetikett.addActionListener(this);
-		menuItemDateiVersandetikett.setActionCommand(MENU_ACTION_DATEI_VERANDETIKETTEN);
+		menuItemDateiVersandetikett.setActionCommand(MENU_ACTION_DATEI_VERSANDETIKETTEN);
 		jmModul.add(menuItemDateiVersandetikett, 0);
 		JMenuItem menuItemDateiLieferscheinWAEtikett = new JMenuItem(
 				LPMain.getTextRespectUISPr("ls.menu.datei.lieferscheinwaetikett"));
@@ -2301,10 +2904,19 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 		JMenuItem menuItemDateiLieferschein = new JMenuItem(LPMain
 
-		.getTextRespectUISPr("ls.menu.datei.lieferschein"));
+				.getTextRespectUISPr("ls.menu.datei.lieferschein"));
 		menuItemDateiLieferschein.addActionListener(this);
 		menuItemDateiLieferschein.setActionCommand(MENU_ACTION_DATEI_LIEFERSCHEIN);
 		jmModul.add(menuItemDateiLieferschein, 0);
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_POST_PLC_VERSAND)) {
+			JMenuItem menuItemDateiPlcVersandetikett = new JMenuItem(
+					"PLC-" + LPMain.getTextRespectUISPr("ls.versandetiketten") + "...");
+			menuItemDateiPlcVersandetikett.addActionListener(this);
+			menuItemDateiPlcVersandetikett.setActionCommand(MENU_ACTION_DATEI_PLC_VERSANDETIKETTEN);
+			jmModul.add(menuItemDateiPlcVersandetikett);
+		}
 
 		// Menue Bearbeiten
 		JMenu jmBearbeiten = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
@@ -2326,6 +2938,12 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		menuItemBearbeitenReAdresseAendern.setActionCommand(MENU_BEARBEITEN_RE_ADRESSE_AENDERN);
 		jmBearbeiten.add(menuItemBearbeitenReAdresseAendern, 2);
 
+		JMenuItem menuItemBearbeitenInternerKommentar = new JMenuItem(
+				LPMain.getTextRespectUISPr("lp.menu.internerkommentar"));
+		menuItemBearbeitenInternerKommentar.addActionListener(this);
+		menuItemBearbeitenInternerKommentar.setActionCommand(MENU_BEARBEITEN_INTERNER_KOMMENTAR);
+		jmBearbeiten.add(menuItemBearbeitenInternerKommentar, 3);
+		
 		// SP2947
 		MandantDto[] mandantDtos = DelegateFactory.getInstance().getMandantDelegate().mandantFindAll();
 		if (mandantDtos.length > 1) {
@@ -2359,13 +2977,17 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		menuItemJournalOffene.addActionListener(this);
 		menuItemJournalOffene.setActionCommand(MENU_ACTION_JOURNAL_OFFEN);
 		jmJournal.add(menuItemJournalOffene);
+		JMenuItem menuItemJournalOffeneRueckgaben = new JMenuItem(
+				LPMain.getTextRespectUISPr("ls.menu.journal.offen.rueckgaben"));
+		menuItemJournalOffeneRueckgaben.addActionListener(this);
+		menuItemJournalOffeneRueckgaben.setActionCommand(MENU_ACTION_JOURNAL_OFFENE_RUECKGABEN);
+		jmJournal.add(menuItemJournalOffeneRueckgaben);
 
 		/*
-		 * jmJournal.add(new JSeparator()); JMenuItem menuItemJournalUebersicht
-		 * = new JMenuItem(LPMain.getInstance(). getTextRespectUISPr(
+		 * jmJournal.add(new JSeparator()); JMenuItem menuItemJournalUebersicht = new
+		 * JMenuItem(LPMain.getInstance(). getTextRespectUISPr(
 		 * "ls.menu.journal.uebersicht"));
-		 * menuItemJournalUebersicht.addActionListener(this);
-		 * menuItemJournalUebersicht
+		 * menuItemJournalUebersicht.addActionListener(this); menuItemJournalUebersicht
 		 * .setActionCommand(MENU_ACTION_JOURNAL_UEBERSICHT);
 		 * jmJournal.add(menuItemJournalUebersicht);
 		 */
@@ -2378,6 +3000,14 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		menuItemJournalUmsatzTag.setActionCommand(MENU_ACTION_JOURNAL_UMSATZUEBERSICHT);
 		jmJournal.add(menuItemJournalUmsatzTag);
 		menuItemJournalUmsatzTag.setEnabled(bDarfPreiseSehen);
+
+		jmJournal.add(new JSeparator());
+
+		WrapperMenuItem menuItemPackstuecke = new WrapperMenuItem(LPMain.getTextRespectUISPr("ls.report.packstuecke"),
+				null);
+		menuItemPackstuecke.addActionListener(this);
+		menuItemPackstuecke.setActionCommand(MENU_ACTION_JOURNAL_PACKSTUECKE);
+		jmJournal.add(menuItemPackstuecke);
 
 		return wrapperMenuBar;
 	}
@@ -2432,7 +3062,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 	// TODO-AGILCHANGES
 	/**
 	 * AGILPRO CHANGES BEGIN
-	 *
+	 * 
 	 * @author Lukas Lisowski
 	 */
 
@@ -2452,6 +3082,12 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		this.setSelectedIndex(IDX_PANEL_LIEFERSCHEINKONDITIONEN);
 		this.getInternalFrame().enableAllPanelsExcept(false);
 		return this.lsKonditionen;
+	}
+
+	public PanelBasis getPanelVersandinfos() {
+		this.setSelectedIndex(IDX_PANEL_VERSANDINFOS);
+		this.getInternalFrame().enableAllPanelsExcept(false);
+		return this.lsVersandinfos;
 	}
 
 	/**
@@ -2511,6 +3147,153 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		}
 	}
 
+	private void importCSV_Shopify(Integer lagerIId) throws Throwable {
+		HvOptional<CsvFile> csvFile = FileOpenerFactory.auftragShopifyImportCsv(this);
+		if (csvFile.isPresent()) {
+
+			LinkedHashMap<String, ArrayList<ImportShopifyCsvDto>> hm = new LinkedHashMap<String, ArrayList<ImportShopifyCsvDto>>();
+
+			InputStreamReader input = new InputStreamReader(new FileInputStream(csvFile.get().getFile()),
+					StandardCharsets.UTF_8.name());
+			CSVParser csvParser = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(input);
+			int iZeile = 1;
+			for (CSVRecord record : csvParser) {
+				try {
+					iZeile++;
+					String bestellnummer = record.get("Name");
+
+					ArrayList<ImportShopifyCsvDto> alZeilenCsv = new ArrayList<ImportShopifyCsvDto>();
+					if (hm.containsKey(bestellnummer)) {
+						alZeilenCsv = hm.get(bestellnummer);
+					}
+
+					ImportShopifyCsvDto zeileDto = new ImportShopifyCsvDto();
+
+					zeileDto.shopifyBestellnummer = bestellnummer;
+					zeileDto.email = record.get("Email");
+					zeileDto.artikelnummer = record.get("Lineitem sku");
+					zeileDto.bruttopreis = record.get("Lineitem price");
+
+					zeileDto.rabatt = record.get("Discount Amount");
+
+					zeileDto.gesamterbelegbetrag = record.get("Total");
+
+					zeileDto.versandkosten = record.get("Shipping");
+					zeileDto.waehrung = record.get("Currency");
+					zeileDto.menge = record.get("Lineitem quantity");
+					zeileDto.belegdatum = record.get("Created at");
+
+					zeileDto.lieferart = record.get("Shipping Method");
+
+					zeileDto.rechnungsadresseFirma = record.get("Billing Company");
+					zeileDto.rechnungsadresseName = record.get("Billing Name");
+					zeileDto.rechnungsadresseAdresse1 = record.get("Billing Address1");
+					zeileDto.rechnungsadresseAdresse2 = record.get("Billing Address2");
+					zeileDto.rechnungsadresseLand = record.get("Billing Country");
+					zeileDto.rechnungsadressePLZ = record.get("Billing Zip");
+					zeileDto.rechnungsadresseOrt = record.get("Billing City");
+					zeileDto.rechnungsadresseStrasse = record.get("Billing Street");
+
+					zeileDto.lieferadresseFirma = record.get("Shipping Company");
+					zeileDto.lieferadresseName = record.get("Shipping Name");
+					zeileDto.lieferadresseAdresse1 = record.get("Shipping Address1");
+					zeileDto.lieferadresseAdresse2 = record.get("Shipping Address2");
+					zeileDto.lieferadresseLand = record.get("Shipping Country");
+					zeileDto.lieferadressePLZ = record.get("Shipping Zip");
+					zeileDto.lieferadresseOrt = record.get("Shipping City");
+					zeileDto.lieferadresseStrasse = record.get("Shipping Street");
+
+					zeileDto.zeile = iZeile;
+
+					alZeilenCsv.add(zeileDto);
+
+					hm.put(bestellnummer, alZeilenCsv);
+
+				} catch (Exception e) {
+
+					String field_1 = record.get("amazon-order-id");
+
+				}
+			}
+
+			DialogImportShopify dialog = new DialogImportShopify(hm, lagerIId, this);
+			dialog.setVisible(true);
+
+		}
+	}
+
+	private void importCSV_Amazon(Integer lagerIId) throws Throwable {
+		HvOptional<CsvFile> csvFile = FileOpenerFactory.auftragAmazonImportCsv(this);
+		if (csvFile.isPresent()) {
+
+			LinkedHashMap<String, ArrayList<ImportAmazonCsvDto>> hm = new LinkedHashMap<String, ArrayList<ImportAmazonCsvDto>>();
+
+			InputStreamReader input = new InputStreamReader(new FileInputStream(csvFile.get().getFile()),
+					StandardCharsets.UTF_8.name());
+			CSVParser csvParser = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(input);
+			int iZeile = 1;
+			for (CSVRecord record : csvParser) {
+
+				iZeile++;
+				try {
+
+					String bestellnummer = record.get("amazon-order-id");
+
+					ArrayList<ImportAmazonCsvDto> alZeilenCsv = new ArrayList<ImportAmazonCsvDto>();
+					if (hm.containsKey(bestellnummer)) {
+						alZeilenCsv = hm.get(bestellnummer);
+					}
+
+					ImportAmazonCsvDto zeileDto = new ImportAmazonCsvDto();
+
+					zeileDto.amazonBestellnummer = bestellnummer;
+					zeileDto.email = record.get("buyer-email");
+					zeileDto.artikelnummer = record.get("sku");
+					zeileDto.bruttopreis = record.get("item-price");
+					zeileDto.versandkosten = record.get("shipping-price");
+					zeileDto.waehrung = record.get("currency");
+					zeileDto.menge = record.get("quantity-shipped");
+					zeileDto.belegdatum = record.get("purchase-date");
+
+					zeileDto.recipientName = record.get("recipient-name");
+
+					zeileDto.lieferadresseName = record.get("ship-address-1");
+					zeileDto.lieferadresseAdresse1 = record.get("ship-address-2");
+					zeileDto.lieferadresseAdresse2 = record.get("ship-address-3");
+					zeileDto.lieferadresseLand = record.get("ship-country");
+					zeileDto.lieferadressePLZ = record.get("ship-postal-code");
+					zeileDto.lieferadresseOrt = record.get("ship-city");
+
+					zeileDto.rechnungsadresseName = record.get("bill-address-1");
+					zeileDto.rechnungsadresseAdresse1 = record.get("bill-address-2");
+					zeileDto.rechnungsadresseAdresse2 = record.get("bill-address-3");
+					zeileDto.rechnungsadresseLand = record.get("bill-country");
+					zeileDto.rechnungsadressePLZ = record.get("bill-postal-code");
+					zeileDto.rechnungsadresseOrt = record.get("bill-city");
+
+					zeileDto.rabatt = record.get("item-promotion-discount");
+					zeileDto.versandrabatt = record.get("ship-promotion-discount");
+
+					zeileDto.trackingNumber = record.get("tracking-number");
+					zeileDto.zeile = iZeile;
+
+					alZeilenCsv.add(zeileDto);
+
+					hm.put(bestellnummer, alZeilenCsv);
+
+				} catch (Exception e) {
+
+					String field_1 = record.get("amazon-order-id");
+
+				}
+			}
+
+			DialogImportAmazon dialog = new DialogImportAmazon(hm, lagerIId, this);
+			dialog.setVisible(true);
+
+		}
+	}
+
 	private void enablePanelLieferscheinSichtAuftrag(boolean enableI) {
 		setEnabledAt(IDX_PANEL_LIEFERSCHEINPOSITIONENSICHTAUFTRAG, enableI);
 		if (bSammellieferschein) {
@@ -2557,8 +3340,9 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 
 		if (o instanceof BelegpositionDto[]) {
 			LieferscheinpositionDto[] lspositionDtos = DelegateFactory.getInstance()
-					.getBelegpostionkonvertierungDelegate()
-					.konvertiereNachLieferscheinpositionDto((BelegpositionDto[]) o);
+					.getBelegpostionkonvertierungDelegate().konvertiereNachLieferscheinpositionDto(
+							(BelegpositionDto[]) o, getLieferscheinDto().getKundeIIdLieferadresse(),
+							getLieferscheinDto().getTBelegdatum(), true);
 
 			int iInserted = 0;
 			if (lspositionDtos != null) {
@@ -2626,6 +3410,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 									fehlerMeldungDto = new LieferscheinpositionDto();
 									fehlerMeldungDto.setLieferscheinIId(positionDto.getLieferscheinIId());
 									fehlerMeldungDto.setPositionsartCNr(LocaleFac.POSITIONSART_TEXTEINGABE);
+									fehlerMeldungDto.setBNettopreisuebersteuert(Helper.getShortFalse());
 									Object pattern[] = { bdPosKopierteMenge };
 									String sText = LPMain.getTextRespectUISPr("ls.paste.seriennummernbehaftet");
 									String sTextFormattiert = MessageFormat.format(sText, pattern);
@@ -2642,27 +3427,28 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 											.getLagerDelegate()
 											.getAllSerienChargennrAufLager(positionDto.getArtikelIId(),
 													this.getLieferscheinDto().getLagerIId());
-									BigDecimal nLagerstd = dtos.length > 0 ? dtos[0].getNMenge()
-											: BigDecimal.ONE.negate();
-									if (nLagerstd.compareTo(positionDto.getNMenge()) >= 0) {
+									BigDecimal bdPosKopierteMenge = positionDto.getNMenge();
 
-									} else {
-										// Menge auf 0 setzen, und neue
-										// Texteingabeposition einfuegen, dass
-										// Chargennummer manuell eingetragen
-										// werden
-										// muss.
-										BigDecimal bdPosKopierteMenge = positionDto.getNMenge();
-										positionDto.setNMenge(nLagerstd);
-										fehlerMeldungDto = new LieferscheinpositionDto();
-										fehlerMeldungDto.setLieferscheinIId(positionDto.getLieferscheinIId());
-										fehlerMeldungDto.setPositionsartCNr(LocaleFac.POSITIONSART_TEXTEINGABE);
+									// Menge auf 0 setzen, und neue
+									// Texteingabeposition einfuegen, dass
+									// Chargennummer manuell eingetragen
+									// werden
+									// muss.
+									// ghp, 12.06.2015
+									// BigDecimal bdPosKopierteMenge =
+									// positionDto
+									// .getNMenge();
+									positionDto.setNMenge(new BigDecimal(0));
+									fehlerMeldungDto = new LieferscheinpositionDto();
+									fehlerMeldungDto.setLieferscheinIId(positionDto.getLieferscheinIId());
+									fehlerMeldungDto.setPositionsartCNr(LocaleFac.POSITIONSART_TEXTEINGABE);
+									fehlerMeldungDto.setBNettopreisuebersteuert(Helper.getShortFalse());
 
-										Object pattern[] = { bdPosKopierteMenge };
-										String sText = LPMain.getTextRespectUISPr("ls.paste.lagerstandfuerartikelleer");
-										String sTextFormattiert = MessageFormat.format(sText, pattern);
-										fehlerMeldungDto.setXTextinhalt(sTextFormattiert);
-									}
+									Object pattern[] = { bdPosKopierteMenge };
+									String sText = LPMain.getTextRespectUISPr("ls.paste.chargennummernbehaftet");
+									String sTextFormattiert = MessageFormat.format(sText, pattern);
+									fehlerMeldungDto.setXTextinhalt(sTextFormattiert);
+									// }
 								}
 								// lagerbewirtschaftet: Lagerstand ausreichend
 								else if (artikelDto != null
@@ -2680,9 +3466,9 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 													ParameterFac.PARAMETER_LAGER_IMMER_AUSREICHEND_VERFUEGBAR,
 													ParameterFac.KATEGORIE_ARTIKEL, LPMain.getTheClient().getMandant());
 
-									boolean bImmerAusreichendVerfuegbar = (Boolean) parameter.getCWertAsObject();
+									int bImmerAusreichendVerfuegbar = (Integer) parameter.getCWertAsObject();
 
-									if (bImmerAusreichendVerfuegbar == false) {
+									if (bImmerAusreichendVerfuegbar == 0) {
 										lagerstand = DelegateFactory.getInstance().getLagerDelegate()
 												.getLagerstandAllerLagerEinesMandanten(artikelDto.getIId());
 
@@ -2705,6 +3491,7 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 										fehlerMeldungDto = new LieferscheinpositionDto();
 										fehlerMeldungDto.setLieferscheinIId(positionDto.getLieferscheinIId());
 										fehlerMeldungDto.setPositionsartCNr(LocaleFac.POSITIONSART_TEXTEINGABE);
+										fehlerMeldungDto.setBNettopreisuebersteuert(Helper.getShortFalse());
 										Object pattern[] = { positionDto.getNMenge(), bdPosKopierteMenge };
 										String sText = LPMain.getTextRespectUISPr("ls.paste.lagerstandfuerartikelleer");
 										String sTextFormattiert = MessageFormat.format(sText, pattern);
@@ -2785,5 +3572,26 @@ public class TabbedPaneLieferschein extends TabbedPaneBasis implements ICopyPast
 		if (lieferscheinpositionDtoI.getBArtikelbezeichnunguebersteuert() == null) {
 			lieferscheinpositionDtoI.setBArtikelbezeichnunguebersteuert(Helper.boolean2Short(false));
 		}
+	}
+
+	private boolean hasZusatzfunktion4Vending() {
+		if (bZusatzfunktion4Vending == null) {
+			bZusatzfunktion4Vending = LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_4VENDING_SCHNITTSTELLE);
+		}
+		return bZusatzfunktion4Vending;
+	}
+
+	private void actionImportEasydataStockMovementsXML() {
+		XmlFile xmlFile = FileChooserBuilder
+				.createOpenDialog(FileChooserConfigToken.ImportXmlEasydataStockMovements, this).addXmlFilter()
+				.openSingle();
+		if (!xmlFile.hasFile())
+			return;
+
+		EasydataStockMovementImportCtrl stmCtrl = new EasydataStockMovementImportCtrl(xmlFile);
+		DialogEasydataStockMovementResult stmDialog = new DialogEasydataStockMovementResult(
+				LPMain.getInstance().getDesktop(), stmCtrl);
+		stmDialog.setVisible(true);
 	}
 }

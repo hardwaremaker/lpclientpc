@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.partner;
@@ -48,19 +48,22 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperMapButton;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.finanz.service.ReversechargeartDto;
+import com.lp.server.partner.service.KundeDto;
 import com.lp.server.partner.service.LieferantDto;
-import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.system.service.LandDto;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.LockMeDto;
 import com.lp.server.system.service.MandantDto;
-import com.lp.server.system.service.MwstsatzDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 /**
  * <p>Diese Klasse kuemmert sich Lieferantenkopfdaten.</p>
  *
@@ -74,10 +77,8 @@ import com.lp.util.Helper;
  */
 public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
+
 	private WrapperLabel wlaMwst = null;
 	private WrapperComboBox wcoMwst = null;
 	private WrapperLabel wlaKundennr = null;
@@ -86,17 +87,27 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 	private WrapperLabel wlaEinheitProzentRabatt = null;
 	private LockMeDto lockMePartner = null;
 
-	public PanelLieferantkopfdaten(InternalFrame internalFrame,
-			String add2TitleI, Object keyI) throws Throwable {
+//	public PanelLieferantkopfdaten(InternalFrame internalFrame,
+//			String add2TitleI, Object keyI) throws Throwable {
+//
+//		super(internalFrame, add2TitleI, keyI);
+//
+//		jbInit();
+//		initComponents();
+//		initPanel();
+//	}
 
-		super(internalFrame, add2TitleI, keyI);
+	public PanelLieferantkopfdaten(InternalFrame internalFrame,
+			String add2TitleI, Object keyI, IPartnerDtoService partnerDtoService) throws Throwable {
+		super(internalFrame, add2TitleI, keyI, partnerDtoService);
 
 		jbInit();
 		initComponents();
 		initPanel();
 	}
 
-	void jbInit() throws Exception {
+
+	void jbInit() throws Throwable {
 		resetToolsPanel();
 		String[] aButton = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
 				PanelBasis.ACTION_DELETE, PanelBasis.ACTION_DISCARD };
@@ -104,21 +115,21 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 
 		// Partnerfelder von der Oberklasse, es folgen die Lieferantenfelder.
 		wlaMwst = new WrapperLabel();
-		wlaMwst.setText(LPMain.getInstance().getTextRespectUISPr("part.mwst"));
+		wlaMwst.setText(LPMain.getTextRespectUISPr("part.mwst"));
 		wcoMwst = new WrapperComboBox();
 		// wcoMwst.setName(LPMain.getInstance().getTextRespectUISPr(
 		// "part.mwst"));
 
-		wlaKundennr = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.kundennummer"));
+		wlaKundennr = new WrapperLabel(
+				LPMain.getTextRespectUISPr("lp.kundennummer"));
 		wtfKundennr = new WrapperTextField();
 
-		wcbMoeglicherLieferant = new WrapperCheckBox(LPMain.getInstance()
-				.getTextRespectUISPr("part.moeglicher_lieferant"));
+		wcbMoeglicherLieferant = new WrapperCheckBox(
+				LPMain.getTextRespectUISPr("part.moeglicher_lieferant"));
 
 		wlaEinheitProzentRabatt = new WrapperLabel();
-		wlaEinheitProzentRabatt.setText(LPMain.getInstance()
-				.getTextRespectUISPr("label.prozent"));
+		wlaEinheitProzentRabatt.setText(
+				LPMain.getTextRespectUISPr("label.prozent"));
 		wlaEinheitProzentRabatt.setHorizontalAlignment(SwingConstants.LEFT);
 
 		// Zeile.
@@ -134,6 +145,18 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 		createAndSaveAndShowButton("/com/lp/client/res/book_open2.png",
 				LPMain.getTextRespectUISPr("part.partner.export.vcard"),
 				ACTION_SPECIAL_VCARD_EXPORT, null);
+		
+		wbuMapButton = new WrapperMapButton(getPartnerDto());
+		addButtonToToolpanel(wbuMapButton);
+		
+		
+		if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_COCKPIT)) {
+			if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_CP_COCKPIT_R)) {
+
+				createAndSaveAndShowButton("/com/lp/client/res/control_tower.png",
+						LPMain.getTextRespectUISPr("part.partner.goto.cockpit"), ACTION_SPECIAL_COCKPIT, null);
+			}
+		}
 	}
 
 	protected String getLockMeWer() throws Exception {
@@ -174,7 +197,7 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 				.getInstance()
 				.getMandantDelegate()
 				.getAllMwstsatzbez(
-						LPMain.getInstance().getTheClient().getMandant()));
+						LPMain.getTheClient().getMandant()));
 	}
 
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
@@ -195,9 +218,19 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 						.getInstance()
 						.getMandantDelegate()
 						.mandantFindByPrimaryKey(
-								LPMain.getInstance().getTheClient()
+								LPMain.getTheClient()
 										.getMandant());
 				// Aktuellen MWST-Satz uebersetzen.
+				// Achtung: wcoMwst ist in diesem Falle die BezId,
+				// es geht also "nur" darum, die BezId der Combobox 
+				// zu setzen, falls im Mandanten eine BezId gesetzt ist.
+/*				
+				Timestamp today = HelperTimestamp.cut();
+				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory.getInstance()
+						.getMandantDelegate().mwstsatzFindZuDatum(mandantDto.getMwstsatzbezIIdStandardinlandmwstsatz(), today);
+				wcoMwst.setKeyOfSelectedItem(mwstsatzDtoAktuell.getIIMwstsatzbezId());
+*/				
+/*				
 				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
 						.getInstance()
 						.getMandantDelegate()
@@ -205,6 +238,10 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 								mandantDto
 										.getMwstsatzbezIIdStandardinlandmwstsatz());
 				wcoMwst.setKeyOfSelectedItem(mwstsatzDtoAktuell.getIId());
+*/
+				if(mandantDto.getMwstsatzbezIIdStandardinlandmwstsatz() != null) {
+					wcoMwst.setKeyOfSelectedItem(mandantDto.getMwstsatzbezIIdStandardinlandmwstsatz());					
+				}
 
 				if (getInternalFrameLieferant().getLieferantDto()
 						.getPartnerIId() != null) {
@@ -297,7 +334,7 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 
 	/**
 	 * eventActionNew
-	 * 
+	 *
 	 * @param eventObject
 	 *            der event
 	 * @param bLockMeI
@@ -335,7 +372,7 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 	protected void setDefaults() throws Throwable {
 
 		getInternalFrameLieferant().getLieferantDto().setMandantCNr(
-				LPMain.getInstance().getTheClient().getMandant());
+				LPMain.getTheClient().getMandant());
 
 		super.setDefaults();
 
@@ -343,8 +380,12 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 
 		getInternalFrameLieferant().getLieferantDto().setBBeurteilen(
 				Helper.boolean2Short(true));
-		getInternalFrameLieferant().getLieferantDto().setBReversecharge(
-				Helper.boolean2Short(false));
+		
+		ReversechargeartDto rcartOhneDto = DelegateFactory.getInstance().getFinanzServiceDelegate().reversechargeartFindOhne() ;
+		getInternalFrameLieferant().getLieferantDto().setReversechargeartId(rcartOhneDto.getIId()); 
+//		
+//		getInternalFrameLieferant().getLieferantDto().setBReversecharge(
+//				Helper.boolean2Short(false));
 
 		getInternalFrameLieferant().getLieferantDto().setBVersteckt(
 				Helper.boolean2Short(false));
@@ -356,7 +397,7 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 				.getInstance()
 				.getMandantDelegate()
 				.mandantFindByPrimaryKey(
-						LPMain.getInstance().getTheClient().getMandant());
+						LPMain.getTheClient().getMandant());
 
 		getInternalFrameLieferant().getLieferantDto().setIdSpediteur(
 				mandantDto.getSpediteurIIdLF());
@@ -367,11 +408,14 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 
 		getInternalFrameLieferant().getLieferantDto().setWaehrungCNr(
 				mandantDto.getWaehrungCNr());
+
+		getInternalFrameLieferant().getLieferantDto().setIIdKostenstelle(
+				mandantDto.getIIdKostenstelle());
 	}
 
 	/**
 	 * Behandle Ereignis Save.
-	 * 
+	 *
 	 * @param e
 	 *            Ereignis
 	 * @param bNeedNoSaveI
@@ -379,6 +423,26 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 	 * @throws Throwable
 	 *             Ausnahme
 	 */
+	
+	
+	private static final int OPTION_JA = 0;
+	private static final int OPTION_UEBERSCHREIBEN = 1;
+	private static final int OPTION_VERWERFEN = 2;
+	
+	private int showLieferantSaveOptionsDialog() {
+		String[] options = { LPMain.getTextRespectUISPr("lp.ja"), LPMain.getTextRespectUISPr("lp.ueberschreiben"),
+				LPMain.getTextRespectUISPr("lp.verwerfen_ohne_frage") };
+		int iOption = DialogFactory.showModalDialog(getInternalFrame(),
+				LPMain.getTextRespectUISPr("part.lieferant.warning.lieferantbestehtschon"),
+				LPMain.getTextRespectUISPr("lp.frage"), options, 2);
+		if (iOption != OPTION_JA && iOption != OPTION_UEBERSCHREIBEN) {
+			iOption = OPTION_VERWERFEN;
+		}
+
+		return iOption;
+	}
+
+	
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
 			throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
@@ -387,6 +451,24 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 				checkLockedDlg(lockMePartner);
 			}
 			components2Dto();
+			
+			if (isBNeuAusPartner() && getPartnerDto().getIId() != null) {
+				LieferantDto lieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
+						.lieferantFindByiIdPartnercNrMandantOhneExc(getPartnerDto().getIId(),
+								LPMain.getTheClient().getMandant());
+				
+				if (lieferantDto != null && !Helper.short2boolean(lieferantDto.getBVersteckterkunde())) {
+					int dialogReturnValue = showLieferantSaveOptionsDialog();
+					if (dialogReturnValue == OPTION_JA) {
+						getPartnerDto().setIId(null);
+					} else if (dialogReturnValue == OPTION_VERWERFEN) {
+						doActionDiscard();
+						return;
+					}
+				}
+			}
+
+			
 
 			LieferantDto lieferantDto = getInternalFrameLieferant()
 					.getLieferantDto();
@@ -416,50 +498,12 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 		}
 	}
 
-	public void setDefaultMWSTforLand(LandDto landDto) {
-		try {
-			MandantDto mandantDto = DelegateFactory
-					.getInstance()
-					.getMandantDelegate()
-					.mandantFindByPrimaryKey(
-							LPMain.getInstance().getTheClient().getMandant());
-			String sLKZMandant = mandantDto.getPartnerDto().getLandplzortDto()
-					.getLandDto().getCLkz();
-			// Land != Mandantenland => ausland
-			if (!landDto.getCLkz().equals(sLKZMandant)) {
-
-				if (landDto.getEUMitglied() == null
-						|| landDto.getEUMitglied().after(
-								new java.sql.Date(System.currentTimeMillis()))) {
-					// Fuer Drittland soll MWST-Satz wie in Mandant definiert
-					// vorbesetzt werden
-					Integer mwstSatzIId = mandantDto
-							.getMwstsatzbezIIdStandarddrittlandmwstsatz();
-					if (mwstSatzIId != null) {
-						wcoMwst.setKeyOfSelectedItem(mwstSatzIId);
-					}
-				} else {
-					// Fuer EU-Ausland soll MWST-Satz wie in Mandant definiert
-					// vorbesetzt werden
-					Integer mwstSatzIId = mandantDto
-							.getMwstsatzbezIIdStandardauslandmwstsatz();
-					if (mwstSatzIId != null) {
-						wcoMwst.setKeyOfSelectedItem(mwstSatzIId);
-					}
-				}
-
-			} else {
-				Integer mwstSatzIId = mandantDto
-						.getMwstsatzbezIIdStandardinlandmwstsatz();
-				if (mwstSatzIId != null) {
-					wcoMwst.setKeyOfSelectedItem(mwstSatzIId);
-				}
-			}
-		} catch (Throwable e) {
-			// Sollte nicht vorkommen... und wenn doch dann gibts keinen MWST
-			// vorbesetzt
+	public void setDefaultMWSTforLand(LandDto landDto) throws ExceptionLP {
+		Integer mwstSatzIId = DelegateFactory.getInstance()
+				.getPartnerDelegate().getDefaultMWSTSatzIIdAnhandLand(landDto);
+		if (mwstSatzIId != null) {
+			wcoMwst.setKeyOfSelectedItem(mwstSatzIId);
 		}
-
 	}
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
@@ -467,13 +511,13 @@ public class PanelLieferantkopfdaten extends PanelPartnerDetail {
 		super.eventActionUpdate(aE, bNeedNoUpdateI);
 	}
 
-	protected void setPartnerDto(PartnerDto partnerDto) {
-		getInternalFrameLieferant().getLieferantDto().setPartnerDto(partnerDto);
-	}
-
-	protected PartnerDto getPartnerDto() {
-		return getInternalFrameLieferant().getLieferantDto().getPartnerDto();
-	}
+//	protected void setPartnerDto(PartnerDto partnerDto) {
+//		getInternalFrameLieferant().getLieferantDto().setPartnerDto(partnerDto);
+//	}
+//
+//	protected PartnerDto getPartnerDto() {
+//		return getInternalFrameLieferant().getLieferantDto().getPartnerDto();
+//	}
 
 	private InternalFrameLieferant getInternalFrameLieferant() {
 		return (InternalFrameLieferant) getInternalFrame();

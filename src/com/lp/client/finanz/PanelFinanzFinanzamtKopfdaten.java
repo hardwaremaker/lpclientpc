@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.finanz;
@@ -49,6 +49,8 @@ import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.partner.IPartnerDtoService;
 import com.lp.client.partner.PanelPartnerDetail;
 import com.lp.client.pc.LPMain;
 import com.lp.server.finanz.service.FinanzFac;
@@ -69,14 +71,14 @@ import com.lp.util.Helper;
  * <p>
  * Erstellungsdatum 11.04.05
  * </p>
- * 
+ *
  * @author $Author: adi $
  * @version $Revision: 1.6 $
  */
 
 public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private final TabbedPaneFinanzamt tabbedPaneFinanzamt;
@@ -90,11 +92,20 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 
 	private WrapperLabel wlaUmsatzRunden = new WrapperLabel();
 	private WrapperCheckBox wcbUmsatzRunden = new WrapperCheckBox();
-	
+
+//	public PanelFinanzFinanzamtKopfdaten(InternalFrame internalFrame,
+//			String add2TitleI, Object keyI,
+//			TabbedPaneFinanzamt tabbedPaneFinanzamt) throws Throwable {
+//		super(internalFrame, add2TitleI, keyI);
+//		this.tabbedPaneFinanzamt = tabbedPaneFinanzamt;
+//		jbInitPanel();
+//		initComponents();
+//	}
+
 	public PanelFinanzFinanzamtKopfdaten(InternalFrame internalFrame,
-			String add2TitleI, Object keyI,
+			String add2TitleI, Object keyI, IPartnerDtoService partnerDtoService,
 			TabbedPaneFinanzamt tabbedPaneFinanzamt) throws Throwable {
-		super(internalFrame, add2TitleI, keyI);
+		super(internalFrame, add2TitleI, keyI, partnerDtoService);
 		this.tabbedPaneFinanzamt = tabbedPaneFinanzamt;
 		jbInitPanel();
 		initComponents();
@@ -152,7 +163,7 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 		wtfFormularNr.setFractionDigits(0);
 		wlaFormularNr.setText(LPMain.getTextRespectUISPr("fb.formularnummer"));
 		wlaUmsatzRunden.setText(LPMain.getTextRespectUISPr("fb.umsatzrunden"));
-		
+
 		// ab hier einhaengen.
 		iZeile++;
 		jpaWorkingOn.add(wlaSteuerNr, new GridBagConstraints(0, iZeile, 1, 1,
@@ -198,9 +209,27 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 		getPartnerDto().setPartnerartCNr(PartnerFac.PARTNERART_SONSTIGES);
 	}
 
+	private InternalFrameFinanz getInternalFrameFinanz() {
+		return (InternalFrameFinanz) getInternalFrame() ;
+	}
+
+	private void pruefeSteuerkonten() throws Throwable {
+		if(getInternalFrameFinanz().getBVollversion()) {
+			try {
+				DelegateFactory.getInstance()
+					.getFinanzServiceDelegate().pruefeSteuerkonten(
+							getFinanzamtDto().getPartnerIId());
+			} catch(ExceptionLP e) {
+				String msg = LPMain.getInstance().getMsg(e) ;
+				DialogFactory.showMessageMitScrollbar(
+					LPMain.getTextRespectUISPr("finanz.steuerkonten.mehrfach"), msg, true);				
+			}
+		}		
+	}
+	
 	/**
 	 * Behandle Ereignis Save.
-	 * 
+	 *
 	 * @param e
 	 *            Ereignis
 	 * @param bNeedNoSaveI
@@ -211,10 +240,14 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 			throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
+
+			pruefeSteuerkonten();
+		
 			FinanzamtDto updatedFA = DelegateFactory.getInstance()
 					.getFinanzDelegate().updateFinanzamt(getFinanzamtDto());
 			setKeyWhenDetailPanel(updatedFA.getPartnerIId());
 			getTabbedPaneFinanzamt().setFinanzamtDto(updatedFA);
+			
 			super.eventActionSave(e, true);
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
 				// der erste eintrag wurde angelegt
@@ -248,7 +281,7 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 
 	/**
 	 * eventActionNew
-	 * 
+	 *
 	 * @param eventObject
 	 *            der event
 	 * @param bLockMeI
@@ -313,7 +346,7 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 
 	/**
 	 * Setze alle Defaultwerte.
-	 * 
+	 *
 	 * @throws Throwable
 	 */
 	protected void setDefaults() throws Throwable {
@@ -344,13 +377,13 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 		return getTabbedPaneFinanzamt().getFinanzamtDto();
 	}
 
-	protected PartnerDto getPartnerDto() {
-		return getTabbedPaneFinanzamt().getFinanzamtDto().getPartnerDto();
-	}
-
-	protected void setPartnerDto(PartnerDto partnerDto) {
-		getTabbedPaneFinanzamt().getFinanzamtDto().setPartnerDto(partnerDto);
-	}
+//	protected PartnerDto getPartnerDto() {
+//		return getTabbedPaneFinanzamt().getFinanzamtDto().getPartnerDto();
+//	}
+//
+//	protected void setPartnerDto(PartnerDto partnerDto) {
+//		getTabbedPaneFinanzamt().getFinanzamtDto().setPartnerDto(partnerDto);
+//	}
 
 	protected String getLockMeWer() {
 		return HelperClient.LOCKME_FINANZ_FINANZAMT;
@@ -358,7 +391,7 @@ public class PanelFinanzFinanzamtKopfdaten extends PanelPartnerDetail {
 
 	/**
 	 * Update alle Components.
-	 * 
+	 *
 	 * @throws Throwable
 	 */
 	private void updateComponentsPanel() throws Throwable {

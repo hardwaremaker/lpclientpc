@@ -148,7 +148,7 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 			iPreisbasis = (Integer) parameter.getCWertAsObject();
 		}
 
-		if (iPreisbasis == 1) {
+		if (iPreisbasis == 1 || iPreisbasis == 3) {
 			wrbVerkaufspreisbasis.setText(LPMain.getInstance()
 					.getTextRespectUISPr(
 							"part.kundensoko.preisbasis.preisliste"));
@@ -161,6 +161,8 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 		wnfMenge.setEditable(false);
 		wlaMengeeinheit = new WrapperLabel(panelDialogPreisvorschlagDto
 				.getArtikelDto().getEinheitCNr().trim());
+
+		wlaMengeeinheit.setHorizontalAlignment(SwingConstants.LEFT);
 
 		jpaWorkingOn.add(wlaMenge, new GridBagConstraints(3, 1, 1, 1, 0.0, 0.0,
 				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
@@ -493,10 +495,18 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 						new Insets(2, 2, 2, 2), 0, 0));
 
+		wnfMaterialzuschlag.setBigDecimal(panelDialogPreisvorschlagDto
+				.getNMaterialzuschlag());
+
 		if (panelDialogPreisvorschlagDto.getArtikelDto().getMaterialIId() != null) {
+			jpaWorkingOn.add(wlaMaterialzuschlagZumBelegdatum,
+					new GridBagConstraints(5, iZeile, 2, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+							new Insets(2, 2, 2, 2), 0, 0));
+
 			iZeile++;
 
-			jpaWorkingOn.add(wlaMaterialzuschlag, new GridBagConstraints(0,
+			jpaWorkingOn.add(wrbMaterialzuschlag, new GridBagConstraints(0,
 					iZeile, 4, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			jpaWorkingOn.add(wnfMaterialzuschlag, new GridBagConstraints(4,
@@ -504,8 +514,18 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			jpaWorkingOn.add(wlaMaterialzuschlagWaehrung,
 					new GridBagConstraints(5, iZeile, 1, 1, 0.0, 0.0,
+							GridBagConstraints.WEST, GridBagConstraints.NONE,
+							new Insets(2, 2, 2, 2), 30, 0));
+			jpaWorkingOn.add(wrbMaterialzuschlagZumBelegdatum,
+					new GridBagConstraints(5, iZeile, 1, 1, 0.0, 0.0,
+							GridBagConstraints.EAST, GridBagConstraints.NONE,
+							new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wnfMaterialzuschlagZumBelegdatum,
+					new GridBagConstraints(6, iZeile, 1, 1, 0.0, 0.0,
 							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 							new Insets(2, 2, 2, 2), 0, 0));
+
+			befuelleUndPrufeMaterialzuschlagZumGueltigkeitsdatum();
 		}
 
 		// die beiden Buttons fuer die anderen VK-Stufen
@@ -592,9 +612,14 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 
 		if (panelDialogPreisvorschlagDto.getNFixPreis() != null) {
 
+			BigDecimal fixPreis = panelDialogPreisvorschlagDto.getNFixPreis();
+			if (panelDialogPreisvorschlagDto.getNMaterialzuschlag() != null) {
+				fixPreis = fixPreis.subtract(panelDialogPreisvorschlagDto
+						.getNMaterialzuschlag());
+			}
+
 			if (wnfVerkaufspreisbasis.getBigDecimal() != null
-					&& wnfVerkaufspreisbasis.getBigDecimal().equals(
-							panelDialogPreisvorschlagDto.getNFixPreis())) {
+					&& wnfVerkaufspreisbasis.getBigDecimal().equals(fixPreis)) {
 				wrbVerkaufspreisbasis.setSelected(true);
 
 			} else {
@@ -602,21 +627,14 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 				boolean bPreisGefunden = false;
 				for (int i = 0; i < aKundesokomengenstaffelDtos.length; i++) {
 					if (awnfBerechneterPreis[i].getBigDecimal() != null
-							&& awnfBerechneterPreis[i].getBigDecimal()
-									.equals(panelDialogPreisvorschlagDto
-											.getNFixPreis())) {
+							&& awnfBerechneterPreis[i].getBigDecimal().equals(
+									fixPreis)) {
 						awrbKundesokomengenstaffel[i].setSelected(true);
 						bPreisGefunden = true;
 					}
 				}
 				if (bPreisGefunden == false) {
-					BigDecimal fixPreis = panelDialogPreisvorschlagDto
-							.getNFixPreis();
-					if (panelDialogPreisvorschlagDto.getNMaterialzuschlag() != null) {
-						fixPreis = fixPreis
-								.subtract(panelDialogPreisvorschlagDto
-										.getNMaterialzuschlag());
-					}
+
 					wrbHandeingabeFixpreis.setSelected(true);
 					wnfHandeingabeFixpreis.setBigDecimal(fixPreis);
 					wnfHandeingabeFixpreis.setMandatoryField(true);
@@ -714,6 +732,15 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 			}
 		}
 
+		// SP5361
+		if (wrbMaterialzuschlagZumBelegdatum.isSelected()
+				&& panelDialogPreisvorschlagDto.getArtikelDto()
+						.getMaterialIId() != null) {
+			panelDialogPreisvorschlagDto
+					.setNMaterialzuschlag(wnfMaterialzuschlagZumBelegdatum
+							.getBigDecimal());
+		}
+
 		if (wrbHandeingabeFixpreis.isSelected()) {
 			panelDialogPreisvorschlagDto
 					.setIIdKundesokomengenstaffelZuletztGewaehlt(null);
@@ -724,9 +751,12 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 			MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
 					.getInstance()
 					.getMandantDelegate()
-					.mwstsatzFindByMwstsatzbezIIdAktuellster(
+					.mwstsatzFindZuDatum(
 							panelDialogPreisvorschlagDto.getKundeDto()
-									.getMwstsatzbezIId());
+									.getMwstsatzbezIId(),
+							new java.sql.Timestamp(panelDialogPreisvorschlagDto
+									.getDatGueltigkeitsdatumFuerPreise()
+									.getTime()));
 			if (nVkbasisInBelegwaehrung.intValue() == 0)
 				nVkbasisInBelegwaehrung = wnfHandeingabeFixpreis
 						.getBigDecimal();
@@ -762,9 +792,13 @@ public class PanelDialogPreisvorschlagKundesokomengenstaffel extends
 				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
 						.getInstance()
 						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(
+						.mwstsatzFindZuDatum(
 								panelDialogPreisvorschlagDto.getKundeDto()
-										.getMwstsatzbezIId());
+										.getMwstsatzbezIId(),
+								new java.sql.Timestamp(
+										panelDialogPreisvorschlagDto
+												.getDatGueltigkeitsdatumFuerPreise()
+												.getTime()));
 				/*
 				 * // wenn es in der Anzeige einen Fixpreis gibt, dann gilt
 				 * dieser als Basis // und wird nicht ueberschrieben if

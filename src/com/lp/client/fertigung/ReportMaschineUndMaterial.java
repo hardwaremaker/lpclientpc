@@ -50,6 +50,7 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperDateRangeController;
 import com.lp.client.frame.component.WrapperLabel;
@@ -85,8 +86,8 @@ public class ReportMaschineUndMaterial extends PanelBasis implements
 	private WrapperDateField wdfBis = new WrapperDateField();
 	private WrapperDateRangeController wdrBereich = null;
 
-	private WrapperSelectField wsfMaschine = new WrapperSelectField(
-			WrapperSelectField.MASCHINE, getInternalFrame(), true);
+	private WrapperLabel wlaMaschine = new WrapperLabel();
+	private WrapperComboBox wcbMaschine = new WrapperComboBox();
 
 	public ReportMaschineUndMaterial(InternalFrameFertigung internalFrame,
 			String add2Title) throws Throwable {
@@ -103,14 +104,13 @@ public class ReportMaschineUndMaterial extends PanelBasis implements
 		c.set(c.SECOND, 0);
 		c.set(c.MILLISECOND, 0);
 
-
 		wdfVon.setTimestamp(new java.sql.Timestamp(c.getTimeInMillis()));
-		
+
 		c = Calendar.getInstance();
 		c.add(Calendar.DATE, 7);
 		c.set(Calendar.DAY_OF_WEEK, Calendar.FRIDAY);
 		wdfBis.setTimestamp(new java.sql.Timestamp(c.getTimeInMillis()));
-		
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -138,8 +138,14 @@ public class ReportMaschineUndMaterial extends PanelBasis implements
 		wlaVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
 		wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
 
+		wlaMaschine.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.maschine"));
+
+		wcbMaschine.setEmptyEntry(LPMain.getTextRespectUISPr("lp.alle"));
+		wcbMaschine.setMap(DelegateFactory.getInstance()
+				.getZeiterfassungDelegate().getAllMaschinen());
+
 		// Auf Fr. naechste Woche vorbesetzen
-		
 
 		wdrBereich = new WrapperDateRangeController(wdfVon, wdfBis);
 
@@ -167,16 +173,12 @@ public class ReportMaschineUndMaterial extends PanelBasis implements
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wsfMaschine.getWrapperButton(),
-				new GridBagConstraints(0, 6, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wsfMaschine.getWrapperTextField(),
-				new GridBagConstraints(2, 6, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
+		jpaWorkingOn.add(wlaMaschine, new GridBagConstraints(0, 6, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbMaschine, new GridBagConstraints(2, 6, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
@@ -190,10 +192,23 @@ public class ReportMaschineUndMaterial extends PanelBasis implements
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 
+		Integer maschineIId = null;
+		Integer maschinengruppeIId = null;
+
+		String s = (String) wcbMaschine.getKeyOfSelectedItem();
+
+		if (s != null) {
+			if (s.startsWith("M")) {
+				maschineIId = new Integer(s.substring(1));
+			} else if (s.startsWith("G")) {
+				maschinengruppeIId = new Integer(s.substring(1));
+			}
+		}
+
 		return DelegateFactory
 				.getInstance()
 				.getFertigungDelegate()
-				.printMaschineUndMaterial(wsfMaschine.getIKey(),
+				.printMaschineUndMaterial(maschineIId, maschinengruppeIId,
 						wdrBereich.getDatumsfilterVonBis());
 	}
 

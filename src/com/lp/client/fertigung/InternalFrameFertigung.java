@@ -37,10 +37,12 @@ import java.util.EventObject;
 import javax.swing.ImageIcon;
 import javax.swing.JTabbedPane;
 
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.fertigung.service.LosbereichDto;
@@ -49,6 +51,9 @@ import com.lp.server.fertigung.service.LosstatusDto;
 import com.lp.server.fertigung.service.WiederholendeloseDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
+import com.lp.util.EJBExceptionLP;
 
 @SuppressWarnings("static-access")
 /**
@@ -75,13 +80,22 @@ public class InternalFrameFertigung extends InternalFrame {
 	private TabbedPaneFertigungGrunddaten tabbedPaneGrunddaten = null;
 	private TabbedPaneWiederholendelose tabbedPaneWiederholendelose = null;
 	private TabbedPaneOffeneAG tabbedPaneOffeneAG = null;
+	private TabbedPaneMehrereLoseErledigenStornieren tabbedPaneMehrereLoseErledigenStornieren = null;
+	private TabbedPaneBedarfsuebernahme tabbedPaneBedarfsuebernahme = null;
+	private TabbedPaneTrumpf tabbedPaneTrumpf = null;
+
+
+	public boolean bHatProFirst = false;
 
 	public static int IDX_TABBED_PANE_LOS = 0;
 	private int IDX_TABBED_PANE_OFFENE_AGS = -1;
 	public int IDX_TABBED_PANE_INTERNEBESTELLUNG = -1;
 	private int IDX_TABBED_PANE_KAPAZITAETSVORSCHAU = -1;
 	private int IDX_TABBED_PANE_WIEDERHOLENDELOSE = -1;
+	private int IDX_TABBED_PANE_MEHRERE_LOSE_ERLEDIGEN_STORNIEREN = -1;
 	private int IDX_TABBED_PANE_GRUNDDATEN = -1;
+	private int IDX_TABBED_PANE_BEDARFSUEBERNAHME = -1;
+	public int IDX_TABBED_PANE_TRUMPF = -1;
 
 	private LosstatusDto losstatusDto = null;
 	private LosklasseDto losklasseDto = new LosklasseDto();
@@ -101,6 +115,18 @@ public class InternalFrameFertigung extends InternalFrame {
 			String sRechtModulweitI) throws Throwable {
 
 		super(title, belegartCNr, sRechtModulweitI);
+		ParametermandantDto parameter = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(
+						LPMain.getInstance().getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_STUECKLISTE,
+						ParameterFac.PARAMETER_PRO_FIRST_DBURL);
+		String dburl = parameter.getCWert();
+		if (dburl != null && dburl.trim().length() > 0) {
+			bHatProFirst = true;
+		}
+
 		jbInit();
 		initComponents();
 	}
@@ -116,26 +142,42 @@ public class InternalFrameFertigung extends InternalFrame {
 				null,
 				LPMain.getInstance().getTextRespectUISPr(
 						"fert.tab.unten.los.tooltip"), IDX_TABBED_PANE_LOS);
+
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_ZEITERFASSUNG)) {
+
+			tabIndex++;
+			IDX_TABBED_PANE_OFFENE_AGS = tabIndex;
+			// 2 tab unten: Interne Bestellung
+			tabbedPaneRoot.insertTab(
+					LPMain.getInstance().getTextRespectUISPr("fert.offeneags"),
+					null, null,
+					LPMain.getInstance().getTextRespectUISPr("fert.offeneags"),
+					IDX_TABBED_PANE_OFFENE_AGS);
+		}
+
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_FERT_LOS_CUD)) {
-
 			if (LPMain
 					.getInstance()
 					.getDesktop()
-					.darfAnwenderAufModulZugreifen(
-							LocaleFac.BELEGART_ZEITERFASSUNG)) {
-
+					.darfAnwenderAufZusatzfunktionZugreifen(
+							MandantFac.ZUSATZFUNKTION_HVMA_ZEITERFASSUNG)) {
 				tabIndex++;
-				IDX_TABBED_PANE_OFFENE_AGS = tabIndex;
+				IDX_TABBED_PANE_BEDARFSUEBERNAHME = tabIndex;
 				// 2 tab unten: Interne Bestellung
 				tabbedPaneRoot.insertTab(
 						LPMain.getInstance().getTextRespectUISPr(
-								"fert.offeneags"),
+								"fert.bedarfsuebernahme"),
 						null,
 						null,
 						LPMain.getInstance().getTextRespectUISPr(
-								"fert.offeneags"), IDX_TABBED_PANE_OFFENE_AGS);
+								"fert.bedarfsuebernahme"),
+						IDX_TABBED_PANE_BEDARFSUEBERNAHME);
 			}
+
 			tabIndex++;
 			IDX_TABBED_PANE_INTERNEBESTELLUNG = tabIndex;
 			// 2 tab unten: Interne Bestellung
@@ -176,7 +218,28 @@ public class InternalFrameFertigung extends InternalFrame {
 					LPMain.getInstance().getTextRespectUISPr(
 							"fert.wiederholendelose"),
 					IDX_TABBED_PANE_WIEDERHOLENDELOSE);
+			tabIndex++;
+			IDX_TABBED_PANE_MEHRERE_LOSE_ERLEDIGEN_STORNIEREN = tabIndex;
+			tabbedPaneRoot.insertTab(
+					LPMain.getInstance().getTextRespectUISPr(
+							"fert.los.mehrereerledigen"),
+					null,
+					null,
+					LPMain.getInstance().getTextRespectUISPr(
+							"fert.los.mehrereerledigen"),
+					IDX_TABBED_PANE_MEHRERE_LOSE_ERLEDIGEN_STORNIEREN);
 		}
+		
+		
+		//PJ22507
+		if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(
+				MandantFac.ZUSATZFUNKTION_TRUTOPS_BOOST)) {
+			tabIndex++;
+			IDX_TABBED_PANE_TRUMPF = tabIndex;
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.trumpf"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("artikel.trumpf"), IDX_TABBED_PANE_TRUMPF);
+		}
+		
 		// 4 tab unten: Grunddaten
 		// nur anzeigen wenn Benutzer Recht dazu hat
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
@@ -207,8 +270,23 @@ public class InternalFrameFertigung extends InternalFrame {
 		setFrameIcon(iicon);
 	}
 
+	
+
+	private void createTabbedPaneTrumpf() throws Throwable { // vkpf:
+		if (tabbedPaneTrumpf == null) {
+			// lazy loading
+			tabbedPaneTrumpf = new TabbedPaneTrumpf(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_TRUMPF, tabbedPaneTrumpf);
+			initComponents();
+		}
+	}
+	
+	
 	public void lPStateChanged(EventObject e) throws Throwable {
 		int selectedCur = ((JTabbedPane) e.getSource()).getSelectedIndex();
+
+		DelegateFactory.getInstance().getFertigungDelegate()
+				.removeLockDerInternenBestellungWennIchIhnSperre();
 
 		if (selectedCur == IDX_TABBED_PANE_LOS) {
 			// Info an Tabbedpane, bist selektiert worden.
@@ -218,11 +296,40 @@ public class InternalFrameFertigung extends InternalFrame {
 			getTabbedPaneGrunddaten().lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_INTERNEBESTELLUNG) {
 			// Info an Tabbedpane, bist selektiert worden.
-			getTabbedPaneInternebestellung().lPEventObjectChanged(null);
-			setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+			try {
+				DelegateFactory.getInstance().getFertigungDelegate()
+						.pruefeBearbeitenDerInternenBestellungErlaubt();
+
+				getTabbedPaneInternebestellung().lPEventObjectChanged(null);
+				setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+
+			} catch (ExceptionLP efc) {
+				if (efc != null
+						&& efc.getICode() == EJBExceptionLP.FEHLER_INTERNEBESTELLUNG_IST_GESPERRT) {
+					tabbedPaneRoot.setSelectedComponent(tabbedPaneLos);
+					// Benutzer der gerade sperrt finden
+					String[] sHelper = efc.getSMsg().split(" ");
+					String sLocker = DelegateFactory
+							.getInstance()
+							.getPersonalDelegate()
+							.personalFindByPrimaryKey(
+									Integer.parseInt(sHelper[sHelper.length - 1]))
+							.getCKurzzeichen();
+					DialogFactory.showModalDialog(
+							LPMain.getTextRespectUISPr("lp.warning"), LPMain
+									.getInstance().getMsg(efc) + sLocker);
+				} else {
+					throw efc;
+				}
+			}
+
 		} else if (selectedCur == IDX_TABBED_PANE_OFFENE_AGS) {
 			// Info an Tabbedpane, bist selektiert worden.
 			getTabbedPaneOffeneAG().lPEventObjectChanged(null);
+			setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+		} else if (selectedCur == IDX_TABBED_PANE_BEDARFSUEBERNAHME) {
+			// Info an Tabbedpane, bist selektiert worden.
+			getTabbedPaneBedarfsuebernahme().lPEventObjectChanged(null);
 			setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
 		} else if (selectedCur == IDX_TABBED_PANE_KAPAZITAETSVORSCHAU) {
 			// Info an Tabbedpane, bist selektiert worden.
@@ -232,7 +339,15 @@ public class InternalFrameFertigung extends InternalFrame {
 			// Info an Tabbedpane, bist selektiert worden.
 			getTabbedPaneWiederholendelose().lPEventObjectChanged(null);
 			setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
-		}
+		} else if (selectedCur == IDX_TABBED_PANE_MEHRERE_LOSE_ERLEDIGEN_STORNIEREN) {
+			// Info an Tabbedpane, bist selektiert worden.
+			getTabbedPaneMehrereLoseErledigen().lPEventObjectChanged(null);
+			setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+		} else if (selectedCur == IDX_TABBED_PANE_TRUMPF) {
+			createTabbedPaneTrumpf();
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneTrumpf.lPEventObjectChanged(null);
+		} 
 	}
 
 	public TabbedPaneLos getTabbedPaneLos() throws Throwable {
@@ -270,6 +385,28 @@ public class InternalFrameFertigung extends InternalFrame {
 		}
 		return tabbedPaneOffeneAG;
 	}
+	private TabbedPaneBedarfsuebernahme getTabbedPaneBedarfsuebernahme() throws Throwable {
+		if (tabbedPaneBedarfsuebernahme == null) {
+			// lazy loading
+			tabbedPaneBedarfsuebernahme = new TabbedPaneBedarfsuebernahme(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_BEDARFSUEBERNAHME,
+					tabbedPaneBedarfsuebernahme);
+		}
+		return tabbedPaneBedarfsuebernahme;
+	}
+
+	private TabbedPaneMehrereLoseErledigenStornieren getTabbedPaneMehrereLoseErledigen()
+			throws Throwable {
+		if (tabbedPaneMehrereLoseErledigenStornieren == null) {
+			// lazy loading
+			tabbedPaneMehrereLoseErledigenStornieren = new TabbedPaneMehrereLoseErledigenStornieren(
+					this);
+			tabbedPaneRoot.setComponentAt(
+					IDX_TABBED_PANE_MEHRERE_LOSE_ERLEDIGEN_STORNIEREN,
+					tabbedPaneMehrereLoseErledigenStornieren);
+		}
+		return tabbedPaneMehrereLoseErledigenStornieren;
+	}
 
 	private TabbedPaneKapazitaetsvorschau getTabbedPaneKapazitaetsvorschau()
 			throws Throwable {
@@ -279,6 +416,7 @@ public class InternalFrameFertigung extends InternalFrame {
 					this);
 			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_KAPAZITAETSVORSCHAU,
 					tabbedPaneKapazitaetsvorschau);
+			initComponents();
 		}
 		return tabbedPaneKapazitaetsvorschau;
 	}

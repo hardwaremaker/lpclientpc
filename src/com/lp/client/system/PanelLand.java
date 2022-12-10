@@ -38,9 +38,10 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.EventObject;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -50,11 +51,10 @@ import javax.swing.border.Border;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
-import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelVonBisDates;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
-import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperSelectField;
@@ -62,9 +62,9 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.LandDto;
+import com.lp.server.system.service.LandsprDto;
 import com.lp.server.system.service.SystemFac;
 
-@SuppressWarnings("static-access")
 /*
  * <p><I>Diese Klasse kuemmert sich ...</I> </p>
  * 
@@ -95,10 +95,14 @@ public class PanelLand extends PanelBasis {
 	private WrapperTextField wtfLKZ = new WrapperTextField();
 	private WrapperLabel wlaLand = new WrapperLabel();
 	private WrapperTextField wtfLand = new WrapperTextField();
+
+	private WrapperLabel wlaLandBez = new WrapperLabel();
+	private WrapperTextField wtfLandBez = new WrapperTextField();
+
 	private WrapperComboBox wcbWaehrung = null;
 	private WrapperLabel wlaWaehrung = new WrapperLabel();
 	private Map<?, ?> tmWaehrungen = null;
-	private WrapperDateField wdfEUMitgliedSeit = null;
+//	private WrapperDateField wdfEUMitgliedSeit = null;
 	private WrapperLabel wlaEUMitgliedSeit = null;
 	private WrapperNumberField wnfUIDNummerPruefenAbBetrag = null;
 	private WrapperLabel wlaUIDNummerPruefenAbBetrag = null;
@@ -110,13 +114,21 @@ public class PanelLand extends PanelBasis {
 	private WrapperNumberField wnfLaengeUIDNummer = new WrapperNumberField();
 	private WrapperCheckBox wcbSepa = new WrapperCheckBox();
 	private WrapperCheckBox wcbPlzNachOrt = new WrapperCheckBox();
+	private WrapperCheckBox wcbPostfachMitStrasse = new WrapperCheckBox();
+	private WrapperCheckBox wcbMwstMuenzRundung = new WrapperCheckBox();
+	
+	private WrapperCheckBox wcbPraeferenzbeguenstigt = new WrapperCheckBox();
 
 	private WrapperSelectField wsfGemeinsamesPostland = new WrapperSelectField(
 			WrapperSelectField.LAND, getInternalFrame(), true);
 
 	private WrapperLabel wlaRundungswerte = new WrapperLabel();
 	private WrapperComboBox wcbRundungswerte = null;
-	private Map<BigDecimal, String> tmRundungswerte = null;
+	private TreeMap<BigDecimal, String> tmRundungswerte = null;
+	
+	private PanelVonBisDates panelEUMitgliedVonBis;
+	private WrapperLabel wlaFibuUstCode = new WrapperLabel();
+	private WrapperTextField wtfFibuUstCode = new WrapperTextField();
 
 	public PanelLand(InternalFrame internalFrame, String add2TitleI, Object pk)
 			throws Throwable {
@@ -128,16 +140,34 @@ public class PanelLand extends PanelBasis {
 	}
 
 	private void initRundungswerte() {
-		tmRundungswerte = new HashMap<BigDecimal, String>() {
+		// tmRundungswerte = new HashMap<BigDecimal, String>() {
+		tmRundungswerte = new TreeMap<BigDecimal, String>(
+				new Comparator<BigDecimal>() {
+					@Override
+					public int compare(BigDecimal o1, BigDecimal o2) {
+						int diff = o1.abs().compareTo(o2.abs());
+						if (diff == 0) {
+							return o1.compareTo(o2);
+						}
+						return diff;
+					}
+				}) {
+			private static final long serialVersionUID = 6333381853056019434L;
 			{
 				// put(null, "<keine Rundung>");
-				put(new BigDecimal("0.05"), "0.05");
-				put(new BigDecimal("0.10"), "0.10");
+				put(new BigDecimal("0.05"),
+						LPMain.getTextRespectUISPr("lp.land.rundung.05"));
+				put(new BigDecimal("-0.05"),
+						LPMain.getTextRespectUISPr("lp.land.rundung.m05"));
+				put(new BigDecimal("0.10"),
+						LPMain.getTextRespectUISPr("lp.land.rundung.10"));
+				put(new BigDecimal("-0.10"),
+						LPMain.getTextRespectUISPr("lp.land.rundung.m10"));
 			}
 		};
 		wcbRundungswerte = new WrapperComboBox();
 		wcbRundungswerte.setMap(tmRundungswerte);
-		wlaRundungswerte.setText(LPMain.getInstance().getTextRespectUISPr(
+		wlaRundungswerte.setText(LPMain.getTextRespectUISPr(
 				"lp.land.muenzrundung"));
 
 	}
@@ -147,7 +177,7 @@ public class PanelLand extends PanelBasis {
 				.getAllWaehrungen();
 		wcbWaehrung.setMap(tmWaehrungen);
 		// Mandantenwaehrung
-		wlaMandantenwaehrung.setText(LPMain.getInstance().getTheClient()
+		wlaMandantenwaehrung.setText(LPMain.getTheClient()
 				.getSMandantenwaehrung());
 	}
 
@@ -180,10 +210,16 @@ public class PanelLand extends PanelBasis {
 	protected void components2Dto() throws Throwable {
 		getLandDto().setCLkz(wtfLKZ.getText());
 		getLandDto().setCName(wtfLand.getText());
+
+		if (getLandDto().getLandsprDto() == null) {
+			getLandDto().setLandsprDto(new LandsprDto());
+		}
+		getLandDto().getLandsprDto().setCBez(wtfLandBez.getText());
+
 		getLandDto().setCTelvorwahl(wtfVorwahl.getText());
 		getLandDto()
 				.setWaehrungCNr((String) wcbWaehrung.getKeyOfSelectedItem());
-		getLandDto().setTEUMitglied(wdfEUMitgliedSeit.getDate());
+		getLandDto().setTEUMitgliedVon(panelEUMitgliedVonBis.getDateVon());
 		getLandDto().setNUidnummerpruefenabbetrag(
 				wnfUIDNummerPruefenAbBetrag.getBigDecimal());
 		getLandDto().setILaengeuidnummer(wnfLaengeUIDNummer.getInteger());
@@ -191,16 +227,29 @@ public class PanelLand extends PanelBasis {
 		getLandDto().setFGmtversatz(wnfGmtVersatz.getDouble());
 		getLandDto().setNMuenzRundung(
 				(BigDecimal) wcbRundungswerte.getKeyOfSelectedItem());
-		getLandDto().setLandIIdGemeinsamespostland(wsfGemeinsamesPostland.getIKey());
+		getLandDto().setLandIIdGemeinsamespostland(
+				wsfGemeinsamesPostland.getIKey());
 		getLandDto().setBPlznachort(wcbPlzNachOrt.getShort());
+		getLandDto().setBPostfachmitstrasse(wcbPostfachMitStrasse.getShort());
+		getLandDto().setBMwstMuenzRundung(wcbMwstMuenzRundung.getShort());
+		getLandDto().setBPraeferenzbeguenstigt(wcbPraeferenzbeguenstigt.getShort());
+		getLandDto().setTEUMitgliedBis(panelEUMitgliedVonBis.getDateBis());
+		getLandDto().setCUstcode(wtfFibuUstCode.getText());
 	}
 
 	protected void dto2Components() throws Throwable {
 		wtfVorwahl.setText(getLandDto().getCTelvorwahl());
 		wtfLKZ.setText(getLandDto().getCLkz());
 		wtfLand.setText(getLandDto().getCName());
+
+		if (getLandDto().getLandsprDto() != null) {
+			wtfLandBez.setText(getLandDto().getLandsprDto().getCBez());
+		} else {
+			wtfLandBez.setText(null);
+		}
+
 		wcbWaehrung.setKeyOfSelectedItem(getLandDto().getWaehrungCNr());
-		wdfEUMitgliedSeit.setDate(getLandDto().getEUMitglied());
+		panelEUMitgliedVonBis.setDateVon(getLandDto().getTEUMitgliedVon());
 		wnfUIDNummerPruefenAbBetrag.setBigDecimal(getLandDto()
 				.getNUidnummerpruefenabbetrag());
 		wnfLaengeUIDNummer.setInteger(getLandDto().getILaengeuidnummer());
@@ -208,8 +257,14 @@ public class PanelLand extends PanelBasis {
 		wcbSepa.setShort(getLandDto().getBSepa());
 		wnfGmtVersatz.setDouble(getLandDto().getFGmtversatz());
 		wcbRundungswerte.setKeyOfSelectedItem(getLandDto().getNMuenzRundung());
-		wsfGemeinsamesPostland.setKey(getLandDto().getLandIIdGemeinsamespostland());
+		wsfGemeinsamesPostland.setKey(getLandDto()
+				.getLandIIdGemeinsamespostland());
 		wcbPlzNachOrt.setShort(getLandDto().getBPlznachort());
+		wcbPostfachMitStrasse.setShort(getLandDto().getBPostfachmitstrasse());
+		wcbMwstMuenzRundung.setShort(getLandDto().getBMwstMuenzRundung());
+		wcbPraeferenzbeguenstigt.setShort(getLandDto().getBPraeferenzbeguenstigt());
+		panelEUMitgliedVonBis.setDateBis(getLandDto().getTEUMitgliedBis());
+		wtfFibuUstCode.setText(getLandDto().getCUstcode());
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -239,7 +294,7 @@ public class PanelLand extends PanelBasis {
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
-		ItemChangedEvent e = (ItemChangedEvent) eI;
+//		ItemChangedEvent e = (ItemChangedEvent) eI;
 	}
 
 	private void jbInit() throws Throwable {
@@ -263,55 +318,59 @@ public class PanelLand extends PanelBasis {
 				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(0, 0, 0, 0), 0, 0));
 
-		wlaVorwahl.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.vorwahl"));
-		
-		
-		wsfGemeinsamesPostland.getWrapperButton().setText(LPMain.getInstance().getTextRespectUISPr(
-		"lp.land.gemeinsamespostland")+"...");
+		wlaVorwahl.setText(LPMain.getTextRespectUISPr("lp.vorwahl"));
 
+		wsfGemeinsamesPostland.getWrapperButton().setText(
+				LPMain.getTextRespectUISPr("lp.land.gemeinsamespostland") + "...");
+
+		wcbPostfachMitStrasse.setText(LPMain.getTextRespectUISPr(
+				"lp.land.postfachmitstrasse"));
+
+		wcbPraeferenzbeguenstigt.setText(LPMain.getTextRespectUISPr(
+				"lp.land.praeferenzbeguenstigt"));
+		
+		
 		wtfVorwahl.setColumnsMax(SystemFac.MAX_VORWAHL);
 		wtfVorwahl.setMandatoryFieldDB(false);
 
-		wlaLKZ.setText(LPMain.getInstance().getTextRespectUISPr("lp.lkz1"));
+		wlaLKZ.setText(LPMain.getTextRespectUISPr("lp.lkz1"));
 
 		wtfLKZ.setColumnsMax(SystemFac.MAX_LKZ);
 		wtfLKZ.setMandatoryFieldDB(true);
 
-		wlaLand.setText(LPMain.getInstance().getTextRespectUISPr("lp.land"));
+		wlaLand.setText(LPMain.getTextRespectUISPr("lp.land"));
 
 		wtfLand.setColumnsMax(SystemFac.MAX_LAND);
 		wtfLand.setMandatoryField(true);
 
-		wdfEUMitgliedSeit = new WrapperDateField();
-		wlaEUMitgliedSeit = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.eumitglied"));
+		wlaLandBez.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
 
-		wcbSepa.setText(LPMain.getInstance()
-				.getTextRespectUISPr("lp.land.sepa"));
-		wcbPlzNachOrt.setText(LPMain.getInstance()
-				.getTextRespectUISPr("lp.land.plznachort"));
-		
-		
-		wlaGmtVersatz.setText(LPMain.getInstance().getTextRespectUISPr(
+		wlaEUMitgliedSeit = new WrapperLabel(LPMain.getTextRespectUISPr("lp.eumitglied"));
+
+		wcbSepa.setText(LPMain.getTextRespectUISPr("lp.land.sepa"));
+		wcbPlzNachOrt.setText(LPMain.getTextRespectUISPr("lp.land.plznachort"));
+		HelperClient.setMinimumAndPreferredSize(wcbPlzNachOrt,
+				HelperClient.getSizeFactoredDimension(120));
+
+		wlaGmtVersatz.setText(LPMain.getTextRespectUISPr(
 				"lp.land.gmtversatz"));
 
 		wnfGmtVersatz.setFractionDigits(2);
-		wlaLaengeUIDNummer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.laengeuidnummer"));
+		wlaLaengeUIDNummer.setText(LPMain.getTextRespectUISPr("lp.laengeuidnummer"));
 		wnfLaengeUIDNummer.setFractionDigits(0);
 		wnfLaengeUIDNummer.setMinimumValue(0);
 		wnfLaengeUIDNummer.setMandatoryField(true);
 
-		wlaWaehrung.setText(LPMain.getInstance().getTextRespectUISPr(
+		wlaWaehrung.setText(LPMain.getTextRespectUISPr(
 				"lp.waehrung"));
 
 		wcbWaehrung = new WrapperComboBox();
 		// wcbWaehrung.setMandatoryFieldDB(true);
 		wnfUIDNummerPruefenAbBetrag = new WrapperNumberField(0, 999999999);
 		wlaUIDNummerPruefenAbBetrag = new WrapperLabel();
-		wlaUIDNummerPruefenAbBetrag.setText(LPMain.getInstance()
-				.getTextRespectUISPr("lp.uidnummerpruefenabbetrag"));
+		wlaUIDNummerPruefenAbBetrag.setText(LPMain.getTextRespectUISPr("lp.uidnummerpruefenabbetrag"));
+		HelperClient.setMinimumAndPreferredSize(wlaUIDNummerPruefenAbBetrag,
+				HelperClient.getSizeFactoredDimension(150));
 		wlaMandantenwaehrung = new WrapperLabel();
 		wlaMandantenwaehrung.setMinimumSize(new Dimension(40, Defaults
 				.getInstance().getControlHeight()));
@@ -319,6 +378,13 @@ public class PanelLand extends PanelBasis {
 				.getInstance().getControlHeight()));
 		wlaMandantenwaehrung.setHorizontalAlignment(SwingConstants.LEFT);
 
+		wcbMwstMuenzRundung.setText(LPMain.getTextRespectUISPr("lp.land.mwstmuenzrundung"));
+		
+		panelEUMitgliedVonBis = new PanelVonBisDates();
+		panelEUMitgliedVonBis.hideBisIfVonIsNull();
+		
+		wlaFibuUstCode.setText(textFromToken("lp.land.fibuustcode"));
+		
 		// jetzt meine felder
 		jPanelWorkingOn = new JPanel(new GridBagLayout());
 		add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
@@ -334,19 +400,28 @@ public class PanelLand extends PanelBasis {
 		jPanelWorkingOn.add(wtfLKZ, new GridBagConstraints(1, iZeile, 1, 1,
 				1.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wcbPlzNachOrt, new GridBagConstraints(2, iZeile, 2, 1,
-				1.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wcbPlzNachOrt, new GridBagConstraints(2, iZeile, 1,
+				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
-		
-		
+		jPanelWorkingOn.add(wcbPostfachMitStrasse, new GridBagConstraints(3,
+				iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
 		jPanelWorkingOn.add(wlaLand, new GridBagConstraints(0, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfLand, new GridBagConstraints(1, iZeile, 3, 1,
+		jPanelWorkingOn.add(wtfLand, new GridBagConstraints(1, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jPanelWorkingOn.add(wlaLandBez, new GridBagConstraints(2, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfLandBez, new GridBagConstraints(3, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
 		jPanelWorkingOn.add(wlaVorwahl, new GridBagConstraints(0, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
@@ -386,23 +461,31 @@ public class PanelLand extends PanelBasis {
 		jPanelWorkingOn.add(wnfLaengeUIDNummer, new GridBagConstraints(1,
 				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wcbMwstMuenzRundung, new GridBagConstraints(2,
+				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jPanelWorkingOn.add(wlaEUMitgliedSeit, new GridBagConstraints(0,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wdfEUMitgliedSeit, new GridBagConstraints(1,
+		jPanelWorkingOn.add(panelEUMitgliedVonBis, new GridBagConstraints(1,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wcbSepa, new GridBagConstraints(2, iZeile, 2, 1,
+		jPanelWorkingOn.add(wcbSepa, new GridBagConstraints(2, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jPanelWorkingOn.add(wcbPraeferenzbeguenstigt, new GridBagConstraints(3, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
 		iZeile++;
 		jPanelWorkingOn.add(wlaUIDNummerPruefenAbBetrag,
 				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						150, 0));
+						0, 0));
 
 		jPanelWorkingOn.add(wnfUIDNummerPruefenAbBetrag,
 				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
@@ -412,6 +495,7 @@ public class PanelLand extends PanelBasis {
 		jPanelWorkingOn.add(wlaMandantenwaehrung, new GridBagConstraints(2,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
 		jPanelWorkingOn.add(wsfGemeinsamesPostland.getWrapperButton(),
 				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
@@ -424,6 +508,19 @@ public class PanelLand extends PanelBasis {
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
 						0, 0));
+	
+		jPanelWorkingOn.add(wlaFibuUstCode,
+				new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
+
+		jPanelWorkingOn.add(wtfFibuUstCode,
+				new GridBagConstraints(3, iZeile, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
+	
 
 	}
 

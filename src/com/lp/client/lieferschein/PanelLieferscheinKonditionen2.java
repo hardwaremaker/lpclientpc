@@ -42,7 +42,10 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.EventObject;
 
+import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+
+import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
@@ -69,7 +72,6 @@ import com.lp.server.system.service.SystemFac;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 /**
  * <p>In diesem Fenster werden Konditionen zum Lieferschein erfasst.
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -87,28 +89,11 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 	/** Cache for convenience. */
 	private TabbedPaneLieferschein tpLieferschein = null;
 
-	private WrapperLabel wlaPakete = null;
-
-	private WrapperNumberField wnfPakete = null;
-
-	private WrapperLabel wlaLiefertermin = null;
-	private WrapperDateField wdfLiefertermin = null;
-
-	private WrapperLabel wlaGewicht = null;
-
-	private WrapperNumberField wnfGewicht = null;
-
-	private WrapperLabel wlaEinheit = null;
 
 	private WrapperLabel wlaRueckgabetermin = null;
 	private WrapperDateField wdfRueckgabetermin = null;
 
-	private WrapperLabel wlaVersandnummer = null;
-
-	private WrapperTextField wtfVersandnummer = null;
-
-	private WrapperCheckBox wcbMindermengenzuschlag = null;
-
+		
 	private WrapperLabel wlaVersteckterAufschlag = null;
 
 	private WrapperNumberField wnfVersteckterAufschlag = null;
@@ -134,12 +119,14 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 
 	private WrapperNumberField wnfLieferscheinwertInLieferscheinwaehrung = null;
 
-	private WrapperButton wbuBegruendung = new WrapperButton();
+	private WrapperLabel wlaBegruendung = new WrapperLabel();
 	private WrapperTextField wtfBegruendung = new WrapperTextField();
 
 	private PanelQueryFLR panelQueryFLRBegruendung = null;
 	public final static String ACTION_SPECIAL_BEGRUENDUNG = "action_special_begruendung";
 
+	private PanelAuslieferdatum panelAuslieferdatum = null;
+	
 	public PanelLieferscheinKonditionen2(InternalFrame internalFrame,
 			String add2TitleI, Object key) throws Throwable {
 
@@ -160,71 +147,41 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 		remove(wnfAllgemeinerRabatt);
 		remove(wlaProzent2);
 
-		wlaPakete = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"ls.pakete"));
-		wnfPakete = new WrapperNumberField();
-		wnfPakete.setFractionDigits(0);
-		wnfPakete.setMinimumValue(0);
-		wlaLiefertermin = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.auslieferdatum"));
 
-		wdfLiefertermin = new WrapperDateField();
-		// wdfLiefertermin.setDate(datCurrentDate);
-		// wdfLiefertermin.setMinimumValue(datCurrentDate);
-		wdfLiefertermin.setMandatoryFieldDB(false);
-		wdfLiefertermin.setShowRubber(false);
-		wdfLiefertermin.getDisplay().addPropertyChangeListener(this);
-
-		wlaGewicht = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"lp.gewicht"));
-		wnfGewicht = new WrapperNumberField();
-		wlaEinheit = new WrapperLabel(SystemFac.EINHEIT_KILOGRAMM.trim());
-		wlaEinheit.setHorizontalAlignment(SwingConstants.LEFT);
-		HelperClient.setDefaultsToComponent(wlaEinheit, 25);
+		panelAuslieferdatum = new PanelAuslieferdatum(getInternalFrame(), "");
+		
+		
 		wlaRueckgabetermin = new WrapperLabel(
 				LPMain.getTextRespectUISPr("label.rueckgabetermin"));
 		HelperClient.setDefaultsToComponent(wlaRueckgabetermin, 90);
 		wdfRueckgabetermin = new WrapperDateField();
 		wdfRueckgabetermin.getDisplay().addPropertyChangeListener(this);
 
-		wbuBegruendung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"ls.begruendung")
-				+ "...");
-		wbuBegruendung.setActionCommand(ACTION_SPECIAL_BEGRUENDUNG);
-		wbuBegruendung.addActionListener(this);
+		wlaBegruendung.setText(LPMain.getTextRespectUISPr(
+				"ls.begruendung"));
 		wtfBegruendung.setColumnsMax(80);
 		wtfBegruendung.setActivatable(false);
 
-		wlaVersandnummer = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("ls.versandnummer"));
-		wtfVersandnummer = new WrapperTextField();
-		wtfVersandnummer.setColumnsMax(40);
-
-		wlaVersteckterAufschlag = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.versteckteraufschlag"));
+	
+		wlaVersteckterAufschlag = new WrapperLabel(LPMain.getTextRespectUISPr("label.versteckteraufschlag"));
 		wnfVersteckterAufschlag = new WrapperNumberField();
-		wlaProzent3 = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.prozent"));
+		wlaProzent3 = new WrapperLabel(LPMain.getTextRespectUISPr("label.prozent"));
 		wlaProzent3.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wcbMindermengenzuschlag = new WrapperCheckBox();
-		wcbMindermengenzuschlag.setMargin(new Insets(2, 0, 2, 2));
-		wcbMindermengenzuschlag.setText(LPMain.getInstance()
-				.getTextRespectUISPr("label.mindermengenzuschlag"));
-
+		
 		wcbVerrechenbar = new WrapperCheckBox();
 		wcbVerrechenbar.setMargin(new Insets(2, 0, 2, 2));
-		wcbVerrechenbar.setText(LPMain.getInstance().getTextRespectUISPr(
+		wcbVerrechenbar.setText(LPMain.getTextRespectUISPr(
 				"lp.verrechenbar"));
 
-		wlaLieferscheinwertInMandantenwaehrung = new WrapperLabel(LPMain
-				.getInstance().getTextRespectUISPr("ls.lieferscheinwert"));
+		wlaLieferscheinwertInMandantenwaehrung = new WrapperLabel(
+				LPMain.getTextRespectUISPr("ls.lieferscheinwert"));
 
 		wlaMandantenwaehrung0 = new WrapperLabel();
 		wlaMandantenwaehrung0.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wlaGestehungswertInMandantenwaehrung = new WrapperLabel(LPMain
-				.getInstance().getTextRespectUISPr("lp.gestehungswert"));
+		wlaGestehungswertInMandantenwaehrung = new WrapperLabel(
+				LPMain.getTextRespectUISPr("lp.gestehungswert"));
 
 		wlaMandantenwaehrung1 = new WrapperLabel();
 		wlaMandantenwaehrung1.setHorizontalAlignment(SwingConstants.LEFT);
@@ -238,8 +195,8 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 		wnfGestehungswertInMandantenwaehrung.setActivatable(false);
 		wnfGestehungswertInMandantenwaehrung.setFractionDigits(Defaults
 				.getInstance().getIUINachkommastellenPreiseVK());
-		wlaLieferscheinwertInLieferscheinwaehrung = new WrapperLabel(LPMain
-				.getInstance().getTextRespectUISPr("ls.lieferscheinwert"));
+		wlaLieferscheinwertInLieferscheinwaehrung = new WrapperLabel(
+				LPMain.getTextRespectUISPr("ls.lieferscheinwert"));
 		HelperClient.setDefaultsToComponent(
 				wlaLieferscheinwertInLieferscheinwaehrung, 90);
 
@@ -251,72 +208,49 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 		wnfLieferscheinwertInLieferscheinwaehrung.setFractionDigits(Defaults
 				.getInstance().getIUINachkommastellenPreiseVK());
 
-		iZeile = 3; // mein eigener Teil beginnt nach den ersten drei Zeilen des
-					// BasisPanel
-		/*jPanelWorkingOn.add(wbuBegruendung, new GridBagConstraints(0, iZeile,
+		iZeile = 3; 
+		jPanelWorkingOn.add(wlaBegruendung, new GridBagConstraints(0, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));*/ //Wird nicht benoetigt da
+				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 		//im Menue bereits vorhanden
 		jPanelWorkingOn.add(wtfBegruendung, new GridBagConstraints(1, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
 		iZeile++;
 
-		jPanelWorkingOn.add(wlaPakete, new GridBagConstraints(0, iZeile, 1, 1,
+		jPanelWorkingOn.add(wlaRueckgabetermin, new GridBagConstraints(0, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfPakete, new GridBagConstraints(1, iZeile, 1, 1,
+		jPanelWorkingOn.add(wdfRueckgabetermin, new GridBagConstraints(1, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaLiefertermin, new GridBagConstraints(3, iZeile,
+		jPanelWorkingOn.add(panelAuslieferdatum.getWlaAuslieferdatum(), new GridBagConstraints(3, iZeile,
 				1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wdfLiefertermin, new GridBagConstraints(4, iZeile,
-				1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+		JPanel panelDatum = new JPanel(new MigLayout("insets 0", "[left,fill,90%][right,fill]")) ;
+		panelDatum.add(panelAuslieferdatum.getWdfAuslieferdatum()) ;
+		panelDatum.add(panelAuslieferdatum.getBtnAuslieferdatumJetzt()) ;
+		jPanelWorkingOn.add(panelDatum, new GridBagConstraints(4, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		
+		
+		
 
-		// Zeile
-		iZeile++;
-		jPanelWorkingOn.add(wlaGewicht, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfGewicht, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaEinheit, new GridBagConstraints(2, iZeile, 1, 1,
-				0.2, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaRueckgabetermin, new GridBagConstraints(3,
-				iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wdfRueckgabetermin, new GridBagConstraints(4,
-				iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-
-		// Zeile
-		iZeile++;
-		jPanelWorkingOn.add(wlaVersandnummer, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfVersandnummer, new GridBagConstraints(1, iZeile,
-				5, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+	
 
 		// Zeile
 		iZeile++;
 		jPanelWorkingOn.add(wlaVersteckterAufschlag, new GridBagConstraints(0,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jPanelWorkingOn.add(wnfVersteckterAufschlag, new GridBagConstraints(1,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jPanelWorkingOn.add(wlaProzent3, new GridBagConstraints(2, iZeile, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wcbMindermengenzuschlag, new GridBagConstraints(3,
-				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 2, 2, 2), 0, 0));
-
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		
 		// Zeile
 		iZeile++;
 		jPanelWorkingOn.add(wlaAllgemeinerRabatt, new GridBagConstraints(0,
@@ -384,8 +318,7 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 			wlaVersteckterAufschlag.setVisible(false);
 			wnfVersteckterAufschlag.setVisible(false);
 			wlaProzent3.setVisible(false);
-			wcbMindermengenzuschlag.setVisible(false);
-
+		
 			wcbVerrechenbar.setVisible(false);
 			wlaLieferscheinwertInMandantenwaehrung.setVisible(false);
 			wlaMandantenwaehrung0.setVisible(false);
@@ -409,18 +342,14 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 	private void setDefaults() throws Throwable {
 		leereAlleFelder(this);
 
-		wcbMindermengenzuschlag.setSelected(false);
-
+	
 		wcbVerrechenbar.setSelected(true);
-
-		wnfPakete.setInteger(0);
-		wnfGewicht.setDouble(new Double(0));
 
 		String cNrMandantenwaehrung = DelegateFactory
 				.getInstance()
 				.getMandantDelegate()
 				.mandantFindByPrimaryKey(
-						LPMain.getInstance().getTheClient().getMandant())
+						LPMain.getTheClient().getMandant())
 				.getWaehrungCNr();
 
 		wlaMandantenwaehrung0.setText(cNrMandantenwaehrung);
@@ -455,22 +384,18 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 				.getZahlungszielIId());
 		holeSpediteur(tpLieferschein.getLieferscheinDto().getSpediteurIId());
 
+		setKundeIId_FuerKundepediteur(tpLieferschein.getLieferscheinDto().getKundeIIdLieferadresse());
+
+
 		wtfLieferartort.setText(tpLieferschein.getLieferscheinDto().getCLieferartort());
 		
-		wcbMindermengenzuschlag.setSelected(Helper.short2boolean(tpLieferschein
-				.getLieferscheinDto().getBMindermengenzuschlag()));
 		wcbVerrechenbar.setSelected(Helper.short2boolean(tpLieferschein
 				.getLieferscheinDto().getBVerrechenbar()));
-		wnfPakete.setDouble(new Double(tpLieferschein.getLieferscheinDto()
-				.getIAnzahlPakete().doubleValue()));
-		wnfGewicht.setDouble(tpLieferschein.getLieferscheinDto()
-				.getFGewichtLieferung());
-		wtfVersandnummer.setText(tpLieferschein.getLieferscheinDto()
-				.getCVersandnummer());
-		if (tpLieferschein.getLieferscheinDto().getTLiefertermin() != null) {
-			wdfLiefertermin.setDate(tpLieferschein.getLieferscheinDto()
-					.getTLiefertermin());
-		}
+			panelAuslieferdatum.dto2Components();
+//		if (tpLieferschein.getLieferscheinDto().getTLiefertermin() != null) {
+//			wdfLiefertermin.setDate(tpLieferschein.getLieferscheinDto()
+//					.getTLiefertermin());
+//		}
 		if (tpLieferschein.getLieferscheinDto().getTRueckgabetermin() != null) {
 			wdfRueckgabetermin.setDate(Helper.extractDate(tpLieferschein
 					.getLieferscheinDto().getTRueckgabetermin()));
@@ -561,23 +486,18 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 				zahlungszielDto.getIId());
 		tpLieferschein.getLieferscheinDto().setSpediteurIId(
 				spediteurDto.getIId());
-		tpLieferschein.getLieferscheinDto().setCVersandnummer(
-				wtfVersandnummer.getText());
-		tpLieferschein.getLieferscheinDto().setBMindermengenzuschlag(
-				Helper.boolean2Short(wcbMindermengenzuschlag.isSelected()));
-		tpLieferschein.getLieferscheinDto().setBVerrechenbar(
+	
+	tpLieferschein.getLieferscheinDto().setBVerrechenbar(
 				Helper.boolean2Short(wcbVerrechenbar.isSelected()));
-		tpLieferschein.getLieferscheinDto().setIAnzahlPakete(
-				new Integer(wnfPakete.getDouble().intValue()));
-		tpLieferschein.getLieferscheinDto().setFGewichtLieferung(
-				wnfGewicht.getDouble());
+		
 		tpLieferschein.getLieferscheinDto().setCLieferartort(wtfLieferartort.getText());
-		if (wdfLiefertermin.getDate() != null) {
-			tpLieferschein.getLieferscheinDto().setTLiefertermin(
-					new Timestamp(this.wdfLiefertermin.getDate().getTime()));
-		} else {
-			tpLieferschein.getLieferscheinDto().setTLiefertermin(null);
-		}
+		panelAuslieferdatum.components2Dto(); 
+//		if (wdfLiefertermin.getDate() != null) {
+//			tpLieferschein.getLieferscheinDto().setTLiefertermin(
+//					new Timestamp(this.wdfLiefertermin.getDate().getTime()));
+//		} else {
+//			tpLieferschein.getLieferscheinDto().setTLiefertermin(null);
+//		}
 		if (wdfRueckgabetermin.getDate() != null) {
 			tpLieferschein.getLieferscheinDto().setTRueckgabetermin(
 					new Timestamp(this.wdfRueckgabetermin.getDate().getTime()));
@@ -675,15 +595,15 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 
 				if (!Helper.short2boolean(auftragDto
 						.getBTeillieferungMoeglich())) {
-					MessageFormat mf = new MessageFormat(LPMain.getInstance()
-							.getTextRespectUISPr("ls.hint.keineteillieferung"));
+					MessageFormat mf = new MessageFormat(
+							LPMain.getTextRespectUISPr("ls.hint.keineteillieferung"));
 
-					mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
+					mf.setLocale(LPMain.getTheClient().getLocUi());
 
 					Object pattern[] = { auftragDto.getCNr() };
 
 					DialogFactory
-							.showModalDialog(LPMain.getInstance()
+							.showModalDialog(LPMain
 									.getTextRespectUISPr("lp.hint"), mf
 									.format(pattern));
 				}
@@ -719,7 +639,7 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 
 		dto2Components();
 
-		tpLieferschein.setTitleLieferschein(LPMain.getInstance()
+		tpLieferschein.setTitleLieferschein(LPMain
 				.getTextRespectUISPr("ls.title.panel.konditionen"));
 
 		if (getLockedstateDetailMainKey().getIState() == PanelBasis.LOCK_IS_LOCKED_BY_ME) {
@@ -747,6 +667,7 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 	private void eingabeFreigeben() throws Throwable {
 		// die Freischaltung der Felder wird bei auftragbezogenem Lieferschein
 		// uebersteuert
+		panelAuslieferdatum.enableForcedEingabe();
 		if (tpLieferschein.getLieferscheinDto().getLieferscheinartCNr()
 				.equals(LieferscheinFac.LSART_AUFTRAG)) {
 			setzeAuftragabhaengigeFelderAktiv(false);
@@ -803,9 +724,9 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 
 		switch (code) {
 		case EJBExceptionLP.FEHLER_FORMAT_NUMBER:
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-					.getTextRespectUISPr("lp.error.belegwerte"));
+			DialogFactory.showModalDialog(
+					LPMain.getTextRespectUISPr("lp.error"), 
+					LPMain.getTextRespectUISPr("lp.error.belegwerte"));
 			break;
 
 		default:
@@ -816,3 +737,4 @@ public class PanelLieferscheinKonditionen2 extends PanelKonditionen implements
 		return bErrorErkannt;
 	}
 }
+

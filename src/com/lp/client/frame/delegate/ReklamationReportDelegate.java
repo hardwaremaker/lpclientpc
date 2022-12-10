@@ -37,8 +37,11 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.reklamation.service.ReklamationFac;
+import com.lp.server.reklamation.service.ReklamationFehlerartenJournalKriterienDto;
 import com.lp.server.reklamation.service.ReklamationReportFac;
 import com.lp.server.system.service.TheClientDto;
+import com.lp.server.util.DatumsfilterVonBis;
 import com.lp.server.util.report.JasperPrintLP;
 
 public class ReklamationReportDelegate extends Delegate {
@@ -47,8 +50,7 @@ public class ReklamationReportDelegate extends Delegate {
 
 	public ReklamationReportDelegate() throws Exception {
 		context = new InitialContext();
-		reklamationReportFac = (ReklamationReportFac) context
-				.lookup("lpserver/ReklamationReportFacBean/remote");
+		reklamationReportFac = lookupFac(context, ReklamationReportFac.class);
 	}
 
 	public JasperPrintLP printReklamationsjournal(Integer kostenstelleIId,
@@ -79,10 +81,11 @@ public class ReklamationReportDelegate extends Delegate {
 	}
 
 	public JasperPrintLP printOffeneReklamationenEinesArtikels(
-			Integer artikelIId) throws ExceptionLP {
+			Integer artikelIId, boolean bNurOffene, DatumsfilterVonBis vonbis)
+			throws ExceptionLP {
 		try {
 			return reklamationReportFac.printOffeneReklamationenEinesArtikels(
-					artikelIId, LPMain.getTheClient());
+					artikelIId, bNurOffene, vonbis, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -119,7 +122,7 @@ public class ReklamationReportDelegate extends Delegate {
 		}
 
 	}
-
+/*
 	public JasperPrintLP printFehlerarten(java.sql.Timestamp tVon,
 			java.sql.Timestamp tBis, boolean bKunde, boolean bLieferant,
 			boolean bFertigung, Integer kundeIId, int iGruppierung,
@@ -134,13 +137,23 @@ public class ReklamationReportDelegate extends Delegate {
 		}
 
 	}
+*/
+	
+	public JasperPrintLP printFehlerarten(ReklamationFehlerartenJournalKriterienDto kritDto) throws ExceptionLP {
+		try {
+			return reklamationReportFac.printFehlerarten(kritDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
 
 	public JasperPrintLP printLieferantenbeurteilung(java.sql.Timestamp tVon,
 			java.sql.Timestamp tBis, Integer brancheIId, Integer lieferantIId,
-			Integer liefergruppeIId) throws ExceptionLP {
+			Integer liefergruppeIId,  Integer partnerklasseIId, boolean bVerdichtet, boolean bDokumentenablage) throws ExceptionLP {
 		try {
 			return reklamationReportFac.printLieferantenbeurteilung(tVon, tBis,
-					lieferantIId, brancheIId, liefergruppeIId,
+					lieferantIId, brancheIId, liefergruppeIId, partnerklasseIId, bVerdichtet,bDokumentenablage,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);

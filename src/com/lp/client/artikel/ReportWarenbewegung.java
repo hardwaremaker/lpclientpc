@@ -172,7 +172,7 @@ protected JPanel jpaWorkingOn = new JPanel();
       throws Throwable {
     return DelegateFactory.getInstance().getLagerReportDelegate().
         printWarenbewegungsjournal(
-            artikelIId,wsfLager.getIKey(), wdfVon.getTimestamp(), wdfBis.getTimestamp());
+            artikelIId,wsfLager.getIKey(), wdrBereich.getTimestampVon(), wdrBereich.getTimestampBis());
   }
 
 

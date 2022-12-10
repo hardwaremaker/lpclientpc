@@ -37,14 +37,13 @@ import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.List;
 
-import javax.swing.JButton;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
-import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelTabelle;
 import com.lp.client.frame.component.WrapperKeyValueField;
@@ -121,7 +120,8 @@ public class PanelTabelleAuftragzeiten extends PanelTabelle {
 		setColumnWidth(AuftragFac.IDX_SPALTE_KOSTEN, 0); // hide Kosten
 
 		// die optionale zweite Zeile initialisieren
-		wkvDauer = new WrapperKeyValueField(60);
+		int iDividerLocation = Defaults.sizeFactor(60);
+		wkvDauer = new WrapperKeyValueField(iDividerLocation);
 		wkvDauer.setKey(LPMain.getInstance().getTextRespectUISPr("lp.dauer"));
 		wlaEinheit = new WrapperLabel(SystemFac.EINHEIT_STUNDE.trim());
 		wlaEinheit.setMaximumSize(new Dimension(30, Defaults.getInstance()
@@ -132,20 +132,25 @@ public class PanelTabelleAuftragzeiten extends PanelTabelle {
 				.getControlHeight()));
 		wlaEinheit.setHorizontalAlignment(SwingConstants.LEFT);
 
-		wkvKosten = new WrapperKeyValueField(60);
+		wkvKosten = new WrapperKeyValueField(iDividerLocation);
 		wkvKosten.setKey(LPMain.getInstance().getTextRespectUISPr("lp.kosten"));
 
-		wkvSollzeit = new WrapperKeyValueField(60);
+		wkvSollzeit = new WrapperKeyValueField(iDividerLocation);
 		wkvSollzeit.setKey(LPMain.getInstance().getTextRespectUISPr(
 				"lp.sollzeit"));
+		
+		Dimension labelDimension = HelperClient.getSizeFactoredDimension(150);
+		HelperClient.setMinimumAndPreferredSize(wkvSollzeit, labelDimension);
+		HelperClient.setMinimumAndPreferredSize(wkvDauer, labelDimension);
+		HelperClient.setMinimumAndPreferredSize(wkvKosten, labelDimension);
 
 		wlaWaehrung = new WrapperLabel(LPMain.getTheClient()
 				.getSMandantenwaehrung());
-		wlaWaehrung.setMaximumSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setMaximumSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
-		wlaWaehrung.setMinimumSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setMinimumSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
-		wlaWaehrung.setPreferredSize(new Dimension(30, Defaults.getInstance()
+		wlaWaehrung.setPreferredSize(new Dimension(40, Defaults.getInstance()
 				.getControlHeight()));
 		wlaWaehrung.setHorizontalAlignment(SwingConstants.LEFT);
 
@@ -153,12 +158,12 @@ public class PanelTabelleAuftragzeiten extends PanelTabelle {
 				wkvSollzeit,
 				new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wkvDauer,
 				new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
 						GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wlaEinheit,
 				new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
@@ -169,7 +174,7 @@ public class PanelTabelleAuftragzeiten extends PanelTabelle {
 				new GridBagConstraints(3, 0, 1, 1, 0.0,
 
 				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 150, 0));
+						new Insets(2, 2, 2, 2), 0, 0));
 		getPanelOptionaleZweiteZeile().add(
 				wlaWaehrung,
 				new GridBagConstraints(5, 0, 1, 1, 0.0, 0.0,
@@ -222,7 +227,7 @@ public class PanelTabelleAuftragzeiten extends PanelTabelle {
 				EJBExceptionLP exp = (EJBExceptionLP) ex.getCause().getCause();
 
 				if (exp.getCode() == EJBExceptionLP.FEHLER_IN_ZEITDATEN) {
-					ArrayList<?> al = exp.getAlInfoForTheClient();
+					List<?> al = exp.getAlInfoForTheClient();
 					String s = "";
 					if (al != null && al.size() > 1) {
 						if (al.get(0) instanceof Integer) {

@@ -32,8 +32,16 @@
  ******************************************************************************/
 package com.lp.client.pc;
 
-public class SystemProperties {
+import com.lp.server.util.HvOptional;
+import com.lp.server.util.Validator;
 
+public class SystemProperties {
+	public static final String providerUrl  = "java.naming.provider.url";
+	public static final String factoryClass = "java.naming.factory.initial";
+	public static final String factoryClassJBoss = "org.jnp.interfaces.NamingContextFactory";
+	public static final String factoryClassWildfly = "org.wildfly.naming.client.WildFlyInitialContextFactory";
+	public static final String featureContextParam = "hv.feature.contextparam";
+	
 	private static final Boolean cachedMacOs = System.getProperty("os.name")
 			.toLowerCase().startsWith("mac os x");
 	private static final Boolean cachedWinOs = System.getProperty("os.name")
@@ -58,5 +66,77 @@ public class SystemProperties {
 	 */
 	public static boolean isWinOs() {
 		return cachedWinOs;
+	}
+	
+	/**
+	 * Das Home-Verzeichnis des am Betriebssystem angemeldeten Benutzers</br>
+	 * <p>Es wird der Wert aus "user.home" verwendet. Sollte dieser null sein, 
+	 * wird das "aktuelle" Verzeichnis verwendet.</p>
+	 * <p>Das Home-Verzeichnis hat keinen abschliessenden "/" oder "\\"</p>
+	 * 
+	 * @return das Home-Verzeichnis des aktuell angemeldeten Benutzers
+	 */
+	public static String homeDir() {
+		String homeDir = System.getProperty("user.home");
+		if(homeDir == null) {
+			homeDir = ".";
+		}
+		while(homeDir.endsWith("/") || homeDir.endsWith("\\")) {
+			homeDir = homeDir.substring(0, homeDir.length());
+		}
+		
+		return homeDir;
+	}
+	
+	/**
+	 * Der Wert der Systemproperty "java.naming.provider.url".</br>
+	 * <p>Diese wird &uuml;blicherweise f&uuml;r die Server-Url
+	 * (Applikationsserver) verwendet.</p>
+	 * 
+	 * <em>Es geht hier darum, eine einzige Stelle zu haben, mit
+	 * der auf diesen Wert zugegriffen wird. Bitte benutzen.</em>
+	 * 
+	 * @return Wert der Systemproperty
+	 */
+	public static HvOptional<String> providerUrl() {
+		return HvOptional.ofNullable(System.getProperty(providerUrl));
+	}
+	
+	public static void providerUrl(String newUrl) {
+		Validator.notEmpty(newUrl, "newUrl");
+		System.setProperty(providerUrl, newUrl);
+	}
+	
+	/**
+	 * Der Wert der Systemproperty "java.naming.factory.initial"</br>
+	 * <p>Diese wird &uuml;blicherweise verwendet, um das Protokoll
+	 * mit dem der Applikationsserver angesprochen wird, zu definieren.</p>
+	 * 
+	 * <em>Es geht hier darum, eine einzige Stelle zu haben, mit
+	 * der auf diesen Wert zugegriffen wird. Bitte benutzen.</em>
+	 * 
+	 * @return Wert der Systemproperty
+	 */
+	public static HvOptional<String> factoryClass() {
+		return HvOptional.ofNullable(System.getProperty(factoryClass));
+	}
+	
+	public static void factoryClass(String newClass) {
+		Validator.notEmpty(newClass, "newClass");
+		System.setProperty(factoryClass, newClass);
+	}
+	
+	public static void factoryClass(boolean wildflyAS) {
+		System.setProperty(factoryClass, wildflyAS ? 
+				factoryClassWildfly : factoryClassJBoss);
+	}
+	
+	public static HvOptional<String> featureContextParam() {
+		try {
+			return HvOptional.ofNullable(
+				System.getProperty(featureContextParam));
+		} catch(IllegalArgumentException e) {
+			return HvOptional.empty();
+		}
 	}
 }

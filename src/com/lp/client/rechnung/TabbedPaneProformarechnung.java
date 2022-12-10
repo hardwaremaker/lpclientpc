@@ -63,11 +63,24 @@ public class TabbedPaneProformarechnung extends TabbedPaneRechnungAll {
 	private static final long serialVersionUID = 1L;
 	private final String MENUE_ACTION_ALLE_PROFORMARECHNUNGEN = "MENUE_ACTION_ALLE_PROFORMARECHNUNGEN";
 
+	private int iIDX_KONDITIONEN = -1;
+	private PanelRechnungKonditionen panelDetailKonditionen = null;
+
 	public TabbedPaneProformarechnung(InternalFrame internalFrame)
 			throws Throwable {
 		super(internalFrame, RechnungFac.RECHNUNGTYP_PROFORMARECHNUNG, LPMain
 				.getInstance().getTextRespectUISPr(
 						"rechnung.tab.unten.proformarechnung.title"));
+		jbInitTabs();
+	}
+
+	private void jbInitTabs() {
+		iIDX_KONDITIONEN = 
+				reiterHinzufuegen(
+				LPMain.getTextRespectUISPr("rechnung.tab.oben.konditionen.title"),
+				null,
+				null,
+				LPMain.getTextRespectUISPr("rechnung.tab.oben.konditionen.tooltip"));
 	}
 
 	protected void print() throws Throwable {
@@ -146,5 +159,25 @@ public class TabbedPaneProformarechnung extends TabbedPaneRechnungAll {
 
 	@Override
 	protected void printZahlschein() throws Throwable {
+	}
+
+	private PanelRechnungKonditionen getPanelDetailKonditionen(
+			boolean bNeedInstantiationIfNull) throws Throwable {
+		if (panelDetailKonditionen == null && bNeedInstantiationIfNull) {
+			panelDetailKonditionen = new PanelRechnungKonditionen(
+					getInternalFrame(),
+					LPMain.getTextRespectUISPr("rechnung.tab.oben.konditionen.title"),
+					null, this);
+			this.setComponentAt(iIDX_KONDITIONEN, panelDetailKonditionen);
+		}
+		return panelDetailKonditionen;
+	}
+	
+	public void lPEventObjectChanged(javax.swing.event.ChangeEvent e) throws Throwable {
+		super.lPEventObjectChanged(e);
+		if (iIDX_KONDITIONEN == this.getSelectedIndex()) {
+			getPanelDetailKonditionen(true).setKeyWhenDetailPanel(getRechnungDto().getIId());
+			getPanelDetailKonditionen(true).eventYouAreSelected(false);
+		}
 	}
 }

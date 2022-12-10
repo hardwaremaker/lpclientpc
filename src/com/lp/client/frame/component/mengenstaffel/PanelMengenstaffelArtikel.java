@@ -62,6 +62,7 @@ import com.lp.server.artikel.service.VkPreisfindungEinzelverkaufspreisDto;
 import com.lp.server.artikel.service.VkPreisfindungPreislisteDto;
 import com.lp.server.partner.service.KundesokoDto;
 import com.lp.server.partner.service.KundesokomengenstaffelDto;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.Helper;
@@ -96,6 +97,7 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 	private WrapperLabel wlaWaehrungMinverkaufspreis = null;
 
 	public WrapperCheckBox wcbWirktNichtInVerkaufspreisfindung = null;
+	public WrapperCheckBox wcbKeineMngStaffel = null;
 
 	private WrapperLabel wlaVkbasis = null;
 	private WrapperNumberField wnfVkbasis = null;
@@ -115,6 +117,10 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 	private WrapperNumberField wnfBerechneterpreis = null;
 	private WrapperLabel wlaBerechneterpreiswaehrung = null;
 	private boolean bMitUebersteuerbarenArtikelbezeichnungen = false;
+	
+	private WrapperLabel wlaStartwertLiefermenge = null;
+	private WrapperNumberField wnfStartwertLiefermenge = null;
+	
 
 	private WrapperIdentField wifArtikel = null;
 
@@ -151,6 +157,16 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 				.getInstance().getTextRespectUISPr(
 						"part.kundesoko.artikel.wirktnichtinpreisfindung"));
 
+		wcbKeineMngStaffel = new WrapperCheckBox(LPMain.getInstance()
+				.getTextRespectUISPr("part.kundesoko.artikel.keinemngstaffel"));
+
+		
+		wlaStartwertLiefermenge = new WrapperLabel(LPMain.getInstance()
+				.getTextRespectUISPr("kunde.soko.startwertliefermenge"));
+		wnfStartwertLiefermenge = new WrapperNumberField();
+		wnfStartwertLiefermenge.setFractionDigits(iMengeUINachkommastellen);
+		
+		
 		// PJ 17390
 		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
 				.getInstance()
@@ -229,7 +245,7 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 		add(wifArtikel.getWtfIdent(), new GridBagConstraints(2, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		add(wifArtikel.getWtfBezeichnung(), new GridBagConstraints(4, iZeile,
+		add(wifArtikel.getWtfBezeichnung(), new GridBagConstraints(5, iZeile,
 				4, 1, 1.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
@@ -242,9 +258,10 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 					GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
 					new Insets(2, 2, 2, 2), 0, 0));
 
-			wtfKndArtBez = new WrapperTextField(40);
-			wtfKndArtZBez = new WrapperTextField(25);
-			add(wtfKndArtBez, new GridBagConstraints(4, iZeile, 4, 1, 1.0, 0.0,
+			int iLaengen=DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
+			wtfKndArtBez = new WrapperTextField(iLaengen);
+			wtfKndArtZBez = new WrapperTextField(iLaengen);
+			add(wtfKndArtBez, new GridBagConstraints(4, iZeile, 5, 1, 1.0, 0.0,
 					GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
 					new Insets(2, 2, 2, 2), 0, 0));
 
@@ -263,7 +280,7 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		if (bMitUebersteuerbarenArtikelbezeichnungen) {
 			add(wtfKndArtZBez,
-					new GridBagConstraints(4, iZeile, 4, 1, 1.0, 0.0,
+					new GridBagConstraints(4, iZeile, 5, 1, 1.0, 0.0,
 							GridBagConstraints.NORTH,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
@@ -286,9 +303,19 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 				this);
 		// SP2243 -> Preisgueltigkeisanzeige immm ab heute
 		add(wcbWirktNichtInVerkaufspreisfindung, new GridBagConstraints(4,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+		if (DelegateFactory.getInstance().getMandantDelegate()
+				.darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_FORECAST)) {
+			add(wlaStartwertLiefermenge, new GridBagConstraints(7,
+					iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 100, 0));
+			add(wnfStartwertLiefermenge, new GridBagConstraints(8,
+					iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), -100, 0));
+		}
+		
 		/*
 		 * add(wlaPreisgueltigkeitsanzeigeab, new GridBagConstraints(0, iZeile,
 		 * 6, 1, 0.0, 0.0, GridBagConstraints.NORTH,
@@ -307,6 +334,22 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 		add(wlaVkbasiswaehrung, new GridBagConstraints(3, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
+
+		ParametermandantDto parameterDto = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(
+						LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_ARTIKEL,
+						ParameterFac.PARAMETER_VK_MENGENSTAFFEL_ANSTATT_SOKO_MENGESTAFFEL);
+		boolean b = (java.lang.Boolean) parameterDto.getCWertAsObject();
+
+		if (b == true) {
+
+			add(wcbKeineMngStaffel, new GridBagConstraints(4, iZeile, 2, 1,
+					0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
+					new Insets(2, 2, 2, 2), 80, 0));
+		}
 		add(wlaVkbasisGueltigab, new GridBagConstraints(4, iZeile, 2, 1, 0.0,
 				0.0, GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
@@ -369,7 +412,7 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 		// wnfBerechneterpreis.setMandatoryField(bMandatoryI);
 	}
 
-	protected void setDefaults() throws Throwable {
+	public void setDefaults() throws Throwable {
 		super.setDefaults();
 
 		datGueltigkeitsanzeigeab = Helper.cutDate(new Date(System
@@ -763,10 +806,13 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 
 	public void mengenstaffelDto2components(
 			KundesokomengenstaffelDto mengenstaffelDtoI) throws Throwable {
-		boolean bEnable = LPMain.getTheClient().getSMandantenwaehrung()
+		
+		//aufgrund SP8800 auskommentiert
+		/*boolean bEnable = LPMain.getTheClient().getSMandantenwaehrung()
 				.equals(waehrungCNr);
 		wnfRabattsatz.setEditable(bEnable);
-		wnfRabattsatz.setMandatoryField(bEnable);
+		wnfRabattsatz.setMandatoryField(bEnable);*/
+		
 
 		wnfRabattsatz.setDouble(mengenstaffelDtoI
 				.getFArtikelstandardrabattsatz());
@@ -835,16 +881,21 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 		kundesokoDtoI
 				.setBWirktNichtFuerPreisfindung(wcbWirktNichtInVerkaufspreisfindung
 						.getShort());
+		kundesokoDtoI.setNStartwertLiefermenge(wnfStartwertLiefermenge.getBigDecimal());
+
+		kundesokoDtoI.setBKeineMengenstaffel(wcbKeineMngStaffel.getShort());
 
 		return kundesokoDtoI;
 	}
 
 	public void kundesokoDto2components(KundesokoDto kundesokoDtoI)
 			throws Throwable {
-		boolean bEnable = LPMain.getTheClient().getSMandantenwaehrung()
+		
+		//aufgrund SP8800 auskommentiert
+		/*boolean bEnable = LPMain.getTheClient().getSMandantenwaehrung()
 				.equals(waehrungCNr);
 		wnfRabattsatz.setEditable(bEnable);
-		wnfRabattsatz.setMandatoryField(bEnable);
+		wnfRabattsatz.setMandatoryField(bEnable);*/
 		wlaWaehrungGestehungspreis.setText(waehrungCNr);
 		wlaWaehrungMinverkaufspreis.setText(waehrungCNr);
 		wlaVkbasiswaehrung.setText(waehrungCNr);
@@ -890,6 +941,10 @@ public class PanelMengenstaffelArtikel extends PanelMengenstaffelBasis {
 					.short2boolean(kundesokoDtoI
 							.getBWirktNichtFuerPreisfindung()));
 		}
+
+		wnfStartwertLiefermenge.setBigDecimal(kundesokoDtoI.getNStartwertLiefermenge());
+		
+		wcbKeineMngStaffel.setShort(kundesokoDtoI.getBKeineMengenstaffel());
 
 	}
 

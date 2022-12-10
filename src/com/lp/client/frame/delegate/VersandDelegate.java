@@ -46,32 +46,31 @@ package com.lp.client.frame.delegate;
  */
 import java.rmi.RemoteException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.system.jcr.service.FehlerVersandauftraegeDto;
+import com.lp.server.system.mail.service.MailTestMessage;
+import com.lp.server.system.mail.service.MailTestMessageResult;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.system.service.VersandFac;
 import com.lp.server.system.service.VersandanhangDto;
 import com.lp.server.system.service.VersandauftragDto;
 import com.lp.util.EJBExceptionLP;
+import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 public class VersandDelegate extends Delegate {
 	private VersandFac versandFac;
 	private Context context;
 
-	public VersandDelegate() throws ExceptionLP {
-		try {
-			context = new InitialContext();
-			versandFac = (VersandFac) context
-					.lookup("lpserver/VersandFacBean/remote");
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
+	public VersandDelegate() throws Exception {
+		context = new InitialContext();
+		versandFac = lookupFac(context, VersandFac.class);
+
 	}
 
 	public VersandauftragDto updateVersandauftrag(
@@ -81,11 +80,10 @@ public class VersandDelegate extends Delegate {
 			if (versandauftragDto.getIId() == null) {
 				return versandFac
 						.createVersandauftrag(versandauftragDto,
-								bDokumenteanhangen, LPMain.getInstance()
-										.getTheClient());
+								bDokumenteanhangen, LPMain.getTheClient());
 			} else {
 				return versandFac.updateVersandauftrag(versandauftragDto,
-						LPMain.getInstance().getTheClient());
+						LPMain.getTheClient());
 			}
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -95,23 +93,54 @@ public class VersandDelegate extends Delegate {
 
 	public VersandanhangDto createVersandanhang(
 			VersandanhangDto versandanhangDto) throws ExceptionLP {
+		int tries = 1;
+		do {
+			try {
+				return versandFac.createVersandanhang(versandanhangDto, 
+						LPMain.getTheClient());
+			} catch (Throwable ex) {
+				myLogger.error("Throwable", ex);
+//				if(!(ex.getCause() instanceof javax.transaction.RollbackException)) {
+//					handleThrowable(ex);
+//					return null;										
+//				}
+			}			
+		} while(--tries >= 0);
+		return null;
+	}
+	
+	public VersandauftragDto createVersandauftrag(
+			VersandauftragDto versandAuftragDto, 
+			List<VersandanhangDto> versandAnhaenge,
+			boolean dokumenteAnhaengen) throws ExceptionLP {
 		try {
-			return versandFac.createVersandanhang(versandanhangDto, LPMain
-					.getInstance().getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
+			return versandFac.createVersandauftrag(versandAuftragDto,
+					versandAnhaenge, dokumenteAnhaengen, LPMain.getTheClient());
+		} catch(Throwable t) {
+			handleThrowable(t);
 			return null;
 		}
 	}
+	
+	public VersandanhangDto createVersandanhang0(
+			VersandanhangDto versandanhangDto) throws ExceptionLP {
+		try {		
+			return versandFac.createVersandanhang(versandanhangDto, 
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			myLogger.error("Throwable", ex);
+			handleThrowable(ex);
+			return null;
+		}			
+	}
 
-	public void createVersandanhaenge(ArrayList<VersandanhangDto> alAnhaenge)
+
+	public void createVersandanhaenge(List<VersandanhangDto> alAnhaenge)
 			throws ExceptionLP {
 		try {
-			versandFac.createVersandanhaenge(alAnhaenge, LPMain.getInstance()
-					.getTheClient());
+			versandFac.createVersandanhaenge(alAnhaenge, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
-
 		}
 	}
 
@@ -133,8 +162,8 @@ public class VersandDelegate extends Delegate {
 
 	public Integer versandauftragFindFehlgeschlagenen() throws ExceptionLP {
 		try {
-			return versandFac.versandauftragFindFehlgeschlagenen(LPMain
-					.getInstance().getTheClient());
+			return versandFac.versandauftragFindFehlgeschlagenen(
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -145,7 +174,7 @@ public class VersandDelegate extends Delegate {
 			Timestamp tWunschSendeZeitpunkt) throws ExceptionLP {
 		try {
 			versandFac.sendeVersandauftragErneut(versandauftragIId,
-					tWunschSendeZeitpunkt, LPMain.getInstance().getTheClient());
+					tWunschSendeZeitpunkt, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -154,8 +183,8 @@ public class VersandDelegate extends Delegate {
 	public void storniereVersandauftrag(Integer versandauftragIId)
 			throws ExceptionLP {
 		try {
-			versandFac.storniereVersandauftrag(versandauftragIId, LPMain
-					.getInstance().getTheClient());
+			versandFac.storniereVersandauftrag(versandauftragIId, 
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -164,8 +193,7 @@ public class VersandDelegate extends Delegate {
 	public void removeVersandauftrag(Integer versandauftragIId)
 			throws ExceptionLP {
 		try {
-			versandFac.removeVersandauftrag(versandauftragIId, LPMain
-					.getInstance().getTheClient());
+			versandFac.removeVersandauftrag(versandauftragIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -175,7 +203,7 @@ public class VersandDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			return versandFac.getDefaultTextForBelegEmail(mailtextDto, LPMain
-					.getInstance().getTheClient());
+					.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -186,7 +214,7 @@ public class VersandDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			return versandFac.getDefaultTextForBelegHtmlEmail(mailtextDto,
-					LPMain.getInstance().getTheClient());
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -197,8 +225,19 @@ public class VersandDelegate extends Delegate {
 			Integer belegIId) throws ExceptionLP {
 		try {
 			return versandFac.getDefaultDateinameForBelegEmail(beleggartCNr,
-					belegIId, LPMain.getInstance().getTheClient().getLocUi(),
-					LPMain.getInstance().getTheClient());
+					belegIId, LPMain.getTheClient().getLocUi(),
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	public String getDefaultDateinameForBelegEmail(String beleggartCNr,
+			Integer belegIId, String locale) throws ExceptionLP {
+		try {
+			return versandFac.getDefaultDateinameForBelegEmail(beleggartCNr,
+					belegIId,Helper.string2Locale(locale),
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -209,8 +248,29 @@ public class VersandDelegate extends Delegate {
 			String beleggartCNr, Integer belegIId) throws ExceptionLP {
 		try {
 			return versandFac.getDefaultBetreffForBelegEmail(mailtextDto,
-					beleggartCNr, belegIId, LPMain.getInstance().getTheClient()
-							.getLocUi(), LPMain.getInstance().getTheClient());
+					beleggartCNr, belegIId, LPMain.getTheClient().getLocUi(), 
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public String getUebersteuertenAbsender(MailtextDto mailtextDto) throws ExceptionLP {
+		try {
+			return versandFac.getUebersteuertenAbsenderFuerBelegEmail(
+					mailtextDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public String getDefaultBetreffForBelegEmail(MailtextDto mailtextDto,
+			String beleggartCNr, Integer belegIId, String locale) throws ExceptionLP {
+		try {
+			return versandFac.getDefaultBetreffForBelegEmail(mailtextDto,
+					beleggartCNr, belegIId,Helper.string2Locale(locale), LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -220,8 +280,8 @@ public class VersandDelegate extends Delegate {
 	public void sendeVersandauftragSofort(Integer versandauftragIId)
 			throws ExceptionLP {
 		try {
-			versandFac.sendeVersandauftragSofort(versandauftragIId, LPMain
-					.getInstance().getTheClient());
+			versandFac.sendeVersandauftragSofort(versandauftragIId, 
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -230,8 +290,8 @@ public class VersandDelegate extends Delegate {
 	public String getVersandstatus(String belegartCNr, Integer i_belegIId)
 			throws ExceptionLP {
 		try {
-			return versandFac.getVersandstatus(belegartCNr, i_belegIId, LPMain
-					.getInstance().getTheClient());
+			return versandFac.getVersandstatus(belegartCNr, i_belegIId, 
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -242,11 +302,65 @@ public class VersandDelegate extends Delegate {
 			Integer i_belegIId) throws ExceptionLP {
 		try {
 			return versandFac.getFormattedVersandstatus(belegartCNr,
-					i_belegIId, LPMain.getInstance().getTheClient());
+					i_belegIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 		return null;
 	}
 
+	public String getDefaultAnhangForBelegEmail(MailtextDto mailtextDto,
+			String beleggartCNr, Integer belegIId) throws ExceptionLP {
+		try {
+			return versandFac.getDefaultAnhangForBelegEmail(mailtextDto,
+					beleggartCNr, belegIId, LPMain.getTheClient()
+							.getLocUi(), LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public String getUebersteuertenDateinamenForBeleg(MailtextDto mailtextDto,
+			String beleggartCNr, Integer belegIId) throws ExceptionLP {
+		try {
+			return versandFac.getUebersteuertenDateinamenForBeleg(mailtextDto,
+					beleggartCNr, belegIId, LPMain.getTheClient()
+							.getLocUi(), LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public String getDefaultAnhangForBelegEmail(MailtextDto mailtextDto, 
+			String beleggartCNr, Integer belegIId, String locale) throws ExceptionLP {
+		try {
+			return versandFac.getDefaultAnhangForBelegEmail(mailtextDto,
+					beleggartCNr, belegIId, Helper.string2Locale(locale), 
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+	
+	public MailTestMessageResult testMailConfiguration(MailTestMessage testMessage) throws ExceptionLP {
+		try {
+			return versandFac.testMailConfiguration(testMessage, LPMain.getTheClient());
+		} catch (Throwable e) {
+			handleThrowable(e);
+			return null;
+		}
+	}
+	
+	public FehlerVersandauftraegeDto getOffeneUndFehlgeschlageneAuftraege() throws ExceptionLP {
+		try {
+			return versandFac.getOffeneUndFehlgeschlageneAuftraege(LPMain.getTheClient());
+		} catch (Throwable e) {
+			handleThrowable(e);
+			return null;
+		}
+	}
+	
 }

@@ -37,9 +37,7 @@ import java.math.BigDecimal;
 import java.util.EventObject;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
-import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
-import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.WrapperTable;
@@ -52,7 +50,6 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 /*
  * <p>In diesem Detailfenster bekommt man einen Blick auf alle mengenbehafteten
  * Auftragpositionen jenes Auftrags, zu dem dieser Lieferschein gehoert.
@@ -136,13 +133,11 @@ public abstract class PanelPositionenSichtAuftragSNR extends
 		if (Helper.short2boolean(panelArtikel.getArtikelDto()
 				.getBSeriennrtragend())) {
 			iIdUsecase = QueryParameters.UC_ID_SERIENNUMMERNCHARGENNUMMERNAUFLAGER;
-			sTitle = LPMain.getInstance().getTextRespectUISPr(
-					"artikel.seriennummer");
+			sTitle = textFromToken("artikel.seriennummer");
 		} else if (Helper.short2boolean(panelArtikel.getArtikelDto()
 				.getBChargennrtragend())) {
 			iIdUsecase = QueryParameters.UC_ID_CHARGENAUFLAGER;
-			sTitle = LPMain.getInstance().getTextRespectUISPr(
-					"artikel.chargennummer");
+			sTitle = textFromToken("artikel.chargennummer");
 		}
 
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_LEEREN };
@@ -154,8 +149,7 @@ public abstract class PanelPositionenSichtAuftragSNR extends
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
-		ItemChangedEvent e = (ItemChangedEvent) eI;
-
+//		ItemChangedEvent e = (ItemChangedEvent) eI;
 	}
 
 	/**
@@ -163,7 +157,7 @@ public abstract class PanelPositionenSichtAuftragSNR extends
 	 * 
 	 * @throws Throwable
 	 */
-	protected void befuelleMengeMitVorschlagswert() throws Throwable {
+	protected void befuelleMengeMitVorschlagswert(int iOffeneMengeVorschlagen) throws Throwable {
 		if (!Helper.short2boolean(panelArtikel.getArtikelDto()
 				.getBChargennrtragend())
 				&& !Helper.short2boolean(panelArtikel.getArtikelDto()
@@ -181,9 +175,9 @@ public abstract class PanelPositionenSichtAuftragSNR extends
 								ParameterFac.KATEGORIE_ARTIKEL,
 								LPMain.getTheClient().getMandant());
 
-				boolean bImmerAusreichendVerfuegbar = (Boolean) parameter
+				int bImmerAusreichendVerfuegbar = (Integer) parameter
 						.getCWertAsObject();
-				if (bImmerAusreichendVerfuegbar == true) {
+				if (bImmerAusreichendVerfuegbar > 0) {
 					nMengeAufLager = oAuftragpositionDto.getNOffeneMenge();
 				} else {
 					nMengeAufLager = DelegateFactory
@@ -203,6 +197,17 @@ public abstract class PanelPositionenSichtAuftragSNR extends
 					// vorhanden ist
 					panelArtikel.wnfMenge.setBigDecimal(nMengeAufLager);
 				}
+				
+				//PJ21101
+				if(iOffeneMengeVorschlagen==2) {
+					panelArtikel.wnfMenge.setBigDecimal(DelegateFactory
+					.getInstance()
+					.getLagerDelegate()
+					.getLagerstand(
+							panelArtikel.getArtikelDto().getIId(),
+							iIdLager));
+				}
+				
 			} else {
 				panelArtikel.wnfMenge.setBigDecimal(oAuftragpositionDto
 						.getNOffeneMenge());

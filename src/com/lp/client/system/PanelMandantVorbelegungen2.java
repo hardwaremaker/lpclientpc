@@ -53,6 +53,7 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperBildField;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
@@ -102,14 +103,19 @@ public class PanelMandantVorbelegungen2 extends PanelBasis {
 	private PanelQueryFLR panelQueryFLRFinanzamt = null;
 	private WrapperButton wbuStklKunde = null;
 	private WrapperTextField wtfStklKunde = null;
+	private WrapperSelectField wsfLager = null;
 	private PanelQueryFLR panelQueryStklKunde = null;
 	private WrapperButton wbuFinanzamt = new WrapperButton();
 	private WrapperTextField wtfFinanzamt = new WrapperTextField();
+	private WrapperTextField wtfGlaeubigerid = new WrapperTextField();
 	private WrapperLabel wlaFibu = null;
 
+	private WrapperLabel wlaZusWaehrung = null;
+	private WrapperComboBox wcoZusWaehrung = null;
+	
 	private WrapperSelectField wsfKostenstelle = new WrapperSelectField(
 			WrapperSelectField.KOSTENSTELLE, getInternalFrame(), true);
-	
+
 	public PanelMandantVorbelegungen2(InternalFrame internalFrame,
 			String add2TitleI, Object keyI) throws Throwable {
 		super(internalFrame, add2TitleI, keyI);
@@ -169,6 +175,18 @@ public class PanelMandantVorbelegungen2 extends PanelBasis {
 		setLayout(gridBagLayoutAll);
 		getInternalFrame().addItemChangedListener(this);
 
+		wsfLager = new WrapperSelectField(WrapperSelectField.LAGER,
+				getInternalFrame(), true);
+		wsfLager.setText(LPMain.getTextRespectUISPr("button.ziellager"));
+
+		
+		wcoZusWaehrung = new WrapperComboBox();
+		wcoZusWaehrung.setMap(DelegateFactory.getInstance().getLocaleDelegate()
+				.getAllWaehrungen());
+
+		wlaZusWaehrung = new WrapperLabel();
+		wlaZusWaehrung.setText(LPMain.getTextRespectUISPr("lp.mandant.zusaetzlicherechungswwahrung"));
+		
 		// Actionpanel von Oberklasse holen und anhaengen.
 		jpaButtonAction = getToolsPanel();
 
@@ -231,6 +249,14 @@ public class PanelMandantVorbelegungen2 extends PanelBasis {
 		jpaWorkingOn.add(wtfStklKunde, new GridBagConstraints(1, iZeile, 1, 1,
 				0.5, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(1, 2, 1, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wsfLager.getWrapperButton(), new GridBagConstraints(0,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+		jpaWorkingOn.add(wsfLager.getWrapperTextField(),
+				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(1, 2, 1, 2), 0, 0));
 		// Zeile.
 		iZeile++;
 		jpaWorkingOn.add(wlaBild, new GridBagConstraints(0, iZeile, 2, 1, 0.1,
@@ -253,12 +279,42 @@ public class PanelMandantVorbelegungen2 extends PanelBasis {
 				0.5, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(1, 2, 1, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wsfKostenstelle.getWrapperButton(), new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
-		jpaWorkingOn.add(wsfKostenstelle.getWrapperTextField(), new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(1, 2, 1, 2), 0, 0));
+		jpaWorkingOn.add(wsfKostenstelle.getWrapperButton(),
+				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(1, 2, 1, 2), 0, 0));
+		jpaWorkingOn.add(wsfKostenstelle.getWrapperTextField(),
+				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(1, 2, 1, 2), 0, 0));
+		
+		iZeile++;
+		jpaWorkingOn.add(wlaZusWaehrung,
+				new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(1, 2, 1, 2), 0, 0));
+		jpaWorkingOn.add(wcoZusWaehrung,
+				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(1, 2, 1, 2), 0, 0));
+
+		// SEPA
+		iZeile++;
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getInstance()
+				.getTextRespectUISPr("lp.sepa")), new GridBagConstraints(0,
+				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(new WrapperLabel(LPMain.getInstance()
+				.getTextRespectUISPr("lp.sepa.glaeubigerid")),
+				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						new Insets(1, 2, 1, 2), 0, 0));
+		jpaWorkingOn.add(wtfGlaeubigerid, new GridBagConstraints(1, iZeile, 1,
+				1, 0.5, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(1, 2, 1, 2), 0, 0));
+
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -283,15 +339,19 @@ public class PanelMandantVorbelegungen2 extends PanelBasis {
 		} else {
 			wtfFinanzamt.setText(null);
 		}
-		
-		wsfKostenstelle.setKey(getMandantDto().getKostenstelleIIdFibu());
 
+		wsfKostenstelle.setKey(getMandantDto().getKostenstelleIIdFibu());
+		wsfLager.setKey(getMandantDto().getLagerIIdZiellager());
+		wtfGlaeubigerid.setText(getMandantDto().getCGlauebiger());
+		wcoZusWaehrung.setKeyOfSelectedItem(getMandantDto().getWaehrungCNrZusaetzlich());
 	}
 
 	protected void components2Dto() throws Throwable {
-		getMandantDto().getPartnerDto().setOBild(
-				Helper.imageToByteArray((BufferedImage) wmcBild.getImage()));
+		getMandantDto().getPartnerDto().setOBild(wmcBild.getImageOriginalBytes());
 		getMandantDto().setKostenstelleIIdFibu(wsfKostenstelle.getIKey());
+		getMandantDto().setLagerIIdZiellager(wsfLager.getIKey());
+		getMandantDto().setCGlauebiger(wtfGlaeubigerid.getText());
+		getMandantDto().setWaehrungCNrZusaetzlich((String) wcoZusWaehrung.getKeyOfSelectedItem());
 	}
 
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)

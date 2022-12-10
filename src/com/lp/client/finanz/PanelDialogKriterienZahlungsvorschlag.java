@@ -41,6 +41,8 @@ import java.util.EventObject;
 
 import javax.swing.JComponent;
 
+import com.lp.client.frame.BankverbindungFormatter;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -49,6 +51,7 @@ import com.lp.client.frame.component.PanelDialogKriterien;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
@@ -57,6 +60,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.eingangsrechnung.service.ZahlungsvorschlagkriterienDto;
 import com.lp.server.finanz.service.BankverbindungDto;
+import com.lp.server.finanz.service.KontoDto;
 import com.lp.server.partner.service.BankDto;
 import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.ParameterFac;
@@ -97,6 +101,9 @@ private WrapperLabel wlaStichtag = null;
 
   private BankverbindungDto bankverbindungDto = null;
   private PanelQueryFLR panelQueryFLRBank = null;
+  
+  private WrapperLabel wlaWaehrung = null;
+  private WrapperComboBox wcoWaehrung = null;
 
   private final static String ACTION_SPECIAL_BANKVERBINDUNG = "action_special_bankverbindung";
 
@@ -145,6 +152,10 @@ private WrapperLabel wlaStichtag = null;
     wtfBankverbindung = new WrapperTextField();
     wtfBankverbindung.setMandatoryField(true);
     wtfBankverbindung.setColumnsMax(100);
+    
+    wlaWaehrung = new WrapperLabel();
+    wlaWaehrung.setText(LPMain.getInstance().getTextRespectUISPr("label.waehrung"));
+    wcoWaehrung = new WrapperComboBox();
 
     iZeile++;
     jpaWorkingOn.add(wlaStichtag,
@@ -205,6 +216,18 @@ private WrapperLabel wlaStichtag = null;
                                             GridBagConstraints.BOTH,
                                             new Insets(2, 2, 2, 2), 0, 0));
 
+    iZeile++;
+    jpaWorkingOn.add(wlaWaehrung,
+                     new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0
+                                            , GridBagConstraints.CENTER,
+                                            GridBagConstraints.BOTH,
+                                            new Insets(2, 2, 2, 2), 0, 0));
+
+    jpaWorkingOn.add(wcoWaehrung,
+                     new GridBagConstraints(1, iZeile, 1, 1, 1.0, 0.0
+                                            , GridBagConstraints.CENTER,
+                                            GridBagConstraints.BOTH,
+                                            new Insets(2, 2, 2, 2), 0, 0));
   }
 
 
@@ -258,6 +281,22 @@ private WrapperLabel wlaStichtag = null;
   }
 
 
+  public void setWaehrungComboBox() throws ExceptionLP, Throwable {
+	if (bankverbindungDto != null) {
+		wcoWaehrung.setMap(DelegateFactory.getInstance().getLocaleDelegate().getAllWaehrungen());
+		KontoDto bvKontoDto = DelegateFactory.getInstance().getFinanzDelegate()
+				.kontoFindByPrimaryKey(bankverbindungDto.getKontoIId());
+		if (bvKontoDto == null || bvKontoDto.getWaehrungCNrDruck() == null) {
+		    wcoWaehrung.removeAll();
+		} else {
+			wcoWaehrung.setKeyOfSelectedItem(bvKontoDto.getWaehrungCNrDruck());
+		}
+	} else {
+	      wcoWaehrung.removeAll();
+	}
+  }
+
+
   protected void dto2ComponentsBankverbindung() throws Throwable {
     if (bankverbindungDto != null) {
       if (bankverbindungDto.getCBez()!=null) {
@@ -265,14 +304,24 @@ private WrapperLabel wlaStichtag = null;
       }
       else {
         BankDto bankDto = DelegateFactory.getInstance().getPartnerbankDelegate().bankFindByPrimaryKey(bankverbindungDto.getBankIId());
-        wtfBankverbindung.setText(bankverbindungDto.getCKontonummer()+" | "+bankDto.getPartnerDto().formatFixTitelName1Name2());
+        wtfBankverbindung.setText(getBankverbindungText(bankDto));
       }
     }
     else {
       wtfBankverbindung.setText(null);
     }
+
+  	setWaehrungComboBox();
   }
 
+  private String getBankverbindungText(BankDto bankDto) {
+	  BankverbindungFormatter bvFormatter = new BankverbindungFormatter();
+	  StringBuilder builder = new StringBuilder();
+	  builder.append(bvFormatter.formatNummerFuerTextfeldEinerAuswahl(bankverbindungDto))
+			  .append(" | ")
+			  .append(bankDto.getPartnerDto().formatFixTitelName1Name2());
+	  return builder.toString();
+  }
 
   void dialogQueryBank(ActionEvent e)
       throws Throwable {
@@ -316,6 +365,8 @@ private WrapperLabel wlaStichtag = null;
       krit.setDNaechsterZahlungslauf(wdfNaechster.getDate());
       krit.setDZahlungsstichtag(wdfStichtag.getDate());
       krit.setISkontoUeberziehungsfristInTage(wnfUEZFrist.getInteger());
+      krit.setWaehrungCNr(wcoWaehrung.getSelectedItem() == null || wcoWaehrung.getSelectedItem().equals(wcoWaehrung.emptyEntry) ? 
+    		  null : wcoWaehrung.getSelectedItem().toString());
     }
     return krit;
   }

@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.stueckliste;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -39,14 +40,16 @@ import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
 import java.util.EventObject;
 import java.util.Map;
-import java.util.TreeMap;
 
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.ButtonAbstractAction;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -61,9 +64,11 @@ import com.lp.client.frame.component.WrapperEditorFieldTexteingabe;
 import com.lp.client.frame.component.WrapperIdentField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
+import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperSpinner;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.editor.PanelEditorPlainText;
 import com.lp.client.pc.LPMain;
 import com.lp.client.zeiterfassung.ZeiterfassungFilterFactory;
 import com.lp.server.artikel.service.ArtikelDto;
@@ -71,6 +76,7 @@ import com.lp.server.personal.service.MaschineDto;
 import com.lp.server.stueckliste.service.StuecklisteFac;
 import com.lp.server.stueckliste.service.StuecklistearbeitsplanDto;
 import com.lp.server.stueckliste.service.StuecklistepositionDto;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
@@ -105,13 +111,22 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 	private WrapperSpinner wspRuestzeitSekunden = new WrapperSpinner(
 			new Integer(0), new Integer(0), new Integer(59), new Integer(1));
 
+	private WrapperSelectField wsfApkommentar = new WrapperSelectField(
+			WrapperSelectField.APKOMMENTAR, getInternalFrame(), true);
+
 	private WrapperLabel wlaKommentar = new WrapperLabel();
-	private WrapperTextField wtfKommentar = new WrapperTextField();
+	private WrapperTextField wtfKommentar = new WrapperTextField(80);
 	private WrapperLabel wlaArbeitsgang = new WrapperLabel();
 	private WrapperNumberField wnfArbeitsgang = new WrapperNumberField();
 
 	private WrapperLabel wlaMaschinenversatztage = new WrapperLabel();
 	private WrapperNumberField wnfMaschinenversatztage = new WrapperNumberField();
+
+	private WrapperLabel wlaMitarbeiterGleichzeitig = new WrapperLabel();
+	private WrapperNumberField wnfMitarbeiterGleichzeitig = new WrapperNumberField();
+
+	private WrapperLabel wlaPPM = new WrapperLabel();
+	private WrapperNumberField wnfPPM = new WrapperNumberField();
 
 	private WrapperNumberField wnfUnterarbeitsgang = new WrapperNumberField();
 
@@ -124,15 +139,19 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 
 	private WrapperComboBox wcoAgart = new WrapperComboBox();
 	private WrapperNumberField wnfAufspannung = new WrapperNumberField();
-	// private WrapperSpinner wspTageStueckzeit = new WrapperSpinner(new
-	// Integer(0),
-	// new Integer(0),
-	// new Integer(99), new Integer(1));
+
+	private WrapperLabel wlaFormel = new WrapperLabel();
+	private WrapperTextField wtfFormel = new WrapperTextField();
+	private WrapperButton wbuFormelEdit = new WrapperButton();
+
+	private PanelEditorPlainText panelEditorPlainTextFormel = null;
 
 	boolean bTheoretischeIstZeit = false;
 
 	int iAnzeigeArbeitszeit = 0;
 
+	private WrapperCheckBox wcbInitial = new WrapperCheckBox();
+	
 	private WrapperSpinner wspMillisekundenStueckzeit = new WrapperSpinner(
 			new Integer(0), new Integer(0), new Integer(999), new Integer(1));
 
@@ -177,11 +196,14 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 	}
 
 	private void setDefaults() throws Throwable {
-		Map<String, String> m = new TreeMap<String, String>();
-		m.put(StuecklisteFac.AGART_LAUFZEIT, StuecklisteFac.AGART_LAUFZEIT);
-		m.put(StuecklisteFac.AGART_UMSPANNZEIT,
-				StuecklisteFac.AGART_UMSPANNZEIT);
-		wcoAgart.setMap(m);
+		// Map<String, String> m = new TreeMap<String, String>();
+		// m.put(StuecklisteFac.AGART_LAUFZEIT, StuecklisteFac.AGART_LAUFZEIT);
+		// m.put(StuecklisteFac.AGART_UMSPANNZEIT,
+		// StuecklisteFac.AGART_UMSPANNZEIT);
+		Map<String, String> map = DelegateFactory.getInstance()
+				.getStuecklisteDelegate().getAllArbeitsgangarten();
+
+		wcoAgart.setMap(map);
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -192,6 +214,7 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 			boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		stuecklistearbeitsplanDto = new StuecklistearbeitsplanDto();
+		panelEditorPlainTextFormel = null;
 		leereAlleFelder(this);
 		wifArtikel.setArtikelDto(null);
 	}
@@ -210,7 +233,7 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
 		super.eventActionUpdate(aE, bNeedNoUpdateI);
-
+		panelEditorPlainTextFormel = null;
 		if (bTheoretischeIstZeit == true) {
 			if (wcoAgart.getKeyOfSelectedItem() == null) {
 				wspStueckzeitMinuten.setEnabled(false);
@@ -235,7 +258,42 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 				wspMillisekundenRuestzeit.setValue(0);
 			}
 		}
+		
+		
+		
+	/*	if (internalFrameStueckliste.getTabbedPaneStueckliste().bStuecklistenfreigabe == true && internalFrameStueckliste.getStuecklisteDto() != null
+				&& internalFrameStueckliste.getStuecklisteDto().getTFreigabe() != null && internalFrameStueckliste.getTabbedPaneStueckliste().bDarfSollzeitenAendern==true) {
+			enableAllComponents(this, false);
+			
+			wspStueckzeitMinuten.setEnabled(true);
+			wspStueckzeitSekunden.setEnabled(true);
+			wspStueckzeitStunden.setEnabled(true);
+			wspRuestzeitMinuten.setEnabled(true);
+			wspRuestzeitSekunden.setEnabled(true);
+			wspRuestzeitStunden.setEnabled(true);
+		}*/
+		
 
+	}
+
+	protected void eventActionText(ActionEvent e) throws Throwable {
+		if (e.getSource().equals(wbuFormelEdit)) {
+
+			String plaintText = null;
+			if (panelEditorPlainTextFormel != null) {
+				plaintText = panelEditorPlainTextFormel.getPlainText();
+			} else {
+				plaintText = stuecklistearbeitsplanDto.getXFormel();
+			}
+
+			panelEditorPlainTextFormel = new PanelEditorPlainText(
+					getInternalFrame(), wtfFormel, getAdd2Title(), plaintText,
+					getLockedstateDetailMainKey().getIState());
+			panelEditorPlainTextFormel.setColumnsMax(StuecklisteFac.MAX_FORMEL);
+
+			getInternalFrame().showPanelDialog(panelEditorPlainTextFormel);
+			getInternalFrame().getContentPane().validate();
+		}
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -328,9 +386,22 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 				.getIId());
 		stuecklistearbeitsplanDto.setBNurmaschinenzeit(wcbNurMaschinenzeit
 				.getShort());
+		stuecklistearbeitsplanDto.setBInitial(wcbInitial.getShort());
+		
 		stuecklistearbeitsplanDto.setIAufspannung(wnfAufspannung.getInteger());
 		stuecklistearbeitsplanDto.setAgartCNr((String) wcoAgart
 				.getKeyOfSelectedItem());
+		stuecklistearbeitsplanDto.setApkommentarIId(wsfApkommentar.getIKey());
+		stuecklistearbeitsplanDto.setNPpm(wnfPPM.getBigDecimal());
+
+		if (panelEditorPlainTextFormel != null) {
+			stuecklistearbeitsplanDto.setXFormel(panelEditorPlainTextFormel
+					.getPlainText());
+		}
+
+		stuecklistearbeitsplanDto
+				.setIMitarbeitergleichzeitig(wnfMitarbeiterGleichzeitig
+						.getInteger());
 
 	}
 
@@ -344,7 +415,7 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 						ParameterFac.KATEGORIE_STUECKLISTE,
 						LPMain.getInstance().getTheClient().getMandant());
 		String sEinheit = parameter.getCWert().trim();
-		
+
 		double lRuestzeit = stuecklistearbeitsplanDto.getLRuestzeit()
 				.longValue();
 		double lStueckzeit = stuecklistearbeitsplanDto.getLStueckzeit()
@@ -363,14 +434,14 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 			dStueckzeit = lStueckzeit / 1000;
 			dRuestzeit = lRuestzeit / 1000;
 		}
-		
-		if(internalFrameStueckliste
-		.getStuecklisteDto().getIErfassungsfaktor()!=0){
-			dStueckzeit=dStueckzeit/((double)internalFrameStueckliste
-					.getStuecklisteDto().getIErfassungsfaktor());
+
+		if (internalFrameStueckliste.getStuecklisteDto().getNErfassungsfaktor()
+				.doubleValue() != 0) {
+			dStueckzeit = dStueckzeit
+					/ ((double) internalFrameStueckliste.getStuecklisteDto()
+							.getNErfassungsfaktor().doubleValue());
 		}
-		
-		
+
 		if (stuecklistearbeitsplanDto.getMaschineIId() != null) {
 			MaschineDto maschineDto = DelegateFactory
 					.getInstance()
@@ -423,8 +494,8 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 								.getIAufspannung()), 4,
 						BigDecimal.ROUND_HALF_EVEN);
 			}
-			kostenR = kostenR.add(preis.multiply(Helper.rundeKaufmaennisch(
-					new BigDecimal(dRuestzeit), 2)));
+			kostenR = kostenR.add(Helper.rundeKaufmaennisch(
+					preis.multiply(new BigDecimal(dRuestzeit)), 2));
 			kostenSTK = kostenSTK.add(Helper.rundeKaufmaennisch(
 					preis.multiply(new BigDecimal(dStueckzeit)), 2));
 
@@ -435,7 +506,7 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 					.getInstance()
 					.getZeiterfassungDelegate()
 					.getMaschinenKostenZumZeitpunkt(
-							stuecklistearbeitsplanDto.getMaschineIId());
+							stuecklistearbeitsplanDto.getMaschineIId(), LocaleFac.BELEGART_STUECKLISTE,stuecklistearbeitsplanDto.getIId() );
 
 			if (stuecklistearbeitsplanDto.getIAufspannung() != null
 					&& stuecklistearbeitsplanDto.getIAufspannung() >= 1) {
@@ -455,16 +526,19 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 
 		}
 
-		//SP2760
+		// SP2760
 		if (sEinheit.equals(SystemFac.EINHEIT_MINUTE.trim())) {
-			kostenR=kostenR.divide(new BigDecimal(60),BigDecimal.ROUND_HALF_UP);
-			kostenSTK=kostenSTK.divide(new BigDecimal(60),BigDecimal.ROUND_HALF_UP);
+			kostenR = kostenR.divide(new BigDecimal(60),
+					BigDecimal.ROUND_HALF_UP);
+			kostenSTK = kostenSTK.divide(new BigDecimal(60),
+					BigDecimal.ROUND_HALF_UP);
 		} else if (sEinheit.equals(SystemFac.EINHEIT_SEKUNDE.trim())) {
-			kostenR=kostenR.divide(new BigDecimal(3600),BigDecimal.ROUND_HALF_UP);
-			kostenSTK=kostenSTK.divide(new BigDecimal(3600),BigDecimal.ROUND_HALF_UP);
+			kostenR = kostenR.divide(new BigDecimal(3600),
+					BigDecimal.ROUND_HALF_UP);
+			kostenSTK = kostenSTK.divide(new BigDecimal(3600),
+					BigDecimal.ROUND_HALF_UP);
 		}
-		
-		
+
 		wlaRuestzeitUmgewandelt.setText("= "
 				+ Helper.rundeKaufmaennisch(new BigDecimal(dRuestzeit), 2)
 				+ " "
@@ -495,6 +569,9 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 		}
 		wifArtikel.setArtikelDto(stuecklistearbeitsplanDto.getArtikelDto());
 		wtfKommentar.setText(stuecklistearbeitsplanDto.getCKommentar());
+
+		wnfMitarbeiterGleichzeitig.setInteger(stuecklistearbeitsplanDto
+				.getIMitarbeitergleichzeitig());
 
 		dRuestzeit = (stuecklistearbeitsplanDto.getLRuestzeit().longValue());
 		if (dRuestzeit > 0) {
@@ -572,6 +649,11 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 			wspMillisekundenStueckzeit.setInteger(new Integer(0));
 
 		}
+
+		wcbInitial.setShort(stuecklistearbeitsplanDto.getBInitial());
+		
+		wnfPPM.setBigDecimal(stuecklistearbeitsplanDto.getNPpm());
+
 		wnfMaschinenversatztage.setInteger(stuecklistearbeitsplanDto
 				.getIMaschinenversatztage());
 		wnfArbeitsgang.setInteger(stuecklistearbeitsplanDto.getIArbeitsgang());
@@ -584,6 +666,11 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 		wcoAgart.setKeyOfSelectedItem(stuecklistearbeitsplanDto.getAgartCNr());
 		wcbNurMaschinenzeit.setShort(stuecklistearbeitsplanDto
 				.getBNurmaschinenzeit());
+		wsfApkommentar.setKey(stuecklistearbeitsplanDto.getApkommentarIId());
+
+		wtfFormel.setText(stuecklistearbeitsplanDto.getXFormel());
+		panelEditorPlainTextFormel = null;
+
 	}
 
 	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
@@ -705,6 +792,18 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 		wcbNurMaschinenzeit.setText(LPMain
 				.getTextRespectUISPr("stkl.arbeitsplan.nurmaschinenzeit"));
 
+		wcbInitial.setText(LPMain.getTextRespectUISPr("stkl.positionen.initialkosten"));
+		wcbInitial.setToolTipText(LPMain.getTextRespectUISPr("stkl.positionen.initialkosten.tooltip"));
+		
+		wnfMitarbeiterGleichzeitig.setMinimumValue(0);
+		wnfMitarbeiterGleichzeitig.setFractionDigits(0);
+		wlaMitarbeiterGleichzeitig
+				.setText(LPMain
+						.getTextRespectUISPr("stkl.arbeitsplan.mitarbeitergleichzeitig"));
+		wlaMitarbeiterGleichzeitig
+				.setToolTipText(LPMain
+						.getTextRespectUISPr("stkl.arbeitsplan.mitarbeitergleichzeitig.tooltip"));
+
 		wnfUnterarbeitsgang.setFractionDigits(0);
 		wnfUnterarbeitsgang.setMaximumValue(0);
 		wnfUnterarbeitsgang.setMaximumValue(9);
@@ -724,7 +823,28 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 		wlaLangtext.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.kommentar"));
 
+		wlaFormel.setText(LPMain.getTextRespectUISPr("stl.positionen.formel"));
+
+		wbuFormelEdit.setMinimumSize(new Dimension(23, 23));
+		wbuFormelEdit.setPreferredSize(new Dimension(23, 23));
+		wbuFormelEdit.setActionCommand(ACTION_TEXT);
+		wbuFormelEdit.setToolTipText(LPMain
+				.getTextRespectUISPr("text.bearbeiten"));
+		wbuFormelEdit.setIcon(new ImageIcon(getClass().getResource(
+				"/com/lp/client/res/notebook.png")));
+		wbuFormelEdit.addActionListener(this);
+		wbuFormelEdit.getActionMap().put(ACTION_TEXT,
+				new ButtonAbstractAction(this, ACTION_TEXT));
+
+		wtfFormel.setColumnsMax(3000);
+		wtfFormel.setActivatable(false);
+
 		wnfAufspannung.setFractionDigits(0);
+
+		wlaPPM.setText(LPMain.getInstance().getTextRespectUISPr(
+				"stkl.arbeitsplan.ppm"));
+		wnfPPM.setFractionDigits(Defaults.getInstance()
+				.getIUINachkommastellenMenge());
 
 		wlaStueckzeitUmgewandelt.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaRuestzeitUmgewandelt.setHorizontalAlignment(SwingConstants.LEFT);
@@ -794,6 +914,25 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 		jpaWorkingOn.add(wnfUnterarbeitsgang, new GridBagConstraints(3, zeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 30, 0));
+
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_PRUEFPLAN1)) {
+
+			jpaWorkingOn.add(wlaPPM,
+					new GridBagConstraints(7, zeile, 1, 1, 0, 0.0,
+							GridBagConstraints.WEST,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+			jpaWorkingOn.add(wnfPPM,
+					new GridBagConstraints(8, zeile, 1, 1, 0.0, 0.0,
+							GridBagConstraints.EAST,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
+
 		zeile++;
 		if (iAnzeigeArbeitszeit == 0) {
 
@@ -802,29 +941,29 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 							.getMessageTextRespectUISPr("stkl.arbeitsplan.std")),
 							new GridBagConstraints(1, zeile, 2, 1, 0.2, 0.0,
 									GridBagConstraints.WEST,
-									GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-											2, 2), 0, 0));
+									GridBagConstraints.HORIZONTAL, new Insets(
+											2, 2, 2, 2), 0, 0));
 			jpaWorkingOn
 					.add(new WrapperLabel(LPMain
 							.getMessageTextRespectUISPr("stkl.arbeitsplan.min")),
 							new GridBagConstraints(3, zeile, 1, 1, 0.2, 0.0,
 									GridBagConstraints.WEST,
-									GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-											2, 2), 0, 0));
+									GridBagConstraints.HORIZONTAL, new Insets(
+											2, 2, 2, 2), 0, 0));
 			jpaWorkingOn
 					.add(new WrapperLabel(LPMain
 							.getMessageTextRespectUISPr("stkl.arbeitsplan.sek")),
 							new GridBagConstraints(4, zeile, 1, 1, 0.2, 0.0,
 									GridBagConstraints.WEST,
-									GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-											2, 2), 0, 0));
+									GridBagConstraints.HORIZONTAL, new Insets(
+											2, 2, 2, 2), 0, 0));
 			jpaWorkingOn
 					.add(new WrapperLabel(
 							LPMain.getMessageTextRespectUISPr("stkl.arbeitsplan.millisek")),
 							new GridBagConstraints(5, zeile, 1, 1, 0.2, 0.0,
 									GridBagConstraints.WEST,
-									GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-											2, 2), 0, 0));
+									GridBagConstraints.HORIZONTAL, new Insets(
+											2, 2, 2, 2), 0, 0));
 		} else {
 
 			jpaWorkingOn
@@ -832,22 +971,22 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 							LPMain.getMessageTextRespectUISPr("stkl.arbeitsplan.tage")),
 							new GridBagConstraints(1, zeile, 2, 1, 0.2, 0.0,
 									GridBagConstraints.WEST,
-									GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-											2, 2), 0, 0));
+									GridBagConstraints.HORIZONTAL, new Insets(
+											2, 2, 2, 2), 0, 0));
 			jpaWorkingOn
 					.add(new WrapperLabel(LPMain
 							.getMessageTextRespectUISPr("stkl.arbeitsplan.std")),
 							new GridBagConstraints(3, zeile, 1, 1, 0.2, 0.0,
 									GridBagConstraints.WEST,
-									GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-											2, 2), 0, 0));
+									GridBagConstraints.HORIZONTAL, new Insets(
+											2, 2, 2, 2), 0, 0));
 			jpaWorkingOn
 					.add(new WrapperLabel(LPMain
 							.getMessageTextRespectUISPr("stkl.arbeitsplan.min")),
 							new GridBagConstraints(4, zeile, 1, 1, 0.2, 0.0,
 									GridBagConstraints.WEST,
-									GridBagConstraints.HORIZONTAL, new Insets(2, 2,
-											2, 2), 0, 0));
+									GridBagConstraints.HORIZONTAL, new Insets(
+											2, 2, 2, 2), 0, 0));
 		}
 		jpaWorkingOn.add(wlaLossgroesse, new GridBagConstraints(6, zeile, 1, 1,
 				0.2, 0.0, GridBagConstraints.WEST,
@@ -951,6 +1090,29 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 				1.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(2, 2, 2, 2), 30, 0));
 
+		ParametermandantDto parameterAGBeginn = (ParametermandantDto) DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getParametermandant(
+						ParameterFac.PARAMETER_AUTOMATISCHE_ERMITTLUNG_AG_BEGINN,
+						ParameterFac.KATEGORIE_FERTIGUNG,
+						LPMain.getTheClient().getMandant());
+
+		int iAutomatischeErmittlungAGBeginn = (Integer) parameterAGBeginn
+				.getCWertAsObject();
+		if (iAutomatischeErmittlungAGBeginn > 0) {
+			jpaWorkingOn.add(wlaMitarbeiterGleichzeitig,
+					new GridBagConstraints(8, zeile, 1, 1, 0, 0.0,
+							GridBagConstraints.WEST,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									50), 0, 0));
+
+			jpaWorkingOn.add(wnfMitarbeiterGleichzeitig,
+					new GridBagConstraints(8, zeile, 1, 1, 0, 0.0,
+							GridBagConstraints.EAST, GridBagConstraints.NONE,
+							new Insets(2, 50, 2, 2), 30, 0));
+
+		}
 		zeile++;
 		if (LPMain
 				.getInstance()
@@ -976,6 +1138,25 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 									2), 0, 0));
 			zeile++;
 		}
+
+		jpaWorkingOn.add(wsfApkommentar.getWrapperButton(),
+				new GridBagConstraints(0, zeile, 1, 1, 0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
+		jpaWorkingOn.add(wsfApkommentar.getWrapperTextField(),
+				new GridBagConstraints(1, zeile, 6, 1, 0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
+		
+		jpaWorkingOn.add(wcbInitial,
+				new GridBagConstraints(7, zeile, 2, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+								2), 0, 0));
+		
+		zeile++;
 		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, zeile, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
@@ -994,8 +1175,30 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		jpaWorkingOn.add(wefLangtext, new GridBagConstraints(1, zeile, 8, 1,
-				0.0, 1, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 50));
+				0.0, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 50));
+
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_STUECKLISTE_MIT_FORMELN)) {
+			zeile++;
+
+			jpaWorkingOn.add(wlaFormel, new GridBagConstraints(0, zeile, 1, 1,
+					0.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0,
+					32));
+
+			jpaWorkingOn.add(wtfFormel, new GridBagConstraints(1, zeile, 8, 1,
+					0.0, 1, GridBagConstraints.EAST,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 26), 0,
+					0));
+
+			jpaWorkingOn.add(wbuFormelEdit, new GridBagConstraints(8, zeile, 1,
+					1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE,
+					new Insets(2, 2, 2, 2), 0, 0));
+		}
 
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
@@ -1050,5 +1253,19 @@ public class PanelStuecklistearbeitsplan extends PanelBasis {
 
 			dto2Components();
 		}
+
+		wbuFormelEdit.setEnabled(true);
+
+		if (Helper.short2boolean(internalFrameStueckliste.getStuecklisteDto()
+				.getBMitFormeln()) == true) {
+			wlaFormel.setVisible(true);
+			wtfFormel.setVisible(true);
+			wbuFormelEdit.setVisible(true);
+		} else {
+			wlaFormel.setVisible(false);
+			wtfFormel.setVisible(false);
+			wbuFormelEdit.setVisible(false);
+		}
+
 	}
 }

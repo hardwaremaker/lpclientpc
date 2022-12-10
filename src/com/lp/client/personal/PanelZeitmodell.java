@@ -42,22 +42,34 @@ import java.util.EventObject;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.DialogQuery;
+import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
+import com.lp.client.frame.component.WrapperTimeField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.SystemFilterFactory;
+import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.personal.service.PersonalDto;
+import com.lp.server.personal.service.SchichtDto;
+import com.lp.server.personal.service.SchichtzuschlagDto;
 import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.personal.service.ZeitmodellDto;
 import com.lp.server.personal.service.ZeitmodellsprDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
@@ -73,17 +85,15 @@ public class PanelZeitmodell extends PanelBasis {
 	private GridBagLayout gridBagLayoutWorkingPanel = new GridBagLayout();
 	private GridBagLayout gridBagLayoutAll = new GridBagLayout();
 
-	static final public String ACTION_SPECIAL_ORT_FROM_LISTE = "action_ort_from_liste";
-	static final public String ACTION_SPECIAL_KOSTENSTELLE_ABTEILUNG_FROM_LISTE = "action_kostenstelle_from_liste";
-	static final public String ACTION_SPECIAL_HEIMATKOSTENSTELLE_FROM_LISTE = "action_heimatkostenstelle_from_liste";
-	static final public String ACTION_SPECIAL_PARTNER_FROM_LISTE = "action_partner_from_liste";
 	private WrapperLabel wlaKennung = new WrapperLabel();
 	private WrapperLabel wlaBezeichnung = new WrapperLabel();
 	private WrapperTextField wtfKennung = new WrapperTextField();
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 	private WrapperCheckBox wcbTeilzeitmodell = new WrapperCheckBox();
 	private WrapperCheckBox wcbDynamisch = new WrapperCheckBox();
+	private WrapperCheckBox wcbUnproduktivAlsPause = new WrapperCheckBox();
 	private WrapperCheckBox wcbFeiertagssollAddieren = new WrapperCheckBox();
+	private WrapperCheckBox wcbFirmenzeitmodell = new WrapperCheckBox();
 	private WrapperCheckBox wcbVersteckt = new WrapperCheckBox();
 	private WrapperCheckBox wcbFixePausenTrotzKommtGeht = new WrapperCheckBox();
 	private WrapperLabel wrapperLabel1 = new WrapperLabel();
@@ -93,6 +103,14 @@ public class PanelZeitmodell extends PanelBasis {
 	private WrapperLabel wlaWochensummeSoFtg = new WrapperLabel();
 	private WrapperNumberField wnfWochensumme = new WrapperNumberField();
 	private WrapperNumberField wnfWochensummeSoFtg = new WrapperNumberField();
+
+	private WrapperLabel wlaGutschriftGeht = new WrapperLabel();
+	private WrapperTimeField wtfGutschriftGeht = new WrapperTimeField();
+	private WrapperLabel wlaGutschriftKommt = new WrapperLabel();
+	private WrapperTimeField wtfGutschriftKommt = new WrapperTimeField();
+
+	private WrapperLabel wlaMaximaleMehrzeit = new WrapperLabel();
+	private WrapperNumberField wnfMaximaleMehrzeit = new WrapperNumberField();
 
 	private WrapperLabel wlaMinutenabzug = new WrapperLabel();
 	private WrapperNumberField wnfMinutenabzug = new WrapperNumberField();
@@ -106,6 +124,17 @@ public class PanelZeitmodell extends PanelBasis {
 	private WrapperLabel wlaSollstundenFix = new WrapperLabel();
 	private WrapperNumberField wnfSollstundenFix = new WrapperNumberField();
 	private WrapperLabel wlaSollstundenFixHinweis = new WrapperLabel();
+
+	private WrapperButton wbuSchicht = new WrapperButton();
+	private WrapperTextField wtfSchicht = new WrapperTextField();
+
+	private PanelQueryFLR panelQueryFLRSchicht = null;
+
+	private WrapperLabel wlaAusserKraft = new WrapperLabel();
+
+	private WrapperCheckBox wcbFeiertagNaechsterTag = new WrapperCheckBox();
+	
+	static final public String ACTION_SPECIAL_SCHICHT_FROM_LISTE = "action_schicht_from_liste";
 
 	public InternalFramePersonal getInternalFramePersonal() {
 		return internalFramePersonal;
@@ -123,7 +152,12 @@ public class PanelZeitmodell extends PanelBasis {
 		setDefaults();
 		initComponents();
 	}
-
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
+			throws Throwable{
+		super.eventActionRefresh(e, bNeedNoRefreshI);
+		aktualisiereAusserKraft();
+	}
+	
 	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
 			throws Throwable {
 		super.eventYouAreSelected(false);
@@ -144,6 +178,26 @@ public class PanelZeitmodell extends PanelBasis {
 		}
 	}
 
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
+			throws Throwable{
+		super.eventActionUpdate(aE, bNeedNoUpdateI);
+		aktualisiereAusserKraft();
+	}
+	
+	private void aktualisiereAusserKraft(){
+		if (zeitmodellDto !=null && zeitmodellDto.getNSollstundenfix() != null) {
+			wlaAusserKraft.setVisible(true);
+			wnfWochensumme.setVisible(false);
+			wnfWochensummeMoBisSo.setVisible(false);
+			wnfWochensummeSoFtg.setVisible(false);
+		} else {
+			wlaAusserKraft.setVisible(false);
+			wnfWochensumme.setVisible(true);
+			wnfWochensummeMoBisSo.setVisible(true);
+			wnfWochensummeSoFtg.setVisible(true);
+		}
+	}
+	
 	protected void dto2Components() throws Throwable {
 		wtfKennung.setText(zeitmodellDto.getCNr());
 		if (zeitmodellDto.getZeitmodellsprDto() != null) {
@@ -155,13 +209,35 @@ public class PanelZeitmodell extends PanelBasis {
 		wcbTeilzeitmodell.setShort(zeitmodellDto.getBTeilzeit());
 		wcbVersteckt.setShort(zeitmodellDto.getBVersteckt());
 		wnfSollstundenFix.setBigDecimal(zeitmodellDto.getNSollstundenfix());
+
+		aktualisiereAusserKraft();
+
 		wnfMaximalesWochenist.setBigDecimal(zeitmodellDto
 				.getNMaximalesWochenist());
+		wnfMaximaleMehrzeit.setBigDecimal(zeitmodellDto.getNMaximaleMehrzeit());
 		wcbDynamisch.setShort(zeitmodellDto.getBDynamisch());
+		wcbFeiertagNaechsterTag.setShort(zeitmodellDto.getBFeiertagAmNaechstenTag());
+		wcbUnproduktivAlsPause.setShort(zeitmodellDto.getBUnproduktivAlsPause());
+		wcbFirmenzeitmodell.setShort(zeitmodellDto.getBFirmenzeitmodell());
 		wcbFeiertagssollAddieren.setShort(zeitmodellDto
 				.getBFeiertagssollAddieren());
 		wcbFixePausenTrotzKommtGeht.setShort(zeitmodellDto
 				.getBFixepauseTrotzkommtgeht());
+
+		wtfGutschriftGeht.setTime(zeitmodellDto.getUGutschriftGeht());
+		wtfGutschriftKommt.setTime(zeitmodellDto.getUGutschriftKommt());
+
+		if (zeitmodellDto.getSchichtIId() != null) {
+			SchichtDto sDto = DelegateFactory
+					.getInstance()
+					.getSchichtDelegate()
+					.schichtFindByPrimaryKey(
+							(Integer) zeitmodellDto.getSchichtIId());
+
+			wtfSchicht.setText(sDto.getCBez());
+		} else {
+			wtfSchicht.setText(null);
+		}
 
 		wnfUrlaubstageProWoche.setDouble(zeitmodellDto
 				.getFUrlaubstageprowoche());
@@ -200,6 +276,13 @@ public class PanelZeitmodell extends PanelBasis {
 				"lp.bezeichnung"));
 		wtfKennung.setMandatoryField(true);
 
+		wbuSchicht.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.schicht")
+				+ "...");
+		wbuSchicht.setActionCommand(ACTION_SPECIAL_SCHICHT_FROM_LISTE);
+		wbuSchicht.addActionListener(this);
+		wtfSchicht.setActivatable(false);
+
 		wlaUrlaubstageProWoche.setText(LPMain.getInstance()
 				.getTextRespectUISPr("pers.zeitmodell.urlaubstageprowoche"));
 
@@ -209,6 +292,9 @@ public class PanelZeitmodell extends PanelBasis {
 		wlaMinutenabzug.setText(LPMain.getInstance().getTextRespectUISPr(
 				"pers.zeitmodell.minutenabzug"));
 
+		wcbFeiertagNaechsterTag
+		.setText(LPMain.getInstance().getTextRespectUISPr("pers.zeitmodelltag.feiertag.amnaechstentag"));
+		
 		wnfMinutenabzug.setMandatoryField(true);
 		wnfMinutenabzug.setFractionDigits(0);
 
@@ -221,6 +307,10 @@ public class PanelZeitmodell extends PanelBasis {
 				"pers.zeitmodell.teilzeitmodell"));
 		wcbDynamisch.setText(LPMain.getInstance().getTextRespectUISPr(
 				"pers.zeitmodell.dynamischepause"));
+		wcbUnproduktivAlsPause.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodell.unproduktiv.als.pause"));
+		wcbFirmenzeitmodell.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodell.firmenzeitmodell"));
 		wcbFeiertagssollAddieren.setText(LPMain.getInstance()
 				.getTextRespectUISPr("pers.zeitmodell.feiertagssolladdieren"));
 
@@ -231,6 +321,9 @@ public class PanelZeitmodell extends PanelBasis {
 				"pers.zeitmodell.wochensumme"));
 		wlaMaximalesWochenist.setText(LPMain.getInstance().getTextRespectUISPr(
 				"pers.zeitmodell.maximaleswochenist"));
+		wlaMaximaleMehrzeit.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodell.maximalemehrzeit"));
+
 		wrapperLabel1.setText("");
 		wlaWochensummeSoFtg.setText(LPMain.getInstance().getTextRespectUISPr(
 				"pers.zeitmodell.wochensummesoftg"));
@@ -282,6 +375,7 @@ public class PanelZeitmodell extends PanelBasis {
 		jpaWorkingOn.add(wcbDynamisch, new GridBagConstraints(2, iZeile, 2, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+		
 
 		iZeile++;
 
@@ -298,6 +392,10 @@ public class PanelZeitmodell extends PanelBasis {
 									2), 0, 0));
 		}
 
+		jpaWorkingOn.add(wcbUnproduktivAlsPause, new GridBagConstraints(2, iZeile, 2, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+		
 		iZeile++;
 
 		wcbFixePausenTrotzKommtGeht
@@ -306,6 +404,38 @@ public class PanelZeitmodell extends PanelBasis {
 		jpaWorkingOn.add(wcbFixePausenTrotzKommtGeht, new GridBagConstraints(1,
 				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getParametermandant(
+						ParameterFac.PARAMETER_AUTOMATISCHE_ERMITTLUNG_AG_BEGINN,
+						ParameterFac.KATEGORIE_FERTIGUNG,
+						LPMain.getTheClient().getMandant());
+
+		int iAutomatischeErmittlungAGBeginn = (Integer) parameter
+				.getCWertAsObject();
+		
+		
+		parameter = (ParametermandantDto) DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getParametermandant(
+						ParameterFac.PARAMETER_AUTOMATISCHE_ERMITTLUNG_LOS_ENDE,
+						ParameterFac.KATEGORIE_FERTIGUNG,
+						LPMain.getTheClient().getMandant());
+
+		boolean bAutomatischeErmittlungLosEnde = (Boolean) parameter
+				.getCWertAsObject();
+		
+		if (iAutomatischeErmittlungAGBeginn > 0 || bAutomatischeErmittlungLosEnde) {
+
+			jpaWorkingOn.add(wcbFirmenzeitmodell,
+					new GridBagConstraints(2, iZeile, 2, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
 
 		iZeile++;
 
@@ -321,6 +451,24 @@ public class PanelZeitmodell extends PanelBasis {
 				1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(2, 2, 2, 2), 0, 0));
 
+		wlaAusserKraft.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodell.ausserkraft"));
+		wlaAusserKraft.setHorizontalAlignment(SwingConstants.LEFT);
+		wlaAusserKraft.setForeground(Color.RED);
+		jpaWorkingOn.add(wlaAusserKraft, new GridBagConstraints(1, iZeile, 1,
+				3, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 50, 2, 2), 0, 0));
+		wlaAusserKraft.setVisible(false);
+
+		wlaGutschriftKommt.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodell.gutschriftkommt"));
+		jpaWorkingOn.add(wlaGutschriftKommt, new GridBagConstraints(1, iZeile,
+				2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfGutschriftKommt, new GridBagConstraints(2, iZeile,
+				2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 90, 0));
+
 		iZeile++;
 		jpaWorkingOn.add(wlaWochensummeSoFtg, new GridBagConstraints(0, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
@@ -328,6 +476,16 @@ public class PanelZeitmodell extends PanelBasis {
 		jpaWorkingOn.add(wnfWochensummeSoFtg, new GridBagConstraints(1, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+
+		wlaGutschriftGeht.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodell.gutschriftgeht"));
+		jpaWorkingOn.add(wlaGutschriftGeht, new GridBagConstraints(1, iZeile,
+				2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfGutschriftGeht, new GridBagConstraints(2, iZeile,
+				2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 90, 0));
+
 		iZeile++;
 
 		jpaWorkingOn.add(wlaWochensummeMoBisSo, new GridBagConstraints(0,
@@ -343,6 +501,13 @@ public class PanelZeitmodell extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wnfMaximalesWochenist, new GridBagConstraints(1,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaMaximaleMehrzeit, new GridBagConstraints(0, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfMaximaleMehrzeit, new GridBagConstraints(1, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
@@ -381,6 +546,19 @@ public class PanelZeitmodell extends PanelBasis {
 		jpaWorkingOn.add(wcbFeiertagssollAddieren, new GridBagConstraints(2,
 				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+
+		jpaWorkingOn.add(wbuSchicht, new GridBagConstraints(0, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSchicht, new GridBagConstraints(1, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wcbFeiertagNaechsterTag, new GridBagConstraints(2,
+				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 
 		this.add(getPanelStatusbar(), new GridBagConstraints(0, 3, 1, 1, 1.0,
@@ -392,6 +570,23 @@ public class PanelZeitmodell extends PanelBasis {
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
+		ParametermandantDto parameterZG = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_PERSONAL,
+						ParameterFac.PARAMETER_ZEITERFASSUNG_MIT_ZEITGUTSCHRIFT);
+		boolean bZeitgutschrift = (java.lang.Boolean) parameterZG
+				.getCWertAsObject();
+
+		if (bZeitgutschrift == false) {
+			wlaGutschriftKommt.setVisible(false);
+			wlaGutschriftGeht.setVisible(false);
+
+			wtfGutschriftKommt.setVisible(false);
+			wtfGutschriftGeht.setVisible(false);
+		}
+
 	}
 
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
@@ -401,10 +596,25 @@ public class PanelZeitmodell extends PanelBasis {
 		zeitmodellDto.setZeitmodellsprDto(new ZeitmodellsprDto());
 		leereAlleFelder(this);
 		wnfMinutenabzug.setInteger(0);
+		aktualisiereAusserKraft();
 
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+
+		if (e.getActionCommand().equals(ACTION_SPECIAL_SCHICHT_FROM_LISTE)) {
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_LEEREN };
+			panelQueryFLRSchicht = new PanelQueryFLR(
+					null,
+					SystemFilterFactory.getInstance().createFKMandantCNr(),
+					com.lp.server.util.fastlanereader.service.query.QueryParameters.UC_ID_SCHICHT,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getInstance()
+							.getTextRespectUISPr("pers.schicht"), null, null);
+
+			panelQueryFLRSchicht.setSelectedId(zeitmodellDto.getSchichtIId());
+			new DialogQuery(panelQueryFLRSchicht);
+		}
+
 	}
 
 	protected String getLockMeWer() throws Exception {
@@ -419,16 +629,26 @@ public class PanelZeitmodell extends PanelBasis {
 		zeitmodellDto.setCNr(wtfKennung.getText());
 		zeitmodellDto.setBTeilzeit(wcbTeilzeitmodell.getShort());
 		zeitmodellDto.setBDynamisch(wcbDynamisch.getShort());
+		zeitmodellDto.setBUnproduktivAlsPause(wcbUnproduktivAlsPause.getShort());
+		zeitmodellDto.setBFirmenzeitmodell(wcbFirmenzeitmodell.getShort());
 		zeitmodellDto.setBFeiertagssollAddieren(wcbFeiertagssollAddieren
 				.getShort());
+
+		zeitmodellDto.setUGutschriftGeht(wtfGutschriftGeht.getTime());
+		zeitmodellDto.setUGutschriftKommt(wtfGutschriftKommt.getTime());
+
 		zeitmodellDto.setBFixepauseTrotzkommtgeht(wcbFixePausenTrotzKommtGeht
 				.getShort());
 		zeitmodellDto.setFUrlaubstageprowoche(wnfUrlaubstageProWoche
 				.getDouble());
 		zeitmodellDto.setNSollstundenfix(wnfSollstundenFix.getBigDecimal());
+		
+		zeitmodellDto.setBFeiertagAmNaechstenTag(wcbFeiertagNaechsterTag.getShort());
+		
 		zeitmodellDto.setIMinutenabzug(wnfMinutenabzug.getInteger());
 		zeitmodellDto.setNMaximalesWochenist(wnfMaximalesWochenist
 				.getBigDecimal());
+		zeitmodellDto.setNMaximaleMehrzeit(wnfMaximaleMehrzeit.getBigDecimal());
 		if (zeitmodellDto.getIId() != null
 				&& zeitmodellDto.getBVersteckt() != null
 				&& !Helper.short2boolean(zeitmodellDto.getBVersteckt())) {
@@ -499,6 +719,28 @@ public class PanelZeitmodell extends PanelBasis {
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
-		eI = (ItemChangedEvent) eI;
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+
+		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
+
+			if (eI.getSource() == panelQueryFLRSchicht) {
+				Object key = ((ISourceEvent) eI.getSource()).getIdSelected();
+
+				SchichtDto sDto = DelegateFactory.getInstance()
+						.getSchichtDelegate()
+						.schichtFindByPrimaryKey((Integer) key);
+
+				wtfSchicht.setText(sDto.getCBez());
+				zeitmodellDto.setSchichtIId(sDto.getIId());
+
+			}
+		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
+			if (e.getSource() == panelQueryFLRSchicht) {
+				zeitmodellDto.setSchichtIId(null);
+				wtfSchicht.setText(null);
+			}
+		}
+
 	}
 }
+

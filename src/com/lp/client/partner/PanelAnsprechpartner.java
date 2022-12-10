@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.partner;
@@ -38,7 +38,9 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.image.BufferedImage;
 import java.util.EventObject;
+import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
 
@@ -47,13 +49,14 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 
-import net.miginfocom.swing.MigLayout;
-
+import com.lp.client.cockpit.InternalFrameCockpit;
+import com.lp.client.cockpit.TabbedPaneCockpit;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
+import com.lp.client.frame.component.ImageViewer;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
@@ -74,28 +77,35 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.fastlanereader.gui.QueryType;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.AnsprechpartnerfunktionDto;
+import com.lp.server.partner.service.HelperFuerCockpit;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.PartnerFac;
+import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
 
+import net.miginfocom.swing.MigLayout;
+
 /*
  * <p>Diese Klasse kuemmert sich um den Ansprechpartner</p>
- * 
+ *
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * 
+ *
  * <p>Erstellungsdatum xx.12.04</p>
- * 
+ *
  * @author $Author: robert $
- * 
+ *
  * @version $Revision: 1.17 $ Date $Date: 2012/09/24 15:01:13 $
  */
 abstract public class PanelAnsprechpartner extends PanelBasis {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private JPanel jpaWorkingOn = null;
@@ -124,10 +134,14 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 	private WrapperTextField wtfDirektfax = null;
 	private WrapperLabel wlaSort = null;
 	private WrapperCheckBox wcbVersteckt = new WrapperCheckBox();
-	private WrapperCheckBox wcbNewsletterEmpfaenger = new WrapperCheckBox();
+	private WrapperComboBox wcbNewsletterGrund = new WrapperComboBox();
 	private WrapperLabel wlaFremdsystem = null;
 	private WrapperTextField wtfFremdsystem = null;
 	private WrapperButton wbuPasswort = null;
+
+	private ImageViewer wbfBild = new ImageViewer((byte[]) null);
+
+	private WrapperCheckBox wcbDurchwahl = new WrapperCheckBox();
 
 	private WrapperLabel wlaAbteilung = null;
 	private WrapperTextField wtfAbteilung = null;
@@ -149,9 +163,9 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 
 	private static final String ACTION_SPECIAL_VCARD_EXPORT = "action_special_vcard_export";
 	private static final String ACTION_SPECIAL_PASSWORD = "action_special_password";
+	protected static final String ACTION_SPECIAL_COCKPIT = "action_special_cockpit";
 
-	public PanelAnsprechpartner(InternalFrame internalFrame, String add2TitleI,
-			Object keyI) throws Throwable {
+	public PanelAnsprechpartner(InternalFrame internalFrame, String add2TitleI, Object keyI) throws Throwable {
 
 		super(internalFrame, add2TitleI, keyI);
 
@@ -164,8 +178,8 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		getInternalFrame().addItemChangedListener(this);
 
 		// Buttons.
-		String[] aButton = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
-				PanelBasis.ACTION_DELETE, PanelBasis.ACTION_DISCARD };
+		String[] aButton = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DELETE,
+				PanelBasis.ACTION_DISCARD };
 		enableToolsPanelButtons(aButton);
 
 		// border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
@@ -188,20 +202,25 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		wlaGebDatum = new WrapperLabel();
 		LPMain.getInstance();
 		wlaTitel.setText(LPMain.getTextRespectUISPr("lp.titel"));
+
 		LPMain.getInstance();
 		wlaNtitel.setText(LPMain.getTextRespectUISPr("lp.ntitel"));
 		LPMain.getInstance();
 		wlaVorname = new WrapperLabel(LPMain.getTextRespectUISPr("lp.vorname"));
-		wlaGebDatum.setText(LPMain
-				.getTextRespectUISPr("pers.personalangehoerige.geburtsdatum"));
+		wlaGebDatum.setText(LPMain.getTextRespectUISPr("pers.personalangehoerige.geburtsdatum"));
 
 		wcbVersteckt.setText(LPMain.getTextRespectUISPr("lp.versteckt"));
-		wcbNewsletterEmpfaenger
-				.setText(LPMain
-						.getTextRespectUISPr("part.ansprechpartner.newsletterempfaenger"));
+		wcbDurchwahl.setText(LPMain.getTextRespectUISPr("lp.durchwahl"));
+		wcbDurchwahl.addActionListener(this);
 
-		wlaAbteilung = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.abteilung"));
+		// LPMain
+		// .getTextRespectUISPr("part.ansprechpartner.newsletterempfaenger")
+
+		wcbNewsletterGrund.setMap(DelegateFactory.getInstance().getPartnerServicesDelegate().getAllNewslettergrund());
+
+		wcbNewsletterGrund.setToolTipText(LPMain.getTextRespectUISPr("part.newslettergrund"));
+
+		wlaAbteilung = new WrapperLabel(LPMain.getTextRespectUISPr("lp.abteilung"));
 		wtfAbteilung = new WrapperTextField();
 
 		wtfVorname = new WrapperTextField();
@@ -215,62 +234,53 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		wtfAnsprechpartnerfunktion.setMandatoryFieldDB(true);
 
 		wbuAnsprechpartnerfunktion = new WrapperButton();
-		wbuAnsprechpartnerfunktion.setText(LPMain
-				.getTextRespectUISPr("part.ansprechpartner_funktion"));
-		wbuAnsprechpartnerfunktion
-				.setActionCommand(ACTION_SPECIAL_FLR_ANSPRECHPARTNER_FUNKTION);
+		wbuAnsprechpartnerfunktion.setText(LPMain.getTextRespectUISPr("part.ansprechpartner_funktion"));
+		wbuAnsprechpartnerfunktion.setActionCommand(ACTION_SPECIAL_FLR_ANSPRECHPARTNER_FUNKTION);
 		wbuAnsprechpartnerfunktion.addActionListener(this);
 
 		// gotobutton: 3 Anstatt des WrapperButtons den WrapperGotoButton
 		// verwenden
-		wbuAnsprechpartner = new WrapperGotoButton(
-				WrapperGotoButton.GOTO_PARTNER_AUSWAHL);
-		wbuAnsprechpartner.setText(LPMain
-				.getTextRespectUISPr("button.ansprechpartner.long"));
+		wbuAnsprechpartner = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_PARTNER_AUSWAHL);
+		wbuAnsprechpartner.setText(LPMain.getTextRespectUISPr("button.ansprechpartner.long"));
 		wbuAnsprechpartner.setActionCommand(ACTION_SPECIAL_FLR_ANSPRECHPARTNER);
 		wbuAnsprechpartner.addActionListener(this);
 
 		wtfAnsprechpartner = new WrapperTextField();
 		wtfAnsprechpartner.setMandatoryFieldDB(true);
 
-		wlaBemerkung = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.bemerkung"));
+		wlaBemerkung = new WrapperLabel(LPMain.getTextRespectUISPr("lp.bemerkung"));
 		wlaBemerkung.setVerticalAlignment(SwingConstants.NORTH);
 		wefBemerkung = new WrapperEditorFieldTexteingabe(getInternalFrame(),
 				LPMain.getTextRespectUISPr("lp.bemerkung"));
 
 		wlaDurchwahl = new WrapperLabel();
-		wlaDurchwahl.setText(LPMain.getTextRespectUISPr("lp.durchwahl"));
-		wlaDurchwahl.setMinimumSize(new Dimension(170, Defaults.getInstance()
-				.getControlHeight()));
-		wlaDurchwahl.setPreferredSize(new Dimension(170, Defaults.getInstance()
-				.getControlHeight()));
+
+		wlaDurchwahl.setMinimumSize(new Dimension(160, Defaults.getInstance().getControlHeight()));
+		wlaDurchwahl.setPreferredSize(new Dimension(160, Defaults.getInstance().getControlHeight()));
+
+		HelperClient.setMinimumAndPreferredSize(wcbDurchwahl,
+				new Dimension(90, Defaults.getInstance().getControlHeight()));
 
 		wtfDurchwahl = new WrapperTelefonField(PartnerFac.MAX_KOMMART_INHALT);
 		wtfDurchwahl.setIstAnsprechpartner(true);
-		wtfDurchwahl.setMinimumSize(new Dimension(170, Defaults.getInstance()
-				.getControlHeight()));
-		wtfDurchwahl.setPreferredSize(new Dimension(170, Defaults.getInstance()
-				.getControlHeight()));
+		wtfDurchwahl.setMinimumSize(new Dimension(160, Defaults.getInstance().getControlHeight()));
+		wtfDurchwahl.setPreferredSize(new Dimension(160, Defaults.getInstance().getControlHeight()));
 
 		wlaEmail = new WrapperLabel();
 		LPMain.getInstance();
 		wlaEmail.setText(LPMain.getTextRespectUISPr("lp.email"));
-		wlaEmail.setMinimumSize(new Dimension(60, Defaults.getInstance()
-				.getControlHeight()));
-		wlaEmail.setPreferredSize(new Dimension(60, Defaults.getInstance()
-				.getControlHeight()));
+		wlaEmail.setMinimumSize(new Dimension(60, Defaults.getInstance().getControlHeight()));
+		wlaEmail.setPreferredSize(new Dimension(60, Defaults.getInstance().getControlHeight()));
 		wtfEmail = new WrapperEmailField();
+		wtfEmail.setColumnsMax(300);
 
 		LPMain.getInstance();
-		wlaFremdsystem = new WrapperLabel(
-				LPMain.getTextRespectUISPr("part.ansprechpartner.fremdsystem"));
+		wlaFremdsystem = new WrapperLabel(LPMain.getTextRespectUISPr("part.ansprechpartner.fremdsystem"));
 		wtfFremdsystem = new WrapperTextField(30);
 
 		wlaFaxdurchwahl = new WrapperLabel();
 		LPMain.getInstance();
-		wlaFaxdurchwahl = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.faxdurchwahl"));
+		wlaFaxdurchwahl = new WrapperLabel(LPMain.getTextRespectUISPr("lp.faxdurchwahl"));
 		wtfFaxdurchwahl = new WrapperTextField(PartnerFac.MAX_KOMMART_INHALT);
 
 		wlaHandy = new WrapperLabel();
@@ -280,41 +290,34 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 
 		wlaDirektfax = new WrapperLabel();
 		LPMain.getInstance();
-		wlaDirektfax = new WrapperLabel(
-				LPMain.getTextRespectUISPr("lp.direktfax"));
+		wlaDirektfax = new WrapperLabel(LPMain.getTextRespectUISPr("lp.direktfax"));
 		wtfDirektfax = new WrapperTextField(PartnerFac.MAX_KOMMART_INHALT);
 
 		wlaSort = new WrapperLabel();
 		LPMain.getInstance();
-		wlaSort = new WrapperLabel(
-				LPMain.getTextRespectUISPr("label.sortierung"));
+		wlaSort = new WrapperLabel(LPMain.getTextRespectUISPr("label.sortierung"));
 		wtfSort = new WrapperTextNumberField();
 		wtfSort.setMandatoryFieldDB(true);
 		wtfSort.setMinimumValue(new Integer(0));
 		wtfSort.setMaximumDigits(4);
 		wtfSort.setMaximumValue(new Integer(9999));
 
-		wbuPasswort = new WrapperButton(
-				LPMain.getTextRespectUISPr("part.ansprechpartner.passwort"));
+		wbuPasswort = new WrapperButton(LPMain.getTextRespectUISPr("part.ansprechpartner.passwort"));
 		wbuPasswort.addActionListener(this);
 		wbuPasswort.setActionCommand(ACTION_SPECIAL_PASSWORD);
 
-		jpaWorkingOn = new JPanel(new MigLayout("wrap 8",
-				"[25%][10%][20%][10%][10%][10%][20%]"));
+		jpaWorkingOn = new JPanel(new MigLayout("wrap 8", "[20%][10%][10%][30%][10%][10%][10%]"));
 
 		// Actionpanel von Oberklasse holen und einhaengen.
 		panelButtonAction = getToolsPanel();
-		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 0, 0));
-		add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Statusbar an den unteren Rand des Panels haengen.
-		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Ab hier einhaengen.
 		// Zeile
@@ -322,17 +325,17 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		jpaWorkingOn.add(wbuAnsprechpartner, "growx");
 		jpaWorkingOn.add(wcoAnrede, "growx, width 70:70:70");
 		jpaWorkingOn.add(wtfAnsprechpartner, "growx");
-		jpaWorkingOn.add(wlaGebDatum, "growx, width 70:70:70");
+		jpaWorkingOn.add(wlaGebDatum, "growx");
 		jpaWorkingOn.add(wdfGebDatum, "growx");
 		jpaWorkingOn.add(wlaGueltigAb, "growx");
 		jpaWorkingOn.add(wdfGueltigAb, "growx, span2");
 
-		jpaWorkingOn.add(wcbNewsletterEmpfaenger, "growx");
+		jpaWorkingOn.add(wcbNewsletterGrund, "growx");
 		jpaWorkingOn.add(wlaVorname, "growx");
 		jpaWorkingOn.add(wtfVorname, "growx");
 		jpaWorkingOn.add(wlaTitel, "growx");
 		jpaWorkingOn.add(wtfTitel, "growx");
-		jpaWorkingOn.add(wlaNtitel, "growx, width 50:50:50");
+		jpaWorkingOn.add(wlaNtitel, "growx, width 80:80:80");
 		jpaWorkingOn.add(wtfNtitel, "growx, span2");
 
 		jpaWorkingOn.add(wbuAnsprechpartnerfunktion, "growx");
@@ -340,12 +343,13 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		jpaWorkingOn.add(wlaAbteilung, "growx");
 		jpaWorkingOn.add(wtfAbteilung, "growx, span 3, wrap");
 
-		jpaWorkingOn.add(wlaBemerkung, "top, growx");
+		jpaWorkingOn.add(wbfBild, "top, grow");
 		jpaWorkingOn.add(wefBemerkung, "grow, span");
 		iZeile++;
 		jpaWorkingOn.add(wlaDurchwahl, "growx");
 		jpaWorkingOn.add(wtfDurchwahl, "growx, span 2");
-		jpaWorkingOn.add(wlaEmail, "growx, span 2");
+		jpaWorkingOn.add(wcbDurchwahl, "growx");
+		jpaWorkingOn.add(wlaEmail, "growx");
 		jpaWorkingOn.add(wtfEmail, "growx, span");
 		iZeile++;
 		jpaWorkingOn.add(wlaFaxdurchwahl, "growx");
@@ -361,12 +365,9 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		jpaWorkingOn.add(wlaSort, "top, growx");
 		jpaWorkingOn.add(wtfSort, "top, growx, span 2");
 
-		if (DelegateFactory
-				.getInstance()
-				.getTheJudgeDelegate()
-				.hatRecht(
-						com.lp.server.benutzer.service.RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
-			jpaWorkingOn.add(wcbVersteckt, "skip 2, growx, width 80:80:80");
+		if (DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(com.lp.server.benutzer.service.RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
+			jpaWorkingOn.add(wcbVersteckt, "skip 2, growx, width 120:120:120");
 		} else {
 			jpaWorkingOn.add(new WrapperLabel(""), "skip 2, growx");
 		}
@@ -376,8 +377,15 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		// Zeile
 
 		createAndSaveAndShowButton("/com/lp/client/res/book_open2.png",
-				LPMain.getTextRespectUISPr("part.partner.export.vcard"),
-				ACTION_SPECIAL_VCARD_EXPORT, null);
+				LPMain.getTextRespectUISPr("part.partner.export.vcard"), ACTION_SPECIAL_VCARD_EXPORT, null);
+
+		if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_COCKPIT)) {
+			if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_CP_COCKPIT_R)) {
+
+				createAndSaveAndShowButton("/com/lp/client/res/control_tower.png",
+						LPMain.getTextRespectUISPr("part.partner.goto.cockpit"), ACTION_SPECIAL_COCKPIT, null);
+			}
+		}
 
 	}
 
@@ -386,8 +394,7 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		// Wenn Partner manuell eingegeben wurde, dann vorher anlegen
 		if (getAnsprechpartnerDto().getPartnerIIdAnsprechpartner() == null) {
 			PartnerDto partnerDto = new PartnerDto();
-			partnerDto.setCName1nachnamefirmazeile1(wtfAnsprechpartner
-					.getText());
+			partnerDto.setCName1nachnamefirmazeile1(wtfAnsprechpartner.getText());
 			partnerDto.setCName2vornamefirmazeile2(wtfVorname.getText());
 			partnerDto.setCTitel(wtfTitel.getText());
 			partnerDto.setCNtitel(wtfNtitel.getText());
@@ -396,16 +403,28 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 			partnerDto.setPartnerartCNr(PartnerFac.PARTNERART_ANSPRECHPARTNER);
 			partnerDto.setBVersteckt(com.lp.util.Helper.boolean2Short(false));
 			LPMain.getInstance();
-			partnerDto.setLocaleCNrKommunikation(LPMain.getTheClient()
-					.getLocUiAsString());
+			partnerDto.setLocaleCNrKommunikation(LPMain.getTheClient().getLocUiAsString());
 			String kbez = wtfAnsprechpartner.getText();
 			if (kbez.length() > 14) {
 				kbez = kbez.substring(0, 13);
 			}
 			partnerDto.setCKbez(kbez);
 			getAnsprechpartnerDto().setPartnerIIdAnsprechpartner(
-					DelegateFactory.getInstance().getPartnerDelegate()
-							.createPartner(partnerDto));
+					DelegateFactory.getInstance().getPartnerDelegate().createPartner(partnerDto));
+		} else {
+
+			// PJ21564
+			PartnerDto partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
+					.partnerFindByPrimaryKey(getAnsprechpartnerDto().getPartnerIIdAnsprechpartner());
+
+			partnerDto.setCName1nachnamefirmazeile1(wtfAnsprechpartner.getText());
+			partnerDto.setCName2vornamefirmazeile2(wtfVorname.getText());
+			partnerDto.setCTitel(wtfTitel.getText());
+			partnerDto.setCNtitel(wtfNtitel.getText());
+			partnerDto.setAnredeCNr((String) wcoAnrede.getKeyOfSelectedItem());
+			partnerDto.setDGeburtsdatumansprechpartner(wdfGebDatum.getDate());
+
+			DelegateFactory.getInstance().getPartnerDelegate().updatePartner(partnerDto);
 		}
 
 	}
@@ -415,80 +434,69 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 	/**
 	 * Behandle Ereignis Neu.
 	 * 
-	 * @param eventObject
-	 *            Ereignis.
-	 * @param bLockMeI
-	 *            boolean
-	 * @param bNeedNoNewI
-	 *            boolean
+	 * @param eventObject Ereignis.
+	 * @param bLockMeI    boolean
+	 * @param bNeedNoNewI boolean
 	 * @throws Throwable
 	 */
-	final public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	final public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 
 		if (!bNeedNoNewI) {
 			setAnsprechpartnerDto(new AnsprechpartnerDto());
-
 			setDefaults();
 		}
 	}
 
-	final public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	final public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(true);
-		
-		wbuPasswort.setBackground(UIManager
-				.getColor("Button.background"));
+
+		wbuPasswort.setBackground(UIManager.getColor("Button.background"));
+
+		wlaFaxdurchwahl.setText(LPMain.getTextRespectUISPr("lp.faxdurchwahl"));
+
+		wbfBild.setImage((BufferedImage) null);
 
 		// Die normale Telefon/Faxnummer vor der Durchwajl anzeigen
 		PartnerDto dto = null;
 		if (getInternalFrame() instanceof InternalFrameLieferant) {
-			dto = ((InternalFrameLieferant) getInternalFrame())
-					.getLieferantDto().getPartnerDto();
+			dto = ((InternalFrameLieferant) getInternalFrame()).getLieferantDto().getPartnerDto();
 		} else if (getInternalFrame() instanceof InternalFrameKunde) {
-			dto = ((InternalFrameKunde) getInternalFrame()).getKundeDto()
-					.getPartnerDto();
+			dto = ((InternalFrameKunde) getInternalFrame()).getKundeDto().getPartnerDto();
 		} else if (getInternalFrame() instanceof InternalFramePartner) {
-			dto = ((InternalFramePartner) getInternalFrame()).getTpPartner()
-					.getPartnerDto();
+			dto = ((InternalFramePartner) getInternalFrame()).getTpPartner().getServicePartnerDto();
+		} else if (getInternalFrame() instanceof InternalFrameCockpit) {
+			dto = ((InternalFrameCockpit) getInternalFrame()).getTpCockpit().getServicePartnerDto();
 		}
 
-		String cTelefon = DelegateFactory
-				.getInstance()
-				.getPartnerDelegate()
-				.enrichNumber(dto.getIId(),
-						PartnerFac.KOMMUNIKATIONSART_TELEFON, null, true);
+		String cTelefon = DelegateFactory.getInstance().getPartnerDelegate().enrichNumber(dto.getIId(),
+				PartnerFac.KOMMUNIKATIONSART_TELEFON, null, true);
+
+		if (wcbDurchwahl.isSelected()) {
+
+			if (cTelefon != null) {
+
+				LPMain.getInstance();
+				wlaDurchwahl.setText("(" + cTelefon + ")");
+			} else {
+				LPMain.getInstance();
+				wlaDurchwahl.setText("");
+			}
+		} else {
+			wlaDurchwahl.setText("");
+		}
+
+		cTelefon = DelegateFactory.getInstance().getPartnerDelegate().enrichNumber(dto.getIId(),
+				PartnerFac.KOMMUNIKATIONSART_FAX, null, true);
 
 		if (cTelefon != null) {
 
 			LPMain.getInstance();
-			wlaDurchwahl.setText(LPMain.getTextRespectUISPr("lp.durchwahl")
-					+ " (" + cTelefon + ")");
+			wlaFaxdurchwahl.setText(LPMain.getTextRespectUISPr("lp.faxdurchwahl") + " (" + cTelefon + ")");
 		} else {
 			LPMain.getInstance();
-			wlaDurchwahl.setText(LPMain.getTextRespectUISPr("lp.durchwahl"));
-		}
-
-		cTelefon = DelegateFactory
-				.getInstance()
-				.getPartnerDelegate()
-				.enrichNumber(dto.getIId(), PartnerFac.KOMMUNIKATIONSART_FAX,
-						null, true);
-
-		if (cTelefon != null) {
-
-			LPMain.getInstance();
-			wlaFaxdurchwahl.setText(LPMain
-					.getTextRespectUISPr("lp.faxdurchwahl")
-					+ " ("
-					+ cTelefon
-					+ ")");
-		} else {
-			LPMain.getInstance();
-			wlaFaxdurchwahl.setText(LPMain
-					.getTextRespectUISPr("lp.faxdurchwahl"));
+			wlaFaxdurchwahl.setText(LPMain.getTextRespectUISPr("lp.faxdurchwahl"));
 		}
 
 		if (!bNeedNoYouAreSelectedI) {
@@ -496,42 +504,15 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 
 			setAnsprechpartnerDto(new AnsprechpartnerDto());
 
-			if (key == null
-					|| (key != null && key.equals(LPMain.getLockMeForNew()))) {
+			if (key == null || (key != null && key.equals(LPMain.getLockMeForNew()))) {
 
 				leereAlleFelder(this);
 				setDefaults();
 				clearStatusbar();
-				if (key != null && key.equals(LPMain.getLockMeForNew())) {
-					wtfAnsprechpartner.setActivatable(true);
-					wtfAnsprechpartner.setEditable(true);
-					wtfVorname.setActivatable(true);
-					wtfVorname.setEditable(true);
-					wtfTitel.setActivatable(true);
-					wtfTitel.setEditable(true);
-					wtfNtitel.setActivatable(true);
-					wtfNtitel.setEditable(true);
-					wdfGebDatum.setActivatable(true);
-					wdfGebDatum.setEnabled(true);
-					wcoAnrede.setActivatable(true);
-					wcoAnrede.setEnabled(true);
-				}
-			} else {
-				wtfAnsprechpartner.setActivatable(false);
-				wtfAnsprechpartner.setEditable(false);
-				wtfVorname.setActivatable(false);
-				wtfVorname.setEditable(false);
-				wtfTitel.setActivatable(false);
-				wtfTitel.setEditable(false);
-				wtfNtitel.setActivatable(false);
-				wtfNtitel.setEditable(false);
-				wdfGebDatum.setActivatable(false);
-				wdfGebDatum.setEditable(false);
-				wcoAnrede.setActivatable(false);
-				wcoAnrede.setEditable(false);
 
-				setAnsprechpartnerDto(DelegateFactory.getInstance()
-						.getAnsprechpartnerDelegate()
+			} else {
+
+				setAnsprechpartnerDto(DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 						.ansprechpartnerFindByPrimaryKey((Integer) key));
 
 				setStatusbar();
@@ -539,35 +520,52 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 				dto2Components(dto);
 			}
 
-			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
-					getSelectedPartnerTitelAnrede());
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, getSelectedPartnerTitelAnrede());
 		}
 	}
 
 	protected abstract String getSelectedPartnerTitelAnrede();
 
 	final protected void setStatusbar() throws Throwable {
-		setStatusbarPersonalIIdAnlegen(getPartnerDto().getPersonalIIdAnlegen());
-		setStatusbarPersonalIIdAendern(getPartnerDto().getPersonalIIdAnlegen());
-		setStatusbarTAendern(getPartnerDto().getTAendern());
-		setStatusbarTAnlegen(getPartnerDto().getTAnlegen());
+		setStatusbarPersonalIIdAnlegen(getPartnerDtoAnsprechpartner().getPersonalIIdAnlegen());
+		setStatusbarPersonalIIdAendern(getPartnerDtoAnsprechpartner().getPersonalIIdAnlegen());
+		setStatusbarTAendern(getPartnerDtoAnsprechpartner().getTAendern());
+		setStatusbarTAnlegen(getPartnerDtoAnsprechpartner().getTAnlegen());
+	}
+
+	protected void zeilenFuerCockpitAusblenden() {
+		wlaDirektfax.setVisible(false);
+		wtfDirektfax.setVisible(false);
+		wlaFremdsystem.setVisible(false);
+		wtfFremdsystem.setVisible(false);
+		wcbVersteckt.setVisible(false);
+		wbuPasswort.setVisible(false);
+		wlaSort.setVisible(false);
+		wtfSort.setVisible(false);
+
 	}
 
 	protected void setDefaults() throws Throwable {
 
-		getPartnerDto().setPartnerartCNr(PartnerFac.PARTNERART_ANSPRECHPARTNER);
+		getPartnerDtoAnsprechpartner().setPartnerartCNr(PartnerFac.PARTNERART_ANSPRECHPARTNER);
 		wdfGueltigAb.setDate(new java.sql.Date(System.currentTimeMillis()));
 
 		LPMain.getInstance();
-		Map<?, ?> tmAnreden = (SortedMap<?, ?>) DelegateFactory.getInstance()
-				.getPartnerDelegate()
+		Map<?, ?> tmAnreden = (SortedMap<?, ?>) DelegateFactory.getInstance().getPartnerDelegate()
 				.getAllAnreden(LPMain.getTheClient().getLocUi());
 		wcoAnrede.setMap(tmAnreden);
 		wcoAnrede.setKeyOfSelectedItem(PartnerFac.PARTNER_ANREDE_HERR);
+		wcbNewsletterGrund.setKeyOfSelectedItem(null);
+
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_DEFAULT_ANSPRECHPARTNER_DURCHWAHL,
+						ParameterFac.KATEGORIE_PARTNER, LPMain.getTheClient().getMandant());
+
+		wcbDurchwahl.setShort(Helper.boolean2Short((Boolean) parameter.getCWertAsObject()));
 
 	}
 
-	abstract protected PartnerDto getPartnerDto();
+	abstract protected PartnerDto getPartnerDtoAnsprechpartner();
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
@@ -577,67 +575,87 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 
 			QueryType[] querytypes = null;
 			LPMain.getInstance();
-			panelQueryFLRAnsprechpartnerAuswahl = new PanelQueryFLR(querytypes,
-					null, QueryParameters.UC_ID_PARTNER, aWhichButtonIUse,
-					getInternalFrame(),
-					LPMain.getTextRespectUISPr("button.ansprechpartner.long"));
+			panelQueryFLRAnsprechpartnerAuswahl = new PanelQueryFLR(querytypes, null, QueryParameters.UC_ID_PARTNER,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("button.ansprechpartner.long"));
 
-			panelQueryFLRAnsprechpartnerAuswahl
-					.befuellePanelFilterkriterienDirekt(PartnerFilterFactory
-							.getInstance().createFKDPartnerName(),
-							PartnerFilterFactory.getInstance()
-									.createFKDPartnerLandPLZOrt());
+			panelQueryFLRAnsprechpartnerAuswahl.befuellePanelFilterkriterienDirekt(
+					PartnerFilterFactory.getInstance().createFKDPartnerName(),
+					PartnerFilterFactory.getInstance().createFKDPartnerLandPLZOrt());
 
 			new DialogQuery(panelQueryFLRAnsprechpartnerAuswahl);
 		}
 
-		else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_FLR_ANSPRECHPARTNER_FUNKTION)) {
+		else if (e.getActionCommand().equals(ACTION_SPECIAL_FLR_ANSPRECHPARTNER_FUNKTION)) {
 			String[] aWhichButtonIUse = null;
 			QueryType[] querytypes = null;
 			FilterKriterium[] filters = null;
 			LPMain.getInstance();
-			panelQueryFLRAnsprechpartnerfunktion = new PanelQueryFLR(
-					querytypes, filters,
-					QueryParameters.UC_ID_ANSPRECHPARTNERFUNKTION,
-					aWhichButtonIUse, getInternalFrame(),
+			panelQueryFLRAnsprechpartnerfunktion = new PanelQueryFLR(querytypes, filters,
+					QueryParameters.UC_ID_ANSPRECHPARTNERFUNKTION, aWhichButtonIUse, getInternalFrame(),
 					LPMain.getTextRespectUISPr("part.ansprechpartner_funktion"));
 			new DialogQuery(panelQueryFLRAnsprechpartnerfunktion);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_VCARD_EXPORT)) {
-			HelperClient.vCardAlsDateiExportieren(
-					DelegateFactory
-							.getInstance()
-							.getPartnerDelegate()
-							.partnerFindByPrimaryKey(
-									getAnsprechpartnerDto().getPartnerIId()),
-					getAnsprechpartnerDto());
+			HelperClient.vCardAlsDateiExportieren(DelegateFactory.getInstance().getPartnerDelegate()
+					.partnerFindByPrimaryKey(getAnsprechpartnerDto().getPartnerIId()), getAnsprechpartnerDto());
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_PASSWORD)) {
 			// Passwort Dialog erstellen
-			DialogAnsprechpartnerPasswort d = new DialogAnsprechpartnerPasswort(
-					getAnsprechpartnerDto());
-			LPMain.getInstance().getDesktop()
-					.platziereDialogInDerMitteDesFensters(d);
+			DialogAnsprechpartnerPasswort d = new DialogAnsprechpartnerPasswort(getAnsprechpartnerDto());
+			LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
 			d.setVisible(true);
 
 			if (getAnsprechpartnerDto().getCKennwort() != null) {
 				wbuPasswort.setBackground(new Color(0, 200, 0));
 
 			} else {
-				wbuPasswort.setBackground(UIManager
-						.getColor("Button.background"));
+				wbuPasswort.setBackground(UIManager.getColor("Button.background"));
 			}
 
+		} else if (e.getSource().equals(wcbDurchwahl)) {
+
+			if (wcbDurchwahl.isSelected()) {
+				String cTelefon = DelegateFactory.getInstance().getPartnerDelegate().enrichNumber(
+						getAnsprechpartnerDto().getPartnerIId(), PartnerFac.KOMMUNIKATIONSART_TELEFON, null, true);
+
+				if (cTelefon != null) {
+
+					LPMain.getInstance();
+					wlaDurchwahl.setText("(" + cTelefon + ")");
+				} else {
+					LPMain.getInstance();
+					wlaDurchwahl.setText("");
+				}
+			} else {
+				wlaDurchwahl.setText("");
+			}
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_COCKPIT)) {
+			if (LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_COCKPIT)) {
+				InternalFrameCockpit ifCP = (InternalFrameCockpit) LPMain.getInstance().getDesktop()
+						.holeModul(LocaleFac.BELEGART_COCKPIT);
+				if (getAnsprechpartnerDto() != null && getAnsprechpartnerDto().getIId() != null) {
+					HelperFuerCockpit helper = new HelperFuerCockpit(getAnsprechpartnerDto().getPartnerIId(),
+							getAnsprechpartnerDto().getIId());
+					ifCP.geheZu(InternalFrameCockpit.IDX_PANE_COCKPIT, TabbedPaneCockpit.IDX_PANEL_3SP_ANSPRECHPARTNER,
+							helper.getPartnerIId(), helper.getAnsprechpartnerIId(),
+							PartnerFilterFactory.getInstance().createFKPartnerKey(helper.getPartnerIId()));
+				}
+
+			}
 		}
 
 	}
 
 	@Override
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
-		if (wcbNewsletterEmpfaenger.isSelected()
-				&& !Helper.validateEmailadresse(wtfEmail.getText())) {
-			showDialogEmailAusfuellen();
-			return;
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
+		if (wcbNewsletterGrund.getKeyOfSelectedItem() != null && !Helper.validateEmailadresse(wtfEmail.getText())) {
+
+			Integer newslettergrundIId = (Integer) wcbNewsletterGrund.getKeyOfSelectedItem();
+
+			if (Helper.short2boolean(DelegateFactory.getInstance().getPartnerServicesDelegate()
+					.newslettergrundFindByPrimaryKey(newslettergrundIId).getBAngemeldet()) == true) {
+
+				showDialogEmailAusfuellen();
+				return;
+			}
 		}
 		if (allMandatoryFieldsSetDlg()) {
 			eventActionSaveImpl(e, bNeedNoSaveI);
@@ -646,53 +664,45 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		}
 	}
 
-	public abstract void eventActionSaveImpl(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable;
+	public abstract void eventActionSaveImpl(ActionEvent e, boolean bNeedNoSaveI) throws Throwable;
 
 	private void showDialogEmailAusfuellen() {
-		DialogFactory
-				.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.error"),
-						LPMain.getTextRespectUISPr("part.ansprechpartner.emailfuernewsletternoetig"));
+		DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+				LPMain.getTextRespectUISPr("part.ansprechpartner.emailfuernewsletternoetig"));
 	}
 
-	protected void eventItemchanged(EventObject eI) throws ExceptionLP,
-			Throwable {
+	protected void eventItemchanged(EventObject eI) throws ExceptionLP, Throwable {
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 
 			if (e.getSource() == panelQueryFLRAnsprechpartnerfunktion) {
-				Integer iId = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer iId = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				getAnsprechpartnerDto().setAnsprechpartnerfunktionIId(iId);
 
 				AnsprechpartnerfunktionDto ansprechpartnerfunktionDto = null;
 				if (iId != null) {
-					ansprechpartnerfunktionDto = DelegateFactory.getInstance()
-							.getAnsprechpartnerDelegate()
+					ansprechpartnerfunktionDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 							.ansprechpartnerfunktionFindByPrimaryKey(iId);
-					wtfAnsprechpartnerfunktion
-							.setText(ansprechpartnerfunktionDto
-									.getBezeichnung());
+					wtfAnsprechpartnerfunktion.setText(ansprechpartnerfunktionDto.getBezeichnung());
 				}
 			} else if (e.getSource() == panelQueryFLRAnsprechpartnerAuswahl) {
-				Integer key = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer key = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (key != null) {
 					getAnsprechpartnerDto().setPartnerIIdAnsprechpartner(key);
 					PartnerDto partnerDto = null;
-					partnerDto = DelegateFactory.getInstance()
-							.getPartnerDelegate().partnerFindByPrimaryKey(key);
-					wtfAnsprechpartner.setText(partnerDto
-							.getCName1nachnamefirmazeile1());
-					wtfVorname
-							.setText(partnerDto.getCName2vornamefirmazeile2());
+					partnerDto = DelegateFactory.getInstance().getPartnerDelegate().partnerFindByPrimaryKey(key);
+					wtfAnsprechpartner.setText(partnerDto.getCName1nachnamefirmazeile1());
+					wtfVorname.setText(partnerDto.getCName2vornamefirmazeile2());
 					wtfTitel.setText(partnerDto.getCTitel());
 					wtfNtitel.setText(partnerDto.getCNtitel());
 					wcoAnrede.setKeyOfSelectedItem(partnerDto.getAnredeCNr());
-					wdfGebDatum.setDate(partnerDto
-							.getDGeburtsdatumansprechpartner());
+					wdfGebDatum.setDate(partnerDto.getDGeburtsdatumansprechpartner());
+
+					// PJ21564
+					wtfEmail.setText(partnerDto.getCEmail());
+					wtfDurchwahl.setText(partnerDto.getCTelefon());
+					wcbDurchwahl.setSelected(false);
 
 				}
 			}
@@ -702,26 +712,25 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 	protected void dto2Components(PartnerDto dto) throws Throwable {
 
 		wefBemerkung.setText(getAnsprechpartnerDto().getXBemerkung());
+		
 
 		if (getAnsprechpartnerDto().getAnsprechpartnerfunktionIId() != null) {
-			AnsprechpartnerfunktionDto ansprechpartnerfunktionDto = DelegateFactory
-					.getInstance()
+			AnsprechpartnerfunktionDto ansprechpartnerfunktionDto = DelegateFactory.getInstance()
 					.getAnsprechpartnerDelegate()
-					.ansprechpartnerfunktionFindByPrimaryKey(
-							getAnsprechpartnerDto()
-									.getAnsprechpartnerfunktionIId());
-			wtfAnsprechpartnerfunktion.setText(ansprechpartnerfunktionDto
-					.getBezeichnung());
+					.ansprechpartnerfunktionFindByPrimaryKey(getAnsprechpartnerDto().getAnsprechpartnerfunktionIId());
+			wtfAnsprechpartnerfunktion.setText(ansprechpartnerfunktionDto.getBezeichnung());
 		} else {
 			wtfAnsprechpartnerfunktion.setText(null);
 		}
 
-		PartnerDto partnerDto = DelegateFactory
-				.getInstance()
-				.getPartnerDelegate()
-				.partnerFindByPrimaryKey(
-						getAnsprechpartnerDto().getPartnerIIdAnsprechpartner());
+		PartnerDto partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
+				.partnerFindByPrimaryKey(getAnsprechpartnerDto().getPartnerIIdAnsprechpartner());
 		wtfAnsprechpartner.setText(partnerDto.getCName1nachnamefirmazeile1());
+
+		if(partnerDto.getLocaleCNrKommunikation() != null) {
+			Locale locale = Helper.string2Locale(partnerDto.getLocaleCNrKommunikation());
+			wefBemerkung.setRechtschreibpruefungLocale(locale);
+		}
 
 		// gotobutton: 4 Den Key des Datensatzes jedesmal zuordnen
 		wbuAnsprechpartner.setOKey(partnerDto.getIId());
@@ -735,6 +744,28 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		AnsprechpartnerDto ansprechpartnerDto = getAnsprechpartnerDto();
 
 		wcbVersteckt.setShort(ansprechpartnerDto.getBVersteckt());
+		wcbDurchwahl.setShort(ansprechpartnerDto.getBDurchwahl());
+		if (Helper.short2boolean(ansprechpartnerDto.getBDurchwahl())) {
+			wtfDurchwahl.setIstAnsprechpartner(true);
+		} else {
+			wtfDurchwahl.setIstAnsprechpartner(false);
+		}
+		if (wcbDurchwahl.isSelected()) {
+			String cTelefon = DelegateFactory.getInstance().getPartnerDelegate().enrichNumber(
+					getAnsprechpartnerDto().getPartnerIId(), PartnerFac.KOMMUNIKATIONSART_TELEFON, null, true);
+
+			if (cTelefon != null) {
+
+				LPMain.getInstance();
+				wlaDurchwahl.setText("(" + cTelefon + ")");
+			} else {
+				LPMain.getInstance();
+				wlaDurchwahl.setText("");
+			}
+		} else {
+			wlaDurchwahl.setText("");
+		}
+
 		wtfAbteilung.setText(ansprechpartnerDto.getCAbteilung());
 		wdfGueltigAb.setDate(getAnsprechpartnerDto().getDGueltigab());
 
@@ -743,20 +774,21 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		wtfDirektfax.setText(getAnsprechpartnerDto().getCDirektfax());
 
 		if (getAnsprechpartnerDto().getCEmail() != null) {
-			wtfEmail.setEmail(getAnsprechpartnerDto().getCEmail(),
-					getAnsprechpartnerDto());
+			wtfEmail.setEmail(getAnsprechpartnerDto().getCEmail(), getAnsprechpartnerDto());
+			wtfEmail.setMailLocale(getPartnerDtoPartner() != null
+					? Helper.string2Locale(getPartnerDtoPartner().getLocaleCNrKommunikation())
+					: null);
 		} else {
 			wtfEmail.setEmail(null, null);
 		}
 
 		wtfFaxdurchwahl.setText(getAnsprechpartnerDto().getCFax());
 
-		wtfDurchwahl.setPartnerKommunikationDto(dto, getAnsprechpartnerDto()
-				.getCTelefon());
+		wtfDurchwahl.setPartnerKommunikationDto(dto, getAnsprechpartnerDto().getCTelefon());
 
 		if (getAnsprechpartnerDto().getCHandy() != null) {
-			wtfHandy.setPartnerKommunikationDto(getAnsprechpartnerDto()
-					.getPartnerDto(), getAnsprechpartnerDto().getCHandy());
+			wtfHandy.setPartnerKommunikationDto(getAnsprechpartnerDto().getPartnerDto(),
+					getAnsprechpartnerDto().getCHandy());
 		} else {
 			wtfHandy.setPartnerKommunikationDto(null, null);
 		}
@@ -764,24 +796,28 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		wtfSort.setInteger(ansprechpartnerDto.getISort());
 		wtfFremdsystem.setText(ansprechpartnerDto.getCFremdsystemnr());
 
-		wcbNewsletterEmpfaenger.setSelected(ansprechpartnerDto
-				.isNewsletterEmpfaenger());
-		
-		
+		wcbNewsletterGrund.setKeyOfSelectedItem(ansprechpartnerDto.getNewslettergrundIId());
+
 		if (getAnsprechpartnerDto().getCKennwort() != null) {
 			wbuPasswort.setBackground(new Color(0, 200, 0));
 
 		} else {
-			wbuPasswort.setBackground(UIManager
-					.getColor("Button.background"));
+			wbuPasswort.setBackground(UIManager.getColor("Button.background"));
 		}
-		
+
+		wbfBild.setImage(DelegateFactory.getInstance().getPartnerServicesDelegate()
+				.partnerbilFindByPrimaryKey(ansprechpartnerDto.getPartnerIIdAnsprechpartner()));
+		wbfBild.fitToComponent();
+
+	}
+
+	public void fitBildToComponent() {
+		wbfBild.fitToComponent();
 	}
 
 	abstract public AnsprechpartnerDto getAnsprechpartnerDto();
 
-	abstract protected void setAnsprechpartnerDto(
-			AnsprechpartnerDto ansprechpartnerDtoI);
+	abstract protected void setAnsprechpartnerDto(AnsprechpartnerDto ansprechpartnerDtoI);
 
 	protected void components2Dto() throws Throwable {
 
@@ -789,6 +825,8 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		getAnsprechpartnerDto().setXBemerkung(wefBemerkung.getText());
 		getAnsprechpartnerDto().setISort(wtfSort.getInteger());
 		getAnsprechpartnerDto().setBVersteckt(wcbVersteckt.getShort());
+		getAnsprechpartnerDto().setBDurchwahl(wcbDurchwahl.getShort());
+
 		getAnsprechpartnerDto().setCFremdsystemnr(wtfFremdsystem.getText());
 		// Partnerkommunikation.
 
@@ -801,8 +839,7 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		getAnsprechpartnerDto().setCFax(wtfFaxdurchwahl.getText());
 
 		getAnsprechpartnerDto().setCHandy(wtfHandy.getText());
-		getAnsprechpartnerDto().setNewsletterEmpfaenger(
-				wcbNewsletterEmpfaenger.isSelected());
+		getAnsprechpartnerDto().setNewslettergrundIId((Integer) wcbNewsletterGrund.getKeyOfSelectedItem());
 		getAnsprechpartnerDto().setCAbteilung(wtfAbteilung.getText());
 
 	}
@@ -811,4 +848,10 @@ abstract public class PanelAnsprechpartner extends PanelBasis {
 		return wbuAnsprechpartner;
 	}
 
+	/**
+	 * Liefert das PartnerDto des Kunden/Lieferanten/Partners
+	 * 
+	 * @return
+	 */
+	protected abstract PartnerDto getPartnerDtoPartner();
 }

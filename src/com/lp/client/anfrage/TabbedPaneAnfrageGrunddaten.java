@@ -48,7 +48,6 @@ import com.lp.client.frame.stammdatencrud.PanelStammdatenCRUD;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.anfrage.service.AnfrageServiceFac;
-import com.lp.server.angebot.service.AngebotServiceFac;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.MediaFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
@@ -407,12 +406,6 @@ public class TabbedPaneAnfrageGrunddaten extends TabbedPane {
 					.updateButtons(panelErledigungsgrundBottomD1
 							.getLockedstateDetailMainKey());
 
-			// wenn es fuer das tabbed pane noch keinen Eintrag gibt,
-			// die restlichen oberen Laschen deaktivieren, ausser ...
-			if (panelErledigungsgrundTopQP1.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_ERLEDIGUNGSGRUND, false);
-			}
 			break;
 
 		case IDX_PANEL_ZERTIFIKATART:
@@ -424,12 +417,6 @@ public class TabbedPaneAnfrageGrunddaten extends TabbedPane {
 			panelZertifikatartTopQP1.updateButtons(panelZertifikatartBottomD1
 					.getLockedstateDetailMainKey());
 
-			// wenn es fuer das tabbed pane noch keinen Eintrag gibt,
-			// die restlichen oberen Laschen deaktivieren, ausser ...
-			if (panelZertifikatartTopQP1.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_ZERTIFIKATART, false);
-			}
 			break;
 
 		}

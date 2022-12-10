@@ -50,14 +50,9 @@ import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
-import com.lp.client.frame.component.DialogQuery;
-import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
-import com.lp.client.frame.component.PanelQueryFLR;
-import com.lp.client.frame.component.WrapperButton;
-import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperDateRangeController;
 import com.lp.client.frame.component.WrapperLabel;
@@ -68,14 +63,10 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
-import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.inserat.service.InseratReportFac;
 import com.lp.server.inserat.service.ReportJournalInseratDto;
 import com.lp.server.partner.service.KundeDto;
-import com.lp.server.system.service.KostenstelleDto;
 import com.lp.server.system.service.MailtextDto;
-import com.lp.server.system.service.ReportJournalKriterienDto;
-import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 
 public class ReportDBAuswertungInserate extends PanelBasis implements
@@ -243,15 +234,6 @@ public class ReportDBAuswertungInserate extends PanelBasis implements
 
 		// wdrc: 2 der DateRangeController muss die beiden DateFields kennen
 		wdrBereich = new WrapperDateRangeController(wdfVon, wdfBis);
-
-		// PJ 14057
-		wdfVon.setName("wdfVon");
-		wdfBis.setName("wdfBis");
-
-		wrbBereichDatum.setName("wrbBereichDatum");
-		wrbBereichNummer.setName("wrbBereichDatum");
-
-		wrbSortierungBelegnummer.setName("wrbSortierungBelegnummer");
 
 		// wegen dialogFLR
 		getInternalFrame().addItemChangedListener(this);

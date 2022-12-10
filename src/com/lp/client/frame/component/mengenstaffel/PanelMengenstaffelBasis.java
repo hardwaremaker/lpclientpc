@@ -86,7 +86,17 @@ protected WrapperLabel wlaMenge = null;
   protected WrapperNumberField wnfMenge = null;
   protected WrapperLabel wlaMengeeinheit = null;
   protected WrapperNumberField wnfRabattsatz = null;
-  protected WrapperLabel wlaRabattsatzprozent = null;
+  public WrapperNumberField getWnfRabattsatz() {
+	return wnfRabattsatz;
+}
+
+
+public void setWnfRabattsatz(WrapperNumberField wnfRabattsatz) {
+	this.wnfRabattsatz = wnfRabattsatz;
+}
+
+
+protected WrapperLabel wlaRabattsatzprozent = null;
 
   // Gueltigkeitsbereich der Mengenstaffel von, bis
   protected WrapperLabel wlaGueltigab = null;
@@ -144,12 +154,9 @@ protected int iBreiteErsteSpalte = 60;
   protected WrapperCheckBox wcbBemerkungDrucken = null;
   protected WrapperCheckBox wcbRabattsichtbar = null;
   
-  protected InternalFrameKunde internalFrameKunde = null;
-
   public PanelMengenstaffelBasis(InternalFrame internalFrameI, String addTitle2I)
       throws Throwable {
     super(internalFrameI, addTitle2I);
-    internalFrameKunde = (InternalFrameKunde)internalFrameI;
     iPreiseUINachkommastellen = Defaults.getInstance().getIUINachkommastellenPreiseVK();
     iMengeUINachkommastellen = Defaults.getInstance().getIUINachkommastellenMenge();
     waehrungCNr = LPMain.getTheClient().getSMandantenwaehrung();

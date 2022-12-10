@@ -49,6 +49,8 @@ import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungartDto;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungstatusDto;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungtextDto;
+import com.lp.server.rechnung.service.RechnungtextDto;
 import com.lp.server.system.service.MandantFac;
 
 @SuppressWarnings("static-access")
@@ -76,6 +78,17 @@ public class InternalFrameEingangsrechnung extends InternalFrame {
 	private TabbedPaneGrunddaten tabbedPaneGrunddaten = null;
 	private TabbedPaneEingangsrechnung tabbedPaneEingangsrechnungZusatzkosten = null;
 	private boolean bZusatzkosten = false;
+
+	private EingangsrechnungtextDto eingangsrechnungtextDto = new EingangsrechnungtextDto();
+	
+	public EingangsrechnungtextDto getEingangsrechnungtextDto() {
+		return eingangsrechnungtextDto;
+	}
+
+	public void setEingangsrechnungtextDto(
+			EingangsrechnungtextDto eingangsrechnungtextDto) {
+		this.eingangsrechnungtextDto = eingangsrechnungtextDto;
+	}
 
 	public static int IDX_TABBED_PANE_EINGANGSRECHNUNG = -1;
 	public static int IDX_TABBED_PANE_ZUSATZKOSTEN = -1;

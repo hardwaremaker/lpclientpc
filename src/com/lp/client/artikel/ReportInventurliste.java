@@ -58,6 +58,7 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.InventurDto;
 import com.lp.server.artikel.service.InventurFac;
 import com.lp.server.artikel.service.LagerDto;
 import com.lp.server.system.service.MailtextDto;
@@ -83,7 +84,7 @@ public class ReportInventurliste extends PanelBasis implements
 	private WrapperTextField wtfInventur = new WrapperTextField();
 
 	private WrapperLabel wlaZeitraum = new WrapperLabel();
-	
+
 	private WrapperDateField wdfVon = new WrapperDateField();
 	private WrapperLabel wlaBis = new WrapperLabel();
 	private WrapperDateField wdfBis = new WrapperDateField();
@@ -96,6 +97,7 @@ public class ReportInventurliste extends PanelBasis implements
 	private WrapperLabel wlaSortierung = new WrapperLabel();
 	private ButtonGroup buttonGroupSortierung = new ButtonGroup();
 	private WrapperRadioButton wrbSortierungArtikel = new WrapperRadioButton();
+	private WrapperRadioButton wrbSortierungReferenznummer = new WrapperRadioButton();
 	private WrapperRadioButton wrbSortierungMitarbeiterArtikel = new WrapperRadioButton();
 	private WrapperRadioButton wrbSortierungMitarbeiterDatum = new WrapperRadioButton();
 
@@ -108,9 +110,21 @@ public class ReportInventurliste extends PanelBasis implements
 		jbInit();
 		initComponents();
 		if (inventurIId != null) {
-			wtfInventur.setText(DelegateFactory.getInstance()
+
+			InventurDto inventurDto = DelegateFactory.getInstance()
 					.getInventurDelegate()
-					.inventurFindByPrimaryKey(inventurIId).getCBez());
+					.inventurFindByPrimaryKey(inventurIId);
+			wtfInventur.setText(inventurDto.getCBez());
+
+			if (inventurDto.getLagerIId() != null) {
+				lagerIId = inventurDto.getLagerIId();
+				LagerDto lagerDto = DelegateFactory.getInstance()
+						.getLagerDelegate()
+						.lagerFindByPrimaryKey(inventurDto.getLagerIId());
+				wtfLager.setText(lagerDto.getCNr());
+				wbuLager.setEnabled(false);
+			}
+
 		}
 	}
 
@@ -141,7 +155,7 @@ public class ReportInventurliste extends PanelBasis implements
 		wlaZeitraum.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.inventurliste.report.zeitraumvon")
 				+ ":");
-		
+
 		wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
 		wdrBereich = new WrapperDateRangeController(wdfVon, wdfBis);
 		wdrBereich.doClickUp();
@@ -156,6 +170,8 @@ public class ReportInventurliste extends PanelBasis implements
 
 		wrbSortierungArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.inventurliste.report.sortierung.artikel"));
+		wrbSortierungReferenznummer.setText(LPMain
+				.getTextRespectUISPr("lp.referenznummer"));
 		wrbSortierungMitarbeiterArtikel
 				.setText(LPMain
 						.getInstance()
@@ -168,6 +184,7 @@ public class ReportInventurliste extends PanelBasis implements
 								"artikel.inventurliste.report.sortierung.mitarbeiterdatum"));
 
 		buttonGroupSortierung.add(wrbSortierungArtikel);
+		buttonGroupSortierung.add(wrbSortierungReferenznummer);
 		buttonGroupSortierung.add(wrbSortierungMitarbeiterArtikel);
 		buttonGroupSortierung.add(wrbSortierungMitarbeiterDatum);
 		wrbSortierungArtikel.setSelected(true);
@@ -181,7 +198,7 @@ public class ReportInventurliste extends PanelBasis implements
 		jpaWorkingOn.add(wtfInventur, new GridBagConstraints(1, iZeile, 3, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-	
+
 		iZeile++;
 
 		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, iZeile, 1, 1, 0.1,
@@ -198,14 +215,14 @@ public class ReportInventurliste extends PanelBasis implements
 		jpaWorkingOn.add(wdfVon, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 150, 0));
+		jpaWorkingOn.add(wlaBis, new GridBagConstraints(2, iZeile, 1, 1, 0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 150, 0));
 		jpaWorkingOn.add(wdfBis, new GridBagConstraints(3, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdrBereich, new GridBagConstraints(3, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
+		jpaWorkingOn.add(wdrBereich, new GridBagConstraints(3, iZeile, 1, 1,
+				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 50, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(
@@ -230,6 +247,10 @@ public class ReportInventurliste extends PanelBasis implements
 		jpaWorkingOn.add(wrbOptionGestehungspreis, new GridBagConstraints(1,
 				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortierungReferenznummer, new GridBagConstraints(3,
+				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
 		jpaWorkingOn.add(wrbSortierungMitarbeiterArtikel,
 				new GridBagConstraints(3, iZeile, 1, 1, 0, 0.0,
 						GridBagConstraints.CENTER,
@@ -289,6 +310,8 @@ public class ReportInventurliste extends PanelBasis implements
 		int iSortierung = -1;
 		if (wrbSortierungArtikel.isSelected()) {
 			iSortierung = InventurFac.REPORT_INVENTURLISTE_SORTIERUNG_ARTIKELNR;
+		} else if (wrbSortierungReferenznummer.isSelected()) {
+			iSortierung = InventurFac.REPORT_INVENTURLISTE_SORTIERUNG_REFERENZNUMMER;
 		} else if (wrbSortierungMitarbeiterArtikel.isSelected()) {
 			iSortierung = InventurFac.REPORT_INVENTURLISTE_SORTIERUNG_PERSON_ARTIKEL;
 		} else if (wrbSortierungMitarbeiterDatum.isSelected()) {

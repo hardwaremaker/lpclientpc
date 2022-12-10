@@ -283,8 +283,7 @@ public class PanelDialogFontStyle extends JDialog implements ItemListener,
 	}
 	
 	protected void colorVisionChanged() {
-		String colorVision = redGreenBlindness.isSelected() ? HelperClient.COLOR_RED_GREEN_BLINDNESS : HelperClient.COLOR_NORMAL;
-		Border b = BorderFactory.createLineBorder(HelperClient.getMandatoryFieldBorderColor(colorVision));
+		Border b = BorderFactory.createLineBorder(Defaults.getInstance().getMandatoryFieldBorderColor());
 		beispielEingabe.setBorder(b);
 	}
 

@@ -84,7 +84,9 @@ public class ReportWarenentnahmestatistik extends PanelBasis implements
 	private WrapperDateRangeController wdrBereich = null;
 	private WrapperCheckBox wcbVersteckte = null;
 	private WrapperCheckBox wcbMitNichtlagerbewirtschaftetenArtikeln = null;
+	private WrapperCheckBox wcbDetailliert = null;
 	private WrapperSelectField wsfArtikelgruppe = null;
+	private WrapperSelectField wsfArtikelklasse = null;
 
 	private WrapperLabel wlaSortierung = new WrapperLabel();
 
@@ -213,6 +215,8 @@ public class ReportWarenentnahmestatistik extends PanelBasis implements
 
 		wsfArtikelgruppe = new WrapperSelectField(
 				WrapperSelectField.ARTIKELGRUPPE, getInternalFrame(), true);
+		wsfArtikelklasse = new WrapperSelectField(
+				WrapperSelectField.ARTIKELKLASSE, getInternalFrame(), true);
 
 		wbuArtikelnrVon.setText(LPMain
 				.getTextRespectUISPr("artikel.artikelnummer")
@@ -230,6 +234,11 @@ public class ReportWarenentnahmestatistik extends PanelBasis implements
 				.getInstance()
 				.getTextRespectUISPr(
 						"artikel.warenentnahmestatistik.mitnichtlagerbewirtschafteten"));
+		
+		wcbDetailliert=new WrapperCheckBox(LPMain
+				.getInstance()
+				.getTextRespectUISPr(
+						"artikel.warenentnahmestatistik.detailliert"));
 		
 
 		wbuArtikelnrBis.setActionCommand(ACTION_SPECIAL_ARTIKELBIS_FROM_LISTE);
@@ -301,10 +310,10 @@ public class ReportWarenentnahmestatistik extends PanelBasis implements
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(3, iZeile, 1, 1,
+		jpaWorkingOn.add(wsfArtikelklasse, new GridBagConstraints(3, iZeile, 1, 1,
 				0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbSortierungIdent, new GridBagConstraints(4, iZeile,
+		jpaWorkingOn.add(wsfArtikelklasse.getWrapperTextField(), new GridBagConstraints(4, iZeile,
 				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -316,9 +325,14 @@ public class ReportWarenentnahmestatistik extends PanelBasis implements
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wrbSortierungArtikelgruppe, new GridBagConstraints(4,
-				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(3, iZeile, 1, 1,
+				0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortierungIdent, new GridBagConstraints(4, iZeile,
+				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		
 
 		iZeile++;
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
@@ -329,15 +343,24 @@ public class ReportWarenentnahmestatistik extends PanelBasis implements
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
 		}
-		jpaWorkingOn.add(wrbSortierungArtikelklasse, new GridBagConstraints(4,
+		jpaWorkingOn.add(wcbDetailliert,
+				new GridBagConstraints(3, iZeile, 1, 1, 0.1, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+								2), 0, 0));
+		jpaWorkingOn.add(wrbSortierungArtikelgruppe, new GridBagConstraints(4,
 				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+	
 		iZeile++;
 		jpaWorkingOn.add(wcbMitNichtlagerbewirtschaftetenArtikeln,
 				new GridBagConstraints(2, iZeile, 2, 1, 0.1, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 								2), 0, 0));
+		jpaWorkingOn.add(wrbSortierungArtikelklasse, new GridBagConstraints(4,
+				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 	}
 
 	void dialogQueryArtikelFromListe_Von(ActionEvent e) throws Throwable {
@@ -378,12 +401,12 @@ public class ReportWarenentnahmestatistik extends PanelBasis implements
 		return DelegateFactory
 				.getInstance()
 				.getLagerReportDelegate()
-				.printWarenentnahmestatistik(wdfVon.getTimestamp(),
-						wdfBis.getTimestamp(), lagerIId,
+				.printWarenentnahmestatistik(wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), lagerIId,
 						wcbVersteckte.isSelected(), wtfArtikelnrVon.getText(),
-						wtfArtikelnrBis.getText(), wsfArtikelgruppe.getIKey(),
+						wtfArtikelnrBis.getText(), wsfArtikelgruppe.getIKey(),wsfArtikelklasse.getIKey(),
 						sortierung,
-						wcbMitNichtlagerbewirtschaftetenArtikeln.isSelected());
+						wcbMitNichtlagerbewirtschaftetenArtikeln.isSelected(),wcbDetailliert.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

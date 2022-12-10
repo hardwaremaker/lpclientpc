@@ -46,7 +46,7 @@ public abstract class FileToJCR {
 	public List<JCRDocDto> createJCR(File file, JCRDocDto vorlage) throws IOException {
 		JCRDocDto jcr = new JCRDocDto();
 		String name = file.getName();
-		jcr.setsName(Helper.getName(name));
+		jcr.setsName(Helper.getName(name).replaceAll("'", "_"));
 		jcr.setsMIME(Helper.getMime(name));
 		jcr.setbVersteckt(vorlage.getbVersteckt());
 		jcr.setsGruppierung(vorlage.getsGruppierung());

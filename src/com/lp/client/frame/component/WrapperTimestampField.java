@@ -198,4 +198,10 @@ private GridBagLayout gridbagLayoutAll = null;
 	public boolean hasContent() throws Throwable {
 	    return wdfDatum.hasContent() && wtfZeit.hasContent();
 	}
+	
+	@Override
+	public void setEnabled(boolean enabled) {
+		wdfDatum.setEnabled(enabled);
+		wtfZeit.setEnabled(enabled);
+	}
 }

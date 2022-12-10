@@ -42,6 +42,9 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelfehlmengeDto;
 import com.lp.server.artikel.service.FehlmengeFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.TheClientDto;
+import com.lp.util.AufgeloesteFehlmengenDto;
 
 /**
  * <p>
@@ -67,14 +70,9 @@ public class FehlmengeDelegate extends Delegate {
 	private Context context;
 	private FehlmengeFac fehlmengeFac;
 
-	public FehlmengeDelegate() throws ExceptionLP {
-		try {
-			context = new InitialContext();
-			fehlmengeFac = (FehlmengeFac) context
-					.lookup("lpserver/FehlmengeFacBean/remote");
-		} catch (Throwable t) {
-			handleThrowable(t);
-		}
+	public FehlmengeDelegate() throws Exception {
+		context = new InitialContext();
+		fehlmengeFac = lookupFac(context, FehlmengeFac.class);
 	}
 
 	public BigDecimal getAnzahlFehlmengeEinesArtikels(Integer artikelIId)
@@ -88,8 +86,7 @@ public class FehlmengeDelegate extends Delegate {
 		}
 	}
 
-	public TreeMap<?, ?> alleFehlmengenDesMandantenAufloesen()
-			throws ExceptionLP {
+	public Integer alleFehlmengenDesMandantenAufloesen() throws ExceptionLP {
 		try {
 			return fehlmengeFac.alleFehlmengenDesMandantenAufloesen(LPMain
 					.getTheClient());
@@ -161,6 +158,47 @@ public class FehlmengeDelegate extends Delegate {
 			fehlmengeFac.pruefeFehlmengen(LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
+		}
+	}
+
+	public void addAufgeloesteFehlmengeZuSession(AufgeloesteFehlmengenDto dto)
+			throws ExceptionLP {
+		try {
+			fehlmengeFac.addAufgeloesteFehlmengeZuSession(dto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void schliesseAufgeloesteFehlmengenSessionAb(Integer fasessionIId)
+			throws ExceptionLP {
+		try {
+			fehlmengeFac.schliesseAufgeloesteFehlmengenSessionAb(fasessionIId,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public Integer istOffeneFasessionVorhanden() throws ExceptionLP {
+		try {
+			return fehlmengeFac.istOffeneFasessionVorhanden(LPMain
+					.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public TreeMap getAufgeloesteFehlmengenEinerSession(Integer fasessionIId)
+			throws ExceptionLP {
+		try {
+			return fehlmengeFac.getAufgeloesteFehlmengenEinerSession(
+					fasessionIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
 		}
 	}
 

@@ -230,7 +230,9 @@ public class PanelMaschinenkosten extends PanelBasis {
 		wlaWaehrung.setText(DelegateFactory.getInstance().getMandantDelegate()
 				.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant())
 				.getWaehrungCNr());
-		;
+		
+		HelperClient.setMinimumAndPreferredSize(wlaWaehrung, HelperClient.getSizeFactoredDimension(30));
+		
 		wdfGueltigab.setMandatoryField(true);
 		wnfStundensatz.setMandatoryField(true);
 		wnfVKStundensatz.setMandatoryField(true);
@@ -266,7 +268,7 @@ public class PanelMaschinenkosten extends PanelBasis {
 				new Insets(0, 0, 0, 0), 0, 0));
 		jpaWorkingOn.add(wlaWaehrung, new GridBagConstraints(5, 1, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(0, 0, 0, 0), 20, 0));
+				new Insets(0, 0, 0, 0), 0, 0));
 		jpaWorkingOn.add(wlaVKStundensatz, new GridBagConstraints(3, 2, 1, 1,
 				0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));

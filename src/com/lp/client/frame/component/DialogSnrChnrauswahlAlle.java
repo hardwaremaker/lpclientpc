@@ -63,8 +63,7 @@ import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
-		MouseListener, ActionListener {
+public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener, MouseListener, ActionListener {
 
 	private static final long serialVersionUID = 1L;
 	JPanel panel1 = new JPanel();
@@ -80,19 +79,14 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 	WrapperCheckBox wcbNurLagernde = new WrapperCheckBox();
 	Integer artikelIId = null;
 
-	public DialogSnrChnrauswahlAlle(Integer artikelIId, Integer lagerIId,
-			boolean bMultiselection,
-			List<SeriennrChargennrMitMengeDto> alSeriennummernBereitsSelektiert)
-			throws Throwable {
+	public DialogSnrChnrauswahlAlle(Integer artikelIId, Integer lagerIId, boolean bMultiselection,
+			List<SeriennrChargennrMitMengeDto> alSeriennummernBereitsSelektiert) throws Throwable {
 		super(LPMain.getInstance().getDesktop(), "", true);
 		this.artikelIId = artikelIId;
-		SeriennrChargennrAufLagerDto[] dtos = DelegateFactory.getInstance()
-				.getLagerDelegate()
+		SeriennrChargennrAufLagerDto[] dtos = DelegateFactory.getInstance().getLagerDelegate()
 				.getAllSerienChargennrAufLager(artikelIId, lagerIId, true);
-		ArtikelDto artikelDto = DelegateFactory.getInstance()
-				.getArtikelDelegate().artikelFindByPrimaryKey(artikelIId);
-		setTitle("Auswahl Seriennummern f\u00FCr Artikel "
-				+ artikelDto.formatArtikelbezeichnung());
+		ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate().artikelFindByPrimaryKey(artikelIId);
+		setTitle("Auswahl Seriennummern f\u00FCr Artikel " + artikelDto.formatArtikelbezeichnung());
 		bSnrBehaftet = Helper.short2boolean(artikelDto.getBSeriennrtragend());
 
 		ArrayList<SeriennrChargennrAufLagerDto> alListeMitSelektiertenBereinigt = new ArrayList<SeriennrChargennrAufLagerDto>();
@@ -106,13 +100,11 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 			if (alSeriennummernBereitsSelektiert != null) {
 				for (int j = 0; j < alSeriennummernBereitsSelektiert.size(); j++) {
 
-					if (dtoZeile.getCSeriennrChargennr().equals(
-							alSeriennummernBereitsSelektiert.get(j)
-									.getCSeriennrChargennr())) {
+					if (dtoZeile.getCSeriennrChargennr()
+							.equals(alSeriennummernBereitsSelektiert.get(j).getCSeriennrChargennr())) {
 						bGefunden = true;
-						BigDecimal mengeNeu = dtoZeile.getNMenge().subtract(
-								alSeriennummernBereitsSelektiert.get(j)
-										.getNMenge());
+						BigDecimal mengeNeu = dtoZeile.getNMenge()
+								.subtract(alSeriennummernBereitsSelektiert.get(j).getNMenge());
 						dtoZeile.setNMenge(mengeNeu);
 						if (mengeNeu.doubleValue() > 0) {
 							alListeMitSelektiertenBereinigt.add(dtoZeile);
@@ -136,29 +128,19 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 		String[] colNames = null;
 
 		if (bSnrBehaftet) {
-			colNames = new String[] {
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.seriennummer"),
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.lager.version") };
-			data = new String[alListeMitSelektiertenBereinigt.size()][2];
-			for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
-				if (alListeMitSelektiertenBereinigt.get(i) != null) {
-					data[i][0] = alListeMitSelektiertenBereinigt.get(i)
-							.getCSeriennrChargennr();
-					data[i][1] = alListeMitSelektiertenBereinigt.get(i)
-							.getCVersion();
-				}
-			}
+			colNames = new String[] { LPMain.getInstance().getTextRespectUISPr("artikel.seriennummer"),
+					LPMain.getInstance().getTextRespectUISPr("artikel.lager.version") };
+
 		} else {
-			colNames = new String[] { LPMain.getInstance().getTextRespectUISPr(
-					"artikel.chargennummer") };
-			data = new String[alListeMitSelektiertenBereinigt.size()][1];
-			for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
-				if (alListeMitSelektiertenBereinigt.get(i) != null) {
-					data[i][0] = alListeMitSelektiertenBereinigt.get(i)
-							.getCSeriennrChargennr();
-				}
+			colNames = new String[] { LPMain.getInstance().getTextRespectUISPr("artikel.chargennummer"),
+					LPMain.getInstance().getTextRespectUISPr("artikel.lager.version") };
+		}
+
+		data = new String[alListeMitSelektiertenBereinigt.size()][2];
+		for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
+			if (alListeMitSelektiertenBereinigt.get(i) != null) {
+				data[i][0] = alListeMitSelektiertenBereinigt.get(i).getCSeriennrChargennr();
+				data[i][1] = alListeMitSelektiertenBereinigt.get(i).getCVersion();
 			}
 		}
 
@@ -168,11 +150,9 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 		jTableSnrChnrs.setRowSelectionAllowed(true);
 
 		if (bMultiselection) {
-			jTableSnrChnrs
-					.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			jTableSnrChnrs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		} else {
-			jTableSnrChnrs
-					.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			jTableSnrChnrs.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		}
 
 		jScrollPane.getViewport().add(jTableSnrChnrs);
@@ -188,46 +168,32 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 
 	private void jbInit() throws Exception {
 		panel1.setLayout(gridBagLayout1);
-		jButtonUebernehmen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.uebernehmen"));
-		jButtonUebernehmen
-				.addActionListener(new DialogSnrChnr_jButtonUebernehmenAlle_actionAdapter(
-						this));
+		jButtonUebernehmen.setText(LPMain.getInstance().getTextRespectUISPr("lp.uebernehmen"));
+		jButtonUebernehmen.addActionListener(new DialogSnrChnr_jButtonUebernehmenAlle_actionAdapter(this));
 		add(panel1);
 
-		wcbNurLagernde.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.snrchnraendern.nurlagernde"));
+		wcbNurLagernde.setText(LPMain.getInstance().getTextRespectUISPr("artikel.snrchnraendern.nurlagernde"));
 		wcbNurLagernde.setSelected(true);
 		wcbNurLagernde.addActionListener(this);
 
-		panel1.add(wcbNurLagernde, new GridBagConstraints(0, 0, 1, 1, 0, 0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		panel1.add(wcbNurLagernde, new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		panel1.add(jScrollPane, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
-		panel1.add(jButtonUebernehmen, new GridBagConstraints(0, 2, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		panel1.add(jScrollPane, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		panel1.add(jButtonUebernehmen, new GridBagConstraints(0, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	public void jButtonUebernehmen_actionPerformed(ActionEvent e) {
 		int[] rows = jTableSnrChnrs.getSelectedRows();
 		sSeriennrChargennrArray = new String[rows.length];
 		for (int i = 0; i < rows.length; i++) {
-			sSeriennrChargennrArray[i] = (String) jTableSnrChnrs.getModel()
-					.getValueAt(rows[i], 0);
-			if (bSnrBehaftet) {
-				alSeriennummern.add(new SeriennrChargennrMitMengeDto(
-						(String) jTableSnrChnrs.getModel().getValueAt(rows[i],
-								0), (String) jTableSnrChnrs.getModel()
-								.getValueAt(rows[i], 1), new BigDecimal(1)));
-			} else {
-				alSeriennummern.add(new SeriennrChargennrMitMengeDto(
-						(String) jTableSnrChnrs.getModel().getValueAt(rows[i],
-								0), new BigDecimal(1)));
-			}
+			sSeriennrChargennrArray[i] = (String) jTableSnrChnrs.getModel().getValueAt(rows[i], 0);
+
+			alSeriennummern
+					.add(new SeriennrChargennrMitMengeDto((String) jTableSnrChnrs.getModel().getValueAt(rows[i], 0),
+							(String) jTableSnrChnrs.getModel().getValueAt(rows[i], 1), new BigDecimal(1)));
 
 		}
 		setVisible(false);
@@ -295,21 +261,15 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 			SeriennrChargennrAufLagerDto[] dtos = null;
 			if (wcbNurLagernde.isSelected()) {
 				try {
-					dtos = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.getAllSerienChargennrAufLager(artikelIId, null,
-									true);
+					dtos = DelegateFactory.getInstance().getLagerDelegate().getAllSerienChargennrAufLager(artikelIId,
+							null, true);
 				} catch (Throwable e1) {
 					e1.printStackTrace();
 				}
 			} else {
 				try {
-					dtos = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.getAllSerienChargennrAufLagerInfoDtosMitBereitsVerbrauchten(
-									artikelIId, null, true);
+					dtos = DelegateFactory.getInstance().getLagerDelegate()
+							.getAllSerienChargennrAufLagerInfoDtosMitBereitsVerbrauchten(artikelIId, null, true);
 				} catch (Throwable e1) {
 					e1.printStackTrace();
 				}
@@ -328,29 +288,19 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 			String[] colNames = null;
 
 			if (bSnrBehaftet) {
-				colNames = new String[] {
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.seriennummer"),
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.lager.version") };
-				data = new String[alListeMitSelektiertenBereinigt.size()][2];
-				for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
-					if (alListeMitSelektiertenBereinigt.get(i) != null) {
-						data[i][0] = alListeMitSelektiertenBereinigt.get(i)
-								.getCSeriennrChargennr();
-						data[i][1] = alListeMitSelektiertenBereinigt.get(i)
-								.getCVersion();
-					}
-				}
+				colNames = new String[] { LPMain.getInstance().getTextRespectUISPr("artikel.seriennummer"),
+						LPMain.getInstance().getTextRespectUISPr("artikel.lager.version") };
+
 			} else {
-				colNames = new String[] { LPMain.getInstance()
-						.getTextRespectUISPr("artikel.chargennummer") };
-				data = new String[alListeMitSelektiertenBereinigt.size()][1];
-				for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
-					if (alListeMitSelektiertenBereinigt.get(i) != null) {
-						data[i][0] = alListeMitSelektiertenBereinigt.get(i)
-								.getCSeriennrChargennr();
-					}
+				colNames = new String[] { LPMain.getInstance().getTextRespectUISPr("artikel.chargennummer"),
+						LPMain.getInstance().getTextRespectUISPr("artikel.lager.version") };
+			}
+
+			data = new String[alListeMitSelektiertenBereinigt.size()][2];
+			for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
+				if (alListeMitSelektiertenBereinigt.get(i) != null) {
+					data[i][0] = alListeMitSelektiertenBereinigt.get(i).getCSeriennrChargennr();
+					data[i][1] = alListeMitSelektiertenBereinigt.get(i).getCVersion();
 				}
 			}
 
@@ -366,12 +316,10 @@ public class DialogSnrChnrauswahlAlle extends JDialog implements KeyListener,
 
 }
 
-class DialogSnrChnr_jButtonUebernehmenAlle_actionAdapter implements
-		ActionListener {
+class DialogSnrChnr_jButtonUebernehmenAlle_actionAdapter implements ActionListener {
 	private DialogSnrChnrauswahlAlle adaptee;
 
-	DialogSnrChnr_jButtonUebernehmenAlle_actionAdapter(
-			DialogSnrChnrauswahlAlle adaptee) {
+	DialogSnrChnr_jButtonUebernehmenAlle_actionAdapter(DialogSnrChnrauswahlAlle adaptee) {
 		this.adaptee = adaptee;
 	}
 

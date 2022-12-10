@@ -33,6 +33,7 @@
 package com.lp.client.frame.component;
 
 import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -72,13 +73,26 @@ public class ImageViewer extends JScrollPane {
 		setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 	}
 
-	public void setImage(byte[] image) {
-		setImage(Helper.byteArrayToImage(image));
+	public ImageViewer(BufferedImage image) throws IOException {
+		super();
+		setImage(image);
+		setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 	}
-	
+
+	public void setImage(byte[] image) {
+		BufferedImage bufferedImage = null;
+		try {
+			bufferedImage = Helper.byteArrayToImage(image);
+		} catch (Exception e) {
+			// NIX wg. SP6868
+		}
+		setImage(bufferedImage);
+	}
+
 	@Override
 	public Dimension getPreferredSize() {
-		if(originalImage == null)
+		if (originalImage == null)
 			return super.getPreferredSize();
 		return new Dimension(originalImage.getWidth(), originalImage.getHeight());
 	}
@@ -217,6 +231,66 @@ public class ImageViewer extends JScrollPane {
 		viewer.addMouseListener(mAdapter);
 	}
 
+	public void cleanup() {
+		setImage((BufferedImage) null);
+		viewer = null;
+	}
+
+	public void fitToComponent() {
+
+		if (originalImage != null) {
+
+			double scaleFactor = Math.min(1d,
+					getScaleFactorToFit(new Dimension(originalImage.getWidth(), originalImage.getHeight()), getSize()));
+
+			int scaleWidth = (int) Math.round(originalImage.getWidth() * scaleFactor);
+			int scaleHeight = (int) Math.round(originalImage.getHeight() * scaleFactor);
+
+			if (scaleWidth > 0 && scaleHeight > 0) {
+				currentImage = new BufferedImage(scaleWidth, scaleHeight, Image.SCALE_FAST);
+				Graphics2D g = ((BufferedImage) currentImage).createGraphics();
+				g.drawImage(originalImage, 0, 0, scaleWidth, scaleHeight, null);
+				g.dispose();
+				viewer.setIcon(new ImageIcon(currentImage));
+			}
+		}
+
+	}
+
+	public double getScaleFactor(int iMasterSize, int iTargetSize) {
+
+		double dScale = 1;
+		if (iMasterSize > iTargetSize) {
+
+			dScale = (double) iTargetSize / (double) iMasterSize;
+
+		} else {
+
+			dScale = (double) iTargetSize / (double) iMasterSize;
+
+		}
+
+		return dScale;
+
+	}
+
+	public double getScaleFactorToFit(Dimension original, Dimension toFit) {
+
+		double dScale = 1d;
+
+		if (original != null && toFit != null) {
+
+			double dScaleWidth = getScaleFactor(original.width, toFit.width);
+			double dScaleHeight = getScaleFactor(original.height, toFit.height);
+
+			dScale = Math.min(dScaleHeight, dScaleWidth);
+
+		}
+
+		return dScale;
+
+	}
+
 	public void setActualScale(double adjust) {
 		if (originalImage != null) {
 			scale += adjust;
@@ -224,15 +298,19 @@ public class ImageViewer extends JScrollPane {
 			int newWidth = (int) (originalImage.getWidth() * scale);
 			int newHeight = (int) (originalImage.getHeight() * scale);
 			if (newWidth > 0 && newHeight > 0) {
-				currentImage = originalImage.getScaledInstance(newWidth,
-						newHeight, Image.SCALE_FAST);
+//				currentImage = originalImage.getScaledInstance(newWidth,
+//						newHeight, Image.SCALE_FAST);
+				currentImage = new BufferedImage(newWidth, newHeight, Image.SCALE_FAST);
+				Graphics2D g = ((BufferedImage) currentImage).createGraphics();
+				g.drawImage(originalImage, 0, 0, newWidth, newHeight, null);
+				g.dispose();
 				viewer.setIcon(new ImageIcon(currentImage));
 			} else {
 				scale -= adjust;
 			}
 		}
 	}
-	
+
 	private class ScrollablePicture extends JLabel implements Scrollable {
 
 		private static final long serialVersionUID = 954209497310980185L;
@@ -243,8 +321,7 @@ public class ImageViewer extends JScrollPane {
 		}
 
 		@Override
-		public int getScrollableBlockIncrement(Rectangle visibleRect,
-				int orientation, int direction) {
+		public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
 			// TODO Auto-generated method stub
 			return 5;
 		}
@@ -262,11 +339,10 @@ public class ImageViewer extends JScrollPane {
 		}
 
 		@Override
-		public int getScrollableUnitIncrement(Rectangle visibleRect,
-				int orientation, int direction) {
+		public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
 			// TODO Auto-generated method stub
 			return 5;
 		}
-		
+
 	}
 }

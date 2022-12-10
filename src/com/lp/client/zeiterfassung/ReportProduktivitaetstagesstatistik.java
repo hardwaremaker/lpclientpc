@@ -45,6 +45,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.ZeiterfassungReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 public class ReportProduktivitaetstagesstatistik extends ReportZeiterfassung
 		implements PanelReportIfJRDS {
@@ -103,14 +104,14 @@ public class ReportProduktivitaetstagesstatistik extends ReportZeiterfassung
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		JasperPrintLP jasperPrint = null;
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp =Helper.addiereTageZuTimestamp(new java.sql.Timestamp(wdfBis
+				.getTimestamp().getTime()),1);
 
 		jasperPrint = DelegateFactory
 				.getInstance()
 				.getZeiterfassungReportDelegate()
 				.printProduktivitaetstagesstatistik(getPersonalIId(),
-						wdfVon.getTimestamp(), wdfBisTemp, getPersonAuswahl(),
+						wdfVon.getTimestamp(), wdfBisTemp, getPersonAuswahl(),getKostenstelleIIdAbteilung(),
 						mitVersteckten(), nurAnwesende(), wcMonatsbetrachtung.isSelected(),wsfPersonalgruppe.getIKey());
 
 		return jasperPrint;

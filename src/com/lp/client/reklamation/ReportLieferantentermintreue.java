@@ -196,7 +196,7 @@ public class ReportLieferantentermintreue extends PanelBasis implements
 
 	private void dialogQueryLieferant() throws Throwable {
 		panelQueryFLRLieferant = PartnerFilterFactory.getInstance()
-				.createPanelFLRLieferantGoto(getInternalFrame(), lieferantIId,
+				.createPanelFLRLieferant(getInternalFrame(), lieferantIId,
 						true, true);
 		new DialogQuery(panelQueryFLRLieferant);
 	}
@@ -206,8 +206,8 @@ public class ReportLieferantentermintreue extends PanelBasis implements
 		return DelegateFactory
 				.getInstance()
 				.getReklamationReportDelegate()
-				.printLieferantentermintreue(wdfDatumVon.getTimestamp(),
-						wdfDatumBis.getTimestamp(), lieferantIId);
+				.printLieferantentermintreue(wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), lieferantIId);
 	}
 
 	public boolean getBErstelleReportSofort() {

@@ -48,6 +48,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.bestellung.service.BestellpositionFac;
 import com.lp.server.bestellung.service.BestellungFac;
+import com.lp.server.partner.service.KundeFac;
 import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
@@ -158,6 +159,13 @@ public class DialogOffeneWEPos extends JDialog {
 								.getTextRespectUISPr("lp.bezeichnung"),
 						FilterKriteriumDirekt.PROZENT_BOTH, true, true,
 						Facade.MAX_UNBESCHRAENKT));
+		panelQueryFehlmengen.addDirektFilter(new FilterKriteriumDirekt(
+				"position.flrbestellung."+ArtikelFac.FLR_ARTIKELLIEFERANT_FLRLIEFERANT + "."
+						+ KundeFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+				"", FilterKriterium.OPERATOR_LIKE, LPMain
+						.getTextRespectUISPr("label.lieferant"),
+				FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH, // Auswertung als 'XX%'
+				true, true, Facade.MAX_UNBESCHRAENKT));
 
 		panelDetailFehlmengen = new PanelOffeneWEPos(internalFrame,
 				(Integer) panelQueryFehlmengen.getSelectedId(),

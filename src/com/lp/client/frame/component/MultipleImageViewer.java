@@ -43,6 +43,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -64,9 +65,6 @@ public class MultipleImageViewer extends JPanel implements ActionListener {
 	GridBagLayout layout;
 	String param = "";
 
-	ArrayList<byte[]> images = null;
-
-	int numImages;
 	int imageCounter = 0;
 
 	ImageViewer[] pi = null;
@@ -77,24 +75,12 @@ public class MultipleImageViewer extends JPanel implements ActionListener {
 	}
 
 	public void setImage(byte[] image) throws IOException {
-		imagePanel.removeAll();
-		if (image != null) {
-			imageCounter = 0;
-
-			counter.setText("1/1");
-
-			pi = new ImageViewer[1];
-			pi[0] = new ImageViewer(image);
-			imagePanel.add(pi[0], new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-					GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-					new Insets(2, 2, 2, 2), 0, 0));
-		} else {
-			counter.setText("0/0");
-		}
+		List<byte[]> images = new ArrayList<byte[]>();
+		images.add(image);
+		setImages(images);
 	}
 
-	public void setImages(ArrayList<byte[]> image) throws IOException {
-		images = image;
+	public void setImages(List<byte[]> image) throws IOException {
 		imageCounter = 0;
 		imagePanel.removeAll();
 		if (image != null && image.size() > 0) {
@@ -191,6 +177,21 @@ public class MultipleImageViewer extends JPanel implements ActionListener {
 
 		}
 
+	}
+
+	public void cleanup() {
+		try {
+			setImage(null);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (pi != null) {
+			for (ImageViewer viewer : pi) {
+				viewer.cleanup();
+			}
+		}
+		pi = null;
 	}
 
 }

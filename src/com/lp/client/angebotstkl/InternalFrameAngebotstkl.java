@@ -37,11 +37,13 @@ import java.util.EventObject;
 import javax.swing.ImageIcon;
 import javax.swing.JTabbedPane;
 
+import com.lp.client.finanz.TabbedPaneErgebnisgruppen;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.angebotstkl.service.AgstklDto;
 import com.lp.server.angebotstkl.service.EinkaufsangebotDto;
+import com.lp.server.angebotstkl.service.EkgruppeDto;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
@@ -63,16 +65,27 @@ public class InternalFrameAngebotstkl extends InternalFrame {
 	private static final long serialVersionUID = 1L;
 	private TabbedPaneAngebotstkl tabbedPaneAngebotstkl = null;
 	private TabbedPaneEinkaufsangebot tabbedPaneEinkaufsangebot = null;
+	private TabbedPaneEkgruppe tabbedPaneEkgruppe = null;
 	private TabbedPaneAngebotstklGrunddaten tabbedPaneAngebotstklGrunddaten = null;
 
 	public int iKalkulationsart = 1;
 
 	public static int IDX_TABBED_PANE_ANGEBOTSTKL = 0;
 	private int IDX_TABBED_PANE_EINKAUFSANGEBOT = -1;
+	private int IDX_TABBED_PANE_EKGRUPPE = -1;
 	private int IDX_TABBED_PANE_GRUNDDATEN = -1;
 
 	private AgstklDto agstklDto = null;
 	private EinkaufsangebotDto einkaufsangebotDto = null;
+	private EkgruppeDto ekgruppeDto = null;
+
+	public EkgruppeDto getEkgruppeDto() {
+		return ekgruppeDto;
+	}
+
+	public void setEkgruppeDto(EkgruppeDto ekgruppeDto) {
+		this.ekgruppeDto = ekgruppeDto;
+	}
 
 	public void setAgstklDto(AgstklDto agstklDto) {
 		this.agstklDto = agstklDto;
@@ -145,7 +158,12 @@ public class InternalFrameAngebotstkl extends InternalFrame {
 					IDX_TABBED_PANE_EINKAUFSANGEBOT);
 		}
 
-		if (iKalkulationsart == 2) {
+		if (iKalkulationsart == 2
+				|| LPMain
+						.getInstance()
+						.getDesktop()
+						.darfAnwenderAufZusatzfunktionZugreifen(
+								MandantFac.ZUSATZFUNKTION_WEB_BAUTEIL_ANFRAGE)) {
 			tabIndex++;
 			IDX_TABBED_PANE_GRUNDDATEN = tabIndex;
 			tabbedPaneRoot.insertTab(
@@ -155,6 +173,24 @@ public class InternalFrameAngebotstkl extends InternalFrame {
 					IDX_TABBED_PANE_GRUNDDATEN);
 		}
 
+		
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_EK_ANGEBOT_ANFRAGE)) {
+			tabIndex++;
+			IDX_TABBED_PANE_EKGRUPPE = tabIndex;
+			tabbedPaneRoot.insertTab(
+					LPMain.getInstance().getTextRespectUISPr(
+							"agstkl.ekgruppe"),
+					null,
+					null,
+					LPMain.getInstance().getTextRespectUISPr(
+							"agstkl.ekgruppe"),
+					IDX_TABBED_PANE_EKGRUPPE);
+		}
+		
 		registerChangeListeners();
 		createTabbedAngebotstkl(null);
 		tabbedPaneAngebotstkl.lPEventObjectChanged(null);
@@ -195,6 +231,21 @@ public class InternalFrameAngebotstkl extends InternalFrame {
 			initComponents();
 		}
 	}
+	private void createTabbedEinkaufsgruppe(JTabbedPane tabbedPane)
+			throws Throwable {
+		if (tabbedPane == null) {
+			// lazy loading
+			tabbedPaneEkgruppe = new TabbedPaneEkgruppe(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_EKGRUPPE,
+					tabbedPaneEkgruppe);
+			if (tabbedPaneEkgruppe.getPanelQueryEkgruppe()
+					.getSelectedId() == null) {
+				enableAllOberePanelsExceptMe(tabbedPaneEkgruppe, 0,
+						false);
+			}
+			initComponents();
+		}
+	}
 
 	private void createTabbedGrunddaten(JTabbedPane tabbedPane)
 			throws Throwable {
@@ -222,6 +273,10 @@ public class InternalFrameAngebotstkl extends InternalFrame {
 			createTabbedEinkaufsangebot(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.
 			tabbedPaneEinkaufsangebot.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_EKGRUPPE) {
+			createTabbedEinkaufsgruppe(tabbedPane);
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneEkgruppe.lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_GRUNDDATEN) {
 			createTabbedGrunddaten(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.

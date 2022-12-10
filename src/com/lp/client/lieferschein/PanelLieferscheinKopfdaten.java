@@ -40,10 +40,9 @@ import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.sql.Date;
-import java.text.MessageFormat;
-import java.util.Calendar;
 import java.util.EventObject;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -63,22 +62,26 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.DialogGeaenderteKonditionenVK;
+import com.lp.client.frame.component.DialogGeaenderteKonditionenZwischenVKBelegen;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperBelegDateField;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperGotoButton;
+import com.lp.client.frame.component.WrapperGotoKundeMapButton;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperSelectField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.partner.IPartnerDto;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
@@ -93,8 +96,10 @@ import com.lp.server.lieferschein.service.LieferscheinFac;
 import com.lp.server.partner.service.AnsprechpartnerDto;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.partner.service.LieferantDto;
+import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.rechnung.service.RechnungDto;
+import com.lp.server.system.service.BelegDatumClient;
 import com.lp.server.system.service.KostenstelleDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
@@ -117,8 +122,7 @@ import net.miginfocom.swing.MigLayout;
  *
  * @version $Revision: 1.32 $
  */
-public class PanelLieferscheinKopfdaten extends PanelBasis implements
-		PropertyChangeListener {
+public class PanelLieferscheinKopfdaten extends PanelBasis implements PropertyChangeListener {
 	/**
 	 *
 	 */
@@ -133,12 +137,13 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	private AnsprechpartnerDto ansprechpartnerDtoRechnungsadresse = null;
 	private PersonalDto vertreterDto = null;
 	private KundeDto kundeRechnungsadresseDto = null;
+	// Immer null, wenn kein Lieferantenlieferschein
+	private LieferantDto lieferantDto = null;
 	private AuftragDto auftragDto = null;
 	private WaehrungDto waehrungDto = null;
 	private LagerDto lagerDto = null;
 	private LagerDto zielLagerDto = null;
 	private KostenstelleDto kostenstelleDto = null;
-	private java.sql.Date tmpDatum = null;
 
 	// die urspruengliche Belegwaehrung hinterlegen
 	private WaehrungDto waehrungOriDto = null;
@@ -160,6 +165,7 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	public final static String MY_OWN_NEW_TOGGLE_ZOLLEXPORTPAPIER_ERHALTEN = PanelBasis.ACTION_MY_OWN_NEW
 			+ "MY_OWN_NEW_ZOLLIMPORTPAPIER_ERHALTEN";
 	private static final String ACTION_SPECIAL_LIEFERAVISO = "action_special_lieferaviso";
+	private static final String ACTION_SPECIAL_LAENDERART_CHANGED = "action_special_laenderart_changed";
 
 	private WrapperButton wbuAnsprechpartnerRechungsadresse = null;
 	private PanelQueryFLR panelQueryFLRAnsprechpartner_Rechungsadresse = null;
@@ -232,41 +238,35 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	private WrapperGotoButton wbuRechnung = null;
 	private WrapperTextField wtfRechnungcnr = null;
 
-	private WrapperSelectField wsfProjekt = new WrapperSelectField(
-			WrapperSelectField.PROJEKT, getInternalFrame(), true);
+	private WrapperSelectField wsfProjekt = new WrapperSelectField(WrapperSelectField.PROJEKT, getInternalFrame(),
+			true);
 
 	private boolean bZusatzfunktionVersandweg = false;
 
-	private static final ImageIcon AVISO_ICON = HelperClient
-			.createImageIcon("data_out.png");
-	private static final ImageIcon AVISO_ICON_DONE = HelperClient
-			.createImageIcon("data_out_green.png");
+	private static final ImageIcon AVISO_ICON = HelperClient.createImageIcon("data_out.png");
+	private static final ImageIcon AVISO_ICON_DONE = HelperClient.createImageIcon("data_out_green.png");
+
+	private WrapperLabel wlaLaenderart = null;
+	private WrapperComboBox wcoLaenderart = null;
+
+	// private PanelAuslieferdatum panelAuslieferdatum = null ;
 
 	/**
 	 * Konstruktor.
-	 *
-	 * @param internalFrame
-	 *            der InternalFrame auf dem das Panel sitzt
-	 * @param add2TitleI
-	 *            der default Titel des Panels
-	 * @param key
-	 *            PK des Auftrags
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * 
+	 * @param internalFrame der InternalFrame auf dem das Panel sitzt
+	 * @param add2TitleI    der default Titel des Panels
+	 * @param key           PK des Auftrags
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	public PanelLieferscheinKopfdaten(InternalFrame internalFrame,
-			String add2TitleI, Object key) throws Throwable {
+	public PanelLieferscheinKopfdaten(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 
 		intFrame = (InternalFrameLieferschein) getInternalFrame();
-		tpLieferschein = ((InternalFrameLieferschein) getInternalFrame())
-				.getTabbedPaneLieferschein();
+		tpLieferschein = ((InternalFrameLieferschein) getInternalFrame()).getTabbedPaneLieferschein();
 
-		bZusatzfunktionVersandweg = LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_VERSANDWEG);
+		bZusatzfunktionVersandweg = LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_VERSANDWEG);
 
 		jbInit();
 		initComponents();
@@ -287,96 +287,76 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		// Actionpanel setzen und anhaengen
 		JPanel panelButtonAction = getToolsPanel();
-		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// zusaetzliche buttons
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE,
-				PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DELETE,
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_STORNIEREN,
 				PanelBasis.ACTION_DISCARD, PanelBasis.ACTION_PRINT };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		if (bZusatzfunktionVersandweg) {
-			createAndSaveAndShowButton(getIconNameLieferaviso(),
-					LPMain.getTextRespectUISPr("ls.lieferaviso"),
-					ACTION_SPECIAL_LIEFERAVISO, KeyStroke.getKeyStroke('L',
-							java.awt.event.InputEvent.CTRL_MASK),
+			createAndSaveAndShowButton(getIconNameLieferaviso(), LPMain.getTextRespectUISPr("ls.lieferaviso"),
+					ACTION_SPECIAL_LIEFERAVISO, KeyStroke.getKeyStroke('L', java.awt.event.InputEvent.CTRL_MASK),
 					RechteFac.RECHT_LS_LIEFERSCHEIN_VERSAND);
 		}
+
+		// createAndSaveAndShowButton("/com/lp/client/res/truck_red16x16.png",
+		// LPMain.getTextRespectUISPr("ls.auslieferdatum.jetzt"),
+		// ACTION_SPECIAL_AUSLIEFERDATUM_JETZT, null,
+		// RechteFac.RECHT_LS_LIEFERSCHEIN_VERSAND) ;
 
 		// wegen Dialogauswahl auf FLR events hoeren
 		getInternalFrame().addItemChangedListener(this);
 
 		labelLieferscheinart = new WrapperLabel();
-		labelLieferscheinart.setText(LPMain
-				.getTextRespectUISPr("label.lieferscheinart"));
+		labelLieferscheinart.setText(LPMain.getTextRespectUISPr("label.lieferscheinart"));
 
 		labelDatum = new WrapperLabel();
 		labelDatum.setText(LPMain.getTextRespectUISPr("label.belegdatum"));
 
 		wcoLieferscheinart = new WrapperComboBox();
 		wcoLieferscheinart.setMandatoryFieldDB(true);
-		wcoLieferscheinart
-				.setActionCommand(ACTION_SPECIAL_LIEFERSCHEINART_CHANGED);
+		wcoLieferscheinart.setActionCommand(ACTION_SPECIAL_LIEFERSCHEINART_CHANGED);
 		wcoLieferscheinart.addActionListener(this);
 
-		wdfBelegdatum = new WrapperDateField();
+		wdfBelegdatum = new WrapperBelegDateField(
+				new BelegDatumClient(LPMain.getTheClient().getMandant(), new GregorianCalendar(), true));
 		wdfBelegdatum.setMandatoryField(true);
-		boolean bDarf = false;
-		try {
-			bDarf = DelegateFactory.getInstance().getTheJudgeDelegate()
-					.hatRecht(RechteFac.RECHT_FB_CHEFBUCHHALTER);
-		} catch (Throwable ex) {
-			handleException(ex, true);
-		}
-		if (!bDarf) {
-			ParametermandantDto parametermandantDto = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getMandantparameter(
-							LPMain.getTheClient().getMandant(),
-							ParameterFac.KATEGORIE_ALLGEMEIN,
-							ParameterFac.PARAMETER_BEWEGUNGSMODULE_ANLEGEN_BIS_ZUM);
-			int iTagen = ((Integer) parametermandantDto.getCWertAsObject())
-					.intValue();
-			// Parameter anlegen bis zum beruecksichtigen
-			GregorianCalendar gc = new GregorianCalendar();
-			// Auf Vormonat setzen
-			gc.set(Calendar.MONTH, gc.get(Calendar.MONTH) - 1);
-			// Tag setzen
-			gc.set(Calendar.DATE, iTagen);
-			wdfBelegdatum.setMinimumValue(new Date(gc.getTimeInMillis()));
-		}
 
-		wbuAuftragauswahl = new WrapperGotoButton(WrapperGotoButton.GOTO_AUFTRAG_AUSWAHL);
+		wbuAuftragauswahl = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_AUFTRAG_AUSWAHL);
 		wbuAuftragauswahl.setText(LPMain.getTextRespectUISPr("button.auftrag"));
-		wbuAuftragauswahl.setActionCommand(this.ACTION_SPECIAL_AUFTRAG_FROM_LISTE);
+		wbuAuftragauswahl.setActionCommand(ACTION_SPECIAL_AUFTRAG_FROM_LISTE);
 		wbuAuftragauswahl.addActionListener(this);
 
-		wbuKunde = new WrapperGotoButton(WrapperGotoButton.GOTO_KUNDE_AUSWAHL);
+		wbuKunde = new WrapperGotoKundeMapButton(new IPartnerDto() {
+			public PartnerDto getPartnerDto() {
+				return tpLieferschein.getKundeLieferadresseDto() == null ? null
+						: tpLieferschein.getKundeLieferadresseDto().getPartnerDto();
+			}
+		});
 		wbuKunde.setText(LPMain.getTextRespectUISPr("button.kunde"));
-		wbuKunde.setActionCommand(this.ACTION_SPECIAL_KUNDE_FROM_LISTE);
+		wbuKunde.setActionCommand(ACTION_SPECIAL_KUNDE_FROM_LISTE);
 		wbuKunde.addActionListener(this);
 
-		wbuLieferantenauswahl = new WrapperGotoButton(WrapperGotoButton.GOTO_LIEFERANT_AUSWAHL);
+		wbuLieferantenauswahl = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_LIEFERANT_AUSWAHL);
 		wbuLieferantenauswahl.setText(LPMain.getTextRespectUISPr("button.lieferant"));
-		wbuLieferantenauswahl.setActionCommand(this.ACTION_SPECIAL_LIEFERANT_FROM_LISTE);
+		wbuLieferantenauswahl.setActionCommand(ACTION_SPECIAL_LIEFERANT_FROM_LISTE);
 		wbuLieferantenauswahl.addActionListener(this);
 
 		wbuAnsprechpartnerauswahl = new WrapperButton();
 		wbuAnsprechpartnerauswahl.setText(LPMain.getTextRespectUISPr("button.ansprechpartner"));
-		wbuAnsprechpartnerauswahl.setActionCommand(this.ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE);
+		wbuAnsprechpartnerauswahl.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE);
 		wbuAnsprechpartnerauswahl.addActionListener(this);
 
 		wbuVertreterauswahl = new WrapperButton();
 		wbuVertreterauswahl.setText(LPMain.getTextRespectUISPr("button.vertreter"));
-		wbuVertreterauswahl.setActionCommand(this.ACTION_SPECIAL_VERTRETER_FROM_LISTE);
+		wbuVertreterauswahl.setActionCommand(ACTION_SPECIAL_VERTRETER_FROM_LISTE);
 		wbuVertreterauswahl.addActionListener(this);
 
-		wbuKundeRechnungsadresse = new WrapperGotoButton(WrapperGotoButton.GOTO_KUNDE_AUSWAHL);
+		wbuKundeRechnungsadresse = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_KUNDE_AUSWAHL);
 		wbuKundeRechnungsadresse.setText(LPMain.getTextRespectUISPr("button.rechnungsadresse"));
-		wbuKundeRechnungsadresse.setActionCommand(this.ACTION_SPECIAL_RECHNUNGSADRESSE_FROM_LISTE);
+		wbuKundeRechnungsadresse.setActionCommand(ACTION_SPECIAL_RECHNUNGSADRESSE_FROM_LISTE);
 		wbuKundeRechnungsadresse.addActionListener(this);
 
 		wtfAuftragnummer = new WrapperTextField();
@@ -408,7 +388,7 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		wbuAnsprechpartnerRechungsadresse = new WrapperButton();
 		wbuAnsprechpartnerRechungsadresse.setText(LPMain.getTextRespectUISPr("button.ansprechpartner"));
-		wbuAnsprechpartnerRechungsadresse.setActionCommand(this.ACTION_SPECIAL_ANSPRECHPARTNER_RECHNUNGSADRESSE);
+		wbuAnsprechpartnerRechungsadresse.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER_RECHNUNGSADRESSE);
 		wbuAnsprechpartnerRechungsadresse.addActionListener(this);
 
 		wtfAnsprechpartnerRechungsadresse = new WrapperTextField();
@@ -458,12 +438,12 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		wbuKostenstelle = new WrapperButton(LPMain.getTextRespectUISPr("button.kostenstelle"));
 		wbuKostenstelle.addActionListener(this);
-		wbuKostenstelle.setActionCommand(this.ACTION_SPECIAL_KOSTENSTELLE);
+		wbuKostenstelle.setActionCommand(ACTION_SPECIAL_KOSTENSTELLE);
 
-		wtfKostenstelle = new WrapperTextField();
+		wtfKostenstelle = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
 		wtfKostenstelle.setMandatoryField(true);
 		wtfKostenstelle.setActivatable(false);
-		wtfKostenstelleBezeichnung = new WrapperTextField();
+		wtfKostenstelleBezeichnung = new WrapperTextField(Facade.MAX_UNBESCHRAENKT);
 		wtfKostenstelleBezeichnung.setActivatable(false);
 
 		wbuWaehrung = new WrapperButton();
@@ -484,23 +464,29 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		wnfKurs.setFractionDigits(LocaleFac.ANZAHL_NACHKOMMASTELLEN_WECHSELKURS);
 
 		wbuRechnung = new WrapperGotoButton(LPMain.getTextRespectUISPr("rechnung.modulname"),
-				WrapperGotoButton.GOTO_RECHNUNG_AUSWAHL);
+				com.lp.util.GotoHelper.GOTO_RECHNUNG_AUSWAHL);
 		wbuRechnung.setActivatable(false);
 		wtfRechnungcnr = new WrapperTextField();
 		wtfRechnungcnr.setActivatable(false);
 
-		// Workingpanel
-		jPanelWorkingOn = new JPanel(new MigLayout("wrap 4, hidemode 3",
-				"[fill, 20%][fill,30%][fill,20%][fill,30%]"));
+		wlaLaenderart = new WrapperLabel(LPMain.getTextRespectUISPr("label.laenderart"));
+		wcoLaenderart = new WrapperComboBox();
+		wcoLaenderart.setMandatoryFieldDB(false);
+		wcoLaenderart.setActionCommand(ACTION_SPECIAL_LAENDERART_CHANGED);
+		wcoLaenderart.addActionListener(this);
 
-		add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTH, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		// panelAuslieferdatum = new PanelAuslieferdatum(getInternalFrame(), "")
+		// ;
+
+		// Workingpanel
+		jPanelWorkingOn = new JPanel(new MigLayout("wrap 4, hidemode 3", "[fill, 20%][fill,30%][fill,20%][fill,30%]"));
+
+		add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTH,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Statusbar an den unteren Rand des Panels haengen
-		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		// Zeile
 		jPanelWorkingOn.add(labelLieferscheinart);
@@ -541,20 +527,12 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		// Zeile
 		jPanelWorkingOn.add(labelProjekt);
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
-			ParametermandantDto parametermandantDto = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getMandantparameter(
-							LPMain.getTheClient().getMandant(),
-							ParameterFac.KATEGORIE_ALLGEMEIN,
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
+			ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+					.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
 							ParameterFac.PARAMETER_PROJEKT_IST_PFLICHTFELD);
-			boolean bProjektIstPflichtfeld = ((Boolean) parametermandantDto
-					.getCWertAsObject());
+			boolean bProjektIstPflichtfeld = ((Boolean) parametermandantDto.getCWertAsObject());
 			if (bProjektIstPflichtfeld) {
 				wsfProjekt.setMandatoryField(true);
 			}
@@ -595,22 +573,25 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		iZeile++;
 		jPanelWorkingOn.add(wbuRechnung);
 		jPanelWorkingOn.add(wtfRechnungcnr);
+		jPanelWorkingOn.add(wlaLaenderart);
+		jPanelWorkingOn.add(wcoLaenderart);
 
-		createAndSaveAndShowButton(
-				"/com/lp/client/res/document_preferences.png",
+		createAndSaveAndShowButton("/com/lp/client/res/document_preferences.png",
 				LPMain.getTextRespectUISPr("ls.zollexportpapiere.erhalten"),
 				MY_OWN_NEW_TOGGLE_ZOLLEXPORTPAPIER_ERHALTEN, null);
-
 	}
 
 	private void initPanel() throws Throwable {
 		wcoLieferscheinart.setMap(DelegateFactory.getInstance().getLsDelegate()
 				.getLieferscheinart(LPMain.getInstance().getUISprLocale()));
+		wcoLaenderart.setEmptyEntry(LPMain.getTextRespectUISPr("lp.laenderart.automatisch"));
+		wcoLaenderart
+				.setMap(DelegateFactory.getInstance().getFinanzServiceDelegate().getAllLaenderartenMitUebersetzung());
 	}
 
 	/**
 	 * Defaultwerte auf dem Panel setzen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void setDefaults() throws Throwable {
@@ -644,22 +625,17 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		// ad Lager im Lieferschein: Default Lager ist das Lager des aktuellen
 		// Benutzers; ist das Lager des aktuellen Benutzers null, dann gilt das
 		// Hauptlager des Mandanten
-		lagerDto = DelegateFactory.getInstance().getLagerDelegate()
-				.getHauptlagerDesMandanten();
+		lagerDto = DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten();
 		wtfLager.setText(lagerDto.getCNr());
 
 		// default waehrung kommt vom Mandanten
-		waehrungDto = DelegateFactory
-				.getInstance()
-				.getLocaleDelegate()
-				.waehrungFindByPrimaryKey(
-						DelegateFactory
-								.getInstance()
-								.getMandantDelegate()
-								.mandantFindByPrimaryKey(
-										LPMain.getTheClient()
-												.getMandant()).getWaehrungCNr());
+		waehrungDto = DelegateFactory.getInstance().getLocaleDelegate()
+				.waehrungFindByPrimaryKey(DelegateFactory.getInstance().getMandantDelegate()
+						.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getWaehrungCNr());
 		wtfWaehrung.setText(waehrungDto.getCNr());
+
+		wtfAnsprechpartner.resetColorAndTooltip();
+		wtfAnsprechpartnerRechungsadresse.resetColorAndTooltip();
 
 		setzeWechselkurs();
 	}
@@ -670,19 +646,37 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			// source ist auftrag auswahldialog
 			if (e.getSource() == panelQueryFLRAuftragauswahl) {
-				Integer iIdAuftrag = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer iIdAuftrag = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 
-				auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
+				AuftragDto auftragDtoLocal = DelegateFactory.getInstance().getAuftragDelegate()
 						.auftragFindByPrimaryKey(iIdAuftrag);
+
+				// SP4194 Nur wenn LS bereits gespeichert:
+				if (tpLieferschein.getLieferscheinDto().getIId() != null) {
+
+					DialogGeaenderteKonditionenZwischenVKBelegen dialog = new DialogGeaenderteKonditionenZwischenVKBelegen(
+							auftragDtoLocal, tpLieferschein.getLieferscheinDto(), getInternalFrame());
+					LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(dialog);
+
+					if (dialog.bKonditionenUnterschiedlich == true) {
+						dialog.setVisible(true);
+
+						if (dialog.bAbgebrochen == false) {
+							tpLieferschein.setLieferscheinDto((LieferscheinDto) dialog.getBelegVerkaufDtoZiel());
+						} else {
+							return;
+						}
+					}
+				}
+
+				auftragDto = auftragDtoLocal;
 				auftragDto2Components();
+
 			} else if (e.getSource() == panelQueryFLRWaehrung) {
-				Object cNrWaehrung = ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Object cNrWaehrung = ((ISourceEvent) e.getSource()).getIdSelected();
 
 				if (cNrWaehrung != null) {
-					waehrungDto = DelegateFactory.getInstance()
-							.getLocaleDelegate()
+					waehrungDto = DelegateFactory.getInstance().getLocaleDelegate()
 							.waehrungFindByPrimaryKey((String) cNrWaehrung);
 
 					wtfWaehrung.setText(waehrungDto.getCNr());
@@ -692,44 +686,45 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 			} else
 			// Lieferantauswahldialog;
 			if (e.getSource() == panelQueryFLRLieferantenauswahl) {
-				Integer iIdLieferant = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer iIdLieferant = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				if (iIdLieferant != null) {
+					DelegateFactory.getInstance().getLieferantDelegate().pruefeLieferant(iIdLieferant,
+							LocaleFac.BELEGART_LIEFERSCHEIN, getInternalFrame());
 
-				DelegateFactory.getInstance().getLieferantDelegate()
-				.pruefeLieferant(iIdLieferant, LocaleFac.BELEGART_LIEFERSCHEIN, getInternalFrame());
+					Integer iIdKunde = DelegateFactory.getInstance().getKundeDelegate()
+							.createVerstecktenKundenAusLieferant(iIdLieferant);
+					befuelleFelderKundenAuswahl(iIdKunde);
 
-				Integer iIdKunde = DelegateFactory.getInstance()
-						.getKundeDelegate()
-						.createVerstecktenKundenAusLieferant(iIdLieferant);
-				befuelleFelderKundenAuswahl(iIdKunde);
+					KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+							.kundeFindByPrimaryKey(iIdKunde);
+					LieferantDto lieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
+							.lieferantFindByPrimaryKey(iIdLieferant);
+
+					befuelleFelderLieferantAuswahl(lieferantDto, kundeDto);
+				}
 			} else
 			// Source ist mein Kundeauswahldialog; wenn ein neuer Lieferkunde
 			// gewaehlt wurde, werden die abhaengigen Felder angepasst
 			if (e.getSource() == panelQueryFLRKundenauswahl) {
-				Integer iIdKunde = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer iIdKunde = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 
-				KundeDto kundeDto = DelegateFactory.getInstance()
-						.getKundeDelegate().kundeFindByPrimaryKey(iIdKunde);
+				KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(iIdKunde);
 				// PJ 15739
 				if (kundeDto.getPartnerDto().getLandplzortIId() == null) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.error"),
-									LPMain.getTextRespectUISPr("lieferschein.error.kundeohnelkz"));
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+							LPMain.getTextRespectUISPr("lieferschein.error.kundeohnelkz"));
 					return;
 				}
 
-				DelegateFactory.getInstance().getKundeDelegate()
-						.pruefeKunde(iIdKunde,LocaleFac.BELEGART_LIEFERSCHEIN, getInternalFrame());
+				DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(iIdKunde, LocaleFac.BELEGART_LIEFERSCHEIN,
+						getInternalFrame());
 
 				befuelleFelderKundenAuswahl(iIdKunde);
 			} else
 
 			// Source Auswahldialog fuer den Ansprechpartner
 			if (e.getSource() == panelQueryFLRAnsprechpartnerauswahl) {
-				Integer iIdAnsprechparnter = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
+				Integer iIdAnsprechparnter = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				bestimmeUndZeigeAnsprechpartner(iIdAnsprechparnter);
 			} else
 
@@ -737,39 +732,32 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 			// Source ist der Ansprechpartnerauswahldialog
 			if (e.getSource() == panelQueryFLRAnsprechpartner_Rechungsadresse) {
-				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
+				Integer iIdAnsprechpartner = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 
 				bestimmeUndZeigeAnsprechpartnerRechnungsadresse(iIdAnsprechpartner);
 			} else
 
 			// source ist vertreter auswahldialog
 			if (e.getSource() == panelQueryFLRVertreterauswahl) {
-				Integer iIdPersonal = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				vertreterDto = DelegateFactory.getInstance()
-						.getPersonalDelegate()
+				Integer iIdPersonal = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				vertreterDto = DelegateFactory.getInstance().getPersonalDelegate()
 						.personalFindByPrimaryKey(iIdPersonal);
 				vertreterDto2Components();
 			} else
 
 			// Source ist der Kundenauswahldialog fuer die Rechnungsadresse
 			if (e.getSource() == panelQueryFLRRechnungsadresseauswahl) {
-				Integer pkKunde = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer pkKunde = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 
-				KundeDto kundeDto = DelegateFactory.getInstance()
-						.getKundeDelegate().kundeFindByPrimaryKey(pkKunde);
+				KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(pkKunde);
 
-				DelegateFactory.getInstance().getKundeDelegate()
-						.pruefeKunde(pkKunde,LocaleFac.BELEGART_LIEFERSCHEIN, getInternalFrame());
+				DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(pkKunde, LocaleFac.BELEGART_LIEFERSCHEIN,
+						getInternalFrame());
 
 				// PJ 15739
 				if (kundeDto.getPartnerDto().getLandplzortIId() == null) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.error"),
-									LPMain.getTextRespectUISPr("lieferschein.error.kundeohnelkz"));
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+							LPMain.getTextRespectUISPr("lieferschein.error.kundeohnelkz"));
 					return;
 				}
 
@@ -779,17 +767,19 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 				kundeRechnungsadresseDto = kundeDto;
 				kundeRechnungsadresseDto2Components();
 			} else if (e.getSource() == panelQueryFLRLager) {
-				Integer iIdLager = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
-				lagerDto = DelegateFactory.getInstance().getLagerDelegate()
-						.lagerFindByPrimaryKey(iIdLager);
-				wtfLager.setText(lagerDto.getCNr());
+				Integer iIdLager = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				if (zielLagerDto != null && zielLagerDto.getIId() != null && zielLagerDto.getIId().equals(iIdLager)) {
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+							LPMain.getTextRespectUISPr("ls.warning.lagergleichziellager"));
+				} else {
+
+					lagerDto = DelegateFactory.getInstance().getLagerDelegate().lagerFindByPrimaryKey(iIdLager);
+					wtfLager.setText(lagerDto.getCNr());
+				}
 			} else if (e.getSource() == panelQueryFLRZielLager) {
-				Integer iIdLager = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer iIdLager = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				if (!iIdLager.equals(lagerDto.getIId())) {
-					zielLagerDto = DelegateFactory.getInstance()
-							.getLagerDelegate().lagerFindByPrimaryKey(iIdLager);
+					zielLagerDto = DelegateFactory.getInstance().getLagerDelegate().lagerFindByPrimaryKey(iIdLager);
 
 					wtfZielLager.setText(zielLagerDto.getCNr());
 				} else {
@@ -797,10 +787,8 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 							LPMain.getTextRespectUISPr("ls.warning.lagergleichziellager"));
 				}
 			} else if (e.getSource() == panelQueryFLRKostenstelle) {
-				Integer iIdKostenstelle = (Integer) ((ISourceEvent) e
-						.getSource()).getIdSelected();
-				kostenstelleDto = DelegateFactory.getInstance()
-						.getSystemDelegate()
+				Integer iIdKostenstelle = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
+				kostenstelleDto = DelegateFactory.getInstance().getSystemDelegate()
 						.kostenstelleFindByPrimaryKey(iIdKostenstelle);
 				wtfKostenstelle.setText(kostenstelleDto.getCBez());
 				wtfKostenstelleBezeichnung.setText(kostenstelleDto.getCBez());
@@ -825,7 +813,7 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Alle durch den Auftrag bestimmten Felder setzen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void auftragDto2Components() throws Throwable {
@@ -845,9 +833,8 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		// eigenschaften des auftragskunden uebernehmen
 		Integer iIdKundeLieferadresse = auftragDto.getKundeIIdLieferadresse();
 		if (iIdKundeLieferadresse != null) {
-			tpLieferschein.setKundeLieferadresseDto(DelegateFactory
-					.getInstance().getKundeDelegate()
-					.kundeFindByPrimaryKey(iIdKundeLieferadresse));
+			tpLieferschein.setKundeLieferadresseDto(
+					DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(iIdKundeLieferadresse));
 			kundeLieferadresseDto2Components();
 		}
 
@@ -855,16 +842,13 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		Integer iIdPersonal = auftragDto.getPersonalIIdVertreter();
 		if (iIdPersonal != null) {
-			vertreterDto = DelegateFactory.getInstance().getPersonalDelegate()
-					.personalFindByPrimaryKey(iIdPersonal);
+			vertreterDto = DelegateFactory.getInstance().getPersonalDelegate().personalFindByPrimaryKey(iIdPersonal);
 			vertreterDto2Components();
 		}
 
-		Integer iIdKundeRechnungsadresse = auftragDto
-				.getKundeIIdRechnungsadresse();
+		Integer iIdKundeRechnungsadresse = auftragDto.getKundeIIdRechnungsadresse();
 		if (iIdKundeRechnungsadresse != null) {
-			kundeRechnungsadresseDto = DelegateFactory.getInstance()
-					.getKundeDelegate()
+			kundeRechnungsadresseDto = DelegateFactory.getInstance().getKundeDelegate()
 					.kundeFindByPrimaryKey(iIdKundeRechnungsadresse);
 			kundeRechnungsadresseDto2Components();
 		}
@@ -873,13 +857,8 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		wtfBestellnummer.setText(auftragDto.getCBestellnummer());
 
 		wtfWaehrung.setText(auftragDto.getCAuftragswaehrung());
-		wnfKurs.setBigDecimal(DelegateFactory
-				.getInstance()
-				.getLocaleDelegate()
-				.getWechselkurs2(
-						LPMain.getTheClient()
-								.getSMandantenwaehrung(),
-						auftragDto.getCAuftragswaehrung()));
+		wnfKurs.setBigDecimal(DelegateFactory.getInstance().getLocaleDelegate()
+				.getWechselkurs2(LPMain.getTheClient().getSMandantenwaehrung(), auftragDto.getCAuftragswaehrung()));
 
 		kostenstelleDto = DelegateFactory.getInstance().getSystemDelegate()
 				.kostenstelleFindByPrimaryKey(auftragDto.getKostIId());
@@ -889,7 +868,7 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Die Eigenschaften des Vertreters beim Kunden zur Anzeige bringen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void vertreterDto2Components() throws Throwable {
@@ -898,8 +877,7 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		}
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 
 		// dtos aus dem tabbed pane zuruecksetzen
@@ -914,93 +892,70 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Einen Lieferschein abspeichern.
-	 *
-	 * @param e
-	 *            der Save Button schickt dieses Event
-	 * @param bNeedNoSaveI
-	 *            flag
+	 * 
+	 * @param e            der Save Button schickt dieses Event
+	 * @param bNeedNoSaveI flag
 	 * @throws Throwable
 	 */
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 
-			DelegateFactory
-					.getInstance()
-					.getKundeDelegate()
-					.pruefeKreditlimit(
-							tpLieferschein.getLieferscheinDto()
-									.getKundeIIdRechnungsadresse());
+			DelegateFactory.getInstance().getKundeDelegate().pruefeKreditlimit(
+					tpLieferschein.getLieferscheinDto().getKundeIIdRechnungsadresse(), getInternalFrame());
 
 			if (tpLieferschein.getLieferscheinDto().getIId() == null) {
 				Integer iIdLieferschein = null;
 
 				if (auftragDto.getIId() != null) {
-					iIdLieferschein = DelegateFactory
-							.getInstance()
-							.getAuftragDelegate()
-							.erzeugeLieferscheinAusAuftrag(auftragDto.getIId(),
-									tpLieferschein.getLieferscheinDto(),getInternalFrame());
+					iIdLieferschein = DelegateFactory.getInstance().getAuftragDelegate().erzeugeLieferscheinAusAuftrag(
+							auftragDto.getIId(), tpLieferschein.getLieferscheinDto(), getInternalFrame());
 				} else {
 					tpLieferschein.getLieferscheinDto().setAuftragIId(null);
-					iIdLieferschein = DelegateFactory
-							.getInstance()
-							.getLsDelegate()
-							.createLieferschein(
-									tpLieferschein.getLieferscheinDto());
+					iIdLieferschein = DelegateFactory.getInstance().getLsDelegate()
+							.createLieferschein(tpLieferschein.getLieferscheinDto());
 				}
 
-				tpLieferschein.setLieferscheinDto(DelegateFactory.getInstance()
-						.getLsDelegate()
-						.lieferscheinFindByPrimaryKey(iIdLieferschein));
+				tpLieferschein.setLieferscheinDto(
+						DelegateFactory.getInstance().getLsDelegate().lieferscheinFindByPrimaryKey(iIdLieferschein));
 
 			}
 
 			else {
 				boolean bUpdate = true;
 
-//				if (tpLieferschein.getLieferscheinDto().getStatusCNr()
-//						.equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
-//					if (DialogFactory
-//							.showMeldung(
-//									LPMain.getInstance().getTextRespectUISPr(
-//											"lp.hint.offennachangelegt"),
-//									LPMain.getInstance().getTextRespectUISPr(
-//											"lp.hint"),
-//									javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.NO_OPTION) {
-//						bUpdate = false;
-//					}
-//				}
+				// if (tpLieferschein.getLieferscheinDto().getStatusCNr()
+				// .equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
+				// if (DialogFactory
+				// .showMeldung(
+				// LPMain.getInstance().getTextRespectUISPr(
+				// "lp.hint.offennachangelegt"),
+				// LPMain.getInstance().getTextRespectUISPr(
+				// "lp.hint"),
+				// javax.swing.JOptionPane.YES_NO_OPTION) ==
+				// javax.swing.JOptionPane.NO_OPTION) {
+				// bUpdate = false;
+				// }
+				// }
 
 				if (bUpdate) {
 
 					// SP1141
-					LieferscheinDto lDtoVorhanden = DelegateFactory
-							.getInstance()
-							.getLsDelegate()
-							.lieferscheinFindByPrimaryKey(
-									tpLieferschein.getLieferscheinDto()
-											.getIId());
-					if (!lDtoVorhanden.getKundeIIdLieferadresse().equals(
-							tpLieferschein.getLieferscheinDto()
-									.getKundeIIdLieferadresse())) {
+					LieferscheinDto lDtoVorhanden = DelegateFactory.getInstance().getLsDelegate()
+							.lieferscheinFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getIId());
+					if (!lDtoVorhanden.getKundeIIdLieferadresse()
+							.equals(tpLieferschein.getLieferscheinDto().getKundeIIdLieferadresse())) {
 
 						DialogGeaenderteKonditionenVK dialog = new DialogGeaenderteKonditionenVK(
 								tpLieferschein.getLieferscheinDto(),
-								tpLieferschein.getLieferscheinDto()
-										.getKundeIIdLieferadresse(),
-								getInternalFrame());
-						LPMain.getInstance().getDesktop()
-								.platziereDialogInDerMitteDesFensters(dialog);
+								tpLieferschein.getLieferscheinDto().getKundeIIdLieferadresse(), getInternalFrame());
+						LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(dialog);
 
 						if (dialog.bKonditionenUnterschiedlich == true) {
 							dialog.setVisible(true);
 
 							if (dialog.bAbgebrochen == false) {
-								tpLieferschein
-										.setLieferscheinDto((LieferscheinDto) dialog
-												.getBelegVerkaufDto());
+								tpLieferschein.setLieferscheinDto((LieferscheinDto) dialog.getBelegVerkaufDto());
 							} else {
 								bUpdate = false;
 								return;
@@ -1015,24 +970,12 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 						Integer[] aAuftragIId = new Integer[1];
 						aAuftragIId[0] = auftragDto.getIId();
 
-						boolean bMwstSatzWurdeVonNullGeaendertUndEsGibtHandeingaben = DelegateFactory
-								.getInstance()
-								.getLsDelegate()
-								.updateLieferschein(
-										tpLieferschein.getLieferscheinDto(),
-										waehrungOriDto == null ? null
-												: waehrungOriDto.getCNr(),
-										aAuftragIId);
+						boolean bMwstSatzWurdeVonNullGeaendertUndEsGibtHandeingaben = DelegateFactory.getInstance()
+								.getLsDelegate().updateLieferschein(tpLieferschein.getLieferscheinDto(),
+										waehrungOriDto == null ? null : waehrungOriDto.getCNr(), aAuftragIId);
 						if (bMwstSatzWurdeVonNullGeaendertUndEsGibtHandeingaben == true) {
 							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
 									LPMain.getTextRespectUISPr("lp.error.mwstvonnullgeaendertundhandeingaben"));
-
-						}
-						// das Datum koennte geaendert worden sein
-						if (!tmpDatum.equals(tpLieferschein
-								.getLieferscheinDto().getTBelegdatum())) {
-							// DelegateFactory.getInstance().getMandantDelegate().
-							// mwstsatzFindByPrimaryKey()
 
 						}
 					}
@@ -1047,9 +990,8 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Den Lieferschein drucken.
-	 *
-	 * @param e
-	 *            Ereignis
+	 * 
+	 * @param e Ereignis
 	 * @throws Throwable
 	 */
 	protected void eventActionPrint(ActionEvent e) throws Throwable {
@@ -1057,17 +999,21 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		eventYouAreSelected(false);
 	}
 
+	@Override
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
+		super.eventActionRefresh(e, bNeedNoRefreshI);
+		updateLieferAvisoButton();
+	}
+
 	/**
 	 * Hier kommen die events meiner speziellen Buttons an.
-	 *
-	 * @param e
-	 *            ActionEvent
+	 * 
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_LIEFERSCHEINART_CHANGED)) {
-			String selectedKey = (String) wcoLieferscheinart
-					.getKeyOfSelectedItem();
+			String selectedKey = (String) wcoLieferscheinart.getKeyOfSelectedItem();
 
 			if (selectedKey.equalsIgnoreCase(LieferscheinFac.LSART_FREI)) {
 				auftragDto = new AuftragDto();
@@ -1087,25 +1033,19 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 			enableComponentsAuftragauswahl();
 			// enableComponentsInAbhaengigkeitZuLieferscheinart();
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_AUFTRAG_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_AUFTRAG_FROM_LISTE)) {
 			dialogQueryAuftragFromListe();
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ANSPRECHPARTNER_FROM_LISTE)) {
 			dialogQueryAnsprechpartnerFromListe();
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ANSPRECHPARTNER_RECHNUNGSADRESSE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ANSPRECHPARTNER_RECHNUNGSADRESSE)) {
 			dialogQueryAnsprechpartnerRechnungsadresse(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_VERTRETER_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_VERTRETER_FROM_LISTE)) {
 			dialogQueryVertreterFromListe();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_KUNDE_FROM_LISTE)) {
 			dialogQueryKundeFromListe();
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_LIEFERANT_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LIEFERANT_FROM_LISTE)) {
 			dialogQueryLieferantFromListe();
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_RECHNUNGSADRESSE_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_RECHNUNGSADRESSE_FROM_LISTE)) {
 			dialogQueryRechnungsadresseFromListe();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LAGER)) {
 			dialogQueryLager();
@@ -1115,30 +1055,23 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 			dialogQueryKostenstelle();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_WAEHRUNG)) {
 			dialogQueryWaehrung();
-		} else if (e.getActionCommand().equals(
-				MY_OWN_NEW_TOGGLE_ZOLLEXPORTPAPIER_ERHALTEN)) {
+		} else if (e.getActionCommand().equals(MY_OWN_NEW_TOGGLE_ZOLLEXPORTPAPIER_ERHALTEN)) {
 			// PJ 17696
-			if (tpLieferschein.getLieferscheinDto() != null
-					&& tpLieferschein.getLieferscheinDto().getIId() != null) {
+			if (tpLieferschein.getLieferscheinDto() != null && tpLieferschein.getLieferscheinDto().getIId() != null) {
 
 				// SP1811
 
-				boolean b = DialogFactory
-						.showModalJaNeinDialog(
-								getInternalFrame(),
-								LPMain.getTextRespectUISPr("ls.exportbeleg.aendern.stufe1"));
+				boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("ls.exportbeleg.aendern.stufe1"));
 				if (b == false) {
 					return;
 				}
 
-				if (tpLieferschein.getLieferscheinDto().getStatusCNr()
-						.equals(LieferscheinFac.LSSTATUS_VERRECHNET)
+				if (tpLieferschein.getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_VERRECHNET)
 						|| tpLieferschein.getLieferscheinDto().getStatusCNr()
 								.equals(LieferscheinFac.LSSTATUS_ERLEDIGT)) {
-					b = DialogFactory
-							.showModalJaNeinDialog(
-									getInternalFrame(),
-									LPMain.getTextRespectUISPr("ls.exportbeleg.aendern.stufe2"));
+					b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							LPMain.getTextRespectUISPr("ls.exportbeleg.aendern.stufe2"));
 					if (b == false) {
 						return;
 					}
@@ -1146,18 +1079,12 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 				if (tpLieferschein.getLieferscheinDto().getTZollexportpapier() == null) {
 
-					DialogZollexportbeleg d = new DialogZollexportbeleg(
-							tpLieferschein);
-					LPMain.getInstance().getDesktop()
-							.platziereDialogInDerMitteDesFensters(d);
+					DialogZollexportbeleg d = new DialogZollexportbeleg(tpLieferschein);
+					LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
 					d.setVisible(true);
 				} else {
-					DelegateFactory
-							.getInstance()
-							.getLsDelegate()
-							.toggleZollexportpapiereErhalten(
-									tpLieferschein.getLieferscheinDto()
-											.getIId(), null, null);
+					DelegateFactory.getInstance().getLsDelegate()
+							.toggleZollexportpapiereErhalten(tpLieferschein.getLieferscheinDto().getIId(), null, null);
 				}
 
 				eventYouAreSelected(false);
@@ -1166,23 +1093,42 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 			if (tpLieferschein.getLieferscheinDto().getTLieferaviso() == null) {
 				dialogLieferavisoErzeugen();
 			} else {
-				boolean yes = DialogFactory.showModalJaNeinDialog(
-						tpLieferschein.getInternalFrame(),
+				boolean yes = DialogFactory.showModalJaNeinDialog(tpLieferschein.getInternalFrame(),
 						LPMain.getTextRespectUISPr("ls.bereitsavisiert"));
 				if (yes) {
-					DelegateFactory
-							.getInstance()
-							.getLsDelegate()
-							.resetLieferscheinAviso(
-									tpLieferschein.getLieferscheinDto()
-											.getIId());
+					DelegateFactory.getInstance().getLsDelegate()
+							.resetLieferscheinAviso(tpLieferschein.getLieferscheinDto().getIId());
 					dialogLieferavisoErzeugen();
 				}
 			}
+			// } else if
+			// (e.getActionCommand().equals(ACTION_SPECIAL_AUSLIEFERDATUM_JETZT))
+			// {
+			// DelegateFactory.getInstance()
+			// .getLsDelegate().setzeAuslieferdatumAufJetzt(
+			// tpLieferschein.getLieferscheinDto().getIId());
 		}
 	}
 
 	private void dialogLieferavisoErzeugen() {
+		DialogLieferaviso dlgLieferaviso = new DialogLieferaviso() {
+			@Override
+			protected void processed(LieferscheinDto lsDto) throws Throwable {
+				tpLieferschein.initializeDtos(lsDto.getIId());
+				updateLieferAvisoButton();
+			}
+
+			@Override
+			protected void processException(Throwable t) {
+				handleException(t, true);
+			}
+		};
+		dlgLieferaviso.show(tpLieferschein.getLieferscheinDto());
+	}
+
+	private Throwable resultException = null;
+
+	private void dialogLieferavisoErzeugen0() {
 		JTextArea msgLabel;
 		JProgressBar progressBar;
 		final int MAXIMUM = 100;
@@ -1190,8 +1136,7 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		progressBar = new JProgressBar(0, MAXIMUM);
 		progressBar.setIndeterminate(true);
-		msgLabel = new JTextArea(
-				LPMain.getTextRespectUISPr("lp.versandweg.durchfuehren"));
+		msgLabel = new JTextArea(LPMain.getTextRespectUISPr("lp.versandweg.durchfuehren"));
 		msgLabel.setEditable(false);
 
 		panel = new JPanel(new BorderLayout(5, 5));
@@ -1214,28 +1159,41 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 			@Override
 			protected void done() {
 				dialog.dispose();
+
+				if (resultException != null) {
+					handleException(resultException, true);
+				}
 			}
 
 			@Override
 			protected String doInBackground() throws Exception {
 				String result = "";
+				resultException = null;
 				try {
-					result = DelegateFactory
-							.getInstance()
-							.getLsDelegate()
-							.createLieferscheinAvisoPost(
-									tpLieferschein.getLieferscheinDto()
-											.getIId());
+					result = DelegateFactory.getInstance().getLsDelegate()
+							.createLieferscheinAvisoPost(tpLieferschein.getLieferscheinDto().getIId());
 					publish(result);
-
-					tpLieferschein.initializeDtos(tpLieferschein
-							.getLieferscheinDto().getIId());
-					updateLieferAvisoButton();
+					setProgress(100);
 				} catch (Throwable t) {
-					handleException(t, false);
+					resultException = t;
 				}
 
 				return result;
+			}
+
+			@Override
+			protected void process(List<Object> chunks) {
+				for (Object result : chunks) {
+					if (result instanceof String) {
+						try {
+
+							tpLieferschein.initializeDtos(tpLieferschein.getLieferscheinDto().getIId());
+							updateLieferAvisoButton();
+						} catch (Throwable t) {
+							resultException = t;
+						}
+					}
+				}
 			}
 		};
 
@@ -1243,31 +1201,23 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	}
 
 	private void dialogQueryWaehrung() throws Throwable {
-		panelQueryFLRWaehrung = FinanzFilterFactory.getInstance()
-				.createPanelFLRWaehrung(getInternalFrame(),
-						waehrungDto.getCNr());
+		panelQueryFLRWaehrung = FinanzFilterFactory.getInstance().createPanelFLRWaehrung(getInternalFrame(),
+				waehrungDto.getCNr());
 		new DialogQuery(panelQueryFLRWaehrung);
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 		if (tpLieferschein.pruefeAktuellenLieferschein()) {
-			if (!tpLieferschein.getLieferscheinDto().getStatusCNr()
-					.equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
-				tpLieferschein.showStatusMessage("lp.warning",
-						"ls.warning.kannnichtstorniertwerden");
+			if (!tpLieferschein.getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_GELIEFERT)
+					&& !tpLieferschein.getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ANGELEGT)) {
+				tpLieferschein.showStatusMessage("lp.warning", "ls.warning.kannnichtstorniertwerden");
 			} else {
-				if (DialogFactory.showMeldung(
-						LPMain.getTextRespectUISPr("ls.stornieren"),
+				if (DialogFactory.showMeldung(LPMain.getTextRespectUISPr("ls.stornieren"),
 						LPMain.getTextRespectUISPr("lp.frage"),
 						javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.YES_OPTION) {
-					DelegateFactory
-							.getInstance()
-							.getLsDelegate()
-							.stornieren(
-									tpLieferschein.getLieferscheinDto()
-											.getIId());
+					DelegateFactory.getInstance().getLsDelegate()
+							.stornieren(tpLieferschein.getLieferscheinDto().getIId());
 					super.eventActionDelete(e, false, false); // der
 					// lieferschein
 					// existiert
@@ -1279,39 +1229,29 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	}
 
 	private void dialogQueryLager() throws Throwable {
-		panelQueryFLRLager = ArtikelFilterFactory.getInstance()
-				.createPanelFLRLager(getInternalFrame(),
-						(lagerDto != null) ? lagerDto.getIId() : null);
+		panelQueryFLRLager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(),
+				(lagerDto != null) ? lagerDto.getIId() : null);
 		new DialogQuery(panelQueryFLRLager);
 	}
 
 	private void dialogQueryZielLager() throws Throwable {
 		// PJ18760
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)) {
-			panelQueryFLRZielLager = ArtikelFilterFactory.getInstance()
-					.createPanelFLRLagerMitMandant(
-							getInternalFrame(),
-							(zielLagerDto != null) ? zielLagerDto.getIId()
-									: null, true);
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)) {
+			panelQueryFLRZielLager = ArtikelFilterFactory.getInstance().createPanelFLRLagerMitMandant(
+					getInternalFrame(), (zielLagerDto != null) ? zielLagerDto.getIId() : null, true);
 			new DialogQuery(panelQueryFLRZielLager);
 		} else {
-			panelQueryFLRZielLager = ArtikelFilterFactory.getInstance()
-					.createPanelFLRLager(
-							getInternalFrame(),
-							(zielLagerDto != null) ? zielLagerDto.getIId()
-									: null, true, false);
+			panelQueryFLRZielLager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(),
+					(zielLagerDto != null) ? zielLagerDto.getIId() : null, true, false);
 			new DialogQuery(panelQueryFLRZielLager);
 		}
 
 	}
 
 	private void dialogQueryKostenstelle() throws Throwable {
-		panelQueryFLRKostenstelle = SystemFilterFactory.getInstance()
-				.createPanelFLRKostenstelle(getInternalFrame(), false, false);
+		panelQueryFLRKostenstelle = SystemFilterFactory.getInstance().createPanelFLRKostenstelle(getInternalFrame(),
+				false, false);
 		if (kostenstelleDto != null) {
 			panelQueryFLRKostenstelle.setSelectedId(kostenstelleDto.getIId());
 		}
@@ -1319,36 +1259,30 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	}
 
 	private void dialogQueryAuftragFromListe() throws Throwable {
-		FilterKriterium[] fk = LieferscheinFilterFactory.getInstance()
-				.createFKPanelQueryFLRAuftragAuswahl();
+		FilterKriterium[] fk = LieferscheinFilterFactory.getInstance().createFKPanelQueryFLRAuftragAuswahl();
 
-		panelQueryFLRAuftragauswahl = AuftragFilterFactory.getInstance()
-				.createPanelFLRAuftrag(intFrame, true, true, fk,
-						auftragDto.getIId());
+		panelQueryFLRAuftragauswahl = AuftragFilterFactory.getInstance().createPanelFLRAuftrag(intFrame, true, true, fk,
+				auftragDto.getIId());
 
 		new DialogQuery(panelQueryFLRAuftragauswahl);
 	}
 
 	private void dialogQueryKundeFromListe() throws Throwable {
-		panelQueryFLRKundenauswahl = PartnerFilterFactory.getInstance()
-				.createPanelFLRKunde(intFrame, true, false,
-						tpLieferschein.getKundeLieferadresseDto().getIId());
+		panelQueryFLRKundenauswahl = PartnerFilterFactory.getInstance().createPanelFLRKunde(intFrame, true, false,
+				tpLieferschein.getKundeLieferadresseDto().getIId());
 
 		new DialogQuery(panelQueryFLRKundenauswahl);
 	}
 
-	private void dialogQueryAnsprechpartnerRechnungsadresse(ActionEvent e)
-			throws Throwable {
+	private void dialogQueryAnsprechpartnerRechnungsadresse(ActionEvent e) throws Throwable {
 		if (kundeRechnungsadresseDto == null || kundeRechnungsadresseDto.getIId() == null) {
 			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
 					LPMain.getTextRespectUISPr("lp.error.kundenichtgewaehlt"));
 		} else {
 
-			panelQueryFLRAnsprechpartner_Rechungsadresse = PartnerFilterFactory
-					.getInstance().createPanelFLRAnsprechpartner(intFrame,
-							kundeRechnungsadresseDto.getPartnerIId(),
-							ansprechpartnerDtoRechnungsadresse.getIId(), true,
-							true);
+			panelQueryFLRAnsprechpartner_Rechungsadresse = PartnerFilterFactory.getInstance()
+					.createPanelFLRAnsprechpartner(intFrame, kundeRechnungsadresseDto.getPartnerIId(),
+							ansprechpartnerDtoRechnungsadresse.getIId(), true, true);
 
 			new DialogQuery(panelQueryFLRAnsprechpartner_Rechungsadresse);
 		}
@@ -1358,34 +1292,28 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		Integer lieferantIId = null;
 		// wenn schon ein Kunde gewaehlt wurde, dann den lieferanten dazu suchen
 		if (tpLieferschein.getKundeLieferadresseDto().getIId() != null) {
-			LieferantDto lieferantDto = DelegateFactory
-					.getInstance()
-					.getLieferantDelegate()
+			LieferantDto lieferantDto = DelegateFactory.getInstance().getLieferantDelegate()
 					.lieferantFindByiIdPartnercNrMandantOhneExc(
-							tpLieferschein.getKundeLieferadresseDto()
-									.getPartnerDto().getIId(),
+							tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getIId(),
 							LPMain.getTheClient().getMandant());
 			if (lieferantDto != null) {
 				lieferantIId = lieferantDto.getIId();
 			}
 		}
-		panelQueryFLRLieferantenauswahl = PartnerFilterFactory.getInstance()
-				.createPanelFLRLieferantGoto(intFrame, lieferantIId, true,
-						false);
+		panelQueryFLRLieferantenauswahl = PartnerFilterFactory.getInstance().createPanelFLRLieferant(intFrame,
+				lieferantIId, true, false);
 		new DialogQuery(panelQueryFLRLieferantenauswahl);
 	}
 
 	private void dialogQueryRechnungsadresseFromListe() throws Throwable {
 
 		if (kundeRechnungsadresseDto != null) {
-			panelQueryFLRRechnungsadresseauswahl = PartnerFilterFactory
-					.getInstance().createPanelFLRKunde(intFrame, true, false,
-							kundeRechnungsadresseDto.getIId());
+			panelQueryFLRRechnungsadresseauswahl = PartnerFilterFactory.getInstance().createPanelFLRKunde(intFrame,
+					true, false, kundeRechnungsadresseDto.getIId());
 			new DialogQuery(panelQueryFLRRechnungsadresseauswahl);
 		} else {
-			panelQueryFLRRechnungsadresseauswahl = PartnerFilterFactory
-					.getInstance().createPanelFLRKunde(intFrame, true, false,
-							null);
+			panelQueryFLRRechnungsadresseauswahl = PartnerFilterFactory.getInstance().createPanelFLRKunde(intFrame,
+					true, false, null);
 			new DialogQuery(panelQueryFLRRechnungsadresseauswahl);
 		}
 
@@ -1396,20 +1324,16 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
 					LPMain.getTextRespectUISPr("lp.error.kundenichtgewaehlt"));
 		} else {
-			panelQueryFLRAnsprechpartnerauswahl = PartnerFilterFactory
-					.getInstance().createPanelFLRAnsprechpartner(
-							intFrame,
-							tpLieferschein.getKundeLieferadresseDto()
-									.getPartnerDto().getIId(),
-							ansprechpartnerDto.getIId(), true, true);
+			panelQueryFLRAnsprechpartnerauswahl = PartnerFilterFactory.getInstance().createPanelFLRAnsprechpartner(
+					intFrame, tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getIId(),
+					ansprechpartnerDto.getIId(), true, true);
 			new DialogQuery(panelQueryFLRAnsprechpartnerauswahl);
 		}
 	}
 
 	private void dialogQueryVertreterFromListe() throws Throwable {
-		panelQueryFLRVertreterauswahl = PersonalFilterFactory.getInstance()
-				.createPanelFLRPersonal(intFrame, true, false,
-						vertreterDto.getIId());
+		panelQueryFLRVertreterauswahl = PersonalFilterFactory.getInstance().createPanelFLRPersonal(intFrame, true,
+				false, vertreterDto.getIId());
 		new DialogQuery(panelQueryFLRVertreterauswahl);
 	}
 
@@ -1417,65 +1341,55 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		// nur bei auftragbezogenem Lieferschein
 		if (tpLieferschein.getLieferscheinDto().getLieferscheinartCNr()
 				.equalsIgnoreCase(LieferscheinFac.LSART_AUFTRAG)) {
-			Integer pkAuftrag = tpLieferschein.getLieferscheinDto()
-					.getAuftragIId();
-			auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
-					.auftragFindByPrimaryKey(pkAuftrag);
+			Integer pkAuftrag = tpLieferschein.getLieferscheinDto().getAuftragIId();
+			auftragDto = DelegateFactory.getInstance().getAuftragDelegate().auftragFindByPrimaryKey(pkAuftrag);
 			auftragDto2Components();
 		}
 
-		Integer kundeLieferadresseIId = tpLieferschein.getLieferscheinDto()
-				.getKundeIIdLieferadresse();
+		Integer kundeLieferadresseIId = tpLieferschein.getLieferscheinDto().getKundeIIdLieferadresse();
 		KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
 				.kundeFindByPrimaryKey(kundeLieferadresseIId);
 		tpLieferschein.setKundeLieferadresseDto(kundeDto);
 
 		if (tpLieferschein.getLieferscheinDto().getZiellagerIId() != null) {
-			zielLagerDto = DelegateFactory
-					.getInstance()
-					.getLagerDelegate()
-					.lagerFindByPrimaryKey(
-							tpLieferschein.getLieferscheinDto()
-									.getZiellagerIId());
+			zielLagerDto = DelegateFactory.getInstance().getLagerDelegate()
+					.lagerFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getZiellagerIId());
 			wtfZielLager.setText(zielLagerDto.getCNr());
 		}
 
 		kundeLieferadresseDto2Components();
 
-		Integer iIdAnsprechpartner = tpLieferschein.getLieferscheinDto()
-				.getAnsprechpartnerIId();
+		Integer iIdAnsprechpartner = tpLieferschein.getLieferscheinDto().getAnsprechpartnerIId();
 		bestimmeUndZeigeAnsprechpartner(iIdAnsprechpartner);
 
-		Integer iIdPersonal = tpLieferschein.getLieferscheinDto()
-				.getPersonalIIdVertreter();
+		HelperClient.pruefeAnsprechpartner(kundeDto.getPartnerIId(), iIdAnsprechpartner, wtfAnsprechpartner);
+
+		Integer iIdPersonal = tpLieferschein.getLieferscheinDto().getPersonalIIdVertreter();
 		if (iIdPersonal != null) {
-			vertreterDto = DelegateFactory.getInstance().getPersonalDelegate()
-					.personalFindByPrimaryKey(iIdPersonal);
+			vertreterDto = DelegateFactory.getInstance().getPersonalDelegate().personalFindByPrimaryKey(iIdPersonal);
 			vertreterDto2Components();
 		}
 
-		Integer pkKundeRechnung = tpLieferschein.getLieferscheinDto()
-				.getKundeIIdRechnungsadresse();
-		kundeRechnungsadresseDto = DelegateFactory.getInstance()
-				.getKundeDelegate().kundeFindByPrimaryKey(pkKundeRechnung);
+		Integer pkKundeRechnung = tpLieferschein.getLieferscheinDto().getKundeIIdRechnungsadresse();
+		kundeRechnungsadresseDto = DelegateFactory.getInstance().getKundeDelegate()
+				.kundeFindByPrimaryKey(pkKundeRechnung);
 		kundeRechnungsadresseDto2Components();
 
 		// SP2202
 		if (tpLieferschein.getLieferscheinDto().getAuftragIId() != null) {
-			AuftragDto abDto = DelegateFactory
-					.getInstance()
-					.getAuftragDelegate()
-					.auftragFindByPrimaryKey(
-							tpLieferschein.getLieferscheinDto().getAuftragIId());
+			AuftragDto abDto = DelegateFactory.getInstance().getAuftragDelegate()
+					.auftragFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getAuftragIId());
 			wsfProjekt.setKey(abDto.getProjektIId());
 		} else {
-			wsfProjekt.setKey(tpLieferschein.getLieferscheinDto()
-					.getProjektIId());
+			wsfProjekt.setKey(tpLieferschein.getLieferscheinDto().getProjektIId());
 		}
 
-		Integer iIdAnsprechpartnerRechnungsadresse = tpLieferschein
-				.getLieferscheinDto().getAnsprechpartnerIIdRechnungsadresse();
+		Integer iIdAnsprechpartnerRechnungsadresse = tpLieferschein.getLieferscheinDto()
+				.getAnsprechpartnerIIdRechnungsadresse();
 		bestimmeUndZeigeAnsprechpartnerRechnungsadresse(iIdAnsprechpartnerRechnungsadresse);
+
+		HelperClient.pruefeAnsprechpartner(kundeRechnungsadresseDto.getPartnerIId(), iIdAnsprechpartnerRechnungsadresse,
+				wtfAnsprechpartnerRechungsadresse);
 
 		// bestehende Werte im Lieferschein ueberschreiben die Defaults aus dem
 		// Kunden
@@ -1484,56 +1398,36 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Die Daten eines bestehenden Lieferscheins zur Anzeige bringen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void lieferscheinDto2Components() throws Throwable {
-		wcoLieferscheinart.setKeyOfSelectedItem(tpLieferschein
-				.getLieferscheinDto().getLieferscheinartCNr());
-		wdfBelegdatum.setDate(tpLieferschein.getLieferscheinDto()
-				.getTBelegdatum());
+		wcoLieferscheinart.setKeyOfSelectedItem(tpLieferschein.getLieferscheinDto().getLieferscheinartCNr());
+		wdfBelegdatum.setDate(tpLieferschein.getLieferscheinDto().getTBelegdatum());
 		// wird die belegatum veraendert schaue nach ob die mwst der positionen
 		// veraendert werden muessen
-		tmpDatum = new Date(tpLieferschein.getLieferscheinDto()
-				.getTBelegdatum().getTime());
-		wtfProjekt.setText(tpLieferschein.getLieferscheinDto()
-				.getCBezProjektbezeichnung());
-		wtfKommission.setText(tpLieferschein.getLieferscheinDto()
-				.getCKommission());
-		wtfBestellnummer.setText(tpLieferschein.getLieferscheinDto()
-				.getCBestellnummer());
+		wtfProjekt.setText(tpLieferschein.getLieferscheinDto().getCBezProjektbezeichnung());
+		wtfKommission.setText(tpLieferschein.getLieferscheinDto().getCKommission());
+		wtfBestellnummer.setText(tpLieferschein.getLieferscheinDto().getCBestellnummer());
 
 		// Waehrung und Wechselkurs setzen
-		wtfWaehrung.setText(tpLieferschein.getLieferscheinDto()
-				.getWaehrungCNr());
-		wnfKurs.setDouble(tpLieferschein.getLieferscheinDto()
-				.getFWechselkursmandantwaehrungzubelegwaehrung());
+		wtfWaehrung.setText(tpLieferschein.getLieferscheinDto().getWaehrungCNr());
+		wnfKurs.setDouble(tpLieferschein.getLieferscheinDto().getFWechselkursmandantwaehrungzubelegwaehrung());
 
-		lagerDto = DelegateFactory
-				.getInstance()
-				.getLagerDelegate()
-				.lagerFindByPrimaryKey(
-						tpLieferschein.getLieferscheinDto().getLagerIId());
+		lagerDto = DelegateFactory.getInstance().getLagerDelegate()
+				.lagerFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getLagerIId());
 		wtfLager.setText(lagerDto.getCNr());
 
-		kostenstelleDto = DelegateFactory
-				.getInstance()
-				.getSystemDelegate()
-				.kostenstelleFindByPrimaryKey(
-						tpLieferschein.getLieferscheinDto()
-								.getKostenstelleIId());
+		kostenstelleDto = DelegateFactory.getInstance().getSystemDelegate()
+				.kostenstelleFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getKostenstelleIId());
 		wtfKostenstelle.setText(kostenstelleDto.getCBez());
 		wtfKostenstelleBezeichnung.setText(kostenstelleDto.getCBez());
 
 		// wenn der Lieferschein verrechnet wurde Rechnungsinfos anzeigen
 		if (tpLieferschein.getLieferscheinDto().getRechnungIId() != null) {
 			setRechnungVisible(true);
-			RechnungDto oRechnungDto = DelegateFactory
-					.getInstance()
-					.getRechnungDelegate()
-					.rechnungFindByPrimaryKey(
-							tpLieferschein.getLieferscheinDto()
-									.getRechnungIId());
+			RechnungDto oRechnungDto = DelegateFactory.getInstance().getRechnungDelegate()
+					.rechnungFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getRechnungIId());
 			wtfRechnungcnr.setText(oRechnungDto.getCNr());
 			wbuRechnung.setOKey(oRechnungDto.getIId());
 		} else {
@@ -1541,23 +1435,19 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		}
 
 		updateLieferAvisoButton();
+		wcoLaenderart.setKeyOfSelectedItem(tpLieferschein.getLieferscheinDto().getLaenderartCnr());
 	}
 
 	private void updateLieferAvisoButton() throws ExceptionLP {
 		if (bZusatzfunktionVersandweg) {
 			LieferscheinDto lsDto = tpLieferschein.getLieferscheinDto();
-			boolean hasLieferaviso = lsDto != null
-					&& lsDto.getTLieferaviso() != null;
-			JButton button = getHmOfButtons().get(ACTION_SPECIAL_LIEFERAVISO)
-					.getButton();
+			boolean hasLieferaviso = lsDto != null && lsDto.getTLieferaviso() != null;
+			JButton button = getHmOfButtons().get(ACTION_SPECIAL_LIEFERAVISO).getButton();
 			button.setIcon(hasLieferaviso ? AVISO_ICON_DONE : AVISO_ICON);
 
-			boolean enable = lsDto != null
-					&& lsDto.getIId() != null
-					&& lsDto.getTLieferaviso() == null
+			boolean enable = lsDto != null && lsDto.getIId() != null && lsDto.getTLieferaviso() == null
 					&& LocaleFac.STATUS_GELIEFERT.equals(lsDto.getStatusCNr())
-					&& DelegateFactory.getInstance().getLsDelegate()
-							.hatLieferscheinVersandweg(lsDto);
+					&& DelegateFactory.getInstance().getLsDelegate().hatLieferscheinVersandweg(lsDto);
 			if (hasLieferaviso) {
 				enable = true;
 			}
@@ -1567,27 +1457,24 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Die Eigenschaften des Kunden der Lieferadresse zur Anzeige bringen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 
 	/**
 	 * Die Eigenschaften des Kunden der Lieferadresse zur Anzeige bringen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void kundeLieferadresseDto2Components() throws Throwable {
 		wbuKunde.setOKey(tpLieferschein.getKundeLieferadresseDto().getIId());
 
-		if (tpLieferschein.getLieferscheinDto().getLieferscheinartCNr() !=null && tpLieferschein.getLieferscheinDto().getLieferscheinartCNr()
-				.equalsIgnoreCase(LieferscheinFac.LSART_LIEFERANT)) {
+		if (tpLieferschein.getLieferscheinDto().getLieferscheinartCNr() != null && tpLieferschein.getLieferscheinDto()
+				.getLieferscheinartCNr().equalsIgnoreCase(LieferscheinFac.LSART_LIEFERANT)) {
 
-			LieferantDto lfDto = DelegateFactory
-					.getInstance()
-					.getLieferantDelegate()
+			LieferantDto lfDto = DelegateFactory.getInstance().getLieferantDelegate()
 					.lieferantFindByiIdPartnercNrMandantOhneExc(
-							tpLieferschein.getKundeLieferadresseDto()
-									.getPartnerIId(),
+							tpLieferschein.getKundeLieferadresseDto().getPartnerIId(),
 							LPMain.getTheClient().getMandant());
 
 			if (lfDto != null) {
@@ -1596,56 +1483,42 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		}
 
-		wtfKundeLieferadresse.setText(tpLieferschein.getKundeLieferadresseDto()
-				.getPartnerDto().formatTitelAnrede());
-		String sAdresse = tpLieferschein.getKundeLieferadresseDto()
-				.getPartnerDto().formatAdresse();
-		if (tpLieferschein.getKundeLieferadresseDto().getPartnerDto()
-				.getCKbez() != null)
+		wtfKundeLieferadresse.setText(tpLieferschein.getKundeLieferadresseDto().getPartnerDto().formatTitelAnrede());
+		String sAdresse = tpLieferschein.getKundeLieferadresseDto().getPartnerDto().formatAdresse();
+		if (tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getCKbez() != null)
 			;
-		sAdresse = sAdresse
-				+ "  /  "
-				+ tpLieferschein.getKundeLieferadresseDto().getPartnerDto()
-						.getCKbez();
+		sAdresse = sAdresse + "  /  " + tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getCKbez();
 		wtfKundeLieferadresseAdresse.setText(sAdresse);
-		wtfKundeLieferadresseAbteilung.setText(tpLieferschein
-				.getKundeLieferadresseDto().getPartnerDto()
-				.getCName3vorname2abteilung());
+		wtfKundeLieferadresseAbteilung
+				.setText(tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getCName3vorname2abteilung());
 
 		// default waehrung des auftrags kommt aus dem kunden
-		waehrungDto = DelegateFactory
-				.getInstance()
-				.getLocaleDelegate()
-				.waehrungFindByPrimaryKey(
-						tpLieferschein.getKundeLieferadresseDto()
-								.getCWaehrung());
+		waehrungDto = DelegateFactory.getInstance().getLocaleDelegate()
+				.waehrungFindByPrimaryKey(tpLieferschein.getKundeLieferadresseDto().getCWaehrung());
 		wtfWaehrung.setText(waehrungDto.getCNr());
 		setzeWechselkurs();
 
 		//
 		if (tpLieferschein.getLieferscheinDto().getIId() == null
-				|| (tpLieferschein.getLieferscheinDto().getIId() != null && DelegateFactory
-						.getInstance()
+				|| (tpLieferschein.getLieferscheinDto().getIId() != null && DelegateFactory.getInstance()
 						.getLieferscheinpositionDelegate()
-						.berechneAnzahlMengenbehaftetePositionen(
-								tpLieferschein.getLieferscheinDto().getIId()) == 0)) {
+						.berechneAnzahlMengenbehaftetePositionen(tpLieferschein.getLieferscheinDto().getIId()) == 0)) {
 
-			if (tpLieferschein.getKundeLieferadresseDto()
-					.getLagerIIdAbbuchungslager() != null) {
-				lagerDto = DelegateFactory
-						.getInstance()
-						.getLagerDelegate()
-						.lagerFindByPrimaryKey(
-								tpLieferschein.getKundeLieferadresseDto()
-										.getLagerIIdAbbuchungslager());
+			if (tpLieferschein.getKundeLieferadresseDto().getLagerIIdAbbuchungslager() != null) {
+				lagerDto = DelegateFactory.getInstance().getLagerDelegate()
+						.lagerFindByPrimaryKey(tpLieferschein.getKundeLieferadresseDto().getLagerIIdAbbuchungslager());
 				wtfLager.setText(lagerDto.getCNr());
 			}
 		}
 
-		Integer iIdKostenstelle = tpLieferschein.getKundeLieferadresseDto()
-				.getKostenstelleIId();
+		Integer iIdKostenstelle = tpLieferschein.getKundeLieferadresseDto().getKostenstelleIId();
 
-		if (iIdKostenstelle != null) {
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_KOSTENSTELLE_IN_VK_BELEGEN_VORBESETZT,
+						ParameterFac.KATEGORIE_ALLGEMEIN, LPMain.getTheClient().getMandant());
+		boolean bKostenstelleVorbesetzten = ((Boolean) parameter.getCWertAsObject());
+
+		if (iIdKostenstelle != null && bKostenstelleVorbesetzten == true) {
 			kostenstelleDto = DelegateFactory.getInstance().getSystemDelegate()
 					.kostenstelleFindByPrimaryKey(iIdKostenstelle);
 			wtfKostenstelle.setText(kostenstelleDto.getCBez());
@@ -1658,24 +1531,18 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Die Eigenschaften des Kunden der Rechnungsadresse zur Anzeige bringen.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void kundeRechnungsadresseDto2Components() throws Throwable {
 		if (kundeRechnungsadresseDto != null) {
-			String sText = kundeRechnungsadresseDto.getPartnerDto()
-					.formatTitelAnrede();
+			String sText = kundeRechnungsadresseDto.getPartnerDto().formatTitelAnrede();
 			if (kundeRechnungsadresseDto.getPartnerDto().formatAdresse() != null
-					&& !kundeRechnungsadresseDto.getPartnerDto()
-							.formatAdresse().equals("")) {
-				sText = sText
-						+ ", "
-						+ kundeRechnungsadresseDto.getPartnerDto()
-								.formatAdresse();
+					&& !kundeRechnungsadresseDto.getPartnerDto().formatAdresse().equals("")) {
+				sText = sText + ", " + kundeRechnungsadresseDto.getPartnerDto().formatAdresse();
 			}
 			if (kundeRechnungsadresseDto.getPartnerDto().getCKbez() != null)
-				sText = sText + "  /  "
-						+ kundeRechnungsadresseDto.getPartnerDto().getCKbez();
+				sText = sText + "  /  " + kundeRechnungsadresseDto.getPartnerDto().getCKbez();
 			wtfKundeRechnungsadresse.setText(sText);
 			wbuKundeRechnungsadresse.setOKey(kundeRechnungsadresseDto.getIId());
 		}
@@ -1683,189 +1550,222 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Befuelle Eigenschaften des Kunden
-	 *
+	 * 
 	 * @throws Throwable
-	 * @param iIdKunde
-	 *            Integer
+	 * @param iIdKunde Integer
 	 */
 	private void befuelleFelderKundenAuswahl(Integer iIdKunde) throws Throwable {
 
 		if (iIdKunde != null) {
+			lieferantDto = null;
 			// die urspruengliche Waehrung hinterlegen, wenn es eine gibt
 			if (tpLieferschein.getLieferscheinDto().getWaehrungCNr() != null) {
-				waehrungOriDto = DelegateFactory
-						.getInstance()
-						.getLocaleDelegate()
-						.waehrungFindByPrimaryKey(
-								tpLieferschein.getLieferscheinDto()
-										.getWaehrungCNr());
+				waehrungOriDto = DelegateFactory.getInstance().getLocaleDelegate()
+						.waehrungFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getWaehrungCNr());
 			}
 
-			tpLieferschein.setKundeLieferadresseDto(DelegateFactory
-					.getInstance().getKundeDelegate()
-					.kundeFindByPrimaryKey(iIdKunde));
+			tpLieferschein.setKundeLieferadresseDto(
+					DelegateFactory.getInstance().getKundeDelegate().kundeFindByPrimaryKey(iIdKunde));
 
-			if (tpLieferschein.getKundeLieferadresseDto().getPartnerDto()
-					.getLagerIIdZiellager() != null) {
-				if (tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getLagerIIdZiellager()
-						.equals(lagerDto.getIId())) {
-					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
-							LPMain.getTextRespectUISPr("ls.warning.lagergleichziellager"));
-				} else {
-					zielLagerDto = DelegateFactory
-							.getInstance()
-							.getLagerDelegate()
-							.lagerFindByPrimaryKey(
-									tpLieferschein.getKundeLieferadresseDto()
-											.getPartnerDto()
-											.getLagerIIdZiellager());
-					wtfZielLager.setText(zielLagerDto.getCNr());
-				}
-			}
+			uebernehmeZiellagerAusKundenDaten();
 
 			kundeLieferadresseDto2Components();
 
 			// den Benutzer fragen, ob er die urspruengliche Waehrung
 			// beibehalten moechte
-			if (waehrungOriDto.getCNr() != null
-					&& !waehrungOriDto.getCNr().equals(wtfWaehrung.getText())) {
-				int indexWaehrungOriCNr = 0;
-				int indexWaehrungNeuCNr = 1;
-				int iAnzahlOptionen = 2;
-
-				Object[] aOptionen = new Object[iAnzahlOptionen];
-				aOptionen[indexWaehrungOriCNr] = waehrungOriDto.getCNr();
-				aOptionen[indexWaehrungNeuCNr] = wtfWaehrung.getText();
-
-				int iAuswahl = DialogFactory.showModalDialog(getInternalFrame(),
-						LPMain.getTextRespectUISPr("lp.waehrungunterschiedlich"),
-						LPMain.getTextRespectUISPr("lp.frage"), aOptionen, aOptionen[0]);
-
-				if (iAuswahl == indexWaehrungOriCNr) {
-					// die Belegwaehrung wird beibehalten -> Waehrung und
-					// Wechselkurs zuruecksetzen
-					waehrungDto = waehrungOriDto;
-					wtfWaehrung.setText(waehrungDto.getCNr());
-					setzeWechselkurs();
-					waehrungOriDto = null;
-				}
-			}
+			pruefeOrigWaehrungBehalten();
 
 			// den Ansprechpartner beim Kunden zuruecksetzen
-			ansprechpartnerDto = new AnsprechpartnerDto();
-			AnsprechpartnerDto anspDtoTemp = null;
-			// Ansprechpartner vorbesetzen?
-			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.PARAMETER_LIEFERSCHEIN_ANSP_VORBESETZEN,
-							ParameterFac.KATEGORIE_LIEFERSCHEIN,
-							LPMain.getTheClient().getMandant());
-			if ((Boolean) parameter.getCWertAsObject()) {
-				anspDtoTemp = DelegateFactory
-						.getInstance()
-						.getAnsprechpartnerDelegate()
-						.ansprechpartnerFindErstenEinesPartnersOhneExc(
-								tpLieferschein.getKundeLieferadresseDto()
-										.getPartnerIId());
-			}
-			if (anspDtoTemp != null) {
-				ansprechpartnerDto = anspDtoTemp;
-
-				wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto()
-						.formatTitelAnrede());
-			} else {
-				wtfAnsprechpartner.setText("");
-			}
+			setzeAnsprechpartner(tpLieferschein.getKundeLieferadresseDto().getPartnerIId());
 
 			// es kann einen default vertreter beim kunden geben
-			Integer iIdPersonal = tpLieferschein.getKundeLieferadresseDto()
-					.getPersonaliIdProvisionsempfaenger();
-			if (iIdPersonal != null) {
-				vertreterDto = DelegateFactory.getInstance()
-						.getPersonalDelegate()
-						.personalFindByPrimaryKey(iIdPersonal);
-				vertreterDto2Components();
-			} else {
-				vertreterDto = new PersonalDto();
-				wtfVertreter.setText("");
-			}
+			Integer iIdPersonal = tpLieferschein.getKundeLieferadresseDto().getPersonaliIdProvisionsempfaenger();
+			setzeVertreter(iIdPersonal);
 
-			boolean bRechnungAdresseAendern = true;
-			LockStateValue lv = this.getLockedstateDetailMainKey();
-			if (lv.getIState() == LOCK_IS_LOCKED_BY_ME) {
-				bRechnungAdresseAendern = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
-						LPMain.getTextRespectUISPr("part.tooltip.rechnungsadr_from_partner"),
-						LPMain.getTextRespectUISPr("lp.frage"));
-			}
-			if (bRechnungAdresseAendern) {
-				if (tpLieferschein.getKundeLieferadresseDto()
-						.getPartnerRechnungsadresseDto() != null
-						&& tpLieferschein.getKundeLieferadresseDto()
-								.getPartnerRechnungsadresseDto().getIId() != null) {
-					String sText = tpLieferschein.getKundeLieferadresseDto()
-							.getPartnerRechnungsadresseDto()
-							.formatTitelAnrede();
-					if (tpLieferschein.getKundeLieferadresseDto()
-							.getPartnerRechnungsadresseDto().formatAdresse() != null
-							&& !tpLieferschein.getKundeLieferadresseDto()
-									.getPartnerRechnungsadresseDto()
-									.formatAdresse().equals("")) {
-						sText = sText
-								+ ", "
-								+ tpLieferschein.getKundeLieferadresseDto()
-										.getPartnerRechnungsadresseDto()
-										.formatAdresse();
-
-					}
-
-					kundeRechnungsadresseDto = DelegateFactory.getInstance().getKundeDelegate()
-							.kundeFindByiIdPartnercNrMandantOhneExc(
-									tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto().getIId(),
-									LPMain.getTheClient().getMandant());
-
-					if (kundeRechnungsadresseDto == null) {
-						wtfKundeRechnungsadresse.setText(null);
-
-						DialogFactory
-								.showModalDialog(
-										LPMain.getTextRespectUISPr("lp.error"),
-										LPMain.getTextRespectUISPr(
-														"ls.warning.rechnungsadressekeinkunde"));
-						return;
-
-					} else {
-						wtfKundeRechnungsadresse.setText(sText);
-						DelegateFactory.getInstance().getKundeDelegate()
-								.pruefeKunde(kundeRechnungsadresseDto.getIId(),LocaleFac.BELEGART_LIEFERSCHEIN, getInternalFrame());
-					}
-
-				} else {
-					kundeRechnungsadresseDto = tpLieferschein
-							.getKundeLieferadresseDto();
-					kundeRechnungsadresseDto2Components();
-				}
-
-			} else {
-
-			}
+			aendereRechnungsadresse();
 
 		}
 	}
 
+	private void aendereRechnungsadresse() throws Throwable, ExceptionLP {
+		boolean bRechnungAdresseAendern = true;
+		LockStateValue lv = this.getLockedstateDetailMainKey();
+		if (lv.getIState() == LOCK_IS_LOCKED_BY_ME) {
+			bRechnungAdresseAendern = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+					LPMain.getTextRespectUISPr("part.tooltip.rechnungsadr_from_partner"),
+					LPMain.getTextRespectUISPr("lp.frage"));
+		}
+		if (bRechnungAdresseAendern) {
+			if (tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto() != null
+					&& tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto().getIId() != null) {
+				String sText = tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto()
+						.formatTitelAnrede();
+				if (tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto().formatAdresse() != null
+						&& !tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto().formatAdresse()
+								.equals("")) {
+					sText = sText + ", "
+							+ tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto().formatAdresse();
+
+				}
+
+				kundeRechnungsadresseDto = DelegateFactory.getInstance().getKundeDelegate()
+						.kundeFindByiIdPartnercNrMandantOhneExc(
+								tpLieferschein.getKundeLieferadresseDto().getPartnerRechnungsadresseDto().getIId(),
+								LPMain.getTheClient().getMandant());
+
+				if (kundeRechnungsadresseDto == null) {
+					wtfKundeRechnungsadresse.setText(null);
+
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+							LPMain.getTextRespectUISPr("ls.warning.rechnungsadressekeinkunde"));
+					return;
+
+				} else {
+					wtfKundeRechnungsadresse.setText(sText);
+					DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(kundeRechnungsadresseDto.getIId(),
+							LocaleFac.BELEGART_LIEFERSCHEIN, getInternalFrame());
+				}
+
+			} else {
+				kundeRechnungsadresseDto = tpLieferschein.getKundeLieferadresseDto();
+				kundeRechnungsadresseDto2Components();
+			}
+
+		} else {
+
+		}
+	}
+
+	private void setzeVertreter(Integer iIdPersonalVertreter) throws ExceptionLP, Throwable {
+		if (iIdPersonalVertreter != null) {
+
+			boolean b = DelegateFactory.getInstance().getPersonalDelegate()
+					.istPersonalVerstecktOderAusgetreten(iIdPersonalVertreter);
+			if (b == true) {
+				vertreterDto = new PersonalDto();
+				wtfVertreter.setText("");
+			} else {
+
+				vertreterDto = DelegateFactory.getInstance().getPersonalDelegate()
+						.personalFindByPrimaryKey(iIdPersonalVertreter);
+				vertreterDto2Components();
+			}
+		} else {
+			vertreterDto = new PersonalDto();
+			wtfVertreter.setText("");
+		}
+	}
+
+	private void setzeAnsprechpartner(Integer partnerIIdFuerAnsprechpartner) throws ExceptionLP, Throwable {
+		ansprechpartnerDto = new AnsprechpartnerDto();
+		AnsprechpartnerDto anspDtoTemp = null;
+		// Ansprechpartner vorbesetzen?
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_LIEFERSCHEIN_ANSP_VORBESETZEN,
+						ParameterFac.KATEGORIE_LIEFERSCHEIN, LPMain.getTheClient().getMandant());
+		if ((Boolean) parameter.getCWertAsObject()) {
+			anspDtoTemp = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
+					.ansprechpartnerFindErstenEinesPartnersOhneExc(partnerIIdFuerAnsprechpartner);
+		}
+		if (anspDtoTemp != null) {
+			ansprechpartnerDto = anspDtoTemp;
+
+			wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto().formatTitelAnrede());
+		} else {
+			wtfAnsprechpartner.setText("");
+		}
+	}
+
+	private void pruefeOrigWaehrungBehalten() throws Throwable {
+		if (waehrungOriDto.getCNr() != null && !waehrungOriDto.getCNr().equals(wtfWaehrung.getText())) {
+			int indexWaehrungOriCNr = 0;
+			int indexWaehrungNeuCNr = 1;
+			int iAnzahlOptionen = 2;
+
+			Object[] aOptionen = new Object[iAnzahlOptionen];
+			aOptionen[indexWaehrungOriCNr] = waehrungOriDto.getCNr();
+			aOptionen[indexWaehrungNeuCNr] = wtfWaehrung.getText();
+
+			int iAuswahl = DialogFactory.showModalDialog(getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.waehrungunterschiedlich"), LPMain.getTextRespectUISPr("lp.frage"),
+					aOptionen, aOptionen[0]);
+
+			if (iAuswahl == indexWaehrungOriCNr) {
+				// die Belegwaehrung wird beibehalten -> Waehrung und
+				// Wechselkurs zuruecksetzen
+				waehrungDto = waehrungOriDto;
+				wtfWaehrung.setText(waehrungDto.getCNr());
+				setzeWechselkurs();
+				waehrungOriDto = null;
+			}
+		}
+	}
+
+	/**
+	 * Befuelle Felder mit Daten des Lieferanten und zugehoerigen Kunden
+	 * 
+	 * @param lieferantDto @param kundeDto @throws Throwable @throws
+	 */
+	private void befuelleFelderLieferantAuswahl(LieferantDto lieferantDto, KundeDto kundeDto) throws Throwable {
+		this.lieferantDto = lieferantDto;
+		if (tpLieferschein.getLieferscheinDto().getWaehrungCNr() != null) {
+			waehrungOriDto = DelegateFactory.getInstance().getLocaleDelegate()
+					.waehrungFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getWaehrungCNr());
+		}
+
+		tpLieferschein.setKundeLieferadresseDto(kundeDto);
+
+		uebernehmeZiellagerAusKundenDaten();
+
+		kundeLieferadresseDto2Components();
+		setzeWaehrungAusLieferant(lieferantDto);
+
+		pruefeOrigWaehrungBehalten();
+		setzeAnsprechpartner(lieferantDto.getPartnerIId());
+
+		Integer iIdPersonal = tpLieferschein.getKundeLieferadresseDto().getPersonaliIdProvisionsempfaenger();
+		setzeVertreter(iIdPersonal);
+
+		aendereRechnungsadresse();
+	}
+
+	private void uebernehmeZiellagerAusKundenDaten() throws ExceptionLP, Throwable {
+		if (tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getLagerIIdZiellager() != null) {
+			if (tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getLagerIIdZiellager()
+					.equals(lagerDto.getIId())) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+						LPMain.getTextRespectUISPr("ls.warning.lagergleichziellager"));
+			} else {
+
+				//SP9560
+				if (tpLieferschein.getLieferscheinDto().getIId() == null || DelegateFactory.getInstance().getLieferscheinpositionDelegate()
+						.berechneAnzahlMengenbehaftetePositionen(tpLieferschein.getLieferscheinDto().getIId()) == 0) {
+					zielLagerDto = DelegateFactory.getInstance().getLagerDelegate().lagerFindByPrimaryKey(
+							tpLieferschein.getKundeLieferadresseDto().getPartnerDto().getLagerIIdZiellager());
+					wtfZielLager.setText(zielLagerDto.getCNr());
+				}
+
+			}
+		}
+	}
+
+	private void setzeWaehrungAusLieferant(LieferantDto liefDto) throws ExceptionLP, Throwable {
+		waehrungDto = DelegateFactory.getInstance().getLocaleDelegate()
+				.waehrungFindByPrimaryKey(liefDto.getWaehrungCNr());
+		wtfWaehrung.setText(waehrungDto.getCNr());
+		setzeWechselkurs();
+	}
+
 	/**
 	 * Alle Lieferscheindaten aus dem Panel sammeln.
-	 *
+	 * 
 	 * @throws Throwable
 	 */
 	private void components2Dto() throws Throwable {
 
 		if (tpLieferschein.getLieferscheinDto().getIId() == null) {
-			tpLieferschein.getLieferscheinDto().setMandantCNr(
-					LPMain.getTheClient().getMandant());
-			tpLieferschein.getLieferscheinDto().setStatusCNr(
-					LieferscheinFac.LSSTATUS_ANGELEGT);
+			tpLieferschein.getLieferscheinDto().setMandantCNr(LPMain.getTheClient().getMandant());
+			tpLieferschein.getLieferscheinDto().setStatusCNr(LieferscheinFac.LSSTATUS_ANGELEGT);
 
 			// PJ 14751
 
@@ -1873,49 +1773,39 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 				// Konditionen mit den Eigenschaften des Lieferscheinkunden
 				// vorbelegen
 				if (kundeRechnungsadresseDto.getFRabattsatz() != null) {
-					tpLieferschein.getLieferscheinDto()
-							.setFAllgemeinerRabattsatz(
-									new Double(kundeRechnungsadresseDto
-											.getFRabattsatz().doubleValue()));
+					tpLieferschein.getLieferscheinDto().setFAllgemeinerRabattsatz(
+							new Double(kundeRechnungsadresseDto.getFRabattsatz().doubleValue()));
 				}
-				tpLieferschein.getLieferscheinDto().setZahlungszielIId(
-						kundeRechnungsadresseDto.getZahlungszielIId());
+				tpLieferschein.getLieferscheinDto().setZahlungszielIId(kundeRechnungsadresseDto.getZahlungszielIId());
 			} else {
 				// Konditionen mit den Eigenschaften des Lieferscheinkunden
 				// vorbelegen
 				if (tpLieferschein.getKundeLieferadresseDto().getFRabattsatz() != null) {
-					tpLieferschein.getLieferscheinDto()
-							.setFAllgemeinerRabattsatz(
-									new Double(tpLieferschein
-											.getKundeLieferadresseDto()
-											.getFRabattsatz().doubleValue()));
+					tpLieferschein.getLieferscheinDto().setFAllgemeinerRabattsatz(
+							new Double(tpLieferschein.getKundeLieferadresseDto().getFRabattsatz().doubleValue()));
 				}
-				tpLieferschein.getLieferscheinDto().setZahlungszielIId(
-						tpLieferschein.getKundeLieferadresseDto()
-								.getZahlungszielIId());
+				tpLieferschein.getLieferscheinDto()
+						.setZahlungszielIId(tpLieferschein.getKundeLieferadresseDto().getZahlungszielIId());
 			}
 
-			tpLieferschein.getLieferscheinDto()
-					.setLieferartIId(
-							tpLieferschein.getKundeLieferadresseDto()
-									.getLieferartIId());
-			tpLieferschein.getLieferscheinDto()
-					.setSpediteurIId(
-							tpLieferschein.getKundeLieferadresseDto()
-									.getSpediteurIId());
+			if (lieferantDto != null) {
+				tpLieferschein.getLieferscheinDto().setLieferartIId(lieferantDto.getLieferartIId());
+				tpLieferschein.getLieferscheinDto().setSpediteurIId(lieferantDto.getIdSpediteur());
+				tpLieferschein.getLieferscheinDto().setZahlungszielIId(lieferantDto.getZahlungszielIId());
+			} else {
+				tpLieferschein.getLieferscheinDto()
+						.setLieferartIId(tpLieferschein.getKundeLieferadresseDto().getLieferartIId());
+				tpLieferschein.getLieferscheinDto()
+						.setSpediteurIId(tpLieferschein.getKundeLieferadresseDto().getSpediteurIId());
+			}
 
 			// sonstige Konditionen vorbelegen
 			// PJ18344
-			ParametermandantDto parameterDto = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.PARAMETER_LS_DEFAULT_VERRECHENBAR,
-							ParameterFac.KATEGORIE_LIEFERSCHEIN,
-							LPMain.getTheClient().getMandant());
-			tpLieferschein.getLieferscheinDto().setBVerrechenbar(
-					Helper.boolean2Short((Boolean) parameterDto
-							.getCWertAsObject()));
+			ParametermandantDto parameterDto = (ParametermandantDto) DelegateFactory.getInstance()
+					.getParameterDelegate().getParametermandant(ParameterFac.PARAMETER_LS_DEFAULT_VERRECHENBAR,
+							ParameterFac.KATEGORIE_LIEFERSCHEIN, LPMain.getTheClient().getMandant());
+			tpLieferschein.getLieferscheinDto()
+					.setBVerrechenbar(Helper.boolean2Short((Boolean) parameterDto.getCWertAsObject()));
 
 			// Kopf- und Fusstext werden nicht vorbelegt
 		}
@@ -1925,50 +1815,36 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		tpLieferschein.getLieferscheinDto().setAuftragIId(auftragDto.getIId());
 
-		tpLieferschein.getLieferscheinDto().setLieferscheinartCNr(
-				(String) wcoLieferscheinart.getKeyOfSelectedItem());
-		tpLieferschein.getLieferscheinDto().setTBelegdatum(
-				wdfBelegdatum.getTimestamp());
-		tpLieferschein.getLieferscheinDto().setKundeIIdLieferadresse(
-				tpLieferschein.getKundeLieferadresseDto().getIId());
-		tpLieferschein.getLieferscheinDto().setAnsprechpartnerIId(
-				ansprechpartnerDto.getIId());
+		tpLieferschein.getLieferscheinDto().setLieferscheinartCNr((String) wcoLieferscheinart.getKeyOfSelectedItem());
+		tpLieferschein.getLieferscheinDto().setTBelegdatum(wdfBelegdatum.getTimestamp());
+		tpLieferschein.getLieferscheinDto()
+				.setKundeIIdLieferadresse(tpLieferschein.getKundeLieferadresseDto().getIId());
+		tpLieferschein.getLieferscheinDto().setAnsprechpartnerIId(ansprechpartnerDto.getIId());
 
 		tpLieferschein.getLieferscheinDto()
-				.setAnsprechpartnerIIdRechnungsadresse(
-						ansprechpartnerDtoRechnungsadresse.getIId());
+				.setAnsprechpartnerIIdRechnungsadresse(ansprechpartnerDtoRechnungsadresse.getIId());
 
-		tpLieferschein.getLieferscheinDto().setPersonalIIdVertreter(
-				vertreterDto.getIId());
+		tpLieferschein.getLieferscheinDto().setPersonalIIdVertreter(vertreterDto.getIId());
 		if (kundeRechnungsadresseDto != null) {
-			tpLieferschein.getLieferscheinDto().setKundeIIdRechnungsadresse(
-					kundeRechnungsadresseDto.getIId());
+			tpLieferschein.getLieferscheinDto().setKundeIIdRechnungsadresse(kundeRechnungsadresseDto.getIId());
 		}
-		tpLieferschein.getLieferscheinDto().setCBezProjektbezeichnung(
-				this.wtfProjekt.getText());
-		tpLieferschein.getLieferscheinDto().setCBestellnummer(
-				this.wtfBestellnummer.getText());
+		tpLieferschein.getLieferscheinDto().setCBezProjektbezeichnung(this.wtfProjekt.getText());
+		tpLieferschein.getLieferscheinDto().setCBestellnummer(this.wtfBestellnummer.getText());
 
-		tpLieferschein.getLieferscheinDto().setWaehrungCNr(
-				wtfWaehrung.getText());
-		tpLieferschein.getLieferscheinDto()
-				.setFWechselkursmandantwaehrungzubelegwaehrung(
-						this.wnfKurs.getDouble());
+		tpLieferschein.getLieferscheinDto().setWaehrungCNr(wtfWaehrung.getText());
+		tpLieferschein.getLieferscheinDto().setFWechselkursmandantwaehrungzubelegwaehrung(this.wnfKurs.getDouble());
 
 		tpLieferschein.getLieferscheinDto().setLagerIId(lagerDto.getIId());
 		if (zielLagerDto != null) {
-			tpLieferschein.getLieferscheinDto().setZiellagerIId(
-					zielLagerDto.getIId());
+			tpLieferschein.getLieferscheinDto().setZiellagerIId(zielLagerDto.getIId());
 		}
-		tpLieferschein.getLieferscheinDto().setKostenstelleIId(
-				kostenstelleDto.getIId());
+		tpLieferschein.getLieferscheinDto().setKostenstelleIId(kostenstelleDto.getIId());
 
-		tpLieferschein.getLieferscheinDto().setCKommission(
-				wtfKommission.getText());
+		tpLieferschein.getLieferscheinDto().setCKommission(wtfKommission.getText());
+		tpLieferschein.getLieferscheinDto().setLaenderartCnr((String) wcoLaenderart.getKeyOfSelectedItem());
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		if (tpLieferschein.aktualisiereLieferscheinstatusDurchButtonUpdate()) {
 
 			super.eventActionUpdate(aE, false); // Buttons schalten
@@ -1989,15 +1865,12 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Eine andere Waehrung wurde ausgewaehlt.
-	 *
-	 * @param evt
-	 *            Ereignis
-	 * @throws java.lang.Throwable
-	 *             Ausnhame
+	 * 
+	 * @param evt Ereignis
+	 * @throws java.lang.Throwable Ausnhame
 	 */
 	public void propertyChange(PropertyChangeEvent evt) {
-		if (evt.getSource() == wtfWaehrung
-				&& evt.getPropertyName().equals("value")) {
+		if (evt.getSource() == wtfWaehrung && evt.getPropertyName().equals("value")) {
 			try {
 				setzeWechselkurs();
 			} catch (Throwable t) {
@@ -2008,13 +1881,11 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 	/**
 	 * Wenn dieses Panel ueber die Laschen gewaehlt wurde ...
-	 *
-	 * @param bNeedNoYouAreSelectedI
-	 *            fuer ableitende Panels
+	 * 
+	 * @param bNeedNoYouAreSelectedI fuer ableitende Panels
 	 * @throws Throwable
 	 */
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false); // Status der Buttons aktualisieren
 
 		// neu einlesen, ausloeser war ev. ein refresh oder discard
@@ -2024,23 +1895,15 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		setDefaults();
 
 		// PJ18167
-		LPButtonAction lpbaZoll = getHmOfButtons().get(
-				MY_OWN_NEW_TOGGLE_ZOLLEXPORTPAPIER_ERHALTEN);
+		LPButtonAction lpbaZoll = getHmOfButtons().get(MY_OWN_NEW_TOGGLE_ZOLLEXPORTPAPIER_ERHALTEN);
 		lpbaZoll.getButton().setVisible(false);
-		lpbaZoll.getButton().setToolTipText(
-				LPMain.getTextRespectUISPr(
-						"ls.zollexportpapiere.erhalten"));
+		lpbaZoll.getButton().setToolTipText(LPMain.getTextRespectUISPr("ls.zollexportpapiere.erhalten"));
 
-		if (oKey != null && !oKey.equals(LPMain.getLockMeForNew())) {
-			tpLieferschein.setLieferscheinDto(DelegateFactory.getInstance()
-					.getLsDelegate()
-					.lieferscheinFindByPrimaryKey((Integer) oKey));
-			tpLieferschein.setKundeLieferadresseDto(DelegateFactory
-					.getInstance()
-					.getKundeDelegate()
-					.kundeFindByPrimaryKey(
-							tpLieferschein.getLieferscheinDto()
-									.getKundeIIdLieferadresse()));
+		if (oKey != null) {
+			tpLieferschein.setLieferscheinDto(
+					DelegateFactory.getInstance().getLsDelegate().lieferscheinFindByPrimaryKey((Integer) oKey));
+			tpLieferschein.setKundeLieferadresseDto(DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getKundeIIdLieferadresse()));
 
 			dto2Components();
 
@@ -2050,24 +1913,14 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 			boolean bButtonAnzeigen = false;
 
-			KundeDto kundeDto = DelegateFactory
-					.getInstance()
-					.getKundeDelegate()
-					.kundeFindByPrimaryKey(
-							tpLieferschein.getLieferscheinDto()
-									.getKundeIIdLieferadresse());
-			if (tpLieferschein.getLieferscheinDto().getLieferscheinartCNr()
-					.equals(LieferscheinFac.LSART_LIEFERANT)) {
+			KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+					.kundeFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getKundeIIdLieferadresse());
+			if (tpLieferschein.getLieferscheinDto().getLieferscheinartCNr().equals(LieferscheinFac.LSART_LIEFERANT)) {
 
-				LieferantDto lfDto = DelegateFactory
-						.getInstance()
-						.getLieferantDelegate()
-						.lieferantFindByiIdPartnercNrMandantOhneExc(
-								kundeDto.getPartnerIId(),
-								tpLieferschein.getLieferscheinDto()
-										.getMandantCNr());
-				if (lfDto != null
-						&& Helper.short2boolean(lfDto.getBZollimportpapier())) {
+				LieferantDto lfDto = DelegateFactory.getInstance().getLieferantDelegate()
+						.lieferantFindByiIdPartnercNrMandantOhneExc(kundeDto.getPartnerIId(),
+								tpLieferschein.getLieferscheinDto().getMandantCNr());
+				if (lfDto != null && Helper.short2boolean(lfDto.getBZollimportpapier())) {
 					bButtonAnzeigen = true;
 				}
 			} else {
@@ -2081,51 +1934,31 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 				String text2 = "";
 
 				if (tpLieferschein.getLieferscheinDto().getTZollexportpapier() != null) {
-					text2 = LPMain
-							.getTextRespectUISPr("ls.zollexportpapiere.erhalten.persondatum")
-							+ " "
-							+ Helper.formatDatumZeit(tpLieferschein
-									.getLieferscheinDto()
-									.getTZollexportpapier(), LPMain
-									.getTheClient().getLocUi());
+					text2 = LPMain.getTextRespectUISPr("ls.zollexportpapiere.erhalten.persondatum") + " "
+							+ Helper.formatDatumZeit(tpLieferschein.getLieferscheinDto().getTZollexportpapier(),
+									LPMain.getTheClient().getLocUi());
 				}
-				if (tpLieferschein.getLieferscheinDto()
-						.getPersonalIIdZollexportpapier() != null) {
-					text2 += "("
-							+ DelegateFactory
-									.getInstance()
-									.getPersonalDelegate()
-									.personalFindByPrimaryKey(
-											tpLieferschein
-													.getLieferscheinDto()
-													.getPersonalIIdZollexportpapier())
-									.getCKurzzeichen() + ") ";
+				if (tpLieferschein.getLieferscheinDto().getPersonalIIdZollexportpapier() != null) {
+					text2 += "(" + DelegateFactory.getInstance().getPersonalDelegate()
+							.personalFindByPrimaryKey(
+									tpLieferschein.getLieferscheinDto().getPersonalIIdZollexportpapier())
+							.getCKurzzeichen() + ") ";
 				}
 
 				if (tpLieferschein.getLieferscheinDto().getCZollexportpapier() != null) {
-					text2 += LPMain.getTextRespectUISPr("lp.zollbelegnummer")
-							+ " "
-							+ tpLieferschein.getLieferscheinDto()
-									.getCZollexportpapier();
+					text2 += LPMain.getTextRespectUISPr("lp.zollbelegnummer") + " "
+							+ tpLieferschein.getLieferscheinDto().getCZollexportpapier();
 				}
 
-				if (tpLieferschein.getLieferscheinDto()
-						.getEingangsrechnungIdZollexport() != null) {
-					EingangsrechnungDto erDtoZollImport = DelegateFactory
-							.getInstance()
-							.getEingangsrechnungDelegate()
+				if (tpLieferschein.getLieferscheinDto().getEingangsrechnungIdZollexport() != null) {
+					EingangsrechnungDto erDtoZollImport = DelegateFactory.getInstance().getEingangsrechnungDelegate()
 							.eingangsrechnungFindByPrimaryKey(
-									tpLieferschein.getLieferscheinDto()
-											.getEingangsrechnungIdZollexport());
-					text2 += " | "
-							+ LPMain.getTextRespectUISPr("er.modulname.kurz")
-							+ " " + erDtoZollImport.getCNr();
+									tpLieferschein.getLieferscheinDto().getEingangsrechnungIdZollexport());
+					text2 += " | " + LPMain.getTextRespectUISPr("er.modulname.kurz") + " " + erDtoZollImport.getCNr();
 				}
 
-				String text = "<html>"
-						+ LPMain.getTextRespectUISPr(
-								"ls.zollexportpapiere.erhalten") + "<br>"
-						+ text2 + "</html>";
+				String text = "<html>" + LPMain.getTextRespectUISPr("ls.zollexportpapiere.erhalten") + "<br>" + text2
+						+ "</html>";
 
 				lpbaZoll.getButton().setToolTipText(text);
 
@@ -2136,8 +1969,8 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		enableComponentsAuftragauswahl();
 		// enableComponentsInAbhaengigkeitZuLieferscheinart();
 		enableComponentsInAbhaengigkeitZuStatusUndAnzahlMengenbehafteterPositionen();
-		tpLieferschein.enablePanels(tpLieferschein.getLieferscheinDto(), true);
 
+		tpLieferschein.enablePanels(tpLieferschein.getLieferscheinDto(), true);
 	}
 
 	protected String getLockMeWer() throws Exception {
@@ -2147,42 +1980,39 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	/**
 	 * Die Anrede fuer einen Ansprechpartner bauen. <br>
 	 * Es muss keinen Ansprechpartner geben.
-	 *
-	 * @param iIdAnsprechpartnerI
-	 *            pk des Ansprechpartners
+	 * 
+	 * @param iIdAnsprechpartnerI pk des Ansprechpartners
 	 * @throws Throwable
 	 */
-	private void bestimmeUndZeigeAnsprechpartnerRechnungsadresse(
-			Integer iIdAnsprechpartnerI) throws Throwable {
+	private void bestimmeUndZeigeAnsprechpartnerRechnungsadresse(Integer iIdAnsprechpartnerI) throws Throwable {
+
+		wtfAnsprechpartnerRechungsadresse.resetColorAndTooltip();
+
 		if (iIdAnsprechpartnerI != null) {
-			ansprechpartnerDtoRechnungsadresse = DelegateFactory.getInstance()
-					.getAnsprechpartnerDelegate()
+			ansprechpartnerDtoRechnungsadresse = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 					.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartnerI);
 			wtfAnsprechpartnerRechungsadresse
-					.setText(ansprechpartnerDtoRechnungsadresse.getPartnerDto()
-							.formatAnrede());
+					.setText(ansprechpartnerDtoRechnungsadresse.formatFixTitelVornameNachnameNTitel());
 		} else {
 			wtfAnsprechpartnerRechungsadresse.setText("");
 		}
 	}
 
-	private void bestimmeUndZeigeAnsprechpartner(Integer iIdAnsprechpartnerI)
-			throws Throwable {
+	private void bestimmeUndZeigeAnsprechpartner(Integer iIdAnsprechpartnerI) throws Throwable {
 		if (iIdAnsprechpartnerI != null) {
-			ansprechpartnerDto = DelegateFactory.getInstance()
-					.getAnsprechpartnerDelegate()
+			ansprechpartnerDto = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
 					.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartnerI);
-			wtfAnsprechpartner.setText(ansprechpartnerDto.getPartnerDto()
-					.formatAnrede());
+			wtfAnsprechpartner.setText(ansprechpartnerDto.formatFixTitelVornameNachnameNTitel());
 		} else {
 			wtfAnsprechpartner.setText("");
 		}
+
+		wtfAnsprechpartner.resetColorAndTooltip();
 	}
 
 	/**
-	 * Eine Auftragzuordnung kann nur unter bestimmten Bedingungen gemacht
-	 * werden.
-	 *
+	 * Eine Auftragzuordnung kann nur unter bestimmten Bedingungen gemacht werden.
+	 * 
 	 * @throws Throwable
 	 */
 	private void enableComponentsAuftragauswahl() throws Throwable {
@@ -2190,25 +2020,20 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 
 		// Schritt 1: Der Lieferschein muss durch den aktuellen Benutzer gelockt
 		// oder neu sein
-		if (tpLieferschein.getLieferscheinDto().getIId() != null && isLocked()) {
+		if (tpLieferschein.getLieferscheinDto().getIId() != null && isLockedByMe()) {
 			// Schritt 1a: Es handelt sich um einen auftragbezogenen
 			// Lieferschein
-			if (((String) wcoLieferscheinart.getKeyOfSelectedItem())
-					.equals(LieferscheinFac.LSART_AUFTRAG)) {
+			if (((String) wcoLieferscheinart.getKeyOfSelectedItem()).equals(LieferscheinFac.LSART_AUFTRAG)) {
 				// Schritt 1b: Der Lieferschein befindet sich im Status Angelegt
 				// oder Geliefert
-				if (tpLieferschein.getLieferscheinDto().getStatusCNr()
-						.equals(LieferscheinFac.LSSTATUS_ANGELEGT)
+				if (tpLieferschein.getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ANGELEGT)
 						|| tpLieferschein.getLieferscheinDto().getStatusCNr()
 								.equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
 					// Schritt 1c: Der Lieferschein hat keine mengenbehafteten
 					// Positionen
-					if (DelegateFactory
-							.getInstance()
-							.getLieferscheinpositionDelegate()
+					if (DelegateFactory.getInstance().getLieferscheinpositionDelegate()
 							.berechneAnzahlMengenbehaftetePositionen(
-									tpLieferschein.getLieferscheinDto()
-											.getIId()) == 0) {
+									tpLieferschein.getLieferscheinDto().getIId()) == 0) {
 						bEnableComponents = true;
 					}
 				}
@@ -2216,8 +2041,7 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		} else {
 			// Schritt 2: Es handelt sich um einen neuen Lieferschein
 			if (tpLieferschein.getLieferscheinDto().getIId() == null
-					&& ((String) wcoLieferscheinart.getKeyOfSelectedItem())
-							.equals(LieferscheinFac.LSART_AUFTRAG)) {
+					&& ((String) wcoLieferscheinart.getKeyOfSelectedItem()).equals(LieferscheinFac.LSART_AUFTRAG)) {
 				bEnableComponents = true;
 			}
 		}
@@ -2239,9 +2063,8 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	 * <li>Waehrung
 	 * <li>Kostenstelle
 	 * </ul>
-	 *
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * 
+	 * @throws java.lang.Throwable Ausnahme
 	 */
 
 	// SK: Wird nicht benoetigt da laut wh diese Felder alle immer aktiviert
@@ -2275,39 +2098,33 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	// // wbuWaehrung.setEnabled(bEnableComponents);
 	// wbuKostenstelle.setEnabled(bEnableComponents);
 	// }
+
 	/**
-	 * Einige Eingaben koennen nur unter bestimmten Voraussetzungen gemacht
-	 * werden. <br>
+	 * Einige Eingaben koennen nur unter bestimmten Voraussetzungen gemacht werden.
+	 * <br>
 	 * Betrifft:
 	 * <ul>
 	 * <li>Lieferscheinart
 	 * <li>Waehrung
 	 * <li>Lager
 	 * </ul>
-	 *
-	 * @throws java.lang.Throwable
-	 *             Ausnahme
+	 * 
+	 * @throws java.lang.Throwable Ausnahme
 	 */
-	private void enableComponentsInAbhaengigkeitZuStatusUndAnzahlMengenbehafteterPositionen()
-			throws Throwable {
+	private void enableComponentsInAbhaengigkeitZuStatusUndAnzahlMengenbehafteterPositionen() throws Throwable {
 		boolean bEnableComponents = false;
 
 		// Schritt 1: Ein bestehender Lieferschein muss durch den aktuellen
 		// Benutzer gelockt sein
-		if (tpLieferschein.getLieferscheinDto().getIId() != null && isLocked()) {
+		if (tpLieferschein.getLieferscheinDto().getIId() != null && isLockedByMe()) {
 			// Schritt 1a: Der Lieferschein befindet sich im Status Angelegt
 			// oder Geliefert
-			if (tpLieferschein.getLieferscheinDto().getStatusCNr()
-					.equals(LieferscheinFac.LSSTATUS_ANGELEGT)
-					|| tpLieferschein.getLieferscheinDto().getStatusCNr()
-							.equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
+			if (tpLieferschein.getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_ANGELEGT)
+					|| tpLieferschein.getLieferscheinDto().getStatusCNr().equals(LieferscheinFac.LSSTATUS_GELIEFERT)) {
 				// Schritt 1b: Der Lieferschein hat keine mengenbehafteten
 				// Positionen
-				if (DelegateFactory
-						.getInstance()
-						.getLieferscheinpositionDelegate()
-						.berechneAnzahlMengenbehaftetePositionen(
-								tpLieferschein.getLieferscheinDto().getIId()) == 0) {
+				if (DelegateFactory.getInstance().getLieferscheinpositionDelegate()
+						.berechneAnzahlMengenbehaftetePositionen(tpLieferschein.getLieferscheinDto().getIId()) == 0) {
 					bEnableComponents = true;
 				}
 			}
@@ -2322,33 +2139,24 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		wbuWaehrung.setEnabled(bEnableComponents);
 		wbuLager.setEnabled(bEnableComponents);
 		wbuZielLager.setEnabled(bEnableComponents);
+		wcoLaenderart.setEnabled(bEnableComponents);
 
 		// PJ18129
 		if (tpLieferschein.getLieferscheinDto().getAuftragIId() != null) {
-			AuftragDto auftragDto = DelegateFactory
-					.getInstance()
-					.getAuftragDelegate()
-					.auftragFindByPrimaryKey(
-							tpLieferschein.getLieferscheinDto().getAuftragIId());
+			AuftragDto auftragDto = DelegateFactory.getInstance().getAuftragDelegate()
+					.auftragFindByPrimaryKey(tpLieferschein.getLieferscheinDto().getAuftragIId());
 			if (auftragDto.getProjektIId() != null) {
 				wsfProjekt.setEnabled(false);
 				wsfProjekt.getWrapperGotoButton().setEnabled(false);
 			}
-
 		}
-
 	}
 
 	public void setzeWechselkurs() throws Throwable {
 		if (waehrungDto != null && waehrungDto.getCNr() != null) {
 			try {
-				wnfKurs.setBigDecimal(DelegateFactory
-						.getInstance()
-						.getLocaleDelegate()
-						.getWechselkurs2(
-								LPMain.getTheClient()
-										.getSMandantenwaehrung(),
-								waehrungDto.getCNr()));
+				wnfKurs.setBigDecimal(DelegateFactory.getInstance().getLocaleDelegate()
+						.getWechselkurs2(LPMain.getTheClient().getSMandantenwaehrung(), waehrungDto.getCNr()));
 			} catch (Throwable t) {
 				handleException(t, true); // UW: muss bleiben
 				wnfKurs.setBigDecimal(null); // wnfKurs ist mandatory!
@@ -2360,29 +2168,20 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 	}
 
 	private void aktualisiereStatusbar() throws Throwable {
-		setStatusbarPersonalIIdAnlegen(tpLieferschein.getLieferscheinDto()
-				.getPersonalIIdAnlegen());
+		setStatusbarPersonalIIdAnlegen(tpLieferschein.getLieferscheinDto().getPersonalIIdAnlegen());
 		setStatusbarTAnlegen(tpLieferschein.getLieferscheinDto().getTAnlegen());
-		setStatusbarPersonalIIdAendern(tpLieferschein.getLieferscheinDto()
-				.getPersonalIIdAendern());
+		setStatusbarPersonalIIdAendern(tpLieferschein.getLieferscheinDto().getPersonalIIdAendern());
 		setStatusbarTAendern(tpLieferschein.getLieferscheinDto().getTAendern());
 		setStatusbarStatusCNr(tpLieferschein.getLieferscheinStatus());
 		if (tpLieferschein.getLieferscheinDto().getTLieferaviso() != null) {
-			getPanelStatusbar().addToSpalteStatus(
-					", Aviso: "
-							+ tpLieferschein.getLieferscheinDto()
-									.getTLieferaviso().toString());
+			getPanelStatusbar()
+					.addToSpalteStatus(", Aviso: " + tpLieferschein.getLieferscheinDto().getTLieferaviso().toString());
 
 		}
-		String status = DelegateFactory
-				.getInstance()
-				.getVersandDelegate()
-				.getVersandstatus(LocaleFac.BELEGART_LIEFERSCHEIN,
-						tpLieferschein.getLieferscheinDto().getIId());
+		String status = DelegateFactory.getInstance().getVersandDelegate()
+				.getVersandstatus(LocaleFac.BELEGART_LIEFERSCHEIN, tpLieferschein.getLieferscheinDto().getIId());
 		if (status != null) {
-			status = LPMain.getTextRespectUISPr(
-					"lp.versandstatus")
-					+ ": " + status;
+			status = LPMain.getTextRespectUISPr("lp.versandstatus") + ": " + status;
 		}
 		setStatusbarSpalte5(status);
 	}
@@ -2404,24 +2203,6 @@ public class PanelLieferscheinKopfdaten extends PanelBasis implements
 		case EJBExceptionLP.FEHLER_BELEG_WURDE_NICHT_MANUELL_ERLEDIGT:
 			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
 					LPMain.getTextRespectUISPr("lp.error.manuellerledigen"));
-			break;
-
-		case EJBExceptionLP.FEHLER_KEIN_WECHSELKURS_HINTERLEGT:
-			MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr("lp.error.keinwechselkurshinterlegt"));
-
-			String cWaehrungMandant = null;
-
-			try {
-				cWaehrungMandant = DelegateFactory.getInstance().getMandantDelegate()
-						.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant()).getWaehrungCNr();
-				mf.setLocale(LPMain.getTheClient().getLocUi());
-			} catch (Throwable t) {
-				LPMain.getInstance().exitFrame(getInternalFrame(), t);
-			}
-
-			Object pattern[] = { cWaehrungMandant, waehrungDto.getCNr() };
-
-			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), mf.format(pattern));
 			break;
 
 		default:

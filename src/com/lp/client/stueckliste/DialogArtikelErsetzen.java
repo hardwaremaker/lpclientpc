@@ -37,11 +37,14 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.KeyStroke;
 
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.WrapperCheckBox;
@@ -83,10 +86,25 @@ public class DialogArtikelErsetzen extends JDialog implements ActionListener {
 				.getSystemDelegate()
 				.keyvalueFindyByCGruppe(
 						SystemServicesFac.KEYVALUE_ARTIKEL_KOPIEREN));
-		this.setSize(500, 200);
+		this.setSize(670, 200);
 
 	}
 
+	public static void addEscapeListener(final JDialog dialog) {
+		ActionListener escListener = new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				dialog.setVisible(false);
+			}
+		};
+
+		dialog.getRootPane().registerKeyboardAction(escListener,
+				KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+				JComponent.WHEN_IN_FOCUSED_WINDOW);
+
+	}
+	
 	public void actionPerformed(ActionEvent e) {
 
 		if (e.getSource().equals(btnAbbrechen)) {
@@ -106,7 +124,7 @@ public class DialogArtikelErsetzen extends JDialog implements ActionListener {
 				DelegateFactory
 						.getInstance()
 						.getStuecklisteDelegate()
-						.artikelErsetzten(
+						.artikelErsetzen(
 								wifArtikelAlt.getArtikelDto().getIId(),
 								wifArtikelNeu.getArtikelDto().getIId());
 			} catch (Throwable e1) {
@@ -163,39 +181,41 @@ public class DialogArtikelErsetzen extends JDialog implements ActionListener {
 		wifArtikelAlt.getWtfIdent().setMandatoryField(true);
 		wifArtikelNeu.getWtfIdent().setMandatoryField(true);
 
+		this.addEscapeListener(this);
+		
 		this.getContentPane().setLayout(gridBagLayout2);
 
 		int iZeile = 0;
 		this.getContentPane().add(new JLabel(LPMain.getInstance().getTextRespectUISPr("stkl.artikel.ersetztendurch.quelle")),
-				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
+				new GridBagConstraints(0, iZeile,2, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
 						100, 0));
 		iZeile++;
 		this.getContentPane().add(
 				wifArtikelAlt.getWbuArtikel(),
 				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
-						100, 0));
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
+						80, 0));
 		this.getContentPane().add(
 				wifArtikelAlt.getWtfIdent(),
 				new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
-						100, 0));
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
+						150, 0));
 		this.getContentPane().add(
 				wifArtikelAlt.getWtfBezeichnung(),
 				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
-						150, 0));
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
+						350, 0));
 		iZeile++;
 		this.getContentPane().add(new JLabel(LPMain.getInstance().getTextRespectUISPr("stkl.artikel.ersetztendurch.ziel")),
-				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
+				new GridBagConstraints(0, iZeile, 2, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
-						100, 0));
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
+						0, 0));
 		
 		iZeile++;
 
@@ -203,19 +223,19 @@ public class DialogArtikelErsetzen extends JDialog implements ActionListener {
 				wifArtikelNeu.getWbuArtikel(),
 				new GridBagConstraints(0, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
 						0, 0));
 		this.getContentPane().add(
 				wifArtikelNeu.getWtfIdent(),
 				new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
 						0, 0));
 		this.getContentPane().add(
 				wifArtikelNeu.getWtfBezeichnung(),
 				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(5, 5, 5, 5),
+						GridBagConstraints.HORIZONTAL, new Insets(5, 2, 5, 2),
 						0, 0));
 
 		iZeile++;
@@ -224,12 +244,12 @@ public class DialogArtikelErsetzen extends JDialog implements ActionListener {
 				btnOK,
 				new GridBagConstraints(1, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 0, 0));
+						new Insets(5, 2, 5, 2), 0, 0));
 		this.getContentPane().add(
 				btnAbbrechen,
 				new GridBagConstraints(2, iZeile, 1, 1, 0, 0,
 						GridBagConstraints.CENTER, GridBagConstraints.NONE,
-						new Insets(5, 5, 5, 5), 0, 0));
+						new Insets(5, 2, 5, 2), 0, 0));
 
 	}
 

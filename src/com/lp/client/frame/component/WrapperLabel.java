@@ -132,6 +132,13 @@ public class WrapperLabel extends JLabel {
 				.getControlHeight()));
 	}
 	
+	/**
+	 * L&auml;sst die Swing UI entscheiden wie gro&szlig; das Label sein soll.
+	 */
+	public void setPrefferedSizeAutomatically() {
+		super.setPreferredSize(null);
+	}
+	
 	@Override
 	public void updateUI() {
 		super.updateUI();

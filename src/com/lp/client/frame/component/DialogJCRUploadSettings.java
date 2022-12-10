@@ -54,7 +54,11 @@ public class DialogJCRUploadSettings extends JDialog implements ActionListener {
 	
 	private static final long serialVersionUID = 1620557508408339022L;
 
+	public static final int CANCEL = -1;
+	public static final int SAVE = 1;
+
 	private JCRDocDto jcr;
+	private int returnValue;
 
 	private WrapperLabel wlaBelegart = new WrapperLabel(LPMain
 			.getTextRespectUISPr("lp.belegart"));
@@ -80,11 +84,12 @@ public class DialogJCRUploadSettings extends JDialog implements ActionListener {
 	public DialogJCRUploadSettings(Frame owner, JCRDocDto vorlage) throws ExceptionLP, Throwable {
 		super(owner, LPMain.getTextRespectUISPr("lp.dokumente.eigenschaften"));
 		setModal(true);
-		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setLocationRelativeTo(owner);
 		setSize(400, 150);
 		setResizable(false);
 		jcr = vorlage;
+		returnValue = CANCEL;
 		jbInit();
 		dto2Components();
 		setVisible(true);
@@ -171,6 +176,11 @@ public class DialogJCRUploadSettings extends JDialog implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		components2Dto();
+		returnValue = SAVE;
 		dispose();
+	}
+	
+	public int getValue() {
+		return returnValue;
 	}
 }

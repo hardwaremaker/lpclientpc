@@ -44,18 +44,25 @@ import com.lp.server.system.service.ParametermandantDto;
 
 @SuppressWarnings("static-access")
 /**
- * <p> Diese Klasse kuemmert sich ...</p>
+ * <p>
+ * Diese Klasse kuemmert sich ...
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004, 2005, 2006</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004, 2005, 2006
+ * </p>
  *
- * <p>Erstellung: Vorname Nachname; dd.mm.06</p>
+ * <p>
+ * Erstellung: Vorname Nachname; dd.mm.06
+ * </p>
  *
- * <p>@author $Author: valentin $</p>
+ * <p>
+ * @author $Author: valentin $
+ * </p>
  *
  * @version unbekannt Date $Date: 2008/08/11 08:39:23 $
  */
-public class PanelDialogKriterienBestellvorschlagverdichtung extends
-		PanelDialogKriterien {
+public class PanelDialogKriterienBestellvorschlagverdichtung extends PanelDialogKriterien {
 
 	/**
 	 * 
@@ -64,12 +71,12 @@ public class PanelDialogKriterienBestellvorschlagverdichtung extends
 	private WrapperLabel wlaVerdichtungsZeitraum = null;
 	private WrapperNumberField wnfVerdichtungsZeitraum = null;
 
-	
 	private WrapperCheckBox wcbMindestbestellmengeBeruecksichtigen = null;
 	private WrapperCheckBox wcbProjektklammerBeruecksichtigen = null;
+	private WrapperCheckBox wcbPreiseaktualisieren = null;
 
-	public PanelDialogKriterienBestellvorschlagverdichtung(
-			InternalFrame oInternalFrameI, String add2Title) throws Throwable {
+	public PanelDialogKriterienBestellvorschlagverdichtung(InternalFrame oInternalFrameI, String add2Title)
+			throws Throwable {
 		super(oInternalFrameI, add2Title);
 
 		try {
@@ -82,8 +89,8 @@ public class PanelDialogKriterienBestellvorschlagverdichtung extends
 	}
 
 	private void jbInit() throws Throwable {
-		wlaVerdichtungsZeitraum = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("bes.verdichtungszeitraum"));
+		wlaVerdichtungsZeitraum = new WrapperLabel(
+				LPMain.getInstance().getTextRespectUISPr("bes.verdichtungszeitraum"));
 
 		wnfVerdichtungsZeitraum = new WrapperNumberField();
 		wnfVerdichtungsZeitraum.setMandatoryField(true);
@@ -92,63 +99,56 @@ public class PanelDialogKriterienBestellvorschlagverdichtung extends
 		wnfVerdichtungsZeitraum.setMinimumValue(1);
 		HelperClient.setDefaultsToComponent(wnfVerdichtungsZeitraum, 120);
 
-		
-		wcbMindestbestellmengeBeruecksichtigen = new WrapperCheckBox(LPMain.getInstance().getTextRespectUISPr(
-				"bes.mindestbestellmengenberuecksichtigen"));
+		wcbMindestbestellmengeBeruecksichtigen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.mindestbestellmengenberuecksichtigen"));
 		wcbMindestbestellmengeBeruecksichtigen.setEnabled(true);
 		wcbMindestbestellmengeBeruecksichtigen.setSelected(true);
 
-		
-		wcbProjektklammerBeruecksichtigen = new WrapperCheckBox(LPMain
-				.getInstance().getTextRespectUISPr(
-						"bes.bestellvorschlag.projektklammerberuecksichtigen"));
+		wcbPreiseaktualisieren = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.bv.preiseaktualisieren"));
+		wcbPreiseaktualisieren.setEnabled(true);
+		wcbPreiseaktualisieren.setSelected(true);
+
+		wcbProjektklammerBeruecksichtigen = new WrapperCheckBox(
+				LPMain.getInstance().getTextRespectUISPr("bes.bestellvorschlag.projektklammerberuecksichtigen"));
 		wcbProjektklammerBeruecksichtigen.setEnabled(true);
 		wcbProjektklammerBeruecksichtigen.setSelected(false);
 
 		iZeile++;
-		jpaWorkingOn.add(wlaVerdichtungsZeitraum, new GridBagConstraints(0,
-				iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaVerdichtungsZeitraum, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wnfVerdichtungsZeitraum, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.5, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		
-		jpaWorkingOn.add(wcbMindestbestellmengeBeruecksichtigen,
-				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-						new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfVerdichtungsZeitraum, new GridBagConstraints(1, iZeile, 1, 1, 0.5, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
+		jpaWorkingOn.add(wcbMindestbestellmengeBeruecksichtigen, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+
+		jpaWorkingOn.add(wcbPreiseaktualisieren, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_PROJEKTKLAMMER)) {
 			wcbProjektklammerBeruecksichtigen.setSelected(true);
-			jpaWorkingOn.add(wcbProjektklammerBeruecksichtigen,
-					new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-							new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wcbProjektklammerBeruecksichtigen, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		}
 
 	}
 
 	private void setDefaults() throws Throwable {
 		// den Vorschlagswert fuer die Auftragsvorlaufdauer bestimmen
-		ParametermandantDto parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(
-						LPMain.getInstance().getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_BESTELLUNG,
-						ParameterFac.BESTELLVORSCHLAG_VERDICHTUNGSZEITRAUM_TAGE);
+		ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getInstance().getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_BESTELLUNG, ParameterFac.BESTELLVORSCHLAG_VERDICHTUNGSZEITRAUM_TAGE);
 
-		wnfVerdichtungsZeitraum.setInteger((Integer) parametermandantDto
-				.getCWertAsObject());
+		wnfVerdichtungsZeitraum.setInteger((Integer) parametermandantDto.getCWertAsObject());
 		wcbMindestbestellmengeBeruecksichtigen.setSelected(true);
 	}
 
@@ -164,4 +164,7 @@ public class PanelDialogKriterienBestellvorschlagverdichtung extends
 		return wcbProjektklammerBeruecksichtigen.isSelected();
 	}
 
+	public boolean getPreiseaktualisieren() {
+		return wcbPreiseaktualisieren.isSelected();
+	}
 }

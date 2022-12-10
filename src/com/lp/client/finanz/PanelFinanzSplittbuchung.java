@@ -42,6 +42,7 @@ import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.beans.PropertyVetoException;
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -56,6 +57,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
@@ -92,6 +94,7 @@ import com.lp.server.finanz.service.BuchungDto;
 import com.lp.server.finanz.service.BuchungdetailDto;
 import com.lp.server.finanz.service.FinanzFac;
 import com.lp.server.finanz.service.FinanzServiceFac;
+import com.lp.server.finanz.service.KassenbuchDto;
 import com.lp.server.finanz.service.KontoDto;
 import com.lp.server.system.service.KostenstelleDto;
 import com.lp.server.system.service.ParameterFac;
@@ -218,7 +221,7 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		getToolBar()
 				.addButtonLeft(
 						"/com/lp/client/res/note_add16x16.png",
-						LPMain.getTextRespectUISPr("finanz.splittadd"),
+						textFromToken("finanz.splittadd"),
 						ACTION_SPECIAL_NEW,
 						KeyStroke.getKeyStroke('N',
 								java.awt.event.InputEvent.CTRL_MASK),
@@ -226,7 +229,7 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		getToolBar()
 				.addButtonLeft(
 						"/com/lp/client/res/disk_blue.png",
-						LPMain.getTextRespectUISPr("lp.save"),
+						textFromToken("lp.save"),
 						ACTION_SPECIAL_SAVE,
 						KeyStroke.getKeyStroke('S',
 								java.awt.event.InputEvent.CTRL_MASK),
@@ -234,7 +237,7 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		getToolBar()
 				.addButtonLeft(
 						"/com/lp/client/res/edit.png",
-						LPMain.getTextRespectUISPr("lp.edit"),
+						textFromToken("lp.edit"),
 						ACTION_SPECIAL_UPDATE,
 						KeyStroke.getKeyStroke('U',
 								java.awt.event.InputEvent.CTRL_MASK),
@@ -242,7 +245,7 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		getToolBar()
 				.addButtonLeft(
 						"/com/lp/client/res/undo.png",
-						LPMain.getTextRespectUISPr("lp.undo"),
+						textFromToken("lp.undo"),
 						ACTION_SPECIAL_DISCARD,
 						KeyStroke.getKeyStroke('Z',
 								java.awt.event.InputEvent.CTRL_MASK),
@@ -250,7 +253,7 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		getToolBar()
 				.addButtonLeft(
 						"/com/lp/client/res/note_delete16x16.png",
-						LPMain.getTextRespectUISPr("finanz.splittdelete"),
+						textFromToken("finanz.splittdelete"),
 						ACTION_SPECIAL_DELETE,
 						KeyStroke.getKeyStroke('D',
 								java.awt.event.InputEvent.CTRL_MASK), null);
@@ -269,11 +272,11 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 				bAutoAuszugsnummer = true;
 
 		// Splittkopf
-		wcbInSplittbuchungBleiben.setText(LPMain
-				.getTextRespectUISPr("finanz.inSplittbuchungBleiben"));
-		wcbInSplittbuchungBleiben.setPreferredSize(new Dimension(150, 0));
+		wcbInSplittbuchungBleiben.setText(
+				textFromToken("finanz.inSplittbuchungBleiben"));
+		wcbInSplittbuchungBleiben.setPreferredSize(new Dimension(200, 0));
 		getToolBar().getToolsPanelLeft().add(wcbInSplittbuchungBleiben);
-		wlaDatum.setText(LPMain.getTextRespectUISPr("lp.datum"));
+		wlaDatum.setText(textFromToken("lp.datum"));
 		wdfDatum = new WrapperGeschaeftsjahrDateField(getInternalFrameFinanz()
 				.getIAktuellesGeschaeftsjahr());
 		wdfDatum.addPropertyChangeListener(new PanelFinanzSplittbuchung_wdfDatum_propertyChange(
@@ -283,24 +286,24 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		wdfDatum.setMandatoryField(true);
 		wdfDatum.setMandatoryFieldDB(false);
 
-		wlaBetragSoll.setText(LPMain.getTextRespectUISPr("finanz.soll"));
+		wlaBetragSoll.setText(textFromToken("finanz.soll"));
 		wnfBetragSoll.setEditable(false);
 		wnfBetragSoll.setActivatable(false);
-		wlaBetragHaben.setText(LPMain.getTextRespectUISPr("finanz.haben"));
+		wlaBetragHaben.setText(textFromToken("finanz.haben"));
 		wnfBetragHaben.setEditable(false);
 		wnfBetragHaben.setActivatable(false);
-		wlaSaldo.setText(LPMain.getTextRespectUISPr("finanz.saldo"));
+		wlaSaldo.setText(textFromToken("finanz.saldo"));
 		wnfSaldo.setEditable(false);
 		wnfSaldo.setActivatable(false);
-		wlaText.setText(LPMain.getTextRespectUISPr("lp.text"));
+		wlaText.setText(textFromToken("lp.text"));
 		wtfText.setColumnsMax(FinanzFac.MAX_UMBUCHUNG_TEXT);
 		wtfText.setMandatoryField(true);
 		wtfText.addFocusListener(new PanelFinanzSplittbuchung_wtfText_focusAdapter(
 				this));
 
-		wlaBeleg.setText(LPMain.getTextRespectUISPr("lp.beleg"));
-		wrbBelegAuto.setText(LPMain.getTextRespectUISPr("lp.automatisch"));
-		wrbBelegHand.setText(LPMain.getTextRespectUISPr("label.handeingabe"));
+		wlaBeleg.setText(textFromToken("lp.beleg"));
+		wrbBelegAuto.setText(textFromToken("lp.automatisch"));
+		wrbBelegHand.setText(textFromToken("label.handeingabe"));
 		wtfBeleg.setColumnsMax(FinanzFac.MAX_UMBUCHUNG_BELEG);
 		wtfBeleg.setMandatoryField(true);
 		wtfBeleg.addFocusListener(new PanelFinanzSplittbuchung_wnfBeleg_focusAdapter(
@@ -316,9 +319,9 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		wtfBeleg.setEditable(true);
 
 		// Splittdetail
-		wrbKontoSachkonto = new WrapperRadioButton(true, LPMain.getTextRespectUISPr("lp.shortcut.sachkonto"));
-		wrbKontoDebitorenkonto = new WrapperRadioButton(true, LPMain.getTextRespectUISPr("lp.shortcut.debitorenkonto"));
-		wrbKontoKreditorenkonto = new WrapperRadioButton(true, LPMain.getTextRespectUISPr("lp.shortcut.kreditorenkonto"));
+		wrbKontoSachkonto = new WrapperRadioButton(true, textFromToken("lp.shortcut.sachkonto"));
+		wrbKontoDebitorenkonto = new WrapperRadioButton(true, textFromToken("lp.shortcut.debitorenkonto"));
+		wrbKontoKreditorenkonto = new WrapperRadioButton(true, textFromToken("lp.shortcut.kreditorenkonto"));
 		wrbKontoDebitorenkonto.setActionCommand(ACTION_SPECIAL_RB_KONTO);
 		wrbKontoKreditorenkonto.setActionCommand(ACTION_SPECIAL_RB_KONTO);
 		wrbKontoSachkonto.setActionCommand(ACTION_SPECIAL_RB_KONTO);
@@ -326,28 +329,62 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		wrbKontoKreditorenkonto.addActionListener(this);
 		wrbKontoSachkonto.addActionListener(this);
 		wrbKontoSachkonto.setSelected(true);
-		wbuKonto.setText(LPMain.getTextRespectUISPr("button.konto"));
-		wbuKonto.setToolTipText(LPMain
-				.getTextRespectUISPr("button.konto.tooltip"));
+		wbuKonto.setText(textFromToken("button.konto"));
+		wbuKonto.setToolTipText(textFromToken("button.konto.tooltip"));
 		wbuKonto.setActionCommand(ACTION_SPECIAL_KONTO);
 		wbuKonto.addActionListener(this);
 		wtfKontoNummer.setMinimumSize(new Dimension(100, 23));
 		wtfKontoNummer.setPreferredSize(new Dimension(100, 23));
 		wtfKontoNummer.addFocusListener(new FocusListener() {
-			
 			@Override
 			public void focusLost(FocusEvent arg0) {
 				try {
-					kontoDto = DelegateFactory.getInstance().getFinanzDelegate()
-							.kontoFindByCnrKontotypMandantOhneExc(wtfKontoNummer.getText().trim(),
-									kontotypKonto, LPMain.getTheClient().getMandant());
-					dto2ComponentsKonto();
+					if(wtfKontoNummer.hasContent()) {
+						kontoDto = DelegateFactory.getInstance().getFinanzDelegate()
+								.kontoFindByCnrKontotypMandantOhneExc(wtfKontoNummer.getText().trim(),
+										kontotypKonto, LPMain.getTheClient().getMandant());
+						validateKonto(kontoDto);
+						dto2ComponentsKonto();
+					}
 				} catch (Throwable t) {
 					handleException(t, false);
 					wtfKontoNummer.removeContent();
 				}
 			}
 			
+			private boolean validateKonto(KontoDto kDto) throws ExceptionLP {
+				if(kDto == null) {
+					DialogFactory.showModalDialog(
+							textFromToken("lp.error"),
+							LPMain.getMessageTextRespectUISPr(
+								"fb.error.kontomitnummernichtgefunden",
+								kontotypKonto, wtfKontoNummer.getText().trim()));
+					kontoDto = null;
+					focusKontoNummer();
+					return false;
+				}
+				
+				KassenbuchDto kbDto = DelegateFactory.getInstance().getFinanzDelegate()
+						.kassenbuchFindByKontoIIdOhneExc(kDto.getIId());
+				if(kbDto != null) {
+					DialogFactory.showModalDialogToken(
+						"lp.error", "fb.error.kassenbuchkontonichterlaubt");
+					kontoDto = null;
+					focusKontoNummer();
+					return false;
+				}
+				
+				return true;
+			}
+			
+			private void focusKontoNummer() {
+				SwingUtilities.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						wtfKontoNummer.requestFocusInWindow();
+					}
+				});				
+			}
 			@Override
 			public void focusGained(FocusEvent arg0) {
 				wtfKontoNummer.selectAll();
@@ -358,15 +395,13 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		buttongroupKonto.add(wrbKontoDebitorenkonto);
 		buttongroupKonto.add(wrbKontoKreditorenkonto);
 		buttongroupKonto.add(wrbKontoSachkonto);
-		wlaAuszug.setText(LPMain.getTextRespectUISPr("label.auszug"));
+		wlaAuszug.setText(textFromToken("label.auszug"));
 		wnfAuszug.setMaximumDigits(FinanzFac.MAX_UMBUCHUNG_AUSZUG);
 		// wnfAuszug.setFractionDigits(0);
 		wnfAuszug.setVisible(false);
 		wlaAuszug.setVisible(false);
-		wbuKostenstelle.setText(LPMain
-				.getTextRespectUISPr("button.kostenstelle"));
-		wbuKostenstelle.setToolTipText(LPMain
-				.getTextRespectUISPr("button.kostenstelle.tooltip"));
+		wbuKostenstelle.setText(textFromToken("button.kostenstelle"));
+		wbuKostenstelle.setToolTipText(textFromToken("button.kostenstelle.tooltip"));
 		wbuKostenstelle.setActionCommand(ACTION_SPECIAL_KOSTENSTELLE);
 		wbuKostenstelle.addActionListener(this);
 		// wbuKostenstelle.setMandatoryField(true) ;
@@ -374,13 +409,13 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		wtfKostenstelleNummer.setDependenceField(true);
 		wtfKostenstelleNummer.setMandatoryField(true);
 		wtfKostenstelleBezeichnung.setActivatable(false);
-		wlaTeilBetrag.setText(LPMain.getTextRespectUISPr("label.betrag"));
+		wlaTeilBetrag.setText(textFromToken("label.betrag"));
 		// wnfTeilBetrag.setMandatoryField(true);
 
 		// wcbSollHaben.addItem("SOLL");
 		// wcbSollHaben.addItem("HABEN");
-		wcbSollHaben.addItem(LPMain.getTextRespectUISPr("finanz.soll"));
-		wcbSollHaben.addItem(LPMain.getTextRespectUISPr("finanz.haben"));
+		wcbSollHaben.addItem(textFromToken("finanz.soll"));
+		wcbSollHaben.addItem(textFromToken("finanz.haben"));
 
 		/*
 		 * wlaAbstandLinks.setMaximumSize(new Dimension(80, 23));
@@ -400,6 +435,8 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		setupTable(jtaBuchungen);
 		jspBuchungen.getViewport().add(jtaBuchungen, null);
 		jtaBuchungen.getSelectionModel().addListSelectionListener(this);
+
+		wcoBuchungsart.setMandatoryFieldDB(true);
 
 		// Kopf
 		iZeile++;
@@ -597,7 +634,7 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 
 	private void setAutoAuszugNummer() {
 		if (wdfDatum.getDate() != null) {
-			DateFormat df = new SimpleDateFormat("yyyyMM");
+			DateFormat df = new SimpleDateFormat("yyyyMMdd");
 			Integer auszug = Integer.parseInt(df.format(wdfDatum.getDate()));
 			wnfAuszug.setInteger(auszug);
 			wnfAuszug.setEditable(false);
@@ -698,12 +735,20 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		}
 	}
 	
-	private boolean showDialogVerwerfen() {
-		Object am[] = { LPMain.getTextRespectUISPr("lp.abbrechen"),
-				LPMain.getTextRespectUISPr("lp.verwerfen_ohne_frage"), };
+	private boolean showDialogBearbeitungVerwerfen() {
+		Object am[] = { textFromToken("lp.abbrechen"),
+				textFromToken("lp.verwerfen_ohne_frage"), };
 		int iOption = DialogFactory.showModalDialog(getInternalFrame(),
-						LPMain.getTextRespectUISPr("lp.warning.speichern"), "", am,
+				textFromToken("lp.warning.speichern"), "", am,
 						0);
+		return (iOption == 1);
+	}
+	
+	private boolean showDialogBuchungenVerwerfen() {
+		Object am[] = { textFromToken("lp.abbrechen"),
+				textFromToken("lp.verwerfen_ohne_frage"), };
+		int iOption = DialogFactory.showModalDialog(getInternalFrame(),
+				textFromToken("fb.splittbuchung.buchungenverwerfen"), "", am, 0);
 		return (iOption == 1);
 	}
 
@@ -745,18 +790,11 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		} else if (e.getActionCommand().equals(PanelBasis.ESC)
 				|| e.getActionCommand()
 						.equals(ACTION_SPECIAL_CLOSE_PANELDIALOG)) {
-			if(buttonLockState == LOCK_IS_LOCKED_BY_ME || buttonLockState == LOCK_FOR_NEW) {
-				if(!showDialogVerwerfen())
-					return;
+			if (!actionCloseDialog()) {
+				return;
 			}
-			reset();
-			if (tpKonten != null) {
-				tpKonten.getPanelQueryBuchungen().eventActionRefresh(null,
-						false);
-			}
-			tpKonten = null;
-			getInternalFrame().closePanelDialog();
-
+			super.eventActionSpecial(e);
+//			getInternalFrame().closePanelDialog();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_SAVE)) {
 			if (pruefePflichtDetail()) {
 				BuchungdetailDto bdDto = new BuchungdetailDto();
@@ -814,6 +852,41 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 			setButtons();
 			wtfKontoNummer.requestFocus();
 		}
+	}
+	
+	private boolean shouldCloseDialog() {
+		if (buttonLockState == LOCK_IS_LOCKED_BY_ME || buttonLockState == LOCK_FOR_NEW) {
+			return showDialogBearbeitungVerwerfen();
+		} else if (!detailList.isEmpty()) {
+			return showDialogBuchungenVerwerfen();
+		}
+		return true;
+	}
+	
+	private boolean actionCloseDialog() throws Throwable {
+		if (!shouldCloseDialog()) 
+			return false;
+		
+		reset();
+		if (tpKonten != null) {
+			tpKonten.getPanelQueryBuchungen().eventActionRefresh(null, false);
+		}
+		tpKonten = null;
+		
+		return true;
+	}
+	
+	@Override
+	protected PropertyVetoException eventActionVetoableChangeLP() throws Throwable {
+		PropertyVetoException vetoExc = super.eventActionVetoableChangeLP();
+		if (vetoExc != null)
+			return vetoExc;
+		
+		if (!shouldCloseDialog()) {
+			return new PropertyVetoException("", null);
+		}
+		
+		return null;
 	}
 
 	private boolean pruefePflichtBuchung() throws ExceptionLP {
@@ -888,8 +961,16 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		}
 	}
 
+	// SP9354 Aus "BUCHUNG" wird immer UMBUCHUNG
+	private String transformBuchungsart(String dtoBuchungsartCnr) {
+		if (FinanzFac.BUCHUNGSART_BUCHUNG.equals(dtoBuchungsartCnr)) {
+			return FinanzFac.BUCHUNGSART_UMBUCHUNG;
+		}
+		return dtoBuchungsartCnr;
+	}
+
 	private void dto2Components() throws ExceptionLP, Throwable {
-		wcoBuchungsart.setSelectedItem(buchungDto.getBuchungsartCNr());
+		wcoBuchungsart.setSelectedItem(transformBuchungsart(buchungDto.getBuchungsartCNr()));
 		wtfBeleg.setText(buchungDto.getCBelegnummer().trim());
 		wtfText.setText(buchungDto.getCText());
 		wdfDatum.setDate(buchungDto.getDBuchungsdatum());
@@ -983,12 +1064,12 @@ public class PanelFinanzSplittbuchung extends PanelDialogKriterien implements Li
 		QueryType[] qt = null;
 		// nur Sachkonten dieses Mandanten
 		FilterKriterium[] filters = FinanzFilterFactory.getInstance()
-				.createFKKonten(this.kontotypKonto);
+				.createFKKontenOhneKassenbuchKonten(kontotypKonto);
 		LPMain.getInstance();
 		panelQueryFLRKonto = new PanelQueryFLR(qt, filters,
 				QueryParameters.UC_ID_FINANZKONTEN, aWhichButtonIUse,
 				getInternalFrame(),
-				LPMain.getTextRespectUISPr("finanz.liste.konten"));
+				textFromToken("finanz.liste.konten"));
 		FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance()
 				.createFKDKontonummer();
 		FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance()

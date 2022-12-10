@@ -67,6 +67,7 @@ public class StklImportPage4View extends AssistentPageView {
 	private WrapperRadioButton nichtSpeichern;
 	private WrapperRadioButton speichernUnter;
 	private WrapperTextField spezName;
+	private String title;
 
 	public StklImportPage4View(StklImportPage4Ctrl controller,
 			InternalFrame iFrame) {
@@ -88,11 +89,10 @@ public class StklImportPage4View extends AssistentPageView {
 		
 		boolean saving = getController().isSaving();
 		boolean importing = getController().isImporting();
-		spezName.setEditable(saving && !importing);
+		spezName.setEditable(speichernUnter.isSelected());
 		spezList.setEnabled(saving && !importing);
 		speichernUnter.setEnabled(!importing);
 		nichtSpeichern.setEnabled(!importing);
-		speichernUnter.setSelected(getController().isSaving());
 		if(spezName.getText() == null || !spezName.getText().equals(getController().getSpezName())) {
 			spezName.setText(getController().getSpezName());
 		}
@@ -110,7 +110,13 @@ public class StklImportPage4View extends AssistentPageView {
 
 	@Override
 	public String getTitle() {
-		return LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
+		return title != null
+				? title
+				: LPMain.getTextRespectUISPr("stkl.intelligenterstklimport");
+	}
+	
+	public void setTitle(String pageTitle) {
+		this.title = pageTitle;
 	}
 
 	@Override
@@ -120,6 +126,7 @@ public class StklImportPage4View extends AssistentPageView {
 		gesamtePositionen = new WrapperTextField();
 		importiertePositionen = new WrapperTextField();
 		nichtSpeichern = new WrapperRadioButton(LPMain.getTextRespectUISPr("lp.nichtspeichern"));
+		nichtSpeichern.setSelected(true);
 		speichernUnter = new WrapperRadioButton(LPMain.getTextRespectUISPr("lp.speichernunter"));
 		spezName = new WrapperTextField("");
 		spezList = new JList(getController().getImportSpezNames().toArray());

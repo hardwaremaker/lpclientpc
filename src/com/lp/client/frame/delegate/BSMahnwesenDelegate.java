@@ -46,6 +46,7 @@ import com.lp.server.bestellung.service.BSMahnstufeDto;
 import com.lp.server.bestellung.service.BSMahntextDto;
 import com.lp.server.bestellung.service.BSMahnungDto;
 import com.lp.server.bestellung.service.BSMahnwesenFac;
+import com.lp.server.bestellung.service.BestellvorschlagFac;
 
 
 public class BSMahnwesenDelegate
@@ -57,7 +58,7 @@ public class BSMahnwesenDelegate
       throws ExceptionLP {
     try {
       context = new InitialContext();
-      bSMahnwesenFac = (BSMahnwesenFac) context.lookup("lpserver/BSMahnwesenFacBean/remote");
+      bSMahnwesenFac = lookupFac(context, BSMahnwesenFac.class);
     }
     catch (Throwable t) {
       handleThrowable(t);

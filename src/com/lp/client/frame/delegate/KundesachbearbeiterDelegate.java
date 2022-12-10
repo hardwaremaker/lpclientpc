@@ -40,6 +40,7 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.KundesachbearbeiterDto;
 import com.lp.server.partner.service.KundesachbearbeiterFac;
+import com.lp.server.partner.service.KundesokoFac;
 import com.lp.server.system.service.TheClientDto;
 
 
@@ -67,7 +68,8 @@ public class KundesachbearbeiterDelegate
       throws ExceptionLP {
     try {
       context = new InitialContext();
-      kundesachbearbeiterFac = (KundesachbearbeiterFac) context.lookup("lpserver/KundesachbearbeiterFacBean/remote");
+      kundesachbearbeiterFac = lookupFac(context, KundesachbearbeiterFac.class);
+
     }
     catch (Throwable ex) {
       handleThrowable(ex);

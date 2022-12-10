@@ -37,6 +37,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -45,14 +46,14 @@ import javax.swing.border.Border;
 
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
-import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.WebshopDto;
-import com.lp.server.instandhaltung.service.GewerkDto;
 
 public class PanelWebshop extends PanelBasis {
 	/**
@@ -69,6 +70,15 @@ public class PanelWebshop extends PanelBasis {
 	private WrapperLabel wlaBezeichnung = new WrapperLabel();
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 
+	private WrapperLabel wlaWebshopart = new WrapperLabel();
+	private WrapperComboBox wcoWebshopart = new WrapperComboBox();
+	private WrapperLabel wlaUrl = new WrapperLabel();
+	private WrapperTextField wtfUrl = new WrapperTextField();
+	private WrapperLabel wlaUser = new WrapperLabel();
+	private WrapperTextField wtfUser = new WrapperTextField();
+	private WrapperLabel wlaPassword = new WrapperLabel();
+	private WrapperTextField wtfPassword = new WrapperTextField();
+	
 	private WebshopDto webshopDto = null;
 
 	public InternalFrameArtikel getInternalFrameInstandhaltung() {
@@ -105,14 +115,16 @@ public class PanelWebshop extends PanelBasis {
 					.webshopFindByPrimaryKey((Integer) key);
 
 			dto2Components();
-
 		}
-
 	}
 
 	protected void dto2Components() throws Throwable {
-
 		wtfBezeichnung.setText(webshopDto.getCBez());
+		wtfUrl.setText(webshopDto.getCUrl());
+		wtfUser.setText(webshopDto.getCUser());
+		wtfPassword.setText(webshopDto.getCPassword());
+		wcoWebshopart.setKeyOfSelectedItem(webshopDto.getWebshopartCnr());
+		setConnectionUI(hasConnectionUI(webshopDto.getWebshopartCnr()));
 	}
 
 	private void jbInit() throws Throwable {
@@ -133,6 +145,15 @@ public class PanelWebshop extends PanelBasis {
 		wlaBezeichnung.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
 		wtfBezeichnung.setMandatoryField(true);
 
+		wlaWebshopart.setText(LPMain.getTextRespectUISPr("webshop.webshopart"));
+		wcoWebshopart.setMandatoryField(true);
+		wcoWebshopart.addActionListener(this);
+		wcoWebshopart.setToken("webshopart");
+		
+		wlaUrl.setText(LPMain.getTextRespectUISPr("webshop.url"));
+		wlaUser.setText(LPMain.getTextRespectUISPr("webshop.user"));
+		wlaPassword.setText(LPMain.getTextRespectUISPr("webshop.password"));
+		
 		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
 				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
 						0, 0, 0), 0, 0));
@@ -151,11 +172,38 @@ public class PanelWebshop extends PanelBasis {
 				1, 0.3, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
+		iZeile++;
+		jpaWorkingOn.add(wlaWebshopart, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcoWebshopart, new GridBagConstraints(1, iZeile, 3,
+				1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		iZeile++;
+		jpaWorkingOn.add(wlaUrl, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfUrl, new GridBagConstraints(1, iZeile, 3,
+				1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		iZeile++;
+		jpaWorkingOn.add(wlaUser, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfUser, new GridBagConstraints(1, iZeile, 3,
+				1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		iZeile++;
+		jpaWorkingOn.add(wlaPassword, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfPassword, new GridBagConstraints(1, iZeile, 3,
+				1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, 
 				ACTION_DELETE, ACTION_DISCARD };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
-
 	}
 
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
@@ -165,11 +213,27 @@ public class PanelWebshop extends PanelBasis {
 		leereAlleFelder(this);
 
 		webshopDto = new WebshopDto();
-
 	}
 
+	private void setConnectionUI(boolean enable) {
+		wlaUrl.setVisible(enable);
+		wtfUrl.setVisible(enable);
+		wlaUser.setVisible(enable);
+		wtfUser.setVisible(enable);
+		wlaPassword.setVisible(enable);
+		wtfPassword.setVisible(enable);		
+	}
+	
+	private boolean hasConnectionUI(String webshopartCnr) {
+		return !ArtikelFac.WEBSHOPART_NICHT_ZUTREFFEND
+				.equals(webshopartCnr);		
+	}
+	
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-
+		if (e.getSource().equals(wcoWebshopart)) {
+			setConnectionUI(hasConnectionUI(
+					(String)wcoWebshopart.getKeyOfSelectedItem()));
+		}
 	}
 
 	protected String getLockMeWer() throws Exception {
@@ -177,12 +241,24 @@ public class PanelWebshop extends PanelBasis {
 	}
 
 	protected void setDefaults() throws Throwable {
-
+		Map<?, ?> m = DelegateFactory.getInstance().getArtikelDelegate()
+				.getAllSprWebshoparten();
+		m.remove(ArtikelFac.ARTIKELART_HANDARTIKEL);
+		wcoWebshopart.setMap(m);
 	}
 
 	protected void components2Dto() throws Throwable {
 		webshopDto.setCBez(wtfBezeichnung.getText());
 		webshopDto.setMandantCNr(LPMain.getTheClient().getMandant());
+		if(!hasConnectionUI((String)wcoWebshopart.getKeyOfSelectedItem())) {
+			wtfUrl.setText(null);
+			wtfPassword.setText(null);
+			wtfUser.setText(null);			
+		}
+		webshopDto.setCUrl(wtfUrl.getText());
+		webshopDto.setCPassword(wtfPassword.getText());
+		webshopDto.setCUser(wtfUser.getText());
+		webshopDto.setWebshopartCnr((String)wcoWebshopart.getKeyOfSelectedItem());
 	}
 
 	protected void eventActionDelete(ActionEvent e,
@@ -222,8 +298,7 @@ public class PanelWebshop extends PanelBasis {
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
-		ItemChangedEvent e = (ItemChangedEvent) eI;
-
+//		ItemChangedEvent e = (ItemChangedEvent) eI;
 	}
 
 }

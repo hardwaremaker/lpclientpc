@@ -71,8 +71,7 @@ import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
-public class ReportSeriennummern extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportSeriennummern extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -109,11 +108,10 @@ public class ReportSeriennummern extends PanelBasis implements
 
 	private WrapperLabel wlaSortierung = new WrapperLabel();
 
-	public ReportSeriennummern(InternalFrameArtikel internalFrame,
-			String add2Title, Integer artikelIId) throws Throwable {
+	public ReportSeriennummern(InternalFrameArtikel internalFrame, String add2Title, Integer artikelIId)
+			throws Throwable {
 		super(internalFrame, add2Title);
-		LPMain.getInstance()
-				.getTextRespectUISPr("artikel.report.seriennummern");
+		LPMain.getInstance().getTextRespectUISPr("artikel.report.seriennummern");
 		jbInit();
 		initComponents();
 	}
@@ -125,112 +123,79 @@ public class ReportSeriennummern extends PanelBasis implements
 	private void jbInit() throws Exception {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
-		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.lager"));
+		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr("button.lager"));
 
-		wlaSeriennr.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.seriennrchargennr"));
+		wlaSeriennr.setText(LPMain.getInstance().getTextRespectUISPr("lp.seriennrchargennr"));
 		wcbSnrWildcard.setText("oder Serien/Chargennr enth\u00E4lt");
-		wcbSnrWildcard
-				.addActionListener(new ReportSeriennummern_wcbSnrWildcard_actionAdapter(
-						this));
+		wcbSnrWildcard.addActionListener(new ReportSeriennummern_wcbSnrWildcard_actionAdapter(this));
 		wcbSnrWildcard.setHorizontalAlignment(SwingConstants.RIGHT);
 		wtfLager.setEditable(false);
 		wtfSnrWildcard.setEditable(false);
 		wtfVersionWildcard.setEditable(false);
-		
+
 		wbuLager.setActionCommand(this.ACTION_SPECIAL_LAGER_FROM_LISTE);
 		wbuLager.addActionListener(this);
 
 		wtfArtikel.setEditable(false);
 		wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
-		wbuArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.artikel"));
+		wbuArtikel.setText(LPMain.getInstance().getTextRespectUISPr("button.artikel"));
 		wbuArtikel.setActionCommand(this.ACTION_SPECIAL_ARTIKEL_FROM_LISTE);
 		wbuArtikel.addActionListener(this);
 
-		wlaSortierung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.sortierung"));
-		
-		wlaVersionWildcard.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.seriennummern.version.filter"));
-		
-		
-		wcbMitGeraetesnrs.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.report.seriennummern.mitgsnr"));
+		wlaSortierung.setText(LPMain.getInstance().getTextRespectUISPr("label.sortierung"));
+
+		wlaVersionWildcard.setText(LPMain.getInstance().getTextRespectUISPr("artikel.seriennummern.version.filter"));
+
+		wcbMitGeraetesnrs.setText(LPMain.getInstance().getTextRespectUISPr("artikel.report.seriennummern.mitgsnr"));
 
 		wrbSortIdent.setSelected(true);
-		wrbSortIdent.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.artikelnummer"));
-		wrbSortSnr.setText(LPMain.getInstance().getTextRespectUISPr(
-				"bes.seriennummer_short"));
+		wrbSortIdent.setText(LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer"));
+		wrbSortSnr.setText(LPMain.getInstance().getTextRespectUISPr("bes.seriennummer_short"));
 		buttonGroupSortierung.add(wrbSortIdent);
 		buttonGroupSortierung.add(wrbSortSnr);
 
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 0, 3, 1, 0.3, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 0, 1, 1, 0.8, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(1, 1, 3, 1, 0.2,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuArtikel, new GridBagConstraints(0, 1, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wtfSeriennr, new GridBagConstraints(1, 2, 2, 1, 0.2,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaSeriennr, new GridBagConstraints(0, 2, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfSnrWildcard, new GridBagConstraints(1, 3, 1, 1,
-				0.2, 0.0, GridBagConstraints.CENTER,
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 0, 3, 1, 0.3, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbSnrWildcard, new GridBagConstraints(0, 3, 1, 1,
-				0.1, 0.0, GridBagConstraints.EAST,
+		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 0, 1, 1, 0.8, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
-		
-		jpaWorkingOn.add(wlaVersionWildcard, new GridBagConstraints(2, 3, 1, 1,
-				0.3, 0.0, GridBagConstraints.CENTER,
+
+		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(1, 1, 3, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfVersionWildcard, new GridBagConstraints(3, 3, 1, 1,
-				0.6, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuArtikel, new GridBagConstraints(0, 1, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		
 
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 4, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(5, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSeriennr, new GridBagConstraints(1, 2, 2, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaSeriennr, new GridBagConstraints(0, 2, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSnrWildcard, new GridBagConstraints(1, 3, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbSnrWildcard, new GridBagConstraints(0, 3, 1, 1, 0.1, 0.0, GridBagConstraints.EAST,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wrbSortIdent, new GridBagConstraints(1, 4, 1, 1, 0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 200, 0));
+		jpaWorkingOn.add(wlaVersionWildcard, new GridBagConstraints(2, 3, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfVersionWildcard, new GridBagConstraints(3, 3, 1, 1, 0.6, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_GERAETESERIENNUMMERN)) {
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, 4, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(5, 2, 2, 2), 0, 0));
 
-			jpaWorkingOn.add(wcbMitGeraetesnrs,
-					new GridBagConstraints(2, 4, 1, 1, 0.3, 0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
+		jpaWorkingOn.add(wrbSortIdent, new GridBagConstraints(1, 4, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 200, 0));
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_GERAETESERIENNUMMERN)) {
+
+			jpaWorkingOn.add(wcbMitGeraetesnrs, new GridBagConstraints(2, 4, 1, 1, 0.3, 0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		}
 
-		jpaWorkingOn.add(wrbSortSnr, new GridBagConstraints(1, 5, 1, 1, 0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbSortSnr, new GridBagConstraints(1, 5, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
 
@@ -243,8 +208,8 @@ public class ReportSeriennummern extends PanelBasis implements
 	}
 
 	void dialogQueryLagerFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRLager = ArtikelFilterFactory.getInstance()
-				.createPanelFLRLager(getInternalFrame(), lagerIId, true, false);
+		panelQueryFLRLager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(), lagerIId, true,
+				false);
 
 		new DialogQuery(panelQueryFLRLager);
 	}
@@ -255,16 +220,14 @@ public class ReportSeriennummern extends PanelBasis implements
 
 			if (e.getSource() == panelQueryFLRLager) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LagerDto lagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerFindByPrimaryKey((Integer) key);
 				wtfLager.setText(lagerDto.getCNr());
 				lagerIId = lagerDto.getIId();
 				wtfLager.setText(lagerDto.getCNr());
 			} else if (e.getSource() == panelQueryFLRArtikel) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ArtikelDto artikelDto = DelegateFactory.getInstance()
-						.getArtikelDelegate()
+				ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
 						.artikelFindByPrimaryKey((Integer) key);
 				artikelIId = artikelDto.getIId();
 				wtfArtikel.setText(artikelDto.formatArtikelbezeichnung());
@@ -287,42 +250,29 @@ public class ReportSeriennummern extends PanelBasis implements
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_LAGER_FROM_LISTE)) {
 			dialogQueryLagerFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_ARTIKEL_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_ARTIKEL_FROM_LISTE)) {
 			dialogQueryArtikelFromListe(e);
 		}
 	}
 
 	void dialogQueryArtikelFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRArtikel = ArtikelFilterFactory.getInstance()
-				.createPanelFLRArtikel(getInternalFrame(), true);
+		panelQueryFLRArtikel = ArtikelFilterFactory.getInstance().createPanelFLRArtikel(getInternalFrame(), true);
 
 		new DialogQuery(panelQueryFLRArtikel);
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		try {
-			return DelegateFactory
-					.getInstance()
-					.getLagerDelegate()
-					.printSeriennummern(
-							lagerIId,
-							artikelIId,
-							wtfSeriennr.erzeugeSeriennummernArray(
-									new BigDecimal(0), false),
-							wrbSortIdent.isSelected(),
-							wcbMitGeraetesnrs.isSelected(),
-							wtfSnrWildcard.getText(),
-							wtfVersionWildcard.getText());
+			return DelegateFactory.getInstance().getLagerDelegate().printSeriennummern(lagerIId, artikelIId,
+					wtfSeriennr.getText() != null ? new String[] { wtfSeriennr.getText() } : null,
+					wrbSortIdent.isSelected(), wcbMitGeraetesnrs.isSelected(), wtfSnrWildcard.getText(),
+					wtfVersionWildcard.getText());
 		} catch (Throwable ex) {
 			/**
-			 * @todo MB->CK EJBExceptionLP sollte da eigentlich gar nicht
-			 *       herkommen.
+			 * @todo MB->CK EJBExceptionLP sollte da eigentlich gar nicht herkommen.
 			 */
 			if (ex instanceof com.lp.util.EJBExceptionLP) {
-				throw new ExceptionLP(
-						((com.lp.util.EJBExceptionLP) ex).getCode(),
-						ex.getCause());
+				throw new ExceptionLP(((com.lp.util.EJBExceptionLP) ex).getCode(), ex.getCause());
 			} else {
 				handleException(ex, true);
 			}
@@ -335,8 +285,7 @@ public class ReportSeriennummern extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 
@@ -347,7 +296,7 @@ public class ReportSeriennummern extends PanelBasis implements
 
 			wtfSeriennr.setEditable(false);
 			wtfSeriennr.setText("");
-			
+
 			wtfVersionWildcard.setText("");
 			wtfVersionWildcard.setEditable(true);
 		} else {
@@ -356,7 +305,7 @@ public class ReportSeriennummern extends PanelBasis implements
 
 			wtfSeriennr.setEditable(true);
 			wtfSeriennr.setText("");
-			
+
 			wtfVersionWildcard.setText("");
 			wtfVersionWildcard.setEditable(false);
 
@@ -364,8 +313,7 @@ public class ReportSeriennummern extends PanelBasis implements
 	}
 }
 
-class ReportSeriennummern_wcbSnrWildcard_actionAdapter implements
-		ActionListener {
+class ReportSeriennummern_wcbSnrWildcard_actionAdapter implements ActionListener {
 	private ReportSeriennummern adaptee;
 
 	ReportSeriennummern_wcbSnrWildcard_actionAdapter(ReportSeriennummern adaptee) {

@@ -2,7 +2,7 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
  * by the Free Software Foundation, either version 3 of theLicense, or
@@ -52,10 +52,8 @@
 
 package com.lp.client.frame.component.calendar;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
@@ -65,13 +63,13 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Locale;
 
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
@@ -80,10 +78,13 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.MaskFormatter;
 import javax.swing.text.PlainDocument;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.component.CornerInfoButton;
 import com.lp.client.frame.component.FocusHighlighter;
 import com.lp.client.frame.component.IDirektHilfe;
 import com.lp.client.frame.component.InfoButtonRelocator;
+import com.lp.client.util.logger.LpLogger;
+import com.lp.util.Helper;
 
 /**
  * JTextFieldDateEditor is the default editor used by JDateChooser. It is a
@@ -99,9 +100,9 @@ import com.lp.client.frame.component.InfoButtonRelocator;
 public class JTextFieldDateEditor extends JFormattedTextField implements
 		IDateEditor, CaretListener, FocusListener, ActionListener, IDirektHilfe {
 
-	/**
-	 *
-	 */
+	protected final LpLogger myLogger = (LpLogger) LpLogger.getInstance(this
+			.getClass());
+
 	private static final long serialVersionUID = 1L;
 
 	private static final String PATTERN_DE = "dd.MM.yyyy";
@@ -126,8 +127,6 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 
 	protected char placeholder;
 
-	protected Color darkGreen;
-
 	protected DateUtil dateUtil;
 
 	private boolean isMaskVisible;
@@ -145,6 +144,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	private Calendar calendar;
 
 	private CornerInfoButton cib = null;
+	private Dimension datePatternDimension;
 
 	public JTextFieldDateEditor() {
 		this(false, null, null, ' ');
@@ -204,6 +204,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 				super.insertString(offs, str, a);
 			}
 		});
+		dateUtil = new DateUtil();
 		dateFormatter = new SimpleDateFormat(getPattern(getLocale()));
 		dateFormatter.setLenient(false);
 
@@ -226,14 +227,12 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 		addCaretListener(this);
 		addFocusListener(this);
 		addActionListener(this);
-		darkGreen = new Color(0, 150, 0);
 
 		calendar = Calendar.getInstance();
 
-		dateUtil = new DateUtil();
-
 		new FocusHighlighter(this);
 		cib = new CornerInfoButton(this);
+		setHorizontalAlignment(SwingConstants.CENTER);
 	}
 
 	private boolean isNumber(String string) {
@@ -263,7 +262,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	 * @see com.lp.client.frame.component.calendar.IDateEditor#getDate()
 	 */
 	public Date getDate() {
-		checkText();
+		checkText(false) ;
 		try {
 			calendar.setTime(dateFormatter.parse(getText()));
 			calendar.set(Calendar.HOUR_OF_DAY, hours);
@@ -319,13 +318,20 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 			}
 		}
 		if (date != null && dateUtil.checkDate(date)) {
-			setForeground(Color.BLACK);
+			setForeground(Defaults.getInstance().getDefaultTextColor());
 		}
 
 		if (firePropertyChange) {
-			firePropertyChange("date", oldDate, date);
+			if(oldDate == null && date == null) {				
+			} else {
+				firePropertyChange("date", oldDate, date);
+//				boolean changed = oldDate == null ? date.equals(oldDate) : oldDate.equals(date) ;
+//				if(changed) {
+//					firePropertyChange("date", oldDate, date);
+//				}
+			}
 		}
-		updateColor();
+		updateColor(false);
 	}
 
 	/*
@@ -347,6 +353,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 			ignoreDatePatternChange = false;
 		}
 		this.datePattern = dateFormatter.toPattern();
+		setDatePatternDimension(datePattern);
 		setToolTipText(this.datePattern);
 		setDate(date, false);
 	}
@@ -384,7 +391,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	 */
 	public void caretUpdate(CaretEvent event) {
 		if(!hasFocus()) return;
-		updateColor();
+		updateColor(true);
 	}
 
 	/**
@@ -395,16 +402,110 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 		return dateUtil.checkDate(date);
 	}
 
-	public void updateColor() {
-		try {
-			Date date = dateFormatter.parse(getText());
-			if (dateUtil.checkDate(date)) {
-				setForeground(darkGreen);
-			} else {
-				setForeground(Color.RED);
+
+	private void updateColor(boolean useOkColor) {
+		validateDateUI(useOkColor) ;
+	}
+
+	class DateCheck {
+		private boolean valid ;
+		private Date initialDate ;
+		private Date usedDate ;
+
+		public DateCheck() {
+		}
+
+		public boolean validateDate() {
+			try {
+				String s = getText() ;
+				if(!Helper.isStringEmpty(s)) {
+					initialDate = dateFormatter.parse(s);
+					usedDate = normalize(initialDate) ;
+					valid = dateUtil.checkDate(usedDate) ;
+					return valid ;					
+				} 
+			} catch(Exception e) {
+				myLogger.debug("Invalid date Exc");
 			}
-		} catch (Exception e) {
-			setForeground(Color.RED);
+
+			return false ;
+		}
+
+		/**
+		 * Gueltiges Datum, wurde als T.M.14 erfasst, gemeint ist T.M.2014
+		 *		                       oder T.M.99 erfasst, gemeint ist T.M.1999
+		 *
+		 * @param d das zu normalisierende Datum
+		 * @return das normalisierte Datum
+		 */
+		public Date normalize(Date d) {
+			Calendar c = Calendar.getInstance() ;
+			c.setTime(d);
+			int year = c.get(Calendar.YEAR) ;
+			if(year < 100) {
+				if(year >= 40) {
+					year += 1900 ;
+				} else {
+					year += 2000 ;
+				}
+				c.set(Calendar.YEAR, year);
+				d = c.getTime() ;
+			}
+
+			return d ;
+		}
+
+		public void setMinMaxDate() {
+			Date minDate = getMinSelectableDate() ;
+			if(minDate != null && usedDate != null && usedDate.before(minDate)) {
+				setDate(minDate, false);
+			}
+			Date maxDate = getMaxSelectableDate() ;
+			if(maxDate != null && usedDate != null && usedDate.after(maxDate)) {
+				setDate(maxDate, false) ;
+			}
+		}
+
+		public boolean isValid() {
+			return valid;
+		}
+
+		public void setValid(boolean valid) {
+			this.valid = valid;
+		}
+
+		public Date getInitialDate() {
+			return initialDate;
+		}
+
+		public void setInitialDate(Date initialDate) {
+			this.initialDate = initialDate;
+		}
+
+		public Date getUsedDate() {
+			return usedDate;
+		}
+
+		public void setUsedDate(Date usedDate) {
+			this.usedDate = usedDate;
+		}
+	}
+
+	private DateCheck isValidDate() {
+		DateCheck rc = new DateCheck() ;
+		rc.validateDate() ;
+		return rc ;
+	}
+
+	private void validateDateUI(boolean useOkColor) {
+		validateDateUI(isValidDate(), useOkColor) ;
+	}
+
+	private void validateDateUI(DateCheck dateCheck, boolean useOkColor) {
+		if(dateCheck.isValid()) {
+			setForeground(useOkColor ? Defaults.getInstance().getValidTextColor() : Defaults.getInstance().getDefaultTextColor());
+		} else {
+			setForeground(Defaults.getInstance().getInvalidTextColor());
 		}
 	}
 
@@ -414,72 +515,51 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	 * @see java.awt.event.FocusListener#focusLost(java.awt.event.FocusEvent)
 	 */
 	public void focusLost(FocusEvent focusEvent) {
-		checkText();
-		validateDate();
-		setForeground(Color.black);
-	}
-	public void validateDate() {
-		String text = getText().trim();
-		String emptyMask = maskPattern.replace('#', placeholder);
-		Date minDate = dateUtil.getMinSelectableDate();
-		Date maxDate = dateUtil.getMaxSelectableDate();
-		if (text.length() == 0 || text.equals(emptyMask)) return;
-
-		try {
-			Date date = dateFormatter.parse(getText());
-			if (dateUtil.checkDate(date)) {
-				setForeground(darkGreen);
-			} else {
-				setForeground(Color.RED);
-				if (date.before(minDate)) {
-					String formattedDate = dateFormatter.format(minDate);
-					setText(formattedDate);
-				} else if (date.after(maxDate)) {
-					String formattedDate = dateFormatter.format(maxDate);
-					setText(formattedDate);
-				}
-			}
-		} catch (Exception e) {
-			Toolkit.getDefaultToolkit().beep();
-			setDate(initDate);
-		}
-
+		DateCheck dateCheck = checkText(true);
+		validateDateUI(dateCheck, true) ;
+		dateCheck.setMinMaxDate();
 	}
 
-
-
-	private void checkText() {
-		try {
-
-			Date date = dateFormatter.parse(getText());
-			GregorianCalendar gcGrenzeUnten = new GregorianCalendar(1900, 0, 1);
-			GregorianCalendar gcGrenzeOben = new GregorianCalendar(2999, 11, 31);
-			if (date.before(gcGrenzeUnten.getTime())) {
-
-				GregorianCalendar gcDatum = new GregorianCalendar();
-				gcDatum.setTime(date);
-				int iJahrZweistellig = gcDatum.get(Calendar.YEAR) % 100;
-				int iJahrhundert;
-				if (iJahrZweistellig >= 40) {
-					iJahrhundert = 1900;
-				} else {
-					iJahrhundert = 2000;
-				}
-				gcDatum.set(Calendar.YEAR, iJahrZweistellig + iJahrhundert);
-				setDate(new java.sql.Date(gcDatum.getTime().getTime()), true);
-			} else {
-
-				setDate(date, false);
-			}
-			if (date.after(gcGrenzeOben.getTime())) {
-				Toolkit.getDefaultToolkit().beep();
-				setDate(null);
-			}
-
-		} catch (Exception e) {
-			// ignore
-		}
+	private DateCheck checkText(boolean firePropertyChanged) {
+		DateCheck rc = isValidDate() ;
+		setDate(rc.getUsedDate(), firePropertyChanged);
+		return rc ;
 	}
+
+//	private DateCheck checkText(boolean firePropertyChanged) {
+//		try {
+//			Date date = dateFormatter.parse(getText());
+
+//			GregorianCalendar gcGrenzeUnten = new GregorianCalendar(1900, 0, 1);
+//			GregorianCalendar gcGrenzeOben = new GregorianCalendar(2999, 11, 31);
+//			GregorianCalendar gcDatum = new GregorianCalendar();
+//
+//			gcDatum.setTime(date);
+//
+//			if (String.valueOf(gcDatum.get(Calendar.YEAR)).length() == 2) {
+//
+//				int iJahrZweistellig = gcDatum.get(Calendar.YEAR) % 100;
+//				int iJahrhundert;
+//				if (iJahrZweistellig >= 40) {
+//					iJahrhundert = 1900;
+//				} else {
+//					iJahrhundert = 2000;
+//				}
+//				gcDatum.set(Calendar.YEAR, iJahrZweistellig + iJahrhundert);
+//
+//			}
+//
+//			date = new java.sql.Date(gcDatum.getTime().getTime());
+//
+//			if (date.before(gcGrenzeUnten.getTime()) || date.after(gcGrenzeOben.getTime())) {
+//				setDate(null, true);
+//			} else {
+//				myLogger.debug("Date to set '" + date.toLocaleString());
+//	         	setDate(date, firePropertyChanged);
+//		} catch (Exception e) {
+//			// ignore
+//		}
+//	}
 
 	/*
 	 * (non-Javadoc)
@@ -575,17 +655,33 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	 * date pattern would take.
 	 */
 	public Dimension getPreferredSize() {
-		if (datePattern != null) {
-			return new JTextField(datePattern).getPreferredSize();
-		}
-		return super.getPreferredSize();
+		return datePatternDimension != null ? datePatternDimension : super.getPreferredSize();
+//		if (datePattern != null) {
+//			return new JTextField(datePattern).getPreferredSize();
+//		}
+//		return super.getPreferredSize();
 	}
 
+	private void setDatePatternDimension(String pattern) {
+		if (pattern == null) {
+			datePatternDimension = null;
+			return;
+		}
+		// PJ20484
+		// wg. zu kleiner Datumsfelder in manchen Umgebungen
+		int extraWidthSpace = 8;
+		Dimension prefSize = new JTextField(datePattern).getPreferredSize();
+		prefSize.setSize(new Dimension(
+				new Double(prefSize.getWidth()).intValue() + extraWidthSpace, 
+				new Double(prefSize.getHeight()).intValue()));
+		datePatternDimension = prefSize;
+	}
+	
 	/**
 	 * Validates the typed date and sets it (only if it is valid).
 	 */
 	public void actionPerformed(ActionEvent e) {
-		checkText();
+		checkText(true);
 	}
 
 	/**
@@ -627,7 +723,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	 */
 	public void setMaxSelectableDate(Date max) {
 		dateUtil.setMaxSelectableDate(max);
-		checkText();
+		checkText(true);
 	}
 
 	/*
@@ -638,7 +734,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	 */
 	public void setMinSelectableDate(Date min) {
 		dateUtil.setMinSelectableDate(min);
-		checkText();
+		checkText(true);
 	}
 
 	/*
@@ -650,7 +746,7 @@ public class JTextFieldDateEditor extends JFormattedTextField implements
 	 */
 	public void setSelectableDateRange(Date min, Date max) {
 		dateUtil.setSelectableDateRange(min, max);
-		checkText();
+		checkText(true);
 	}
 
 	/**

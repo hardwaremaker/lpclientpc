@@ -42,7 +42,9 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.MaterialDto;
 import com.lp.server.artikel.service.MaterialFac;
+import com.lp.server.artikel.service.MaterialpreisDto;
 import com.lp.server.artikel.service.MaterialzuschlagDto;
+import com.lp.server.partner.service.KundematerialDto;
 import com.lp.server.system.service.TheClientDto;
 
 public class MaterialDelegate extends Delegate {
@@ -51,50 +53,42 @@ public class MaterialDelegate extends Delegate {
 
 	public MaterialDelegate() throws Exception {
 		context = new InitialContext();
-		materialFac = (MaterialFac) context
-				.lookup("lpserver/MaterialFacBean/remote");
+
+		materialFac = lookupFac(context, MaterialFac.class);
 	}
 
 	public Integer createMaterial(MaterialDto materialDto) throws ExceptionLP {
 		try {
-			return materialFac.createMaterial(materialDto,
-					LPMain.getTheClient());
+			return materialFac.createMaterial(materialDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public BigDecimal getKupferzuschlagInLieferantenwaehrung(
-			Integer artikelIId, Integer lieferantIId) throws ExceptionLP {
+	public Integer createKundematerial(KundematerialDto dto) throws ExceptionLP {
 		try {
-			return materialFac.getKupferzuschlagInLieferantenwaehrung(
-					artikelIId, lieferantIId, LPMain.getTheClient());
+			return materialFac.createKundematerial(dto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public BigDecimal getMaterialzuschlagVKInZielwaehrung(Integer artikelIId,
-			Date datGueltigkeitsdatumI, String waehrungCNrZielwaehrung)
+	public BigDecimal getKupferzuschlagInLieferantenwaehrung(Integer artikelIId, Integer lieferantIId)
 			throws ExceptionLP {
 		try {
-			return materialFac.getMaterialzuschlagVKInZielwaehrung(artikelIId,
-					datGueltigkeitsdatumI, waehrungCNrZielwaehrung,
-					LPMain.getTheClient());
+			return materialFac.getKupferzuschlagInLieferantenwaehrung(artikelIId, lieferantIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public BigDecimal getMaterialzuschlagEKInZielwaehrung(Integer artikelIId,
-			Integer lieferantIId, Date datGueltigkeitsdatumI,
-			String waehrungCNrZielwaehrung) throws ExceptionLP {
+	public BigDecimal getMaterialzuschlagVKInZielwaehrung(Integer artikelIId, Integer kundeIId,
+			Date datGueltigkeitsdatumI, String waehrungCNrZielwaehrung) throws ExceptionLP {
 		try {
-			return materialFac.getMaterialzuschlagEKInZielwaehrung(artikelIId,
-					lieferantIId, datGueltigkeitsdatumI,
+			return materialFac.getMaterialzuschlagVKInZielwaehrung(artikelIId, kundeIId, datGueltigkeitsdatumI,
 					waehrungCNrZielwaehrung, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -102,8 +96,29 @@ public class MaterialDelegate extends Delegate {
 		}
 	}
 
-	public Integer materialFindByCNrOhneExc(String materialCNr)
-			throws ExceptionLP {
+	public BigDecimal getMaterialzuschlagEKInZielwaehrung(Integer artikelIId, Integer lieferantIId,
+			Date datGueltigkeitsdatumI, String waehrungCNrZielwaehrung) throws ExceptionLP {
+		try {
+			return materialFac.getMaterialzuschlagEKInZielwaehrung(artikelIId, lieferantIId, datGueltigkeitsdatumI,
+					waehrungCNrZielwaehrung, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public BigDecimal getMaterialpreisInZielwaehrung(Integer materialIId, java.util.Date datGueltigkeitsdatumI,
+			String waehrungCNrZielwaehrung) throws ExceptionLP {
+		try {
+			return materialFac.getMaterialpreisInZielwaehrung(materialIId, datGueltigkeitsdatumI,
+					waehrungCNrZielwaehrung, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public Integer materialFindByCNrOhneExc(String materialCNr) throws ExceptionLP {
 		try {
 			return materialFac.materialFindByCNrOhneExc(materialCNr);
 		} catch (Throwable ex) {
@@ -130,56 +145,88 @@ public class MaterialDelegate extends Delegate {
 
 	public MaterialDto materialFindByPrimaryKey(Integer iId) throws ExceptionLP {
 		try {
-			return materialFac.materialFindByPrimaryKey(iId,
-					LPMain.getTheClient());
+			return materialFac.materialFindByPrimaryKey(iId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public Integer createMaterialzuschlag(
-			MaterialzuschlagDto materialzuschlagDto) throws ExceptionLP {
+	public Integer createMaterialzuschlag(MaterialzuschlagDto materialzuschlagDto) throws ExceptionLP {
 		try {
-			return materialFac.createMaterialzuschlag(materialzuschlagDto,
-					LPMain.getTheClient());
+			return materialFac.createMaterialzuschlag(materialzuschlagDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public void removeMaterialzuschlag(MaterialzuschlagDto materialzuschlagDto)
-			throws ExceptionLP {
+	public Integer createMaterialpreis(MaterialpreisDto materialpreisDto) throws ExceptionLP {
 		try {
-			materialFac.removeMaterialzuschlag(materialzuschlagDto);
+			return materialFac.createMaterialpreis(materialpreisDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public void removeMaterialzuschlag(MaterialzuschlagDto materialzuschlagDto) throws ExceptionLP {
+		try {
+			materialFac.removeMaterialzuschlag(materialzuschlagDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void pflegeMaterialzuschlagsKursUndDatumNachtragen()
-			throws ExceptionLP {
+	public void removeMaterialpreis(MaterialpreisDto materialpreisDto) throws ExceptionLP {
 		try {
-			materialFac.pflegeMaterialzuschlagsKursUndDatumNachtragen(LPMain
-					.getTheClient());
+			materialFac.removeMaterialpreis(materialpreisDto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public void updateMaterialzuschlag(MaterialzuschlagDto materialzuschlagDto)
-			throws ExceptionLP {
+	public void removeKundematerial(KundematerialDto dto) throws ExceptionLP {
 		try {
-			materialFac.updateMaterialzuschlag(materialzuschlagDto,
-					LPMain.getTheClient());
+			materialFac.removeKundematerial(dto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
 	}
 
-	public MaterialzuschlagDto materialzuschlagFindByPrimaryKey(Integer id)
-			throws ExceptionLP {
+	public void pflegeMaterialzuschlagsKursUndDatumNachtragen() throws ExceptionLP {
+		try {
+			materialFac.pflegeMaterialzuschlagsKursUndDatumNachtragen(LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateMaterialzuschlag(MaterialzuschlagDto materialzuschlagDto) throws ExceptionLP {
+		try {
+			materialFac.updateMaterialzuschlag(materialzuschlagDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateMaterialpreis(MaterialpreisDto materialpreisDto) throws ExceptionLP {
+		try {
+			materialFac.updateMaterialpreis(materialpreisDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateKundematerial(KundematerialDto dto) throws ExceptionLP {
+		try {
+			materialFac.updateKundematerial(dto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public MaterialzuschlagDto materialzuschlagFindByPrimaryKey(Integer id) throws ExceptionLP {
 		try {
 			return materialFac.materialzuschlagFindByPrimaryKey(id);
 		} catch (Throwable ex) {
@@ -188,11 +235,27 @@ public class MaterialDelegate extends Delegate {
 		}
 	}
 
-	public BigDecimal materialzuschlagFindAktuellenzuschlag(Integer id)
-			throws ExceptionLP {
+	public MaterialpreisDto materialpreisFindByPrimaryKey(Integer id) throws ExceptionLP {
 		try {
-			return materialFac.materialzuschlagFindAktuellenzuschlag(id,
-					LPMain.getTheClient());
+			return materialFac.materialpreisFindByPrimaryKey(id);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public KundematerialDto kundematerialFindByPrimaryKey(Integer id) throws ExceptionLP {
+		try {
+			return materialFac.kundematerialFindByPrimaryKey(id);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public BigDecimal materialzuschlagFindAktuellenzuschlag(Integer id) throws ExceptionLP {
+		try {
+			return materialFac.materialzuschlagFindAktuellenzuschlag(id, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;

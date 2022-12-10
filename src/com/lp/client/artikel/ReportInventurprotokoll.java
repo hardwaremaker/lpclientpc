@@ -57,6 +57,7 @@ import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
+import com.lp.server.artikel.service.InventurDto;
 import com.lp.server.artikel.service.InventurFac;
 import com.lp.server.artikel.service.LagerDto;
 import com.lp.server.system.service.MailtextDto;
@@ -84,6 +85,7 @@ public class ReportInventurprotokoll extends PanelBasis implements
 	private ButtonGroup bg = new ButtonGroup();
 	private WrapperRadioButton wrbArtikel = new WrapperRadioButton();
 	private WrapperRadioButton wrbLagerplatz = new WrapperRadioButton();
+	private WrapperRadioButton wrbReferenznummer = new WrapperRadioButton();
 
 	static final public String ACTION_SPECIAL_LAGER_FROM_LISTE = "action_lager_from_liste";
 	JLabel wlaInventur = new JLabel();
@@ -100,6 +102,24 @@ public class ReportInventurprotokoll extends PanelBasis implements
 			wtfInventur.setText(DelegateFactory.getInstance()
 					.getInventurDelegate()
 					.inventurFindByPrimaryKey(inventurIId).getCBez());
+			
+		
+				InventurDto inventurDto = DelegateFactory.getInstance()
+						.getInventurDelegate()
+						.inventurFindByPrimaryKey(inventurIId);
+				wtfInventur.setText(inventurDto.getCBez());
+
+			if (inventurDto.getLagerIId() != null) {
+				lagerIId = inventurDto.getLagerIId();
+				LagerDto lagerDto = DelegateFactory.getInstance()
+						.getLagerDelegate()
+						.lagerFindByPrimaryKey(inventurDto.getLagerIId());
+				wtfLager.setText(lagerDto.getCNr());
+				wbuLager.setEnabled(false);
+			}
+
+			
+			
 		}
 	}
 
@@ -128,9 +148,12 @@ public class ReportInventurprotokoll extends PanelBasis implements
 
 		wrbLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.inventur.inventurprotokoll.sortierung.lagerplatz"));
+		wrbReferenznummer.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.referenznummer"));
 
 		bg.add(wrbArtikel);
 		bg.add(wrbLagerplatz);
+		bg.add(wrbReferenznummer);
 
 
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
@@ -166,6 +189,11 @@ public class ReportInventurprotokoll extends PanelBasis implements
 		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, iZeile, 1, 1, 0.1,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbReferenznummer, new GridBagConstraints(3, iZeile, 1, 1,
+				0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
 		jpaWorkingOn.add(wrbLagerplatz, new GridBagConstraints(3, iZeile, 1, 1,
 				0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
@@ -238,11 +266,19 @@ public class ReportInventurprotokoll extends PanelBasis implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+		
+		int iSortierung=InventurFac.REPORT_INVENTURPROTOKOLL_SORTIERUNG_ARTIKELNR;
+		if(wrbLagerplatz.isSelected()){
+			iSortierung=InventurFac.REPORT_INVENTURPROTOKOLL_SORTIERUNG_LAGERPLATZ;
+		}else if(wrbReferenznummer.isSelected()){
+			iSortierung=InventurFac.REPORT_INVENTURPROTOKOLL_SORTIERUNG_REFERENZNUMMER;
+		}
+		
 		return DelegateFactory
 				.getInstance()
 				.getInventurDelegate()
 				.printInventurprotokoll(inventurIId, lagerIId,
-						wrbLagerplatz.isSelected(), wtfLagerplatzVon.getText(),
+						iSortierung, wtfLagerplatzVon.getText(),
 						wtfLagerplatzBis.getText());
 	}
 

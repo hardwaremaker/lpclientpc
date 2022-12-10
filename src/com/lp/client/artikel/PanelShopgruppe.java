@@ -155,7 +155,7 @@ public class PanelShopgruppe extends PanelBasis {
 					.getShopgruppeDto().getIId();
 		}
 
-		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
+		if (key == null) {
 			leereAlleFelder(this);
 			clearStatusbar();
 		} else {

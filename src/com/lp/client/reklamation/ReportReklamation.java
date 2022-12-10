@@ -32,20 +32,15 @@
  ******************************************************************************/
 package com.lp.client.reklamation;
 
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.sql.Timestamp;
 import java.util.Locale;
 
-import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 
-import com.lp.client.frame.component.PanelBasis;
-import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.client.frame.report.PanelReportIfJRDS;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportKriterien;
-import com.lp.client.frame.report.ReportEtikett;
+import com.lp.client.frame.report.ReportBeleg;
 import com.lp.client.pc.LPMain;
 import com.lp.server.bestellung.service.WareneingangDto;
 import com.lp.server.partner.service.PartnerDto;
@@ -53,39 +48,41 @@ import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.reklamation.service.ReklamationDto;
 import com.lp.server.reklamation.service.ReklamationFac;
 import com.lp.server.reklamation.service.ReklamationReportFac;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
-public class ReportReklamation extends PanelBasis implements PanelReportIfJRDS {
+public class ReportReklamation extends ReportBeleg implements IDruckTypeReport { //PanelBasis implements PanelReportIfJRDS {
 	protected JPanel jpaWorkingOn = new JPanel();
-	private GridBagLayout gridBagLayout2 = new GridBagLayout();
-	private GridBagLayout gridBagLayout1 = new GridBagLayout();
-
-	private ButtonGroup buttonGroup = new ButtonGroup();
+	
 
 	private static final long serialVersionUID = 1L;
 	private Integer reklamationIId = null;
 
 	public ReportReklamation(InternalFrameReklamation internalFrame,
-			String add2Title, Integer reklamationIId) throws Throwable {
-		super(internalFrame, add2Title);
-		jbInit();
-		initComponents();
+			String add2Title, Integer reklamationIId, Integer kostenstelleIId) throws Throwable {
+		super(internalFrame, null, add2Title, LocaleFac.BELEGART_REKLAMATION, reklamationIId, kostenstelleIId);
 		this.reklamationIId = reklamationIId;
+
+	
+		initComponents();
 	}
 
-	private void jbInit() throws Exception {
-		this.setLayout(gridBagLayout1);
-		jpaWorkingOn.setLayout(gridBagLayout2);
-
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
-
-		iZeile++;
-
+	@Override
+	protected void aktiviereBelegImpl(Timestamp t) throws Throwable {		
 	}
+
+	@Override
+	protected Timestamp berechneBelegImpl() throws Throwable {
+		return null;
+	}
+
+	@Override
+	protected String getLockMeWer() throws Exception {
+		return null;
+	}
+
 
 	public String getModul() {
 		return ReklamationReportFac.REPORT_MODUL;
@@ -96,8 +93,8 @@ public class ReportReklamation extends PanelBasis implements PanelReportIfJRDS {
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory.getInstance().getReklamationReportDelegate()
-				.printReklamation(reklamationIId, false);
+		return kopienHinzufuegen( DelegateFactory.getInstance().getReklamationReportDelegate()
+				.printReklamation(reklamationIId, false));
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -205,6 +202,7 @@ public class ReportReklamation extends PanelBasis implements PanelReportIfJRDS {
 				mailtextDto.setMailText(null);
 				mailtextDto.setParamLocale(locKunde);
 			}
+			mailtextDto.setProjektIId(reklamationDto.getProjektIId());
 		}
 		return mailtextDto;
 	}

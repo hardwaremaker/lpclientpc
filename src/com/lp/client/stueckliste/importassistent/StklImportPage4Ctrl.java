@@ -102,7 +102,7 @@ public class StklImportPage4Ctrl extends AssistentPageController {
 	
 	@Override
 	public void finishedAssistent() throws ExceptionLP, Throwable {
-		if(!model.isSave()) return;
+		if(!model.isSave() || model.getSavingName() == null) return;
 		model.getSelectedSpezifikation().setName(model.getSavingName());
 		model.getSelectedSpezifikation().setMandantCnr(LPMain.getTheClient().getMandant());
 		if(model.getImportSpezifikationen().containsKey(model.getSavingName())) {

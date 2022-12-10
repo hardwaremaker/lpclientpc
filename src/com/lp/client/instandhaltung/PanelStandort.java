@@ -42,7 +42,6 @@ import java.util.EventObject;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
@@ -65,6 +64,7 @@ import com.lp.client.frame.component.WrapperTelefonField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.open.DirectoryFile;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
@@ -75,6 +75,7 @@ import com.lp.server.partner.service.KundeDto;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.util.Facade;
+import com.lp.server.util.HvOptional;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 
 public class PanelStandort extends PanelBasis {
@@ -90,13 +91,13 @@ public class PanelStandort extends PanelBasis {
 	private GridBagLayout gridBagLayoutAll = new GridBagLayout();
 
 	private WrapperGotoButton wbuPartner = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_PARTNER_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_PARTNER_AUSWAHL);
 	private WrapperTextField wtfPartner = new WrapperTextField();
 	private PanelQueryFLR panelQueryFLRPartner = null;
 	static final public String ACTION_SPECIAL_PARTNER_FROM_LISTE = "action_partner_from_liste";
 
 	private WrapperGotoButton wbuAuftrag = new WrapperGotoButton(
-			WrapperGotoButton.GOTO_AUFTRAG_AUSWAHL);
+			com.lp.util.GotoHelper.GOTO_AUFTRAG_AUSWAHL);
 	private WrapperTextField wtfAuftrag = new WrapperTextField();
 	private PanelQueryFLR panelQueryFLRAuftrag = null;
 	static final public String ACTION_SPECIAL_AUFTRAG_FROM_LISTE = "action_auftrag_from_liste";
@@ -429,17 +430,11 @@ public class PanelStandort extends PanelBasis {
 				ACTION_SPECIAL_AUFTRAG_FROM_LISTE)) {
 			dialogQueryAuftrag();
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_DOKUMENT)) {
-			JFileChooser fc = new JFileChooser();
-			fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-			if (wtfPfad.getText() != null) {
-				fc.setCurrentDirectory(new File(wtfPfad.getText()));
+			HvOptional<DirectoryFile> df = HelperClient
+					.chooseDirectoryNew(this, wtfPfad.getText());
+			if (df.isPresent()) {
+				wtfPfad.setText(df.get().getDirectory().getAbsolutePath());				
 			}
-
-			int returnVal = fc.showOpenDialog(null);
-			if (returnVal == JFileChooser.APPROVE_OPTION) {
-				wtfPfad.setText(fc.getSelectedFile().getAbsolutePath());
-			}
-
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_GOTO)) {
 			if (wtfPfad.getText() != null) {
 				try {

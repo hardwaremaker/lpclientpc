@@ -64,6 +64,8 @@ import com.lp.server.fertigung.service.LossollmaterialDto;
 import com.lp.server.fertigung.service.LoszusatzstatusDto;
 import com.lp.server.stueckliste.service.StuecklisteDto;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
@@ -118,9 +120,10 @@ public class DialogGeraeteseriennummern extends JDialog implements
 		for (int i = 0; i < sollMatDtos.length; i++) {
 			if (sollMatDtos[i].getArtikelIId() != null) {
 
-				ArtikelDto artikelDto = DelegateFactory.getInstance()
-						.getArtikelDelegate().artikelFindByPrimaryKey(
-								sollMatDtos[i].getArtikelIId());
+				ArtikelDto artikelDto = DelegateFactory
+						.getInstance()
+						.getArtikelDelegate()
+						.artikelFindByPrimaryKey(sollMatDtos[i].getArtikelIId());
 				if (Helper.short2boolean(artikelDto.getBSeriennrtragend()) == true) {
 					bSnrBehafteteArtikelVorhanden = true;
 					WrapperLabel wla = new WrapperLabel();
@@ -147,7 +150,8 @@ public class DialogGeraeteseriennummern extends JDialog implements
 					if (sollMatDtos[i].getNMenge().doubleValue() == 1) {
 
 						LosistmaterialDto[] istmatDtos = DelegateFactory
-								.getInstance().getFertigungDelegate()
+								.getInstance()
+								.getFertigungDelegate()
 								.losistmaterialFindByLossollmaterialIId(
 										sollMatDtos[i].getIId());
 						for (int j = 0; j < istmatDtos.length; j++) {
@@ -217,42 +221,59 @@ public class DialogGeraeteseriennummern extends JDialog implements
 					DialogFactory
 							.showModalDialog(
 									LPMain.getTextRespectUISPr("lp.error"),
-									LPMain
-											.getTextRespectUISPr("lp.pflichtfelder.ausfuellen"));
+									LPMain.getTextRespectUISPr("lp.pflichtfelder.ausfuellen"));
 					return;
 				}
 
+				String seriennummer = wtfSnr.get(i).getText();
+
 				// Pruefen, ob auch wirklich aufs Los gebucht
 				try {
-					boolean b = DelegateFactory.getInstance()
+
+					//SP4845
+					ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
+							.getInstance()
+							.getParameterDelegate()
+							.getParametermandant(
+									ParameterFac.PARAMETER_SERIENNUMMERN_FUEHRENDE_NULLEN_ENTFERNEN,
+									ParameterFac.KATEGORIE_ARTIKEL,
+									LPMain.getTheClient().getMandant());
+					boolean bFuehrendeNullenWegschneiden = (Boolean) parameter
+							.getCWertAsObject();
+					if (bFuehrendeNullenWegschneiden) {
+						seriennummer = seriennummer.replaceFirst("0*", "");
+					}
+
+					boolean b = DelegateFactory
+							.getInstance()
 							.getLagerDelegate()
 							.pruefeObSnrChnrAufBelegGebuchtWurde(
 									LocaleFac.BELEGART_LOS, losIId,
 									alGeraetesnr.get(i).getArtikelIId(),
-									wtfSnr.get(i).getText());
+									seriennummer);
 
 					if (b == false) {
-						ArtikelDto artikelDto = DelegateFactory.getInstance()
-								.getArtikelDelegate().artikelFindByPrimaryKey(
+						ArtikelDto artikelDto = DelegateFactory
+								.getInstance()
+								.getArtikelDelegate()
+								.artikelFindByPrimaryKey(
 										alGeraetesnr.get(i).getArtikelIId());
 
 						DialogFactory
 								.showModalDialog(
 										LPMain.getTextRespectUISPr("lp.error"),
-										LPMain
-												.getTextRespectUISPr("fert.geraeteseriennummern.error")
+										LPMain.getTextRespectUISPr("fert.geraeteseriennummern.error")
 												+ " "
 												+ artikelDto
 														.formatArtikelbezeichnung()
-												+ " - "
-												+ wtfSnr.get(i).getText());
+												+ " - " + seriennummer);
 						return;
 					}
 				} catch (Throwable e1) {
 					LPMain.getInstance().exitFrame(null, e1);
 				}
 
-				alGeraetesnr.get(i).setCSnr(wtfSnr.get(i).getText());
+				alGeraetesnr.get(i).setCSnr(seriennummer);
 
 			}
 			bAbgebrochen = false;
@@ -263,10 +284,11 @@ public class DialogGeraeteseriennummern extends JDialog implements
 				if (e.getSource().equals(buttons.get(i))) {
 
 					try {
-						Integer sollmaterialIId = new Integer(e
-								.getActionCommand());
+						Integer sollmaterialIId = new Integer(
+								e.getActionCommand());
 						ArrayList<String> alOffeneSnrs = DelegateFactory
-								.getInstance().getFertigungDelegate()
+								.getInstance()
+								.getFertigungDelegate()
 								.getOffeneGeraeteSnrEinerSollPosition(
 										sollmaterialIId);
 

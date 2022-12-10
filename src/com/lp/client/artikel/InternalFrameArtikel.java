@@ -38,6 +38,7 @@ import java.util.EventObject;
 import javax.swing.ImageIcon;
 import javax.swing.JTabbedPane;
 
+import com.lp.client.fertigung.TabbedPaneTrumpf;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -73,11 +74,18 @@ public class InternalFrameArtikel extends InternalFrame {
 	private TabbedPaneInventur tabbedPaneInventur = null;
 	private TabbedPaneVkpfPreislisten tabbedPaneVkpfPreislistenname = null;
 	private TabbedPaneArtikelgrunddaten tabbedPaneGrunddaten = null;
+
+	public TabbedPaneArtikelgrunddaten getTabbedPaneGrunddaten() {
+		return tabbedPaneGrunddaten;
+	}
+
 	private TabbedPaneShopgruppe tabbedPaneShopgruppe = null;
 	private TabbedPaneLagercockpit tabbedPaneLagercockpit = null;
 	private TabbedPaneKundenartikelnummern tabbedPaneKundenartikelnummern = null;
-
-	public static int IDX_TABBED_PANE_ARTIKEL = -1;
+	private TabbedPaneWarenbewegung tabbedPaneWarenbewegung = null;
+	private TabbedPaneWerkzeuge tabbedPaneWerkzeug = null;
+	
+	public static int IDX_TABBED_PANE_ARTIKEL = 0;
 	public int IDX_TABBED_PANE_HANDLAGERBEWEGUNG = -1;
 	public int IDX_TABBED_PANE_MATERIAL = -1;
 	public int IDX_TABBED_PANE_INVENTUR = -1;
@@ -85,7 +93,10 @@ public class InternalFrameArtikel extends InternalFrame {
 	public int IDX_TABBED_PANE_SHOPGRUPPE = -1;
 	public int IDX_TABBED_PANE_LAGERCOCKPIT = -1;
 	public int IDX_TABBED_PANE_GRUNDDATEN = -1;
+	public int IDX_TABBED_PANE_WARENBEWEGUNGEN = -1;
 	public static int IDX_TABBED_PANE_KUNDENARTIKELNUMMERN = -1;
+	public int IDX_TABBED_PANE_WERKZEUG = -1;
+	
 
 	public String sRechtModulweit = null;
 
@@ -109,6 +120,11 @@ public class InternalFrameArtikel extends InternalFrame {
 	public TabbedPaneArtikel getTabbedPaneArtikel() {
 		return tabbedPaneArtikel;
 	}
+
+	public TabbedPaneHandlagerbewegung getTabbedPaneHandlagerbewegung() {
+		return tabbedPaneHandlagerbewegung;
+	}
+
 	public TabbedPaneKundenartikelnummern getTabbedPaneKundenartikelnummern() {
 		return tabbedPaneKundenartikelnummern;
 	}
@@ -138,23 +154,16 @@ public class InternalFrameArtikel extends InternalFrame {
 
 		String mandantCNr = LPMain.getTheClient().getMandant();
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
-				&& !LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER)) {
-			mandantCNr= DelegateFactory.getInstance().getSystemDelegate().getHauptmandant();
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
+				&& !LPMain.getInstance().getDesktop()
+						.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER)) {
+			mandantCNr = DelegateFactory.getInstance().getSystemDelegate().getHauptmandant();
 		} else {
 
 		}
 
-		LagerDto[] lagerDtos = DelegateFactory.getInstance().getLagerDelegate()
-				.lagerFindByMandantCNr(mandantCNr);
+		LagerDto[] lagerDtos = DelegateFactory.getInstance().getLagerDelegate().lagerFindByMandantCNr(mandantCNr);
 
 		boolean bHauptlagervorhanden = false;
 		for (LagerDto laDto : lagerDtos) {
@@ -167,25 +176,20 @@ public class InternalFrameArtikel extends InternalFrame {
 		if (bHauptlagervorhanden == false && lagerDtos.length > 0) {
 			// Das erste Lager als Hauptlager deklarieren
 			lagerDtos[0].setLagerartCNr(LagerFac.LAGERART_HAUPTLAGER);
-			DelegateFactory.getInstance().getLagerDelegate()
-					.updateLager(lagerDtos[0]);
+			DelegateFactory.getInstance().getLagerDelegate().updateLager(lagerDtos[0]);
 
-			MessageFormat mf = new MessageFormat(
-					LPMain.getTextRespectUISPr("auft.mandant.hauptlager.fehlt.ergaenzt"));
+			MessageFormat mf = new MessageFormat(LPMain.getTextRespectUISPr("auft.mandant.hauptlager.fehlt.ergaenzt"));
 			mf.setLocale(LPMain.getTheClient().getLocUi());
 
-			Object[] pattern = new Object[] { "\"" + lagerDtos[0].getCNr()
-					+ "\"" };
+			Object[] pattern = new Object[] { "\"" + lagerDtos[0].getCNr() + "\"" };
 			String sMsg = mf.format(pattern);
 
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.hint"), sMsg);
+			DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hint"), sMsg);
 		}
 
 	}
 
-	public InternalFrameArtikel(String title, String belegartCNr,
-			String sRechtModulweitI) throws Throwable {
+	public InternalFrameArtikel(String title, String belegartCNr, String sRechtModulweitI) throws Throwable {
 
 		super(title, belegartCNr, sRechtModulweitI);
 		sRechtModulweit = sRechtModulweitI;
@@ -200,108 +204,95 @@ public class InternalFrameArtikel extends InternalFrame {
 		int tabIndex = 0;
 		IDX_TABBED_PANE_ARTIKEL = tabIndex;
 
-		tabbedPaneRoot.insertTab(
-				LPMain.getInstance().getTextRespectUISPr("lp.artikel"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.artikel"),
-				IDX_TABBED_PANE_ARTIKEL);
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.artikel"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.artikel"), IDX_TABBED_PANE_ARTIKEL);
 
-		tabIndex++;
-		IDX_TABBED_PANE_HANDLAGERBEWEGUNG = tabIndex;
-		tabbedPaneRoot.insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.title.panel.handlagerbewegungen"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.title.panel.handlagerbewegungen"),
-				IDX_TABBED_PANE_HANDLAGERBEWEGUNG);
-		if (!LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
-				|| LPMain
-						.getTheClient()
-						.getMandant()
-						.equalsIgnoreCase(
-								DelegateFactory.getInstance()
-										.getSystemDelegate().getHauptmandant())) {
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_WW_HANDLAGERBEWEGUNG_R)
+				|| DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_WW_HANDLAGERBEWEGUNG_CUD)) {
+
 			tabIndex++;
-			IDX_TABBED_PANE_MATERIAL = tabIndex;
+			IDX_TABBED_PANE_HANDLAGERBEWEGUNG = tabIndex;
 			tabbedPaneRoot.insertTab(
-					LPMain.getInstance().getTextRespectUISPr("label.material"),
-					null, null,
-					LPMain.getInstance().getTextRespectUISPr("label.material"),
-					IDX_TABBED_PANE_MATERIAL);
+					LPMain.getInstance().getTextRespectUISPr("artikel.title.panel.handlagerbewegungen"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("artikel.title.panel.handlagerbewegungen"),
+					IDX_TABBED_PANE_HANDLAGERBEWEGUNG);
+		}
+
+		if (DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_WW_DARF_LAGERPRUEFFUNKTIONEN_SEHEN))
+
+		{
+
+			tabIndex++;
+			IDX_TABBED_PANE_WARENBEWEGUNGEN = tabIndex;
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.warenbewegungen"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("artikel.warenbewegungen"),
+					IDX_TABBED_PANE_WARENBEWEGUNGEN);
+		}
+		if (!LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
+				|| LPMain.getTheClient().getMandant()
+						.equalsIgnoreCase(DelegateFactory.getInstance().getSystemDelegate().getHauptmandant())) {
+			if (DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+				tabIndex++;
+				IDX_TABBED_PANE_MATERIAL = tabIndex;
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("label.material"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("label.material"), IDX_TABBED_PANE_MATERIAL);
+			}
 			tabIndex++;
 			IDX_TABBED_PANE_INVENTUR = tabIndex;
-			tabbedPaneRoot.insertTab(
-					LPMain.getInstance()
-							.getTextRespectUISPr("artikel.inventur"), null,
-					null,
-					LPMain.getInstance()
-							.getTextRespectUISPr("artikel.inventur"),
-					IDX_TABBED_PANE_INVENTUR);
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.inventur"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventur"), IDX_TABBED_PANE_INVENTUR);
 			// Komponente Preislisten vkpf:
 
 			if (bRechtDarfPreiseSehenVerkauf) {
 
 				tabIndex++;
 				IDX_TABBED_PANE_VKPF_PREISLISTEN = tabIndex;
-				tabbedPaneRoot.insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"vkpf.preislisten.title.tab"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"vkpf.preislisten.title.tooltip"),
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("vkpf.preislisten.title.tab"), null,
+						null, LPMain.getInstance().getTextRespectUISPr("vkpf.preislisten.title.tooltip"),
 						IDX_TABBED_PANE_VKPF_PREISLISTEN);
 			}
-			tabIndex++;
-			IDX_TABBED_PANE_SHOPGRUPPE = tabIndex;
-			tabbedPaneRoot.insertTab(
-					LPMain.getInstance().getTextRespectUISPr("lp.shopgruppe"),
-					null, null,
-					LPMain.getInstance().getTextRespectUISPr("lp.shopgruppe"),
-					IDX_TABBED_PANE_SHOPGRUPPE);
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_LAGERCOCKPIT)) {
-				if (DelegateFactory.getInstance().getTheJudgeDelegate()
-						.hatRecht(RechteFac.RECHT_WW_LAGERCOCKPIT)) {
+			if (DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+
+				tabIndex++;
+				IDX_TABBED_PANE_SHOPGRUPPE = tabIndex;
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.shopgruppe"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("lp.shopgruppe"), IDX_TABBED_PANE_SHOPGRUPPE);
+			}
+
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_LAGERCOCKPIT)) {
+				if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_WW_LAGERCOCKPIT)) {
 					tabIndex++;
 					IDX_TABBED_PANE_LAGERCOCKPIT = tabIndex;
-					tabbedPaneRoot.insertTab(
-							LPMain.getInstance().getTextRespectUISPr(
-									"ww.lagercockpit"),
-							null,
-							null,
-							LPMain.getInstance().getTextRespectUISPr(
-									"ww.lagercockpit"),
-							IDX_TABBED_PANE_LAGERCOCKPIT);
+					tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("ww.lagercockpit"), null, null,
+							LPMain.getInstance().getTextRespectUISPr("ww.lagercockpit"), IDX_TABBED_PANE_LAGERCOCKPIT);
 				}
 			}
 
 			// nur anzeigen wenn SOKOs
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_KUNDESONDERKONDITIONEN)
-					&& bRechtDarfPreiseSehenVerkauf) {
+			if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(
+					MandantFac.ZUSATZFUNKTION_KUNDESONDERKONDITIONEN) && bRechtDarfPreiseSehenVerkauf) {
 				tabIndex++;
 				IDX_TABBED_PANE_KUNDENARTIKELNUMMERN = tabIndex;
-				tabbedPaneRoot.insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.kundenartikelnummern"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.kundenartikelnummern"),
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.kundenartikelnummern"), null,
+						null, LPMain.getInstance().getTextRespectUISPr("artikel.kundenartikelnummern"),
 						IDX_TABBED_PANE_KUNDENARTIKELNUMMERN);
+			}
+
+			if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)
+					&& LPMain.getInstance().getDesktop()
+							.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_PRUEFPLAN1)) {
+
+				tabIndex++;
+				IDX_TABBED_PANE_WERKZEUG = tabIndex;
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.werkzeug"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("artikel.werkzeug"), IDX_TABBED_PANE_WERKZEUG);
 			}
 
 			// nur anzeigen wenn Benutzer Recht dazu hat
@@ -309,96 +300,67 @@ public class InternalFrameArtikel extends InternalFrame {
 					.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
 				tabIndex++;
 				IDX_TABBED_PANE_GRUNDDATEN = tabIndex;
-				tabbedPaneRoot.insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"lp.grunddaten"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"lp.grunddaten"), IDX_TABBED_PANE_GRUNDDATEN);
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.grunddaten"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("lp.grunddaten"), IDX_TABBED_PANE_GRUNDDATEN);
 			}
 
 		} else {
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
-					&& LPMain
-							.getInstance()
-							.getDesktop()
-							.darfAnwenderAufZusatzfunktionZugreifen(
-									MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER)) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
+					&& LPMain.getInstance().getDesktop()
+							.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER)) {
 				tabIndex++;
 				IDX_TABBED_PANE_INVENTUR = tabIndex;
-				tabbedPaneRoot.insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.inventur"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.inventur"), IDX_TABBED_PANE_INVENTUR);
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.inventur"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("artikel.inventur"), IDX_TABBED_PANE_INVENTUR);
 			}
 
 			if (bRechtDarfPreiseSehenVerkauf) {
 
 				tabIndex++;
 				IDX_TABBED_PANE_VKPF_PREISLISTEN = tabIndex;
-				tabbedPaneRoot.insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"vkpf.preislisten.title.tab"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"vkpf.preislisten.title.tooltip"),
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("vkpf.preislisten.title.tab"), null,
+						null, LPMain.getInstance().getTextRespectUISPr("vkpf.preislisten.title.tooltip"),
 						IDX_TABBED_PANE_VKPF_PREISLISTEN);
 			}
 
 			// nur anzeigen wenn SOKOs und VK-Preis-Recht
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_KUNDESONDERKONDITIONEN)
-					&& bRechtDarfPreiseSehenVerkauf) {
+			if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(
+					MandantFac.ZUSATZFUNKTION_KUNDESONDERKONDITIONEN) && bRechtDarfPreiseSehenVerkauf) {
 				tabIndex++;
 				IDX_TABBED_PANE_KUNDENARTIKELNUMMERN = tabIndex;
-				tabbedPaneRoot.insertTab(
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.kundenartikelnummern"),
-						null,
-						null,
-						LPMain.getInstance().getTextRespectUISPr(
-								"artikel.kundenartikelnummern"),
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.kundenartikelnummern"), null,
+						null, LPMain.getInstance().getTextRespectUISPr("artikel.kundenartikelnummern"),
 						IDX_TABBED_PANE_KUNDENARTIKELNUMMERN);
 			}
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
-					&& LPMain
-							.getInstance()
-							.getDesktop()
-							.darfAnwenderAufZusatzfunktionZugreifen(
-									MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER)) {
+			if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)
+					&& LPMain.getInstance().getDesktop()
+							.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_PRUEFPLAN1)) {
+
+				tabIndex++;
+				IDX_TABBED_PANE_WERKZEUG = tabIndex;
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.werkzeug"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("artikel.werkzeug"), IDX_TABBED_PANE_WERKZEUG);
+			}
+
+			
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)
+					&& LPMain.getInstance().getDesktop()
+							.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_GETRENNTE_LAGER)) {
 				if (DelegateFactory.getInstance().getTheJudgeDelegate()
 						.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
 					tabIndex++;
 					IDX_TABBED_PANE_GRUNDDATEN = tabIndex;
-					tabbedPaneRoot.insertTab(
-							LPMain.getInstance().getTextRespectUISPr(
-									"lp.grunddaten"),
-							null,
-							null,
-							LPMain.getInstance().getTextRespectUISPr(
-									"vkpf.preislisten.title.tooltip"),
+					tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("lp.grunddaten"), null, null,
+							LPMain.getInstance().getTextRespectUISPr("vkpf.preislisten.title.tooltip"),
 							IDX_TABBED_PANE_GRUNDDATEN);
 				}
 			}
 		}
+
 		// ich selbst moechte informiert werden.
 		addItemChangedListener(this);
 		registerChangeListeners();
@@ -410,8 +372,7 @@ public class InternalFrameArtikel extends InternalFrame {
 
 		tabbedPaneRoot.setSelectedComponent(tabbedPaneArtikel);
 		// iicon: hier das li/on icon gemacht
-		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
-				"/com/lp/client/res/nut_and_bolt16x16.png"));
+		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource("/com/lp/client/res/nut_and_bolt16x16.png"));
 		setFrameIcon(iicon);
 	}
 
@@ -419,32 +380,36 @@ public class InternalFrameArtikel extends InternalFrame {
 		// nothing here
 	}
 
-	private void createTabbedPanePreislisten(JTabbedPane tabbedPane)
-			throws Throwable { // vkpf:
+	private void createTabbedPanePreislisten(JTabbedPane tabbedPane) throws Throwable { // vkpf:
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneVkpfPreislistenname = new TabbedPaneVkpfPreislisten(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_VKPF_PREISLISTEN,
-					tabbedPaneVkpfPreislistenname);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_VKPF_PREISLISTEN, tabbedPaneVkpfPreislistenname);
 			initComponents();
 		}
 	}
 
-	private void createTabbedPaneKundenartikelnummern(JTabbedPane tabbedPane)
-			throws Throwable { // vkpf:
+	private void createTabbedPaneKundenartikelnummern(JTabbedPane tabbedPane) throws Throwable { // vkpf:
 		if (tabbedPane == null) {
 			// lazy loading
-			tabbedPaneKundenartikelnummern = new TabbedPaneKundenartikelnummern(
-					this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_KUNDENARTIKELNUMMERN,
-					tabbedPaneKundenartikelnummern);
+			tabbedPaneKundenartikelnummern = new TabbedPaneKundenartikelnummern(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_KUNDENARTIKELNUMMERN, tabbedPaneKundenartikelnummern);
 			initComponents();
 		}
 	}
 
+	private void createTabbedPaneWarenbewegungen(JTabbedPane tabbedPane) throws Throwable { // vkpf:
+		if (tabbedPane == null) {
+			// lazy loading
+			tabbedPaneWarenbewegung = new TabbedPaneWarenbewegung(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_WARENBEWEGUNGEN, tabbedPaneWarenbewegung);
+			initComponents();
+		}
+	}
+	
+
 	public void lPStateChanged(EventObject e) throws Throwable {
-		JTabbedPane tabbedPane = (JTabbedPane) ((JTabbedPane) e.getSource())
-				.getSelectedComponent();
+		JTabbedPane tabbedPane = (JTabbedPane) ((JTabbedPane) e.getSource()).getSelectedComponent();
 		int selectedCur = ((JTabbedPane) e.getSource()).getSelectedIndex();
 		setRechtModulweit(sRechtModulweit);
 		if (selectedCur == IDX_TABBED_PANE_ARTIKEL) {
@@ -455,8 +420,7 @@ public class InternalFrameArtikel extends InternalFrame {
 			// ItemChangedEvent.ACTION_YOU_ARE_SELECTED));
 		} else if (selectedCur == IDX_TABBED_PANE_HANDLAGERBEWEGUNG) {
 
-			boolean hatRecht = !DelegateFactory.getInstance()
-					.getTheJudgeDelegate()
+			boolean hatRecht = !DelegateFactory.getInstance().getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_WW_ARTIKEL_CUD);
 			if (hatRecht == true) {
 				setRechtModulweit(RechteFac.RECHT_MODULWEIT_UPDATE);
@@ -493,28 +457,32 @@ public class InternalFrameArtikel extends InternalFrame {
 			createTabbedPaneKundenartikelnummern(tabbedPane);
 			// Info an Tabbedpane, bist selektiert worden.
 			tabbedPaneKundenartikelnummern.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_WARENBEWEGUNGEN) {
+			createTabbedPaneWarenbewegungen(tabbedPane);
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneWarenbewegung.lPEventObjectChanged(null);
+		}else if (selectedCur == IDX_TABBED_PANE_WERKZEUG) {
+			createTabbedPaneWerkzeug(tabbedPane);
+			// Info an Tabbedpane, bist selektiert worden.
+			tabbedPaneWerkzeug.lPEventObjectChanged(null);
 		}
 	}
 
-	private void createTabbedPaneHandlagerbewegung(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneHandlagerbewegung(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 
 			// lazy loading
 			tabbedPaneHandlagerbewegung = new TabbedPaneHandlagerbewegung(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_HANDLAGERBEWEGUNG,
-					tabbedPaneHandlagerbewegung);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_HANDLAGERBEWEGUNG, tabbedPaneHandlagerbewegung);
 			initComponents();
 		}
 	}
 
-	private void createTabbedPaneMaterial(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneMaterial(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneMaterial = new TabbedPaneMaterial(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MATERIAL,
-					tabbedPaneMaterial);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MATERIAL, tabbedPaneMaterial);
 			if (tabbedPaneMaterial.getPanelQueryMaterial().getSelectedId() == null) {
 				enableAllOberePanelsExceptMe(tabbedPaneMaterial, 0, false);
 			}
@@ -523,13 +491,22 @@ public class InternalFrameArtikel extends InternalFrame {
 
 	}
 
-	private void createTabbedPaneShopgruppe(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneWerkzeug(JTabbedPane tabbedPane) throws Throwable {
+		if (tabbedPane == null) {
+			// lazy loading
+			tabbedPaneWerkzeug = new TabbedPaneWerkzeuge(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_WERKZEUG, tabbedPaneWerkzeug);
+
+			initComponents();
+		}
+
+	}
+
+	private void createTabbedPaneShopgruppe(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneShopgruppe = new TabbedPaneShopgruppe(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_SHOPGRUPPE,
-					tabbedPaneShopgruppe);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_SHOPGRUPPE, tabbedPaneShopgruppe);
 			if (tabbedPaneShopgruppe.getPanelQueryShopgruppe().getSelectedId() == null) {
 				enableAllOberePanelsExceptMe(tabbedPaneShopgruppe, 0, false);
 			}
@@ -538,13 +515,11 @@ public class InternalFrameArtikel extends InternalFrame {
 
 	}
 
-	private void createTabbedPaneLagercockpit(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneLagercockpit(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneLagercockpit = new TabbedPaneLagercockpit(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_LAGERCOCKPIT,
-					tabbedPaneLagercockpit);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_LAGERCOCKPIT, tabbedPaneLagercockpit);
 			if (tabbedPaneLagercockpit.getPanelQueryArtikel().getSelectedId() == null) {
 				enableAllOberePanelsExceptMe(tabbedPaneLagercockpit, 0, false);
 			}
@@ -553,24 +528,20 @@ public class InternalFrameArtikel extends InternalFrame {
 
 	}
 
-	private void createTabbedPaneGrunddaten(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneGrunddaten(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneGrunddaten = new TabbedPaneArtikelgrunddaten(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN,
-					tabbedPaneGrunddaten);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN, tabbedPaneGrunddaten);
 			initComponents();
 		}
 	}
 
-	private void createTabbedPaneArtikel(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneArtikel(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneArtikel = new TabbedPaneArtikel(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ARTIKEL,
-					tabbedPaneArtikel);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ARTIKEL, tabbedPaneArtikel);
 			if (tabbedPaneArtikel.getPanelQueryArtikel().getSelectedId() == null) {
 				enableAllOberePanelsExceptMe(tabbedPaneArtikel, 0, false);
 			}
@@ -578,13 +549,11 @@ public class InternalFrameArtikel extends InternalFrame {
 		}
 	}
 
-	private void createTabbedPaneInventur(JTabbedPane tabbedPane)
-			throws Throwable {
+	private void createTabbedPaneInventur(JTabbedPane tabbedPane) throws Throwable {
 		if (tabbedPane == null) {
 			// lazy loading
 			tabbedPaneInventur = new TabbedPaneInventur(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_INVENTUR,
-					tabbedPaneInventur);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_INVENTUR, tabbedPaneInventur);
 			initComponents();
 		}
 	}

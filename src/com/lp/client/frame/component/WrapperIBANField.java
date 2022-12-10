@@ -232,4 +232,8 @@ public class WrapperIBANField extends WrapperFormattedTextField {
 		return invalidCause;
 	}
 
+	@Override
+	public boolean hasContent() throws Throwable {
+		return getIban() != null && !getIban().isEmpty();
+	}
 }

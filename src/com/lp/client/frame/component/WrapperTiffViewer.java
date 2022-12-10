@@ -42,30 +42,32 @@ import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
+import java.math.BigDecimal;
 
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JPanel;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvLayout;
+import com.lp.client.frame.HvLayoutFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.TiffFileOpener;
+import com.lp.client.frame.filechooser.open.WrapperFile;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.MediaFac;
-import com.lp.server.system.service.ParameterFac;
-import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.util.HvOptional;
+import com.lp.util.Helper;
 import com.sun.media.jai.codec.FileSeekableStream;
 import com.sun.media.jai.codec.ImageCodec;
 import com.sun.media.jai.codec.ImageDecoder;
@@ -94,7 +96,7 @@ import com.sun.media.jai.codec.SeekableStream;
  * @todo scrollpane auf bild PJ 5350
  * @todo texte uebersetzen PJ 5350
  */
-public class WrapperTiffViewer extends PanelBasis {
+public class WrapperTiffViewer extends PanelBasis implements IControl {
 	/**
 	 *
 	 */
@@ -104,6 +106,8 @@ public class WrapperTiffViewer extends PanelBasis {
 	private final static String ACTION_SPECIAL_TIFFLAST = "action_special_tifflast";
 	private final static String ACTION_SPECIAL_TIFFRIGHT = "action_special_tiffright";
 	private final static String ACTION_SPECIAL_TIFFLEFT = "action_special_tiffleft";
+	private final static String ACTION_SPECIAL_ANZEIGEN = "action_special_anzeigen";
+	private final static String ACTION_SPECIAL_SPEICHERN = "action_special_speichern";
 
 	protected WrapperNumberField wnfGroesse = new WrapperNumberField();
 	protected WrapperTextField wtfSeite = new WrapperTextField();
@@ -123,10 +127,12 @@ public class WrapperTiffViewer extends PanelBasis {
 	private WrapperButton wbuTiffLast = new WrapperButton();
 
 	private WrapperTextField fieldToDisplayFileName = null;
+	private WrapperButton wbuAnzeigen = new WrapperButton();
+	private WrapperButton wbuSpeichern = new WrapperButton();
 
 	private File sLetzteDatei = null;
 
-	private ImageViewer imageviewer = new ImageViewer(null);
+	private ImageViewer imageviewer = new ImageViewer((byte[])null);
 
 	private String bildExtension = new String(".tiff");
 	private ImageDecoder decoder = null;
@@ -135,6 +141,7 @@ public class WrapperTiffViewer extends PanelBasis {
 	private byte[] imageOutput = null;
 
 	private int imageIndex = 0;
+	private boolean isActivatable = true;
 
 	public WrapperButton getButtonDatei() {
 		return wbuDatei;
@@ -198,6 +205,13 @@ public class WrapperTiffViewer extends PanelBasis {
 		bgTiffControls.add(wbuTiffFirst);
 		bgTiffControls.add(wbuTiffLast);
 
+		wbuAnzeigen.setText(LPMain.getTextRespectUISPr("lp.anzeigen"));
+		wbuSpeichern.setText(LPMain.getTextRespectUISPr("lp.speichern"));
+		wbuAnzeigen.setActionCommand(ACTION_SPECIAL_ANZEIGEN);
+		wbuAnzeigen.addActionListener(this);
+		wbuSpeichern.setActionCommand(ACTION_SPECIAL_SPEICHERN);
+		wbuSpeichern.addActionListener(this);
+
 		this.add(paWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
@@ -224,86 +238,65 @@ public class WrapperTiffViewer extends PanelBasis {
 		paWorkingOn.add(wlaKb, new GridBagConstraints(0, 4, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		paWorkingOn.add(imageviewer, new GridBagConstraints(4, 0, 4, 6, 1.0, 1.0, GridBagConstraints.CENTER,
+		JPanel panelAnzeigenSpeichern = new JPanel();
+		HvLayout layoutAnzeigenSpeichern = HvLayoutFactory.create(panelAnzeigenSpeichern, "", "[fill,grow]", "");
+		layoutAnzeigenSpeichern.add(wbuAnzeigen).wrap()
+			.add(wbuSpeichern);
+		paWorkingOn.add(panelAnzeigenSpeichern, new GridBagConstraints(0, 5, 4, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+//		paWorkingOn.add(wbuAnzeigen, new GridBagConstraints(0, 5, 4, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+//				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+//		paWorkingOn.add(wbuSpeichern, new GridBagConstraints(0, 6, 4, 1, 0.0, 1.0, GridBagConstraints.CENTER,
+//				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		paWorkingOn.add(imageviewer, new GridBagConstraints(4, 0, 4, 7, 1.0, 1.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
+	
+	@Override
+	public void setEnabled(boolean enabled) {
+		super.setEnabled(enabled);
+		wbuAnzeigen.setEnabled(!enabled && image != null);
+		wbuSpeichern.setEnabled(!enabled && image != null);
+	}
+
+	protected void actionShow() throws IOException {
+		File file = createTempFile();
+		HelperClient.desktopTryToOpenElseSave(file, getInternalFrame());
+	}
+	
+	protected void actionSaveToFile() throws IOException {
+		File file = createTempFile();
+		HelperClient.showSaveFileDialog(file, 
+				getDateiname() == null ? null : new File(getDateiname()), 
+				getInternalFrame(), 
+				getDateiname() == null ? null : Helper.getMime(getDateiname()));
+	}
+	
+	protected File createTempFile() throws IOException {
+		if(getImage() == null) return null;
+
+		String name = getDateiname();
+		if(name == null) {
+			if (getBildExtension() == null) setBildExtension(".tiff");
+			name = "tempImageHV" + getBildExtension();
+		}
+		String mime = Helper.getMime(name);
+		File temp = File.createTempFile(Helper.getName(name), mime);
+		FileOutputStream fOutputStream = new FileOutputStream(temp);
+		fOutputStream.write(getImage());
+		fOutputStream.close();
+		return temp;
+	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-			if (e.getActionCommand().equalsIgnoreCase(ACTION_SPECIAL_DATEI)) {
-			JFileChooser fc = new JFileChooser();
-
-			if (sLetzteDatei != null) {
-				fc.setCurrentDirectory(sLetzteDatei);
-			}
-
-//			fc.setFileFilter(new FileFilter() {
-//				public boolean accept(File f) {
-//					return f.getName().toLowerCase().endsWith(bildExtension) || f.isDirectory();
-//				}
-//
-//				public String getDescription() {
-//					return "Bilder";
-//				}
-//			});
-
-			FileFilter imageFilter = new FileNameExtensionFilter(
-					"TIFF", "tiff", "tif");
-
-			fc.setFileFilter(imageFilter);
-
-			int returnVal = fc.showOpenDialog(getInternalFrame());
-
-			File file = fc.getSelectedFile();
-
-			boolean fileExist = true;
-			if (file != null) {
-				fileExist = file.exists();
-				if (!fileExist)
-					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
-							LPMain.getMessageTextRespectUISPr("lp.warning.dateinichtvorhanden", file.getName()));
-			}
-
-			if (returnVal == JFileChooser.APPROVE_OPTION && fileExist) {
-
-				sLetzteDatei = file;
-
-				ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate()
-						.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
-								ParameterFac.PARAMETER_ALLGEMEIN_DOKUMENTE_MAXIMALE_GROESSE);
-
-				double groesseInKB = ((double) file.length()) / ((double) 1024);
-
-				if (groesseInKB > (Integer) parameter.getCWertAsObject()) {
-					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getTextRespectUISPr("lp.error.dateizugross"));
-				} else {
-					// darstellen
-
-					if (!Files.probeContentType(file.toPath()).equals("image/tiff")) {
-
-						imageviewer.setImage((byte[]) null);
-						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain
-								.getMessageTextRespectUISPr("lp.error.dateifalschermimetype", file.getName(), "TIFF"));
-					} else {
-
-						if (fieldToDisplayFileName != null) {
-							fieldToDisplayFileName.setText(file.getName());
-						}
-						ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-						copyStream(new FileInputStream(file), byteArrayOutputStream);
-						imageOutput = byteArrayOutputStream.toByteArray();
-						showImageFromFile(file);
-						imageviewer.setImage(getImage(0));
-						wtfDatei.setText(file.getName());
-						wnfGroesse.setDouble(new Double(groesseInKB));
-						wtfSeite.setText("" + imageIndex);
-					}
-				}
-			} else {
-				// keine auswahl
-				imageviewer.setImage((byte[]) null);
-			}
+		if (ACTION_SPECIAL_ANZEIGEN.equalsIgnoreCase(e.getActionCommand())) {
+			actionShow();
+		} else if (ACTION_SPECIAL_SPEICHERN.equalsIgnoreCase(e.getActionCommand())) {
+			actionSaveToFile();
+		} else if (ACTION_SPECIAL_DATEI.equalsIgnoreCase(e.getActionCommand())) {
+			actionSelectFile();
 		} else if (e.getActionCommand().equalsIgnoreCase(ACTION_SPECIAL_TIFFFIRST)) {
 			imageIndex = 0;
 			imageviewer.setImage(getImage(imageIndex));
@@ -328,28 +321,64 @@ public class WrapperTiffViewer extends PanelBasis {
 
 	}
 
-	private void showImageFromFile(File file) {
+	/**
+	 * @throws ExceptionLP
+	 * @throws Throwable
+	 * @throws IOException
+	 * @throws Exception
+	 * @throws FileNotFoundException
+	 */
+	private void actionSelectFile() throws ExceptionLP, Throwable, IOException,
+			Exception, FileNotFoundException {
+		TiffFileOpener fileOpener = new TiffFileOpener(
+				this, FileChooserConfigToken.ImportLast);
+		HvOptional<WrapperFile> wf = fileOpener.selectSingle();
+		if (!wf.isPresent()) return;
+
+		FileValidator validator = new FileValidator();
+		double groesseInKB = wf.get().getLengthInKB();
+		if (!validator.validateFileSize(new BigDecimal(groesseInKB))) {
+			imageviewer.setImage((byte[]) null);
+			return;
+		}
+
+		File file = wf.get().getFile();
+		if (fieldToDisplayFileName != null) {
+			fieldToDisplayFileName.setText(file.getName());
+		}
+		imageOutput = wf.get().getBytes();
+		
 		int numPages = 0;
 		try {
 			ss = new FileSeekableStream(file);
 			decoder = ImageCodec.createImageDecoder("tiff", ss, null);
 			numPages = decoder.getNumPages();
 
-		} catch (IOException ex1) {
-		}
+			image = new RenderedImage[numPages];
 
-		image = new RenderedImage[numPages];
-
-		for (int i = 0; i < numPages; i++) {
-			try {
-				image[i] = decoder.decodeAsRenderedImage(i);
-				WritableRaster wr = null;
-				wr = image[i].copyData(wr);
-			} catch (IOException ex2) {
+			for (int i = 0; i < numPages; i++) {
+				try {
+					image[i] = decoder.decodeAsRenderedImage(i);
+					WritableRaster wr = null;
+					wr = image[i].copyData(wr);
+				} catch (IOException ex2) {
+				}
 			}
-		}
 
+			imageviewer.setImage(getImage(0));
+			wtfDatei.setText(file.getName());
+			wnfGroesse.setDouble(groesseInKB);
+			wtfSeite.setText("" + imageIndex);
+			
+		} catch (Exception ex1) {
+			String extensions = fileOpener.getAllowedExtensions();
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+					LPMain.getMessageTextRespectUISPr(
+							"lp.mediacontrol.ungueltiges.dateiformat", extensions));
+			setDefaults();
+		}		
 	}
+
 
 	private void showImage(byte[] array) {
 		int numPages = 0;
@@ -403,6 +432,7 @@ public class WrapperTiffViewer extends PanelBasis {
 	}
 
 	public void setImage(byte[] array) throws ExceptionLP {
+		imageOutput = array;
 		BufferedImage bImage = null;
 		try {
 			if (array != null) {
@@ -418,6 +448,7 @@ public class WrapperTiffViewer extends PanelBasis {
 	}
 
 	public void cleanup() {
+		imageviewer.cleanup();
 		imageviewer = null;
 		setToolBar(null);
 	}
@@ -434,6 +465,38 @@ public class WrapperTiffViewer extends PanelBasis {
 		}
 		src.close();
 		dest.close();
+	}
+
+	@Override
+	public void removeContent() throws Throwable {
+		setImage(null);
+		setDateiname(null);
+	}
+
+	@Override
+	public boolean hasContent() throws Throwable {
+		return wtfDatei.hasContent();
+	}
+
+	@Override
+	public boolean isMandatoryField() {
+		return wtfDatei.isMandatoryField;
+	}
+
+	@Override
+	public void setMandatoryField(boolean isMandatoryField) {
+		wtfDatei.setMandatoryField(isMandatoryField);
+	}
+
+	@Override
+	public boolean isActivatable() {
+		return isActivatable;
+	}
+
+	@Override
+	public void setActivatable(boolean isActivatable) {
+		this.isActivatable = isActivatable;
+		if (!isActivatable) setEnabled(false);
 	}
 
 }

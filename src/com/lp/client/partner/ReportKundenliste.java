@@ -42,6 +42,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.ItemChangedEvent;
@@ -183,6 +184,10 @@ public class ReportKundenliste extends PanelBasis implements PanelReportIfJRDS {
 		wtfPartnerklasse = new WrapperTextField(PartnerFac.MAX_BRANCHE);
 		wtfPartnerklasse.setActivatable(false);
 		
+		HelperClient.setMinimumAndPreferredSize(wcbVersteckte, HelperClient.getSizeFactoredDimension(140));
+		HelperClient.setMinimumAndPreferredSize(wcbMitInteressenten, HelperClient.getSizeFactoredDimension(120));
+		HelperClient.setMinimumAndPreferredSize(wcbMitAnsprechpartner, HelperClient.getSizeFactoredDimension(140));
+		HelperClient.setMinimumAndPreferredSize(wcbNurSelektierterKunde, HelperClient.getSizeFactoredDimension(120));
 		
 		bg = new ButtonGroup();
 		bg.add(wrbKundenadresse);
@@ -206,20 +211,20 @@ public class ReportKundenliste extends PanelBasis implements PanelReportIfJRDS {
 
 		jpaWorkingOn.add(wcbMitInteressenten, new GridBagConstraints(1, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
 			jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(0, iZeile,
 					1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 100, 0));
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		}
 
 		jpaWorkingOn.add(wcbMitAnsprechpartner, new GridBagConstraints(2,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 120, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcbNurSelektierterKunde, new GridBagConstraints(3,
 				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 120, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 		jpaWorkingOn.add(wlaUmsatz, new GridBagConstraints(0, iZeile, 1, 1,

@@ -32,16 +32,18 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
@@ -51,8 +53,8 @@ import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 
 @SuppressWarnings("static-access")
-public class ReportLagercockpitMaterialVerteilungsvorschlag extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportLagercockpitMaterialVerteilungsvorschlag extends PanelBasis
+		implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -60,10 +62,11 @@ public class ReportLagercockpitMaterialVerteilungsvorschlag extends PanelBasis i
 	protected JPanel jpaWorkingOn = new JPanel();
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
-	private WrapperCheckBox wcbNurArtikelMitLagerstand=new WrapperCheckBox();
+	private WrapperComboBox wcbOption = new WrapperComboBox();
 
-	public ReportLagercockpitMaterialVerteilungsvorschlag(InternalFrameArtikel internalFrame,
-			String add2Title) throws Throwable {
+	public ReportLagercockpitMaterialVerteilungsvorschlag(
+			InternalFrameArtikel internalFrame, String add2Title)
+			throws Throwable {
 		super(internalFrame, add2Title);
 		LPMain.getInstance().getTextRespectUISPr(
 				"ww.lagercockpit.report.welagerverteilungsvorschlag");
@@ -79,17 +82,27 @@ public class ReportLagercockpitMaterialVerteilungsvorschlag extends PanelBasis i
 	private void jbInit() throws Exception {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
+
+		Map m = new LinkedHashMap();
+		m.put(-1, LPMain.getTextRespectUISPr("lp.alle"));
+
+		m.put(ArtikelReportFac.OPTION_LAGERCOCKPIT_MATERIAL_VERTEILUNGSVORSCHLAG_NUR_ARTIKEL_MIT_LAGERSTAND,
+				LPMain.getInstance().getTextRespectUISPr(
+						"ww.lagercockpit.schnellansicht"));
+		m.put(ArtikelReportFac.OPTION_LAGERCOCKPIT_MATERIAL_VERTEILUNGSVORSCHLAG_NUR_RUECKNAHMEN_AUS_FERTIGUNG,
+				LPMain.getInstance().getTextRespectUISPr(
+						"ww.lagercockpit.nurruecknahmenausfertigung"));
+		wcbOption.setMandatoryField(true);
+		wcbOption.setMap(m);
 		
-		wcbNurArtikelMitLagerstand.setText(LPMain.getInstance().getTextRespectUISPr(
-				"ww.lagercockpit.schnellansicht"));
 
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
 						0, 0, 0), 0, 0));
-		
-		jpaWorkingOn.add(wcbNurArtikelMitLagerstand, new GridBagConstraints(0, 0, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 2, 2, 2), 200, 0));
+
+		jpaWorkingOn.add(wcbOption, new GridBagConstraints(0, 0, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
+						0, 2, 2, 2), 200, 0));
 
 	}
 
@@ -102,8 +115,10 @@ public class ReportLagercockpitMaterialVerteilungsvorschlag extends PanelBasis i
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory.getInstance().getArtikelReportDelegate()
-				.printLagercockpitMaterialVerteilungsvorschlag(wcbNurArtikelMitLagerstand.isSelected());
+		return DelegateFactory
+				.getInstance()
+				.getArtikelReportDelegate()
+				.printLagercockpitMaterialVerteilungsvorschlag((Integer)wcbOption.getKeyOfSelectedItem());
 	}
 
 	public boolean getBErstelleReportSofort() {

@@ -54,7 +54,6 @@ import com.lp.server.system.service.MediaFac;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-@SuppressWarnings("static-access")
 /**
  * <p>Diese Klasse kuemmert sich um textmodule, bilder, etc</p>
  *
@@ -90,8 +89,7 @@ public class TabbedPaneMediastandard extends TabbedPane {
 
 	public TabbedPaneMediastandard(InternalFrame internalFrameI)
 			throws Throwable {
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"lp.medien"));
+		super(internalFrameI, LPMain.getTextRespectUISPr("lp.medien"));
 		jbInit();
 		initComponents();
 	}
@@ -101,20 +99,12 @@ public class TabbedPaneMediastandard extends TabbedPane {
 		/**
 		 * Ortpanel lazy loading
 		 */
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.textbausteine"), null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr("lp.textbausteine"),
-				IDX_PANEL_MEDIA);
-
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.mediaart"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.mediaart"),
-				IDX_PANEL_MEDIAART);
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr("lp.reportvariante"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.reportvariante"),
-				IDX_PANEL_REPORTVARIANTE);
+		insertTab(textFromToken("lp.textbausteine"), null, null,
+				textFromToken("lp.textbausteine"), IDX_PANEL_MEDIA);
+		insertTab(textFromToken("lp.mediaart"), null, null,
+				textFromToken("lp.mediaart"), IDX_PANEL_MEDIAART);
+		insertTab(textFromToken("lp.reportvariante"), null, null,
+				textFromToken("lp.reportvariante"), IDX_PANEL_REPORTVARIANTE);
 
 		setSelectedComponent(getPanelSplitMedia(true));
 		getPanelQueryMedia(true).eventYouAreSelected(false);
@@ -332,20 +322,25 @@ public class TabbedPaneMediastandard extends TabbedPane {
 		return panelMedia;
 	}
 
+	private SystemFilterFactory systemFilter() {
+		return SystemFilterFactory.getInstance();
+	}
+	
 	private PanelQuery getPanelQueryMedia(boolean bNeedInstantiationIfNull)
 			throws Throwable {
 		if (panelQueryMedia == null && bNeedInstantiationIfNull) {
 			String[] aWhichButtonIUseAuftrag = { PanelBasis.ACTION_NEW };
 			QueryType[] qtMediastandard = null;
-			FilterKriterium[] filtersMediastandard = SystemFilterFactory
-					.getInstance().createFKMandantCNrLocaleCNr();
+			FilterKriterium[] filtersMediastandard = systemFilter()
+					.createFKMandantCNrLocaleCNr();
 
 			panelQueryMedia = new PanelQuery(qtMediastandard,
 					filtersMediastandard, QueryParameters.UC_ID_MEDIASTANDARD,
-					aWhichButtonIUseAuftrag, getInternalFrame(), "", true);
-			panelQueryMedia.befuellePanelFilterkriterienDirektUndVersteckte(
-					SystemFilterFactory.getInstance().createFKDKennung(), null,
-					SystemFilterFactory.getInstance().createFKVMediastandard());
+					aWhichButtonIUseAuftrag, getInternalFrame(), "", true,
+					systemFilter().createFKVMediastandard(), null);
+			
+			panelQueryMedia.addDirektFilter(systemFilter().createFKDKennungProzentBoth());
+			panelQueryMedia.addDirektFilter(systemFilter().createFKDMediastandardTextsuche());
 		}
 		return panelQueryMedia;
 	}
@@ -356,11 +351,10 @@ public class TabbedPaneMediastandard extends TabbedPane {
 			String[] aWhichStandardButtonIUse = null;
 			panelQueryMediaart = new PanelQuery(null, null,
 					QueryParameters.UC_ID_MEDIAART, aWhichStandardButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.mediaart"), true);
+					getInternalFrame(), textFromToken("lp.mediaart"), true);
 
 			panelBottomMediaart = new PanelStammdatenCRUD(getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr("lp.mediaart"),
+					textFromToken("lp.mediaart"),
 					null, HelperClient.SCRUD_MEDIAART_FILE,
 					getInternalFrameSystem(), HelperClient.LOCKME_MEDIAART);
 
@@ -379,13 +373,11 @@ public class TabbedPaneMediastandard extends TabbedPane {
 			String[] aWhichStandardButtonIUse =  { PanelBasis.ACTION_NEW };
 			panelQueryReportvariante = new PanelQuery(null, null,
 					QueryParameters.UC_ID_REPORTVARIANTE,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"lp.reportvariante"), true);
+					aWhichStandardButtonIUse, getInternalFrame(), 
+					textFromToken("lp.reportvariante"), true);
 
 			panelBottomReportvariante = new PanelReportvariante(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.reportvariante"), null);
+					getInternalFrame(), textFromToken("lp.reportvariante"), null);
 
 			panelSplitReportvariante = new PanelSplit(getInternalFrame(),
 					panelBottomReportvariante, panelQueryReportvariante, 300);
@@ -430,23 +422,7 @@ public class TabbedPaneMediastandard extends TabbedPane {
 								LPMain.getTheClient().getLocUiAsString());
 			}
 
-			String[] aWhichButtonIUseAuftrag = { PanelBasis.ACTION_NEW };
-			QueryType[] qtMediastandard = null;
-			FilterKriterium[] filtersMediastandard = SystemFilterFactory
-					.getInstance().createFKMandantCNrLocaleCNr();
-
-			panelQueryMedia = new PanelQuery(qtMediastandard,
-					filtersMediastandard, QueryParameters.UC_ID_MEDIASTANDARD,
-					aWhichButtonIUseAuftrag, getInternalFrame(), "", true);
-
-			panelQueryMedia.befuellePanelFilterkriterienDirekt(
-					SystemFilterFactory.getInstance().createFKDKennung(), null);
-
-			panelMedia = new PanelMediastandard(getInternalFrame(), "", null,
-					this);
-
-			panelSplitMedia = new PanelSplit(getInternalFrame(), panelMedia,
-					panelQueryMedia, 200);
+			panelSplitMedia = getPanelSplitMedia(true);
 			this.setComponentAt(IDX_PANEL_MEDIA, panelSplitMedia);
 		}
 

@@ -37,7 +37,6 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -48,7 +47,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -62,12 +60,13 @@ import javax.swing.table.AbstractTableModel;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.ButtonFactory;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperSNRField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.IconFactory;
 import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
@@ -428,11 +427,8 @@ public class DialogPositionenBarcodeerfassung extends JDialog implements
 		add(panel1);
 
 		// Loeschen
-		JButton buttonEntfernen = HelperClient.createButton(new ImageIcon(
-				getClass().getResource("/com/lp/client/res/delete2.png")),
-				LPMain.getTextRespectUISPr("artikel.snr.entfernen"),
-				ACTION_DELETE);
-		buttonEntfernen.setEnabled(true);
+		JButton buttonEntfernen = ButtonFactory.createJButton(IconFactory.getDelete(), 
+				LPMain.getTextRespectUISPr("artikel.snr.entfernen"), ACTION_DELETE);
 		buttonEntfernen.addActionListener(this);
 
 		jLabelGesamtMenge.setMinimumSize(new Dimension(125, Defaults
@@ -460,10 +456,8 @@ public class DialogPositionenBarcodeerfassung extends JDialog implements
 		tfSnrchnr.setMandatoryField(true);
 		tfSnrchnr.addKeyListener(this);
 
-		JButton buttonNeuAusString = HelperClient.createButton(new ImageIcon(
-				getClass().getResource("/com/lp/client/res/plus_sign.png")),
+		JButton buttonNeuAusString = ButtonFactory.createJButton(IconFactory.getPlus(), 
 				LPMain.getTextRespectUISPr("lp.new"), ACTION_ADD_FROM_HAND);
-		buttonNeuAusString.setEnabled(true);
 		buttonNeuAusString.addActionListener(this);
 
 		panel1.add(tfSnrchnr, new GridBagConstraints(1, 3, 1, 1, 1.0, 0,

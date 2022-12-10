@@ -64,6 +64,8 @@ private Integer lagerbewegungIIdBuchung = null;
 
   private void jbInit()
       throws Exception {
+	  
+	  wnfExemplare.setMandatoryField(true);
   }
 
 
@@ -79,7 +81,7 @@ private Integer lagerbewegungIIdBuchung = null;
 
   public JasperPrintLP getReport(String sDrucktype)
       throws Throwable {
-    return DelegateFactory.getInstance().getLagerReportDelegate().printLagerbuchungsbeleg(lagerbewegungIIdBuchung);
+    return DelegateFactory.getInstance().getLagerReportDelegate().printLagerbuchungsbeleg(getAnzahlExemplare(), lagerbewegungIIdBuchung);
   }
 
 

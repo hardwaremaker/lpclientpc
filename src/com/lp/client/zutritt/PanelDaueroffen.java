@@ -33,6 +33,7 @@
 package com.lp.client.zutritt;
 
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -44,6 +45,7 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
+import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
@@ -303,6 +305,10 @@ public class PanelDaueroffen
     this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
         , GridBagConstraints.WEST, GridBagConstraints.NONE,
         new Insets(0, 0, 0, 0), 0, 0));
+    
+    Dimension dimension = HelperClient.getSizeFactoredDimension(75);
+	HelperClient.setMinimumAndPreferredSize(wtfBeginn, dimension);
+	HelperClient.setMinimumAndPreferredSize(wtfEnde, dimension);
 
     //jetzt meine felder
     jpaWorkingOn = new JPanel();
@@ -339,14 +345,14 @@ public class PanelDaueroffen
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
         0, 0));
     jpaWorkingOn.add(wtfBeginn, new GridBagConstraints(1, 2, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        50, 0));
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 2, 0, 0),
+        0, 0));
     jpaWorkingOn.add(wlaEnde, new GridBagConstraints(2, 2, 1, 1, 0.05, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
         0, 0));
     jpaWorkingOn.add(wtfEnde, new GridBagConstraints(3, 2, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        50, 0));
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 2, 0, 0),
+        0, 0));
 
     String[] aWhichButtonIUse = {
         ACTION_UPDATE,

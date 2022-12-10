@@ -83,6 +83,9 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 	private WrapperLabel wlaToleranz = null;
 	private WrapperNumberField wnfToleranz = null;
 
+	private WrapperLabel wlaStandort = null;
+	private WrapperComboBox wcbStandort = null;
+
 	public boolean isbMitNichtlagerbeweirtschaftetenArtikeln() {
 		return wcbMitNichtLagerwewirtschafteten.isSelected();
 	}
@@ -90,9 +93,19 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 	public boolean isbVormerklisteLoeschen() {
 		return wcbVormerklisteLoeschen.isSelected();
 	}
+	public boolean isbArtikelNurAufAuftraegeIgnorieren() {
+		return wcbArtikelNurAufAuftraegeIgnorieren.isSelected();
+	}
+	public boolean isbNichtFreigegebeneAuftraegen() {
+		return wcbMitNichtFreigegebeneAuftraegen.isSelected();
+	}
 
 	public boolean isbNurBetroffeneLospositionen() {
 		return wcbNurBetroffeneLospositionen.isSelected();
+	}
+
+	public Integer getPartnerIIdStandort() {
+		return (Integer) wcbStandort.getKeyOfSelectedItem();
 	}
 
 	private WrapperLabel wlaLieferterminfuerArtikelOhneReservierung = null;
@@ -103,7 +116,10 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 	private WrapperCheckBox wcbMitNichtLagerwewirtschafteten = null;
 	private WrapperCheckBox wcbNurBetroffeneLospositionen = null;
 	private WrapperCheckBox wcbVormerklisteLoeschen = null;
-
+	private WrapperCheckBox wcbMitNichtFreigegebeneAuftraegen = null;
+	private WrapperCheckBox wcbArtikelNurAufAuftraegeIgnorieren = null;
+	private WrapperCheckBox wcbExakterAuftragsbezug = null;
+	
 	private WrapperButton wbuLos = new WrapperButton();
 	private WrapperTextField wtfLos = new WrapperTextField();
 	private WrapperButton wbuAuftrag = new WrapperButton();
@@ -147,6 +163,14 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 				.getTextRespectUISPr("bes.vorlaufzeiten"));
 		wlaToleranz = new WrapperLabel(LPMain.getInstance()
 				.getTextRespectUISPr("bes.toleranz"));
+		wlaStandort = new WrapperLabel(LPMain.getInstance()
+				.getTextRespectUISPr("system.standort"));
+
+		wcbStandort = new WrapperComboBox();
+		wcbStandort.setEmptyEntry(LPMain.getInstance().getTextRespectUISPr(
+				"lp.alle"));
+		wcbStandort.setMap(DelegateFactory.getInstance().getLagerDelegate()
+				.getAlleStandorte());
 
 		wnfVorlaufZeit = new WrapperNumberField();
 		wnfVorlaufZeit.setMandatoryField(true);
@@ -157,17 +181,23 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 
 		wnfToleranz = new WrapperNumberField();
 		wnfToleranz.setMandatoryField(true);
-		wnfToleranz.setMaximumIntegerDigits(3);
+		wnfToleranz.setMaximumIntegerDigits(5);
 		wnfToleranz.setFractionDigits(0);
 		wnfToleranz.setMinimumValue(0);
 		HelperClient.setDefaultsToComponent(wnfToleranz, 120);
 
+		wcbExakterAuftragsbezug = new WrapperCheckBox(
+				LPMain.getTextRespectUISPr("fert.internebestellung.exakterauftragsbezug"));
+		wcbExakterAuftragsbezug.setSelected(true);
+		
 		wlaLieferterminfuerArtikelOhneReservierung = new WrapperLabel();
 		wlaLieferterminfuerArtikelOhneReservierung.setText(LPMain.getInstance()
 				.getTextRespectUISPr(
 						"bes.lieferdatumfuerartikelohnereservierung"));
 		wdfLieferterminfuerArtikelOhneReservierung = new WrapperDateField();
 
+		wdfLieferterminfuerArtikelOhneReservierung.setMandatoryField(true);
+		
 		wlaVorhandeneBestellvorschlagEintrageLoeschen = new WrapperLabel();
 		wlaVorhandeneBestellvorschlagEintrageLoeschen.setText(LPMain
 				.getInstance().getTextRespectUISPr(
@@ -183,6 +213,13 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 
 		wcbVormerklisteLoeschen = new WrapperCheckBox(LPMain.getInstance()
 				.getTextRespectUISPr("bes.vormerklisteLoeschen"));
+		wcbMitNichtFreigegebeneAuftraegen = new WrapperCheckBox(LPMain
+				.getInstance().getTextRespectUISPr(
+						"bes.bestellvorschlag.nichtfreigegebene"));
+		
+		wcbArtikelNurAufAuftraegeIgnorieren = new WrapperCheckBox(LPMain
+				.getInstance().getTextRespectUISPr(
+						"bes.bestellvorschlag.artikelnuraufauftraege.ignorieren"));
 
 		wcbNurBetroffeneLospositionen = new WrapperCheckBox(LPMain
 				.getInstance().getTextRespectUISPr(
@@ -218,7 +255,23 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 				.setPreferredSize(new Dimension(Defaults.getInstance()
 						.getControlHeight(), Defaults.getInstance()
 						.getControlHeight()));
+		ParametermandantDto parameter = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_ARTIKEL,
+						ParameterFac.PARAMETER_LAGERMIN_JE_LAGER);
+		boolean lagerminjelager = (Boolean) parameter.getCWertAsObject();
+		if (lagerminjelager) {
+			iZeile++;
+			jpaWorkingOn.add(wlaStandort, new GridBagConstraints(1, iZeile, 1,
+					1, 1.0, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
+			jpaWorkingOn.add(wcbStandort, new GridBagConstraints(2, iZeile, 1,
+					1, 0.5, 0.0, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		}
 		iZeile++;
 		jpaWorkingOn.add(wlaVorlaufZeit, new GridBagConstraints(1, iZeile, 1,
 				1, 1.0, 0.0, GridBagConstraints.CENTER,
@@ -244,9 +297,13 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 
 		jpaWorkingOn.add(wdfLieferterminfuerArtikelOhneReservierung,
 				new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+						GridBagConstraints.WEST, GridBagConstraints.NONE,
 						new Insets(2, 2, 2, 2), 0, 0));
 
+		
+		jpaWorkingOn.add(wcbExakterAuftragsbezug, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 150, 2, 2), 0, 0));
+		
 		iZeile++;
 		jpaWorkingOn.add(wlaVorhandeneBestellvorschlagEintrageLoeschen,
 				new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
@@ -288,6 +345,26 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 		jpaWorkingOn.add(wcbVormerklisteLoeschen, new GridBagConstraints(1,
 				iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		
+		iZeile++;
+		jpaWorkingOn.add(wcbArtikelNurAufAuftraegeIgnorieren, new GridBagConstraints(1,
+				iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		parameter = DelegateFactory
+				.getInstance()
+				.getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_AUFTRAG,
+						ParameterFac.PARAMETER_AUFTRAGSFREIGABE);
+		boolean auftragsfreigabe = (Boolean) parameter.getCWertAsObject();
+		if (auftragsfreigabe) {
+			iZeile++;
+			jpaWorkingOn.add(wcbMitNichtFreigegebeneAuftraegen,
+					new GridBagConstraints(1, iZeile, 2, 1, 0, 0.0,
+							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+							new Insets(2, 2, 2, 2), 0, 0));
+		}
 
 	}
 
@@ -324,6 +401,10 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 		return wnfToleranz.getInteger();
 	}
 
+	public boolean getBExakterAuftragsbezug() {
+		return wcbExakterAuftragsbezug.isSelected();
+	}
+	
 	public Date getLieferterminFuerArtikelOhneReservierung() {
 		return wdfLieferterminfuerArtikelOhneReservierung.getDate();
 	}
@@ -399,7 +480,7 @@ public class PanelDialogKriterienBestellvorschlag2 extends PanelDialogKriterien 
 				Object[] o = panelQueryFLRAuftrag.getSelectedIds();
 
 				String auftraege = "";
-				
+
 				if (wtfAuftrag.getText() != null) {
 					auftraege = wtfAuftrag.getText();
 				}

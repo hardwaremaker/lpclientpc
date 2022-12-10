@@ -39,6 +39,7 @@ import javax.swing.JComponent;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.pc.LPMain;
@@ -62,7 +63,7 @@ import com.lp.util.Helper;
  *
  * @version not attributable Date $Date: 2012/05/16 09:09:42 $
  */
-public class ReportSammelmahnung extends PanelBasis implements PanelReportIfJRDS
+public class ReportSammelmahnung extends PanelBasis implements PanelReportIfJRDS, IDruckTypeReport
 {
   /**
 	 * 
@@ -123,14 +124,14 @@ private JasperPrintLP print=null;
     		mailtextDto.setMailVertreter(null);
     		mailtextDto.setMailBelegdatum(new java.sql.Date(System.currentTimeMillis()));
     		mailtextDto.setMailBelegnummer(null);
-    		mailtextDto.setMailBezeichnung(LPMain.getInstance().getTextRespectUISPr("rech.mailbezeichnung.sammelmahnung") + " " + sRechnungen);
+    		mailtextDto.setMailBezeichnung(LPMain.getTextRespectSpezifischesLocale("rech.mailbezeichnung.sammelmahnung", locKunde) + " " + sRechnungen);
     		mailtextDto.setMailFusstext(null);
     		mailtextDto.setMailPartnerIId(kundeDto.getPartnerIId());
     		mailtextDto.setMailProjekt(null);
     		mailtextDto.setMailText(null);
     		mailtextDto.setParamLocale(locKunde);
     		if(iMahnstufe!=null){
-    			String sBetreff = iMahnstufe + ". " + LPMain.getInstance().getTextRespectUISPr("rech.mailbetreff.mahnung") + " " + sRechnungen;
+    			String sBetreff = iMahnstufe + ". " + LPMain.getTextRespectSpezifischesLocale("rech.mailbetreff.mahnung", locKunde) + " " + sRechnungen;
     			mailtextDto.setMailBetreff(sBetreff);
     		}
 

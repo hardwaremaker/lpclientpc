@@ -33,6 +33,7 @@
 package com.lp.client.auftrag;
 
 import javax.swing.event.ChangeEvent;
+import javax.swing.table.TableModel;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.frame.HelperClient;
@@ -97,12 +98,17 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 	private PanelSplit panelBegruendungSP;
 	private PanelAuftragbegruendung panelBegruendungBottomD;
 
+	private PanelQuery panelVerrechenbarTopQP;
+	private PanelSplit panelVerrechenbarSP;
+	private PanelVerrechenbar panelVerrechenbarBottomD;
+
 	private static final int IDX_PANEL_AUFTRAGTEXT = 0;
 	private static final int IDX_PANEL_AUFTRAGART = 1;
 	private static final int IDX_PANEL_AUFTRAGPOSITIONART = 2;
 	private static final int IDX_PANEL_AUFTRAGDOKUMENTE = 3;
 	private static final int IDX_PANEL_BEGRUENDUNG = 4;
-	private static final int IDX_PANEL_MEILENSTEIN = 5;
+	private static final int IDX_PANEL_VERRECHENBAR = 5;
+	private static final int IDX_PANEL_MEILENSTEIN = 6;
 
 	public TabbedPaneAuftragGrunddaten(InternalFrame internalFrameI)
 			throws Throwable {
@@ -149,6 +155,13 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 				null, null,
 				LPMain.getInstance().getTextRespectUISPr("ls.begruendung"),
 				IDX_PANEL_BEGRUENDUNG);
+		insertTab(
+				LPMain.getInstance()
+						.getTextRespectUISPr("auftrag.verrechenbar"), null,
+				null,
+				LPMain.getInstance()
+						.getTextRespectUISPr("auftrag.verrechenbar"),
+				IDX_PANEL_VERRECHENBAR);
 
 		if (LPMain
 				.getInstance()
@@ -237,6 +250,14 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 
 				panelMeilensteinTopQP.updateButtons(panelMeilensteinBottomD
 						.getLockedstateDetailMainKey());
+			} else if (eI.getSource() == panelVerrechenbarTopQP) {
+				Integer iId = (Integer) panelVerrechenbarTopQP.getSelectedId();
+				getInternalFrame().setKeyWasForLockMe(iId + "");
+				panelVerrechenbarBottomD.setKeyWhenDetailPanel(iId);
+				panelVerrechenbarBottomD.eventYouAreSelected(false);
+
+				panelVerrechenbarTopQP.updateButtons(panelVerrechenbarBottomD
+						.getLockedstateDetailMainKey());
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			// hier kommt man nach upd im D bei einem 1:n hin.
@@ -269,6 +290,10 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 				// im QP die Buttons in den Zustand neu setzen.
 				panelMeilensteinTopQP.updateButtons(new LockStateValue(
 						PanelBasis.LOCK_FOR_NEW));
+			} else if (eI.getSource() == panelVerrechenbarBottomD) {
+				// im QP die Buttons in den Zustand neu setzen.
+				panelVerrechenbarTopQP.updateButtons(new LockStateValue(
+						PanelBasis.LOCK_FOR_NEW));
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
 			if (e.getSource() == panelAuftragtextBottomD) {
@@ -283,6 +308,8 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 				panelBegruendungSP.eventYouAreSelected(false);
 			} else if (e.getSource() == panelMeilensteinTopQP) {
 				panelMeilensteinSP.eventYouAreSelected(false);
+			} else if (e.getSource() == panelVerrechenbarTopQP) {
+				panelVerrechenbarSP.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_SAVE) {
 			if (e.getSource() == panelAuftragtextBottomD) {
@@ -316,6 +343,11 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 				panelMeilensteinTopQP.eventYouAreSelected(false);
 				panelMeilensteinTopQP.setSelectedId(oKey);
 				panelMeilensteinSP.eventYouAreSelected(false);
+			} else if (e.getSource() == panelVerrechenbarBottomD) {
+				Object oKey = panelVerrechenbarBottomD.getKeyWhenDetailPanel();
+				panelVerrechenbarTopQP.eventYouAreSelected(false);
+				panelVerrechenbarTopQP.setSelectedId(oKey);
+				panelVerrechenbarSP.eventYouAreSelected(false);
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			if (e.getSource() == panelAuftragtextBottomD) {
@@ -349,6 +381,8 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 				// panel
 			} else if (e.getSource() == panelMeilensteinBottomD) {
 				panelMeilensteinSP.eventYouAreSelected(false);
+			} else if (e.getSource() == panelVerrechenbarBottomD) {
+				panelVerrechenbarSP.eventYouAreSelected(false);
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (eI.getSource() == panelAuftragtextTopQP) {
@@ -393,8 +427,107 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 				panelMeilensteinBottomD.eventActionNew(eI, true, false);
 				panelMeilensteinBottomD.eventYouAreSelected(false);
 				setSelectedComponent(panelMeilensteinSP);
+			} else if (eI.getSource() == panelVerrechenbarTopQP) {
+				if (panelVerrechenbarTopQP.getSelectedId() == null) {
+					getInternalFrame().enableAllPanelsExcept(true);
+				}
+				panelVerrechenbarBottomD.eventActionNew(eI, true, false);
+				panelVerrechenbarBottomD.eventYouAreSelected(false);
+				setSelectedComponent(panelVerrechenbarSP);
+			}
+		} else if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
+			if (e.getSource() == panelMeilensteinTopQP) {
+				int iPos = panelMeilensteinTopQP.getTable().getSelectedRow();
+
+				// wenn die Position nicht die erste ist
+				if (iPos > 0) {
+					Integer iIdPosition = (Integer) panelMeilensteinTopQP
+							.getSelectedId();
+
+					Integer iIdPositionMinus1 = (Integer) panelMeilensteinTopQP
+							.getTable().getValueAt(iPos - 1, 0);
+					DelegateFactory
+							.getInstance()
+							.getAuftragServiceDelegate()
+							.vertauscheMeilenstein(iIdPosition,
+									iIdPositionMinus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+
+					panelMeilensteinTopQP.setSelectedId(iIdPosition);
+				}
+			}
+			
+			if (e.getSource() == panelVerrechenbarTopQP) {
+				int iPos = panelVerrechenbarTopQP.getTable().getSelectedRow();
+
+				// wenn die Position nicht die erste ist
+				if (iPos > 0) {
+					Integer iIdPosition = (Integer) panelVerrechenbarTopQP
+							.getSelectedId();
+
+					Integer iIdPositionMinus1 = (Integer) panelVerrechenbarTopQP
+							.getTable().getValueAt(iPos - 1, 0);
+					DelegateFactory
+							.getInstance()
+							.getAuftragServiceDelegate()
+							.vertauscheVerrechenbar(iIdPosition,
+									iIdPositionMinus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+
+					panelVerrechenbarTopQP.setSelectedId(iIdPosition);
+				}
 			}
 		}
+		if (e.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
+			if (e.getSource() == panelMeilensteinTopQP) {
+				int iPos = panelMeilensteinTopQP.getTable().getSelectedRow();
+
+				// wenn die Position nicht die letzte ist
+				if (iPos < panelMeilensteinTopQP.getTable().getRowCount() - 1) {
+					Integer iIdPosition = (Integer) panelMeilensteinTopQP
+							.getSelectedId();
+
+					Integer iIdPositionPlus1 = (Integer) panelMeilensteinTopQP
+							.getTable().getValueAt(iPos + 1, 0);
+					DelegateFactory
+							.getInstance()
+							.getAuftragServiceDelegate()
+							.vertauscheMeilenstein(iIdPosition,
+									iIdPositionPlus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelMeilensteinTopQP.setSelectedId(iIdPosition);
+				}
+			}
+			
+			if (e.getSource() == panelVerrechenbarTopQP) {
+				int iPos = panelVerrechenbarTopQP.getTable().getSelectedRow();
+
+				// wenn die Position nicht die letzte ist
+				if (iPos < panelVerrechenbarTopQP.getTable().getRowCount() - 1) {
+					Integer iIdPosition = (Integer) panelVerrechenbarTopQP
+							.getSelectedId();
+
+					Integer iIdPositionPlus1 = (Integer) panelVerrechenbarTopQP
+							.getTable().getValueAt(iPos + 1, 0);
+					DelegateFactory
+							.getInstance()
+							.getAuftragServiceDelegate()
+							.vertauscheVerrechenbar(iIdPosition,
+									iIdPositionPlus1);
+
+					// die Liste neu anzeigen und den richtigen Datensatz
+					// markieren
+					panelVerrechenbarTopQP.setSelectedId(iIdPosition);
+				}
+			}
+		}
+
 	}
 
 	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
@@ -490,6 +623,16 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 					.getLockedstateDetailMainKey());
 
 			break;
+		}case IDX_PANEL_VERRECHENBAR: {
+			refreshPanelVerrechenbar();
+
+			panelVerrechenbarTopQP.eventYouAreSelected(false);
+			setTitle(LPMain.getInstance().getTextRespectUISPr("auftrag.verrechenbar"));
+
+			panelVerrechenbarTopQP.updateButtons(panelVerrechenbarBottomD
+					.getLockedstateDetailMainKey());
+
+			break;
 		}
 		case IDX_PANEL_BEGRUENDUNG: {
 			refreshPanelBegruendung();
@@ -524,6 +667,29 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 					panelBegruendungBottomD, panelBegruendungTopQP, 350);
 
 			setComponentAt(IDX_PANEL_BEGRUENDUNG, panelBegruendungSP);
+		}
+	}
+	
+	private void refreshPanelVerrechenbar() throws Throwable {
+		if (panelVerrechenbarSP == null) {
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW ,
+					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1};
+
+			panelVerrechenbarTopQP= new PanelQuery(null, null,
+					QueryParameters.UC_ID_VERRECHENBAR,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain
+							.getInstance()
+							.getTextRespectUISPr("auftrag.verrechenbar"), true);
+
+			panelVerrechenbarBottomD = new PanelVerrechenbar(
+					getInternalFrame(), LPMain.getInstance()
+							.getTextRespectUISPr("auftrag.verrechenbar"), null);
+
+			panelVerrechenbarSP = new PanelSplit(getInternalFrame(),
+					panelVerrechenbarBottomD, panelVerrechenbarTopQP, 350);
+
+			setComponentAt(IDX_PANEL_VERRECHENBAR, panelVerrechenbarSP);
 		}
 	}
 
@@ -600,8 +766,9 @@ public class TabbedPaneAuftragGrunddaten extends TabbedPane {
 
 	private void refreshPanelMeilenstein() throws Throwable {
 		if (panelMeilensteinSP == null) {
-			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
-
+			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW,
+					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1 };
 			panelMeilensteinTopQP = new PanelQuery(null, SystemFilterFactory
 					.getInstance().createFKMandantCNr(),
 					QueryParameters.UC_ID_MEILENSTEIN,

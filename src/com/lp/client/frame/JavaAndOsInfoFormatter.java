@@ -40,11 +40,13 @@ public class JavaAndOsInfoFormatter implements IJavaAndOSInfoFormatter {
 	@Override
 	public String format(ServerJavaAndOSInfo javaInfo) {
 		StringBuffer sb = new StringBuffer();		
-		sb.append(getInfo(javaInfo.getVmVendor()));
+		sb.append(getInfo(javaInfo.getVendor()));
+		sb.append(", " + getInfo(javaInfo.getVmVendor()));
 		sb.append(", " + getInfo(javaInfo.getVmVersion()));
+		sb.append(", " + getInfo(javaInfo.getVmName()));
 		sb.append(", " + getInfo(javaInfo.getOsName()));
 		sb.append(", " + getInfo(javaInfo.getOsVersion())) ;
-		sb.append(" (vendor, version, os.name, os.version)") ;
+		sb.append(" (vendor, vm.vendor, vm.name, version, os.name, os.version)") ;
 		return sb.toString();
 	}
 	

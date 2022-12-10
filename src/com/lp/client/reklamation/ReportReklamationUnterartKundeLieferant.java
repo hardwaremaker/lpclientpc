@@ -33,56 +33,62 @@
 package com.lp.client.reklamation;
 
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.sql.Timestamp;
 import java.util.Locale;
 
 import javax.swing.ButtonGroup;
-import javax.swing.JPanel;
 
-import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
-import com.lp.client.frame.report.ReportEtikett;
+import com.lp.client.frame.report.ReportBeleg;
 import com.lp.client.pc.LPMain;
 import com.lp.server.bestellung.service.WareneingangDto;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.reklamation.service.ReklamationDto;
-import com.lp.server.reklamation.service.ReklamationFac;
 import com.lp.server.reklamation.service.ReklamationReportFac;
+import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
-public class ReportReklamationUnterartKundeLieferant extends PanelBasis
-		implements PanelReportIfJRDS {
-	protected JPanel jpaWorkingOn = new JPanel();
-	private GridBagLayout gridBagLayout2 = new GridBagLayout();
-	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+public class ReportReklamationUnterartKundeLieferant extends ReportBeleg
+		implements PanelReportIfJRDS, IDruckTypeReport {
 
 	private ButtonGroup buttonGroup = new ButtonGroup();
-	WrapperRadioButton wrbKunde = new WrapperRadioButton();
-	WrapperRadioButton wrbLieferant = new WrapperRadioButton();
+	public WrapperRadioButton wrbKunde = new WrapperRadioButton();
+	public WrapperRadioButton wrbLieferant = new WrapperRadioButton();
 
 	private static final long serialVersionUID = 1L;
 	private Integer reklamationIId = null;
 
+	public Integer getReklamationIId() {
+		return reklamationIId;
+	}
+
 	public ReportReklamationUnterartKundeLieferant(
 			InternalFrameReklamation internalFrame, String add2Title,
 			Integer reklamationIId) throws Throwable {
-		super(internalFrame, add2Title);
+		super(internalFrame, null, add2Title, LocaleFac.BELEGART_REKLAMATION,
+				reklamationIId, internalFrame.getReklamationDto()
+						.getKostenstelleIId());
 		jbInit();
 		initComponents();
 		this.reklamationIId = reklamationIId;
 	}
 
+	@Override
+	protected String getLockMeWer() throws Exception {
+		return HelperClient.LOCKME_REKLAMATION;
+	}
+
 	private void jbInit() throws Exception {
-		this.setLayout(gridBagLayout1);
-		jpaWorkingOn.setLayout(gridBagLayout2);
 
 		wrbLieferant.setText(LPMain.getTextRespectUISPr("label.lieferant"));
 		wrbKunde.setText(LPMain.getTextRespectUISPr("label.kunde"));
@@ -90,21 +96,23 @@ public class ReportReklamationUnterartKundeLieferant extends PanelBasis
 		buttonGroup.add(wrbKunde);
 		buttonGroup.add(wrbLieferant);
 		wrbKunde.setSelected(true);
-
+		
 		
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(new WrapperLabel(LPMain.getTextRespectUISPr("rekla.unterart")), new GridBagConstraints(0, 0, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+		iZeile++;
+
+		jpaWorkingOn.add(
+				new WrapperLabel(LPMain.getTextRespectUISPr("rekla.unterart")),
+				new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						0, 0));
+		jpaWorkingOn.add(wrbKunde, new GridBagConstraints(1, iZeile, 1, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbKunde, new GridBagConstraints(1, 0, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbLieferant, new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbLieferant, new GridBagConstraints(2, iZeile, 3, 1,
+				0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 
 	}
@@ -122,8 +130,8 @@ public class ReportReklamationUnterartKundeLieferant extends PanelBasis
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory.getInstance().getReklamationReportDelegate()
-				.printReklamation(reklamationIId, wrbLieferant.isSelected());
+		return kopienHinzufuegen(  DelegateFactory.getInstance().getReklamationReportDelegate()
+				.printReklamation(reklamationIId, wrbLieferant.isSelected()));
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -141,14 +149,27 @@ public class ReportReklamationUnterartKundeLieferant extends PanelBasis
 
 			PartnerDto partnerDto = null;
 			Integer ansprechprtnerIId = null;
-			if (reklamationDto.getReklamationartCNr().equals(
-					ReklamationFac.REKLAMATIONART_KUNDE)) {
+			if (wrbKunde.isSelected()) {
 
 				partnerDto = DelegateFactory.getInstance().getKundeDelegate()
 						.kundeFindByPrimaryKey(reklamationDto.getKundeIId())
 						.getPartnerDto();
 
 				ansprechprtnerIId = reklamationDto.getAnsprechpartnerIId();
+
+			}
+
+			else if (wrbLieferant.isSelected()
+					&& reklamationDto.getLieferantIId() != null) {
+				partnerDto = DelegateFactory
+						.getInstance()
+						.getLieferantDelegate()
+						.lieferantFindByPrimaryKey(
+								reklamationDto.getLieferantIId())
+						.getPartnerDto();
+
+				ansprechprtnerIId = reklamationDto
+						.getAnsprechpartnerIIdLieferant();
 
 			}
 
@@ -159,7 +180,6 @@ public class ReportReklamationUnterartKundeLieferant extends PanelBasis
 				mailtextDto.setMailPartnerIId(partnerDto.getIId());
 				mailtextDto.setMailAnprechpartnerIId(ansprechprtnerIId);
 
-				
 				mailtextDto.setRekla_kndlsnr(reklamationDto.getCKdlsnr());
 				mailtextDto.setRekla_kndreklanr(reklamationDto.getCKdreklanr());
 				if (reklamationDto.getLieferscheinIId() != null) {
@@ -178,31 +198,25 @@ public class ReportReklamationUnterartKundeLieferant extends PanelBasis
 									reklamationDto.getRechnungIId()).getCNr());
 				}
 
-				
-					if (reklamationDto.getWareneingangIId() != null) {
+				if (reklamationDto.getWareneingangIId() != null) {
 
-						WareneingangDto weDto = DelegateFactory
-								.getInstance()
-								.getWareneingangDelegate()
-								.wareneingangFindByPrimaryKey(
-										reklamationDto.getWareneingangIId());
+					WareneingangDto weDto = DelegateFactory
+							.getInstance()
+							.getWareneingangDelegate()
+							.wareneingangFindByPrimaryKey(
+									reklamationDto.getWareneingangIId());
 
-						mailtextDto
-								.setRekla_we_lsnr(weDto.getCLieferscheinnr());
+					mailtextDto.setRekla_we_lsnr(weDto.getCLieferscheinnr());
 
-						mailtextDto.setRekla_we_lsdatum(Helper.formatDatum(
-								weDto.getTLieferscheindatum(), LPMain
-										.getTheClient().getLocUi()));
-						mailtextDto.setRekla_we_datum(Helper.formatDatum(weDto
-								.getTWareneingangsdatum(), LPMain
-								.getTheClient().getLocUi()));
+					mailtextDto.setRekla_we_lsdatum(Helper.formatDatum(weDto
+							.getTLieferscheindatum(), LPMain.getTheClient()
+							.getLocUi()));
+					mailtextDto.setRekla_we_datum(Helper.formatDatum(weDto
+							.getTWareneingangsdatum(), LPMain.getTheClient()
+							.getLocUi()));
 
-					}
-				
+				}
 
-				
-				
-				
 				PersonalDto personalDtoBearbeiter = DelegateFactory
 						.getInstance()
 						.getPersonalDelegate()
@@ -224,4 +238,15 @@ public class ReportReklamationUnterartKundeLieferant extends PanelBasis
 		}
 		return mailtextDto;
 	}
+
+	@Override
+	protected void aktiviereBelegImpl(Timestamp t) throws Throwable {
+
+	}
+
+	@Override
+	protected Timestamp berechneBelegImpl() throws Throwable {
+		return null;
+	}
+
 }

@@ -55,11 +55,11 @@ import java.util.Locale;
 
 import javax.jcr.RepositoryException;
 import javax.swing.Icon;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JTree;
 import javax.swing.ToolTipManager;
@@ -76,13 +76,19 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.tika.mime.MediaType;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.ChooserOpenDialog;
+import com.lp.client.frame.filechooser.FileChooserBuilder;
+import com.lp.client.frame.filechooser.open.WrapperFile;
+import com.lp.client.frame.report.ReportCopyViewer;
 import com.lp.client.partner.PartnerFilterFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.HvTempFileCreator;
 import com.lp.client.util.JCRFileUploader;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.partner.service.PartnerDto;
@@ -110,14 +116,13 @@ import com.lp.server.util.Facade;
 import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
-public class PanelDokumentenablage extends PanelDialog implements
-		TreeSelectionListener, TreeModelListener, TreeExpansionListener,
-		DropListener {
+public class PanelDokumentenablage extends PanelDialog
+		implements TreeSelectionListener, TreeModelListener, TreeExpansionListener, DropListener {
 
 	private static final long serialVersionUID = 3513778783444609709L;
 
 	private static final String MUST_LOAD_CHILDREN = "mustLoadChildren";
-	
+
 	private File lastSaveDir = null;
 
 	private WrapperJTree tree;
@@ -163,7 +168,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 	private WrapperButton wbuChooseDoc = new WrapperButton(LPMain.getTextRespectUISPr("lp.dokumente.dokumentwaehlen"));
 	private WrapperButton wbuShowDoc = new WrapperButton(LPMain.getTextRespectUISPr("lp.dokumente.anzeigen"));
 	private WrapperButton wbuSaveDoc = new WrapperButton(LPMain.getTextRespectUISPr("lp.dokumente.speichern"));
-	private WrapperLabel wlaVorschau = new WrapperLabel(LPMain.getTextRespectUISPr("lp.vorschau"));
+//	private WrapperLabel wlaVorschau = new WrapperLabel(LPMain.getTextRespectUISPr("lp.vorschau"));
 	private WrapperMediaControl wmcMedia = null;
 	private WrapperCheckBox wcbVersteckteAnzeigen = new WrapperCheckBox(LPMain.getTextRespectUISPr("lp.versteckte"));
 	private WrapperButton wbuSuche = new WrapperButton(LPMain.getTextRespectUISPr("lp.suche"));
@@ -189,34 +194,37 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 	private boolean bHatDokumentenablage = false;
 
+	private boolean newVersion = false;
+//	private WrapperButton wbuDetails = new WrapperButton("Details");
+	private boolean showDetails = false;
+	private JSeparator separatorDetails = new JSeparator();
+	private WrapperCheckBox wcbDetailsAnzeigen = new WrapperCheckBox(
+			LPMain.getTextRespectUISPr("lp.dokumente.detailsanzeigen"));
+
 	private static final String ACTION_SPECIAL_PARTNER = "action_special_partner";
 	private static final String ACTION_SPECIAL_CHOOSE = "action_special_choose";
 	private static final String ACTION_SPECIAL_SHOW = "action_special_show";
 	private static final String ACTION_SPECIAL_SAVE = "action_special_save";
 
 	private static final String ACTION_SPECIAL_SCAN = "action_special_scan";
-	private final String BUTTON_SCAN = PanelBasis.ACTION_MY_OWN_NEW
-			+ ACTION_SPECIAL_SCAN;
+	private final String BUTTON_SCAN = PanelBasis.ACTION_MY_OWN_NEW + ACTION_SPECIAL_SCAN;
+//	private static final String ACTION_SPECIAL_DETAILS = "action_special_details";
 
-	// Konstruktor mit HeliumV Node als Einstiegspunkt
-	public PanelDokumentenablage(InternalFrame internalFrameI,
-			String addTitleI, Integer iPartnerIId) throws Throwable {
-		this(internalFrameI, null, new HeliumDocPath(), addTitleI, null, false,
-				iPartnerIId);
+	public PanelDokumentenablage(InternalFrame internalFrameI, String addTitleI, Integer iPartnerIId) throws Throwable {
+		this(internalFrameI, null, new HeliumDocPath(), addTitleI, null, false, iPartnerIId);
 	}
 
-	// Konstruktor mit Beleg als Einstiegspunkt
-	public PanelDokumentenablage(InternalFrame internalFrameI,
-			String addTitleI, DocPath docPath, String sTable, String sRow,
-			boolean bShowExitButton, Integer iPartnerIId) throws Throwable {
+	public PanelDokumentenablage(InternalFrame internalFrameI, String addTitleI, DocPath docPath, String sTable,
+			String sRow, boolean bShowExitButton, Integer iPartnerIId) throws Throwable {
 		super(internalFrameI, addTitleI, bShowExitButton);
 		if (addTitleI != null) {
-			getInternalFrame().setTitle(
-					getInternalFrame().getTitle() + " | "
-							+ LPMain.getTextRespectUISPr("lp.dokumente"));
+			getInternalFrame()
+					.setTitle(getInternalFrame().getTitle() + " | " + LPMain.getTextRespectUISPr("lp.dokumente"));
 		}
 		this.bShowExitButton = bShowExitButton;
 		wmcMedia = new WrapperMediaControl(getInternalFrame(), "", false, true);
+		wmcMedia.setReportViewer(new ReportCopyViewer(null));
+		wmcMedia.setDropAreaEnabled(false);
 		this.fullDocPath = docPath;
 		this.sTable = sTable;
 		this.sRow = sRow;
@@ -231,11 +239,8 @@ public class PanelDokumentenablage extends PanelDialog implements
 		bHatStufe99 = DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_DOKUMENTE_SICHERHEITSSTUFE_99_CU);
 
-		ArbeitsplatzparameterDto parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.holeArbeitsplatzparameter(
-						ParameterFac.ARBEITSPLATZPARAMETER_DOKUMENTE_EINLESE_PFAD);
+		ArbeitsplatzparameterDto parameter = DelegateFactory.getInstance().getParameterDelegate()
+				.holeArbeitsplatzparameter(ParameterFac.ARBEITSPLATZPARAMETER_DOKUMENTE_EINLESE_PFAD);
 
 		if (parameter != null && parameter.getCWert() != null) {
 			defaultEinlesePfad = parameter.getCWert();
@@ -245,27 +250,22 @@ public class PanelDokumentenablage extends PanelDialog implements
 		initComponents();
 		enableAllComponents(this, false);
 		wcbVersteckteAnzeigen.setEnabled(true);
+		wcbDetailsAnzeigen.setEnabled(true);
 		wtfSuche.setEditable(true);
 		wtfSuche.setColumnsMax(200);
 		wbuSuche.setEnabled(true);
 		if (iPartnerIId != null) {
-			partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
-					.partnerFindByPrimaryKey(iPartnerIId);
+			partnerDto = DelegateFactory.getInstance().getPartnerDelegate().partnerFindByPrimaryKey(iPartnerIId);
 		} else {
-			MandantDto mandantDto = DelegateFactory
-					.getInstance()
-					.getMandantDelegate()
-					.mandantFindByPrimaryKey(
-							LPMain.getTheClient().getMandant());
+			MandantDto mandantDto = DelegateFactory.getInstance().getMandantDelegate()
+					.mandantFindByPrimaryKey(LPMain.getTheClient().getMandant());
 			iPartnerIId = mandantDto.getPartnerIId();
-			partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
-					.partnerFindByPrimaryKey(iPartnerIId);
+			partnerDto = DelegateFactory.getInstance().getPartnerDelegate().partnerFindByPrimaryKey(iPartnerIId);
 		}
 	}
 
-	private void setSearchedDocumentsOnTree(DefaultMutableTreeNode top,
-			ArrayList<DocPath> docPaths) throws ExceptionLP,
-			RepositoryException, Throwable {
+	private void setSearchedDocumentsOnTree(DefaultMutableTreeNode top, ArrayList<DocPath> docPaths)
+			throws ExceptionLP, RepositoryException, Throwable {
 		if (docPaths.size() == 0)
 			treeModel.insertNodeInto(new DefaultMutableTreeNode("..."), top, 0);
 
@@ -279,14 +279,11 @@ public class PanelDokumentenablage extends PanelDialog implements
 				} else {
 					int i = getDocNodeChildPos(node, treeNode);
 					if (i == -1) {
-						DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(
-								node);
-						treeModel.insertNodeInto(newNode, treeNode,
-								treeNode.getChildCount());
+						DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(node);
+						treeModel.insertNodeInto(newNode, treeNode, treeNode.getChildCount());
 						treeNode = newNode;
 					} else {
-						treeNode = (DefaultMutableTreeNode) treeNode
-								.getChildAt(i);
+						treeNode = (DefaultMutableTreeNode) treeNode.getChildAt(i);
 					}
 				}
 			}
@@ -302,12 +299,9 @@ public class PanelDokumentenablage extends PanelDialog implements
 	 * @param treeNode
 	 * @return
 	 */
-	private int getDocNodeChildPos(DocNodeBase docNode,
-			DefaultMutableTreeNode treeNode) {
+	private int getDocNodeChildPos(DocNodeBase docNode, DefaultMutableTreeNode treeNode) {
 		for (int i = 0; i < treeNode.getChildCount(); i++) {
-			if (docNode.toString().equals(
-					((DefaultMutableTreeNode) treeNode.getChildAt(i))
-							.getUserObject().toString()))
+			if (docNode.toString().equals(((DefaultMutableTreeNode) treeNode.getChildAt(i)).getUserObject().toString()))
 				return i;
 		}
 		return -1;
@@ -315,8 +309,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 	private void refresh() throws ExceptionLP, Throwable {
 		List<DocNodeBase> parts = fullDocPath.getDeepCopy().asDocNodeList();
-		boolean isSuche = wtfSuche.getText() != null
-				&& !"".equals(wtfSuche.getText());
+		boolean isSuche = wtfSuche.getText() != null && !"".equals(wtfSuche.getText());
 
 		DefaultMutableTreeNode dmtNode = null;
 		Object[] toSelect = new Object[parts.size()];
@@ -327,8 +320,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 			treeModel.addTreeModelListener(this);
 		}
 		for (int i = 1; i < parts.size() && !isSuche; i++) {
-			DefaultMutableTreeNode toAdd = new DefaultMutableTreeNode(
-					parts.get(i));
+			DefaultMutableTreeNode toAdd = new DefaultMutableTreeNode(parts.get(i));
 			toSelect[i] = toAdd;
 			treeModel.insertNodeInto(toAdd, dmtNode, dmtNode.getChildCount());
 			dmtNode = toAdd;
@@ -341,17 +333,15 @@ public class PanelDokumentenablage extends PanelDialog implements
 			treePathOld = new TreePath(toSelect);
 		}
 		// Value Changed damit die Buttons korrekt angezeigt werden
-		valueChanged(new TreeSelectionEvent(tree, treePath, true, treePathOld,
-				treePath));
+		valueChanged(new TreeSelectionEvent(tree, treePath, true, treePathOld, treePath));
 		if (isSuche) {
-			setSearchedDocumentsOnTree(dmtNode, DelegateFactory.getInstance()
-					.getJCRDocDelegate().searchDocNodes(wtfSuche.getText()));
+			setSearchedDocumentsOnTree(dmtNode,
+					DelegateFactory.getInstance().getJCRDocDelegate().searchDocNodes(wtfSuche.getText()));
 			for (int i = tree.getRowCount(); i > 0; i--) {
 				tree.collapseRow(i);
 			}
 		} else if (dmtNode.getChildCount() == 0) {
-			List<DocNodeBase> childDocNodes = DelegateFactory
-					.getInstance().getJCRDocDelegate()
+			List<DocNodeBase> childDocNodes = DelegateFactory.getInstance().getJCRDocDelegate()
 					.getDocNodeChildrenFromNode(fullDocPath);
 			if (childDocNodes != null) {
 				setDocNodesOnTree(dmtNode, childDocNodes, fullDocPath);
@@ -362,25 +352,19 @@ public class PanelDokumentenablage extends PanelDialog implements
 	}
 
 	private void jbInit() throws Throwable {
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_DOKUMENTENABLAGE)) {
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_DOKUMENTENABLAGE)) {
 			if (!(new HeliumDocPath()).equals(fullDocPath)) {
 				bHatDokumentenablage = true;
 			}
 		}
 		if (bShowExitButton) {
-			String[] aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE,
-					PanelBasis.ACTION_DISCARD };
+			String[] aWhichButtonIUse = new String[] { PanelBasis.ACTION_NEW, PanelBasis.ACTION_UPDATE,
+					PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD };
 			enableToolsPanelButtons(aWhichButtonIUse);
-			createAndSaveAndShowButton("/com/lp/client/res/scanner.png",
-					"TWAIN-Import", BUTTON_SCAN, null);
+			createAndSaveAndShowButton("/com/lp/client/res/scanner.png", "TWAIN-Import", BUTTON_SCAN, null);
 		}
-		dropArea.setCenterText(LPMain
-				.getTextRespectUISPr("lp.datei.draganddrop.ablegen"));
+		dropArea.setCenterText(LPMain.getTextRespectUISPr("lp.datei.draganddrop.ablegen"));
 		dropArea.setBackground(Color.LIGHT_GRAY);
 		dropArea.setSupportFiles(true);
 		dropArea.addDropListener(this);
@@ -393,22 +377,19 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 		JLayeredPane rightLayered = new JLayeredPane();
 		rightLayered.setLayout(new GridBagLayout());
-		rightLayered.add(rightPane, new GridBagConstraints(1, 1, 1, 1, 1, 1,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
+		rightLayered.add(rightPane, new GridBagConstraints(1, 1, 1, 1, 1, 1, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		// rightLayered.setLayer(rightPane, 0, 1);
 		if (bShowExitButton && bHatDokumentenablage)
-			rightLayered.add(dropArea, new GridBagConstraints(1, 2, 1, 1, 1, 1,
-					GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-					new Insets(0, 0, 0, 0), 0, 0));
+			rightLayered.add(dropArea, new GridBagConstraints(1, 2, 1, 1, 1, 1, GridBagConstraints.CENTER,
+					GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		// rightLayered.setLayer(dropArea, 1, 1);
 
 		rightPane.setLayout(new GridBagLayout());
 
 		tree = new WrapperJTree(treeModel);
 		tree.setEditable(false);
-		tree.getSelectionModel().setSelectionMode(
-				TreeSelectionModel.SINGLE_TREE_SELECTION);
+		tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 		tree.setShowsRootHandles(true);
 		tree.setRowHeight(0);
 
@@ -419,33 +400,20 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 		refresh();
 
-		personalDto = DelegateFactory
-				.getInstance()
-				.getPersonalDelegate()
-				.personalFindByPrimaryKey(
-						LPMain.getTheClient().getIDPersonal());
-		dokumentbelegartDto = DelegateFactory
-				.getInstance()
-				.getJCRDocDelegate()
-				.dokumentbelegartfindbyMandant(
-						LPMain.getTheClient().getMandant());
+		personalDto = DelegateFactory.getInstance().getPersonalDelegate()
+				.personalFindByPrimaryKey(LPMain.getTheClient().getIDPersonal());
+		dokumentbelegartDto = DelegateFactory.getInstance().getJCRDocDelegate()
+				.dokumentbelegartfindbyMandant(LPMain.getTheClient().getMandant());
 		for (int i = 0; i < dokumentbelegartDto.length; i++) {
-			if (!JCRDocFac.DEFAULT_ARCHIV_BELEGART
-					.equals(dokumentbelegartDto[i].getCNr()))
+			if (!JCRDocFac.DEFAULT_ARCHIV_BELEGART.equals(dokumentbelegartDto[i].getCNr()))
 				wcbBelegart.addItem(dokumentbelegartDto[i].getCNr());
 		}
-		dokumentgruppierungDto = DelegateFactory
-				.getInstance()
-				.getJCRDocDelegate()
-				.dokumentgruppierungfindbyMandant(
-						LPMain.getTheClient().getMandant());
+		dokumentgruppierungDto = DelegateFactory.getInstance().getJCRDocDelegate()
+				.dokumentgruppierungfindbyMandant(LPMain.getTheClient().getMandant());
 		for (int i = 0; i < dokumentgruppierungDto.length; i++) {
-			if (!JCRDocFac.DEFAULT_ARCHIV_GRUPPE
-					.equals(dokumentgruppierungDto[i].getCNr())
-					|| !JCRDocFac.DEFAULT_KOPIE_GRUPPE
-							.equals(dokumentgruppierungDto[i].getCNr())
-					|| !JCRDocFac.DEFAULT_VERSANDAUFTRAG_GRUPPE
-							.equals(dokumentgruppierungDto[i].getCNr())) {
+			if (!JCRDocFac.DEFAULT_ARCHIV_GRUPPE.equals(dokumentgruppierungDto[i].getCNr())
+					|| !JCRDocFac.DEFAULT_KOPIE_GRUPPE.equals(dokumentgruppierungDto[i].getCNr())
+					|| !JCRDocFac.DEFAULT_VERSANDAUFTRAG_GRUPPE.equals(dokumentgruppierungDto[i].getCNr())) {
 				wcbGruppierung.addItem(dokumentgruppierungDto[i].getCNr());
 			}
 		}
@@ -462,8 +430,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 		wbuPartner = new WrapperButton();
 
 		wbuPartner.setText(LPMain.getTextRespectUISPr("button.partner"));
-		wbuPartner.setToolTipText(LPMain
-				.getTextRespectUISPr("button.partner.tooltip"));
+		wbuPartner.setToolTipText(LPMain.getTextRespectUISPr("button.partner.tooltip"));
 
 		wbuPartner.setActionCommand(ACTION_SPECIAL_PARTNER);
 		wbuPartner.addActionListener(this);
@@ -486,7 +453,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 		wtfFilename.setColumnsMax(100);
 		wtfMIME.setActivatable(false);
 		wcbVersteckt.addItemListener(new ItemListener() {
-			
+
 			@Override
 			public void itemStateChanged(ItemEvent e) {
 				wtfSchlagworte.setMandatoryField(!wcbVersteckt.isSelected());
@@ -515,12 +482,19 @@ public class PanelDokumentenablage extends PanelDialog implements
 		wtfBelegnummer.setMandatoryField(true);
 		wtfRow.setMandatoryField(true);
 		wtfFilename.setMandatoryField(true);
-		wtfMIME.setMandatoryField(true);
+		wtfMIME.setMandatoryField(false);
 		wtfAnleger.setMandatoryField(true);
 		wtfSchlagworte.setMandatoryField(true);
 		wtfSchlagworte.setColumnsMax(300);
 		wdfZeitpunkt.setMandatoryField(true);
 		wtfPartner.setMandatoryField(true);
+
+//		wbuDetails.setActionCommand(ACTION_SPECIAL_DETAILS);
+//		wbuDetails.addActionListener(this);
+//		wbuDetails.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+//		wbuDetails.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wcbDetailsAnzeigen.setEnabled(true);
+		wcbDetailsAnzeigen.addActionListener(actionListener);
 
 		treeView = new JScrollPane(tree);
 		treeView.setMinimumSize(new Dimension(200, 10));
@@ -528,142 +502,145 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 		iZeile = 0;
 		if (!bShowExitButton) {
-			jpaWorkingOn.add(wtfSuche, new GridBagConstraints(0, iZeile, 1, 1,
-					0.2, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-					new Insets(2, 2, 2, 2), 0, 0));
-			jpaWorkingOn.add(wbuSuche, new GridBagConstraints(1, iZeile, 1, 1,
-					0.1, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-					new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wtfSuche, new GridBagConstraints(0, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wbuSuche, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			iZeile++;
 		}
-		jpaWorkingOn.add(wcbVersteckteAnzeigen, new GridBagConstraints(0,
-				iZeile, 1, 1, 1, 0.0, GridBagConstraints.EAST,
+		jpaWorkingOn.add(wcbVersteckteAnzeigen, new GridBagConstraints(0, iZeile, 1, 1, 1, 0.0, GridBagConstraints.EAST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbDetailsAnzeigen, new GridBagConstraints(1, iZeile, 1, 1, 1, 0.0, GridBagConstraints.EAST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
 		leftPane.add(treeView);
 
-		jpaWorkingOn.add(splitPane, new GridBagConstraints(0, iZeile, 3, 1,
-				1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(splitPane, new GridBagConstraints(0, iZeile, 3, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile = 0;
-		rightPane.add(wlaName, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		rightPane.add(wtfName, new GridBagConstraints(1, iZeile, 3, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		rightPane.add(wlaTable, new GridBagConstraints(4, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfTable, new GridBagConstraints(5, iZeile, 2, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		rightPane.add(wlaSchlagworte, new GridBagConstraints(0, iZeile, 1, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfSchlagworte, new GridBagConstraints(1, iZeile, 6, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		rightPane.add(wlaZeitpunkt, new GridBagConstraints(0, iZeile, 1, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wdfZeitpunkt, new GridBagConstraints(1, iZeile, 3, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wlaSicherheitsstufe, new GridBagConstraints(4, iZeile, 1,
-				1, 1.0, 0.0, GridBagConstraints.CENTER,
+		rightPane.add(wlaName, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wcbSicherheitsstufe, new GridBagConstraints(5, iZeile, 1,
-				1, 1.0, 0.0, GridBagConstraints.CENTER,
+
+		rightPane.add(wtfName, new GridBagConstraints(1, iZeile, 6, 1, 1.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wcbVersteckt, new GridBagConstraints(6, iZeile, 1, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		rightPane.add(wlaBelegnummer, new GridBagConstraints(0, iZeile, 1, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfBelegnummer, new GridBagConstraints(1, iZeile, 3, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wlaRow, new GridBagConstraints(4, iZeile, 1, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfRow, new GridBagConstraints(5, iZeile, 2, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						2, 2, 2, 2), 0, 0));
-		iZeile++;
-		rightPane.add(wlaFilename, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfFilename, new GridBagConstraints(1, iZeile, 3, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wlaMIME, new GridBagConstraints(4, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfMIME, new GridBagConstraints(5, iZeile, 2, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		rightPane.add(wlaBelegart, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wcbBelegart, new GridBagConstraints(1, iZeile, 3, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wlaGruppierung, new GridBagConstraints(4, iZeile, 1, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wcbGruppierung, new GridBagConstraints(5, iZeile, 2, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		rightPane.add(wbuPartner, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfPartner, new GridBagConstraints(1, iZeile, 3, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wlaAnleger, new GridBagConstraints(4, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wtfAnleger, new GridBagConstraints(5, iZeile, 2, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
+		rightPane.add(wlaSchlagworte, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfSchlagworte, new GridBagConstraints(1, iZeile, 6, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		rightPane.add(wbuChooseDoc, new GridBagConstraints(0, iZeile, 3, 1,
-				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		rightPane.add(wlaSicherheitsstufe, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wcbSicherheitsstufe, new GridBagConstraints(1, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wcbVersteckt, new GridBagConstraints(4, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		rightPane.add(wbuShowDoc, new GridBagConstraints(3, iZeile, 2, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		rightPane.add(wbuSaveDoc, new GridBagConstraints(5, iZeile, 2, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		rightPane.add(wlaVorschau, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wlaBelegart, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wcbBelegart, new GridBagConstraints(1, iZeile, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wlaGruppierung, new GridBagConstraints(4, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wcbGruppierung, new GridBagConstraints(5, iZeile, 2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
 		iZeile++;
-		rightPane.add(wmcMedia, new GridBagConstraints(0, iZeile, 7, 4, 1.0,
-				0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(new JSeparator(), new GridBagConstraints(0, iZeile, 7, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(wbuPartner, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfPartner, new GridBagConstraints(1, iZeile, 6, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(wbuChooseDoc, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		rightPane.add(wbuShowDoc, new GridBagConstraints(1, iZeile, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wbuSaveDoc, new GridBagConstraints(4, iZeile, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+//		rightPane.add(wbuDetails, new GridBagConstraints(6, iZeile, 1, 1, 1.0,
+//				0.0, GridBagConstraints.EAST, GridBagConstraints.NONE,
+//				new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(separatorDetails, new GridBagConstraints(0, iZeile, 7, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(wlaZeitpunkt, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wdfZeitpunkt, new GridBagConstraints(1, iZeile, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wlaAnleger, new GridBagConstraints(4, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfAnleger, new GridBagConstraints(5, iZeile, 2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(wlaBelegnummer, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfBelegnummer, new GridBagConstraints(1, iZeile, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wlaRow, new GridBagConstraints(4, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfRow, new GridBagConstraints(5, iZeile, 2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(wlaFilename, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfFilename, new GridBagConstraints(1, iZeile, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wlaMIME, new GridBagConstraints(4, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfMIME, new GridBagConstraints(5, iZeile, 2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(wlaTable, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		rightPane.add(wtfTable, new GridBagConstraints(1, iZeile, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		rightPane.add(wmcMedia, new GridBagConstraints(0, iZeile, 7, 4, 1.0, 0.5, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		setDetailsVisible(isShowDetails());
 		splitPane.setLeftComponent(treeView);
 		splitPane.setRightComponent(rightLayered);
 	}
 
-	private void setDocNodesOnTree(DefaultMutableTreeNode top,
-			List<DocNodeBase> docNodes, DocPath docPath)
+	private void setDetailsVisible(boolean visible) {
+		separatorDetails.setVisible(visible);
+		wlaZeitpunkt.setVisible(visible);
+		wdfZeitpunkt.setVisible(visible);
+		wlaAnleger.setVisible(visible);
+		wtfAnleger.setVisible(visible);
+		wlaBelegnummer.setVisible(visible);
+		wtfBelegnummer.setVisible(visible);
+		wlaRow.setVisible(visible);
+		wtfRow.setVisible(visible);
+		wlaFilename.setVisible(visible);
+		wtfFilename.setVisible(visible);
+		wlaMIME.setVisible(visible);
+		wtfMIME.setVisible(visible);
+		wlaTable.setVisible(visible);
+		wtfTable.setVisible(visible);
+	}
+
+	private void setDocNodesOnTree(DefaultMutableTreeNode top, List<DocNodeBase> docNodes, DocPath docPath)
 			throws ExceptionLP, RepositoryException, Throwable {
 		treeModel.reload(top);
 		DefaultMutableTreeNode treeNode = null;
@@ -675,8 +652,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 				if (docNode.getNodeType() == DocNodeBase.FILE)
 					jcrDocDto = ((DocNodeFile) docNode).getJcrDocDto();
 				if (jcrDocDto != null) {
-					int iSicherheitsstufe = (int) jcrDocDto
-							.getlSicherheitsstufe();
+					int iSicherheitsstufe = (int) jcrDocDto.getlSicherheitsstufe();
 					bDarfDocSehen = false;
 					switch (iSicherheitsstufe) {
 					case (int) JCRDocFac.SECURITY_NONE:
@@ -709,67 +685,60 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 				if (bDarfDocSehen) {
 					if (jcrDocDto != null) {
-						ArrayList<DocNodeVersion> versions = DelegateFactory
-								.getInstance().getJCRDocDelegate()
+						ArrayList<DocNodeVersion> versions = DelegateFactory.getInstance().getJCRDocDelegate()
 								.getAllDocumentVersions(jcrDocDto);
 						if (versions.size() > 0) {
 							boolean alleVersteckt = true;
 							for (DocNodeVersion version : versions) {
-								if(!version.getJCRDocDto().getbVersteckt()) {
+								if (!version.getJCRDocDto().getbVersteckt()) {
 									alleVersteckt = false;
 									break;
 								}
 							}
-							if(bVersteckteAnzeigen || !alleVersteckt) {
-								treeModel.insertNodeInto(treeNode, top,
-										top.getChildCount());
+							if (bVersteckteAnzeigen || !alleVersteckt) {
+								treeModel.insertNodeInto(treeNode, top, top.getChildCount());
 							}
 							for (DocNodeVersion version : versions) {
-								if(bVersteckteAnzeigen || !version.getJCRDocDto().getbVersteckt()) {
-									treeModel.insertNodeInto(
-											new DefaultMutableTreeNode(version),
-											treeNode, treeNode.getChildCount());
+								if (bVersteckteAnzeigen || !version.getJCRDocDto().getbVersteckt()) {
+									treeModel.insertNodeInto(new DefaultMutableTreeNode(version), treeNode,
+											treeNode.getChildCount());
 								}
 							}
-						} else if(bVersteckteAnzeigen || !jcrDocDto.getbVersteckt()){
-							treeModel.insertNodeInto(treeNode, top,
-									top.getChildCount());
+						} else if (bVersteckteAnzeigen || !jcrDocDto.getbVersteckt()) {
+							treeModel.insertNodeInto(treeNode, top, top.getChildCount());
 						}
 					}
 					if (jcrDocDto == null) {
-						if(docNode.getNodeType() == DocNodeBase.SYMBOLIC_LINK) {
-							DocPath path = ((DocNodeSymbolicLink)docNode).getViewPath().getDeepCopy();
+						if (docNode.getNodeType() == DocNodeBase.SYMBOLIC_LINK) {
+							DocPath path = ((DocNodeSymbolicLink) docNode).getViewPath().getDeepCopy();
 							path.asDocNodeList().remove(path.getLastDocNode());
 							path.add(docNode);
 							addNotExistingNodes(path, top);
 						} else {
-							treeModel.insertNodeInto(treeNode, top,
-									top.getChildCount());
-							treeModel.insertNodeInto(new DefaultMutableTreeNode(
-									MUST_LOAD_CHILDREN), treeNode, 0);
+							treeModel.insertNodeInto(treeNode, top, top.getChildCount());
+							treeModel.insertNodeInto(new DefaultMutableTreeNode(MUST_LOAD_CHILDREN), treeNode, 0);
 						}
 					}
 				}
 			}
 		}
 	}
-	
+
 	private void addNotExistingNodes(DocPath pathToAdd, DefaultMutableTreeNode top) {
-		if(pathToAdd == null || pathToAdd.size() == 0) {
-			treeModel.insertNodeInto(new DefaultMutableTreeNode(
-					MUST_LOAD_CHILDREN), top, 0);
+		if (pathToAdd == null || pathToAdd.size() == 0) {
+			treeModel.insertNodeInto(new DefaultMutableTreeNode(MUST_LOAD_CHILDREN), top, 0);
 			return;
 		}
 		boolean exists = false;
 		DefaultMutableTreeNode node = null;
-		for(int i = 0; i < top.getChildCount(); i++) {
-			node = (DefaultMutableTreeNode)top.getChildAt(i);
-			if(pathToAdd.asDocNodeList().get(0).toString().equals(node.getUserObject().toString())) {
-					exists = true;
-					break;
+		for (int i = 0; i < top.getChildCount(); i++) {
+			node = (DefaultMutableTreeNode) top.getChildAt(i);
+			if (pathToAdd.asDocNodeList().get(0).toString().equals(node.getUserObject().toString())) {
+				exists = true;
+				break;
 			}
 		}
-		if(!exists) {
+		if (!exists) {
 			node = new DefaultMutableTreeNode(pathToAdd.asDocNodeList().get(0));
 			treeModel.insertNodeInto(node, top, top.getChildCount());
 		}
@@ -780,8 +749,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 	public void valueChanged(TreeSelectionEvent arg0) {
 
-		DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree
-				.getLastSelectedPathComponent();
+		DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
 
 		if (tree.getPathBounds(arg0.getPath()) != null)
 			tree.scrollRectToVisible(tree.getPathBounds(arg0.getPath()));
@@ -791,12 +759,12 @@ public class PanelDokumentenablage extends PanelDialog implements
 		clearComponents();
 		enableAllComponents(this, false);
 		wcbVersteckteAnzeigen.setEnabled(true);
+		wcbDetailsAnzeigen.setEnabled(true);
 		wtfSuche.setEditable(true);
 		wbuSuche.setEnabled(true);
 		wmcMedia.setMimeType(null);
 		if (node != null) {
-			enableToolsPanelButtons(false, PanelBasis.ACTION_SAVE,
-					PanelBasis.ACTION_DISCARD);
+			enableToolsPanelButtons(false, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD);
 			if (node.getUserObject() instanceof DocNodeBase) {
 				Object[] objectPath = node.getUserObjectPath();
 				DocPath selectionDocPath = new DocPath();
@@ -804,19 +772,15 @@ public class PanelDokumentenablage extends PanelDialog implements
 					if (object instanceof DocNodeBase) {
 						selectionDocPath.add((DocNodeBase) object);
 					} else if (object instanceof String) {
-						selectionDocPath.add(new DocNodeLiteral(object
-								.toString() + "_string"));
+						selectionDocPath.add(new DocNodeLiteral(object.toString() + "_string"));
 					}
 				}
-				DocNodeBase selectedDocNode = (DocNodeBase) node
-						.getUserObject();
+				DocNodeBase selectedDocNode = (DocNodeBase) node.getUserObject();
 
-				if (selectedDocNode.getNodeType() == DocNodeBase.FILE
-						&& node.isLeaf()) {
+				if (selectedDocNode.getNodeType() == DocNodeBase.FILE) {
 					jcrDocDto = ((DocNodeFile) selectedDocNode).getJcrDocDto();
 				} else if (selectedDocNode.getNodeType() == DocNodeBase.VERSION) {
-					jcrDocDto = ((DocNodeVersion) selectedDocNode)
-							.getJCRDocDto();
+					jcrDocDto = ((DocNodeVersion) selectedDocNode).getJCRDocDto();
 				} else {
 					jcrDocDto = null;
 				}
@@ -824,40 +788,34 @@ public class PanelDokumentenablage extends PanelDialog implements
 					if (!jcrDocDto.getbVersteckt() || bVersteckteAnzeigen) {
 						dto2Components();
 						dropArea.setVisible(false);
-						enableToolsPanelButtons(false, PanelBasis.ACTION_NEW,
-								BUTTON_SCAN);
+						enableToolsPanelButtons(false, PanelBasis.ACTION_NEW, BUTTON_SCAN);
 						enableToolsPanelButtons(
 								selectedDocNode.getNodeType() == DocNodeBase.FILE
 										|| selectedDocNode.getNodeType() == DocNodeBase.VERSION
-										&& bHatMindestensEineSicherheitsStufe()
-										&& bHatDokumentenablage,
+												&& bHatMindestensEineSicherheitsStufe() && bHatDokumentenablage,
 								PanelBasis.ACTION_UPDATE);
 
 						wbuShowDoc.setEnabled(true);
 						wbuSaveDoc.setEnabled(true);
+//						wbuDetails.setEnabled(true);
 					}
 				} else {
 					enableToolsPanelButtons(false, PanelBasis.ACTION_UPDATE);
-					boolean b = fullDocPath.asDocNodeList().size() > 0
-							&& selectedDocNode instanceof DocNodeJCR
-							&& bHatMindestensEineSicherheitsStufe()
-							&& bHatDokumentenablage;
-					enableToolsPanelButtons(b, PanelBasis.ACTION_NEW,
-							BUTTON_SCAN);
+					boolean b = fullDocPath.asDocNodeList().size() > 0 && selectedDocNode instanceof DocNodeJCR
+							&& bHatMindestensEineSicherheitsStufe() && bHatDokumentenablage;
+					enableToolsPanelButtons(b, PanelBasis.ACTION_NEW, BUTTON_SCAN);
 					dropArea.setVisible(b);
 				}
 			}
 		} else {
-			enableToolsPanelButtons(false, ACTION_UPDATE,
-					PanelBasis.ACTION_NEW, BUTTON_SCAN);
+			enableToolsPanelButtons(false, ACTION_UPDATE, PanelBasis.ACTION_NEW, BUTTON_SCAN);
 			dropArea.setVisible(false);
 		}
 	}
 
 	private void dto2Components() {
 		try {
-			JCRDocDto dataJCR = DelegateFactory.getInstance()
-					.getJCRDocDelegate().getData(jcrDocDto);
+			JCRDocDto dataJCR = DelegateFactory.getInstance().getJCRDocDelegate().getData(jcrDocDto);
 			if (dataJCR != null) {
 				jcrDocDto = dataJCR;
 			}
@@ -866,8 +824,8 @@ public class PanelDokumentenablage extends PanelDialog implements
 		if (jcrDocDto.getbData() != null) {
 			if (file == null) {
 				try {
-					file = File.createTempFile(jcrDocDto.getsFilename(),
-							jcrDocDto.getsMIME());
+					file = File.createTempFile(jcrDocDto.getsFilename(), jcrDocDto.getsMIME());
+					HvTempFileCreator.addFileToDelete(file.toPath());
 					FileOutputStream fosFileGetter = new FileOutputStream(file);
 					fosFileGetter.write(jcrDocDto.getbData());
 					fosFileGetter.close();
@@ -877,11 +835,8 @@ public class PanelDokumentenablage extends PanelDialog implements
 		}
 		PersonalDto anlegerDto = null;
 		try {
-			anlegerDto = DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
-					.personalFindByPrimaryKey(
-							new Integer((int) jcrDocDto.getlAnleger()));
+			anlegerDto = DelegateFactory.getInstance().getPersonalDelegate()
+					.personalFindByPrimaryKey(new Integer((int) jcrDocDto.getlAnleger()));
 		} catch (Throwable e1) {
 
 		}
@@ -892,11 +847,8 @@ public class PanelDokumentenablage extends PanelDialog implements
 		}
 		try {
 			if (jcrDocDto.getlPartner() != null) {
-				partnerDto = DelegateFactory
-						.getInstance()
-						.getPartnerDelegate()
-						.partnerFindByPrimaryKey(
-								jcrDocDto.getlPartner().intValue());
+				partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
+						.partnerFindByPrimaryKey(jcrDocDto.getlPartner().intValue());
 			}
 		} catch (ExceptionLP e) {
 			// e.printStackTrace();
@@ -906,16 +858,14 @@ public class PanelDokumentenablage extends PanelDialog implements
 		} else {
 			wtfPartner.setText("");
 		}
-		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT,
-				DateFormat.SHORT, Locale.GERMANY);
-		wdfZeitpunkt
-				.setText(df.format(new Timestamp(jcrDocDto.getlZeitpunkt())));
+		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.GERMANY);
+		wdfZeitpunkt.setText(df.format(new Timestamp(jcrDocDto.getlZeitpunkt())));
 		wtfBelegnummer.setText(jcrDocDto.getsBelegnummer());
 		wtfSchlagworte.setText(jcrDocDto.getsSchlagworte());
 		wtfName.setText(jcrDocDto.getsName());
 		wtfFilename.setText(jcrDocDto.getsFilename());
-		wtfTable.setText((jcrDocDto.getsTable() == null || jcrDocDto
-				.getsTable().isEmpty()) ? " " : jcrDocDto.getsTable());
+		wtfTable.setText(
+				(jcrDocDto.getsTable() == null || jcrDocDto.getsTable().isEmpty()) ? " " : jcrDocDto.getsTable());
 		wtfRow.setText(jcrDocDto.getsRow());
 		wtfMIME.setText(jcrDocDto.getsMIME());
 		wcbVersteckt.setSelected(jcrDocDto.getbVersteckt());
@@ -929,31 +879,81 @@ public class PanelDokumentenablage extends PanelDialog implements
 		wcbBelegart.setSelectedItem(jcrDocDto.getsBelegart());
 		wcbGruppierung.setSelectedItem(jcrDocDto.getsGruppierung());
 		try {
-			if (".JPG".equals(jcrDocDto.getsMIME().toUpperCase())
-					|| ".JPEG".equals(jcrDocDto.getsMIME().toUpperCase())) {
-				wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG);
+			MediaType mimeType = HelperClient.getMimeTypeOfFile(file);
+			if (mimeType == null) {
+				setDataOld();
+			}
+			switch (mimeType.toString()) {
+			// Bilder
+			case MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG:
+			case MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG:
+			case MediaFac.DATENFORMAT_MIMETYPE_IMAGE_GIF:
+			case MediaFac.DATENFORMAT_MIMETYPE_IMAGE_TIFF:
+				wmcMedia.setMimeType(mimeType.toString());
+				wmcMedia.setOMediaImage(Helper.getBytesFromFile(file));
+				break;
+			// Aus Outlook
+			case MediaFac.DATENFORMAT_MIMETYPE_TIKA_MSOFFICE:
+				wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK);
 				wmcMedia.setOMedia(Helper.getBytesFromFile(file));
-			} else if (".JRPRINT".equals(jcrDocDto.getsMIME().toUpperCase())) {
-				wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER);
+				break;
+			// Generell wo mimetype genau passt
+			case MediaFac.DATENFORMAT_MIMETYPE_APP_PDF:
+			case MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822:
+				wmcMedia.setMimeType(mimeType.toString());
 				wmcMedia.setOMedia(Helper.getBytesFromFile(file));
-			} else {
-				wmcMedia.setMimeType(null);
+				break;
+			// Wenn nichts gefunden, dann alten Weg
+			default:
+				setDataOld();
+				break;
 			}
 		} catch (Throwable e) {
 		}
 	}
 
-	private void components2Dto() throws ExceptionLP {
+	private void setDataOld() throws Throwable, IOException {
+		if (".JPG".equals(jcrDocDto.getsMIME().toUpperCase()) || ".JPEG".equals(jcrDocDto.getsMIME().toUpperCase())) {
+			wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_JPEG);
+			wmcMedia.setOMedia(Helper.getBytesFromFile(file));
+		} else if (".PNG".equals(jcrDocDto.getsMIME().toUpperCase())) {
+			wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_IMAGE_PNG);
+			wmcMedia.setOMedia(Helper.getBytesFromFile(file));
+		} else if (".JRPRINT".equals(jcrDocDto.getsMIME().toUpperCase())) {
+			wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_JASPER);
+			wmcMedia.setOMedia(Helper.getBytesFromFile(file));
+		} else if (".PDF".equals(jcrDocDto.getsMIME().toUpperCase())) {
+			wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
+			wmcMedia.setOMediaImage(Helper.getBytesFromFile(file));
+			wmcMedia.setDateiname(jcrDocDto.getsFilename());
+
+			enableAllComponents(wmcMedia, false);
+
+		} else if (".EML".equals(jcrDocDto.getsMIME().toUpperCase())) {
+			wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_MESSAGE_RFC822);
+			wmcMedia.setOMedia(Helper.getBytesFromFile(file));
+		} else if (".MSG".equals(jcrDocDto.getsMIME().toUpperCase())) {
+			wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_MSOUTLOOK);
+			wmcMedia.setOMedia(Helper.getBytesFromFile(file));
+		} else {
+			wmcMedia.setMimeType(null);
+		}
+	}
+
+	private void components2Dto(boolean wirdNeuErstellt) throws ExceptionLP {
+		String literalName = wtfName.getText();
+		if (!wirdNeuErstellt && jcrDocDto != null && !Helper.isStringEmpty(jcrDocDto.getsLiteralName())) {
+			literalName = jcrDocDto.getsLiteralName();
+		}
 		jcrDocDto = new JCRDocDto();
+		jcrDocDto.setDocPath(fullDocPath.getDeepCopy().add(new DocNodeFile(literalName)));
+
 		try {
 			jcrDocDto.setbData(Helper.getBytesFromFile(file));
 		} catch (Exception e) {
-			throw new ExceptionLP(
-					EJBExceptionLP.FEHLER_JCR_DATEI_KONNTE_NICHT_GELESEN_WERDEN,
-					e);
+			myLogger.error("", e);
+			throw new ExceptionLP(EJBExceptionLP.FEHLER_JCR_DATEI_KONNTE_NICHT_GELESEN_WERDEN, e);
 		}
-		jcrDocDto.setDocPath(fullDocPath.getDeepCopy().add(
-				new DocNodeFile(wtfName.getText())));
 		jcrDocDto.setsBelegart((String) wcbBelegart.getSelectedItem());
 		jcrDocDto.setlAnleger(personalDto.getIId());
 		jcrDocDto.setlPartner(partnerDto.getIId());
@@ -965,8 +965,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 		jcrDocDto.setsTable(wtfTable.getText());
 		jcrDocDto.setsRow(wtfRow.getText());
 		jcrDocDto.setsMIME(wtfMIME.getText());
-		jcrDocDto.setlSicherheitsstufe((Long) wcbSicherheitsstufe
-				.getSelectedItem());
+		jcrDocDto.setlSicherheitsstufe((Long) wcbSicherheitsstufe.getSelectedItem());
 		jcrDocDto.setsGruppierung((String) wcbGruppierung.getSelectedItem());
 		jcrDocDto.setbVersteckt(wcbVersteckt.isSelected());
 	}
@@ -992,14 +991,53 @@ public class PanelDokumentenablage extends PanelDialog implements
 		}
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		bNewNode = false;
+	private boolean isErzeugeKnoten() {
+		return bNewNode;
+	}
 
-		enableToolsPanelButtons(true, PanelBasis.ACTION_SAVE,
-				PanelBasis.ACTION_DISCARD, BUTTON_SCAN);
-		enableToolsPanelButtons(false, PanelBasis.ACTION_NEW,
-				PanelBasis.ACTION_UPDATE);
+	private void beErzeugeKnoten() {
+		bNewNode = true;
+		beAendereVersion();
+	}
+
+	private void beAendereKnoten() {
+		bNewNode = false;
+		beAendereVersion();
+	}
+
+	private boolean isErzeugeVersion() {
+		return newVersion;
+	}
+
+	private void beErzeugeVersion() {
+		newVersion = true;
+	}
+
+	private void beAendereVersion() {
+		newVersion = false;
+	}
+
+	private boolean isShowDetails() {
+		return showDetails;
+	}
+
+	private void beShowDetails() {
+		showDetails = true;
+	}
+
+	private void beHideDetails() {
+		showDetails = false;
+	}
+
+	private void setShowDetails(boolean showDetails) {
+		this.showDetails = showDetails;
+	}
+
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		beAendereKnoten();
+
+		enableToolsPanelButtons(true, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD, BUTTON_SCAN);
+		enableToolsPanelButtons(false, PanelBasis.ACTION_NEW, PanelBasis.ACTION_UPDATE);
 
 		if (jcrDocDto.getlSicherheitsstufe() == JCRDocFac.SECURITY_ARCHIV) {
 			wtfSchlagworte.setEditable(true);
@@ -1012,22 +1050,17 @@ public class PanelDokumentenablage extends PanelDialog implements
 		tree.setEnabled(false);
 		wcbVersteckteAnzeigen.setEnabled(false);
 		wtfName.setEditable(false);
-		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT,
-				DateFormat.SHORT, Locale.GERMANY);
-		wdfZeitpunkt
-				.setText(df.format(new Timestamp(System.currentTimeMillis())));
+		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.GERMANY);
+		wdfZeitpunkt.setText(df.format(new Timestamp(System.currentTimeMillis())));
 		wtfAnleger.setText(personalDto.getCKurzzeichen());
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
-		bNewNode = true;
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
+		beErzeugeKnoten();
 		clearComponents();
 		if (chooseFile()) {
-			enableToolsPanelButtons(true, PanelBasis.ACTION_SAVE,
-					PanelBasis.ACTION_DISCARD, BUTTON_SCAN);
-			enableToolsPanelButtons(false, PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_UPDATE);
+			enableToolsPanelButtons(true, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD, BUTTON_SCAN);
+			enableToolsPanelButtons(false, PanelBasis.ACTION_NEW, PanelBasis.ACTION_UPDATE);
 			setDefaultsForNew();
 			enableAllComponents(this, true);
 			tree.setEnabled(false);
@@ -1037,121 +1070,74 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
-		ParametermandantDto param = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(
-						LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
-						ParameterFac.PARAMETER_ALLGEMEIN_DOKUMENTE_MAXIMALE_GROESSE);
-		Integer lFileSize = (Integer) param.getCWertAsObject();
-		// Umrechnung in Byte
-		Integer lFileSizeByte = lFileSize * 1024;
-		boolean bSpeichern = true;
-		if (file.length() > lFileSizeByte) {
-			boolean bHatRechtImmerZuSpeichern = DelegateFactory
-					.getInstance()
-					.getTheJudgeDelegate()
-					.hatRecht(
-							RechteFac.RECHT_DOKUMENTE_DARF_DOKUMENTE_GROESSER_ALS_MAX_ZULAESSIG_SPEICHERN);
-			if (bHatRechtImmerZuSpeichern) {
-				boolean bYes = DialogFactory
-						.showModalJaNeinDialog(
-								getInternalFrame(),
-								LPMain.getTextRespectUISPr(
-												"lp.dokumente.datei.zugros.trotzdem.speichern"));
-				if (!bYes) {
-					bSpeichern = false;
-				}
-			} else {
-				bSpeichern = false;
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.hinweis"),
-						LPMain.getTextRespectUISPr(
-								"lp.error.dateizugross")
-								+ "\n "
-								+ LPMain.getTextRespectUISPr(
-										"lp.datei.maxgroesse")
-								+ ": "
-								+ lFileSize
-								+ "Kb "
-								+ LPMain.getTextRespectUISPr(
-										"lp.datei.dateigroesse")
-								+ ": "
-								+ (file.length() / 1024) + "Kb");
-			}
-		}
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
+
+		boolean bSpeichern = JCRFileUploader.checkFile(file);
 		if (bSpeichern) {
 			if (allMandatoryFieldsSetDlg()) {
-				boolean bSaveAllowed = true;
 				JCRDocDto temp = jcrDocDto;
-				if (temp != null) {
-					if (temp.getsSchlagworte() == "")
-						temp.setsSchlagworte(null);
-					String path = jcrDocDto.getsPath(); // der wirkliche Pfad der Version
-					components2Dto();
-					temp.setlZeitpunkt(jcrDocDto.getlZeitpunkt());
-					if (jcrDocDto.equals(temp)) {
-						bSaveAllowed = true; // keine Aenderungen, einfach speichern
-					} else {
-						temp.setbVersteckt(jcrDocDto.getbVersteckt());
-						if (jcrDocDto.equals(temp)) {
-							DelegateFactory
-									.getInstance()
-									.getJCRDocDelegate()
-									.setVisibilityOfDocument(
-											jcrDocDto.getsPath(), path,
-											jcrDocDto.getbVersteckt());
-							bSaveAllowed = false;
-						}
+				// Versteckt jetzt im Rahmen des normalen Update
+//				if (temp != null) {
+//					if (temp.getsSchlagworte() == "")
+//						temp.setsSchlagworte(null);
+//					String path = jcrDocDto.getsPath(); // der wirkliche Pfad der Version
+//					components2Dto();
+//					temp.setlZeitpunkt(jcrDocDto.getlZeitpunkt());
+//					if (jcrDocDto.equals(temp)) {
+//						bSaveAllowed = true; // keine Aenderungen, einfach speichern
+//					} else {
+//						temp.setbVersteckt(jcrDocDto.getbVersteckt());
+//						if (jcrDocDto.equals(temp)) {
+//							DelegateFactory
+//									.getInstance()
+//									.getJCRDocDelegate()
+//									.setVisibilityOfDocument(
+//											jcrDocDto.getsPath(), path,
+//											jcrDocDto.getbVersteckt());
+//							bSaveAllowed = false;
+//						}
+//					}
+//				}
+				components2Dto(isErzeugeKnoten());
+				if (isErzeugeKnoten()) {
+					// SP9042 Datei ohne Endung mit MIME "" wird zu Datei, mit MIME null wird nicht
+					// korrekt angezeigt
+					if (jcrDocDto.getsMIME() == null) {
+						jcrDocDto.setsMIME("");
+					}
+					JCRRepoInfo info = DelegateFactory.getInstance().getJCRDocDelegate()
+							.checkIfNodeExists(jcrDocDto.getDocPath());
+					if (!info.isOnline()) {
+						throw new ExceptionLP(EJBExceptionLP.FEHLER_JCR_ROOT_EXISTIERT_NICHT, null);
+					}
+					if (info.isExists()) {
+						throw new ExceptionLP(EJBExceptionLP.FEHLER_JCR_KNOTEN_EXISTIERT_BEREITS, null);
 					}
 				}
-				if (bSaveAllowed) {
-					components2Dto();
-					if (bNewNode) {
-						// Neuer Knoten
-						JCRRepoInfo info = DelegateFactory.getInstance()
-								.getJCRDocDelegate().checkIfNodeExists(jcrDocDto.getDocPath()) ;
-						if(!info.isOnline()) {
-							throw new ExceptionLP(
-									EJBExceptionLP.FEHLER_JCR_ROOT_EXISTIERT_NICHT,
-									null);							
-						}
-						if (info.isExists()) {
-							throw new ExceptionLP(
-									EJBExceptionLP.FEHLER_JCR_KNOTEN_EXISTIERT_BEREITS,
-									null);
-						}
-					}
-					enableToolsPanelButtons(false, PanelBasis.ACTION_SAVE,
-							PanelBasis.ACTION_DISCARD,
-							PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_NEW,
-							BUTTON_SCAN);
+				enableToolsPanelButtons(false, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD,
+						PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_NEW, BUTTON_SCAN);
 
-					DelegateFactory.getInstance().getJCRDocDelegate()
-							.addNewDocumentOrNewVersionOfDocument(jcrDocDto);
-
-					if (defaultEinlesePfad != null) {
-						try {
-							FileUtils.forceDelete(file);
-						} catch (java.io.IOException e1) {
-
-							DialogFactory.showModalDialog(
-									LPMain.getTextRespectUISPr(
-											"lp.error"),
-									LPMain.getTextRespectUISPr(
-											"lp.error.dokument.loeschen")
-											+ " " + e1.getMessage());
-						}
-					}
+				if (isErzeugeKnoten() || isErzeugeVersion()) {
+					DelegateFactory.getInstance().getJCRDocDelegate().addNewDocumentOrNewVersionOfDocument(jcrDocDto);
 				} else {
+					DelegateFactory.getInstance().getJCRDocDelegate().updateVersionOfDocument(jcrDocDto,
+							temp.getsPath());
 				}
+
+				if (defaultEinlesePfad != null) {
+					try {
+						FileUtils.forceDelete(file);
+					} catch (java.io.IOException e1) {
+
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+								LPMain.getTextRespectUISPr("lp.error.dokument.loeschen") + " " + e1.getMessage());
+					}
+				}
+
 				enableAllComponents(this, false);
 				tree.setEnabled(true);
 				wcbVersteckteAnzeigen.setEnabled(true);
-				wcbVersteckteAnzeigen.setEnabled(true);
+				wcbDetailsAnzeigen.setEnabled(true);
 				wtfSuche.setEditable(true);
 				wbuSuche.setEnabled(true);
 				refresh();
@@ -1161,10 +1147,8 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 	public void setDefaultsForNew() throws Throwable {
 		wtfAnleger.setText(personalDto.getCKurzzeichen());
-		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT,
-				DateFormat.SHORT, Locale.GERMANY);
-		wdfZeitpunkt
-				.setText(df.format(new Timestamp(System.currentTimeMillis())));
+		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.GERMANY);
+		wdfZeitpunkt.setText(df.format(new Timestamp(System.currentTimeMillis())));
 		wtfFilename.setText(file.getName());
 		wtfMIME.setText(Helper.getMime(file.getName()));
 		wcbVersteckt.setSelected(false);
@@ -1187,97 +1171,101 @@ public class PanelDokumentenablage extends PanelDialog implements
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equals(ACTION_SPECIAL_PARTNER)) {
-			panelQueryFLRPartner = PartnerFilterFactory.getInstance()
-					.createPanelFLRPartner(getInternalFrame(),
-							partnerDto == null ? null : partnerDto.getIId(),
-							false);
+		String cmd = e.getActionCommand();
+		if (ACTION_SPECIAL_PARTNER.equals(cmd)) {
+			panelQueryFLRPartner = PartnerFilterFactory.getInstance().createPanelFLRPartner(getInternalFrame(),
+					partnerDto == null ? null : partnerDto.getIId(), false);
 			new DialogQuery(panelQueryFLRPartner);
-		} else if (e.getActionCommand().equals(ACTION_SPECIAL_CHOOSE)) {
-			chooseFile();
-			wtfFilename.setText(file.getName());
-			if (file.getName().lastIndexOf(".") != -1) {
-				wtfMIME.setText(file.getName().substring(
-						file.getName().lastIndexOf(".")));
-			} else {
-				wtfMIME.setText("");
+		} else if (ACTION_SPECIAL_CHOOSE.equals(cmd)) {
+			if (chooseFile()) {
+				beErzeugeVersion();
+				setViewFilename(file);
 			}
-		} else if (e.getActionCommand().equals(ACTION_SPECIAL_SHOW)) {
+		} else if (ACTION_SPECIAL_SHOW.equals(cmd)) {
 			showFile();
-		} else if (e.getActionCommand().equals(ACTION_SPECIAL_SAVE)) {
+		} else if (ACTION_SPECIAL_SAVE.equals(cmd)) {
 			saveFile();
-		} else if (e.getActionCommand().equals(BUTTON_SCAN)) {
+		} else if (BUTTON_SCAN.equals(cmd)) {
 			try {
 				if (file == null) {
 					// Es wird ein Neues Dokument angelegt
-					bNewNode = true;
+					beErzeugeKnoten();
 					clearComponents();
 
 					file = getInternalFrame().scanFile();
 
 					if (file != null) {
-						enableToolsPanelButtons(true, PanelBasis.ACTION_SAVE,
-								PanelBasis.ACTION_DISCARD, BUTTON_SCAN);
-						enableToolsPanelButtons(false,
-								PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_NEW);
+						enableToolsPanelButtons(true, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD, BUTTON_SCAN);
+						enableToolsPanelButtons(false, PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_NEW);
 						setDefaultsForNew();
 						enableAllComponents(this, true);
 
+						wmcMedia.setMimeType(MediaFac.DATENFORMAT_MIMETYPE_APP_PDF);
+						wmcMedia.setOMediaImage(Helper.getBytesFromFile(file));
+
+						// SP9317
+						wbuSaveDoc.setEnabled(false);
 						tree.setEnabled(false);
 					}
 				} else {
 					// Es wird eine neue Version angelegt
 					file = getInternalFrame().scanFile();
-					wtfFilename.setText(file.getName());
-					if (file.getName().lastIndexOf(".") != -1) {
-						wtfMIME.setText(file.getName().substring(
-								file.getName().lastIndexOf(".")));
-					} else {
-						wtfMIME.setText("");
-					}
+					setViewFilename(file);
 				}
 			} catch (Throwable t) {
-				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain.getTextRespectUISPr("lp.error.scannen"));
-
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+						LPMain.getTextRespectUISPr("lp.error.scannen"));
 			}
-
+//		} else if(ACTION_SPECIAL_DETAILS.equals(cmd)) {
+//			setShowDetails(!isShowDetails());
+////			if(isShowDetails()) {
+////				beHideDetails();
+//////				wbuDetails.setText("Details");
+////			} else {
+////				beShowDetails();
+//////				wbuDetails.setText("verbergen");
+////			}
+//			setDetailsVisible(isShowDetails());
 		} else {
 			super.eventActionSpecial(e);
 		}
 	}
 
-	private boolean chooseFile() throws Throwable {
-		final JFileChooser fc = new JFileChooser();
-
-		if (defaultEinlesePfad != null) {
-			fc.setCurrentDirectory(new File(defaultEinlesePfad));
-		}
-
-		int retVal = fc.showOpenDialog(this);
-		if (retVal == JFileChooser.APPROVE_OPTION) {
-			file = fc.getSelectedFile();
-			try {
-				wmcMedia.setOMedia(Helper.getBytesFromFile(file));
-				return true;
-			} catch (IOException e) {
-				return false;
-			} catch (Throwable e) {
-				return false;
-			}
+	private void setViewFilename(File file) {
+		String fileName = file.getName();
+		wtfFilename.setText(fileName);
+		int lastIndex = fileName.lastIndexOf(".");
+		if (lastIndex != -1) {
+			wtfMIME.setText(fileName.substring(lastIndex));
 		} else {
-			return false;
+			wtfMIME.setText("");
+		}
+	}
+
+	private boolean chooseFile() throws Throwable {
+		ChooserOpenDialog cod = FileChooserBuilder.createOpenDialog(this);
+		if (defaultEinlesePfad != null) {
+			cod.directory(new File(defaultEinlesePfad));
+		}
+		WrapperFile wf = cod.addAllFileFilter().openSingle();
+		if (wf != null && wf.hasFile()) {
+			file = wf.getFile();
+			wmcMedia.setOMedia(wf.getBytes());
+			return true;
 		}
 
+		return false;
 	}
-	
+
 	private void saveFile() {
 		createTempFile();
-		File newFile = lastSaveDir != null ? new File(lastSaveDir.getParentFile(), jcrDocDto.getsFilename()) :
-			new File(jcrDocDto.getsFilename());
+		File newFile = lastSaveDir != null ? new File(lastSaveDir.getParentFile(), jcrDocDto.getsFilename())
+				: new File(jcrDocDto.getsFilename());
 		newFile = HelperClient.showSaveFileDialog(file, newFile, this, jcrDocDto.getsMIME());
-		if(newFile != null) lastSaveDir = newFile;
+		if (newFile != null)
+			lastSaveDir = newFile;
 	}
-	
+
 	private void createTempFile() {
 		try {
 			if (file == null) {
@@ -1285,8 +1273,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 					// TODO: Ordentliche Fehlermeldung
 					return;
 				}
-				file = File.createTempFile(jcrDocDto.getsFilename(),
-						jcrDocDto.getsMIME());
+				file = File.createTempFile(jcrDocDto.getsFilename(), jcrDocDto.getsMIME());
 				FileOutputStream fosFileGetter = new FileOutputStream(file);
 				fosFileGetter.write(jcrDocDto.getbData());
 				fosFileGetter.close();
@@ -1296,55 +1283,21 @@ public class PanelDokumentenablage extends PanelDialog implements
 			e1.printStackTrace();
 		}
 	}
+
 	private void showFile() throws IOException {
 		createTempFile();
 		HelperClient.desktopTryToOpenElseSave(file, getInternalFrame());
-//		try {
-//			HelperClient.desktopOpenEx(file);
-//		} catch (IOException dex) {
-//			// catch Exception Windows throws if no application is associated
-//			if (dex.getMessage().startsWith("Failed to open file")) {
-//				JFileChooser fc = new JFileChooser();
-//				fc.setDialogType(JFileChooser.SAVE_DIALOG);
-//				fc.setSelectedFile(file);
-//				int returnVal = fc.showSaveDialog(getInternalFrame());
-//				if (returnVal == JFileChooser.APPROVE_OPTION) {
-//					File file = fc.getSelectedFile();
-//					FileOutputStream foStream = new FileOutputStream(file);
-//					foStream.write(Helper.getBytesFromFile(file));
-//					foStream.close();
-//				}
-//			} else {
-//				// catch exception thrown by mac if no application is associated
-//				if (dex.getMessage()
-//						.startsWith(
-//								"Failed to launch the associated application with the specified file")) {
-//					JFileChooser fc = new JFileChooser();
-//					fc.setDialogType(JFileChooser.SAVE_DIALOG);
-//					fc.setSelectedFile(file);
-//					int returnVal = fc.showSaveDialog(getInternalFrame());
-//					if (returnVal == JFileChooser.APPROVE_OPTION) {
-//						File file = fc.getSelectedFile();
-//						FileOutputStream foStream = new FileOutputStream(file);
-//						foStream.write(Helper.getBytesFromFile(file));
-//						foStream.close();
-//					}
-//				} else {
-//					throw dex;
-//				}
-//			}
-//		}
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
 		ItemChangedEvent e = (ItemChangedEvent) eI;
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 			if (e.getSource() == panelQueryFLRPartner) {
-				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				if (key != null) {
-					partnerDto = DelegateFactory.getInstance()
-							.getPartnerDelegate()
-							.partnerFindByPrimaryKey((Integer) key);
+				Object o = ((ISourceEvent) e.getSource()).getIdSelected();
+				if (o != null) {
+					beErzeugeVersion();
+					Integer key = (Integer) o;
+					partnerDto = DelegateFactory.getInstance().getPartnerDelegate().partnerFindByPrimaryKey(key);
 					wtfPartner.setText(partnerDto.formatFixTitelName1Name2());
 				}
 			}
@@ -1359,11 +1312,11 @@ public class PanelDokumentenablage extends PanelDialog implements
 		tree.setEnabled(true);
 		tree.requestFocus();
 		wcbVersteckteAnzeigen.setEnabled(true);
+		wcbDetailsAnzeigen.setEnabled(true);
 	}
 
 	private boolean bHatMindestensEineSicherheitsStufe() {
-		return bHatStufe0 || bHatStufe1 || bHatStufe2 || bHatStufe3
-				|| bHatStufe99;
+		return bHatStufe0 || bHatStufe1 || bHatStufe2 || bHatStufe3 || bHatStufe99;
 	}
 
 	public void treeNodesChanged(TreeModelEvent arg0) {
@@ -1381,10 +1334,17 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 	ActionListener actionListener = new ActionListener() {
 		public void actionPerformed(ActionEvent actionEvent) {
-			bVersteckteAnzeigen = wcbVersteckteAnzeigen.isSelected();
-			try {
-				refresh();
-			} catch (Throwable e) {
+			Object source = actionEvent.getSource();
+			if (wcbVersteckteAnzeigen.equals(source) || wbuSuche.equals(source)) {
+				bVersteckteAnzeigen = wcbVersteckteAnzeigen.isSelected();
+				try {
+					refresh();
+				} catch (Throwable e) {
+				}
+			} else if (wcbDetailsAnzeigen.equals(actionEvent.getSource())) {
+				boolean showDetails = wcbDetailsAnzeigen.isSelected();
+				setShowDetails(showDetails);
+				setDetailsVisible(showDetails);
 			}
 		}
 	};
@@ -1400,8 +1360,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 	private void setBusy(boolean b) {
 		treeInProgress = b;
 		if (b) {
-			getInternalFrame().getFrameProgress().start(
-					LPMain.getTextRespectUISPr("lp.working"));
+			getInternalFrame().getFrameProgress().start(LPMain.getTextRespectUISPr("lp.working"));
 		} else {
 			getInternalFrame().getFrameProgress().pause();
 		}
@@ -1413,10 +1372,8 @@ public class PanelDokumentenablage extends PanelDialog implements
 			return;
 		setBusy(true);
 
-		DefaultMutableTreeNode node = (DefaultMutableTreeNode) event.getPath()
-				.getLastPathComponent();
-		DefaultMutableTreeNode firstChild = (DefaultMutableTreeNode) node
-				.getFirstChild();
+		DefaultMutableTreeNode node = (DefaultMutableTreeNode) event.getPath().getLastPathComponent();
+		DefaultMutableTreeNode firstChild = (DefaultMutableTreeNode) node.getFirstChild();
 		TreePath selectionPath = tree.getSelectionPath();
 		if (MUST_LOAD_CHILDREN.equals(firstChild.getUserObject())) {
 
@@ -1433,12 +1390,10 @@ public class PanelDokumentenablage extends PanelDialog implements
 
 			List<DocNodeBase> childList;
 			try {
-				childList = DelegateFactory.getInstance().getJCRDocDelegate()
-						.getDocNodeChildrenFromNode(expandPath);
+				childList = DelegateFactory.getInstance().getJCRDocDelegate().getDocNodeChildrenFromNode(expandPath);
 				setDocNodesOnTree(node, childList, expandPath);
 			} catch (Throwable e) {
-				treeModel
-						.insertNodeInto(new DefaultMutableTreeNode(e), node, 0);
+				treeModel.insertNodeInto(new DefaultMutableTreeNode(e), node, 0);
 			}
 			tree.expandPath(new TreePath(node.getPath()));
 			tree.setSelectionPath(selectionPath);
@@ -1449,12 +1404,9 @@ public class PanelDokumentenablage extends PanelDialog implements
 	private class ToolTipCellRenderer extends DefaultTreeCellRenderer {
 		private static final long serialVersionUID = 8159531411916759571L;
 
-		private Icon fileAttachmentIcon = HelperClient
-				.createImageIcon("document_attachment16x16.png");
-		private Icon fileErrorIcon = HelperClient
-				.createImageIcon("delete2.png");
-		private Icon mailAttachmentIcon = HelperClient
-				.createImageIcon("mail.png");
+		private Icon fileAttachmentIcon = HelperClient.createImageIcon("document_attachment16x16.png");
+		private Icon fileErrorIcon = HelperClient.createImageIcon("delete2.png");
+		private Icon mailAttachmentIcon = HelperClient.createImageIcon("mail.png");
 
 		private JLabel label;
 
@@ -1476,16 +1428,14 @@ public class PanelDokumentenablage extends PanelDialog implements
 		}
 
 		@Override
-		public Component getTreeCellRendererComponent(JTree tree, Object value,
-				boolean sel, boolean expanded, boolean leaf, int row,
-				boolean hasFocus) {
+		public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
+				boolean leaf, int row, boolean hasFocus) {
 			if (value instanceof DefaultMutableTreeNode) {
 				Object obj = ((DefaultMutableTreeNode) value).getUserObject();
 				if (obj instanceof DocNodeBase) {
 					DocNodeBase node = (DocNodeBase) obj;
 					if (LPMain.getInstance().isLPAdmin())
-						label.setToolTipText(node.asEncodedPath() + " ("
-								+ obj.getClass().getSimpleName() + ")");
+						label.setToolTipText(node.asEncodedPath() + " (" + obj.getClass().getSimpleName() + ")");
 
 					label.setIcon(getIconForNodeType(node.getNodeType()));
 				} else if (obj instanceof Throwable) {
@@ -1493,8 +1443,7 @@ public class PanelDokumentenablage extends PanelDialog implements
 					this.setToolTipText(ex.getMessage());
 
 					label.setIcon(fileErrorIcon);
-					value = LPMain
-							.getTextRespectUISPr("system.jcr.dokumente.fehler.beim.laden");
+					value = LPMain.getTextRespectUISPr("system.jcr.dokumente.fehler.beim.laden");
 				}
 			}
 			label.setText(value.toString());
@@ -1510,34 +1459,32 @@ public class PanelDokumentenablage extends PanelDialog implements
 	}
 
 	@Override
-	public void filesDropped(DragAndDropTarget source, List<File> files) {
-		if (source == dropArea) {
-			if (files == null || files.size() == 0)
+	public void filesDropped(List<File> files) {
+		if (files == null || files.size() == 0)
+			return;
+		try {
+			file = files.get(0);
+			if (!file.exists()) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain.getMessageTextRespectUISPr(
+						"lp.dokumente.typnichtunterstuetzt", Helper.getMime(file.getName())));
 				return;
-			try {
-				file = files.get(0);
-				if(!file.exists()) {
-					DialogFactory.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.error"),
-							LPMain.getMessageTextRespectUISPr("lp.dokumente.typnichtunterstuetzt", Helper.getMime(file.getName())));
-					return;
-				}
-				setDefaultsForNew();
-				wtfName.setText(" ");
-				components2Dto();
-				new DialogJCRUploadSettings(LPMain.getInstance().getDesktop(), jcrDocDto);
+			}
+			setDefaultsForNew();
+			wtfName.setText(" ");
+			components2Dto(true);
+			DialogJCRUploadSettings dialogUpload = new DialogJCRUploadSettings(LPMain.getInstance().getDesktop(),
+					jcrDocDto);
+			if (DialogJCRUploadSettings.SAVE == dialogUpload.getValue()) {
 				JCRFileUploader.uploadFiles(files, jcrDocDto);
 				refresh();
-			} catch (Throwable e) {
-				ClassLoader classloader = org.apache.poi.poifs.filesystem.POIFSFileSystem.class
-						.getClassLoader();
-				URL res = classloader
-						.getResource("org/apache/poi/poifs/filesystem/POIFSFileSystem.class");
-				String path = res.getPath();
-				System.out.println("Core POI came from " + path);
-				e.printStackTrace();
 			}
-
+		} catch (Throwable e) {
+			ClassLoader classloader = org.apache.poi.poifs.filesystem.POIFSFileSystem.class.getClassLoader();
+			URL res = classloader.getResource("org/apache/poi/poifs/filesystem/POIFSFileSystem.class");
+			String path = res.getPath();
+			System.out.println("Core POI came from " + path);
+			e.printStackTrace();
 		}
+
 	}
 }

@@ -38,6 +38,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.delegate.ArtikelDelegate;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.LocaleFac;
@@ -46,10 +47,18 @@ import com.lp.server.system.service.ParametermandantDto;
 
 @SuppressWarnings("static-access")
 /**
- * <p>Basisfenster fuer LP5 Positionen.</p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum 2005-02-11</p>
- * <p> </p>
+ * <p>
+ * Basisfenster fuer LP5 Positionen.
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum 2005-02-11
+ * </p>
+ * <p>
+ * </p>
+ * 
  * @author Uli Walch
  * @version $Revision: 1.9 $
  */
@@ -69,29 +78,20 @@ public class PanelPositionenHandeingabe extends PanelPositionenPreiseingabe {
 	/**
 	 * Konstruktor.
 	 * 
-	 * @param internalFrame
-	 *            der InternalFrame auf dem das Panel sitzt
-	 * @param add2TitleI
-	 *            der default Titel des Panels
-	 * @param key
-	 *            PK der Position
-	 * @param sLockMeWer
-	 *            String
-	 * @param iSpaltenbreite1I
-	 *            die Breites der ersten Spalte
-	 * @param bDarfPreiseSehen
-	 *            boolean
-	 * @throws Throwable
-	 *             Ausnahme
+	 * @param internalFrame    der InternalFrame auf dem das Panel sitzt
+	 * @param add2TitleI       der default Titel des Panels
+	 * @param key              PK der Position
+	 * @param sLockMeWer       String
+	 * @param iSpaltenbreite1I die Breites der ersten Spalte
+	 * @param bDarfPreiseSehen boolean
+	 * @throws Throwable Ausnahme
 	 */
-	public PanelPositionenHandeingabe(InternalFrame internalFrame,
-			String add2TitleI, Object key, String sLockMeWer,
+	public PanelPositionenHandeingabe(InternalFrame internalFrame, String add2TitleI, Object key, String sLockMeWer,
 			int iSpaltenbreite1I, boolean bDarfPreiseSehen, boolean bDarfPreiseAendern) throws Throwable {
 		/**
 		 * @todo MR/MB: bDarfPreiseSehenI muss richtig gesetzt werden
 		 */
-		super(internalFrame, add2TitleI, key, sLockMeWer, bDarfPreiseSehen,bDarfPreiseAendern,
-				iSpaltenbreite1I);
+		super(internalFrame, add2TitleI, key, sLockMeWer, bDarfPreiseSehen, bDarfPreiseAendern, iSpaltenbreite1I, null);
 
 		jbInit();
 	}
@@ -99,52 +99,37 @@ public class PanelPositionenHandeingabe extends PanelPositionenPreiseingabe {
 	private void jbInit() throws Throwable {
 		setLayout(new GridBagLayout());
 
-		wlaBezeichnung = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("label.bezeichnung"));
-		wlaBezeichnung.setMaximumSize(new Dimension(iSpaltenbreite1, Defaults
-				.getInstance().getControlHeight()));
-		wlaBezeichnung.setMinimumSize(new Dimension(iSpaltenbreite1, Defaults
-				.getInstance().getControlHeight()));
-		wlaBezeichnung.setPreferredSize(new Dimension(iSpaltenbreite1, Defaults
-				.getInstance().getControlHeight()));
+		wlaBezeichnung = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("label.bezeichnung"));
+		wlaBezeichnung.setMaximumSize(new Dimension(iSpaltenbreite1, Defaults.getInstance().getControlHeight()));
+		wlaBezeichnung.setMinimumSize(new Dimension(iSpaltenbreite1, Defaults.getInstance().getControlHeight()));
+		wlaBezeichnung.setPreferredSize(new Dimension(iSpaltenbreite1, Defaults.getInstance().getControlHeight()));
 
-		wtfBezeichnung = new WrapperTextField();
+		int iLaengeBezeichnung = DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
 
-		wtfZusatzbezeichnung = new WrapperTextField();
+		wtfBezeichnung = new WrapperTextField(iLaengeBezeichnung);
 
-		add(wlaBezeichnung, new GridBagConstraints(2, iYGridBagNext, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		add(wtfBezeichnung, new GridBagConstraints(3, iYGridBagNext, 5, 1, 0.0,
-				0.0, GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		wtfZusatzbezeichnung = new WrapperTextField(iLaengeBezeichnung);
+
+		add(wlaBezeichnung, new GridBagConstraints(2, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		add(wtfBezeichnung, new GridBagConstraints(3, iYGridBagNext, 5, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iYGridBagNext++;
-		ParametermandantDto parametermandantDto = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_ALLGEMEIN,
+		ParametermandantDto parametermandantDto = DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
 						ParameterFac.PARAMETER_LV_POSITION);
 
-		boolean bMitLVPositionen = ((Boolean) parametermandantDto
-				.getCWertAsObject()).booleanValue();
+		boolean bMitLVPositionen = ((Boolean) parametermandantDto.getCWertAsObject()).booleanValue();
 		if (bMitLVPositionen == true) {
 			wlaLVPosition.setText(LPMain.getTextRespectUISPr("lp.lvposition"));
-			add(wlaLVPosition,
-					new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0,
-							GridBagConstraints.NORTH,
-							GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1,
-									2), 0, 0));
-			add(wtfLVPosition,
-					new GridBagConstraints(1, iYGridBagNext, 1, 1, 0.0, 0.0,
-							GridBagConstraints.NORTH,
-							GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1,
-									2), 0, 0));
+			add(wlaLVPosition, new GridBagConstraints(0, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
+			add(wtfLVPosition, new GridBagConstraints(1, iYGridBagNext, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+					GridBagConstraints.HORIZONTAL, new Insets(1, 2, 1, 2), 0, 0));
 		}
 
-		add(wtfZusatzbezeichnung, new GridBagConstraints(3, iYGridBagNext, 5,
-				1, 0.0, 0.0, GridBagConstraints.NORTH,
+		add(wtfZusatzbezeichnung, new GridBagConstraints(3, iYGridBagNext, 5, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iYGridBagNext++;
@@ -158,14 +143,10 @@ public class PanelPositionenHandeingabe extends PanelPositionenPreiseingabe {
 
 		iYGridBagNext++;
 
-		if (getInternalFrame().getBelegartCNr().equals(
-				LocaleFac.BELEGART_ANGEBOT)
-				|| getInternalFrame().getBelegartCNr().equals(
-						LocaleFac.BELEGART_AUFTRAG)
-				|| getInternalFrame().getBelegartCNr().equals(
-						LocaleFac.BELEGART_LIEFERSCHEIN)
-				|| getInternalFrame().getBelegartCNr().equals(
-						LocaleFac.BELEGART_RECHNUNG)) {
+		if (getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_ANGEBOT)
+				|| getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_AUFTRAG)
+				|| getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_LIEFERSCHEIN)
+				|| getInternalFrame().getBelegartCNr().equals(LocaleFac.BELEGART_RECHNUNG)) {
 			addZeileNettogesamtpreis(this, iYGridBagNext, true);
 		} else {
 			addZeileNettogesamtpreis(this, iYGridBagNext, false);

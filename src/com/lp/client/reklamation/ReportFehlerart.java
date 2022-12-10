@@ -60,19 +60,16 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.partner.PartnerFilterFactory;
-import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.KundeDto;
+import com.lp.server.reklamation.service.ReklamationFehlerartenJournalKriterienDto;
 import com.lp.server.reklamation.service.ReklamationReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 
-@SuppressWarnings("static-access")
 public class ReportFehlerart extends PanelBasis implements PanelReportIfJRDS {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
+
 	protected JPanel jpaWorkingOn = new JPanel();
 	private GridBagLayout gridBagLayout2 = new GridBagLayout();
 	private GridBagLayout gridBagLayout1 = new GridBagLayout();
@@ -109,7 +106,7 @@ public class ReportFehlerart extends PanelBasis implements PanelReportIfJRDS {
 	public ReportFehlerart(InternalFrame internalFrame, String add2Title)
 			throws Throwable {
 		super(internalFrame, add2Title);
-		LPMain.getInstance().getTextRespectUISPr("rekla.journal.fehlerarten");
+		textFromToken("rekla.journal.fehlerarten");
 		jbInit();
 		initComponents();
 		wdrBereich.doClickUp();
@@ -123,41 +120,33 @@ public class ReportFehlerart extends PanelBasis implements PanelReportIfJRDS {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
 
-		wlaSortierung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.sortierung"));
+		wlaSortierung.setText(textFromToken("lp.sortierung"));
 		wlaSortierung.setHorizontalAlignment(SwingConstants.LEFT);
-		wlaDatumVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
-		wlaDatumBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
+		wlaDatumVon.setText(textFromToken("lp.von"));
+		wlaDatumBis.setText(textFromToken("lp.bis"));
 		wdfDatumVon.setTimestamp(new java.sql.Timestamp(System
 				.currentTimeMillis()));
 		wdfDatumVon.setMandatoryField(true);
 		wdfDatumBis.setMandatoryField(true);
 
-		wbuKunde.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.kunde"));
+		wbuKunde.setText(textFromToken("button.kunde"));
 
 		wtfKunde.setEditable(false);
 		wtfKunde.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 
 		wdrBereich = new WrapperDateRangeController(wdfDatumVon, wdfDatumBis);
 
-		wrbFehler.setText(LPMain.getInstance().getTextRespectUISPr(
-				"rekla.fehler"));
-		wrbMaschinengruppe.setText(LPMain.getInstance().getTextRespectUISPr(
-				"pers.maschinengruppe"));
-		wrbMaschinengruppeVerursacher.setText(LPMain.getInstance()
-				.getTextRespectUISPr("rekla.maschinengruppeverursacher"));
-		wrbVerursacher.setText(LPMain.getInstance().getTextRespectUISPr(
-				"rekla.verursacher"));
+		wrbFehler.setText(textFromToken("rekla.fehler"));
+		wrbMaschinengruppe.setText(textFromToken("pers.maschinengruppe"));
+		wrbMaschinengruppeVerursacher.setText(
+				textFromToken("rekla.maschinengruppeverursacher"));
+		wrbVerursacher.setText(textFromToken("rekla.verursacher"));
 
-		wcbKunde.setText(LPMain.getInstance().getTextRespectUISPr("lp.kunde"));
-		wcbLieferant.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.lieferant"));
-		wcbLos.setText(LPMain.getInstance().getTextRespectUISPr(
-				"fert.modulname"));
+		wcbKunde.setText(textFromToken("lp.kunde"));
+		wcbLieferant.setText(textFromToken("lp.lieferant"));
+		wcbLos.setText(textFromToken("fert.modulname"));
 
-		wcbNurBerechtigte.setText(LPMain.getInstance().getTextRespectUISPr(
-				"rekla.journal.nurberechtigte"));
+		wcbNurBerechtigte.setText(textFromToken("rekla.journal.nurberechtigte"));
 
 		wcbKunde.setSelected(true);
 		wcbLieferant.setSelected(true);
@@ -294,14 +283,26 @@ public class ReportFehlerart extends PanelBasis implements PanelReportIfJRDS {
 		} else if (wrbMaschinengruppeVerursacher.isSelected()) {
 			iOptionSortierung = ReklamationReportFac.SORTIERUNG_FEHLERART_MASCHINENGRUPPE_MITARBEITER;
 		}
-		return DelegateFactory
-				.getInstance()
+		ReklamationFehlerartenJournalKriterienDto kritDto = new ReklamationFehlerartenJournalKriterienDto();
+		kritDto.dVon = wdfDatumVon.getDate();
+		kritDto.dBis = wdfDatumBis.getDate();
+		kritDto.mitKunde = wcbKunde.isSelected();
+		kritDto.mitLieferant = wcbLieferant.isSelected();
+		kritDto.mitFertigung = wcbLos.isSelected();
+		kritDto.kundeIId = kundeIId;
+		kritDto.gruppierung = iOptionSortierung;
+		kritDto.nurBerechtigt = wcbNurBerechtigte.isSelected();
+//		return DelegateFactory
+//				.getInstance()
+//				.getReklamationReportDelegate()
+//				.printFehlerarten(wdfDatumVon.getTimestamp(),
+//						wdfDatumBis.getTimestamp(), wcbKunde.isSelected(),
+//						wcbLieferant.isSelected(), wcbLos.isSelected(),
+//						kundeIId, iOptionSortierung,
+//						wcbNurBerechtigte.isSelected());
+		return DelegateFactory.getInstance()
 				.getReklamationReportDelegate()
-				.printFehlerarten(wdfDatumVon.getTimestamp(),
-						wdfDatumBis.getTimestamp(), wcbKunde.isSelected(),
-						wcbLieferant.isSelected(), wcbLos.isSelected(),
-						kundeIId, iOptionSortierung,
-						wcbNurBerechtigte.isSelected());
+				.printFehlerarten(kritDto);
 	}
 
 	public boolean getBErstelleReportSofort() {

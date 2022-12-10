@@ -70,6 +70,7 @@ import com.lp.server.projekt.service.ProjektDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class ReportAuftragstatistik extends PanelBasis implements
@@ -90,11 +91,14 @@ public class ReportAuftragstatistik extends PanelBasis implements
 	private WrapperRadioButton wrbKunde = new WrapperRadioButton();
 	private WrapperRadioButton wrbBestellnummer = new WrapperRadioButton();
 	private WrapperRadioButton wrbFuehrenderArtikel = new WrapperRadioButton();
+	private WrapperRadioButton wrbProjektleiter = new WrapperRadioButton();
 	private ButtonGroup buttonGroupSortierung = new ButtonGroup();
 
 	private WrapperLabel wlaDatum = new WrapperLabel();
 	private WrapperRadioButton wrbAuftragdatum = new WrapperRadioButton();
 	private WrapperRadioButton wrbErledigtDatum = new WrapperRadioButton();
+	private WrapperRadioButton wrbLieferterminBisZum = new WrapperRadioButton();
+	private WrapperRadioButton wrbStichtag = new WrapperRadioButton();
 	private ButtonGroup buttonGroupDatum = new ButtonGroup();
 
 	private WrapperCheckBox wcbArbeitszeitDetailliert = new WrapperCheckBox();
@@ -147,7 +151,7 @@ public class ReportAuftragstatistik extends PanelBasis implements
 
 		panelQueryFLRProjekt = ProjektFilterFactory.getInstance()
 				.createPanelFLRProjekt(getInternalFrame(), null, false);
-		
+
 		new DialogQuery(panelQueryFLRProjekt);
 
 	}
@@ -157,7 +161,7 @@ public class ReportAuftragstatistik extends PanelBasis implements
 		getInternalFrame().addItemChangedListener(this);
 		jpaWorkingOn.setLayout(new GridBagLayout());
 		wlaVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
-		wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
+		wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("auft.liefertermin.stichtagbis"));
 		wlaSortierung.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.sortierung"));
 		wdfVon.setMandatoryField(true);
@@ -175,8 +179,20 @@ public class ReportAuftragstatistik extends PanelBasis implements
 				"label.belegdatum"));
 		wrbErledigtDatum.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.erledigungsdatum"));
+		wrbLieferterminBisZum.setText(LPMain.getInstance().getTextRespectUISPr(
+				"auft.auftragstatstik.lieferterminbiszum"));
+		wrbStichtag.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.stichtag"));
 		buttonGroupDatum.add(wrbAuftragdatum);
 		buttonGroupDatum.add(wrbErledigtDatum);
+		buttonGroupDatum.add(wrbLieferterminBisZum);
+		buttonGroupDatum.add(wrbStichtag);
+
+		wrbAuftragdatum.addActionListener(this);
+		wrbErledigtDatum.addActionListener(this);
+		wrbLieferterminBisZum.addActionListener(this);
+		wrbStichtag.addActionListener(this);
+
 		wrbAuftragdatum.setSelected(true);
 
 		wcbArbeitszeitDetailliert.setText(LPMain.getInstance()
@@ -202,6 +218,8 @@ public class ReportAuftragstatistik extends PanelBasis implements
 				"lp.rechnungsadresse"));
 		wrbProjekt.setText(LPMain.getInstance().getTextRespectUISPr(
 				"label.projekt"));
+		wrbProjektleiter.setText(LPMain.getInstance().getTextRespectUISPr(
+				"auft.auftragstatstik.sortierung.projektleiter"));
 		wrbKunde.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.kunde.modulname"));
 
@@ -220,6 +238,7 @@ public class ReportAuftragstatistik extends PanelBasis implements
 		buttonGroupSortierung.add(wrbKunde);
 		buttonGroupSortierung.add(wrbBestellnummer);
 		buttonGroupSortierung.add(wrbFuehrenderArtikel);
+		buttonGroupSortierung.add(wrbProjektleiter);
 
 		wtfKunde.setActivatable(false);
 		wtfPartnerklassen.setActivatable(false);
@@ -265,16 +284,23 @@ public class ReportAuftragstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wrbErledigtDatum, new GridBagConstraints(2, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wcbArbeitszeitDetailliert, new GridBagConstraints(1,
+		jpaWorkingOn.add(wrbLieferterminBisZum, new GridBagConstraints(3,
 				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(2, iZeile, 1, 1,
+		jpaWorkingOn.add(wrbStichtag, new GridBagConstraints(4,
+				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wcbArbeitszeitDetailliert, new GridBagConstraints(1,
+				iZeile, 2, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(3, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbAuftragsnummer, new GridBagConstraints(3, iZeile,
+		jpaWorkingOn.add(wrbAuftragsnummer, new GridBagConstraints(4, iZeile,
 				1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -298,17 +324,17 @@ public class ReportAuftragstatistik extends PanelBasis implements
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wrbProjekt, new GridBagConstraints(3, iZeile, 1, 1, 0,
+		jpaWorkingOn.add(wrbProjekt, new GridBagConstraints(4, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 		jpaWorkingOn.add(wbuPartnerklassen, new GridBagConstraints(0, iZeile,
 				1, 1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 80, 0));
 		jpaWorkingOn.add(wtfPartnerklassen, new GridBagConstraints(1, iZeile,
 				1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbFuehrenderArtikel, new GridBagConstraints(3,
+		jpaWorkingOn.add(wrbFuehrenderArtikel, new GridBagConstraints(4,
 				iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
@@ -320,7 +346,7 @@ public class ReportAuftragstatistik extends PanelBasis implements
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wrbKunde, new GridBagConstraints(3, iZeile, 1, 1, 0,
+		jpaWorkingOn.add(wrbKunde, new GridBagConstraints(4, iZeile, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -330,7 +356,7 @@ public class ReportAuftragstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wtfRechnungsadresse, new GridBagConstraints(1, iZeile,
 				1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbRechnungsadresse, new GridBagConstraints(3, iZeile,
+		jpaWorkingOn.add(wrbRechnungsadresse, new GridBagConstraints(4, iZeile,
 				1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -340,10 +366,14 @@ public class ReportAuftragstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wtfBestellnummer, new GridBagConstraints(1, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbBestellnummer, new GridBagConstraints(3, iZeile, 1,
+		jpaWorkingOn.add(wrbBestellnummer, new GridBagConstraints(4, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
 
+		jpaWorkingOn.add(wrbProjektleiter, new GridBagConstraints(4, iZeile, 1,
+				1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -360,6 +390,17 @@ public class ReportAuftragstatistik extends PanelBasis implements
 			dialogQueryPartnerliste(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_PROJEKT)) {
 			dialogQueryProjektFromListe(e);
+		}
+
+		if (e.getSource().equals(wrbStichtag)
+				||e.getSource().equals(wrbAuftragdatum)
+				|| e.getSource().equals(wrbErledigtDatum)
+				|| e.getSource().equals(wrbLieferterminBisZum)) {
+			if (wrbLieferterminBisZum.isSelected() || wrbStichtag.isSelected()) {
+				wdfVon.setEnabled(false);
+			} else {
+				wdfVon.setEnabled(true);
+			}
 		}
 
 	}
@@ -408,7 +449,7 @@ public class ReportAuftragstatistik extends PanelBasis implements
 					ProjektDto pDto = DelegateFactory.getInstance()
 							.getProjektDelegate().projektFindByPrimaryKey(key);
 
-					projektIId=key;
+					projektIId = key;
 					wtfProjekt.setText(pDto.getCNr());
 				}
 			} else if (e.getSource() == panelQueryFLRPartnerliste) {
@@ -444,7 +485,7 @@ public class ReportAuftragstatistik extends PanelBasis implements
 	}
 
 	public String getModul() {
-		return ZeiterfassungReportFac.REPORT_MODUL;
+		return AuftragReportFac.REPORT_MODUL;
 	}
 
 	public String getReportname() {
@@ -454,8 +495,8 @@ public class ReportAuftragstatistik extends PanelBasis implements
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		JasperPrintLP jasperPrint = null;
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp = Helper.addiereTageZuTimestamp(wdfBis
+				.getTimestamp(), 1) ;
 
 		int iOptionsortierung = -1;
 
@@ -471,22 +512,41 @@ public class ReportAuftragstatistik extends PanelBasis implements
 			iOptionsortierung = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_SORTIERUNG_BESTELLNUMMER;
 		} else if (wrbFuehrenderArtikel.isSelected()) {
 			iOptionsortierung = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_SORTIERUNG_FUEHRENDER_ARTIKEL;
+		} else if (wrbFuehrenderArtikel.isSelected()) {
+			iOptionsortierung = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_SORTIERUNG_FUEHRENDER_ARTIKEL;
+		}else if (wrbProjektleiter.isSelected()) {
+			iOptionsortierung = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_SORTIERUNG_PROJEKTLEITER;
 		}
 
-		String projektBezeichnung=null;
-		if(projektIId==null){
-			projektBezeichnung=wtfProjekt.getText();
+		String projektBezeichnung = null;
+		if (projektIId == null) {
+			projektBezeichnung = wtfProjekt.getText();
 		}
+
 		
+		java.sql.Timestamp stichtag=null;
+		int iOptionDatum = 1;
+		if (wrbAuftragdatum.isSelected()) {
+			iOptionDatum = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_OPTION_DATUM_BELEGDATUM;
+		} else if (wrbErledigtDatum.isSelected()) {
+			iOptionDatum = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_OPTION_DATUM_ERLEDIGUNGSDATUM;
+		} else if (wrbLieferterminBisZum.isSelected()) {
+			iOptionDatum = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_OPTION_DATUM_LIEFERTERMIN_BIS_ZUM;
+		} else if (wrbStichtag.isSelected()) {
+			iOptionDatum = AuftragReportFac.REPORT_AUFTRAGSTATISTIK_OPTION_DATUM_STICHTAG;
+			stichtag=wdfBis.getTimestamp();
+			
+		}
+
 		jasperPrint = DelegateFactory
 				.getInstance()
 				.getAuftragReportDelegate()
 				.printAuftragstatistik(wdfVon.getTimestamp(), wdfBisTemp,
-						wrbAuftragdatum.isSelected(), kundeIId,
-						kundeIId_Rechnungsadresse, null, projektBezeichnung,
-						wtfBestellnummer.getText(), iOptionsortierung,
-						!wcbArbeitszeitDetailliert.isSelected(), null,
-						projektIId);
+						iOptionDatum, kundeIId, kundeIId_Rechnungsadresse,
+						null, projektBezeichnung, wtfBestellnummer.getText(),
+						iOptionsortierung,
+						!wcbArbeitszeitDetailliert.isSelected(), stichtag,
+						projektIId,false);
 
 		return jasperPrint;
 

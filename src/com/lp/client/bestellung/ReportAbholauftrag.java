@@ -41,6 +41,7 @@ import javax.swing.JPanel;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.server.bestellung.service.BestellungReportFac;
@@ -59,7 +60,7 @@ import com.lp.server.util.report.JasperPrintLP;
  * @version unbekannt Date $Date: 2012/08/14 09:02:30 $
  */
 public class ReportAbholauftrag extends PanelBasis implements
-		PanelReportIfJRDS {
+		PanelReportIfJRDS, IDruckTypeReport {
 
 	/**
 	 * 

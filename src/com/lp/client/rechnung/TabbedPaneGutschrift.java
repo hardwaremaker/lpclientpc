@@ -90,34 +90,30 @@ public class TabbedPaneGutschrift extends TabbedPaneRechnungAll {
 	private void jbInitTP() throws Throwable {
 
 		// 3 Konditionen
-		iIDX_KONDITIONEN = this.getTabCount();
-		insertTab(
+		iIDX_KONDITIONEN = 
+				reiterHinzufuegen(
 				LPMain.getTextRespectUISPr("rechnung.tab.oben.konditionen.title"),
 				null,
 				null,
-				LPMain.getTextRespectUISPr("rechnung.tab.oben.konditionen.tooltip"),
-				iIDX_KONDITIONEN);
+				LPMain.getTextRespectUISPr("rechnung.tab.oben.konditionen.tooltip"));
 
 		// 4 Kontierung
-		iDX_KONTIERUNG = this.getTabCount();
-		insertTab(
+		iDX_KONTIERUNG =
+				reiterHinzufuegen(
 				LPMain.getTextRespectUISPr("rechnung.tab.oben.kontierung.title"),
 				null,
 				null,
-				LPMain.getTextRespectUISPr("rechnung.tab.oben.kontierung.tooltip"),
-				iDX_KONTIERUNG);
+				LPMain.getTextRespectUISPr("rechnung.tab.oben.kontierung.tooltip"));
 		// 5 Umsatzuebersicht
-		iDX_UMSATZ = this.getTabCount();
-		insertTab(LPMain.getTextRespectUISPr("lp.umsatzuebersicht"), null,
-				null, LPMain.getTextRespectUISPr("lp.umsatzuebersicht"),
-				iDX_UMSATZ);
-		iIDX_ZAHLUNGEN = this.getTabCount();
-		insertTab(
+		iDX_UMSATZ = 
+				reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.umsatzuebersicht"), null,
+				null, LPMain.getTextRespectUISPr("lp.umsatzuebersicht"));
+		iIDX_ZAHLUNGEN =
+				reiterHinzufuegen(
 				LPMain.getTextRespectUISPr("rechnung.tab.oben.zahlungen.title"),
 				null,
 				null,
-				LPMain.getTextRespectUISPr("rechnung.tab.oben.zahlungen.tooltip"),
-				iIDX_ZAHLUNGEN);
+				LPMain.getTextRespectUISPr("rechnung.tab.oben.zahlungen.tooltip"));
 	}
 
 	public void lPEventItemChanged(ItemChangedEvent e) throws Throwable {
@@ -202,6 +198,15 @@ public class TabbedPaneGutschrift extends TabbedPaneRechnungAll {
 		JMenu jmBearbeiten = (JMenu) wmb
 				.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
 
+		WrapperMenuItem menueItemVertreterAendern = null;
+		menueItemVertreterAendern = new WrapperMenuItem(
+				LPMain.getTextRespectUISPr("rech.vertreteraendern"),
+				RechteFac.RECHT_RECH_RECHNUNG_CUD);
+		menueItemVertreterAendern.addActionListener(this);
+		menueItemVertreterAendern
+				.setActionCommand(MENUE_ACTION_BEARBEITEN_VERTRETER_AENDERN);
+		jmBearbeiten.add(menueItemVertreterAendern, 0);
+		
 		WrapperMenuItem menueItemBeleguebernahme = null;
 		menueItemBeleguebernahme = new WrapperMenuItem(
 				LPMain.getTextRespectUISPr("finanz.beleguebernahme"),

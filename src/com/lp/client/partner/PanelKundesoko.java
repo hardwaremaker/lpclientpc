@@ -104,6 +104,7 @@ protected InternalFrameKunde internalFrameKunde = null;
       if (wcoArt.getKeyOfSelectedItem().equals(ART_ARTIKEL)) {
         // bei Verlassen des Dialogs mit Strg+S
         panelArtikel.preisSetzen();
+        panelArtikel.getWifArtikel().refresh();
 
         kundesokoDto =
             panelArtikel.components2kundesokoDto(kundesokoDto);

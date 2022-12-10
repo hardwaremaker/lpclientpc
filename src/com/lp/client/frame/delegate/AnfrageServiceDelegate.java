@@ -40,6 +40,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.anfrage.service.AnfrageReportFac;
 import com.lp.server.anfrage.service.AnfrageServiceFac;
 import com.lp.server.anfrage.service.AnfrageartDto;
 import com.lp.server.anfrage.service.AnfrageerledigungsgrundDto;
@@ -65,8 +66,7 @@ public class AnfrageServiceDelegate extends Delegate {
 	public AnfrageServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			anfrageServiceFac = (AnfrageServiceFac) context
-					.lookup("lpserver/AnfrageServiceFacBean/remote");
+			anfrageServiceFac = lookupFac(context, AnfrageServiceFac.class);	
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

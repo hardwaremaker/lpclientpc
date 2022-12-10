@@ -41,6 +41,7 @@ import javax.ejb.FinderException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
+import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.system.service.AutoMahnungsversandDto;
 import com.lp.server.system.service.AutoMahnungsversandFac;
 
@@ -55,7 +56,7 @@ public class AutoMahnungsversandDelegate
   public AutoMahnungsversandDelegate()
       throws Throwable {
 	  context = new InitialContext();
-	  autoMahnungsversandFac = (AutoMahnungsversandFac) context.lookup("lpserver/AutoMahnungsversandFacBean/remote");
+	  autoMahnungsversandFac = lookupFac(context, AutoMahnungsversandFac.class);
   }
 
 

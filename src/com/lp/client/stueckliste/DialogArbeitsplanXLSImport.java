@@ -56,6 +56,8 @@ import com.lp.client.frame.component.WrapperTextArea;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.system.service.SystemFac;
 import com.lp.util.Helper;
 
@@ -73,6 +75,8 @@ public class DialogArbeitsplanXLSImport extends JDialog implements
 	JButton wbuAbbrechen = new JButton();
 
 	JButton wbuImportieren = new JButton();
+
+	private WrapperCheckBox wcbVorhandenePositionenLoeschen = new WrapperCheckBox();
 
 	private WrapperLabel wlaEinheitZeit = new WrapperLabel();
 	private WrapperComboBox wcbEinheitZeit = new WrapperComboBox();
@@ -112,11 +116,22 @@ public class DialogArbeitsplanXLSImport extends JDialog implements
 				.getInstance()
 				.getStuecklisteDelegate()
 				.pruefeUndImportiereArbeitsplanXLS(xlsDatei,
-						(String) wcbEinheitZeit.getKeyOfSelectedItem(), false));
+						(String) wcbEinheitZeit.getKeyOfSelectedItem(), false,
+						false));
 
 		wbuAbbrechen.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.abbrechen"));
 
+		wcbVorhandenePositionenLoeschen.setText(LPMain.getInstance()
+				.getTextRespectUISPr(
+						"stkl.import.xls.vorhandenepositionenloeschen"));
+
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_STUECKLISTE,
+				ParameterFac.PARAMETER_DEFAULT_STKL_XLSIMPORT_POSITIONEN_LOESCHEN);
+		boolean bParameter = (Boolean) parameter.getCWertAsObject();
+		wcbVorhandenePositionenLoeschen.setSelected(bParameter);
+		
 		wbuImportieren.addActionListener(this);
 
 		Calendar c = Calendar.getInstance();
@@ -165,6 +180,12 @@ public class DialogArbeitsplanXLSImport extends JDialog implements
 				1, 1, 1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
+		panelUrlaubsanspruch.add(wcbVorhandenePositionenLoeschen,
+				new GridBagConstraints(0, 3, 2, 1, 0.0, 0.0,
+						GridBagConstraints.CENTER,
+						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
+						100, 0));
+
 		panelUrlaubsanspruch.add(wbuImportieren, new GridBagConstraints(0, 4,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 100, 0));
@@ -178,11 +199,13 @@ public class DialogArbeitsplanXLSImport extends JDialog implements
 
 		if (e.getSource().equals(wbuImportieren)) {
 			try {
-				String fehler = DelegateFactory.getInstance()
+				String fehler = DelegateFactory
+						.getInstance()
 						.getStuecklisteDelegate()
 						.pruefeUndImportiereArbeitsplanXLS(xlsDatei,
 
-						(String) wcbEinheitZeit.getKeyOfSelectedItem(), true);
+						(String) wcbEinheitZeit.getKeyOfSelectedItem(), true,
+								wcbVorhandenePositionenLoeschen.isSelected());
 
 				if (fehler != null && fehler.length() > 0) {
 					DialogFactory.showMessageMitScrollbar("Info", fehler, true);

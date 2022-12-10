@@ -41,14 +41,19 @@ import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
 import com.lp.client.pc.LPMain;
+import com.lp.client.rechnung.IOpenTransBeleg;
 import com.lp.server.bestellung.service.BestellungDto;
 import com.lp.server.bestellung.service.BestellungReportFac;
+import com.lp.server.bestellung.service.BestellungtextDto;
+import com.lp.server.bestellung.service.OpenTransXmlReportResult;
 import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.util.HvOptional;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
@@ -63,7 +68,7 @@ import com.lp.util.Helper;
  *
  * @version not attributable Date $Date: 2012/05/16 09:09:42 $
  */
-public class ReportBestellung extends ReportBeleg {
+public class ReportBestellung extends ReportBeleg implements IOpenTransBeleg, IDruckTypeReport {
 	/**
 	 *
 	 */
@@ -108,7 +113,9 @@ public class ReportBestellung extends ReportBeleg {
 		JasperPrintLP[] prints = DelegateFactory
 				.getInstance()
 				.getBestellungDelegate()
-				.printBestellung(bsDto.getIId(), wnfKopien.getInteger(),
+				.printBestellung(bsDto.getIId(),
+//						wnfKopien.getInteger(),
+						getKopien(),
 						new Boolean(this.isBPrintLogo()));
 
 		// alle zusammenhaengen
@@ -139,10 +146,14 @@ public class ReportBestellung extends ReportBeleg {
 			/**
 			 * @todo die restlichen Felder befuellen
 			 */
-			mailtextDto.setMailFusstext(null); // UW: kommt noch
 			mailtextDto.setMailText(null); // UW: kommt noch
 
 			mailtextDto.setParamLocale(locKunde);
+			mailtextDto.setProjektIId(bsDto.getProjektIId());
+			
+			mailtextDto.setBelegVersion(bsDto.getIVersion());
+			mailtextDto.setMailFusstext(getBestellungFusstext());
+			mailtextDto.setMailKopftext(getBestellungKopftext());
 		}
 
 		return mailtextDto;
@@ -168,4 +179,46 @@ public class ReportBestellung extends ReportBeleg {
 
 	}
 
+	@Override
+	public boolean isOpenTransPartner() {
+		try {
+			return DelegateFactory.getInstance().getLieferantDelegate().isWeblieferant(lfDto.getIId());
+		} catch (Throwable e) {
+			myLogger.error("", e);
+			return false;
+		}
+	}
+	
+	public OpenTransXmlReportResult createOpenTransResult() throws Throwable {
+		return DelegateFactory.getInstance().getBestellungDelegate().transformPrint(
+				bsDto.getIId(), getKopien(), new Boolean(this.isBPrintLogo()));
+	}
+	
+	private String getBestellungKopftext() throws Throwable {
+		HvOptional<String> kopftext = HvOptional.ofNullable(bsDto.getCKopftextUebersteuert());
+		if (kopftext.isPresent()) {
+			return kopftext.get();
+		}
+		
+		HvOptional<BestellungtextDto> defaultKopftext = HvOptional.ofNullable(
+				DelegateFactory.getInstance().getBestellungServiceDelegate()
+					.getBestellungkopfDefault(lfDto.getPartnerDto().getLocaleCNrKommunikation()));
+		return defaultKopftext.isPresent()
+				? defaultKopftext.get().getXTextinhalt()
+				: null;
+	}
+	
+	private String getBestellungFusstext() throws Throwable {
+		HvOptional<String> fusstext = HvOptional.ofNullable(bsDto.getCFusstextUebersteuert());
+		if (fusstext.isPresent()) {
+			return fusstext.get();
+		}
+		
+		HvOptional<BestellungtextDto> defaultFusstext = HvOptional.ofNullable(
+				DelegateFactory.getInstance().getBestellungServiceDelegate()
+					.getBestellungfussDefault(lfDto.getPartnerDto().getLocaleCNrKommunikation()));
+		return defaultFusstext.isPresent()
+				? defaultFusstext.get().getXTextinhalt()
+				: null;
+	}
 }

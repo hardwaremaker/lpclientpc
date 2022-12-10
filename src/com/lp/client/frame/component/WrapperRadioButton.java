@@ -68,7 +68,7 @@ public class WrapperRadioButton extends JRadioButton implements IControl,
 	 */
 	private static final long serialVersionUID = 1L;
 	private boolean isActivatable = true;
-	private CornerInfoButton cib = new PaintingCornerInfoButton(this) ;
+	private CornerInfoButton cib ;
 	private Rectangle iconRect = new Rectangle();
 
 	public WrapperRadioButton() {

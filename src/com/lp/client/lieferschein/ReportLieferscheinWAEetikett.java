@@ -60,6 +60,7 @@ import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportEtikett;
 import com.lp.client.pc.LPMain;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.lieferschein.service.LieferscheinDto;
 import com.lp.server.lieferschein.service.LieferscheinFac;
 import com.lp.server.lieferschein.service.LieferscheinReportFac;
@@ -77,8 +78,7 @@ import com.lp.server.util.report.JasperPrintLP;
  * 
  * @version $Revision: 1.12 $
  */
-public class ReportLieferscheinWAEetikett extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportLieferscheinWAEetikett extends PanelBasis implements PanelReportIfJRDS {
 	private static final long serialVersionUID = 1L;
 	private LieferscheinDto lieferscheinDto = null;
 	private Integer lieferscheinpositionIId = null;
@@ -87,6 +87,7 @@ public class ReportLieferscheinWAEetikett extends PanelBasis implements
 	protected WrapperNumberField wnfPaketnummer = null;
 	private WrapperLabel wlaPaketanzahl = null;
 	private WrapperCheckBox wcbAlle = null;
+	private WrapperCheckBox wcbSpeichern = null;
 
 	private WrapperLabel wlaPakete = null;
 	private WrapperNumberField wnfPakete = null;
@@ -97,17 +98,16 @@ public class ReportLieferscheinWAEetikett extends PanelBasis implements
 	private WrapperLabel wlaEinheit = null;
 	private WrapperLabel wlaVersandnummer = null;
 	private WrapperTextField wtfVersandnummer = null;
+	private WrapperLabel wlaVersandnummer2 = null;
+	private WrapperTextField wtfVersandnummer2 = null;
 	private WrapperLabel wlaHandmenge = null;
 	private WrapperNumberField wnfHandmenge = null;
-	
+
 	private WrapperLabel wlaExemplare = null;
 	protected WrapperNumberField wnfExemplare = null;
 
-	
-
-	public ReportLieferscheinWAEetikett(InternalFrame internalFrame,
-			LieferscheinDto lieferscheinDto, Integer lieferscheinpositionIId,
-			String sAdd2Title) throws Throwable {
+	public ReportLieferscheinWAEetikett(InternalFrame internalFrame, LieferscheinDto lieferscheinDto,
+			Integer lieferscheinpositionIId, String sAdd2Title) throws Throwable {
 		super(internalFrame, sAdd2Title);
 		this.lieferscheinDto = lieferscheinDto;
 		this.lieferscheinpositionIId = lieferscheinpositionIId;
@@ -128,6 +128,15 @@ public class ReportLieferscheinWAEetikett extends PanelBasis implements
 
 	}
 
+	public boolean istLieferscheinErledigtOderVerrechnet() {
+		if (lieferscheinDto.getStatusCNr().equals(LieferscheinFac.LSSTATUS_VERRECHNET)
+				|| lieferscheinDto.getStatusCNr().equals(LieferscheinFac.LSSTATUS_ERLEDIGT)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		Integer iPaketnummer;
 		if (wcbAlle.isSelected()) {
@@ -136,12 +145,14 @@ public class ReportLieferscheinWAEetikett extends PanelBasis implements
 			iPaketnummer = wnfPaketnummer.getInteger();
 		}
 
-		return DelegateFactory
-				.getInstance()
-				.getLieferscheinReportDelegate()
-				.printLieferscheinWAEtikett(lieferscheinDto.getIId(),
-						lieferscheinpositionIId, iPaketnummer,
-						wnfHandmenge.getBigDecimal(),wnfExemplare.getInteger());
+		JasperPrintLP jpr=DelegateFactory.getInstance().getLieferscheinReportDelegate().printLieferscheinWAEtikett(
+				lieferscheinDto.getIId(), lieferscheinpositionIId, iPaketnummer, wnfHandmenge.getBigDecimal(),
+				wnfExemplare.getInteger(), wnfGewicht.getDouble(), wdfLiefertermin.getTimestamp(),
+				wnfPakete.getInteger(), wtfVersandnummer.getText(), wtfVersandnummer2.getText(),
+				wcbSpeichern.isSelected());
+		
+		return jpr;
+
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -149,8 +160,7 @@ public class ReportLieferscheinWAEetikett extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 
@@ -159,66 +169,52 @@ public class ReportLieferscheinWAEetikett extends PanelBasis implements
 
 		JPanel jpaWorkingOn = new JPanel();
 		jpaWorkingOn.setLayout(new GridBagLayout());
-		
-		
+
 		wlaExemplare = new WrapperLabel();
 		wlaExemplare.setText(LPMain.getTextRespectUISPr("report.exemplare"));
-		wlaExemplare.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaExemplare.setPreferredSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wlaExemplare, HelperClient.getSizeFactoredDimension(100));
 		wnfExemplare = new WrapperNumberField();
-		wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wnfExemplare.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
+		wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wnfExemplare.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
 		wnfExemplare.setFractionDigits(0);
 		wnfExemplare.setMandatoryField(true);
 		wnfExemplare.setInteger(1);
-		
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD };
+
 		wlaPaketnummer = new WrapperLabel();
-		wlaPaketnummer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.paketnummer"));
-		wlaPaketnummer.setMinimumSize(new Dimension(100, Defaults.getInstance()
-				.getControlHeight()));
-		wlaPaketnummer.setPreferredSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
+		wlaPaketnummer.setText(LPMain.getInstance().getTextRespectUISPr("label.paketnummer"));
 		wnfPaketnummer = new WrapperNumberField();
-		wnfPaketnummer.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wnfPaketnummer.setPreferredSize(new Dimension(30, Defaults
-				.getInstance().getControlHeight()));
+		wnfPaketnummer.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wnfPaketnummer.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
 		wnfPaketnummer.setFractionDigits(0);
 		wnfPaketnummer.setMaximumIntegerDigits(4);
 		wlaPaketanzahl = new WrapperLabel();
 		wlaPaketanzahl.setHorizontalAlignment(SwingConstants.LEFT);
-		wlaPaketanzahl.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.von")
-				+ " " + lieferscheinDto.getIAnzahlPakete());
+		wlaPaketanzahl
+				.setText(LPMain.getInstance().getTextRespectUISPr("lp.von") + " " + lieferscheinDto.getIAnzahlPakete());
 
 		wcbAlle = new WrapperCheckBox();
 		wcbAlle.setText(LPMain.getInstance().getTextRespectUISPr("lp.alle"));
 
-		wlaPakete = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"ls.pakete"));
+		wcbSpeichern = new WrapperCheckBox();
+		wcbSpeichern.setText(LPMain.getInstance().getTextRespectUISPr("lp.speichern"));
+		wcbSpeichern.setSaveReportInformation(false);
+
+		boolean rechtCUD = DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_LS_LIEFERSCHEIN_CUD);
+		
+		
+		wlaPakete = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("ls.pakete"));
 		wnfPakete = new WrapperNumberField();
 		wnfPakete.setFractionDigits(0);
 		wnfPakete.setMinimumValue(0);
-		wlaLiefertermin = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("lp.auslieferdatum"));
+		wlaLiefertermin = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.auslieferdatum"));
 
 		wlaHandmenge = new WrapperLabel();
-		wlaHandmenge.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.handmenge"));
+		wlaHandmenge.setText(LPMain.getInstance().getTextRespectUISPr("lp.handmenge"));
 		wnfHandmenge = new WrapperNumberField();
 
-		LieferscheinpositionDto[] posDtos = DelegateFactory
-				.getInstance()
-				.getLieferscheinpositionDelegate()
-				.getLieferscheinPositionenByLieferschein(
-						lieferscheinDto.getIId());
+		LieferscheinpositionDto[] posDtos = DelegateFactory.getInstance().getLieferscheinpositionDelegate()
+				.getLieferscheinPositionenByLieferschein(lieferscheinDto.getIId());
 
 		if (lieferscheinpositionIId != null) {
 
@@ -237,159 +233,108 @@ public class ReportLieferscheinWAEetikett extends PanelBasis implements
 		wdfLiefertermin.setShowRubber(false);
 		// wdfLiefertermin.getDisplay().addPropertyChangeListener(this);
 
-		wlaGewicht = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-				"lp.gewicht"));
+		wlaGewicht = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("lp.gewicht"));
 		wnfGewicht = new WrapperNumberField();
 		wlaEinheit = new WrapperLabel(SystemFac.EINHEIT_KILOGRAMM.trim());
 		wlaEinheit.setHorizontalAlignment(SwingConstants.LEFT);
 		HelperClient.setDefaultsToComponent(wlaEinheit, 25);
 
-		wlaVersandnummer = new WrapperLabel(LPMain.getInstance()
-				.getTextRespectUISPr("ls.versandnummer"));
+		wlaVersandnummer = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("ls.versandnummer"));
 		wtfVersandnummer = new WrapperTextField();
 
+		wlaVersandnummer2 = new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("ls.versandnummer2"));
+		wtfVersandnummer2 = new WrapperTextField();
+
 		iZeile++;
-		jpaWorkingOn.add(wlaExemplare, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaExemplare, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfExemplare, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaVersandnummer, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfVersandnummer, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wnfExemplare, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaGewicht, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfGewicht, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wlaLiefertermin, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaVersandnummer, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wdfLiefertermin, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfVersandnummer, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaVersandnummer2, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfVersandnummer2, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaGewicht, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfGewicht, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaLiefertermin, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfLiefertermin, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaPakete, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfPakete, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaPakete, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfPakete, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 
-		jpaWorkingOn.add(wlaPaketnummer, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaPaketnummer, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfPaketnummer, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wnfPaketnummer, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaPaketanzahl, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaPaketanzahl, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 50, 0));
-		jpaWorkingOn.add(wcbAlle, new GridBagConstraints(3, iZeile, 1, 1, 8.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 400, 0));
+		jpaWorkingOn.add(wcbAlle, new GridBagConstraints(3, iZeile, 1, 1, 8.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 400, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaHandmenge, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfHandmenge, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaHandmenge, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfHandmenge, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbSpeichern, new GridBagConstraints(3, iZeile, 1, 1, 8.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 400, 0));
+
 		iZeile++;
 
-		jpaWorkingOn.add(getToolsPanel(), new GridBagConstraints(0, iZeile, 3, 1, 1.0,
-				1.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				1.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		iZeile++;
-		enableToolsPanelButtons(aWhichButtonIUse);
+
+		if (istLieferscheinErledigtOderVerrechnet()) {
+			wcbSpeichern.setSelected(false);
+		} else {
+			
+			wcbSpeichern.setSelected(true);
+			
+		}
+		
+		if (!rechtCUD) {
+			wcbSpeichern.setSelected(false);
+			wcbSpeichern.setEnabled(false);
+		}
+		
 		getInternalFrame().addItemChangedListener(this);
 
+		lieferscheinDto=DelegateFactory.getInstance().getLsDelegate().lieferscheinFindByPrimaryKey(lieferscheinDto.getIId());
 		
-
-	}
-
-	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-	}
-
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
-		super.eventActionSave(e, true);
-		components2Dto();
-		if (lieferscheinDto != null)
-			DelegateFactory.getInstance().getLsDelegate()
-					.updateLieferscheinOhneWeitereAktion(lieferscheinDto);
-
-	}
-
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		if (lieferscheinDto.getStatusCNr().equals(
-				LieferscheinFac.LSSTATUS_ANGELEGT)
-				|| lieferscheinDto.getStatusCNr().equals(
-						LieferscheinFac.LSSTATUS_OFFEN)
-				|| lieferscheinDto.getStatusCNr().equals(
-						LieferscheinFac.LSSTATUS_GELIEFERT)) {
-			super.eventActionUpdate(aE, false); // Buttons schalten
-		} else {
-			MessageFormat mf = new MessageFormat(LPMain.getInstance()
-					.getTextRespectUISPr(
-							"ls.warning.lskannnichtgeaendertwerden"));
-			mf.setLocale(LPMain.getInstance().getTheClient().getLocUi());
-			Object pattern[] = { lieferscheinDto.getStatusCNr() };
-			DialogFactory.showModalDialog(LPMain.getInstance()
-					.getTextRespectUISPr("lp.warning"), mf.format(pattern));
-
-		}
-
-	}
-
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
-		super.eventYouAreSelected(false);
-		setDefaults();
-		dto2Components();
-	}
-
-	public void updateButtons() throws Throwable {
-		super.updateButtons();
-	}
-
-	protected void eventItemchanged(EventObject eI) throws Throwable {
-		ItemChangedEvent e = (ItemChangedEvent) eI;
-	}
-
-	protected void dto2Components() throws Throwable {
 		wnfGewicht.setDouble(lieferscheinDto.getFGewichtLieferung());
 		if (lieferscheinDto.getTLiefertermin() != null) {
 			wdfLiefertermin.setDate(lieferscheinDto.getTLiefertermin());
 		}
 		wnfPakete.setInteger(lieferscheinDto.getIAnzahlPakete());
 		wtfVersandnummer.setText(lieferscheinDto.getCVersandnummer());
-	}
-
-	protected void components2Dto() throws Throwable {
-		if (wnfGewicht.getDouble() != null)
-			lieferscheinDto.setFGewichtLieferung(wnfGewicht.getDouble());
-		lieferscheinDto.setTLiefertermin(wdfLiefertermin.getTimestamp());
-		lieferscheinDto.setIAnzahlPakete(wnfPakete.getInteger());
-		lieferscheinDto.setCVersandnummer(wtfVersandnummer.getText());
+		wtfVersandnummer2.setText(lieferscheinDto.getCVersandnummer2());
 
 	}
 
-	protected String getLockMeWer() throws Exception {
-		return HelperClient.LOCKME_LIEFERSCHEIN;
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 	}
+
+
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+	}
+
+
 }

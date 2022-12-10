@@ -96,8 +96,7 @@ import com.lp.server.util.report.JasperPrintLP;
  * 
  * @version not attributable Date $Date: 2012/10/19 13:19:04 $
  */
-public class ReportKontoblaetter extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportKontoblaetter extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -132,8 +131,8 @@ public class ReportKontoblaetter extends PanelBasis implements
 	private WrapperTextField wtfKtonrVon = new WrapperTextField();
 	private WrapperTextField wtfKtonrBis = new WrapperTextField();
 
-	private WrapperLabel wlaGeschaeftsjahr = new WrapperLabel() ;
-	
+	private WrapperLabel wlaGeschaeftsjahr = new WrapperLabel();
+
 	private WrapperLabel wlaVon = new WrapperLabel();
 	private WrapperDateField wdfVon = new WrapperDateField();
 	private WrapperLabel wlaBis = new WrapperLabel();
@@ -141,27 +140,28 @@ public class ReportKontoblaetter extends PanelBasis implements
 	private WrapperDateRangeController wdrBereich = null;
 
 //	private WrapperComboBox wcbSortOrder = new WrapperComboBox() ;
-	private WrapperCheckBox wcbSortiereNachAZK = new WrapperCheckBox() ;
-	private WrapperCheckBox wchkEnableSaldoVorperiode = new WrapperCheckBox() ;
-	
+	private WrapperCheckBox wcbSortiereNachAZK = new WrapperCheckBox();
+	private WrapperCheckBox wchkEnableSaldoVorperiode = new WrapperCheckBox();
+
+	private WrapperCheckBox wchkGegenkontobezeichnungAndrucken = new WrapperCheckBox();
+
 	private WrapperCheckBox wcbPrintInMandantenWaehrung = new WrapperCheckBox();
-	
+
 	private InternalFrameFinanz ifF = null;
 
 	private final static int BREITE_SPALTE2 = 150;
 
 	protected JPanel jpaWorkingOn;
 
-	public ReportKontoblaetter(InternalFrameFinanz internalFrame,
-			KontoDto kontoDto, String sAdd2Title) throws Throwable {
+	public ReportKontoblaetter(InternalFrameFinanz internalFrame, KontoDto kontoDto, String sAdd2Title)
+			throws Throwable {
 		// reporttitel: das PanelReport kriegt einen Titel, der wird vom
 		// Framework hergenommen
 		super(internalFrame, sAdd2Title);
 		ifF = internalFrame;
 		this.kontoDto = kontoDto;
 		if (ifF.getTabbedPaneRoot().getSelectedComponent() instanceof TabbedPaneKonten) {
-			this.kontoDto = ((TabbedPaneKonten) ifF.getTabbedPaneRoot()
-					.getSelectedComponent()).getKontoDto();
+			this.kontoDto = ((TabbedPaneKonten) ifF.getTabbedPaneRoot().getSelectedComponent()).getKontoDto();
 		}
 		jbInit();
 		setDefaults();
@@ -169,65 +169,59 @@ public class ReportKontoblaetter extends PanelBasis implements
 		initComponents();
 
 		// this.setVisible(false);
-		invalidate() ;
+		invalidate();
 	}
 
-	
 	protected KontoDto getKontoDto() {
-		return kontoDto ;
+		return kontoDto;
 	}
 
 	protected WrapperDateField getWdfVon() {
-		return wdfVon ;
+		return wdfVon;
 	}
-	
+
 	protected WrapperDateField getWdfBis() {
-		return wdfBis ;
+		return wdfBis;
 	}
-	
+
 	protected void jbInit() throws Throwable {
-		
+
 		jpaWorkingOn = new JPanel(new MigLayout("wrap 4", "[25%,fill|25%,fill|25%,fill|25%,fill]"));
 		this.setLayout(new GridBagLayout());
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		if (kontoDto != null) {
-			wrbSelektiertesKonto = new WrapperRadioButton("nur Konto "
-					+ kontoDto.getCNr());
+			wrbSelektiertesKonto = new WrapperRadioButton("nur Konto " + kontoDto.getCNr());
 		} else {
 			wrbSelektiertesKonto = new WrapperRadioButton("nur Konto");
 		}
 
 		wlaSortierung.setText(LPMain.getTextRespectUISPr("lp.sortierung"));
 		wrbSortDatum.setText(LPMain.getTextRespectUISPr("lp.datum"));
-		wrbSortAuszugsnummer
-				.setText(LPMain.getTextRespectUISPr("label.auszug"));
+		wrbSortAuszugsnummer.setText(LPMain.getTextRespectUISPr("label.auszug"));
 		wrbSortBeleg.setText(LPMain.getTextRespectUISPr("lp.belegsortieren"));
 
 //		wcbSortOrder.addItem(wrbSortDatum.getText()) ;
 //		wcbSortOrder.addItem(wrbSortAuszugsnummer.getText()) ;
 //		wcbSortOrder.addItem(wrbSortBeleg.getText()) ;
-		
+
 		wrbSachkonten = new WrapperRadioButton("Sachkonten");
 		wrbDebitoren = new WrapperRadioButton("Debitoren");
 		wrbKreditoren = new WrapperRadioButton("Kreditoren");
 
-		wchkEnableSaldoVorperiode.setText(LPMain.getTextRespectUISPr("lp.mitVorperiodenSaldo")) ;
+		wchkEnableSaldoVorperiode.setText(LPMain.getTextRespectUISPr("lp.mitVorperiodenSaldo"));
 		wcbSortiereNachAZK.setText(LPMain.getTextRespectUISPr("fb.report.sortierenach.azk"));
-		
-		wcbPrintInMandantenWaehrung.setText(LPMain.getTextRespectUISPr("finanz.label.druckinmandantenwaehrung"));
-		
-		wrbSachkonten.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
-		wrbDebitoren.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
-		wrbKreditoren.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
-		wrbSelektiertesKonto.setPreferredSize(new Dimension(BREITE_SPALTE2,
-				Defaults.getInstance().getControlHeight()));
 
+		wcbPrintInMandantenWaehrung.setText(LPMain.getTextRespectUISPr("finanz.label.druckinmandantenwaehrung"));
+
+		wrbSachkonten.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults.getInstance().getControlHeight()));
+		wrbDebitoren.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults.getInstance().getControlHeight()));
+		wrbKreditoren.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults.getInstance().getControlHeight()));
+		wrbSelektiertesKonto.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults.getInstance().getControlHeight()));
+
+		wchkGegenkontobezeichnungAndrucken.setText(LPMain.getTextRespectUISPr("finanz.kontoblaetter.gktbez"));
+		
 		jbgKontotyp = new ButtonGroup();
 		jbgKontotyp.add(wrbSachkonten);
 		jbgKontotyp.add(wrbDebitoren);
@@ -244,9 +238,9 @@ public class ReportKontoblaetter extends PanelBasis implements
 		buttonGroupSortierung.add(wrbSortBeleg);
 		wrbSortDatum.setSelected(true);
 
-		wlaGeschaeftsjahr = new WrapperLabel(LPMain.getTextRespectUISPr("label.geschaeftsjahr")
-				+ " " + ((InternalFrameFinanz) getInternalFrame()).getAktuellesGeschaeftsjahr());
-				
+		wlaGeschaeftsjahr = new WrapperLabel(LPMain.getTextRespectUISPr("label.geschaeftsjahr") + " "
+				+ ((InternalFrameFinanz) getInternalFrame()).getIAktuellesGeschaeftsjahr());
+
 		wlaVon.setText(LPMain.getTextRespectUISPr("lp.von"));
 		wlaBis.setText(LPMain.getTextRespectUISPr("lp.bis"));
 		wlaKtonrVon.setText(LPMain.getTextRespectUISPr("fb.kontoblaetter.von"));
@@ -262,8 +256,8 @@ public class ReportKontoblaetter extends PanelBasis implements
 		wdfBis.setMandatoryField(true);
 
 		try {
-			setupVonBisDatum() ;
-			setupCheckBoxMitVorperiodenSaldo() ;
+			setupVonBisDatum();
+			setupCheckBoxMitVorperiodenSaldo();
 		} catch (Throwable e) {
 			//
 		}
@@ -276,7 +270,7 @@ public class ReportKontoblaetter extends PanelBasis implements
 		jpaWorkingOn.add(wrbSachkonten);
 		jpaWorkingOn.add(wrbDebitoren);
 		jpaWorkingOn.add(wrbKreditoren);
-		
+
 		jpaWorkingOn.add(wlaKtonrVon);
 		jpaWorkingOn.add(wtfKtonrVon);
 		jpaWorkingOn.add(wlaKtonrBis);
@@ -288,48 +282,46 @@ public class ReportKontoblaetter extends PanelBasis implements
 		jpaWorkingOn.add(wlaBis);
 		jpaWorkingOn.add(wdfBis, "split, w pref::, grow 0");
 		jpaWorkingOn.add(wdrBereich, "growy, wrap");
-		
+
 		jpaWorkingOn.add(wlaSortierung);
 		jpaWorkingOn.add(wrbSortDatum);
 		jpaWorkingOn.add(wcbSortiereNachAZK, "span");
-		
+
 		jpaWorkingOn.add(wrbSortAuszugsnummer, "skip");
-		jpaWorkingOn.add(wchkEnableSaldoVorperiode, "span");
-		
+		jpaWorkingOn.add(wchkEnableSaldoVorperiode);
+		jpaWorkingOn.add(wchkGegenkontobezeichnungAndrucken, "span");
+
 		jpaWorkingOn.add(wrbSortBeleg, "skip");
 		jpaWorkingOn.add(wcbPrintInMandantenWaehrung, "span");
 	}
 
-
 	private void setupCheckBoxMitVorperiodenSaldo() {
-		boolean withSaldo = false ;
+		boolean withSaldo = false;
 
 		if (wrbSelektiertesKonto.isSelected()) {
 			Integer kontoIId = kontoDto.getIId();
-			
+
 			try {
-				withSaldo = DelegateFactory.getInstance()
-						.getFinanzDelegate().isKontoMitSaldo(kontoIId) ;			
-			} catch(Throwable t) {				
+				withSaldo = DelegateFactory.getInstance().getFinanzDelegate().isKontoMitSaldo(kontoIId);
+			} catch (Throwable t) {
 			}
 		}
-		wchkEnableSaldoVorperiode.setSelected(withSaldo) ;
+		wchkEnableSaldoVorperiode.setSelected(withSaldo);
 	}
-
 
 	protected void setupVonBisDatum() throws ExceptionLP, Throwable {
 		Timestamp[] d = getGJTimestamps();
-		if(null == d) return ;
-		
+		if (null == d)
+			return;
+
 		wdfVon.setTimestamp(d[0]);
-		wdfVon.setMinimumValue(d[0]) ;
-		wdfVon.setMaximumValue(d[1]) ;
+		wdfVon.setMinimumValue(d[0]);
+		wdfVon.setMaximumValue(d[1]);
 
 		wdfBis.setTimestamp(d[1]);
-		wdfBis.setMinimumValue(d[0]) ;
-		wdfBis.setMaximumValue(d[1]) ;
+		wdfBis.setMinimumValue(d[0]);
+		wdfBis.setMaximumValue(d[1]);
 	}
-
 
 	protected Timestamp[] getGJTimestamps() throws Throwable, ExceptionLP {
 		Integer geschaeftsjahr = ((InternalFrameFinanz) getInternalFrame()).getIAktuellesGeschaeftsjahr();
@@ -343,15 +335,13 @@ public class ReportKontoblaetter extends PanelBasis implements
 
 			if (e.getSource() == panelQueryFLRKonto_Von) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				KontoDto kontoDto = DelegateFactory.getInstance()
-						.getFinanzDelegate()
+				KontoDto kontoDto = DelegateFactory.getInstance().getFinanzDelegate()
 						.kontoFindByPrimaryKey((Integer) key);
 				kontoIId_Von = kontoDto.getIId();
 				wtfKtonrVon.setText(kontoDto.getCNr());
 			} else if (e.getSource() == panelQueryFLRKonto_Bis) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				KontoDto kontoDto = DelegateFactory.getInstance()
-						.getFinanzDelegate()
+				KontoDto kontoDto = DelegateFactory.getInstance().getFinanzDelegate()
 						.kontoFindByPrimaryKey((Integer) key);
 				kontoIId_Bis = kontoDto.getIId();
 				wtfKtonrBis.setText(kontoDto.getCNr());
@@ -377,33 +367,23 @@ public class ReportKontoblaetter extends PanelBasis implements
 		}
 
 		else if (wrbDebitoren.isSelected()) {
-			filters = FinanzFilterFactory.getInstance()
-					.createFKDebitorenkonten();
-			title = LPMain
-					.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.title");
+			filters = FinanzFilterFactory.getInstance().createFKDebitorenkonten();
+			title = LPMain.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.title");
 		}
 
 		else if (wrbKreditoren.isSelected()) {
-			filters = FinanzFilterFactory.getInstance()
-					.createFKKreditorenkonten();
-			title = LPMain
-					.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title");
+			filters = FinanzFilterFactory.getInstance().createFKKreditorenkonten();
+			title = LPMain.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title");
 		}
 
 		QueryType[] qt = null;
 		// nur Sachkonten dieses Mandanten
-		panelQueryFLRKonto_Von = new PanelQueryFLR(qt, filters,
-				QueryParameters.UC_ID_FINANZKONTEN,
-				new String[] { PanelBasis.ACTION_LEEREN }, getInternalFrame(),
-				title);
-		FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance()
-				.createFKDKontonummer();
-		FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance()
-				.createFKDKontobezeichnung();
-		FilterKriterium fkVersteckt = FinanzFilterFactory.getInstance()
-				.createFKVKonto();
-		panelQueryFLRKonto_Von.befuellePanelFilterkriterienDirektUndVersteckte(
-				fkDirekt1, fkDirekt2, fkVersteckt);
+		panelQueryFLRKonto_Von = new PanelQueryFLR(qt, filters, QueryParameters.UC_ID_FINANZKONTEN,
+				new String[] { PanelBasis.ACTION_LEEREN }, getInternalFrame(), title);
+		FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance().createFKDKontonummer();
+		FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance().createFKDKontobezeichnung();
+		FilterKriterium fkVersteckt = FinanzFilterFactory.getInstance().createFKVKonto();
+		panelQueryFLRKonto_Von.befuellePanelFilterkriterienDirektUndVersteckte(fkDirekt1, fkDirekt2, fkVersteckt);
 		if (kontoIId_Von != null) {
 			panelQueryFLRKonto_Von.setSelectedId(kontoIId_Von);
 		}
@@ -421,33 +401,23 @@ public class ReportKontoblaetter extends PanelBasis implements
 		}
 
 		else if (wrbDebitoren.isSelected()) {
-			filters = FinanzFilterFactory.getInstance()
-					.createFKDebitorenkonten();
-			title = LPMain
-					.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.title");
+			filters = FinanzFilterFactory.getInstance().createFKDebitorenkonten();
+			title = LPMain.getTextRespectUISPr("finanz.tab.unten.debitorenkonten.title");
 		}
 
 		else if (wrbKreditoren.isSelected()) {
-			filters = FinanzFilterFactory.getInstance()
-					.createFKKreditorenkonten();
-			title = LPMain
-					.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title");
+			filters = FinanzFilterFactory.getInstance().createFKKreditorenkonten();
+			title = LPMain.getTextRespectUISPr("finanz.tab.unten.kreditorenkonten.title");
 		}
 
 		QueryType[] qt = null;
 		// nur Sachkonten dieses Mandanten
-		panelQueryFLRKonto_Bis = new PanelQueryFLR(qt, filters,
-				QueryParameters.UC_ID_FINANZKONTEN,
-				new String[] { PanelBasis.ACTION_LEEREN }, getInternalFrame(),
-				title);
-		FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance()
-				.createFKDKontonummer();
-		FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance()
-				.createFKDKontobezeichnung();
-		FilterKriterium fkVersteckt = FinanzFilterFactory.getInstance()
-				.createFKVKonto();
-		panelQueryFLRKonto_Bis.befuellePanelFilterkriterienDirektUndVersteckte(
-				fkDirekt1, fkDirekt2, fkVersteckt);
+		panelQueryFLRKonto_Bis = new PanelQueryFLR(qt, filters, QueryParameters.UC_ID_FINANZKONTEN,
+				new String[] { PanelBasis.ACTION_LEEREN }, getInternalFrame(), title);
+		FilterKriteriumDirekt fkDirekt1 = FinanzFilterFactory.getInstance().createFKDKontonummer();
+		FilterKriteriumDirekt fkDirekt2 = FinanzFilterFactory.getInstance().createFKDKontobezeichnung();
+		FilterKriterium fkVersteckt = FinanzFilterFactory.getInstance().createFKVKonto();
+		panelQueryFLRKonto_Bis.befuellePanelFilterkriterienDirektUndVersteckte(fkDirekt1, fkDirekt2, fkVersteckt);
 		if (kontoIId_Bis != null) {
 			panelQueryFLRKonto_Bis.setSelectedId(kontoIId_Bis);
 		}
@@ -466,24 +436,23 @@ public class ReportKontoblaetter extends PanelBasis implements
 	private void setDefaults() {
 		wrbSelektiertesKonto.setSelected(true);
 
-		if(kontoDto.getCsortierung() != null) {
-			if(kontoDto.getCsortierung().equals("Beleg")) {
+		if (kontoDto.getCsortierung() != null) {
+			if (kontoDto.getCsortierung().equals("Beleg")) {
 				wrbSortBeleg.setSelected(true);
-			} else if(kontoDto.getCsortierung().equals("Datum")) {
+			} else if (kontoDto.getCsortierung().equals("Datum")) {
 				wrbSortDatum.setSelected(true);
-			} else if(kontoDto.getCsortierung().equals("Auszug")) {
+			} else if (kontoDto.getCsortierung().equals("Auszug")) {
 				wrbSortAuszugsnummer.setSelected(true);
 			}
 		} else {
 			wrbSortDatum.setSelected(true);
-		}		
+		}
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_SPECIAL_KONTOVON_FROM_LISTE)) {
 			dialogQueryKontoFromListe_Von(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_KONTOBIS_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_KONTOBIS_FROM_LISTE)) {
 			dialogQueryKontoFromListe_Bis(e);
 		} else if (e.getSource().equals(wrbSelektiertesKonto)) {
 			wtfKtonrVon.setText(null);
@@ -492,17 +461,16 @@ public class ReportKontoblaetter extends PanelBasis implements
 			wtfKtonrBis.setVisible(false);
 			wlaKtonrVon.setVisible(false);
 			wlaKtonrBis.setVisible(false);
-			
-			setupCheckBoxMitVorperiodenSaldo() ;
-		} else if (e.getSource().equals(wrbSachkonten)
-				|| e.getSource().equals(wrbDebitoren)
+
+			setupCheckBoxMitVorperiodenSaldo();
+		} else if (e.getSource().equals(wrbSachkonten) || e.getSource().equals(wrbDebitoren)
 				|| e.getSource().equals(wrbKreditoren)) {
 			wtfKtonrVon.setVisible(true);
 			wtfKtonrBis.setVisible(true);
 			wlaKtonrVon.setVisible(true);
 			wlaKtonrBis.setVisible(true);
 
-			setupCheckBoxMitVorperiodenSaldo() ;
+			setupCheckBoxMitVorperiodenSaldo();
 		}
 	}
 
@@ -534,24 +502,22 @@ public class ReportKontoblaetter extends PanelBasis implements
 			kontoIId = kontoDto.getIId();
 		}
 
-		PrintKontoblaetterModel model = new PrintKontoblaetterModel(
-				wdfVon.getTimestamp(),
-				wdfBis.getTimestamp(), 
-				((InternalFrameFinanz) getInternalFrame()).getAktuellesGeschaeftsjahr()) ;
-		model.setKontoIId(kontoIId) ;
-		model.setVonKontoNr(wtfKtonrVon.getText()) ;
-		model.setBisKontoNr(wtfKtonrBis.getText()) ;
-		model.setSortOrder(wrbSortDatum.isSelected(), wrbSortBeleg.isSelected()) ;
-		model.setKontotypCNr(kontoartCNr) ;
-		model.setEnableSaldo(wchkEnableSaldoVorperiode.isSelected()) ;
+		PrintKontoblaetterModel model = new PrintKontoblaetterModel(wdfVon.getTimestamp(), wdfBis.getTimestamp(),
+				"" + ((InternalFrameFinanz) getInternalFrame()).getIAktuellesGeschaeftsjahr());
+		model.setKontoIId(kontoIId);
+		model.setVonKontoNr(wtfKtonrVon.getText());
+		model.setBisKontoNr(wtfKtonrBis.getText());
+		model.setSortOrder(wrbSortDatum.isSelected(), wrbSortBeleg.isSelected());
+		model.setKontotypCNr(kontoartCNr);
+		model.setEnableSaldo(wchkEnableSaldoVorperiode.isSelected());
 		model.setDruckInMandantenWaehrung(wcbPrintInMandantenWaehrung.isSelected());
 		model.setSortiereNachAZK(wcbSortiereNachAZK.isSelected());
-		return DelegateFactory.getInstance().getFinanzReportDelegate().printKontoblaetter(model) ;
+		model.setGegenkontogezeichnungAndrucken(wchkGegenkontobezeichnungAndrucken.isSelected());
+		return DelegateFactory.getInstance().getFinanzReportDelegate().printKontoblaetter(model);
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 

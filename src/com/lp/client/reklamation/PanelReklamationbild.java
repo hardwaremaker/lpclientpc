@@ -36,7 +36,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.image.BufferedImage;
 import java.util.EventObject;
 
 import javax.swing.BorderFactory;
@@ -45,19 +44,18 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.HelperClient;
-import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
-import com.lp.client.frame.component.WrapperBildField;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.frame.component.WrapperMediaControl;
+import com.lp.client.frame.component.WrapperMediaControlDokumente;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelFac;
-import com.lp.server.reklamation.service.BehandlungDto;
 import com.lp.server.reklamation.service.ReklamationbildDto;
-import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 public class PanelReklamationbild extends PanelBasis {
@@ -79,13 +77,10 @@ public class PanelReklamationbild extends PanelBasis {
 	private WrapperLabel wlaSort = new WrapperLabel();
 	private WrapperNumberField wnfSort = new WrapperNumberField();
 
-	private WrapperBildField wmcBild = new WrapperBildField(getInternalFrame(),
-			"");
-
 	private InternalFrameReklamation internalFrameReklamation = null;
+	private WrapperMediaControl wmcMediaControl = new WrapperMediaControlDokumente(getInternalFrame(), "", false);
 
-	public PanelReklamationbild(InternalFrameReklamation internalFrame,
-			String add2TitleI, Object pk) throws Throwable {
+	public PanelReklamationbild(InternalFrameReklamation internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFrameReklamation = internalFrame;
 		jbInit();
@@ -101,17 +96,18 @@ public class PanelReklamationbild extends PanelBasis {
 		return wtfBezeichnung;
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 
-		boolean b = internalFrameReklamation.getTabbedPaneReklamation()
-				.pruefeObReklamationAenderbar();
+		boolean b = internalFrameReklamation.getTabbedPaneReklamation().pruefeObReklamationAenderbar();
 		if (b == true) {
 			super.eventActionNew(eventObject, true, false);
 
 			reklamationbildDto = new ReklamationbildDto();
 
 			leereAlleFelder(this);
+
+			wmcMediaControl.setOMediaImage(null);
+			wmcMediaControl.setDateiname(null);
 		} else {
 			return;
 		}
@@ -137,10 +133,8 @@ public class PanelReklamationbild extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
-		wlaSort.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.sortierung"));
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
+		wlaSort.setText(LPMain.getInstance().getTextRespectUISPr("lp.sortierung"));
 		wnfSort.setFractionDigits(0);
 		wtfBezeichnung.setToolTipText("");
 		wtfBezeichnung.setColumnsMax(ArtikelFac.MAX_ARTIKELGRUPPE_BEZEICHNUNG);
@@ -148,52 +142,41 @@ public class PanelReklamationbild extends PanelBasis {
 		wtfBezeichnung.setMandatoryField(true);
 		wnfSort.setMandatoryField(true);
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1,
-				1, 0.2, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1, 1, 0.2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaSort, new GridBagConstraints(0, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfSort, new GridBagConstraints(1, iZeile, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaSort, new GridBagConstraints(0, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfSort, new GridBagConstraints(1, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wmcBild, new GridBagConstraints(0, iZeile, 2, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wmcMediaControl, new GridBagConstraints(0, 7, 4, 1, 1, 1, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
-		boolean b = internalFrameReklamation.getTabbedPaneReklamation()
-				.pruefeObReklamationAenderbar();
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		boolean b = internalFrameReklamation.getTabbedPaneReklamation().pruefeObReklamationAenderbar();
 		if (b == true) {
 			super.eventActionUpdate(aE, false); // Buttons schalten
 		} else {
@@ -205,16 +188,13 @@ public class PanelReklamationbild extends PanelBasis {
 		return HelperClient.LOCKME_REKLAMATION;
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
-		boolean b = internalFrameReklamation.getTabbedPaneReklamation()
-				.pruefeObReklamationAenderbar();
+		boolean b = internalFrameReklamation.getTabbedPaneReklamation().pruefeObReklamationAenderbar();
 		if (b == true) {
 
-			DelegateFactory.getInstance().getReklamationDelegate()
-					.removeReklamationbild(reklamationbildDto);
+			DelegateFactory.getInstance().getReklamationDelegate().removeReklamationbild(reklamationbildDto);
 			this.setKeyWhenDetailPanel(null);
 			super.eventActionDelete(e, false, false);
 		} else {
@@ -225,63 +205,66 @@ public class PanelReklamationbild extends PanelBasis {
 	protected void components2Dto() throws Throwable {
 		reklamationbildDto.setCBez(wtfBezeichnung.getText());
 		reklamationbildDto.setISort(wnfSort.getInteger());
-		reklamationbildDto.setOBild(Helper
-				.imageToByteArray((BufferedImage) wmcBild.getImage()));
+		reklamationbildDto.setOBild(wmcMediaControl.getOMediaImage());
+		reklamationbildDto.setCDateiname(wmcMediaControl.getDateiname());
+		reklamationbildDto.setDatenformatCNr(wmcMediaControl.getMimeType());
 
 		reklamationbildDto.setReklamationIId(
 
-		((InternalFrameReklamation) getInternalFrame()).getReklamationDto()
-				.getIId());
+				((InternalFrameReklamation) getInternalFrame()).getReklamationDto().getIId());
 
 	}
 
 	protected void dto2Components() throws Throwable {
 		wtfBezeichnung.setText(reklamationbildDto.getCBez());
 		wnfSort.setInteger(reklamationbildDto.getISort());
-		wmcBild.setImage(reklamationbildDto.getOBild());
+		wmcMediaControl.setMimeType(reklamationbildDto.getDatenformatCNr());
+		wmcMediaControl.setOMediaImage(reklamationbildDto.getOBild());
+		wmcMediaControl.setDateiname(reklamationbildDto.getCDateiname());
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
+
+			if (reklamationbildDto.getOBild() == null) {
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.warning"),
+						LPMain.getInstance().getTextRespectUISPr("rekla.bilder.keinbild"));
+				return;
+			}
+
 			if (reklamationbildDto.getIId() == null) {
-				reklamationbildDto.setIId(DelegateFactory.getInstance()
-						.getReklamationDelegate()
+				reklamationbildDto.setIId(DelegateFactory.getInstance().getReklamationDelegate()
 						.createReklamationbild(reklamationbildDto));
 				setKeyWhenDetailPanel(reklamationbildDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getReklamationDelegate()
-						.updateReklamationbild(reklamationbildDto);
+				DelegateFactory.getInstance().getReklamationDelegate().updateReklamationbild(reklamationbildDto);
 			}
 			super.eventActionSave(e, true);
 			if (getInternalFrame().getKeyWasForLockMe() == null) {
-				getInternalFrame().setKeyWasForLockMe(
-						reklamationbildDto.getIId() + "");
+				getInternalFrame().setKeyWasForLockMe(reklamationbildDto.getIId() + "");
 			}
 			eventYouAreSelected(false);
 		}
 
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
 			leereAlleFelder(this);
 			clearStatusbar();
-			wnfSort.setInteger(DelegateFactory
-					.getInstance()
-					.getReklamationDelegate()
-					.getNextReklamationbild(
-							((InternalFrameReklamation) getInternalFrame())
-									.getReklamationDto().getIId()));
+			wnfSort.setInteger(DelegateFactory.getInstance().getReklamationDelegate().getNextReklamationbild(
+					((InternalFrameReklamation) getInternalFrame()).getReklamationDto().getIId()));
+			if (key == null) {
+				wmcMediaControl.setOMediaImage(null);
+				wmcMediaControl.setDateiname(null);
+			}
 
 		} else {
-			reklamationbildDto = DelegateFactory.getInstance()
-					.getReklamationDelegate()
+			reklamationbildDto = DelegateFactory.getInstance().getReklamationDelegate()
 					.reklamationbildFindByPrimaryKey((Integer) key);
 			dto2Components();
 		}

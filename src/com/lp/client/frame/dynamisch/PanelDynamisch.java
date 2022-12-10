@@ -52,7 +52,7 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelDynamischHelper;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.delegate.DelegateFactory;
-import com.lp.server.system.service.PanelbeschreibungDto;
+import com.lp.server.system.service.PanelFac;
 import com.lp.server.system.service.PaneldatenDto;
 
 public class PanelDynamisch extends PanelBasis {
@@ -67,6 +67,9 @@ public class PanelDynamisch extends PanelBasis {
 	private JPanel panelButtonAction = new JPanel();
 	private GridBagLayout gridBagLayoutAll = new GridBagLayout();
 	private String paneltyp = "";
+	private Integer artgruIId = null;
+
+	private String cKeyUebersteuert = null;
 	ButtonGroup buttonGroup1 = new ButtonGroup();
 	Border border1 = BorderFactory.createEmptyBorder(2, 2, 2, 2);
 
@@ -74,24 +77,28 @@ public class PanelDynamisch extends PanelBasis {
 
 	private String lockme = null;
 
-	private PanelbeschreibungDto[] dtos = null;
+//	private PanelbeschreibungDto[] dtos = null;
 
 	private String[] aWhichButtonIUse = null;
 
 	public PanelDynamisch(InternalFrame internalFrame, String add2TitleI,
 			PanelQuery panelQueryAuswahl, String paneltyp, String lockme,
-			String[] buttons) throws Throwable {
+			String[] buttons, Integer artgruIId, String cKeyUebersteuert)
+			throws Throwable {
+
 		super(internalFrame, add2TitleI, panelQueryAuswahl.getSelectedId());
 
-		if (getInternalFrame() instanceof InternalFrameArtikel) {
+		if (getInternalFrame() instanceof InternalFrameArtikel
+				&& (paneltyp.equals(PanelFac.PANEL_ARTIKELEIGENSCHAFTEN))) {
 			setKeyWhenDetailPanel(((InternalFrameArtikel) getInternalFrame())
 					.getArtikelDto().getIId() + "");
 		}
-
+		this.artgruIId = artgruIId;
 		this.panelQueryAuswahl = panelQueryAuswahl;
 		this.paneltyp = paneltyp;
 		this.lockme = lockme;
 		this.aWhichButtonIUse = buttons;
+		this.cKeyUebersteuert = cKeyUebersteuert;
 		if (aWhichButtonIUse == null) {
 			aWhichButtonIUse = new String[0];
 		}
@@ -99,6 +106,14 @@ public class PanelDynamisch extends PanelBasis {
 		jbInit();
 		setDefaults();
 		initComponents();
+
+	}
+
+	public PanelDynamisch(InternalFrame internalFrame, String add2TitleI,
+			PanelQuery panelQueryAuswahl, String paneltyp, String lockme,
+			String[] buttons) throws Throwable {
+		this(internalFrame, add2TitleI, panelQueryAuswahl, paneltyp, lockme,
+				buttons, null, null);
 	}
 
 	protected JComponent getFirstFocusableComponent() throws Exception {
@@ -113,7 +128,12 @@ public class PanelDynamisch extends PanelBasis {
 
 			String oKey = panelQueryAuswahl.getSelectedId() + "";
 
-			if (getInternalFrame() instanceof InternalFrameArtikel) {
+			if (cKeyUebersteuert != null) {
+				oKey = cKeyUebersteuert;
+			}
+
+			if (getInternalFrame() instanceof InternalFrameArtikel
+					&& (paneltyp.equals(PanelFac.PANEL_ARTIKELEIGENSCHAFTEN))) {
 				oKey = ((InternalFrameArtikel) getInternalFrame())
 						.getArtikelDto().getIId() + "";
 			}
@@ -123,7 +143,8 @@ public class PanelDynamisch extends PanelBasis {
 
 			dto2Components();
 		} catch (Throwable ex) {
-			paneldatenDtos = new PaneldatenDto[dtos.length];
+//			paneldatenDtos = new PaneldatenDto[dtos.length];
+			paneldatenDtos = new PaneldatenDto[0];
 			leereAlleFelder(this);
 		}
 
@@ -134,7 +155,11 @@ public class PanelDynamisch extends PanelBasis {
 
 	protected void dto2Components() throws ExceptionLP, Throwable {
 		leereAlleFelder(this);
-		phd.dto2Components(panelQueryAuswahl.getSelectedId() + "");
+		if (cKeyUebersteuert != null) {
+			phd.dto2Components(cKeyUebersteuert);
+		} else {
+			phd.dto2Components(panelQueryAuswahl.getSelectedId() + "");
+		}
 
 	}
 
@@ -156,8 +181,7 @@ public class PanelDynamisch extends PanelBasis {
 
 		// jetzt meine felder
 
-		phd = new PanelDynamischHelper(paneltyp,
-				null, getInternalFrame());
+		phd = new PanelDynamischHelper(paneltyp, artgruIId, getInternalFrame());
 
 		this.add(phd.panelErzeugen(), new GridBagConstraints(0, 1, 1, 1, 1.0,
 				1.0, GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
@@ -195,12 +219,14 @@ public class PanelDynamisch extends PanelBasis {
 			throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 
-			DelegateFactory
-					.getInstance()
-					.getPanelDelegate()
-					.createPaneldaten(
-							phd.components2Dto(panelQueryAuswahl
-									.getSelectedId() + ""));
+			String key = panelQueryAuswahl.getSelectedId() + "";
+
+			if (cKeyUebersteuert != null) {
+				key = cKeyUebersteuert;
+			}
+
+			DelegateFactory.getInstance().getPanelDelegate()
+					.createPaneldaten(phd.components2Dto(key));
 			super.eventActionSave(e, true);
 			eventYouAreSelected(false);
 

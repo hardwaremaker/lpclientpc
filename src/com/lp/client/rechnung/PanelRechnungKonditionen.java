@@ -41,10 +41,13 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelKonditionen;
 import com.lp.client.frame.component.WrapperCheckBox;
+import com.lp.client.frame.component.WrapperComboBox;
+import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
@@ -65,11 +68,19 @@ import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
 /**
- * <p>Panel zum Bearbeiten der Rechnungskonditionen</p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>22. 11. 2004</I></p>
- * <p> </p>
- * @author  Martin Bluehweis
+ * <p>
+ * Panel zum Bearbeiten der Rechnungskonditionen
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>22. 11. 2004</I>
+ * </p>
+ * <p>
+ * </p>
+ * 
+ * @author Martin Bluehweis
  * @version 2.0
  */
 public class PanelRechnungKonditionen extends PanelKonditionen {
@@ -86,15 +97,17 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 	protected WrapperNumberField wnfVersteckterAufschlag = new WrapperNumberField();
 	protected WrapperLabel wlaVersteckterAufschlag = new WrapperLabel();
 	protected WrapperLabel wlaProzent1 = new WrapperLabel();
-	
+
 	protected WrapperLabel wlaZollbeleg1 = new WrapperLabel();
 	protected WrapperLabel wlaZollbeleg2 = new WrapperLabel();
+
+	private WrapperLabel wlaZahlungsart = new WrapperLabel();
+	protected WrapperComboBox wcoZahlungsart = new WrapperComboBox();
 
 	public final static String MY_OWN_NEW_TOGGLE_ZOLLIMPORTPAPIER_ERHALTEN = PanelBasis.ACTION_MY_OWN_NEW
 			+ "MY_OWN_NEW_ZOLLIMPORTPAPIER_ERHALTEN";
 
-	public PanelRechnungKonditionen(InternalFrame internalFrame,
-			String add2TitleI, Object key,
+	public PanelRechnungKonditionen(InternalFrame internalFrame, String add2TitleI, Object key,
 			TabbedPaneRechnungAll tabbedPaneRechnungAll) throws Throwable {
 
 		super(internalFrame, add2TitleI, key);
@@ -105,43 +118,22 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 	}
 
 	private void setDefaults() throws Throwable {
-		RechnungtextDto kopftextDto = DelegateFactory
-				.getInstance()
-				.getRechnungServiceDelegate()
-				.rechnungtextFindByMandantLocaleCNr(
-						tabbedPaneRechnungAll.getKundeDto().getPartnerDto()
-								.getLocaleCNrKommunikation(),
-						MediaFac.MEDIAART_KOPFTEXT);
-		RechnungtextDto fusstextDto = DelegateFactory
-				.getInstance()
-				.getRechnungServiceDelegate()
-				.rechnungtextFindByMandantLocaleCNr(
-						tabbedPaneRechnungAll.getKundeDto().getPartnerDto()
-								.getLocaleCNrKommunikation(),
-						MediaFac.MEDIAART_FUSSTEXT);
+		RechnungtextDto kopftextDto = holeRechnungtextDto(MediaFac.MEDIAART_KOPFTEXT);
 		if (kopftextDto == null) {
-			kopftextDto = DelegateFactory
-					.getInstance()
-					.getRechnungServiceDelegate()
-					.createDefaultRechnungtext(
-							MediaFac.MEDIAART_KOPFTEXT,
-							RechnungServiceFac.RECHNUNG_DEFAULT_KOPFTEXT,
-							tabbedPaneRechnungAll.getKundeDto().getPartnerDto()
-									.getLocaleCNrKommunikation());
+			kopftextDto = DelegateFactory.getInstance().getRechnungServiceDelegate().createDefaultRechnungtext(
+					MediaFac.MEDIAART_KOPFTEXT, RechnungServiceFac.RECHNUNG_DEFAULT_KOPFTEXT,
+					tabbedPaneRechnungAll.getKundeDto().getPartnerDto().getLocaleCNrKommunikation());
 		}
+		wefKopftext.setDefaultText(kopftextDto.getCTextinhalt());
+
+		RechnungtextDto fusstextDto = holeRechnungtextDto(MediaFac.MEDIAART_FUSSTEXT);
 		if (fusstextDto == null) {
-			fusstextDto = DelegateFactory
-					.getInstance()
-					.getRechnungServiceDelegate()
-					.createDefaultRechnungtext(
-							MediaFac.MEDIAART_FUSSTEXT,
-							RechnungServiceFac.RECHNUNG_DEFAULT_FUSSTEXT,
-							tabbedPaneRechnungAll.getKundeDto().getPartnerDto()
-									.getLocaleCNrKommunikation());
+			fusstextDto = DelegateFactory.getInstance().getRechnungServiceDelegate().createDefaultRechnungtext(
+					MediaFac.MEDIAART_FUSSTEXT, RechnungServiceFac.RECHNUNG_DEFAULT_FUSSTEXT,
+					tabbedPaneRechnungAll.getKundeDto().getPartnerDto().getLocaleCNrKommunikation());
 		}
 
 		wefFusstext.setDefaultText(fusstextDto.getCTextinhalt());
-		wefKopftext.setDefaultText(kopftextDto.getCTextinhalt());
 	}
 
 	/**
@@ -154,89 +146,75 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 		wtfLieferart.setMandatoryField(true);
 		wtfSpedition.setMandatoryField(true);
 		wtfZahlungsziel.setMandatoryField(true);
-		wlaProvision.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.provision"));
-		wcbMindermengenzuschlag.setText(LPMain.getInstance()
-				.getTextRespectUISPr("label.mindermengenzuschlag"));
-		wlaVersteckterAufschlag.setText(LPMain.getInstance()
-				.getTextRespectUISPr("label.versteckteraufschlag"));
-		wlaAllgemeinerRabattText.setText(LPMain.getInstance()
-				.getTextRespectUISPr("rech.label.allgrabattwarnung"));
+		wlaProvision.setText(LPMain.getInstance().getTextRespectUISPr("label.provision"));
+		wcbMindermengenzuschlag.setText(LPMain.getInstance().getTextRespectUISPr("label.mindermengenzuschlag"));
+		wlaVersteckterAufschlag.setText(LPMain.getInstance().getTextRespectUISPr("label.versteckteraufschlag"));
+		wlaAllgemeinerRabattText.setText(LPMain.getInstance().getTextRespectUISPr("rech.label.allgrabattwarnung"));
+
+		wlaZahlungsart.setText(LPMain.getTextRespectUISPr("rechnung.tab.oben.zahlungsart"));
+
 		wlaProzent1.setText("%");
 		wlaProzent1.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaProzent3.setText("%");
 		wlaProzent3.setHorizontalAlignment(SwingConstants.LEFT);
 		wnfProvisionProzent.setActivatable(true);
 		wtfProvisionText.setActivatable(true);
-		wnfProvisionProzent.setMinimumSize(new Dimension(10, Defaults
-				.getInstance().getControlHeight()));
-		wnfProvisionProzent.setPreferredSize(new Dimension(10, Defaults
-				.getInstance().getControlHeight()));
+		wnfProvisionProzent.setMinimumSize(new Dimension(10, Defaults.getInstance().getControlHeight()));
+		wnfProvisionProzent.setPreferredSize(new Dimension(10, Defaults.getInstance().getControlHeight()));
 		wnfVersteckterAufschlag.setActivatable(true);
-		wnfVersteckterAufschlag.setMaximumSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
-		wnfVersteckterAufschlag.setMinimumSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
-		wnfVersteckterAufschlag.setPreferredSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
-		wlaProzent1.setMinimumSize(new Dimension(25, Defaults.getInstance()
-				.getControlHeight()));
-		wlaProzent1.setPreferredSize(new Dimension(25, Defaults.getInstance()
-				.getControlHeight()));
+		wnfVersteckterAufschlag.setMaximumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wnfVersteckterAufschlag.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wnfVersteckterAufschlag.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaProzent1.setMinimumSize(new Dimension(25, Defaults.getInstance().getControlHeight()));
+		wlaProzent1.setPreferredSize(new Dimension(25, Defaults.getInstance().getControlHeight()));
+		jPanelWorkingOn.remove(wlaVerrechenbar);
 
-		jPanelWorkingOn.add(wlaVersteckterAufschlag, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfVersteckterAufschlag, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaProzent1, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.remove(wcoVerrechenbar);
+
+		wcoZahlungsart.setMap(DelegateFactory.getInstance().getRechnungServiceDelegate().getAllZahlungsarten());
+
+		jPanelWorkingOn.add(wlaZahlungsart, new GridBagConstraints(2, iZeile - 4, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wcoZahlungsart, new GridBagConstraints(3, iZeile - 4, 2, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jPanelWorkingOn.add(wlaVersteckterAufschlag, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfVersteckterAufschlag, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaProzent1, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jPanelWorkingOn.add(wlaProvision, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaProvision, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfProvisionProzent, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wnfProvisionProzent, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaProzent3, new GridBagConstraints(2, iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaProzent3, new GridBagConstraints(2, iZeile, 1,
-				1, 0.1, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfProvisionText, new GridBagConstraints(3, iZeile,
-				2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfProvisionText, new GridBagConstraints(3, iZeile, 2, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jPanelWorkingOn.add(wlaAllgemeinerRabatt, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaAllgemeinerRabatt, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfAllgemeinerRabatt, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaProzent2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfAllgemeinerRabatt, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaProzent2, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaAllgemeinerRabattText, new GridBagConstraints(3,
-				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaAllgemeinerRabattText, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jPanelWorkingOn.add(wcbMindermengenzuschlag, new GridBagConstraints(1, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaZollbeleg1, new GridBagConstraints(4, iZeile, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jPanelWorkingOn.add(wcbMindermengenzuschlag, new GridBagConstraints(1,
-				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaZollbeleg2, new GridBagConstraints(4, iZeile, 2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaZollbeleg1, new GridBagConstraints(4, iZeile,
-				1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		
+
 		iZeile++;
-		jPanelWorkingOn.add(wlaZollbeleg2, new GridBagConstraints(4, iZeile,
-				2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		
-		iZeile++;
-		
-		
 
 		getToolsPanel().add(new WrapperLabel(""));
 		getToolsPanel().add(new WrapperLabel(""));
@@ -246,10 +224,9 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 		getToolsPanel().add(new WrapperLabel(""));
 		getToolsPanel().add(new WrapperLabel(""));
 		getToolsPanel().add(new WrapperLabel(""));
-		createAndSaveAndShowButton(
-				"/com/lp/client/res/document_preferences.png",
-				LPMain.getTextRespectUISPr("rech.zollpapiere.erhalten"),
-				MY_OWN_NEW_TOGGLE_ZOLLIMPORTPAPIER_ERHALTEN, null);
+		createAndSaveAndShowButton("/com/lp/client/res/document_preferences.png",
+				LPMain.getTextRespectUISPr("rech.zollpapiere.erhalten"), MY_OWN_NEW_TOGGLE_ZOLLIMPORTPAPIER_ERHALTEN,
+				null);
 		getToolsPanel().add(new WrapperLabel(""));
 		getToolsPanel().add(new WrapperLabel(""));
 		getToolsPanel().add(new WrapperLabel(""));
@@ -268,51 +245,33 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
-		if (e.getActionCommand().equals(
-				MY_OWN_NEW_TOGGLE_ZOLLIMPORTPAPIER_ERHALTEN)) {
+		if (e.getActionCommand().equals(MY_OWN_NEW_TOGGLE_ZOLLIMPORTPAPIER_ERHALTEN)) {
 			// PJ 17696
 			if (getTabbedPaneRechnungAll().getRechnungDto() != null
 					&& getTabbedPaneRechnungAll().getRechnungDto().getIId() != null) {
 
 				String cPapiere = null;
-				if (getTabbedPaneRechnungAll().getRechnungDto()
-						.getTZollpapier() == null) {
-					cPapiere = (String) JOptionPane
-							.showInputDialog(
-									getInternalFrame(),
-									LPMain.getInstance()
-											.getTextRespectUISPr(
-													"er.eingangsrechnung.frage.zollimportpapiere"),
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.hinweis"),
-									JOptionPane.PLAIN_MESSAGE);
+				if (getTabbedPaneRechnungAll().getRechnungDto().getTZollpapier() == null) {
+					cPapiere = (String) JOptionPane.showInputDialog(getInternalFrame(),
+							LPMain.getInstance().getTextRespectUISPr("er.eingangsrechnung.frage.zollimportpapiere"),
+							LPMain.getInstance().getTextRespectUISPr("lp.hinweis"), JOptionPane.PLAIN_MESSAGE);
 					if (cPapiere != null && cPapiere.length() > 40) {
 						cPapiere = cPapiere.substring(0, 39);
 					}
 
 					if (cPapiere == null) {
-						DialogFactory
-								.showModalDialog(
-										LPMain.getInstance()
-												.getTextRespectUISPr("lp.error"),
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"er.eingangsrechnung.frage.zollimportpapiere.error"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance()
+										.getTextRespectUISPr("er.eingangsrechnung.frage.zollimportpapiere.error"));
 						return;
 					}
-					
 
 				}
-				DelegateFactory
-						.getInstance()
-						.getRechnungDelegate()
-						.toggleZollpapiereErhalten(
-								getTabbedPaneRechnungAll().getRechnungDto()
-										.getIId(), cPapiere);
-				 getTabbedPaneRechnungAll()
-					.setRechnungDto(DelegateFactory.getInstance().getRechnungDelegate().rechnungFindByPrimaryKey(getTabbedPaneRechnungAll().getRechnungDto()
-							.getIId()));
-				
+				DelegateFactory.getInstance().getRechnungDelegate()
+						.toggleZollpapiereErhalten(getTabbedPaneRechnungAll().getRechnungDto().getIId(), cPapiere);
+				getTabbedPaneRechnungAll().setRechnungDto(DelegateFactory.getInstance().getRechnungDelegate()
+						.rechnungFindByPrimaryKey(getTabbedPaneRechnungAll().getRechnungDto().getIId()));
+
 				eventYouAreSelected(false);
 			}
 		}
@@ -323,24 +282,21 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 		// den bestehenden Dto verwenden
 		RechnungDto rechnungDto = getTabbedPaneRechnungAll().getRechnungDto();
 		if (rechnungDto != null) {
-			rechnungDto.setFVersteckterAufschlag(wnfVersteckterAufschlag
-					.getDouble());
-			rechnungDto.setFAllgemeinerRabattsatz(wnfAllgemeinerRabatt
-					.getDouble());
-			rechnungDto.setBMindermengenzuschlag(Helper
-					.boolean2Short(wcbMindermengenzuschlag.isSelected()));
-			rechnungDto.setBMwstallepositionen(Helper
-					.boolean2Short(!isPositionskontierung));
+			rechnungDto.setFVersteckterAufschlag(wnfVersteckterAufschlag.getDouble());
+			rechnungDto.setFAllgemeinerRabattsatz(wnfAllgemeinerRabatt.getDouble());
+			rechnungDto.setBMindermengenzuschlag(Helper.boolean2Short(wcbMindermengenzuschlag.isSelected()));
+			rechnungDto.setBMwstallepositionen(Helper.boolean2Short(!isPositionskontierung));
 
 			if (!isPositionskontierung) {
-				rechnungDto.setMwstsatzIId((Integer) wcoMehrwertsteuer
-						.getKeyOfSelectedItem());
+				rechnungDto.setMwstsatzIId((Integer) wcoMehrwertsteuer.getKeyOfSelectedItem());
 			} else {
 				rechnungDto.setMwstsatzIId(null);
 			}
 			rechnungDto.setNProvision(wnfProvisionProzent.getBigDecimal());
 			rechnungDto.setCProvisiontext(wtfProvisionText.getText());
 			rechnungDto.setCLieferartort(wtfLieferartort.getText());
+
+			rechnungDto.setZahlungsartCNr((String) wcoZahlungsart.getKeyOfSelectedItem());
 
 			if (zahlungszielDto != null) {
 				rechnungDto.setZahlungszielIId(zahlungszielDto.getIId());
@@ -365,14 +321,14 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 	protected void dto2Components() throws Throwable {
 		RechnungDto rechnungDto = getTabbedPaneRechnungAll().getRechnungDto();
 		if (rechnungDto != null) {
-			wnfVersteckterAufschlag.setDouble(rechnungDto
-					.getFVersteckterAufschlag());
-			wnfAllgemeinerRabatt.setDouble(rechnungDto
-					.getFAllgemeinerRabattsatz());
+			wnfVersteckterAufschlag.setDouble(rechnungDto.getFVersteckterAufschlag());
+			wnfAllgemeinerRabatt.setDouble(rechnungDto.getFAllgemeinerRabattsatz());
 			if (rechnungDto.getBMindermengenzuschlag() != null) {
-				wcbMindermengenzuschlag.setSelected(Helper
-						.short2boolean(rechnungDto.getBMindermengenzuschlag()));
+				wcbMindermengenzuschlag.setSelected(Helper.short2boolean(rechnungDto.getBMindermengenzuschlag()));
 			}
+
+			wcoZahlungsart.setKeyOfSelectedItem(rechnungDto.getZahlungsartCNr());
+
 			wtfLieferartort.setText(rechnungDto.getCLieferartort());
 			wnfProvisionProzent.setBigDecimal(rechnungDto.getNProvision());
 			wtfProvisionText.setText(rechnungDto.getCProvisiontext());
@@ -382,6 +338,9 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 			holeLieferart(rechnungDto.getLieferartIId());
 			// Spedition
 			holeSpediteur(rechnungDto.getSpediteurIId());
+			
+			setKundeIId_FuerKundepediteur(rechnungDto.getKundeIId());
+			
 			if (rechnungDto.getCFusstextuebersteuert() != null) {
 				wefFusstext.setText(rechnungDto.getCFusstextuebersteuert());
 			} else {
@@ -392,11 +351,9 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 			} else {
 				wefKopftext.setText(wefKopftext.getDefaultText());
 			}
-			this.setStatusbarPersonalIIdAnlegen(rechnungDto
-					.getPersonalIIdAnlegen());
+			this.setStatusbarPersonalIIdAnlegen(rechnungDto.getPersonalIIdAnlegen());
 			this.setStatusbarTAnlegen(rechnungDto.getTAnlegen());
-			this.setStatusbarPersonalIIdAendern(rechnungDto
-					.getPersonalIIdAendern());
+			this.setStatusbarPersonalIIdAendern(rechnungDto.getPersonalIIdAendern());
 			this.setStatusbarTAendern(rechnungDto.getTAendern());
 			this.setStatusbarStatusCNr(rechnungDto.getStatusCNr());
 		} else {
@@ -404,15 +361,12 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
-			RechnungDto rechnungDto = getTabbedPaneRechnungAll()
-					.getRechnungDto();
+			RechnungDto rechnungDto = getTabbedPaneRechnungAll().getRechnungDto();
 			if (rechnungDto != null) {
-				rechnungDto = DelegateFactory.getInstance()
-						.getRechnungDelegate().updateRechnung(rechnungDto);
+				rechnungDto = DelegateFactory.getInstance().getRechnungDelegate().updateRechnung(rechnungDto);
 				getTabbedPaneRechnungAll().setRechnungDto(rechnungDto);
 				// das Panel aktualisieren
 				dto2Components();
@@ -421,124 +375,150 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 		}
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		if (!bNeedNoYouAreSelectedI) {
-			RechnungDto rechnungDto = getTabbedPaneRechnungAll()
-					.getRechnungDto();
+			RechnungDto rechnungDto = getTabbedPaneRechnungAll().getRechnungDto();
 			if (rechnungDto != null) {
 
-				LPButtonAction ba = getHmOfButtons().get(
-						MY_OWN_NEW_TOGGLE_ZOLLIMPORTPAPIER_ERHALTEN);
+				LPButtonAction ba = getHmOfButtons().get(MY_OWN_NEW_TOGGLE_ZOLLIMPORTPAPIER_ERHALTEN);
 				ba.getButton().setVisible(false);
 
 				// PJ17912
 				if (getTabbedPaneRechnungAll().getKundeDto() != null
-						&& getTabbedPaneRechnungAll().getKundeDto()
-								.getPartnerIId() != null) {
-					String sLaenderart = DelegateFactory
-							.getInstance()
-							.getFinanzServiceDelegate()
+						&& getTabbedPaneRechnungAll().getKundeDto().getPartnerIId() != null) {
+					String sLaenderart = DelegateFactory.getInstance().getFinanzServiceDelegate()
 							.getLaenderartZuPartner(
-									getTabbedPaneRechnungAll().getKundeDto()
-											.getPartnerIId());
-					if (sLaenderart != null
-							&& sLaenderart
-									.equals(FinanzFac.LAENDERART_DRITTLAND)) {
+									getTabbedPaneRechnungAll().getKundeDto().getPartnerIId(),
+									rechnungDto.getTBelegdatum());
+					if (sLaenderart != null && sLaenderart.equals(FinanzFac.LAENDERART_DRITTLAND)) {
 						ba.getButton().setVisible(true);
 					}
 
 				}
 
-				
 				String text = "";
 				String text2 = "";
-				
+
 				if (rechnungDto.getTZollpapier() != null) {
-					text = LPMain
-							.getTextRespectUISPr("rech.zollpapiere.erhalten.persondatum")
-							+ " "
-							+ Helper.formatDatumZeit(rechnungDto.getTZollpapier(),
-									LPMain.getTheClient().getLocUi());
+					text = LPMain.getTextRespectUISPr("rech.zollpapiere.erhalten.persondatum") + " "
+							+ Helper.formatDatumZeit(rechnungDto.getTZollpapier(), LPMain.getTheClient().getLocUi());
 				}
 				if (rechnungDto.getPersonalIIdZollpapier() != null) {
 					text += "("
-							+ DelegateFactory
-									.getInstance()
-									.getPersonalDelegate()
-									.personalFindByPrimaryKey(
-											rechnungDto.getPersonalIIdZollpapier())
-									.getCKurzzeichen() + ")";
+							+ DelegateFactory.getInstance().getPersonalDelegate()
+									.personalFindByPrimaryKey(rechnungDto.getPersonalIIdZollpapier()).getCKurzzeichen()
+							+ ")";
 				}
 				if (rechnungDto.getCZollpapier() != null) {
-					text2=  LPMain
-							.getTextRespectUISPr("lp.zollbelegnummer") + " " + rechnungDto.getCZollpapier();
+					text2 = LPMain.getTextRespectUISPr("lp.zollbelegnummer") + " " + rechnungDto.getCZollpapier();
 				}
 				wlaZollbeleg1.setText(text);
 				wlaZollbeleg2.setText(text2);
-				
-				rechnungDto = DelegateFactory.getInstance()
-						.getRechnungDelegate()
+
+				rechnungDto = DelegateFactory.getInstance().getRechnungDelegate()
 						.rechnungFindByPrimaryKey(rechnungDto.getIId());
 				getTabbedPaneRechnungAll().setRechnungDto(rechnungDto);
+
+				setDefaultKopftext();
+				setDefaultFusstext();
 				dto2Components();
-				if (getTabbedPaneRechnungAll().getRechnungstyp().equals(
-						RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
-					GutschrifttextDto gutschrifttextDtoKopftext = DelegateFactory
-							.getInstance()
-							.getRechnungServiceDelegate()
-							.gutschrifttextFindByMandantLocaleCNr(
-									tabbedPaneRechnungAll.getKundeDto()
-											.getPartnerDto()
-											.getLocaleCNrKommunikation(),
-									MediaFac.MEDIAART_KOPFTEXT);
-					GutschrifttextDto gutschrifttextDtoFusstext = DelegateFactory
-							.getInstance()
-							.getRechnungServiceDelegate()
-							.gutschrifttextFindByMandantLocaleCNr(
-									tabbedPaneRechnungAll.getKundeDto()
-											.getPartnerDto()
-											.getLocaleCNrKommunikation(),
-									MediaFac.MEDIAART_FUSSTEXT);
-					if (gutschrifttextDtoKopftext != null) {
-						wefKopftext.setDefaultText(gutschrifttextDtoKopftext
-								.getCTextinhalt());
-					}
-					if (gutschrifttextDtoFusstext != null) {
-						wefFusstext.setDefaultText(gutschrifttextDtoFusstext
-								.getCTextinhalt());
-					}
-				} else {
-					// Texte in der Sprache des Kunden
-					RechnungtextDto rechnungtextDtoKopftext = DelegateFactory
-							.getInstance()
-							.getRechnungServiceDelegate()
-							.rechnungtextFindByMandantLocaleCNr(
-									tabbedPaneRechnungAll.getKundeDto()
-											.getPartnerDto()
-											.getLocaleCNrKommunikation(),
-									MediaFac.MEDIAART_KOPFTEXT);
-					RechnungtextDto rechnungtextDtoFusstext = DelegateFactory
-							.getInstance()
-							.getRechnungServiceDelegate()
-							.rechnungtextFindByMandantLocaleCNr(
-									tabbedPaneRechnungAll.getKundeDto()
-											.getPartnerDto()
-											.getLocaleCNrKommunikation(),
-									MediaFac.MEDIAART_FUSSTEXT);
-					if (rechnungtextDtoKopftext != null) {
-						wefKopftext.setDefaultText(rechnungtextDtoKopftext
-								.getCTextinhalt());
-					}
-					if (rechnungtextDtoFusstext != null) {
-						wefFusstext.setDefaultText(rechnungtextDtoFusstext
-								.getCTextinhalt());
-					}
-					enableComponentsAbhaengigArt();
-				}
+
+				enableComponentsAbhaengigArt();
+//				if (getTabbedPaneRechnungAll().getRechnungstyp().equals(
+//						RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
+//					GutschrifttextDto gutschrifttextDtoKopftext = DelegateFactory
+//							.getInstance()
+//							.getRechnungServiceDelegate()
+//							.gutschrifttextFindByMandantLocaleCNr(
+//									tabbedPaneRechnungAll.getKundeDto()
+//											.getPartnerDto()
+//											.getLocaleCNrKommunikation(),
+//									MediaFac.MEDIAART_KOPFTEXT);
+//					GutschrifttextDto gutschrifttextDtoFusstext = DelegateFactory
+//							.getInstance()
+//							.getRechnungServiceDelegate()
+//							.gutschrifttextFindByMandantLocaleCNr(
+//									tabbedPaneRechnungAll.getKundeDto()
+//											.getPartnerDto()
+//											.getLocaleCNrKommunikation(),
+//									MediaFac.MEDIAART_FUSSTEXT);
+//					if (gutschrifttextDtoKopftext != null) {
+//						wefKopftext.setDefaultText(gutschrifttextDtoKopftext
+//								.getCTextinhalt());
+//					}
+//					if (gutschrifttextDtoFusstext != null) {
+//						wefFusstext.setDefaultText(gutschrifttextDtoFusstext
+//								.getCTextinhalt());
+//					}
+//				} else {
+//					// Texte in der Sprache des Kunden
+//					RechnungtextDto rechnungtextDtoKopftext = DelegateFactory
+//							.getInstance()
+//							.getRechnungServiceDelegate()
+//							.rechnungtextFindByMandantLocaleCNr(
+//									tabbedPaneRechnungAll.getKundeDto()
+//											.getPartnerDto()
+//											.getLocaleCNrKommunikation(),
+//									MediaFac.MEDIAART_KOPFTEXT);
+//					RechnungtextDto rechnungtextDtoFusstext = DelegateFactory
+//							.getInstance()
+//							.getRechnungServiceDelegate()
+//							.rechnungtextFindByMandantLocaleCNr(
+//									tabbedPaneRechnungAll.getKundeDto()
+//											.getPartnerDto()
+//											.getLocaleCNrKommunikation(),
+//									MediaFac.MEDIAART_FUSSTEXT);
+//					if (rechnungtextDtoKopftext != null) {
+//						wefKopftext.setDefaultText(rechnungtextDtoKopftext
+//								.getCTextinhalt());
+//					}
+//					if (rechnungtextDtoFusstext != null) {
+//						wefFusstext.setDefaultText(rechnungtextDtoFusstext
+//								.getCTextinhalt());
+//					}
+//					enableComponentsAbhaengigArt();
+//				}
 			}
 		}
+	}
+
+	private void setDefaultKopftext() throws ExceptionLP, Throwable {
+		setDefaultText(wefKopftext, MediaFac.MEDIAART_KOPFTEXT);
+	}
+
+	private void setDefaultFusstext() throws ExceptionLP, Throwable {
+		setDefaultText(wefFusstext, MediaFac.MEDIAART_FUSSTEXT);
+	}
+
+	private void setDefaultText(WrapperEditorField wef, String mediaart) throws ExceptionLP, Throwable {
+		if (RechnungFac.RECHNUNGTYP_PROFORMARECHNUNG.equals(getTabbedPaneRechnungAll().getRechnungstyp())) {
+			wef.setDefaultText(null);
+			return;
+		}
+
+		if (RechnungFac.RECHNUNGTYP_GUTSCHRIFT.equals(getTabbedPaneRechnungAll().getRechnungstyp())) {
+			GutschrifttextDto gutschrifttextDto = holeGutschrifttextDto(mediaart);
+			if (gutschrifttextDto != null) {
+				wef.setDefaultText(gutschrifttextDto.getCTextinhalt());
+			}
+			return;
+		}
+
+		RechnungtextDto rechnungtextDto = holeRechnungtextDto(mediaart);
+		if (rechnungtextDto != null) {
+			wef.setDefaultText(rechnungtextDto.getCTextinhalt());
+		}
+	}
+
+	private RechnungtextDto holeRechnungtextDto(String mediaart) throws ExceptionLP, Throwable {
+		return DelegateFactory.getInstance().getRechnungServiceDelegate().rechnungtextFindByMandantLocaleCNr(
+				tabbedPaneRechnungAll.getKundeDto().getPartnerDto().getLocaleCNrKommunikation(), mediaart);
+	}
+
+	private GutschrifttextDto holeGutschrifttextDto(String mediaart) throws ExceptionLP, Throwable {
+		return DelegateFactory.getInstance().getRechnungServiceDelegate().gutschrifttextFindByMandantLocaleCNr(
+				tabbedPaneRechnungAll.getKundeDto().getPartnerDto().getLocaleCNrKommunikation(), mediaart);
 	}
 
 	private void enableComponentsAbhaengigArt() {
@@ -546,24 +526,31 @@ public class PanelRechnungKonditionen extends PanelKonditionen {
 		if (rechnungDto.getAuftragIId() != null) {
 			// Auftrag bezogen
 			try {
-				AuftragDto aDto = DelegateFactory.getInstance()
-						.getAuftragDelegate()
+				AuftragDto aDto = DelegateFactory.getInstance().getAuftragDelegate()
 						.auftragFindByPrimaryKey(rechnungDto.getAuftragIId());
-				if (aDto.getAuftragartCNr().equals(
-						AuftragServiceFac.AUFTRAGART_WIEDERHOLEND)) {
+				if (aDto.getAuftragartCNr().equals(AuftragServiceFac.AUFTRAGART_WIEDERHOLEND)) {
 					wefKopftext.setEditable(false);
 				}
+
+				if (rechnungDto.getRechnungartCNr().equals(RechnungFac.RECHNUNGART_ANZAHLUNG)) {
+					//PJ21160
+					if (DelegateFactory.getInstance().getRechnungDelegate()
+							.getAnzahlMengenbehafteteRechnungpositionen(rechnungDto.getIId()) > 0) {
+						wnfAllgemeinerRabatt.setEditable(false);
+						wnfProvisionProzent.setEditable(false);
+						wnfVersteckterAufschlag.setEditable(false);
+					}
+				}
+
 			} catch (Throwable t) {
 				t.printStackTrace();
 			}
 		}
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		RechnungDto rechnungDto = getTabbedPaneRechnungAll().getRechnungDto();
-		boolean allowed = ((InternalFrameRechnung) getInternalFrame())
-				.isUpdateAllowedForRechnungDto(rechnungDto);
+		boolean allowed = ((InternalFrameRechnung) getInternalFrame()).isUpdateAllowedForRechnungDto(rechnungDto);
 		if (allowed) {
 			super.eventActionUpdate(aE, !allowed);
 		}

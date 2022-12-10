@@ -128,7 +128,7 @@ private PanelQuery panelQueryZutrittsprotokoll = null;
 
   public void lPEventItemChanged(ItemChangedEvent e)
       throws Throwable {
-
+/*
     if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
     }
     else if (e.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
@@ -144,7 +144,7 @@ private PanelQuery panelQueryZutrittsprotokoll = null;
     else if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 
     }
-
+*/
   }
 
 

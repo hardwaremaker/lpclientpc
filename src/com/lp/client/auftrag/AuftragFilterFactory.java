@@ -39,7 +39,6 @@ import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
-import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.auftrag.service.AuftragFac;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.AuftragpositionFac;
@@ -58,7 +57,6 @@ import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-@SuppressWarnings("static-access")
 /*
  * <p> Diese Klasse ist ein Singleton und kuemmert sich um alle Filter im
  * Auftrag.</p>
@@ -99,8 +97,8 @@ public class AuftragFilterFactory {
 	 */
 	public FilterKriteriumDirekt createFKDAuftragnummer() throws Throwable {
 		return new FilterKriteriumDirekt("c_nr", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.auftragnummershort"),
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("label.auftragnummershort"),
 				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
 				true, // wrapWithSingleQuotes
 				false, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -109,8 +107,8 @@ public class AuftragFilterFactory {
 	public FilterKriteriumDirekt createFKDAuftragdokumentKennung()
 			throws Throwable {
 		return new FilterKriteriumDirekt("c_nr", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.kennung"),
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("label.kennung"),
 				FilterKriteriumDirekt.PROZENT_LEADING, // Auswertung als '%XX'
 				true, // wrapWithSingleQuotes
 				false, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -165,23 +163,23 @@ public class AuftragFilterFactory {
 				.getParametermandant(
 						ParameterFac.PARAMETER_PARTNERSUCHE_WILDCARD_BEIDSEITIG,
 						ParameterFac.KATEGORIE_PARTNER,
-						LPMain.getInstance().getTheClient().getMandant());
+						LPMain.getTheClient().getMandant());
 		if (((Boolean) parameter.getCWertAsObject() == true)) {
 			return new FilterKriteriumDirekt(AuftragFac.FLR_AUFTRAG_FLRKUNDE
 					+ "." + KundeFac.FLR_PARTNER + "."
 					+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("label.kunde"),
-					FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als 'XX%'
+					FilterKriterium.OPERATOR_LIKE, 
+					LPMain.getTextRespectUISPr("label.kunde"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_BOTH, // Auswertung als 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
 		} else {
 			return new FilterKriteriumDirekt(AuftragFac.FLR_AUFTRAG_FLRKUNDE
 					+ "." + KundeFac.FLR_PARTNER + "."
 					+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1, "",
-					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-							.getTextRespectUISPr("label.kunde"),
-					FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als
+					FilterKriterium.OPERATOR_LIKE, 
+					LPMain.getTextRespectUISPr("label.kunde"),
+					FilterKriteriumDirekt.AP_FIRMA_PROZENT_TRAILING, // Auswertung als
 															// 'XX%'
 					true, // wrapWithSingleQuotes
 					true, Facade.MAX_UNBESCHRAENKT); // ignore case
@@ -192,7 +190,7 @@ public class AuftragFilterFactory {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
 
 		kriterien[0] = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
+				+ LPMain.getTheClient().getMandant() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[1] = new FilterKriterium(
@@ -206,10 +204,10 @@ public class AuftragFilterFactory {
 
 	public FilterKriteriumDirekt createFKDProjekt() throws Throwable {
 		return new FilterKriteriumDirekt("c_bez", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("label.projektbestellnr"),
-				FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als '%XX'
-				true, // wrapWithSingleQuotes
+				FilterKriterium.OPERATOR_LIKE,
+				LPMain.getTextRespectUISPr("label.projektbestellnr"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, // Auswertung als '%XX'
+				false, // wrapWithSingleQuotes
 				true, // ignore case
 				Facade.MAX_UNBESCHRAENKT);
 	}
@@ -324,7 +322,7 @@ public class AuftragFilterFactory {
 			FilterKriterium[] krit1 = null;
 			krit1 = new FilterKriterium[2];
 			krit1[0] = new FilterKriterium("mandant_c_nr", true, "'"
-					+ LPMain.getInstance().getTheClient().getMandant() + "'",
+					+ LPMain.getTheClient().getMandant() + "'",
 					FilterKriterium.OPERATOR_EQUAL, false);
 			krit1[1] = new FilterKriterium(
 					AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "'"
@@ -335,7 +333,7 @@ public class AuftragFilterFactory {
 			FilterKriterium[] krit1 = null;
 			krit1 = new FilterKriterium[3];
 			krit1[0] = new FilterKriterium("mandant_c_nr", true, "'"
-					+ LPMain.getInstance().getTheClient().getMandant() + "'",
+					+ LPMain.getTheClient().getMandant() + "'",
 					FilterKriterium.OPERATOR_EQUAL, false);
 			krit1[1] = new FilterKriterium(
 					AuftragFac.FLR_AUFTRAG_AUFTRAGSTATUS_C_NR, true, "'"
@@ -357,10 +355,10 @@ public class AuftragFilterFactory {
 	public FilterKriteriumDirekt createFKDTextSuchen() throws Throwable {
 
 		return new FilterKriteriumDirekt("c_suche", "",
-				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("lp.textsuche"),
-				FilterKriteriumDirekt.PROZENT_BOTH, // Auswertung als '%XX'
-				true, // wrapWithSingleQuotes
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("lp.textsuche"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, // wrapWithSingleQuotes
 				true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
@@ -379,17 +377,11 @@ public class AuftragFilterFactory {
 		if (iIdAuftragpositionI != null) {
 			kriterien = new FilterKriterium[2];
 
-			kriterien[0] = new FilterKriterium(
-					LieferscheinpositionFac.FLR_LIEFERSCHEINPOSITION_FLRPOSITIONENSICHTAUFTRAG
-							+ "."
-							+ AuftragpositionFac.FLR_AUFTRAGPOSITIONSICHTAUFTRAG_I_ID,
+			kriterien[0] = new FilterKriterium("auftragposition_i_id",
 					true, iIdAuftragpositionI.toString(),
 					FilterKriterium.OPERATOR_EQUAL, false);
 
-			kriterien[1] = new FilterKriterium(
-					LieferscheinpositionFac.FLR_LIEFERSCHEINPOSITION_FLRLIEFERSCHEIN
-							+ "."
-							+ LieferscheinFac.FLR_LIEFERSCHEIN_LIEFERSCHEINSTATUS_STATUS_C_NR,
+			kriterien[1] = new FilterKriterium("status_c_nr",
 					true, "'" + LieferscheinFac.LSSTATUS_STORNIERT + "'",
 					FilterKriterium.OPERATOR_NOT_EQUAL, false);
 		}
@@ -430,10 +422,10 @@ public class AuftragFilterFactory {
 				AuftragFac.FLR_AUFTRAG_D_BELEGDATUM, true, "",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
-		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[0] = new QueryType(LPMain.getTextRespectUISPr(
 				"label.belegdatum"), f1, new String[] {
 				FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_GTE,
-				FilterKriterium.OPERATOR_LTE }, true, // flrdate: eingabeformat
+				FilterKriterium.OPERATOR_LTE, FilterKriterium.OPERATOR_NOT_EQUAL }, true, // flrdate: eingabeformat
 				// 10.12.2004
 				false, false);
 
@@ -441,9 +433,9 @@ public class AuftragFilterFactory {
 				AuftragFac.FLR_AUFTRAG_C_BESTELLNUMMER, true, "",
 				FilterKriterium.OPERATOR_LIKE, true);
 
-		types[1] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+		types[1] = new QueryType(LPMain.getTextRespectUISPr(
 				"label.bestellnummer"), f2,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 
 		// Wenn Eigenschaften vorhanden auch nach denen suchen lassen
 		if (bEigenschaftenVorhanden) {
@@ -451,9 +443,9 @@ public class AuftragFilterFactory {
 					+ PanelFac.FLR_PANELDATEN_X_INHALT, true, "",
 					FilterKriterium.OPERATOR_LIKE, true);
 
-			types[2] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
+			types[2] = new QueryType(LPMain.getTextRespectUISPr(
 					"lp.eigenschaften"), f3,
-					new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+					new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 		}
 		return types;
 	}
@@ -475,7 +467,7 @@ public class AuftragFilterFactory {
 				false);
 
 		FilterKriterium krit2 = new FilterKriterium(
-				AuftragpositionFac.FLR_AUFTRAGPOSITION_AUFTRAGPOSITIONSTATUS_C_NR,
+				AuftragpositionFac.FLR_AUFTRAGPOSITION_N_MENGE,
 				true, "", FilterKriterium.OPERATOR_IS + " "
 						+ FilterKriterium.OPERATOR_NOT_NULL, false);
 
@@ -496,13 +488,13 @@ public class AuftragFilterFactory {
 		FilterKriterium[] kriterien = new FilterKriterium[2];
 
 		FilterKriterium krit1 = new FilterKriterium("mandant_c_nr", true, "'"
-				+ LPMain.getInstance().getTheClient().getMandant() + "'",
+				+ LPMain.getTheClient().getMandant() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 		kriterien[0] = krit1;
 
 		FilterKriterium krit2 = new FilterKriterium(
 				AuftragServiceFac.FLR_AUFTRAGTEXT_LOCALE_C_NR, true, "'"
-						+ LPMain.getInstance().getTheClient()
+						+ LPMain.getTheClient()
 								.getLocUiAsString() + "'",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
@@ -566,13 +558,18 @@ public class AuftragFilterFactory {
 				internalFrameI,
 				LPMain.getTextRespectUISPr("title.auftragauswahlliste"));
 
+		
+		
+		panelQueryFLRAuftrag
+		.befuelleFilterkriteriumSchnellansicht(AuftragFilterFactory.getInstance().createFKSchnellansicht());
+		
 		panelQueryFLRAuftrag.befuellePanelFilterkriterienDirektUndVersteckte(
 				createFKDAuftragnummer(), createFKDKundenname(),
-				AuftragFilterFactory.getInstance().createFKVAuftrag());
-		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance()
-				.createFKDProjekt());
-		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance()
-				.createFKDTextSuchen());
+				createFKVAuftrag());
+		
+		
+		panelQueryFLRAuftrag.addDirektFilter(createFKDProjekt());
+		panelQueryFLRAuftrag.addDirektFilter(createFKDTextSuchen());
 		return panelQueryFLRAuftrag;
 	}
 
@@ -616,10 +613,8 @@ public class AuftragFilterFactory {
 		panelQueryFLRAuftrag.befuellePanelFilterkriterienDirektUndVersteckte(
 				createFKDAuftragnummer(), createFKDKundenname(),
 				createFKVAuftrag());
-		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance()
-				.createFKDProjekt());
-		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance()
-				.createFKDTextSuchen());
+		panelQueryFLRAuftrag.addDirektFilter(createFKDProjekt());
+		panelQueryFLRAuftrag.addDirektFilter(createFKDTextSuchen());
 		return panelQueryFLRAuftrag;
 	}
 
@@ -706,20 +701,17 @@ public class AuftragFilterFactory {
 		FilterKriterium[] fk = createFKRahmenauftraegeEinesMandanten();
 
 		PanelQueryFLR panelQueryFLRAuftrag = new PanelQueryFLR(
-				AuftragFilterFactory.getInstance()
-						.createQTPanelAuftragAuswahl(), fk,
+				createQTPanelAuftragAuswahl(), fk,
 				QueryParameters.UC_ID_AUFTRAG, aWhichButtonIUse,
 				internalFrameI,
 				LPMain.getTextRespectUISPr("title.rahmenauftragauswahlliste"));
 
 		panelQueryFLRAuftrag.befuellePanelFilterkriterienDirektUndVersteckte(
-				AuftragFilterFactory.getInstance().createFKDAuftragnummer(),
-				AuftragFilterFactory.getInstance().createFKDKundenname(),
-				AuftragFilterFactory.getInstance().createFKVAuftrag());
-		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance()
-				.createFKDProjekt());
-		panelQueryFLRAuftrag.addDirektFilter(AuftragFilterFactory.getInstance()
-				.createFKDTextSuchen());
+				createFKDAuftragnummer(),
+				createFKDKundenname(),
+				createFKVAuftrag());
+		panelQueryFLRAuftrag.addDirektFilter(createFKDProjekt());
+		panelQueryFLRAuftrag.addDirektFilter(createFKDTextSuchen());
 		return panelQueryFLRAuftrag;
 	}
 
@@ -768,7 +760,7 @@ public class AuftragFilterFactory {
 		FilterKriterium[] kriterien = null;
 
 		if (iIdAuftragI != null) {
-			kriterien = new FilterKriterium[2];
+			kriterien = new FilterKriterium[3];
 
 			kriterien[0] = new FilterKriterium(
 					AuftragpositionFac.FLR_AUFTRAGPOSITION_FLRAUFTRAG + ".i_id",
@@ -777,6 +769,11 @@ public class AuftragFilterFactory {
 
 			kriterien[1] = new FilterKriterium(
 					AuftragpositionFac.FLR_AUFTRAGPOSITION_N_OFFENEMENGE, true,
+					"", FilterKriterium.OPERATOR_IS + " "
+							+ FilterKriterium.OPERATOR_NOT_NULL, false);
+			
+			kriterien[2] = new FilterKriterium(
+					AuftragpositionFac.FLR_AUFTRAGPOSITION_ARTIKEL_I_ID, true,
 					"", FilterKriterium.OPERATOR_IS + " "
 							+ FilterKriterium.OPERATOR_NOT_NULL, false);
 		}
@@ -799,7 +796,7 @@ public class AuftragFilterFactory {
 		FilterKriterium[] kriterien = null;
 
 		if (iIdAuftragI != null) {
-			kriterien = new FilterKriterium[3];
+			kriterien = new FilterKriterium[4];
 
 			kriterien[0] = new FilterKriterium(
 					AuftragpositionFac.FLR_AUFTRAGPOSITION_FLRAUFTRAG + ".i_id",
@@ -814,6 +811,12 @@ public class AuftragFilterFactory {
 			kriterien[2] = new FilterKriterium(
 					AuftragpositionFac.FLR_AUFTRAGPOSITION_N_OFFENEMENGE, true,
 					String.valueOf(0), FilterKriterium.OPERATOR_GT, false);
+			
+
+			kriterien[3] = new FilterKriterium(
+					AuftragpositionFac.FLR_AUFTRAGPOSITION_ARTIKEL_I_ID, true,
+					"", FilterKriterium.OPERATOR_IS + " "
+							+ FilterKriterium.OPERATOR_NOT_NULL, false);
 		}
 
 		return kriterien;
@@ -842,6 +845,18 @@ public class AuftragFilterFactory {
 		return filters;
 	}
 
+	public FilterKriterium[] createFKZeitplantypdetail(Integer materialIId)
+			throws Throwable {
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		kriterien[0] = new FilterKriterium("zeitplantyp_i_id", true,
+				materialIId + "", FilterKriterium.OPERATOR_EQUAL, false);
+
+		
+
+		return kriterien;
+	}
+
+	
 	public PanelQueryFLR createPanelFLRBegruendung(
 			InternalFrame internalFrameI, Integer selectedId,
 			boolean bMitLeerenButton) throws Throwable {

@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.util.dtable;
@@ -35,17 +35,22 @@ package com.lp.client.util.dtable;
 import java.util.List;
 import java.util.UUID;
 
+import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.delegate.Delegate;
+import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.util.logger.LpLogger;
 import com.lp.server.system.fastlanereader.service.FastLaneReader;
+import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
+import com.lp.server.util.fastlanereader.service.query.IQueryResultData;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.server.util.fastlanereader.service.query.QueryResult;
 import com.lp.server.util.fastlanereader.service.query.SortierKriterium;
 import com.lp.server.util.fastlanereader.service.query.TableInfo;
+import com.lp.util.EJBExceptionLP;
 import com.lp.util.Pair;
 
 /**
@@ -59,6 +64,8 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 
 	private Integer useCaseId;
 	private String uuid = null;
+
+	FilterKriterium[] defaultFilter = null;
 
 	public String getUuid() {
 		return uuid;
@@ -78,11 +85,17 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 	 * @param useCaseId
 	 *            the target usecase.
 	 */
-	public DistributedTableDataSourceImpl(Integer useCaseId) {
+	public DistributedTableDataSourceImpl(Integer useCaseId,
+			FilterKriterium[] defaultFilter) {
 		this.useCaseId = useCaseId;
 		this.uuid = UUID.randomUUID() + "";
+		this.defaultFilter = defaultFilter;
 		myLogger = (LpLogger) com.lp.client.util.logger.LpLogger
 				.getInstance(this.getClass());
+	}
+
+	public DistributedTableDataSourceImpl(Integer useCaseId) {
+		this(useCaseId, null);
 	}
 
 	/**
@@ -117,6 +130,8 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 		if (this.data != null) {
 			rowCount = this.data.getRowCount();
 		}
+
+		// myLogger.debug("getRowcount() '" + rowCount + "'.") ;
 		return rowCount;
 	}
 
@@ -160,6 +175,10 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 		return values;
 	}
 
+	public String[] getColumnHeaderToolTips() throws ExceptionLP {
+		return this.getTableInfo().getColumnHeaderToolTips();
+	}
+
 	/**
 	 * gets the data for the specified row. If the data is not locally
 	 * available, a call to the server replaces the local data.
@@ -195,7 +214,7 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 							this.useCaseId, new Integer(rowIndex),
 							LPMain.getTheClient());
 					if (this.data.isEmpty()) {
-						myLogger.error("no data recieved.");
+						myLogger.error("no data received.");
 					} else {
 						row = this.getRow(rowIndex);
 					}
@@ -235,14 +254,17 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 				}
 			} else {
 				try {
+					myLogger.error("rowIndex? (" + rowIndex + ")");
 					this.data = this.getFastLaneReader(this.useCaseId,
 							(QueryParameters) query).getPageAt(uuid,
 							this.useCaseId, new Integer(rowIndex),
 							LPMain.getTheClient());
 					if (this.data.isEmpty()) {
-						myLogger.error("no data recieved.");
+						myLogger.error("no data received.");
 					} else {
-						tooltip = this.getToolTipAt(rowIndex);
+						if(this.data.getTooltipData() != null) {
+							tooltip = this.getToolTipAt(rowIndex);
+						}
 					}
 				} catch (Throwable t) {
 					handleThrowable(t);
@@ -266,8 +288,9 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 	public FastLaneReader getFastLaneReader(Integer useCaseIdI,
 			QueryParameters query) throws Throwable {
 		if (fastLaneReader == null) {
-			fastLaneReader = (FastLaneReader) new InitialContext()
-					.lookup("lpserver/FastLaneReaderBean/remote");
+			Context context = new InitialContext();
+			fastLaneReader = lookupFac(context, FastLaneReader.class);
+
 		}
 		return fastLaneReader;
 	}
@@ -322,13 +345,14 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 	 * @return int
 	 */
 	public long getIndexOfSelectedRow() {
-		long rowIndex = this.getRowCount() - 1;
-
-		if (this.data != null) {
-			rowIndex = this.data.getIndexOfSelectedRow();
-		}
-
-		return rowIndex;
+		return data != null ? data.getIndexOfSelectedRow() : getRowCount() - 1l;
+		// long rowIndex = this.getRowCount() - 1;
+		//
+		// if (this.data != null) {
+		// rowIndex = this.data.getIndexOfSelectedRow();
+		// }
+		//
+		// return rowIndex;
 	}
 
 	/**
@@ -358,6 +382,22 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 					.setQuery(uuid, useCaseId, (QueryParameters) query,
 							LPMain.getTheClient());
 		} catch (Throwable t) {
+
+			if (t instanceof EJBExceptionLP) {
+				EJBExceptionLP ex = (EJBExceptionLP) t;
+				// SP206
+				if (ex.getCode() == EJBExceptionLP.FEHLER_FLR) {
+					ex.printStackTrace();
+					if (data != null) {
+						DialogFactory.showModalDialog(
+								LPMain.getTextRespectUISPr("lp.hint"),
+								LPMain.getTextRespectUISPr("lp.error.fehlerbeiflr"));
+						data.setRowCount(0);
+						return;
+					}
+				}
+			}
+
 			handleThrowable(t);
 		}
 	}
@@ -373,7 +413,7 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 			try {
 				tableInfo = this.getFastLaneReader(useCaseId,
 						(QueryParameters) query).getTableInfo(uuid, useCaseId,
-						LPMain.getTheClient());
+						defaultFilter, LPMain.getTheClient());
 			} catch (Throwable t) {
 				handleThrowable(t);
 			}
@@ -409,6 +449,8 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 	 * @return Returns the returnNullOnGetValueAt.
 	 */
 	public boolean isReturnNullOnGetValueAt() {
+		// myLogger.debug("isReturnNullOnGetValueAt returns '" +
+		// this.returnNullOnGetValueAt + "'.") ;
 		return returnNullOnGetValueAt;
 	}
 
@@ -417,6 +459,9 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 	 *            The returnNullOnGetValueAt to set.
 	 */
 	public void setReturnNullOnGetValueAt(boolean returnNullOnGetValueAt) {
+		// myLogger.debug("setReturnNullOnGetValueAt switch from '" +
+		// this.returnNullOnGetValueAt + "' to '" + returnNullOnGetValueAt +
+		// "'.") ;
 		this.returnNullOnGetValueAt = returnNullOnGetValueAt;
 	}
 
@@ -446,5 +491,9 @@ public class DistributedTableDataSourceImpl extends Delegate implements
 			handleThrowable(t);
 		}
 		return null;
+	}
+
+	public IQueryResultData getResultData() {
+		return data == null ? null : data.getResultData();
 	}
 }

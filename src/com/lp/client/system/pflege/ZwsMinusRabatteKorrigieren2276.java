@@ -323,48 +323,4 @@ public class ZwsMinusRabatteKorrigieren2276 extends PflegefunktionSupportsProgre
 			fireDoneEvent(new EventObject(this)) ;
 		}
 	}
-	
-//	private class Worker extends SwingWorker<Void, Workerdata> {
-//		
-//		@Override
-//		protected Void doInBackground() throws Exception {
-//			isRunning = true ;
-//			fireStartedEvent(new EventObject(this));
-//
-//			try {
-//				int count = 0 ;
-//				lblTotalCount.setText("ermitteln...");
-//				List<Integer> allInvoices = DelegateFactory.getInstance().getRechnungDelegate().repairRechnungZws2276GetList() ;
-//				ZwsMinusRabatteKorrigieren2276.this.setProgress(new DefaultBoundedRangeModel(0, 0, 0, allInvoices.size()));
-//				lblTotalCount.setText("<html><b>" + allInvoices.size() + "</b></html>");
-//				
-//				for (Integer rechnungId : allInvoices) {
-//					setProgressValue(++count) ;
-//					setProgress(count);
-//
-//					RechnungDto rechnungDto = DelegateFactory.getInstance().getRechnungDelegate().rechnungFindByPrimaryKey(rechnungId) ;
-//					lblActualInvoice.setText("<html><b>" + rechnungDto.getCNr() + "</b> (id: " + rechnungId + ") </html>");
-//					DelegateFactory.getInstance().getRechnungDelegate().repairRechnungZws2276(rechnungId);
-//				
-//					if(cancelled) break ;
-//				}
-//
-//				setProgress(100);
-//			} catch(Throwable t) {
-//				console.setVisible(true) ;
-//				console.getOutputWriter().write(t.getMessage());
-//			} finally {
-//				isRunning = false;
-//				fireDoneEvent(new EventObject(this)) ;
-//			}
-//			
-//			return null;
-//		}	
-//
-//		@Override
-//		protected void process(List<Workerdata> chunks) {
-//			// TODO Auto-generated method stub
-//			super.process(chunks);
-//		}
-//	}
 }

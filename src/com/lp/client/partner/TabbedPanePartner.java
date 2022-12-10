@@ -2,49 +2,53 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.partner;
 
 import java.awt.Cursor;
+import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.event.ChangeEvent;
 
+import com.lp.client.artikel.PanelArtikelsonstiges;
 import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.ISourceEvent;
@@ -55,68 +59,91 @@ import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQuery;
 import com.lp.client.frame.component.PanelSplit;
 import com.lp.client.frame.component.TabbedPane;
+import com.lp.client.frame.component.WrapperGotoButton;
+import com.lp.client.frame.component.WrapperMapButton;
 import com.lp.client.frame.component.WrapperMenu;
 import com.lp.client.frame.component.WrapperMenuBar;
+import com.lp.client.frame.component.WrapperMenuItem;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.dynamisch.PanelDynamisch;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.FileOpenerFactory;
+import com.lp.client.frame.filechooser.open.XlsFile;
+import com.lp.client.frame.filechooser.open.XlsFileOpener;
 import com.lp.client.media.DropPanelSplit;
 import com.lp.client.pc.LPMain;
+import com.lp.client.system.ReportEntitylog;
 import com.lp.client.util.fastlanereader.gui.QueryType;
+import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.lieferschein.service.LieferscheinDto;
 import com.lp.server.media.service.MediaEmailMetaDto;
-import com.lp.server.partner.fastlanereader.generated.service.FLRPASelektionPK;
 import com.lp.server.partner.service.AnsprechpartnerDto;
+import com.lp.server.partner.service.AnsprechpartnerFac;
+import com.lp.server.partner.service.AnsprechpartnerISortValues;
 import com.lp.server.partner.service.BankDto;
+import com.lp.server.partner.service.HelperFuerPartnerGoto;
 import com.lp.server.partner.service.KontaktDto;
 import com.lp.server.partner.service.KurzbriefDto;
 import com.lp.server.partner.service.PASelektionDto;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.partner.service.PartnerImportDto;
+import com.lp.server.partner.service.PartnerReportFac;
 import com.lp.server.partner.service.PartnerbankDto;
 import com.lp.server.partner.service.PartnerkommunikationDto;
+import com.lp.server.rechnung.service.RechnungDto;
+import com.lp.server.system.service.HvDtoLogClass;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.PanelFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.util.Facade;
+import com.lp.server.util.HvOptional;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
+import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.GotoHelper;
 import com.lp.util.csv.LPCSVReader;
 
-@SuppressWarnings("static-access")
 /*
  * <p>Diese Klasse kuemmert sich um den Partner.</p>
- * 
+ *
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * 
+ *
  * <p>Erstellungsdatum xx.12.04</p>
- * 
+ *
  * @author $Author: christian $
- * 
+ *
  * @version $Revision: 1.27 $ Date $Date: 2013/01/17 10:44:59 $
  */
-public class TabbedPanePartner extends TabbedPane {
-	/**
-	 * 
-	 */
+public class TabbedPanePartner extends TabbedPane implements IPartnerDtoService {
+
 	private static final long serialVersionUID = 1L;
+
 	private BankDto bankDto = new BankDto();
 	private PartnerDto partnerDto = new PartnerDto();
 	private PASelektionDto pASelektionDto = new PASelektionDto();
 	private PartnerbankDto partnerBankDto = new PartnerbankDto();
 	private PartnerkommunikationDto partnerkommunikationDto = new PartnerkommunikationDto();
 	private AnsprechpartnerDto ansprechpartnerDto = new AnsprechpartnerDto();
-	public static final int IDX_PANEL_QP = 0;
-	public static final int IDX_PANEL_D = 1;
-	public static final int IDX_PANE_KOMMUNIKATION_SP = 2;
-	public static final int IDX_PANE_BANK_SP = 3;
-	public static final int IDX_PANE_ANREDEN_D = 4;
-	public static final int IDX_PANE_PARTNERSELEKTION_SP = 5;
-	public static final int IDX_PANE_KURZBRIEF_SP = 6;
-	public static final int IDX_PANE_ANSPRECHPARTNER = 7;
-	public static final int IDX_PANE_ANSPRECHPARTNER_VON = 8;
-	public static final int IDX_PANE_REFERENZ = 9;
-	public static final int IDX_PANE_KONTAKT = 10;
+	public static int IDX_PANEL_QP = -1;
+	public static int IDX_PANEL_D = -1;
+	public static int IDX_PANE_TELEFONZEITEN = -1;
+	public static int IDX_PANE_KOMMUNIKATION_SP = -1;
+	public static int IDX_PANE_BANK_SP = -1;
+	public static int IDX_PANE_ANREDEN_D = -1;
+	public static int IDX_PANE_PARTNERSELEKTION_SP = -1;
+	public static int IDX_PANE_KURZBRIEF_SP = -1;
+	public static int IDX_PANE_ANSPRECHPARTNER = -1;
+	public static int IDX_PANE_ANSPRECHPARTNER_VON = -1;
+	public static int IDX_PANE_REFERENZ = -1;
+	public static int IDX_PANE_KONTAKT = -1;
+	public static int IDX_PANE_BILD = -1;
+	public static int IDX_PANE_PARTNEREIGENSCHAFTEN = -1;
 
 	private WrapperMenuBar wrapperMenuBar = null;
 
@@ -143,7 +170,8 @@ public class TabbedPanePartner extends TabbedPane {
 
 	private PanelBasis panelAnsprechpartnerSP5 = null;
 	private PanelQuery panelAnsprechpartnerTopQP5 = null;
-	private PanelBasis panelAnsprechpartnerBottomD5 = null;
+	// private PanelBasis panelAnsprechpartnerBottomD5 = null;
+	private PanelPartnerAnsprechpartner panelAnsprechpartnerBottomD5 = null;
 
 	private PanelBasis panelSplitKontakt = null;
 	public PanelQuery panelQueryKontakt = null;
@@ -152,103 +180,103 @@ public class TabbedPanePartner extends TabbedPane {
 	private PanelQuery panelAnsprechpartnerVonQP = null;
 	private KurzbriefDto kurzbriefDto = new KurzbriefDto();
 
+	private PanelQuery panelTelefonzeitenQP = null;
+
 	private PanelQuery panelReferenzQP = null;
 
+	private PanelBasis panelDetailBild = null;
+
+	private PanelBasis panelDetailpartnereigenschaft = null;
+
 	private String rechtModulweit = null;
+
+	private WrapperMapButton mapButton = null;
 
 	private final String MENUE_ACTION_ADRESSETIKETT = "MENUE_ACTION_ADRESSETIKETT";
 	private final String MENUE_ACTION_PARTNERZUSAMMENFUEHREN = "MENUE_ACTION_PARTNERZUSAMMENFUEHREN";
 	private final String MENUE_ACTION_CSVIMPORT = "MENUE_ACTION_CSVIMPORT";
+	private final String MENUE_ACTION_XLSIMPORT = "MENUE_ACTION_XLSIMPORT";
 	private final String MENUE_ACTION_STAMMBLATT = "MENUE_ACTION_STAMMBLATT";
 	private final String MENUE_ACTION_WIEDERVORLAGE = "MENUE_ACTION_WIEDERVORLAGE";
 	private final String MENUE_ACTION_GEBURTSTAGSLISTE = "MENUE_ACTION_GEBURTSTAGSLISTE";
-	private static final String ACTION_SPECIAL_NEW_EMAIL = "action_special_"
-			+ PanelBasis.ALWAYSENABLED + "new_email_entry";
+	private static final String ACTION_SPECIAL_NEW_EMAIL = PanelBasis.ACTION_MY_OWN_NEW + "new_email_entry";
+
+	private final String MENUE_ACTION_NEWSLETTER_AENDERUNG = "MENUE_ACTION_NEWSLETTER_AENDERUNG";
+
+	private final String MENU_INFO_AENDERUNGEN = "MENU_INFO_AENDERUNGEN";
+
+	static final public String GOTO_PARTNER = PanelBasis.LEAVEALONE + "GOTO_PARTNER";
+	WrapperGotoButton wbuGoto = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_PARTNER_AUSWAHL);
+
+	static final public String GOTO_REFERENZ_ZU = PanelBasis.LEAVEALONE + "GOTO_REFERENZ_ZU";
+	WrapperGotoButton wbuGotoReferenzZu = new WrapperGotoButton(com.lp.util.GotoHelper.GOTO_PARTNER_AUSWAHL);
 
 	public TabbedPanePartner(InternalFrame internalFrameI) throws Throwable {
 
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"part.partner"));
+		super(internalFrameI, LPMain.getTextRespectUISPr("part.partner"));
 		rechtModulweit = getInternalFrame().getRechtModulweit();
 		jbInit();
 		initComponents();
-
 	}
 
 	private void jbInit() throws Throwable {
 
 		// 1 tab oben: QP1 PartnerFLR; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_QP);
+		IDX_PANEL_QP = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.auswahl"), null, null,
+				LPMain.getTextRespectUISPr("lp.auswahl"));
 
 		// 2 tab oben: D2 Partnerdeatil; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.detail"),
-				IDX_PANEL_D);
+		IDX_PANEL_D = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.detail"), null, null,
+				LPMain.getTextRespectUISPr("lp.detail"));
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_TELEFONZEITERFASSUNG)) {
+			IDX_PANE_TELEFONZEITEN = reiterHinzufuegen(LPMain.getTextRespectUISPr("pers.telefonzeiten"), null, null,
+					LPMain.getTextRespectUISPr("pers.telefonzeiten"));
+		}
 
 		// 3 tab oben; Splitpane Kommunikation; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kommunikation"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.kommunikation"),
-				IDX_PANE_KOMMUNIKATION_SP);
+		IDX_PANE_KOMMUNIKATION_SP = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.kommunikation"), null, null,
+				LPMain.getTextRespectUISPr("lp.kommunikation"));
 
 		// 4 tab oben; Splitpane Banken; lazy loading
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"part.kund.bankverbindung"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"part.kund.bankverbindung"), IDX_PANE_BANK_SP);
+		IDX_PANE_BANK_SP = reiterHinzufuegen(LPMain.getTextRespectUISPr("part.kund.bankverbindung"), null, null,
+				LPMain.getTextRespectUISPr("part.kund.bankverbindung"));
 
 		// 5 tab oben; Detail Anreden; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.anreden"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.anreden"),
-				IDX_PANE_ANREDEN_D);
+		IDX_PANE_ANREDEN_D = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.anreden"), null, null,
+				LPMain.getTextRespectUISPr("lp.anreden"));
 
 		// 6 tab oben; Detail Partner Selektionslisten; lazy loading
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.selektion"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.selektion"),
-				IDX_PANE_PARTNERSELEKTION_SP);
+		IDX_PANE_PARTNERSELEKTION_SP = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.selektion"), null, null,
+				LPMain.getTextRespectUISPr("lp.selektion"));
 
 		// tab oben; Splitpane Kurzbrief
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kurzbrief"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.kurzbrief"),
-				IDX_PANE_KURZBRIEF_SP);
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"label.ansprechpartner"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"label.ansprechpartner"), IDX_PANE_ANSPRECHPARTNER);
+		IDX_PANE_KURZBRIEF_SP = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.kurzbrief"), null, null,
+				LPMain.getTextRespectUISPr("lp.kurzbrief"));
+		IDX_PANE_ANSPRECHPARTNER = reiterHinzufuegen(LPMain.getTextRespectUISPr("label.ansprechpartner"), null, null,
+				LPMain.getTextRespectUISPr("label.ansprechpartner"));
 
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"part.partner.ansprechpartnervon"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"part.partner.ansprechpartnervon"),
-				IDX_PANE_ANSPRECHPARTNER_VON);
+		IDX_PANE_ANSPRECHPARTNER_VON = reiterHinzufuegen(LPMain.getTextRespectUISPr("part.partner.ansprechpartnervon"),
+				null, null, LPMain.getTextRespectUISPr("part.partner.ansprechpartnervon"));
 
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.referenz"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.referenz"),
-				IDX_PANE_REFERENZ);
+		IDX_PANE_REFERENZ = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.referenz"), null, null,
+				LPMain.getTextRespectUISPr("lp.referenz"));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_KONTAKTMANAGMENT)) {
-			insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kontakt"),
-					null, null,
-					LPMain.getInstance().getTextRespectUISPr("lp.kontakt"),
-					IDX_PANE_KONTAKT);
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_KONTAKTMANAGMENT)) {
+			IDX_PANE_KONTAKT = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.kontakt"), null, null,
+					LPMain.getTextRespectUISPr("lp.kontakt"));
+		}
+
+		IDX_PANE_BILD = reiterHinzufuegen(LPMain.getTextRespectUISPr("part.partnerbild"), null, null,
+				LPMain.getTextRespectUISPr("part.partnerbild"));
+
+		// Wenn keine Panelbeschriebung vorhanden, dann ausblenden
+		if (DelegateFactory.getInstance().getPanelDelegate()
+				.panelbeschreibungVorhanden(PanelFac.PANEL_PARTNEREIGENSCHAFTEN)) {
+			IDX_PANE_PARTNEREIGENSCHAFTEN = reiterHinzufuegen(LPMain.getTextRespectUISPr("lp.eigenschaften"), null,
+					null, LPMain.getTextRespectUISPr("lp.eigenschaften"));
 		}
 
 		// defaults
@@ -262,43 +290,39 @@ public class TabbedPanePartner extends TabbedPane {
 			getInternalFrame().enableAllPanelsExcept(false);
 		}
 
-		getPartnerDto().setIId((Integer) panelPartnerQP.getSelectedId());
+		getServicePartnerDto().setIId((Integer) panelPartnerQP.getSelectedId());
 
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelPartnerQP,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelPartnerQP, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		addChangeListener(this);
 		getInternalFrame().addItemChangedListener(this);
 		/**
-		 * @todo MB: das ist nicht schoen - bitte wie in den anderen modulen
-		 *       behandeln
+		 * @todo MB: das ist nicht schoen - bitte wie in den anderen modulen behandeln
 		 * 
 		 *       JMenuBar jMenuBar = getJMenuBar();
 		 *       getInternalFrame().setJMenuBar(jMenuBar);
 		 *       HelperClient.setComponentNamesMenuBar(jMenuBar);
 		 */
-		getInternalFrame().setLpTitle(
-				InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
-				LPMain.getTextRespectUISPr("part.partner") + "|"
-						+ getPartnerDto().formatFixTitelName1Name2());
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
+				LPMain.getTextRespectUISPr("part.partner") + "|" + getServicePartnerDto().formatFixTitelName1Name2());
 	}
 
 	private void refreshReferenzQP(Integer iIdPartnerI) throws Throwable {
 		if (panelReferenzQP == null) {
 
-			panelReferenzQP = new PanelQuery(null, null,
-					QueryParameters.UC_ID_REFERENZ_ZU, null,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.referenz"), true);
-
+			panelReferenzQP = new PanelQuery(null, null, QueryParameters.UC_ID_REFERENZ_ZU, null, getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.referenz"), true);
+			panelReferenzQP.getToolBar().addButtonLeft("/com/lp/client/res/data_into.png",
+					LPMain.getTextRespectUISPr("part.ansprechpartnervon.gehezupartner"), GOTO_REFERENZ_ZU,
+					KeyStroke.getKeyStroke('G', java.awt.event.InputEvent.CTRL_MASK), null);
+			panelReferenzQP.enableToolsPanelButtons(true, GOTO_REFERENZ_ZU);
 			setComponentAt(IDX_PANE_REFERENZ, panelReferenzQP);
 		}
 
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_I_ID, true, "" + iIdPartnerI + "",
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_PARTNER_I_ID, true, "" + iIdPartnerI + "",
 				FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
@@ -307,44 +331,33 @@ public class TabbedPanePartner extends TabbedPane {
 
 	}
 
-	private void refreshAnsprechpartnerSP5(Integer iIdPartnerI)
-			throws Throwable {
+	private void refreshAnsprechpartnerSP5(Integer iIdPartnerI) throws Throwable {
 
 		if (panelAnsprechpartnerSP5 == null) {
 
 			// die zusaetzlichen Buttons am PanelQuery anbringen
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
-					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1,
-					PanelBasis.ACTION_POSITION_VORPOSITIONEINFUEGEN };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1, PanelBasis.ACTION_POSITION_VORPOSITIONEINFUEGEN };
 
 			QueryType[] querytypes = null;
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKAnsprechpartner(iIdPartnerI);
-			panelAnsprechpartnerTopQP5 = new PanelQuery(querytypes, filters,
-					QueryParameters.UC_ID_ANSPRECHPARTNER, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.ansprechpartner"), true);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKAnsprechpartner(iIdPartnerI);
+			panelAnsprechpartnerTopQP5 = new PanelQuery(querytypes, filters, QueryParameters.UC_ID_ANSPRECHPARTNER,
+					aWhichButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("label.ansprechpartner"), true);
 
-			panelAnsprechpartnerBottomD5 = new PanelPartnerAnsprechpartner(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("label.ansprechpartner"), null);
+			panelAnsprechpartnerBottomD5 = new PanelPartnerAnsprechpartner(getInternalFrame(),
+					LPMain.getTextRespectUISPr("label.ansprechpartner"), null);
 
-			panelAnsprechpartnerSP5 = new PanelSplit(getInternalFrame(),
-					panelAnsprechpartnerBottomD5, panelAnsprechpartnerTopQP5,
-					150);
-			panelAnsprechpartnerTopQP5
-					.befuellePanelFilterkriterienDirektUndVersteckte(
-							PartnerFilterFactory.getInstance()
-									.createFKDAnsprechpartnerPartnerName(),
-							null, PartnerFilterFactory.getInstance()
-									.createFKVAnsprechpartner());
+			panelAnsprechpartnerSP5 = new PanelSplit(getInternalFrame(), panelAnsprechpartnerBottomD5,
+					panelAnsprechpartnerTopQP5, 150);
+			panelAnsprechpartnerTopQP5.befuellePanelFilterkriterienDirektUndVersteckte(
+					PartnerFilterFactory.getInstance().createFKDAnsprechpartnerPartnerName(), null,
+					PartnerFilterFactory.getInstance().createFKVAnsprechpartner());
 
 			setComponentAt(IDX_PANE_ANSPRECHPARTNER, panelAnsprechpartnerSP5);
 		} else {
 			// filter refreshen.
-			panelAnsprechpartnerTopQP5.setDefaultFilter(PartnerFilterFactory
-					.getInstance().createFKAnsprechpartner(iIdPartnerI));
+			panelAnsprechpartnerTopQP5
+					.setDefaultFilter(PartnerFilterFactory.getInstance().createFKAnsprechpartner(iIdPartnerI));
 		}
 	}
 
@@ -356,25 +369,21 @@ public class TabbedPanePartner extends TabbedPane {
 		this.ansprechpartnerDto = ansprechpartnerDto;
 	}
 
-	private void refreshAnsprechpartnervonQP(Integer iIdPartnerI)
-			throws Throwable {
+	private void refreshAnsprechpartnervonQP(Integer iIdPartnerI) throws Throwable {
 		if (panelAnsprechpartnerVonQP == null) {
 
-			panelAnsprechpartnerVonQP = new PanelQuery(null, null,
-					QueryParameters.UC_ID_ANSPRECHPARTNERPARTNER, null,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr(
-									"part.partner.ansprechpartnervon"), true);
-
-			setComponentAt(IDX_PANE_ANSPRECHPARTNER_VON,
-					panelAnsprechpartnerVonQP);
+			panelAnsprechpartnerVonQP = new PanelQuery(null, null, QueryParameters.UC_ID_ANSPRECHPARTNERPARTNER, null,
+					getInternalFrame(), LPMain.getTextRespectUISPr("part.partner.ansprechpartnervon"), true);
+			panelAnsprechpartnerVonQP.getToolBar().addButtonLeft("/com/lp/client/res/data_into.png",
+					LPMain.getTextRespectUISPr("part.ansprechpartnervon.gehezupartner"), GOTO_PARTNER,
+					KeyStroke.getKeyStroke('G', java.awt.event.InputEvent.CTRL_MASK), null);
+			panelAnsprechpartnerVonQP.enableToolsPanelButtons(true, GOTO_PARTNER);
+			setComponentAt(IDX_PANE_ANSPRECHPARTNER_VON, panelAnsprechpartnerVonQP);
 		}
 
 		FilterKriterium[] kriterien = new FilterKriterium[1];
-		FilterKriterium krit1 = new FilterKriterium(
-				PartnerFac.FLR_PARTNER_I_ID,
-				true, "" + iIdPartnerI + "", FilterKriterium.OPERATOR_EQUAL,
-				false);
+		FilterKriterium krit1 = new FilterKriterium(PartnerFac.FLR_PARTNER_I_ID, true, "" + iIdPartnerI + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
 
 		kriterien[0] = krit1;
 
@@ -382,43 +391,78 @@ public class TabbedPanePartner extends TabbedPane {
 
 	}
 
+	private void refreshTelefonzeitenQP(Integer iIdPartnerI) throws Throwable {
+		if (panelTelefonzeitenQP == null) {
+
+			panelTelefonzeitenQP = new PanelQuery(null, null, QueryParameters.UC_ID_PARTNER_TELEFONZEITEN, null,
+					getInternalFrame(), LPMain.getTextRespectUISPr("pers.telefonzeiten"), true);
+			setComponentAt(IDX_PANE_TELEFONZEITEN, panelTelefonzeitenQP);
+
+			panelTelefonzeitenQP.addDirektFilter(new FilterKriteriumDirekt(
+					"flransprechpartner." + AnsprechpartnerFac.FLR_ANSPRECHPARTNER_PARTNERANSPRECHPARTNER + "."
+							+ PartnerFac.FLR_PARTNER_NAME1NACHNAMEFIRMAZEILE1,
+					"", FilterKriterium.OPERATOR_LIKE, LPMain.getTextRespectUISPr("label.ansprechpartner"),
+					FilterKriteriumDirekt.PROZENT_TRAILING, true, // wrapWithSingleQuotes
+					true, Facade.MAX_UNBESCHRAENKT));
+
+			panelTelefonzeitenQP.addDirektFilter(
+					new FilterKriteriumDirekt(ArtikelFac.FLR_ARTIKELLISTE_C_VOLLTEXT, "", FilterKriterium.OPERATOR_LIKE,
+							LPMain.getTextRespectUISPr("lp.kommentar"), FilterKriteriumDirekt.PROZENT_BOTH, true, // wrapWithSingleQuotes
+							true, Facade.MAX_UNBESCHRAENKT));
+
+		}
+
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		FilterKriterium krit1 = new FilterKriterium("partner_i_id", true, "" + iIdPartnerI + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
+
+		kriterien[0] = krit1;
+
+		panelTelefonzeitenQP.setDefaultFilter(kriterien);
+
+	}
+
+	private void refreshBild(Integer key) throws Throwable {
+		if (panelDetailBild == null) {
+			panelDetailBild = new PanelPartnerbild(getInternalFrame(), LPMain.getTextRespectUISPr("part.partnerbild"),
+					key);
+			setComponentAt(IDX_PANE_BILD, panelDetailBild);
+		}
+	}
+
 	private void refreshPartnerQP1() throws Throwable {
 		if (panelPartnerQP == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			panelPartnerQP = new PanelQuery(PartnerFilterFactory.getInstance()
-					.createQTPartnerart(), null, QueryParameters.UC_ID_PARTNER,
-					aWhichButtonIUse, getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.auswahl"), true,
+			panelPartnerQP = new PanelQuery(PartnerFilterFactory.getInstance().createQTPartnerart(), null,
+					QueryParameters.UC_ID_PARTNER, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.auswahl"), true,
 					PartnerFilterFactory.getInstance().createFKVPartner(), null);
 
-			
-			panelPartnerQP.befuellePanelFilterkriterienDirekt(
-					PartnerFilterFactory.getInstance().createFKDPartnerName(),
+			panelPartnerQP.befuellePanelFilterkriterienDirekt(PartnerFilterFactory.getInstance().createFKDPartnerName(),
 					PartnerFilterFactory.getInstance()
-							.createFKDPartnerLandPLZOrt());
+							// .createFKDPartnerLandPLZOrt());
+							.createFKDLandPLZOrt());
 
-			panelPartnerQP.addDirektFilter(PartnerFilterFactory.getInstance()
-					.createFKDPartnerErweiterteSuche());
+			panelPartnerQP.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnerErweiterteSuche());
 
-			panelPartnerQP.addDirektFilter(PartnerFilterFactory.getInstance()
-					.createFKDPartnersucheNachTelefonnummer());
+			panelPartnerQP.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnersucheNachTelefonnummer());
 
-			ParametermandantDto parameter = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getMandantparameter(
-							LPMain.getInstance().getTheClient().getMandant(),
-							ParameterFac.KATEGORIE_ALLGEMEIN,
-							ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
-			boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter
-					.getCWertAsObject();
+			ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+					LPMain.getTheClient().getMandant(), ParameterFac.KATEGORIE_ALLGEMEIN,
+					ParameterFac.PARAMETER_SUCHEN_INKLUSIVE_KBEZ);
+			boolean bSuchenInklusiveKbez = (java.lang.Boolean) parameter.getCWertAsObject();
 
 			if (!bSuchenInklusiveKbez) {
-				panelPartnerQP.addDirektFilter(PartnerFilterFactory
-						.getInstance().createFKDPartnerKurzbezeichnung());
+				panelPartnerQP.addDirektFilter(PartnerFilterFactory.getInstance().createFKDPartnerKurzbezeichnung());
 			}
+
+			/*
+			 * mapButton = new WrapperMapButton(new IPartnerDto(){ public PartnerDto
+			 * getPartnerDto(){ return getServicePartnerDto(); }});
+			 */
+			mapButton = new WrapperMapButton(partnerDto);
+			panelPartnerQP.addButtonToToolpanel(mapButton);
 
 			setComponentAt(IDX_PANEL_QP, panelPartnerQP);
 		}
@@ -431,50 +475,41 @@ public class TabbedPanePartner extends TabbedPane {
 				Object key = ((ISourceEvent) eI.getSource()).getIdSelected();
 				// Partner lesen
 				if (key != null) {
-					setPartnerDto(DelegateFactory.getInstance()
-							.getPartnerDelegate()
-							.partnerFindByPrimaryKey((Integer) key));
+					setServicePartnerDto(
+							DelegateFactory.getInstance().getPartnerDelegate().partnerFindByPrimaryKey((Integer) key));
 					// key lock
 					getInternalFrame().setKeyWasForLockMe(key + "");
 
 					refreshPartnerD2((Integer) key);
 					panelPartnerD.setKeyWhenDetailPanel(key);
 				}
-
+				mapButton.setPartnerDto(key != null ? partnerDto : null);
 				// emptytable: TP: 3 zB. nach einem filtern ist alles leer.
 				// jetzt alle (-) oberen Laschen wieder aktivieren.
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_QP, (key != null));
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_QP, (key != null));
 			} else if (eI.getSource() == panelKommunikationTopQP) {
 				Integer iId = (Integer) panelKommunikationTopQP.getSelectedId();
 				panelKommunikationBottomD.setKeyWhenDetailPanel(iId);
 				panelKommunikationBottomD.eventYouAreSelected(false);
 				// btnstate: 4b im QP die Buttons setzen.
-				LockStateValue d = panelKommunikationBottomD
-						.getLockedstateDetailMainKey();
+				LockStateValue d = panelKommunikationBottomD.getLockedstateDetailMainKey();
 				panelKommunikationTopQP.updateButtons(d);
 			} else if (eI.getSource() == panelAnsprechpartnerTopQP5) {
 
-				Integer iIdAnsprechpartner = (Integer) panelAnsprechpartnerTopQP5
-						.getSelectedId();
-				Integer iIdPartner = getPartnerDto().getIId();
+				Integer iIdAnsprechpartner = (Integer) panelAnsprechpartnerTopQP5.getSelectedId();
+				Integer iIdPartner = getServicePartnerDto().getIId();
 				refreshAnsprechpartnerSP5(iIdPartner);
-				panelAnsprechpartnerBottomD5
-						.setKeyWhenDetailPanel(iIdAnsprechpartner);
+				panelAnsprechpartnerBottomD5.setKeyWhenDetailPanel(iIdAnsprechpartner);
 				panelAnsprechpartnerBottomD5.eventYouAreSelected(false);
-				panelAnsprechpartnerTopQP5
-						.updateButtons(panelAnsprechpartnerBottomD5
-								.getLockedstateDetailMainKey());
+				panelAnsprechpartnerTopQP5.updateButtons(panelAnsprechpartnerBottomD5.getLockedstateDetailMainKey());
 			} else if (eI.getSource() == panelQueryKontakt) {
 
-				Integer iIdAnsprechpartner = (Integer) panelQueryKontakt
-						.getSelectedId();
-				Integer iIdPartner = getPartnerDto().getIId();
+				Integer iIdAnsprechpartner = (Integer) panelQueryKontakt.getSelectedId();
+				Integer iIdPartner = getServicePartnerDto().getIId();
 				refreshAnsprechpartnerSP5(iIdPartner);
 				panelDetailKontakt.setKeyWhenDetailPanel(iIdAnsprechpartner);
 				panelDetailKontakt.eventYouAreSelected(false);
-				panelQueryKontakt.updateButtons(panelDetailKontakt
-						.getLockedstateDetailMainKey());
+				panelQueryKontakt.updateButtons(panelDetailKontakt.getLockedstateDetailMainKey());
 			}
 
 			else if (eI.getSource() == panelBankTopQP) {
@@ -490,7 +525,7 @@ public class TabbedPanePartner extends TabbedPane {
 				panelSelektionBottomD.eventYouAreSelected(false);
 				panelSelektionTopQP.updateButtons();
 			} else if (eI.getSource() == panelKurzbriefTopQP) {
-				Integer iIdPartner = (Integer) getPartnerDto().getIId();
+				Integer iIdPartner = (Integer) getServicePartnerDto().getIId();
 				refreshKurzbriefSP9(iIdPartner);
 				Integer iId = (Integer) panelKurzbriefTopQP.getSelectedId();
 				panelKurzbriefBottomD.setKeyWhenDetailPanel(iId);
@@ -503,29 +538,23 @@ public class TabbedPanePartner extends TabbedPane {
 			// hier kommt man nach upd im D bei einem 1:n hin.
 			if (eI.getSource() == panelKommunikationBottomD) {
 				// btnstate: 2 im QP die Buttons in den Zustand neu setzen.
-				panelKommunikationTopQP.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelKommunikationTopQP.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (eI.getSource() == panelBankBottomD) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelBankTopQP.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelBankTopQP.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (eI.getSource() == panelSelektionBottomD) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelSelektionTopQP.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelSelektionTopQP.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (eI.getSource() == panelKurzbriefBottomD) {
-				panelKurzbriefTopQP.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelKurzbriefTopQP.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				panelKurzbriefBottomD.beEditMode(true);
 			} else if (eI.getSource() == panelAnsprechpartnerBottomD5) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelAnsprechpartnerTopQP5.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelAnsprechpartnerTopQP5.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			} else if (eI.getSource() == panelDetailKontakt) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelQueryKontakt.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryKontakt.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 				;
 			}
 		}
@@ -553,10 +582,19 @@ public class TabbedPanePartner extends TabbedPane {
 				panelAnsprechpartnerBottomD5.eventYouAreSelected(false);
 				setSelectedComponent(panelAnsprechpartnerSP5);
 			} else if (eI.getSource() == panelKurzbriefTopQP) {
-				panelKurzbriefBottomD.bePlain();
-				panelKurzbriefBottomD.eventActionNew(eI, true, false);
-				panelKurzbriefBottomD.eventYouAreSelected(false);
-				setSelectedComponent(panelKurzbriefSP);
+				PanelQuery pq = (PanelQuery) eI.getSource();
+				if (ACTION_SPECIAL_NEW_EMAIL.equals(pq.getAspect())) {
+					panelKurzbriefBottomD.eventActionNew(eI, true, false);
+					panelKurzbriefBottomD.eventYouAreSelected(false);
+					setSelectedComponent(panelKurzbriefSP);
+					panelKurzbriefBottomD.beHtml();
+					panelKurzbriefBottomD.beEditMode(true);
+				} else {
+					panelKurzbriefBottomD.bePlain();
+					panelKurzbriefBottomD.eventActionNew(eI, true, false);
+					panelKurzbriefBottomD.eventYouAreSelected(false);
+					setSelectedComponent(panelKurzbriefSP);
+				}
 			} else if (eI.getSource() == panelQueryKontakt) {
 				panelDetailKontakt.eventActionNew(eI, true, false);
 				panelDetailKontakt.eventYouAreSelected(false);
@@ -572,22 +610,16 @@ public class TabbedPanePartner extends TabbedPane {
 				if (((PanelQuery) eI.getSource()).getIdUsecase() == QueryParameters.UC_ID_WIEDERVORLAGE) {
 					// Goto
 
-					((PanelQuery) eI.getSource()).setCursor(new Cursor(
-							Cursor.WAIT_CURSOR));
+					((PanelQuery) eI.getSource()).setCursor(new Cursor(Cursor.WAIT_CURSOR));
 
-					Integer key = (Integer) ((PanelQuery) eI.getSource())
-							.getSelectedId();
-					KontaktDto kontaktDto = DelegateFactory.getInstance()
-							.getPartnerDelegate().kontaktFindByPrimaryKey(key);
+					Integer key = (Integer) ((PanelQuery) eI.getSource()).getSelectedId();
+					KontaktDto kontaktDto = DelegateFactory.getInstance().getPartnerDelegate()
+							.kontaktFindByPrimaryKey(key);
 
-					getInternalFrame().geheZu(
-							InternalFramePartner.IDX_PANE_PARTNER,
-							TabbedPanePartner.IDX_PANE_KONTAKT,
-							kontaktDto.getPartnerIId(), kontaktDto.getIId(),
-							null);
+					getInternalFrame().geheZu(InternalFramePartner.IDX_PANE_PARTNER, TabbedPanePartner.IDX_PANE_KONTAKT,
+							kontaktDto.getPartnerIId(), kontaktDto.getIId(), null);
 
-					((PanelQuery) eI.getSource()).setCursor(new Cursor(
-							Cursor.DEFAULT_CURSOR));
+					((PanelQuery) eI.getSource()).setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 					getInternalFrame().hide();
 					getInternalFrame().show();
 				}
@@ -599,18 +631,15 @@ public class TabbedPanePartner extends TabbedPane {
 			if (eI.getSource() == panelPartnerD) {
 				// ... QP1 selektieren.
 				panelPartnerQP.eventYouAreSelected(false);
-				getPartnerDto()
-						.setIId((Integer) panelPartnerQP.getSelectedId());
-				getInternalFrame().setKeyWasForLockMe(
-						panelPartnerQP.getSelectedId() + "");
+				getServicePartnerDto().setIId((Integer) panelPartnerQP.getSelectedId());
+				getInternalFrame().setKeyWasForLockMe(panelPartnerQP.getSelectedId() + "");
 				setSelectedComponent(panelPartnerQP);
 			} else if (eI.getSource() == panelBankBottomD) {
 				Integer iIdPartner = (Integer) panelPartnerQP.getSelectedId();
 				refreshBankSP4(iIdPartner);
 				getInternalFrame().setKeyWasForLockMe(iIdPartner + "");
 				if (panelBankBottomD.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelBankTopQP
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelBankTopQP.getId2SelectAfterDelete();
 					panelBankTopQP.setSelectedId(oNaechster);
 				}
 				panelBankSP.eventYouAreSelected(false);
@@ -619,39 +648,35 @@ public class TabbedPanePartner extends TabbedPane {
 				refreshKommunikationSP3(iIdPartner);
 				getInternalFrame().setKeyWasForLockMe(iIdPartner + "");
 				if (panelKommunikationBottomD.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelKommunikationTopQP
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelKommunikationTopQP.getId2SelectAfterDelete();
 					panelKommunikationTopQP.setSelectedId(oNaechster);
 				}
 				panelKommunikationSP.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelSelektionBottomD) {
-				FLRPASelektionPK fLRPASelektionPK = (FLRPASelektionPK) panelSelektionTopQP
-						.getSelectedId();
-				if (fLRPASelektionPK != null) {
-					refreshSelektionSP6(fLRPASelektionPK.getPartner_i_id());
-					getInternalFrame().setKeyWasForLockMe(
-							fLRPASelektionPK.toString());
+				Integer isPaselektion = (Integer) panelSelektionTopQP.getSelectedId();
+				if (isPaselektion != null) {
+					refreshSelektionSP6((Integer) panelPartnerQP.getSelectedId());
+					getInternalFrame().setKeyWasForLockMe(isPaselektion + "");
 				}
 				panelSelektionSP.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelKurzbriefBottomD) {
 				setKeyWasForLockMe();
 				if (panelKurzbriefBottomD.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelKurzbriefTopQP
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelKurzbriefTopQP.getId2SelectAfterDelete();
 					panelKurzbriefTopQP.setSelectedId(oNaechster);
 				} else {
-					Integer iIdPartner = (Integer) getPartnerDto().getIId();
+					Integer iIdPartner = (Integer) getServicePartnerDto().getIId();
 					refreshKurzbriefSP9(iIdPartner);
 				}
 				panelKurzbriefSP.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelAnsprechpartnerBottomD5) {
-				Integer iIdPartner = getPartnerDto().getIId();
+				Integer iIdPartner = getServicePartnerDto().getIId();
 
 				refreshAnsprechpartnerSP5(iIdPartner);
 				getInternalFrame().setKeyWasForLockMe(iIdPartner + "");
 				panelAnsprechpartnerSP5.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelDetailKontakt) {
-				Integer iIdPartner = getPartnerDto().getIId();
+				Integer iIdPartner = getServicePartnerDto().getIId();
 
 				refreshKontakt(iIdPartner);
 				getInternalFrame().setKeyWasForLockMe(iIdPartner + "");
@@ -696,11 +721,68 @@ public class TabbedPanePartner extends TabbedPane {
 				panelBankTopQP.setSelectedId(oKey);
 				panelBankSP.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelAnsprechpartnerBottomD5) {
-				Object oKey = panelAnsprechpartnerBottomD5
-						.getKeyWhenDetailPanel();
+
+				Object oKey = panelAnsprechpartnerBottomD5.getKeyWhenDetailPanel();
+				Integer iIdPartner = getServicePartnerDto().getIId();
+
+				ArrayList<AnsprechpartnerDto> allAnsprechpartner = (ArrayList<AnsprechpartnerDto>) DelegateFactory
+						.getInstance().getAnsprechpartnerDelegate().getAllAnsprechpartner(iIdPartner);
+
+				Integer iIdPosition1 = null;
+				Integer iSort = null;
+				for (int i = 0; i < allAnsprechpartner.size(); i++) {
+					if (oKey.equals(allAnsprechpartner.get(i).getIId())) {
+						iIdPosition1 = allAnsprechpartner.get(i).getIId();
+						iSort = allAnsprechpartner.get(i).getISort();
+						break;
+					}
+				}
+
+				boolean iSortVorhanden = false;
+				Integer iIdPosition2 = null;
+				PartnerDto partner = null;
+				for (int i = 0; i < allAnsprechpartner.size(); i++) {
+					if (!oKey.equals(allAnsprechpartner.get(i).getIId())
+							&& allAnsprechpartner.get(i).getISort().equals(iSort)) {
+						iSortVorhanden = true;
+						iIdPosition2 = allAnsprechpartner.get(i).getIId();
+						partner = DelegateFactory.getInstance().getPartnerDelegate()
+								.partnerFindByPrimaryKey(allAnsprechpartner.get(i).getPartnerIIdAnsprechpartner());
+						break;
+					}
+				}
+
+				if (iSortVorhanden) {
+					Object[] options = { LPMain.getTextRespectUISPr("lp.vorher"),
+							LPMain.getTextRespectUISPr("lp.nachher"), LPMain.getTextRespectUISPr("lp.abbrechen") };
+
+					int iOption = DialogFactory.showModalDialog(
+							getInternalFrame(), LPMain
+									.getMessageTextRespectUISPr("part.ansprechpartner.sortierung.vorhanden", iSort,
+											partner.getAnredeCNr().trim() + " " + partner.getCName1nachnamefirmazeile1()
+													+ " " + partner.getCName2vornamefirmazeile2()),
+							"", options, options[1]);
+					if (iOption == JOptionPane.YES_OPTION) { // vorher
+						DelegateFactory.getInstance().getAnsprechpartnerDelegate().vertauscheAnsprechpartner(iSort,
+								iSort - AnsprechpartnerISortValues.ANSPRECHPARTNER_ISORT_STEP / 2, iIdPosition1,
+								iIdPosition2);
+					} else if (iOption == JOptionPane.NO_OPTION) { // nachher
+						DelegateFactory.getInstance().getAnsprechpartnerDelegate().vertauscheAnsprechpartner(iSort,
+								iSort + AnsprechpartnerISortValues.ANSPRECHPARTNER_ISORT_STEP / 2, iIdPosition1,
+								iIdPosition2);
+					} else if (iOption == JOptionPane.CANCEL_OPTION) {
+
+					} else if (iOption == JOptionPane.CLOSED_OPTION) {
+
+					}
+				}
+
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().renumberISortAnsprechpartner(iIdPartner);
+
 				panelAnsprechpartnerTopQP5.eventYouAreSelected(false);
 				panelAnsprechpartnerTopQP5.setSelectedId(oKey);
 				panelAnsprechpartnerSP5.eventYouAreSelected(false);
+
 			} else if (eI.getSource() == panelDetailKontakt) {
 				Object oKey = panelDetailKontakt.getKeyWhenDetailPanel();
 				panelQueryKontakt.eventYouAreSelected(false);
@@ -717,10 +799,10 @@ public class TabbedPanePartner extends TabbedPane {
 				// MB 04.05.06 IMS 1676
 				panelPartnerQP.clearDirektFilter();
 				if (panelPartnerQP.getSelectedId() == null || // wenns der erste
-						// ist ... oder:
-						(panelPartnerQP.getSelectedId() != null && !(panelPartnerQP
-								.getSelectedId(). // wenn ein falscher
-								// selektiert ist
+				// ist ... oder:
+						(panelPartnerQP.getSelectedId() != null && !(panelPartnerQP.getSelectedId(). // wenn ein
+																										// falscher
+						// selektiert ist
 								equals(panelPartnerD.getKeyWhenDetailPanel())))) {
 					Object key = panelPartnerD.getKeyWhenDetailPanel();
 					panelPartnerQP.eventYouAreSelected(false);
@@ -738,22 +820,16 @@ public class TabbedPanePartner extends TabbedPane {
 			// Einer der Knoepfe zur Reihung der Positionen auf einem PanelQuery
 			// wurde gedrueckt
 			if (eI.getSource() == panelAnsprechpartnerTopQP5) {
-				int iPos = panelAnsprechpartnerTopQP5.getTable()
-						.getSelectedRow();
+				int iPos = panelAnsprechpartnerTopQP5.getTable().getSelectedRow();
 
 				// wenn die Position nicht die erste ist
 				if (iPos > 0) {
-					Integer iIdPosition = (Integer) panelAnsprechpartnerTopQP5
-							.getSelectedId();
+					Integer iIdPosition = (Integer) panelAnsprechpartnerTopQP5.getSelectedId();
 
-					Integer iIdPositionMinus1 = (Integer) panelAnsprechpartnerTopQP5
-							.getTable().getValueAt(iPos - 1, 0);
+					Integer iIdPositionMinus1 = (Integer) panelAnsprechpartnerTopQP5.getTable().getValueAt(iPos - 1, 0);
 
-					DelegateFactory
-							.getInstance()
-							.getAnsprechpartnerDelegate()
-							.vertauscheAnsprechpartner(iIdPosition,
-									iIdPositionMinus1);
+					DelegateFactory.getInstance().getAnsprechpartnerDelegate().vertauscheAnsprechpartner(iIdPosition,
+							iIdPositionMinus1);
 
 					// die Liste neu anzeigen und den richtigen Datensatz
 					// markieren
@@ -763,22 +839,16 @@ public class TabbedPanePartner extends TabbedPane {
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNPLUS1) {
 			if (eI.getSource() == panelAnsprechpartnerTopQP5) {
-				int iPos = panelAnsprechpartnerTopQP5.getTable()
-						.getSelectedRow();
+				int iPos = panelAnsprechpartnerTopQP5.getTable().getSelectedRow();
 
 				// wenn die Position nicht die letzte ist
 				if (iPos < panelAnsprechpartnerTopQP5.getTable().getRowCount() - 1) {
-					Integer iIdPosition = (Integer) panelAnsprechpartnerTopQP5
-							.getSelectedId();
+					Integer iIdPosition = (Integer) panelAnsprechpartnerTopQP5.getSelectedId();
 
-					Integer iIdPositionPlus1 = (Integer) panelAnsprechpartnerTopQP5
-							.getTable().getValueAt(iPos + 1, 0);
+					Integer iIdPositionPlus1 = (Integer) panelAnsprechpartnerTopQP5.getTable().getValueAt(iPos + 1, 0);
 
-					DelegateFactory
-							.getInstance()
-							.getAnsprechpartnerDelegate()
-							.vertauscheAnsprechpartner(iIdPosition,
-									iIdPositionPlus1);
+					DelegateFactory.getInstance().getAnsprechpartnerDelegate().vertauscheAnsprechpartner(iIdPosition,
+							iIdPositionPlus1);
 
 					// die Liste neu anzeigen und den richtigen Datensatz
 					// markieren
@@ -786,46 +856,158 @@ public class TabbedPanePartner extends TabbedPane {
 					panelAnsprechpartnerSP5.eventYouAreSelected(true);
 				}
 			}
+			// } else if (eI.getID() ==
+			// ItemChangedEvent.ACTION_POSITION_VORPOSITIONEINFUEGEN) {
+			// if (eI.getSource() == panelAnsprechpartnerTopQP5) {
+			// Object oKey = panelAnsprechpartnerBottomD5
+			// .getKeyWhenDetailPanel();
+			// Integer iSort =
+			// DelegateFactory.getInstance().getAnsprechpartnerDelegate().ansprechpartnerFindByPrimaryKey((Integer)
+			// oKey).getISort();
+			// // panelAnsprechpartnerBottomD5.eventActionNew(eI, true, false,
+			// iSort);
+			// panelAnsprechpartnerBottomD5.eventActionNew(eI, true, false);
+			// //
+			// panelAnsprechpartnerBottomD5.eventYouAreSelected(true); //
+			// Buttons
+			// // schalten
+			// // panelAnsprechpartnerBottomD5.setDefaults(iSort);
+			// }
 		} else if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VORPOSITIONEINFUEGEN) {
 			if (eI.getSource() == panelAnsprechpartnerTopQP5) {
 				panelAnsprechpartnerBottomD5.eventActionNew(eI, true, false);
 				panelAnsprechpartnerBottomD5.eventYouAreSelected(false); // Buttons
 				// schalten
+				Integer iIdAnsprechpartner = (Integer) panelAnsprechpartnerTopQP5.getSelectedId();
+				Integer iIdPartner = getServicePartnerDto().getIId();
+				refreshAnsprechpartnerSP5(iIdPartner);
+
+				Integer iSort = null;
+				if (iIdAnsprechpartner != null) {
+					iSort = DelegateFactory.getInstance().getAnsprechpartnerDelegate()
+							.ansprechpartnerFindByPrimaryKey(iIdAnsprechpartner).getISort();
+				}
+				panelAnsprechpartnerBottomD5.setDefaults(iSort);
 			}
-		} else if (eI.getID() == ItemChangedEvent.ACTION_SPECIAL_BUTTON) {
-			if (eI.getSource() instanceof PanelQuery) {
+		} else if (eI.getID() == ItemChangedEvent.ACTION_MY_OWN_NEW) {
+			if (eI.getSource() == panelKurzbriefTopQP) {
 				PanelQuery pq = (PanelQuery) eI.getSource();
 				if (pq.getAspect().equals(ACTION_SPECIAL_NEW_EMAIL)) {
-					panelKurzbriefBottomD.eventActionNew(eI, true, false);
-					panelKurzbriefBottomD.eventYouAreSelected(false);
-					setSelectedComponent(panelKurzbriefSP);
-					panelKurzbriefBottomD.beHtml();
-					panelKurzbriefBottomD.beEditMode(true);
+					pq.eventActionNew(eI, true, false);
 				}
 			}
+//		} else if (eI.getID() == ItemChangedEvent.ACTION_SPECIAL_BUTTON) {
+//			if (eI.getSource() == panelKurzbriefTopQP) {
+//				PanelQuery pq = (PanelQuery) eI.getSource();
+//				if (pq.getAspect().equals(ACTION_SPECIAL_NEW_EMAIL)) {
+//					panelKurzbriefBottomD.eventActionNew(eI, true, false);
+//					panelKurzbriefBottomD.eventYouAreSelected(false);
+//					setSelectedComponent(panelKurzbriefSP);
+//					panelKurzbriefBottomD.beHtml();
+//					panelKurzbriefBottomD.beEditMode(true);
+//				}
+//			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_DROP) {
 			myLogger.info("Drop Changed on " + eI.getSource());
 			if (eI.getSource() == panelKurzbriefBottomD) {
 				if (eI instanceof ItemChangedEventDrop) {
 					ItemChangedEventDrop dropEvent = (ItemChangedEventDrop) eI;
-					Integer kbId = DelegateFactory
-							.getInstance()
-							.getEmailMediaDelegate()
-							.createKurzbriefFromEmail(getPartnerDto().getIId(),
-									LocaleFac.BELEGART_PARTNER,
-									(MediaEmailMetaDto) dropEvent.getDropData());
+					Integer kbId = DelegateFactory.getInstance().getEmailMediaDelegate().createKurzbriefFromEmail(
+							getServicePartnerDto().getIId(), LocaleFac.BELEGART_PARTNER,
+							(MediaEmailMetaDto) dropEvent.getDropData());
 					panelKurzbriefTopQP.setSelectedId(kbId);
 					panelKurzbriefSP.eventYouAreSelected(false);
 				}
 			}
+		} else if (eI.getID() == ItemChangedEvent.ACTION_LEAVE_ME_ALONE_BUTTON) {
+			if (eI.getSource().equals(panelAnsprechpartnerVonQP)) {
+
+				HelperFuerPartnerGoto h = (HelperFuerPartnerGoto) panelAnsprechpartnerVonQP.getSelectedId();
+
+				wbuGoto.setOKey(null);
+
+				if (h != null) {
+					if (h.mandantCNr.equals(LPMain.getTheClient().getMandant())) {
+
+						wbuGoto.setOKey(h.getiId());
+						if (h.isKunde()) {
+							if (h.getAnsprechpartnerIId() != null) {
+								wbuGoto.setOKey(h.getAnsprechpartnerIId());
+								wbuGoto.setWhereToGo(GotoHelper.GOTO_ANSPRECHPARTNER_KUNDE);
+							} else {
+								wbuGoto.setWhereToGo(GotoHelper.GOTO_KUNDE_AUSWAHL);
+							}
+						}
+						if (h.isLieferant()) {
+							if (h.getAnsprechpartnerIId() != null) {
+								wbuGoto.setOKey(h.getAnsprechpartnerIId());
+								wbuGoto.setWhereToGo(GotoHelper.GOTO_ANSPRECHPARTNER_LIEFERANT);
+							} else {
+								wbuGoto.setWhereToGo(GotoHelper.GOTO_LIEFERANT_AUSWAHL);
+							}
+
+						}
+						if (h.isPartner()) {
+							if (h.getAnsprechpartnerIId() != null) {
+								wbuGoto.setOKey(h.getAnsprechpartnerIId());
+								wbuGoto.setWhereToGo(GotoHelper.GOTO_ANSPRECHPARTNER_PARTNER);
+							} else {
+								wbuGoto.setWhereToGo(GotoHelper.GOTO_PARTNER_AUSWAHL);
+							}
+						}
+
+						wbuGoto.actionPerformed(new ActionEvent(wbuGoto, 0, WrapperGotoButton.ACTION_GOTO));
+					} else {
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+								LPMain.getTextRespectUISPr("lp.goto.mandantenuebergreifend.nichtmoeglich"));
+					}
+				} else {
+
+				}
+
+			} else if (eI.getSource().equals(panelReferenzQP)) {
+
+				HelperFuerPartnerGoto h = (HelperFuerPartnerGoto) panelReferenzQP.getSelectedId();
+
+				wbuGotoReferenzZu.setOKey(null);
+
+				if (h != null) {
+
+					if (h.mandantCNr.equals(LPMain.getTheClient().getMandant()) || h.isMandant()) {
+
+						wbuGotoReferenzZu.setOKey(h.getiId());
+						if (h.isKunde()) {
+							wbuGotoReferenzZu.setWhereToGo(GotoHelper.GOTO_KUNDE_AUSWAHL);
+						}
+						if (h.isLieferant()) {
+							wbuGotoReferenzZu.setWhereToGo(GotoHelper.GOTO_LIEFERANT_AUSWAHL);
+						}
+						if (h.isPersonal()) {
+							wbuGotoReferenzZu.setWhereToGo(GotoHelper.GOTO_PERSONAL_AUSWAHL);
+						}
+
+						if (h.isMandant()) {
+							wbuGotoReferenzZu.setWhereToGo(GotoHelper.GOTO_MANDANT_AUSWAHL);
+							wbuGotoReferenzZu.setOKey(h.mandantCNr);
+						}
+
+						wbuGotoReferenzZu
+								.actionPerformed(new ActionEvent(wbuGotoReferenzZu, 0, WrapperGotoButton.ACTION_GOTO));
+					} else {
+						DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+								LPMain.getTextRespectUISPr("lp.goto.mandantenuebergreifend.nichtmoeglich"));
+					}
+				}
+			}
+
 		}
 	}
 
 	private void refreshPartnerD2(Integer key) throws Throwable {
 
 		if (panelPartnerD == null) {
-			panelPartnerD = new PanelPartnerDetail(getInternalFrame(), LPMain
-					.getInstance().getTextRespectUISPr("lp.detail"), key, this);
+			panelPartnerD = new PanelPartnerDetail(getInternalFrame(), LPMain.getTextRespectUISPr("lp.detail"), key,
+					(IPartnerDtoService) this);
 			setComponentAt(IDX_PANEL_D, panelPartnerD);
 		}
 	}
@@ -833,11 +1015,21 @@ public class TabbedPanePartner extends TabbedPane {
 	private void refreshPartnerAnredenD5(Integer key) throws Throwable {
 
 		if (panelPartnerAnredenD == null) {
-			panelPartnerAnredenD = new PanelPartnerAnreden(getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr("lp.detail"), key,
-					this);
+			panelPartnerAnredenD = new PanelPartnerAnreden(getInternalFrame(), LPMain.getTextRespectUISPr("lp.detail"),
+					key, this);
 			setComponentAt(IDX_PANE_ANREDEN_D, panelPartnerAnredenD);
 		}
+	}
+
+	private void refreshEigenschaften(Integer key) throws Throwable {
+
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_UPDATE, PanelBasis.ACTION_SAVE, PanelBasis.ACTION_DISCARD, };
+
+		panelDetailpartnereigenschaft = new PanelDynamisch(getInternalFrame(),
+				LPMain.getTextRespectUISPr("lp.eigenschaften"), panelPartnerQP, PanelFac.PANEL_PARTNEREIGENSCHAFTEN,
+				HelperClient.LOCKME_PARTNER, aWhichButtonIUse);
+		setComponentAt(IDX_PANE_PARTNEREIGENSCHAFTEN, panelDetailpartnereigenschaft);
+
 	}
 
 	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
@@ -846,14 +1038,11 @@ public class TabbedPanePartner extends TabbedPane {
 		getInternalFrame().setRechtModulweit(rechtModulweit);
 
 		if (!LPMain.getInstance().isLPAdmin()) {
-			MandantDto[] mandanten = DelegateFactory.getInstance()
-					.getMandantDelegate().mandantFindAll();
+			MandantDto[] mandanten = DelegateFactory.getInstance().getMandantDelegate().mandantFindAll();
 			for (int i = 0; i < mandanten.length; i++) {
-				if (getPartnerDto() != null && getPartnerDto().getIId() != null) {
-					if (getPartnerDto().getIId().equals(
-							mandanten[i].getPartnerIId())) {
-						getInternalFrame().setRechtModulweit(
-								RechteFac.RECHT_MODULWEIT_READ);
+				if (getServicePartnerDto() != null && getServicePartnerDto().getIId() != null) {
+					if (getServicePartnerDto().getIId().equals(mandanten[i].getPartnerIId())) {
+						getInternalFrame().setRechtModulweit(RechteFac.RECHT_MODULWEIT_READ);
 						break;
 					}
 				}
@@ -866,31 +1055,28 @@ public class TabbedPanePartner extends TabbedPane {
 
 			// btnstate: 3 QP alleine; im QP die Buttons setzen.
 			panelPartnerQP.updateButtons();
-			getInternalFrame()
-					.setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_OHRWASCHLOBEN, "");
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN, "");
 		}
 
 		else if (selectedIndex == IDX_PANEL_D) {
-			Integer iIdPartner = getPartnerDto().getIId();
+			Integer iIdPartner = getServicePartnerDto().getIId();
 			refreshPartnerD2(iIdPartner);
 			panelPartnerD.eventYouAreSelected(false);
 		}
 
 		else if (selectedIndex == IDX_PANE_KOMMUNIKATION_SP) {
-			Integer iIdPartner = getPartnerDto().getIId();
+			Integer iIdPartner = getServicePartnerDto().getIId();
 			refreshKommunikationSP3(iIdPartner);
 			panelKommunikationSP.eventYouAreSelected(false);
 			// btnstate: 4a im QP die Buttons setzen.
-			LockStateValue d = panelKommunikationBottomD
-					.getLockedstateDetailMainKey();
+			LockStateValue d = panelKommunikationBottomD.getLockedstateDetailMainKey();
 			panelKommunikationTopQP.updateButtons(d);
 		}
 
 		else if (selectedIndex == IDX_PANE_BANK_SP) {
 			// gehe zu SP4
-			Integer iIdPartner = getPartnerDto().getIId();
+			Integer iIdPartner = getServicePartnerDto().getIId();
 			refreshBankSP4(iIdPartner);
 			panelBankSP.eventYouAreSelected(false);
 			// im QP die Buttons setzen.
@@ -900,117 +1086,132 @@ public class TabbedPanePartner extends TabbedPane {
 
 		else if (selectedIndex == IDX_PANE_ANREDEN_D) {
 			// gehe zu D5
-			Integer iIdPartner = getPartnerDto().getIId();
+			Integer iIdPartner = getServicePartnerDto().getIId();
 			refreshPartnerAnredenD5(iIdPartner);
 			panelPartnerAnredenD.eventYouAreSelected(false);
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
-					LPMain.getInstance().getTextRespectUISPr("lp.anreden"));
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
+					LPMain.getTextRespectUISPr("lp.anreden"));
 		}
 
 		else if (selectedIndex == IDX_PANE_PARTNERSELEKTION_SP) {
 			// gehe zu SP6
-			Integer iIdPartner = getPartnerDto().getIId();
+			Integer iIdPartner = getServicePartnerDto().getIId();
 			refreshSelektionSP6(iIdPartner);
 			panelSelektionSP.eventYouAreSelected(false);
 			// im QP die Buttons setzen.
-			LockStateValue d = panelSelektionBottomD
-					.getLockedstateDetailMainKey();
+			LockStateValue d = panelSelektionBottomD.getLockedstateDetailMainKey();
 			panelSelektionTopQP.updateButtons(d);
 		}
 
 		else if (selectedIndex == IDX_PANE_KURZBRIEF_SP) {
 
-			boolean hatRechtKurzbriefCUD = DelegateFactory.getInstance()
-					.getTheJudgeDelegate()
+			boolean hatRechtKurzbriefCUD = DelegateFactory.getInstance().getTheJudgeDelegate()
 					.hatRecht(RechteFac.RECHT_PART_KURZBRIEF_CUD);
 			if (hatRechtKurzbriefCUD == true) {
-				getInternalFrame().setRechtModulweit(
-						RechteFac.RECHT_MODULWEIT_UPDATE);
+				getInternalFrame().setRechtModulweit(RechteFac.RECHT_MODULWEIT_UPDATE);
 			}
 
 			// gehe zu SP9
-			Integer iIdPartner = getPartnerDto().getIId();
+			Integer iIdPartner = getServicePartnerDto().getIId();
 
 			refreshKurzbriefSP9(iIdPartner);
 			panelKurzbriefSP.eventYouAreSelected(false);
 			// im QP die Buttons setzen.
-			LockStateValue d = panelKurzbriefBottomD
-					.getLockedstateDetailMainKey();
+			LockStateValue d = panelKurzbriefBottomD.getLockedstateDetailMainKey();
 			panelKurzbriefTopQP.updateButtons(d);
 
 		} else if (selectedIndex == IDX_PANE_ANSPRECHPARTNER) {
+
+			// PJ21637
+			boolean hatRechtAnsprtechpartnerCUD = DelegateFactory.getInstance().getTheJudgeDelegate()
+					.hatRecht(RechteFac.RECHT_PART_ANSPRECHPARTNER_CUD);
+			if (hatRechtAnsprtechpartnerCUD == true) {
+				getInternalFrame().setRechtModulweit(RechteFac.RECHT_MODULWEIT_UPDATE);
+			}
+
 			// gehe zu SP5
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
-					LPMain.getInstance().getTextRespectUISPr(
-							"label.ansprechpartner"));
-			Integer iIdPartner = getPartnerDto().getIId();
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
+					LPMain.getTextRespectUISPr("label.ansprechpartner"));
+			Integer iIdPartner = getServicePartnerDto().getIId();
 			refreshAnsprechpartnerSP5(iIdPartner);
 			panelAnsprechpartnerSP5.eventYouAreSelected(false);
-			panelAnsprechpartnerTopQP5
-					.updateButtons(panelAnsprechpartnerBottomD5
-							.getLockedstateDetailMainKey());
+			panelAnsprechpartnerTopQP5.updateButtons(panelAnsprechpartnerBottomD5.getLockedstateDetailMainKey());
 		} else if (selectedIndex == IDX_PANE_KONTAKT) {
 			// gehe zu SP5
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
-					LPMain.getInstance().getTextRespectUISPr("lp.kontakt"));
-			Integer iIdPartner = getPartnerDto().getIId();
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
+					LPMain.getTextRespectUISPr("lp.kontakt"));
+			Integer iIdPartner = getServicePartnerDto().getIId();
 			refreshKontakt(iIdPartner);
 			panelSplitKontakt.eventYouAreSelected(false);
-			panelQueryKontakt.updateButtons(panelDetailKontakt
-					.getLockedstateDetailMainKey());
+			panelQueryKontakt.updateButtons(panelDetailKontakt.getLockedstateDetailMainKey());
 		} else if (selectedIndex == IDX_PANE_ANSPRECHPARTNER_VON) {
-			refreshAnsprechpartnervonQP(getPartnerDto().getIId());
+			refreshAnsprechpartnervonQP(getServicePartnerDto().getIId());
 			panelAnsprechpartnerVonQP.eventYouAreSelected(false);
 
 			// btnstate: 3 QP alleine; im QP die Buttons setzen.
 			panelAnsprechpartnerVonQP.updateButtons();
 
+		} else if (selectedIndex == IDX_PANE_TELEFONZEITEN) {
+			refreshTelefonzeitenQP(getServicePartnerDto().getIId());
+			panelTelefonzeitenQP.eventYouAreSelected(false);
+			panelTelefonzeitenQP.updateButtons();
+
 		} else if (selectedIndex == IDX_PANE_REFERENZ) {
 			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
-					getPartnerDto().formatFixTitelName1Name2());
-			refreshReferenzQP(getPartnerDto().getIId());
+					getServicePartnerDto().formatFixTitelName1Name2());
+			refreshReferenzQP(getServicePartnerDto().getIId());
 			panelReferenzQP.eventYouAreSelected(false);
 
 			// btnstate: 3 QP alleine; im QP die Buttons setzen.
 			panelReferenzQP.updateButtons();
 
+		} else if (selectedIndex == IDX_PANE_BILD) {
+			refreshBild(getServicePartnerDto().getIId());
+			panelDetailBild.eventYouAreSelected(false);
+		} else if (selectedIndex == IDX_PANE_PARTNEREIGENSCHAFTEN) {
+			refreshEigenschaften(getServicePartnerDto().getIId());
+			panelDetailpartnereigenschaft.eventYouAreSelected(false);
 		}
 
 	}
 
 	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(MENUE_ACTION_ADRESSETIKETT)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"part.report.adressetikett");
-			getInternalFrame().showReportKriterien(
-					new ReportAdressetikett(getInternalFrame(),
-							getPartnerDto(), add2Title));
+			String add2Title = LPMain.getTextRespectUISPr("part.report.adressetikett");
+			getInternalFrame().showReportKriterien(new ReportAdressetikett(getInternalFrame(), getServicePartnerDto(),
+					PartnerReportFac.REPORT_ADRESSETIKETT_OPTION_PARTNER, add2Title));
 		}
 		if (e.getActionCommand().equals(MENUE_ACTION_STAMMBLATT)) {
-			if (getPartnerDto() != null) {
-				getInternalFrame().showReportKriterien(
-						new ReportPartnerstammblatt(getInternalFrame(),
-								getPartnerDto().getIId(), getPartnerDto()
-										.formatFixTitelName1Name2()));
+			if (getServicePartnerDto() != null) {
+				getInternalFrame().showReportKriterien(new ReportPartnerstammblatt(getInternalFrame(),
+						getServicePartnerDto().getIId(), getServicePartnerDto().formatFixTitelName1Name2()));
 			}
 		}
+		if (e.getActionCommand().equals(MENUE_ACTION_NEWSLETTER_AENDERUNG)) {
+			if (getServicePartnerDto() != null) {
+				getInternalFrame().showReportKriterien(new ReportNewsletterAenderung(
+						(InternalFramePartner) getInternalFrame(), getServicePartnerDto().formatFixTitelName1Name2()));
+			}
+		}
+
+		if (e.getActionCommand().equals(MENU_INFO_AENDERUNGEN)) {
+
+			String add2Title = LPMain.getTextRespectUISPr("lp.report.aenderungen");
+			getInternalFrame().showReportKriterien(
+					new ReportEntitylog(HvDtoLogClass.PARTNER, getServicePartnerDto().getIId() + "", getInternalFrame(),
+							add2Title, getServicePartnerDto().formatFixName1Name2()));
+		}
+
 		if (e.getActionCommand().equals(MENUE_ACTION_GEBURTSTAGSLISTE)) {
-			if (getPartnerDto() != null) {
-				String add2Title = LPMain.getInstance().getTextRespectUISPr(
-						"part.report.geburtstagsliste");
-				getInternalFrame().showReportKriterien(
-						new ReportGeburtstagsliste(getInternalFrame(),
-								add2Title));
+			if (getServicePartnerDto() != null) {
+				String add2Title = LPMain.getTextRespectUISPr("part.report.geburtstagsliste");
+				getInternalFrame().showReportKriterien(new ReportGeburtstagsliste(getInternalFrame(), add2Title));
 			}
 		}
 		if (e.getActionCommand().equals(MENUE_ACTION_PARTNERZUSAMMENFUEHREN)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"part.partnerzusammenfuehren");
-			PanelDialogPartnerZusammenfuehren d = new PanelDialogPartnerZusammenfuehren(
-					getPartnerDto(), getInternalFrame(), add2Title);
+			String add2Title = LPMain.getTextRespectUISPr("part.partnerzusammenfuehren");
+			PanelDialogPartnerZusammenfuehren d = new PanelDialogPartnerZusammenfuehren(getServicePartnerDto(),
+					getInternalFrame(), add2Title);
 			getInternalFrame().showPanelDialog(d);
 			d.setVisible(true);
 		}
@@ -1020,27 +1221,24 @@ public class TabbedPanePartner extends TabbedPane {
 					getInternalFrame());
 
 			/*
-			 * LPMain .getInstance() .getDesktop()
-			 * .platziereDialogRechtsObenImFenster( ((InternalFramePartner)
-			 * getInternalFrame()).dialogWiedervorlage);
+			 * LPMain .getInstance() .getDesktop() .platziereDialogRechtsObenImFenster(
+			 * ((InternalFramePartner) getInternalFrame()).dialogWiedervorlage);
 			 */
-			((InternalFramePartner) getInternalFrame()).dialogWiedervorlage
-					.setVisible(true);
+			((InternalFramePartner) getInternalFrame()).dialogWiedervorlage.setVisible(true);
 
+		}
+
+		if (e.getActionCommand().equals(MENUE_ACTION_XLSIMPORT)) {
+			onActionXlsImportPartner();
 		}
 
 		if (e.getActionCommand().equals(MENUE_ACTION_CSVIMPORT)) {
 
 			// Dateiauswahldialog
 			// PJ 14984
-			File[] files = HelperClient.chooseFile(this,
-					HelperClient.FILE_FILTER_CSV, false);
-			File f = null;
-			if (files != null && files.length > 0) {
-				f = files[0];
-			}
-			if (f != null) {
-				LPCSVReader reader = new LPCSVReader(new FileReader(f), ';');
+			HvOptional<CsvFile> csvFile = FileOpenerFactory.partnerImportCsv(this);
+			if (csvFile.isPresent()) {
+				LPCSVReader reader = csvFile.get().createLPCSVReader();
 
 				String[] sLine;
 				// Erste Zeile Auslassen (Ueberschrift)
@@ -1084,19 +1282,15 @@ public class TabbedPanePartner extends TabbedPane {
 
 						if (sLine.length > 24 && sLine[24].length() == 10) {
 							Calendar c = Calendar.getInstance();
-							c.set(Calendar.YEAR,
-									new Integer(sLine[24].substring(6, 10)));
-							c.set(Calendar.MONTH,
-									new Integer(sLine[24].substring(3, 5)));
-							c.set(Calendar.DAY_OF_MONTH,
-									new Integer(sLine[24].substring(0, 2)));
+							c.set(Calendar.YEAR, new Integer(sLine[24].substring(6, 10)));
+							c.set(Calendar.MONTH, new Integer(sLine[24].substring(3, 5)));
+							c.set(Calendar.DAY_OF_MONTH, new Integer(sLine[24].substring(0, 2)));
 							c.set(Calendar.HOUR, 0);
 							c.set(Calendar.MINUTE, 0);
 							c.set(Calendar.SECOND, 0);
 							c.set(Calendar.MILLISECOND, 0);
 
-							dtoTemp.setAnsprechpartnerGueltigab(new java.sql.Timestamp(
-									c.getTimeInMillis()));
+							dtoTemp.setAnsprechpartnerGueltigab(new java.sql.Timestamp(c.getTimeInMillis()));
 
 						}
 						if (sLine.length > 25) {
@@ -1132,19 +1326,15 @@ public class TabbedPanePartner extends TabbedPane {
 						}
 						if (sLine.length > 35 && sLine[35].length() == 10) {
 							Calendar c = Calendar.getInstance();
-							c.set(Calendar.YEAR,
-									new Integer(sLine[35].substring(6, 10)));
-							c.set(Calendar.MONTH,
-									new Integer(sLine[35].substring(3, 5)));
-							c.set(Calendar.DAY_OF_MONTH,
-									new Integer(sLine[35].substring(0, 2)));
+							c.set(Calendar.YEAR, new Integer(sLine[35].substring(6, 10)));
+							c.set(Calendar.MONTH, new Integer(sLine[35].substring(3, 5)));
+							c.set(Calendar.DAY_OF_MONTH, new Integer(sLine[35].substring(0, 2)));
 							c.set(Calendar.HOUR, 0);
 							c.set(Calendar.MINUTE, 0);
 							c.set(Calendar.SECOND, 0);
 							c.set(Calendar.MILLISECOND, 0);
 
-							dtoTemp.setGeburtsdatumansprechpartner(new java.sql.Timestamp(
-									c.getTimeInMillis()));
+							dtoTemp.setGeburtsdatumansprechpartner(new java.sql.Timestamp(c.getTimeInMillis()));
 
 						}
 						if (sLine.length > 36) {
@@ -1152,6 +1342,12 @@ public class TabbedPanePartner extends TabbedPane {
 						}
 						if (sLine.length > 37) {
 							dtoTemp.setKontonummer(sLine[37]);
+						}
+						if (sLine.length > 38) {
+							dtoTemp.setNewslettergrund(sLine[38]);
+						}
+						if (sLine.length > 39) {
+							dtoTemp.setAnsprechpartnernewslettergrund(sLine[39]);
 						}
 						alDaten.add(dtoTemp);
 					} catch (java.lang.ArrayIndexOutOfBoundsException e1) {
@@ -1168,22 +1364,22 @@ public class TabbedPanePartner extends TabbedPane {
 
 				DialogPartnerImport d = new DialogPartnerImport(dtos, this);
 				d.setSize(500, 500);
-				LPMain.getInstance().getDesktop()
-						.platziereDialogInDerMitteDesFensters(d);
+				LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
 				d.setVisible(true);
-
 			}
-
 		}
 
 	}
 
-	public PartnerDto getPartnerDto() {
-		return partnerDto;
-	}
+	private void onActionXlsImportPartner() throws IOException, Throwable {
+		HvOptional<XlsFile> xlsFile = FileOpenerFactory.partnerImportOpenXls(getInternalFrame());
+		if (!xlsFile.isPresent())
+			return;
 
-	public void setPartnerDto(PartnerDto partnerDto) {
-		this.partnerDto = partnerDto;
+		DialogPartnerimportXLS d = new DialogPartnerimportXLS(xlsFile.get().getBytes(), this);
+		d.setSize(500, 500);
+		LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+		d.setVisible(true);
 	}
 
 	private void refreshKommunikationSP3(Integer iIdPartnerI) throws Throwable {
@@ -1195,25 +1391,20 @@ public class TabbedPanePartner extends TabbedPane {
 			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
 					.createFKPartnerKommunikationPartner(iIdPartnerI);
 
-			panelKommunikationTopQP = new PanelQuery(querytypes, filters,
-					QueryParameters.UC_ID_PARTNERKOMMUNIKATION,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"lp.uebersicht.detail"), true);
+			panelKommunikationTopQP = new PanelQuery(querytypes, filters, QueryParameters.UC_ID_PARTNERKOMMUNIKATION,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("lp.uebersicht.detail"),
+					true);
 
-			panelKommunikationBottomD = new PanelPartnerKommunikation(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.kommunikation"), null,
-					this);
+			panelKommunikationBottomD = new PanelPartnerKommunikation(getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.kommunikation"), null, this);
 
-			panelKommunikationSP = new PanelSplit(getInternalFrame(),
-					panelKommunikationBottomD, panelKommunikationTopQP, 200);
+			panelKommunikationSP = new PanelSplit(getInternalFrame(), panelKommunikationBottomD,
+					panelKommunikationTopQP, 200);
 			setComponentAt(IDX_PANE_KOMMUNIKATION_SP, panelKommunikationSP);
 		} else {
 			// filter refreshen.
-			panelKommunikationTopQP.setDefaultFilter(PartnerFilterFactory
-					.getInstance().createFKPartnerKommunikationPartner(
-							iIdPartnerI));
+			panelKommunikationTopQP.setDefaultFilter(
+					PartnerFilterFactory.getInstance().createFKPartnerKommunikationPartner(iIdPartnerI));
 		}
 	}
 
@@ -1223,26 +1414,20 @@ public class TabbedPanePartner extends TabbedPane {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
 			QueryType[] querytypes = null;
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKPASelektion(iIdPartnerI);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKPASelektion(iIdPartnerI);
 
-			panelSelektionTopQP = new PanelQuery(querytypes, filters,
-					QueryParameters.UC_ID_PARTNERSELEKTION,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"lp.uebersicht.detail"), true);
+			panelSelektionTopQP = new PanelQuery(querytypes, filters, QueryParameters.UC_ID_PARTNERSELEKTION,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("lp.uebersicht.detail"),
+					true);
 
-			panelSelektionBottomD = new PanelPASelektion(getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr("lp.selektion"),
+			panelSelektionBottomD = new PanelPASelektion(getInternalFrame(), LPMain.getTextRespectUISPr("lp.selektion"),
 					null, this);
 
-			panelSelektionSP = new PanelSplit(getInternalFrame(),
-					panelSelektionBottomD, panelSelektionTopQP, 200);
+			panelSelektionSP = new PanelSplit(getInternalFrame(), panelSelektionBottomD, panelSelektionTopQP, 200);
 			setComponentAt(IDX_PANE_PARTNERSELEKTION_SP, panelSelektionSP);
 		} else {
 			// filter refreshen.
-			panelSelektionTopQP.setDefaultFilter(PartnerFilterFactory
-					.getInstance().createFKPASelektion(iIdPartnerI));
+			panelSelektionTopQP.setDefaultFilter(PartnerFilterFactory.getInstance().createFKPASelektion(iIdPartnerI));
 		}
 	}
 
@@ -1252,42 +1437,28 @@ public class TabbedPanePartner extends TabbedPane {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
 			QueryType[] querytypes = null;
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKKurzbriefpartner(iIdPartnerI,
-							LocaleFac.BELEGART_PARTNER);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKKurzbriefpartner(iIdPartnerI,
+					LocaleFac.BELEGART_PARTNER);
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_EMAIL_CLIENT)) {
-				aWhichStandardButtonIUse = new String[] {
-						PanelBasis.ACTION_NEW, ACTION_SPECIAL_NEW_EMAIL };
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_EMAIL_CLIENT)) {
+				aWhichStandardButtonIUse = new String[] { PanelBasis.ACTION_NEW, ACTION_SPECIAL_NEW_EMAIL };
 			}
 
-			panelKurzbriefTopQP = new PanelQuery(querytypes, filters,
-					QueryParameters.UC_ID_PARTNERKURZBRIEF,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr("lp.kurzbrief"),
-					true);
+			panelKurzbriefTopQP = new PanelQuery(querytypes, filters, QueryParameters.UC_ID_PARTNERKURZBRIEF,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("lp.kurzbrief"), true);
 
 			if (aWhichStandardButtonIUse.length > 1) {
 
-				panelKurzbriefTopQP.createAndSaveAndShowButton(
-						"/com/lp/client/res/documentHtml.png", LPMain
-								.getInstance()
-								.getTextRespectUISPr("lp.newHtml"),
-						ACTION_SPECIAL_NEW_EMAIL, KeyStroke.getKeyStroke('N',
-								InputEvent.CTRL_MASK + InputEvent.SHIFT_MASK),
-						null);
+				panelKurzbriefTopQP.createAndSaveAndShowButton("/com/lp/client/res/documentHtml.png",
+						LPMain.getTextRespectUISPr("lp.newHtml"), ACTION_SPECIAL_NEW_EMAIL,
+						KeyStroke.getKeyStroke('N', InputEvent.CTRL_MASK + InputEvent.SHIFT_MASK), null);
 			}
 
-			panelKurzbriefBottomD = new PanelPartnerKurzbrief(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.kurzbrief"), null);
+			panelKurzbriefBottomD = new PanelPartnerKurzbrief(getInternalFrame(),
+					LPMain.getTextRespectUISPr("lp.kurzbrief"), null, LocaleFac.BELEGART_PARTNER);
 
-			panelKurzbriefSP = new DropPanelSplit(getInternalFrame(),
-					panelKurzbriefBottomD, panelKurzbriefTopQP, 150);
+			panelKurzbriefSP = new DropPanelSplit(getInternalFrame(), panelKurzbriefBottomD, panelKurzbriefTopQP, 150);
 
 			if (aWhichStandardButtonIUse.length > 1) {
 				panelKurzbriefSP.beOneTouchExpandable();
@@ -1296,9 +1467,8 @@ public class TabbedPanePartner extends TabbedPane {
 			setComponentAt(IDX_PANE_KURZBRIEF_SP, panelKurzbriefSP);
 		} else {
 			// filter refreshen.
-			panelKurzbriefTopQP.setDefaultFilter(PartnerFilterFactory
-					.getInstance().createFKKurzbriefpartner(iIdPartnerI,
-							LocaleFac.BELEGART_PARTNER));
+			panelKurzbriefTopQP.setDefaultFilter(PartnerFilterFactory.getInstance()
+					.createFKKurzbriefpartner(iIdPartnerI, LocaleFac.BELEGART_PARTNER));
 		}
 	}
 
@@ -1308,27 +1478,21 @@ public class TabbedPanePartner extends TabbedPane {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
 			QueryType[] querytypes = null;
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKKontakt(iIdPartnerI);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKKontakt(iIdPartnerI);
 			;
 
-			panelQueryKontakt = new PanelQuery(querytypes, filters,
-					QueryParameters.UC_ID_KONTAKT, aWhichStandardButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.kontakt"), true);
+			panelQueryKontakt = new PanelQuery(querytypes, filters, QueryParameters.UC_ID_KONTAKT,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("lp.kontakt"), true);
 
-			panelDetailKontakt = new PanelPartnerKontakt(getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr("lp.kontakt"),
+			panelDetailKontakt = new PanelPartnerKontakt(getInternalFrame(), LPMain.getTextRespectUISPr("lp.kontakt"),
 					null);
 
-			panelSplitKontakt = new PanelSplit(getInternalFrame(),
-					panelDetailKontakt, panelQueryKontakt, 150);
+			panelSplitKontakt = new PanelSplit(getInternalFrame(), panelDetailKontakt, panelQueryKontakt, 150);
 
 			setComponentAt(IDX_PANE_KONTAKT, panelSplitKontakt);
 		} else {
 			// filter refreshen.
-			panelQueryKontakt.setDefaultFilter(PartnerFilterFactory
-					.getInstance().createFKKontakt(iIdPartnerI));
+			panelQueryKontakt.setDefaultFilter(PartnerFilterFactory.getInstance().createFKKontakt(iIdPartnerI));
 		}
 	}
 
@@ -1338,26 +1502,20 @@ public class TabbedPanePartner extends TabbedPane {
 			String[] aWhichStandardButtonIUse = { PanelBasis.ACTION_NEW };
 
 			QueryType[] querytypes = null;
-			FilterKriterium[] filters = PartnerFilterFactory.getInstance()
-					.createFKPartnerbank(iIdPartnerI);
+			FilterKriterium[] filters = PartnerFilterFactory.getInstance().createFKPartnerbank(iIdPartnerI);
 
-			panelBankTopQP = new PanelQuery(querytypes, filters,
-					QueryParameters.UC_ID_PARTNERBANK,
-					aWhichStandardButtonIUse, getInternalFrame(), LPMain
-							.getInstance().getTextRespectUISPr(
-									"finanz.bankverbindung"), true);
+			panelBankTopQP = new PanelQuery(querytypes, filters, QueryParameters.UC_ID_PARTNERBANK,
+					aWhichStandardButtonIUse, getInternalFrame(), LPMain.getTextRespectUISPr("finanz.bankverbindung"),
+					true);
 
 			panelBankBottomD = new PanelPartnerpartnerbank(getInternalFrame(),
-					LPMain.getInstance().getTextRespectUISPr(
-							"finanz.bankverbindung"), null);
+					LPMain.getTextRespectUISPr("finanz.bankverbindung"), null);
 
-			panelBankSP = new PanelSplit(getInternalFrame(), panelBankBottomD,
-					panelBankTopQP, 200);
+			panelBankSP = new PanelSplit(getInternalFrame(), panelBankBottomD, panelBankTopQP, 200);
 			setComponentAt(IDX_PANE_BANK_SP, panelBankSP);
 		} else {
 			// filter refreshen.
-			panelBankTopQP.setDefaultFilter(PartnerFilterFactory.getInstance()
-					.createFKPartnerbank(iIdPartnerI));
+			panelBankTopQP.setDefaultFilter(PartnerFilterFactory.getInstance().createFKPartnerbank(iIdPartnerI));
 		}
 	}
 
@@ -1378,76 +1536,83 @@ public class TabbedPanePartner extends TabbedPane {
 	protected javax.swing.JMenuBar getJMenuBar() throws Throwable {
 		if (wrapperMenuBar == null) {
 			wrapperMenuBar = new WrapperMenuBar(this);
-			JMenu menuDatei = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_MODUL);
+			JMenu menuDatei = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_MODUL);
 			menuDatei.add(new JSeparator(), 0);
 
 			// CSV-Import
-			JMenuItem menuItemPartnerImport = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr("part.csvimport"));
+			WrapperMenuItem menuItemPartnerImport = new WrapperMenuItem(LPMain.getTextRespectUISPr("part.csvimport"),
+					RechteFac.RECHT_PART_PARTNER_CUD);
 			menuItemPartnerImport.addActionListener(this);
 			menuItemPartnerImport.setActionCommand(MENUE_ACTION_CSVIMPORT);
 			menuDatei.add(menuItemPartnerImport, 0);
 
+			// XLS-Import
+
+			WrapperMenuItem menuItemPartnerXLSImport = new WrapperMenuItem(LPMain.getTextRespectUISPr("part.xlsimport"),
+					RechteFac.RECHT_PART_PARTNER_CUD);
+			menuItemPartnerXLSImport.addActionListener(this);
+			menuItemPartnerXLSImport.setActionCommand(MENUE_ACTION_XLSIMPORT);
+			menuDatei.add(menuItemPartnerXLSImport, 0);
+
 			JMenu menuInfo = new WrapperMenu("lp.info", this);
 			wrapperMenuBar.addJMenuItem(menuInfo);
-			JMenuItem menuItemadressetikett = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"part.report.adressetikett"));
+			JMenuItem menuItemadressetikett = new JMenuItem(LPMain.getTextRespectUISPr("part.report.adressetikett"));
 			menuItemadressetikett.addActionListener(this);
 			menuItemadressetikett.setActionCommand(MENUE_ACTION_ADRESSETIKETT);
 			menuInfo.add(menuItemadressetikett);
 
 			// Partnerstammblatt
-			JMenuItem menuItemStammblatt = new JMenuItem(LPMain.getInstance()
-					.getTextRespectUISPr("lp.stammblatt"));
+			JMenuItem menuItemStammblatt = new JMenuItem(LPMain.getTextRespectUISPr("lp.stammblatt"));
 			menuItemStammblatt.addActionListener(this);
 			menuItemStammblatt.setActionCommand(MENUE_ACTION_STAMMBLATT);
 			menuInfo.add(menuItemStammblatt);
 
+			JMenuItem menuItemAenderungen = new JMenuItem(
+					LPMain.getTextRespectUISPr("part.report.newsletter.aenderungen"));
+			menuItemAenderungen.addActionListener(this);
+			menuItemAenderungen.setActionCommand(MENUE_ACTION_NEWSLETTER_AENDERUNG);
+			menuInfo.add(menuItemAenderungen);
+
+			JMenuItem menuItemInfoAenderungen = new JMenuItem(LPMain.getTextRespectUISPr("lp.report.aenderungen"));
+			menuItemInfoAenderungen.addActionListener(this);
+			menuItemInfoAenderungen.setActionCommand(MENU_INFO_AENDERUNGEN);
+			menuInfo.add(menuItemInfoAenderungen);
+
 			boolean bDarfPartnerZusammenfuehren = false;
 			try {
-				bDarfPartnerZusammenfuehren = DelegateFactory
-						.getInstance()
-						.getTheJudgeDelegate()
-						.hatRecht(
-								RechteFac.RECHT_PART_PARTNER_ZUSAMMENFUEHREN_ERLAUBT);
+				bDarfPartnerZusammenfuehren = DelegateFactory.getInstance().getTheJudgeDelegate()
+						.hatRecht(RechteFac.RECHT_PART_PARTNER_ZUSAMMENFUEHREN_ERLAUBT);
 			} catch (Throwable ex) {
 				handleException(ex, true);
 			}
 			if (bDarfPartnerZusammenfuehren) {
-				JMenuItem menuItemPartnerZusammenfuehren = new JMenuItem(LPMain
-						.getInstance().getTextRespectUISPr(
-								"part.partnerzusammenfuehren"));
+				JMenuItem menuItemPartnerZusammenfuehren = new JMenuItem(
+						LPMain.getTextRespectUISPr("part.partnerzusammenfuehren"));
 				menuItemPartnerZusammenfuehren.addActionListener(this);
-				menuItemPartnerZusammenfuehren
-						.setActionCommand(MENUE_ACTION_PARTNERZUSAMMENFUEHREN);
-				HelperClient.setToolTipTextMitRechtToComponent(
-						menuItemPartnerZusammenfuehren,
+				menuItemPartnerZusammenfuehren.setActionCommand(MENUE_ACTION_PARTNERZUSAMMENFUEHREN);
+				HelperClient.setToolTipTextMitRechtToComponent(menuItemPartnerZusammenfuehren,
 						RechteFac.RECHT_PART_PARTNER_ZUSAMMENFUEHREN_ERLAUBT);
 				menuDatei.add(menuItemPartnerZusammenfuehren, 0);
 			}
-			JMenu journal = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_JOURNAL);
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_KONTAKTMANAGMENT)) {
-				JMenuItem menuItemWiedervorlage = new JMenuItem(LPMain
-						.getInstance().getTextRespectUISPr("lp.wiedervorlage"));
-				menuItemWiedervorlage.addActionListener(this);
-				menuItemWiedervorlage
-						.setActionCommand(MENUE_ACTION_WIEDERVORLAGE);
+			JMenu journal = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_JOURNAL);
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_KONTAKTMANAGMENT)) {
 
-				journal.add(menuItemWiedervorlage);
+				// SP8743
+				if (!LPMain.getInstance().getDesktop().darfAnwenderAufModulZugreifen(LocaleFac.BELEGART_COCKPIT)) {
+					JMenuItem menuItemWiedervorlage = new JMenuItem(LPMain.getTextRespectUISPr("lp.wiedervorlage"));
+					menuItemWiedervorlage.addActionListener(this);
+					menuItemWiedervorlage.setActionCommand(MENUE_ACTION_WIEDERVORLAGE);
+
+					journal.add(menuItemWiedervorlage);
+
+				}
+
 			}
-			JMenuItem menuItemGeburtstagsliste = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"part.report.geburtstagsliste"));
+			JMenuItem menuItemGeburtstagsliste = new JMenuItem(
+					LPMain.getTextRespectUISPr("part.report.geburtstagsliste"));
 			menuItemGeburtstagsliste.addActionListener(this);
-			menuItemGeburtstagsliste
-					.setActionCommand(MENUE_ACTION_GEBURTSTAGSLISTE);
+			menuItemGeburtstagsliste.setActionCommand(MENUE_ACTION_GEBURTSTAGSLISTE);
 
 			journal.add(menuItemGeburtstagsliste);
 
@@ -1530,8 +1695,7 @@ public class TabbedPanePartner extends TabbedPane {
 		this.bankDto = bankDto;
 	}
 
-	public void setPartnerkommunikationDto(
-			PartnerkommunikationDto partnerkommunikationDto) {
+	public void setPartnerkommunikationDto(PartnerkommunikationDto partnerkommunikationDto) {
 		this.partnerkommunikationDto = partnerkommunikationDto;
 	}
 
@@ -1540,14 +1704,14 @@ public class TabbedPanePartner extends TabbedPane {
 	}
 
 	public void gotoDetail() throws Throwable {
-		refreshPartnerD2(getPartnerDto().getIId());
+		refreshPartnerD2(getServicePartnerDto().getIId());
 		// setSelectedComponent(panelLandPlzOrtSP3);
 		getInternalFrame().getContentPane().validate();
 	}
 
-	public PartnerDto getDto() {
-		return partnerDto;
-	}
+	// public PartnerDto getDto() {
+	// return partnerDto;
+	// }
 
 	public KurzbriefDto getKurzbriefDto() {
 		return kurzbriefDto;
@@ -1555,6 +1719,16 @@ public class TabbedPanePartner extends TabbedPane {
 
 	public void setKurzbriefDto(KurzbriefDto kurzbriefDto) {
 		this.kurzbriefDto = kurzbriefDto;
+	}
+
+	@Override
+	public void setServicePartnerDto(PartnerDto partnerDto) {
+		this.partnerDto = partnerDto;
+	}
+
+	@Override
+	public PartnerDto getServicePartnerDto() {
+		return partnerDto;
 	}
 
 }

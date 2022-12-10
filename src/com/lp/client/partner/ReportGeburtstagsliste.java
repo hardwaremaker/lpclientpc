@@ -121,8 +121,8 @@ public class ReportGeburtstagsliste extends PanelBasis implements
 
 		wdfVon.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(c
 				.getTimeInMillis())));
-		wdfBis.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(System
-				.currentTimeMillis() + 24 * 3600000)));
+		wdfBis.setTimestamp(Helper.cutTimestamp(Helper.addiereTageZuTimestamp(new java.sql.Timestamp(System
+				.currentTimeMillis()),1)));
 
 		getInternalFrame().addItemChangedListener(this);
 
@@ -180,8 +180,8 @@ public class ReportGeburtstagsliste extends PanelBasis implements
 		return DelegateFactory
 				.getInstance()
 				.getKundeDelegate()
-				.printGeburtstagsliste(wdfVon.getTimestamp(),
-						wdfBis.getTimestamp());
+				.printGeburtstagsliste(wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis());
 	}
 
 	public boolean getBErstelleReportSofort() {

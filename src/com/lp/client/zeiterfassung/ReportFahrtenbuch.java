@@ -42,6 +42,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.ZeiterfassungReportFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
+import com.lp.util.Helper;
 
 public class ReportFahrtenbuch extends ReportZeiterfassung implements
 		PanelReportIfJRDS {
@@ -87,14 +88,14 @@ public class ReportFahrtenbuch extends ReportZeiterfassung implements
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
 		JasperPrintLP jasperPrint = null;
 
-		java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-				.getTimestamp().getTime() + 24 * 3600000);
+		java.sql.Timestamp wdfBisTemp =Helper.addiereTageZuTimestamp(new java.sql.Timestamp(wdfBis
+				.getTimestamp().getTime()),1);
 
 		jasperPrint = DelegateFactory
 				.getInstance()
 				.getZeiterfassungReportDelegate()
 				.printFahrtenbuch(getPersonalIId(), wdfVon.getTimestamp(),
-						wdfBisTemp, mitVersteckten(), nurAnwesende(), getPersonAuswahl());
+						wdfBisTemp, mitVersteckten(), nurAnwesende(), getPersonAuswahl(),getKostenstelleIIdAbteilung());
 
 		return jasperPrint;
 

@@ -40,10 +40,16 @@ import javax.naming.InitialContext;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.DatenformatDto;
+import com.lp.server.system.service.EditorContentDto;
+import com.lp.server.system.service.HvImageDto;
 import com.lp.server.system.service.MediaFac;
 import com.lp.server.system.service.MediaartDto;
 import com.lp.server.system.service.MediaartsprDto;
 import com.lp.server.system.service.MediastandardDto;
+import com.lp.server.util.EditorBlockIId;
+import com.lp.server.util.EditorContentIId;
+import com.lp.server.util.HvImageIId;
+import com.lp.server.util.HvOptional;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
@@ -54,8 +60,7 @@ public class MediaDelegate extends Delegate {
 	public MediaDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			mediaFac = (MediaFac) context
-					.lookup("lpserver/MediaFacBean/remote");
+			mediaFac = lookupFac(context, MediaFac.class);	
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -273,4 +278,80 @@ public class MediaDelegate extends Delegate {
 		return mediastandardDto;
 	}
 
+	public HvOptional<HvImageDto> hvImageFindByPrimaryKey(HvImageIId id) throws ExceptionLP {
+		try {
+			return mediaFac.hvImageFindByPrimaryKey(id);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return HvOptional.empty();
+	}
+
+	public HvImageDto createHvImage(HvImageDto dto) throws ExceptionLP {
+		try {
+			return mediaFac.createHvImage(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return null;
+	}
+
+	public void updateHvImage(HvImageDto dto) throws ExceptionLP {
+		try {
+			mediaFac.updateHvImage(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void deleteHvImage(HvImageIId id) throws ExceptionLP {
+		try {
+			mediaFac.deleteHvImage(id, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public HvOptional<EditorContentDto> editorContentFindByPrimaryKey(EditorContentIId id) throws ExceptionLP{
+		try {
+			return mediaFac.editorContentFindByPrimaryKey(id, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public EditorContentDto createEditorContent(EditorContentDto dto)throws ExceptionLP {
+		try {
+			return mediaFac.createEditorContent(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}	
+	}
+	
+	public EditorContentDto updateEditorContent(EditorContentDto dto) throws ExceptionLP{
+		try {
+			return mediaFac.updateEditorContent(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}	
+	}
+	
+	public void deleteEditorContent(EditorContentIId id) throws ExceptionLP{
+		try {
+			mediaFac.deleteEditorContent(id, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}	
+	}
+	
+	public void deleteEditorBlock(EditorBlockIId id) throws ExceptionLP{
+		try {
+			mediaFac.deleteEditorBlock(id, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 }

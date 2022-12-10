@@ -44,6 +44,7 @@ public class PanelReportKriterienOptions {
 	private boolean bMitEmailFax ;
 	private boolean bNurVorschau ;
 	private boolean mitExitButton = true ;	
+	private boolean bNurVorschauMitDrucken;
 
 	public InternalFrame getInternalFrame() {
 		return internalFrame;
@@ -94,11 +95,26 @@ public class PanelReportKriterienOptions {
 	}
 	public void setNurVorschau(boolean bNurVorschau) {
 		this.bNurVorschau = bNurVorschau;
+		bNurVorschauMitDrucken = bNurVorschauMitDrucken ? !bNurVorschau : bNurVorschauMitDrucken;
 	}
+	
 	public boolean isMitExitButton() {
 		return mitExitButton;
 	}
 	public void setMitExitButton(boolean mitExitButton) {
 		this.mitExitButton = mitExitButton;
 	}	
+	
+	public void setNurVorschauMitDrucken(boolean bNurVorschauMitDrucken) {
+		this.bNurVorschauMitDrucken = bNurVorschauMitDrucken;
+		bNurVorschau = bNurVorschau ? !bNurVorschauMitDrucken : bNurVorschau;
+	}
+	
+	public boolean isNurVorschauMitDrucken() {
+		return bNurVorschauMitDrucken;
+	}
+	
+	public boolean isKeineVorschau() {
+		return !bNurVorschau && !bNurVorschauMitDrucken;
+	}
 }

@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -55,182 +54,231 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelReportFac;
 import com.lp.server.artikel.service.ArtikelbestelltFac;
 import com.lp.server.system.service.MailtextDto;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.util.Facade;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class ReportVerwendungsnachweis
-    extends PanelBasis implements PanelReportIfJRDS
-{
-  /**
+public class ReportVerwendungsnachweis extends PanelBasis implements
+		PanelReportIfJRDS {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-protected JPanel jpaWorkingOn = new JPanel();
-  private GridBagLayout gridBagLayout2 = new GridBagLayout();
-  private GridBagLayout gridBagLayout1 = new GridBagLayout();
-  WrapperLabel wlaArtikel = new WrapperLabel();
-  WrapperTextField wtfArtikel = new WrapperTextField();
-  private WrapperDateRangeController wdrBereich = null;
-  
-  private WrapperLabel wlaZeitraum = new WrapperLabel();
-  private WrapperLabel wlaVon = new WrapperLabel();
-  private WrapperDateField wdfVon = new WrapperDateField();
-  private WrapperLabel wlaBis = new WrapperLabel();
-  private WrapperDateField wdfBis = new WrapperDateField();
-  private WrapperCheckBox wcbMitVerbrauchterMenge = new WrapperCheckBox();
-  private WrapperCheckBox wcbVersteckte = null;
-  
-  private Integer artikelIId = null;
-  public ReportVerwendungsnachweis(InternalFrameArtikel internalFrame, String add2Title)
-      throws Throwable {
-    super(internalFrame, add2Title);
-    LPMain.getInstance().getTextRespectUISPr("artikel.verwendungsnachweis");
-    jbInit();
-    initComponents();
+	protected JPanel jpaWorkingOn = new JPanel();
+	private GridBagLayout gridBagLayout2 = new GridBagLayout();
+	private GridBagLayout gridBagLayout1 = new GridBagLayout();
+	WrapperLabel wlaArtikel = new WrapperLabel();
+	WrapperTextField wtfArtikel = new WrapperTextField();
+	private WrapperDateRangeController wdrBereich = null;
 
-    if (internalFrame.getArtikelDto() != null) {
-      wtfArtikel.setText(internalFrame.getArtikelDto().formatArtikelbezeichnung());
-      artikelIId = internalFrame.getArtikelDto().getIId();
-    }
-  }
+	private WrapperLabel wlaZeitraum = new WrapperLabel();
+	private WrapperLabel wlaVon = new WrapperLabel();
+	private WrapperDateField wdfVon = new WrapperDateField();
+	private WrapperLabel wlaBis = new WrapperLabel();
+	private WrapperDateField wdfBis = new WrapperDateField();
+	private WrapperCheckBox wcbMitVerbrauchterMenge = new WrapperCheckBox();
+	private WrapperCheckBox wcbMitHierarchie = new WrapperCheckBox();
+	private WrapperCheckBox wcbMandantenuebergreifend = new WrapperCheckBox();
+	private WrapperCheckBox wcbVersteckte = null;
+	private WrapperCheckBox wcbVerdichtet = null;
 
+	private Integer artikelIId = null;
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return NO_VALUE_THATS_OK_JCOMPONENT;
-  }
+	public ReportVerwendungsnachweis(InternalFrameArtikel internalFrame,
+			String add2Title) throws Throwable {
+		super(internalFrame, add2Title);
+		LPMain.getInstance().getTextRespectUISPr("artikel.verwendungsnachweis");
+		jbInit();
+		initComponents();
 
+		if (internalFrame.getArtikelDto() != null) {
+			wtfArtikel.setText(internalFrame.getArtikelDto()
+					.formatArtikelbezeichnung());
+			artikelIId = internalFrame.getArtikelDto().getIId();
+		}
+	}
 
-  private void jbInit()
-      throws Exception {
-    this.setLayout(gridBagLayout1);
-    jpaWorkingOn.setLayout(gridBagLayout2);
-    wlaArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
-        "artikel.report.artikelbestellt.selektierterartikel") + ": ");
-    wtfArtikel.setActivatable(false);
-    wtfArtikel.setEditable(false);
-    wtfArtikel.setMandatoryField(true);
-    wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
-    
-    wlaZeitraum.setText(LPMain.getInstance().getTextRespectUISPr("lp.zeitraum") + ":");
-    wlaVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
-    wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
-    
-    wcbVersteckte = new WrapperCheckBox(LPMain
-			.getTextRespectUISPr("lp.versteckte"));
-    
-    Calendar c = Calendar.getInstance();
-	c.set(Calendar.YEAR, c.get(Calendar.YEAR) - 1);
-	c.set(Calendar.MONTH, Calendar.JANUARY);
-	c.set(Calendar.DAY_OF_MONTH, 1);
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return NO_VALUE_THATS_OK_JCOMPONENT;
+	}
 
-	wdfVon.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(c
-			.getTimeInMillis())));
-	wdfBis.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(System
-			.currentTimeMillis() + 24 * 3600000)));
-    
-    wcbMitVerbrauchterMenge.setText(LPMain.getInstance().getTextRespectUISPr(
-    "artikel.verwendungsnachweis.mitverbrauchtermenge"));
-    wcbMitVerbrauchterMenge.addActionListener(this);
-    wdrBereich = new WrapperDateRangeController(wdfVon, wdfBis);
-    wdfVon.setEnabled(false);
-	  wdfVon.setMandatoryField(true);
-	  wdfBis.setEnabled(false);
-	  wdfBis.setMandatoryField(true);
-    this.add(jpaWorkingOn,
-             new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
-                                    GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
-    jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(2, 2, 4, 1, 1.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 2, 2, 1, 1.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-        0, 0));
-    
-    jpaWorkingOn.add(wcbMitVerbrauchterMenge, new GridBagConstraints(0, 3, 2, 1, 1.0, 0.0
-            , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-            0, 0));
-    jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(4, 3, 2, 1, 1.0, 0.0
-            , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-            0, 0));
-    
-  
-        jpaWorkingOn.add(wlaZeitraum, new GridBagConstraints(0, 4, 1, 1, 1.0, 0.0
-            , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-            0, 0));
-        jpaWorkingOn.add(wlaVon, new GridBagConstraints(1, 4, 1, 1, 1.0, 0.0
-                , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-                0, 0));
-        jpaWorkingOn.add(wdfVon, new GridBagConstraints(2, 4, 1, 1, 1.0, 0.0
-                , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-                0, 0));
-        jpaWorkingOn.add(wlaBis, new GridBagConstraints(3, 4, 1, 1, 1.0, 0.0
-                , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-                0, 0));
-            jpaWorkingOn.add(wdfBis, new GridBagConstraints(4, 4, 1, 1, 1.0, 0.0
-                    , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-                    0, 0));
-            jpaWorkingOn.add(wdrBereich, new GridBagConstraints(5, 4, 1, 1, 1.0, 0.0
-                    , GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2),
-                    0, 0));
-   
-  }
+	private void jbInit() throws Exception {
+		this.setLayout(gridBagLayout1);
+		jpaWorkingOn.setLayout(gridBagLayout2);
+		wlaArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.report.artikelbestellt.selektierterartikel")
+				+ ": ");
+		wtfArtikel.setActivatable(false);
+		wtfArtikel.setEditable(false);
+		wtfArtikel.setMandatoryField(true);
+		wtfArtikel.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
 
+		wlaZeitraum.setText(LPMain.getInstance().getTextRespectUISPr(
+				"lp.zeitraum")
+				+ ":");
+		wlaVon.setText(LPMain.getInstance().getTextRespectUISPr("lp.von"));
+		wlaBis.setText(LPMain.getInstance().getTextRespectUISPr("lp.bis"));
 
-  public String getModul() {
-    return ArtikelbestelltFac.REPORT_MODUL;
-  }
+		wcbVersteckte = new WrapperCheckBox(
+				LPMain.getTextRespectUISPr("lp.versteckte"));
 
+		
+		wcbVerdichtet= new WrapperCheckBox(LPMain.getInstance().getTextRespectUISPr(
+				"lp.verdichtetartikelnummer"));
+		wcbVerdichtet.addActionListener(this);
+		
+		wcbMitHierarchie = new WrapperCheckBox(
+				LPMain.getTextRespectUISPr("artikel.verwendungsnachweis.mithierarchie"));
 
-  public String getReportname() {
-    return ArtikelReportFac.REPORT_VERWENDUNGSNACHWEIS;
-  }
+		wcbMandantenuebergreifend = new WrapperCheckBox(
+				LPMain.getTextRespectUISPr("artikel.verwendungsnachweis.mandantenuebergreifend"));
 
+		Calendar c = Calendar.getInstance();
+		c.set(Calendar.YEAR, c.get(Calendar.YEAR) - 1);
+		c.set(Calendar.MONTH, Calendar.JANUARY);
+		c.set(Calendar.DAY_OF_MONTH, 1);
 
-  protected void eventActionSpecial(ActionEvent e) throws Throwable {
-	  
-	  if(e.getSource().equals(wcbMitVerbrauchterMenge)){
-		  
-		  if(wcbMitVerbrauchterMenge.isSelected()){
-			  wdfVon.setEnabled(true);
-			  wdfBis.setEnabled(true);
-		  } else {
-			  wdfVon.setEnabled(false);
-			  wdfBis.setEnabled(false);
-		  }
-	  }
-	  
-	  
-  }
-  
-  public JasperPrintLP getReport(String sDrucktype)
-      throws Throwable {
-	  
-	  if(wcbMitVerbrauchterMenge.isSelected()){
-		  return DelegateFactory.getInstance().getArtikelReportDelegate().
-	        printVerwendungsnachweis(
-	            artikelIId,true,Helper.cutTimestamp(wdfVon.getTimestamp()),wdfBis.getTimestamp(), wcbVersteckte.isSelected());
-	  } else {
-		  return DelegateFactory.getInstance().getArtikelReportDelegate().
-	        printVerwendungsnachweis(
-	            artikelIId,false,null,null,wcbVersteckte.isSelected());
-	  }
-	  
-   
+		wdfVon.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(c
+				.getTimeInMillis())));
+		wdfBis.setTimestamp(Helper.cutTimestamp(Helper.addiereTageZuTimestamp(  new java.sql.Timestamp(System
+				.currentTimeMillis()),1)));
 
-  }
+		wcbMitVerbrauchterMenge.setText(LPMain.getInstance()
+				.getTextRespectUISPr(
+						"artikel.verwendungsnachweis.mitverbrauchtermenge"));
+		wcbMitVerbrauchterMenge.addActionListener(this);
+		wdrBereich = new WrapperDateRangeController(wdfVon, wdfBis);
+		wdfVon.setEnabled(false);
+		wdfVon.setMandatoryField(true);
+		wdfBis.setEnabled(false);
+		wdfBis.setMandatoryField(true);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
+						0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wtfArtikel, new GridBagConstraints(2, 2, 4, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaArtikel, new GridBagConstraints(0, 2, 2, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
+		jpaWorkingOn.add(wcbMitVerbrauchterMenge, new GridBagConstraints(0, 3,
+				2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbVerdichtet, new GridBagConstraints(2, 3,
+				2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-  public boolean getBErstelleReportSofort() {
-    return true;
-  }
+		jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(4, 3, 2, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
 
+		if (LPMain
+				.getInstance()
+				.getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(
+						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM)) {
 
-  public MailtextDto getMailtextDto()
-      throws Throwable {
-    MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
-    return mailtextDto;
-  }
+			jpaWorkingOn.add(wcbMandantenuebergreifend,
+					new GridBagConstraints(4, 4, 2, 1, 0, 0.0,
+							GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
+									2), 0, 0));
+		}
+
+		jpaWorkingOn.add(wcbMitHierarchie, new GridBagConstraints(0, 4, 2, 1,
+				1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wlaZeitraum, new GridBagConstraints(0, 5, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaVon, new GridBagConstraints(1, 5, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfVon, new GridBagConstraints(2, 5, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaBis, new GridBagConstraints(3, 5, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdfBis, new GridBagConstraints(4, 5, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wdrBereich, new GridBagConstraints(5, 5, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(2, 2, 2, 2), 0, 0));
+
+	}
+
+	public String getModul() {
+		return ArtikelbestelltFac.REPORT_MODUL;
+	}
+
+	public String getReportname() {
+		return ArtikelReportFac.REPORT_VERWENDUNGSNACHWEIS;
+	}
+
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+
+		if (e.getSource().equals(wcbMitVerbrauchterMenge)) {
+
+			if (wcbMitVerbrauchterMenge.isSelected()) {
+				wdfVon.setEnabled(true);
+				wdfBis.setEnabled(true);
+			} else {
+				wdfVon.setEnabled(false);
+				wdfBis.setEnabled(false);
+			}
+		}
+		
+		if (e.getSource().equals(wcbVerdichtet)) {
+			if (wcbVerdichtet.isSelected()) {
+				wcbMitHierarchie.setEnabled(false);
+				wcbMitHierarchie.setSelected(false);
+			}else {
+				wcbMitHierarchie.setEnabled(true);
+			}
+			
+		}
+		
+
+	}
+
+	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
+
+		if (wcbMitVerbrauchterMenge.isSelected()) {
+			return DelegateFactory
+					.getInstance()
+					.getArtikelReportDelegate()
+					.printVerwendungsnachweis(artikelIId, true,
+							wdrBereich.getTimestampVon(),
+							wdrBereich.getTimestampBis(), wcbVersteckte.isSelected(),
+							wcbMitHierarchie.isSelected(),
+							wcbMandantenuebergreifend.isSelected(),
+							wcbVerdichtet.isSelected());
+		} else {
+			return DelegateFactory
+					.getInstance()
+					.getArtikelReportDelegate()
+					.printVerwendungsnachweis(artikelIId, false, null, null,
+							wcbVersteckte.isSelected(),
+							wcbMitHierarchie.isSelected(),
+							wcbMandantenuebergreifend.isSelected(),
+							wcbVerdichtet.isSelected());
+		}
+
+	}
+
+	public boolean getBErstelleReportSofort() {
+		return true;
+	}
+
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien
+				.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

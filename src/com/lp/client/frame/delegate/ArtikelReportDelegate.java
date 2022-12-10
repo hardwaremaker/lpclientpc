@@ -33,6 +33,7 @@
 package com.lp.client.frame.delegate;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.TreeMap;
 
 import javax.naming.Context;
@@ -42,6 +43,10 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.anfrage.service.ReportAnfragestatistikKriterienDto;
 import com.lp.server.artikel.service.ArtikelReportFac;
+import com.lp.server.artikel.service.ArtikelReportFac.ReportKundensonderkoditionenSortierung;
+import com.lp.server.system.service.GeaenderteChargennummernDto;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.TheClientDto;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.EJBExceptionLP;
 
@@ -52,8 +57,7 @@ public class ArtikelReportDelegate extends Delegate {
 	public ArtikelReportDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			artikelReportFac = (ArtikelReportFac) context
-					.lookup("lpserver/ArtikelReportFacBean/remote");
+			artikelReportFac = lookupFac(context, ArtikelReportFac.class);
 		} catch (Throwable t) {
 			throw new ExceptionLP(EJBExceptionLP.FEHLER, t);
 		}
@@ -62,8 +66,7 @@ public class ArtikelReportDelegate extends Delegate {
 
 	public JasperPrintLP printFehlmengen(Integer artikelIId) throws ExceptionLP {
 		try {
-			return artikelReportFac.printFehlmengen(artikelIId,
-					LPMain.getTheClient());
+			return artikelReportFac.printFehlmengen(artikelIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -71,11 +74,21 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printKundensokos(Integer artikelIId)
-			throws ExceptionLP {
+	public JasperPrintLP printKundensokos(Integer artikelIId) throws ExceptionLP {
 		try {
-			return artikelReportFac.printKundensokos(artikelIId,
-					LPMain.getTheClient());
+			return artikelReportFac.printKundensokos(artikelIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public JasperPrintLP printKundensonderkonditionen(Integer artikelgruppeIId, Integer artikelklasseIId,
+			String artikelnrVon, String artikelnrBis, boolean bMitVersteckten,
+			ReportKundensonderkoditionenSortierung sort) throws ExceptionLP {
+		try {
+			return artikelReportFac.printKundensonderkonditionen(artikelgruppeIId, artikelklasseIId, artikelnrVon, artikelnrBis, bMitVersteckten, sort, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -85,8 +98,7 @@ public class ArtikelReportDelegate extends Delegate {
 
 	public JasperPrintLP printNaechsteWartungen() throws ExceptionLP {
 		try {
-			return artikelReportFac.printNaechsteWartungen(LPMain
-					.getTheClient());
+			return artikelReportFac.printNaechsteWartungen(LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -94,10 +106,33 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printLieferantenpreis(Integer artikelIId)
+	public JasperPrintLP printLieferantenpreis(Integer artikelIId) throws ExceptionLP {
+		try {
+			return artikelReportFac.printLieferantenpreis(artikelIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public JasperPrintLP printLieferantenpreisvergleich(Integer artikelIId, java.sql.Date dStichtag)
 			throws ExceptionLP {
 		try {
-			return artikelReportFac.printLieferantenpreis(artikelIId,
+			return artikelReportFac.printLieferantenpreisvergleich(artikelIId, dStichtag, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public JasperPrintLP printMakeOrBuy(Integer artikelgruppeIId, Integer artikelklasseIId, String artiklenrVon,
+			String artiklenrBis, java.sql.Date dStichtagEK, java.sql.Date dZeitraumVonAblieferung,
+			java.sql.Date dZeitraumBisAblieferung, boolean bMitVersteckten) throws ExceptionLP {
+		try {
+			return artikelReportFac.printMakeOrBuy(artikelgruppeIId, artikelklasseIId, artiklenrVon, artiklenrBis,
+					dStichtagEK, dZeitraumVonAblieferung, dZeitraumBisAblieferung, bMitVersteckten,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -106,10 +141,20 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printAlergene(String artikelNrVon, String artikelNrBis)
-			throws ExceptionLP {
+	public JasperPrintLP printAlergene(String artikelNrVon, String artikelNrBis) throws ExceptionLP {
 		try {
-			return artikelReportFac.printAllergene(artikelNrVon, artikelNrBis,
+			return artikelReportFac.printAllergene(artikelNrVon, artikelNrBis, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public JasperPrintLP printGeaenderteChargen(String artikelNrVon, String artikelNrBis,
+			ArrayList<GeaenderteChargennummernDto> alGeaenderteChargen) throws ExceptionLP {
+		try {
+			return artikelReportFac.printGeaenderteChargen(artikelNrVon, artikelNrBis, alGeaenderteChargen,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -118,11 +163,9 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printAenderungen(Integer artikelIId)
-			throws ExceptionLP {
+	public JasperPrintLP printAenderungen(Integer artikelIId) throws ExceptionLP {
 		try {
-			return artikelReportFac.printAenderungen(artikelIId,
-					LPMain.getTheClient());
+			return artikelReportFac.printAenderungen(artikelIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -132,8 +175,7 @@ public class ArtikelReportDelegate extends Delegate {
 
 	public JasperPrintLP printMindestlagerstaende() throws ExceptionLP {
 		try {
-			return artikelReportFac.printMindestlagerstaende(LPMain
-					.getTheClient());
+			return artikelReportFac.printMindestlagerstaende(LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -141,22 +183,33 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printAuftragsseriennummern(Integer artikelIId,
-			java.sql.Date dVon, java.sql.Date dBis) throws ExceptionLP {
-		try {
-			return artikelReportFac.printAuftragsseriennummern(artikelIId,
-					dVon, dBis, LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-
-	}
-
-	public JasperPrintLP printVkPreisentwicklung(Integer artikelIId)
+	public JasperPrintLP printAuftragsseriennummern(Integer artikelIId, java.sql.Date dVon, java.sql.Date dBis)
 			throws ExceptionLP {
 		try {
-			return artikelReportFac.printVkPreisentwicklung(artikelIId,
+			return artikelReportFac.printAuftragsseriennummern(artikelIId, dVon, dBis, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public JasperPrintLP printVkPreisentwicklung(Integer artikelIId) throws ExceptionLP {
+		try {
+			return artikelReportFac.printVkPreisentwicklung(artikelIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public JasperPrintLP printVkPreisliste(Integer preislisteIId, Integer artikelgruppeIId, Integer artikelklasseIId,
+			Integer shopgruppeIId, boolean bMitInaktiven, String artikelnrVon, String artikelnrBis,
+			boolean bMitVersteckten, java.sql.Date datGueltikeitsdatumI, String waehrungCNr) throws ExceptionLP {
+		try {
+			return artikelReportFac.printVkPreisliste(preislisteIId, artikelgruppeIId, artikelklasseIId, shopgruppeIId,
+					bMitInaktiven, artikelnrVon, artikelnrBis, bMitVersteckten, datGueltikeitsdatumI, waehrungCNr,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -165,28 +218,25 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printVkPreisliste(Integer preislisteIId,
-			Integer artikelgruppeIId, Integer artikelklasseIId,
-			Integer shopgruppeIId, boolean bMitInaktiven, String artikelnrVon,
-			String artikelnrBis, boolean bMitVersteckten,
-			java.sql.Date datGueltikeitsdatumI) throws ExceptionLP {
+	public JasperPrintLP printAuftragswerte(String artikelNrVon, String artikelNrBis, boolean bMitKonsignationslager)
+
+			throws ExceptionLP {
+		JasperPrintLP oPrint = null;
+
 		try {
-			return artikelReportFac.printVkPreisliste(preislisteIId,
-					artikelgruppeIId, artikelklasseIId, shopgruppeIId,
-					bMitInaktiven, artikelnrVon, artikelnrBis, bMitVersteckten,
-					datGueltikeitsdatumI, LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
+			oPrint = artikelReportFac.printAuftragswerte(artikelNrVon, artikelNrBis, bMitKonsignationslager,
+					LPMain.getTheClient());
+
+		} catch (Throwable t) {
+			handleThrowable(t);
 		}
 
+		return oPrint;
 	}
 
-	public JasperPrintLP printAufgeloesteFehlmengen(
-			TreeMap<?, ?> tmAufgeloesteFehlmengen) throws ExceptionLP {
+	public JasperPrintLP printAufgeloesteFehlmengen(Integer fasessionIId, boolean bNachdruck) throws ExceptionLP {
 		try {
-			return artikelReportFac.printAufgeloesteFehlmengen(
-					tmAufgeloesteFehlmengen, LPMain.getTheClient());
+			return artikelReportFac.printAufgeloesteFehlmengen(fasessionIId, bNachdruck, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -196,7 +246,93 @@ public class ArtikelReportDelegate extends Delegate {
 
 	public JasperPrintLP printLosstatus(Integer artikelIId) throws Throwable {
 		try {
-			return artikelReportFac.printLosstatus(artikelIId,
+			return artikelReportFac.printLosstatus(artikelIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printLagercockpitMaterialVerteilungsvorschlag(Integer iOption) throws Throwable {
+		try {
+			return artikelReportFac.printLagercockpitMaterialVerteilungsvorschlag(iOption, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printLagercockpitWELagerVerteilungsvorschlag() throws Throwable {
+		try {
+			return artikelReportFac.printLagercockpitWELagerVerteilungsvorschlag(LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printVerwendungsnachweis(Integer artikelIId, boolean bMitVerbrauchtenMengen,
+			java.sql.Timestamp tVon, java.sql.Timestamp tBis, boolean bMitVersteckten, boolean bMitHierarchie,
+			boolean bMandantenuebergreifend, boolean bVerdichtet) throws ExceptionLP {
+		try {
+			return artikelReportFac.printVerwendungsnachweis(artikelIId, bMitVerbrauchtenMengen, tVon, tBis,
+					bMitVersteckten, bMitHierarchie, bMandantenuebergreifend, bVerdichtet, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printArtikelOhneStklVerwendung(boolean bMitVersteckten) throws ExceptionLP {
+		try {
+			return artikelReportFac.printArtikelOhneStklVerwendung(bMitVersteckten, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printFreiInFertigung(Integer artikelIId) throws Throwable {
+		try {
+			return artikelReportFac.printFreiInFertigung(artikelIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printMehrereArtikeletiketten(String artikelgruppeFilt, Integer artikelklasseIId,
+			Integer artikelVonId, Integer artikelBisId, Integer lagerIId, Integer lagerplatzVon, Integer lagerplatzBis,
+			Integer shopgruppeIId, ArtikelReportFac.ReportMehrereArtikeletikettenSortierung sortierung,
+			boolean orderAscDesc, boolean etikettProLagerplatz) throws ExceptionLP {
+		try {
+			return artikelReportFac.printMehrereArtikeletiketten(artikelgruppeFilt, artikelklasseIId, artikelVonId,
+					artikelBisId, lagerIId, lagerplatzVon, lagerplatzBis, shopgruppeIId, sortierung, orderAscDesc,
+					etikettProLagerplatz, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printArtikeletikett(Integer artikelIId, String sKommentar, BigDecimal bdMenge,
+			Integer iExemplare, String[] cSnrChnr, Integer lagerIIdfuerLagerstandDerCharge, String lfdnr,
+			String trennzeichenLfdNr) throws Throwable {
+		try {
+			return artikelReportFac.printArtikeletikett(artikelIId, sKommentar, bdMenge, iExemplare, cSnrChnr,
+					lagerIIdfuerLagerstandDerCharge, lfdnr, trennzeichenLfdNr, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printSeriennummernStammblatt(Integer lagerIId, Integer artikelIId, String[] cSeriennrs,
+			boolean bSortIdent, String snrWildcard, String versionWildcard, boolean bNurSeriennummern,
+			boolean nurObersteEbene) throws ExceptionLP {
+		try {
+			return artikelReportFac.printSeriennummernStammblatt(lagerIId, artikelIId, cSeriennrs, snrWildcard,
+					new Boolean(bSortIdent), versionWildcard, bNurSeriennummern, nurObersteEbene,
 					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
@@ -204,94 +340,38 @@ public class ArtikelReportDelegate extends Delegate {
 		}
 	}
 
-	public JasperPrintLP printLagercockpitMaterialVerteilungsvorschlag(
-			boolean bNurArtikelMitLagerstand) throws Throwable {
+	public JasperPrintLP printLagerplatzetikett(Integer lagerplatzIId) throws Throwable {
 		try {
-			return artikelReportFac
-					.printLagercockpitMaterialVerteilungsvorschlag(
-							bNurArtikelMitLagerstand, LPMain.getTheClient());
+			return artikelReportFac.printLagerplatzetikett(lagerplatzIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printLagercockpitWELagerVerteilungsvorschlag()
-			throws Throwable {
+	public JasperPrintLP printArtikelstammblatt(Integer artikelIId) throws Throwable {
 		try {
-			return artikelReportFac
-					.printLagercockpitWELagerVerteilungsvorschlag(LPMain
-							.getTheClient());
+			return artikelReportFac.printArtikelstammblatt(artikelIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printVerwendungsnachweis(Integer artikelIId,
-			boolean bMitVerbrauchtenMengen, java.sql.Timestamp tVon,
-			java.sql.Timestamp tBis, boolean bMitVersteckten)
+	public JasperPrintLP printArtikelbestellt(Integer artikelIId, java.sql.Date dVon, java.sql.Date dBis)
 			throws ExceptionLP {
 		try {
-			return artikelReportFac.printVerwendungsnachweis(artikelIId,
-					bMitVerbrauchtenMengen, tVon, tBis, bMitVersteckten,
-					LPMain.getTheClient());
+			return artikelReportFac.printArtikelbestellt(artikelIId, dVon, dBis, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
+
 	}
 
-	public JasperPrintLP printFreiInFertigung(Integer artikelIId)
-			throws Throwable {
+	public JasperPrintLP printRahmenbestellungsliste(Integer artikelIId) throws ExceptionLP {
 		try {
-			return artikelReportFac.printFreiInFertigung(artikelIId,
-					LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printArtikeletikett(Integer artikelIId,
-			String sKommentar, BigDecimal bdMenge, Integer iExemplare,
-			String[] cSnrChnr) throws Throwable {
-		try {
-			return artikelReportFac.printArtikeletikett(artikelIId, sKommentar,
-					bdMenge, iExemplare, cSnrChnr, LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printLagerplatzetikett(Integer lagerplatzIId)
-			throws Throwable {
-		try {
-			return artikelReportFac.printLagerplatzetikett(lagerplatzIId,
-					LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printArtikelstammblatt(Integer artikelIId)
-			throws Throwable {
-		try {
-			return artikelReportFac.printArtikelstammblatt(artikelIId,
-					LPMain.getTheClient());
-		} catch (Throwable ex) {
-			handleThrowable(ex);
-			return null;
-		}
-	}
-
-	public JasperPrintLP printArtikelbestellt(Integer artikelIId,
-			java.sql.Date dVon, java.sql.Date dBis) throws ExceptionLP {
-		try {
-			return artikelReportFac.printArtikelbestellt(artikelIId, dVon,
-					dBis, LPMain.getTheClient());
+			return artikelReportFac.printRahmenbestellungsliste(artikelIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -299,11 +379,10 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printRahmenbestellungsliste(Integer artikelIId)
+	public JasperPrintLP printWerkzeugVerschleissteil(Integer werkzeugIId, Integer verschleisteilIId)
 			throws ExceptionLP {
 		try {
-			return artikelReportFac.printRahmenbestellungsliste(artikelIId,
-					LPMain.getTheClient());
+			return artikelReportFac.printWerkzeugVerschleissteil(werkzeugIId, verschleisteilIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -311,27 +390,36 @@ public class ArtikelReportDelegate extends Delegate {
 
 	}
 
-	public JasperPrintLP printBewegungsvorschau(Integer artikelIId,
-			boolean bInterneBestellungMiteibeziehen) throws Throwable {
+	public JasperPrintLP printBewegungsvorschau(Integer artikelIId, boolean bInterneBestellungMiteibeziehen,
+			Integer partnerIIdStandort, boolean bMitRahmen, boolean bUeberAlleMandanten) throws Throwable {
 		try {
-			return artikelReportFac.printBewegungsvorschau(artikelIId,
-					bInterneBestellungMiteibeziehen, LPMain.getTheClient());
+			return artikelReportFac.printBewegungsvorschau(artikelIId, bInterneBestellungMiteibeziehen,
+					partnerIIdStandort, bMitRahmen, bUeberAlleMandanten, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
 		}
 	}
 
-	public JasperPrintLP printArtikelstatistik(Integer artikelIId,
-			java.sql.Date dVon, java.sql.Date dBis, Integer iOption,
-			boolean bMonatsstatistik, boolean bEingeschraenkt,
-			boolean bMitHandlagerbewegungen, boolean bMitBewegungsvorschau,
-			boolean bMitHistory) throws ExceptionLP {
+	public JasperPrintLP printBewegungsvorschauAlle(Integer artikelgruppeIId, Integer artikelklasseIId, String artiklenrVon, String artiklenrBis,
+			Integer partnerIIdStandort, boolean bMitRahmen, boolean bArtikelOhneBewegungsvorschauAusblenden, boolean bMitVersteckten) throws Throwable {
 		try {
-			return artikelReportFac.printArtikelstatistik(artikelIId, dVon,
-					dBis, iOption, bMonatsstatistik, bEingeschraenkt,
-					bMitHandlagerbewegungen, bMitBewegungsvorschau,
-					bMitHistory, LPMain.getTheClient());
+			return artikelReportFac.printBewegungsvorschauAlle(artikelgruppeIId, artikelklasseIId, artiklenrVon, artiklenrBis,
+					partnerIIdStandort, bMitRahmen, bArtikelOhneBewegungsvorschauAusblenden, bMitVersteckten, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+	}
+
+	public JasperPrintLP printArtikelstatistik(Integer artikelIId, java.sql.Date dVon, java.sql.Date dBis,
+			Integer iOption, boolean bMonatsstatistik, boolean bEingeschraenkt, boolean bMitHandlagerbewegungen,
+			boolean bMitBewegungsvorschau, boolean bMitNichtFreigegebenenAuftraegen, boolean bMitHistory,
+			boolean bMitVorgaengern) throws ExceptionLP {
+		try {
+			return artikelReportFac.printArtikelstatistik(artikelIId, dVon, dBis, iOption, bMonatsstatistik,
+					bEingeschraenkt, bMitHandlagerbewegungen, bMitBewegungsvorschau, bMitNichtFreigegebenenAuftraegen,
+					bMitHistory, bMitVorgaengern, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 			return null;
@@ -339,22 +427,17 @@ public class ArtikelReportDelegate extends Delegate {
 	}
 
 	/**
-	 * Fuer einen bestimmten Artikel die Rahmenreservierung des Auftrags
-	 * drucken.
+	 * Fuer einen bestimmten Artikel die Rahmenreservierung des Auftrags drucken.
 	 * 
-	 * @param kritDtoI
-	 *            die Auswertungskriterien des Benutzers
+	 * @param kritDtoI die Auswertungskriterien des Benutzers
 	 * @return JasperPrint der Druck
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public JasperPrintLP printRahmenreservierungsliste(
-			ReportAnfragestatistikKriterienDto kritDtoI) throws ExceptionLP {
+	public JasperPrintLP printRahmenreservierungsliste(ReportAnfragestatistikKriterienDto kritDtoI) throws ExceptionLP {
 		JasperPrintLP jasperPrint = null;
 
 		try {
-			jasperPrint = artikelReportFac.printRahmenreservierungsliste(
-					kritDtoI, LPMain.getTheClient());
+			jasperPrint = artikelReportFac.printRahmenreservierungsliste(kritDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

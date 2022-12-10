@@ -38,6 +38,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JTabbedPane;
 
 import com.lp.client.finanz.TabbedPaneMahnwesen;
+import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
@@ -57,9 +58,12 @@ import com.lp.server.rechnung.service.RechnungpositionsartDto;
 import com.lp.server.rechnung.service.RechnungstatusDto;
 import com.lp.server.rechnung.service.RechnungtextDto;
 import com.lp.server.rechnung.service.RechnungtypDto;
+import com.lp.server.rechnung.service.VerrechnungsmodellDto;
 import com.lp.server.rechnung.service.ZahlungsartDto;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.MandantFac;
 import com.lp.server.system.service.ModulberechtigungDto;
+import com.lp.util.EJBExceptionLP;
 
 @SuppressWarnings("static-access")
 /*
@@ -79,26 +83,31 @@ public class InternalFrameRechnung extends InternalFrame {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	java.sql.Date neuDatum = null;
+	public java.sql.Date neuDatum = null;
 
 	private TabbedPaneRechnung tabbedPaneRechnung = null;
 	private TabbedPaneGutschrift tabbedPaneGutschrift = null;
 	private TabbedPaneProformarechnung tabbedPaneProformarechnung = null;
 	private TabbedPaneMahnwesen tabbedPaneMahnwesen = null;
+	private TabbedPaneAbrechnungsvorschlag tabbedPaneAbrechnungsvorschlag = null;
+	private TabbedPaneVerrechnungsmodell tabbedPaneVerrechnungsmodell = null;
 	private TabbedPaneGrunddaten tabbedPaneGrunddaten = null;
+	private TabbedPaneZeitnachweis tabbedPaneZeitinfo = null;
 
 	public static final int IDX_TABBED_PANE_RECHNUNG = 0;
 	// da das gutschriftsmodul optional ist, sind die weiteren indizes flexibel
 	public int index = 0;
-	public static int IDX_TABBED_PANE_GUTSCHRIFT = -1;
-	public static int IDX_TABBED_PANE_MAHNWESEN = -1;
-	public static int IDX_TABBED_PANE_GRUNDDATEN = -1;
+	public  int IDX_TABBED_PANE_GUTSCHRIFT = -1;
+	public  int IDX_TABBED_PANE_MAHNWESEN = -1;
+	public  int IDX_TABBED_PANE_GRUNDDATEN = -1;
 	/**
-	 * @todo reihenfolgen aendern, wenn proformarechnung wieder einschalten PJ
-	 *       4750
+	 * @todo reihenfolgen aendern, wenn proformarechnung wieder einschalten PJ 4750
 	 */
 
-	private int IDX_TABBED_PANE_PROFORMARECHNUNG = -1;
+	public  int IDX_TABBED_PANE_PROFORMARECHNUNG = -1;
+	private int IDX_TABBED_PANE_ABRECHNUNGSVORSCHLAG = -1;
+	private int IDX_TABBED_PANE_VERRECHNUNGSMODELL = -1;
+	private int IDX_TABBED_PANE_ZEITINFO = -1;
 
 	private RechnungtextDto rechnungtextDto = new RechnungtextDto();
 	private GutschrifttextDto gutschrifttextDto = new GutschrifttextDto();
@@ -113,8 +122,17 @@ public class InternalFrameRechnung extends InternalFrame {
 	private MahnstufeDto mahnstufeDto = new MahnstufeDto();
 	private GutschriftsgrundDto gutschriftsgrundDto = new GutschriftsgrundDto();
 
-	public InternalFrameRechnung(String title, String belegartCNr,
-			String sRechtModulweitI) throws Throwable {
+	private VerrechnungsmodellDto verrechnungsmodellDto = new VerrechnungsmodellDto();
+
+	public VerrechnungsmodellDto getVerrechnungsmodellDto() {
+		return verrechnungsmodellDto;
+	}
+
+	public void setVerrechnungsmodellDto(VerrechnungsmodellDto verrechnungsmodellDto) {
+		this.verrechnungsmodellDto = verrechnungsmodellDto;
+	}
+
+	public InternalFrameRechnung(String title, String belegartCNr, String sRechtModulweitI) throws Throwable {
 		super(title, belegartCNr, sRechtModulweitI);
 		jbInit();
 		initComponents();
@@ -124,41 +142,28 @@ public class InternalFrameRechnung extends InternalFrame {
 		boolean bMitGutschrift = false;
 		boolean bMitProformarechnung = false;
 		// Berechtigung pruefen
-		ModulberechtigungDto[] modulberechtigungDtos = DelegateFactory
-				.getInstance().getMandantDelegate()
+		ModulberechtigungDto[] modulberechtigungDtos = DelegateFactory.getInstance().getMandantDelegate()
 				.modulberechtigungFindByMandantCNr();
 		for (int i = 0; i < modulberechtigungDtos.length; i++) {
-			if (modulberechtigungDtos[i].getBelegartCNr().equals(
-					LocaleFac.BELEGART_GUTSCHRIFT)) {
+			if (modulberechtigungDtos[i].getBelegartCNr().equals(LocaleFac.BELEGART_GUTSCHRIFT)) {
 				bMitGutschrift = true;
 			}
-			if (modulberechtigungDtos[i].getBelegartCNr().trim()
-					.equals(LocaleFac.BELEGART_PROFORMARECHNUNG)) {
+			if (modulberechtigungDtos[i].getBelegartCNr().trim().equals(LocaleFac.BELEGART_PROFORMARECHNUNG)) {
 				bMitProformarechnung = true;
 			}
 		}
 
 		index = 0;
 		// 1 tab unten: Rechnungen
-		tabbedPaneRoot.insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"rechnung.tab.unten.rechnung.title"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"rechnung.tab.unten.rechnung.tooltip"),
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("rechnung.tab.unten.rechnung.title"), null,
+				null, LPMain.getInstance().getTextRespectUISPr("rechnung.tab.unten.rechnung.tooltip"),
 				IDX_TABBED_PANE_RECHNUNG);
 		index++;
 		if (bMitGutschrift) {
 			// 2 tab unten: Gutschriften
 			IDX_TABBED_PANE_GUTSCHRIFT = index;
-			tabbedPaneRoot.insertTab(
-					LPMain.getInstance().getTextRespectUISPr(
-							"rechnung.tab.unten.gutschrift.title"),
-					null,
-					null,
-					LPMain.getInstance().getTextRespectUISPr(
-							"rechnung.tab.unten.gutschrift.tooltip"),
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("rechnung.tab.unten.gutschrift.title"),
+					null, null, LPMain.getInstance().getTextRespectUISPr("rechnung.tab.unten.gutschrift.tooltip"),
 					IDX_TABBED_PANE_GUTSCHRIFT);
 			index++;
 		}
@@ -166,42 +171,52 @@ public class InternalFrameRechnung extends InternalFrame {
 			// 3 tab unten: Proformarechnungen
 			IDX_TABBED_PANE_PROFORMARECHNUNG = index;
 			tabbedPaneRoot.insertTab(
-					LPMain.getInstance().getTextRespectUISPr(
-							"rechnung.tab.unten.proformarechnung.title"),
-					null,
-					null,
-					LPMain.getInstance().getTextRespectUISPr(
-							"rechnung.tab.unten.proformarechnung.tooltip"),
+					LPMain.getInstance().getTextRespectUISPr("rechnung.tab.unten.proformarechnung.title"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("rechnung.tab.unten.proformarechnung.tooltip"),
 					IDX_TABBED_PANE_PROFORMARECHNUNG);
 			index++;
 		}
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ABRECHNUNGSVORSCHLAG)) {
+
+			IDX_TABBED_PANE_ABRECHNUNGSVORSCHLAG = index;
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("rech.abrechnungsvorschlag"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("rech.abrechnungsvorschlag"),
+					IDX_TABBED_PANE_ABRECHNUNGSVORSCHLAG);
+			index++;
+		}
+
 		// 4 tab unten: Mahnwesen
 		IDX_TABBED_PANE_MAHNWESEN = index;
-		tabbedPaneRoot.insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"finanz.tab.unten.mahnwesen.title"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"finanz.tab.unten.mahnwesen.tooltip"),
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("finanz.tab.unten.mahnwesen.title"), null,
+				null, LPMain.getInstance().getTextRespectUISPr("finanz.tab.unten.mahnwesen.tooltip"),
 				IDX_TABBED_PANE_MAHNWESEN);
+		index++;
+
+		IDX_TABBED_PANE_ZEITINFO = index;
+		tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("rech.zeitinfo"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("rech.zeitinfo"), IDX_TABBED_PANE_ZEITINFO);
 		index++;
 
 		// 4 tab unten: Grunddaten
 		// nur anzeigen wenn Benutzer Recht dazu hat
-		if (DelegateFactory.getInstance().getTheJudgeDelegate()
-				.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
 			IDX_TABBED_PANE_GRUNDDATEN = index;
-			tabbedPaneRoot.insertTab(
-					LPMain.getInstance().getTextRespectUISPr(
-							"pers.title.tab.grunddaten"),
-					null,
-					null,
-					LPMain.getInstance().getTextRespectUISPr(
-							"pers.title.tab.grunddaten"),
-					IDX_TABBED_PANE_GRUNDDATEN);
+			tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("pers.title.tab.grunddaten"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("pers.title.tab.grunddaten"), IDX_TABBED_PANE_GRUNDDATEN);
+			index++;
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_ABRECHNUNGSVORSCHLAG)) {
+
+				IDX_TABBED_PANE_VERRECHNUNGSMODELL = index;
+				tabbedPaneRoot.insertTab(LPMain.getInstance().getTextRespectUISPr("rech.verrechnungmodell"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("rech.verrechnungmodell"),
+						IDX_TABBED_PANE_VERRECHNUNGSMODELL);
+				index++;
+			}
+
 		}
-		index++;
 
 		// default
 		getTabbedPaneRechnung();
@@ -210,8 +225,7 @@ public class InternalFrameRechnung extends InternalFrame {
 
 		// initJMenu();
 		// dem frame das icon setzen
-		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
-				"/com/lp/client/res/calculator16x16.png"));
+		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource("/com/lp/client/res/calculator16x16.png"));
 		setFrameIcon(iicon);
 
 		// listener bin auch ich
@@ -220,8 +234,7 @@ public class InternalFrameRechnung extends InternalFrame {
 
 		// Grunddaten enablen.
 		// Nur wenn vorhanden durch das Recht
-		if (DelegateFactory.getInstance().getTheJudgeDelegate()
-				.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+		if (DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
 			tabbedPaneRoot.setEnabledAt(IDX_TABBED_PANE_GRUNDDATEN, true);
 		}
 	}
@@ -234,6 +247,8 @@ public class InternalFrameRechnung extends InternalFrame {
 		 * @author Lukas Lisowski
 		 */
 		int selectedCur = 0;
+
+		DelegateFactory.getInstance().getRechnungDelegate().removeLockDesAbrechungsvorschlagesWennIchIhnSperre();
 
 		try {
 			selectedCur = ((JTabbedPane) e.getSource()).getSelectedIndex();
@@ -250,6 +265,29 @@ public class InternalFrameRechnung extends InternalFrame {
 			getTabbedPaneGutschrift().lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_PROFORMARECHNUNG) {
 			getTabbedPaneProformarechnung().lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_ABRECHNUNGSVORSCHLAG) {
+
+			try {
+				DelegateFactory.getInstance().getRechnungDelegate().pruefeBearbeitenDesAbrechungsvorschlagesErlaubt();
+
+				getTabbedPaneAbrechnungsvorschlag().lPEventObjectChanged(null);
+
+			} catch (ExceptionLP efc) {
+				if (efc != null && efc.getICode() == EJBExceptionLP.FEHLER_ABRECHNUNGSVORSCHLAG_IST_GESPERRT) {
+					tabbedPaneRoot.setSelectedComponent(tabbedPaneRechnung);
+					// Benutzer der gerade sperrt finden
+					String[] sHelper = efc.getSMsg().split(" ");
+					String sLocker = DelegateFactory.getInstance().getPersonalDelegate()
+							.personalFindByPrimaryKey(Integer.parseInt(sHelper[sHelper.length - 1])).getCKurzzeichen();
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.warning"),
+							LPMain.getInstance().getMsg(efc) + sLocker);
+				} else {
+					throw efc;
+				}
+			}
+
+		} else if (selectedCur == IDX_TABBED_PANE_VERRECHNUNGSMODELL) {
+			getTabbedPaneVerrechnungsmodell().lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_MAHNWESEN) {
 			getTabbedPaneMahnwesen().lPEventObjectChanged(null);
 		} else if (selectedCur == IDX_TABBED_PANE_GRUNDDATEN) {
@@ -257,6 +295,9 @@ public class InternalFrameRechnung extends InternalFrame {
 			tabbedPaneRoot.setSelectedComponent(tabbedPaneGrunddaten);
 			// Info an Tabbedpane, bist selektiert worden.
 			tabbedPaneGrunddaten.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_ZEITINFO) {
+			// Info an Tabbedpane, bist selektiert worden.
+			getTabbedPaneZeitinfo().lPEventObjectChanged(null);
 		}
 	}
 
@@ -264,8 +305,7 @@ public class InternalFrameRechnung extends InternalFrame {
 		if (tabbedPaneRechnung == null) {
 			// lazy loading
 			tabbedPaneRechnung = new TabbedPaneRechnung(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_RECHNUNG,
-					tabbedPaneRechnung);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_RECHNUNG, tabbedPaneRechnung);
 			// if (tabbedPaneRechnung.getSelectedIIdRechnung() == null) {
 			// enableAllPanelsExcept(false);
 			// }
@@ -278,8 +318,7 @@ public class InternalFrameRechnung extends InternalFrame {
 		if (tabbedPaneGutschrift == null) {
 			// lazy loading
 			tabbedPaneGutschrift = new TabbedPaneGutschrift(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GUTSCHRIFT,
-					tabbedPaneGutschrift);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GUTSCHRIFT, tabbedPaneGutschrift);
 			// if (tabbedPaneGutschrift.getSelectedIIdRechnung() == null) {
 			// enableAllPanelsExcept(false);
 			// }
@@ -288,13 +327,11 @@ public class InternalFrameRechnung extends InternalFrame {
 		return tabbedPaneGutschrift;
 	}
 
-	public TabbedPaneProformarechnung getTabbedPaneProformarechnung()
-			throws Throwable {
+	public TabbedPaneProformarechnung getTabbedPaneProformarechnung() throws Throwable {
 		if (tabbedPaneProformarechnung == null) {
 			// lazy loading
 			tabbedPaneProformarechnung = new TabbedPaneProformarechnung(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_PROFORMARECHNUNG,
-					tabbedPaneProformarechnung);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_PROFORMARECHNUNG, tabbedPaneProformarechnung);
 			// if (tabbedPaneProformarechnung.getSelectedIIdRechnung() == null)
 			// {
 			// enableAllPanelsExcept(false);
@@ -308,101 +345,101 @@ public class InternalFrameRechnung extends InternalFrame {
 		if (tabbedPaneMahnwesen == null) {
 			// lazy loading
 			tabbedPaneMahnwesen = new TabbedPaneMahnwesen(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MAHNWESEN,
-					tabbedPaneMahnwesen);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_MAHNWESEN, tabbedPaneMahnwesen);
 			initComponents();
 		}
 		return tabbedPaneMahnwesen;
+	}
+
+	private TabbedPaneZeitnachweis getTabbedPaneZeitinfo() throws Throwable {
+		if (tabbedPaneZeitinfo == null) {
+			// lazy loading
+			tabbedPaneZeitinfo = new TabbedPaneZeitnachweis(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZEITINFO, tabbedPaneZeitinfo);
+			initComponents();
+		}
+		return tabbedPaneZeitinfo;
+	}
+
+	public TabbedPaneAbrechnungsvorschlag getTabbedPaneAbrechnungsvorschlag() throws Throwable {
+		if (tabbedPaneAbrechnungsvorschlag == null) {
+			// lazy loading
+			tabbedPaneAbrechnungsvorschlag = new TabbedPaneAbrechnungsvorschlag(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ABRECHNUNGSVORSCHLAG, tabbedPaneAbrechnungsvorschlag);
+			initComponents();
+		}
+		return tabbedPaneAbrechnungsvorschlag;
+	}
+
+	public TabbedPaneVerrechnungsmodell getTabbedPaneVerrechnungsmodell() throws Throwable {
+		if (tabbedPaneVerrechnungsmodell == null) {
+			// lazy loading
+			tabbedPaneVerrechnungsmodell = new TabbedPaneVerrechnungsmodell(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_VERRECHNUNGSMODELL, tabbedPaneVerrechnungsmodell);
+			initComponents();
+		}
+		return tabbedPaneVerrechnungsmodell;
 	}
 
 	private TabbedPaneGrunddaten getTabbedPaneGrunddaten() throws Throwable {
 		if (tabbedPaneGrunddaten == null) {
 			// lazy loading
 			tabbedPaneGrunddaten = new TabbedPaneGrunddaten(this);
-			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN,
-					tabbedPaneGrunddaten);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_GRUNDDATEN, tabbedPaneGrunddaten);
 			initComponents();
 		}
 		return null; // tabbedPaneGrunddaten;
 	}
 
-	public boolean isUpdateAllowedForRechnungDto(RechnungDto rechnungDto)
-			throws Throwable {
+	public boolean isUpdateAllowedForRechnungDto(RechnungDto rechnungDto) throws Throwable {
 		if (rechnungDto != null) {
 
-			Integer aktuelleMahnstufeIId=DelegateFactory.getInstance()
-			.getMahnwesenDelegate()
-			.getAktuelleMahnstufeEinerRechnung(rechnungDto.getIId());
+			Integer aktuelleMahnstufeIId = DelegateFactory.getInstance().getMahnwesenDelegate()
+					.getAktuelleMahnstufeEinerRechnung(rechnungDto.getIId());
 
 			if (aktuelleMahnstufeIId != null) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getInstance().getTextRespectUISPr(
-										"lp.hint"),
-								LPMain.getInstance().getTextRespectUISPr(
-										"rechnung.rechnungbereitsgemahnt"));
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hint"),
+						LPMain.getInstance().getTextRespectUISPr("rechnung.rechnungbereitsgemahnt"));
 				return false;
 			}
 			if (rechnungDto.getRechnungartCNr() != null
-					&& rechnungDto.getRechnungartCNr().equals(
-							RechnungFac.RECHNUNGART_ANZAHLUNG)
+					&& rechnungDto.getRechnungartCNr().equals(RechnungFac.RECHNUNGART_ANZAHLUNG)
 					&& rechnungDto.getAuftragIId() != null) {
 
-				boolean bSchlussrechnung = DelegateFactory
-						.getInstance()
-						.getRechnungDelegate()
-						.gibtEsBereitsEineSchlussrechnungZuEinemAuftrag(
-								rechnungDto.getAuftragIId());
+				boolean bSchlussrechnung = DelegateFactory.getInstance().getRechnungDelegate()
+						.gibtEsBereitsEineSchlussrechnungZuEinemAuftrag(rechnungDto.getAuftragIId());
 
 				if (bSchlussrechnung == true) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.hint"),
-									LPMain.getInstance().getTextRespectUISPr(
-											"rechnung.schlussrechnungbereitsvorhanden"));
+					DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hint"),
+							LPMain.getInstance().getTextRespectUISPr("rechnung.schlussrechnungbereitsvorhanden"));
 					return false;
 				}
 
 			}
 			if (rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_ANGELEGT)) {
 				return true;
-			} else if (rechnungDto.getStatusCNr().equals(
-					RechnungFac.STATUS_STORNIERT)) {
+			} else if (rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_STORNIERT)) {
 				boolean bStornieren = (DialogFactory.showMeldung(
-						LPMain.getInstance().getTextRespectUISPr(
-								"rechnung.stornoaufheben"), LPMain
-								.getInstance().getTextRespectUISPr("lp.frage"),
+						LPMain.getInstance().getTextRespectUISPr("rechnung.stornoaufheben"),
+						LPMain.getInstance().getTextRespectUISPr("lp.frage"),
 						javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.YES_OPTION);
 				if (bStornieren == true) {
-					DelegateFactory
-							.getInstance()
-							.getRechnungDelegate()
+					DelegateFactory.getInstance().getRechnungDelegate()
 							.storniereRechnungRueckgaengig(rechnungDto.getIId());
 					getTabbedPaneRechnung().reloadRechnungDto();
 				}
 				return bStornieren;
-			} else if (rechnungDto.getStatusCNr().equals(
-					RechnungFac.STATUS_OFFEN)
-					|| rechnungDto.getStatusCNr().equals(
-							RechnungFac.STATUS_VERBUCHT)) {
+			} else if (rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_OFFEN)
+					|| rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_VERBUCHT)) {
 				String sText;
-				RechnungartDto rechnungartDto = DelegateFactory
-						.getInstance()
-						.getRechnungServiceDelegate()
-						.rechnungartFindByPrimaryKey(
-								rechnungDto.getRechnungartCNr());
-				if (rechnungartDto.getRechnungtypCNr().equals(
-						RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
-					sText = LPMain.getInstance().getTextRespectUISPr(
-							"rechnung.bereitsaktiviert.gutschrift");
-				} else if (rechnungartDto.getRechnungtypCNr().equals(
-						RechnungFac.RECHNUNGTYP_RECHNUNG)) {
-					sText = LPMain.getInstance().getTextRespectUISPr(
-							"rechnung.bereitsaktiviert.rechnung");
+				RechnungartDto rechnungartDto = DelegateFactory.getInstance().getRechnungServiceDelegate()
+						.rechnungartFindByPrimaryKey(rechnungDto.getRechnungartCNr());
+				if (rechnungartDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
+					sText = LPMain.getInstance().getTextRespectUISPr("rechnung.bereitsaktiviert.gutschrift");
+				} else if (rechnungartDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_RECHNUNG)) {
+					sText = LPMain.getInstance().getTextRespectUISPr("rechnung.bereitsaktiviert.rechnung");
 				} else {
-					sText = LPMain.getInstance().getTextRespectUISPr(
-							"rechnung.bereitsaktiviert.proformarechnung");
+					sText = LPMain.getInstance().getTextRespectUISPr("rechnung.bereitsaktiviert.proformarechnung");
 				}
 				boolean bZuruecknehmen = (DialogFactory.showMeldung(sText,
 						LPMain.getInstance().getTextRespectUISPr("lp.frage"),
@@ -412,31 +449,23 @@ public class InternalFrameRechnung extends InternalFrame {
 							.setRechnungStatusAufAngelegt(rechnungDto.getIId());
 					if (rechnungartDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_RECHNUNG)) {
 						getTabbedPaneRechnung().reloadRechnungDto();
-					}
-					else if (rechnungartDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
+					} else if (rechnungartDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_GUTSCHRIFT)) {
 						getTabbedPaneGutschrift().reloadRechnungDto();
-					}
-					else if (rechnungartDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_PROFORMARECHNUNG)) {
+					} else if (rechnungartDto.getRechnungtypCNr().equals(RechnungFac.RECHNUNGTYP_PROFORMARECHNUNG)) {
 						getTabbedPaneProformarechnung().reloadRechnungDto();
 					}
 				}
 				return bZuruecknehmen;
-			} else if (rechnungDto.getStatusCNr().equals(
-					RechnungFac.STATUS_TEILBEZAHLT)) {
-				DialogFactory.showModalDialog(
-						LPMain.getInstance().getTextRespectUISPr("lp.hint"),
-						LPMain.getInstance().getTextRespectUISPr(
-								"rechnung.essindbereitszahlungeneingetragen"));
+			} else if (rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_TEILBEZAHLT)) {
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.hint"),
+						LPMain.getInstance().getTextRespectUISPr("rechnung.essindbereitszahlungeneingetragen"));
 				return false;
-			} else if (rechnungDto.getStatusCNr().equals(
-					RechnungFac.STATUS_BEZAHLT)) {
+			} else if (rechnungDto.getStatusCNr().equals(RechnungFac.STATUS_BEZAHLT)) {
 				if (DialogFactory.showMeldung(
-						LPMain.getInstance().getTextRespectUISPr(
-								"rech.rechnungistbereitserledigt"), LPMain
-								.getInstance().getTextRespectUISPr("lp.hint"),
+						LPMain.getInstance().getTextRespectUISPr("rech.rechnungistbereitserledigt"),
+						LPMain.getInstance().getTextRespectUISPr("lp.hint"),
 						javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.YES_OPTION) {
-					DelegateFactory.getInstance().getRechnungDelegate()
-							.erledigungAufheben(rechnungDto.getIId());
+					DelegateFactory.getInstance().getRechnungDelegate().erledigungAufheben(rechnungDto.getIId());
 				}
 				return false;
 			} else {
@@ -455,18 +484,15 @@ public class InternalFrameRechnung extends InternalFrame {
 		this.rechnungstatusDto = rechnungstatusDto;
 	}
 
-	public void setRechnungpositionsartDto(
-			RechnungpositionsartDto rechnungpositionsartDto) {
+	public void setRechnungpositionsartDto(RechnungpositionsartDto rechnungpositionsartDto) {
 		this.rechnungpositionsartDto = rechnungpositionsartDto;
 	}
 
-	public void setGutschriftpositionsartDto(
-			GutschriftpositionsartDto gutschriftpositionsartDto) {
+	public void setGutschriftpositionsartDto(GutschriftpositionsartDto gutschriftpositionsartDto) {
 		this.gutschriftpositionsartDto = gutschriftpositionsartDto;
 	}
 
-	public void setProformarechnungpositionsartDto(
-			ProformarechnungpositionsartDto proformarechnungpositionsartDto) {
+	public void setProformarechnungpositionsartDto(ProformarechnungpositionsartDto proformarechnungpositionsartDto) {
 		this.proformarechnungpositionsartDto = proformarechnungpositionsartDto;
 	}
 
@@ -554,12 +580,9 @@ public class InternalFrameRechnung extends InternalFrame {
 		super.enableAllPanelsExcept(enableI);
 
 		try {
-			getTabbedPaneRechnung().enableTabAuftraege();
-			getTabbedPaneRechnung().enableTabSichtAuftrag();
-			getTabbedPaneRechnung().enableTabSichtLieferschein();
+			getTabbedPaneRechnung().disableOnlyTabs();
 		} catch (Throwable e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			myLogger.error("Fehler beim Disablen von Tabs im Modul Rechnung", e);
 		}
 	}
 }

@@ -37,6 +37,7 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -46,6 +47,7 @@ import javax.swing.border.Border;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.WrapperCheckBox;
@@ -79,6 +81,8 @@ public class ReportBilanz extends PanelBasis implements
 
 
 	private WrapperCheckBox wcbDetail = new WrapperCheckBox();
+	
+	private WrapperCheckBox wcbEroeffnugsbilanz = new WrapperCheckBox();
 	
 	private final static int BREITE_SPALTE2 = 80;
 
@@ -116,14 +120,16 @@ public class ReportBilanz extends PanelBasis implements
 	
 		wcbDetail.setText(LPMain.getTextRespectUISPr("fb.erfolgsrechnung.detail"));
 
-		wlaGeschaeftsjahr.setPreferredSize(new Dimension(BREITE_SPALTE2,
-				Defaults.getInstance().getControlHeight()));
-		wlaPeriode.setPreferredSize(new Dimension(BREITE_SPALTE2, Defaults
-				.getInstance().getControlHeight()));
-		wcoGeschaeftsjahr.setPreferredSize(new Dimension(BREITE_SPALTE2,
-				Defaults.getInstance().getControlHeight()));
-		wcbDetail.setPreferredSize(new Dimension(BREITE_SPALTE2,
-				Defaults.getInstance().getControlHeight()));
+		wcbEroeffnugsbilanz.setText(LPMain.getTextRespectUISPr("fb.erfolgsrechnung.eroeffnungsbilanz"));
+		
+		Dimension radioButtonDimension = HelperClient.getSizeFactoredDimension(BREITE_SPALTE2);
+		HelperClient.setMinimumAndPreferredSize(wcoGeschaeftsjahr, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wcbDetail, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wlaGeschaeftsjahr, radioButtonDimension);
+		HelperClient.setMinimumAndPreferredSize(wlaPeriode, radioButtonDimension);
+		radioButtonDimension.width=radioButtonDimension.width * 2;
+		HelperClient.setMinimumAndPreferredSize(wcbEroeffnugsbilanz, radioButtonDimension);
+		
 		iZeile++;
 		jpaWorkingOn.add(wlaGeschaeftsjahr, new GridBagConstraints(0, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
@@ -142,10 +148,15 @@ public class ReportBilanz extends PanelBasis implements
 		jpaWorkingOn.add(wcoPeriode, new GridBagConstraints(1, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbEroeffnugsbilanz, new GridBagConstraints(3, iZeile,
+				2, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 	
 		iZeile++;
 
 		// this.setEinschraenkungDatumBelegnummerSichtbar(false);
+		wcbEroeffnugsbilanz.addActionListener(this);
+
 	}
 
 	private void initPanel() {
@@ -185,7 +196,7 @@ public class ReportBilanz extends PanelBasis implements
 				.getInstance()
 				.getFinanzReportDelegate()
 				.printErfolgsrechnung(this.getKriterien(),
-						true, wcbDetail.isSelected());
+						true, wcbDetail.isSelected(), wcbEroeffnugsbilanz.isSelected());
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
@@ -207,6 +218,19 @@ public class ReportBilanz extends PanelBasis implements
 		krit.setIPeriode(wcoPeriode.getPeriode());
 
 		return krit;
+	}
+
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+
+		if (e.getSource().equals(wcbEroeffnugsbilanz)) {
+			if (wcbEroeffnugsbilanz.isSelected()) {
+				wcoPeriode.setEnabled(false);
+				wcoPeriode.setSelectedIndex(wcoPeriode.getItemCount()-1);
+			} else {
+				wcoPeriode.setEnabled(true);
+				wcoPeriode.setDefaultPeriode();
+			}
+		}
 	}
 
 }

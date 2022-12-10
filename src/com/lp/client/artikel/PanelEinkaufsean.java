@@ -32,8 +32,6 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
-
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -60,204 +58,173 @@ import com.lp.server.artikel.service.EinkaufseanDto;
 import com.lp.server.artikel.service.KatalogDto;
 
 @SuppressWarnings("static-access")
-public class PanelEinkaufsean
-    extends PanelBasis
-{
+public class PanelEinkaufsean extends PanelBasis {
 
-  /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-//von hier ...
-  private GridBagLayout gridBagLayoutAll = null;
-  private JPanel jpaWorkingOn = new JPanel();
-  private JPanel jpaButtonAction = null;
-  private Border border = null;
-  private GridBagLayout gridBagLayoutWorkingPanel = null;
-  private InternalFrameArtikel internalFrameArtikel = null;
-  private WrapperLabel wlaMenge = new WrapperLabel();
-  private WrapperNumberField wnfMenge = new WrapperNumberField();
-  private EinkaufseanDto einkaufseanDto = null;
-  private WrapperLabel wlaEan = new WrapperLabel();
-  private WrapperTextField wtfEan = new WrapperTextField();
+	// von hier ...
+	private GridBagLayout gridBagLayoutAll = null;
+	private JPanel jpaWorkingOn = new JPanel();
+	private JPanel jpaButtonAction = null;
+	private Border border = null;
+	private GridBagLayout gridBagLayoutWorkingPanel = null;
+	private InternalFrameArtikel internalFrameArtikel = null;
+	private WrapperLabel wlaMenge = new WrapperLabel();
+	private WrapperNumberField wnfMenge = new WrapperNumberField();
+	private EinkaufseanDto einkaufseanDto = null;
+	private WrapperLabel wlaEan = new WrapperLabel();
+	private WrapperTextField wtfEan = new WrapperTextField();
 
-  public PanelEinkaufsean(InternalFrame internalFrame, String add2TitleI,
-                           Object pk)
-      throws Throwable {
-    super(internalFrame, add2TitleI, pk);
-    internalFrameArtikel = (InternalFrameArtikel) internalFrame;
-    jbInit();
-    setDefaults();
-    initComponents();
-    enableAllComponents(this, false);
-  }
+	public PanelEinkaufsean(InternalFrame internalFrame, String add2TitleI,
+			Object pk) throws Throwable {
+		super(internalFrame, add2TitleI, pk);
+		internalFrameArtikel = (InternalFrameArtikel) internalFrame;
+		jbInit();
+		setDefaults();
+		initComponents();
+		enableAllComponents(this, false);
+	}
 
+	protected void setDefaults() {
 
-  protected void setDefaults() {
+	}
 
-  }
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wnfMenge;
+	}
 
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
+			boolean bNeedNoNewI) throws Throwable {
+		super.eventActionNew(eventObject, true, false);
+		leereAlleFelder(this);
+		einkaufseanDto = new EinkaufseanDto();
+	}
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wnfMenge;
-  }
+	protected void dto2Components() throws Throwable {
+		wtfEan.setText(einkaufseanDto.getCEan());
+		wnfMenge.setBigDecimal(einkaufseanDto.getNMenge());
 
+	}
 
-  public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws Throwable {
-    super.eventActionNew(eventObject, true, false);
-    leereAlleFelder(this);
-    einkaufseanDto = new EinkaufseanDto();
-  }
+	protected void components2Dto() throws Throwable {
+		einkaufseanDto.setCEan(wtfEan.getText());
+		einkaufseanDto.setNMenge(wnfMenge.getBigDecimal());
+	}
 
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+	}
 
-  protected void dto2Components()throws Throwable {
-    wtfEan.setText(einkaufseanDto.getCEan());
-    wnfMenge.setBigDecimal(einkaufseanDto.getNMenge());
+	private void jbInit() throws Throwable {
+		// von hier ...
+		border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+		setBorder(border);
+		// das Aussenpanel hat immer das Gridbaglayout.
+		gridBagLayoutAll = new GridBagLayout();
+		this.setLayout(gridBagLayoutAll);
 
-  }
+		// Actionpanel von Oberklasse holen und anhaengen.
+		jpaButtonAction = getToolsPanel();
+		this.setActionMap(null);
 
-
-  protected void components2Dto() throws Throwable{
-    einkaufseanDto.setCEan(wtfEan.getText());
-    einkaufseanDto.setNMenge(wnfMenge.getBigDecimal());
-  }
-
-
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    ItemChangedEvent e = (ItemChangedEvent) eI;
-  }
-
-
-  private void jbInit()
-      throws Throwable {
-    //von hier ...
-    border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-    setBorder(border);
-    //das Aussenpanel hat immer das Gridbaglayout.
-    gridBagLayoutAll = new GridBagLayout();
-    this.setLayout(gridBagLayoutAll);
-
-    //Actionpanel von Oberklasse holen und anhaengen.
-    jpaButtonAction = getToolsPanel();
-    this.setActionMap(null);
-
-    wlaMenge.setText(LPMain.getInstance().getTextRespectUISPr("lp.menge"));
-    wtfEan.setColumnsMax(13);
-    wnfMenge.setMandatoryField(true);
-    wnfMenge.setFractionDigits(Defaults.getInstance()
+		wlaMenge.setText(LPMain.getInstance().getTextRespectUISPr("lp.menge"));
+		wtfEan.setColumnsMax(13);
+		wnfMenge.setMandatoryField(true);
+		wnfMenge.setFractionDigits(Defaults.getInstance()
 				.getIUINachkommastellenMenge());
-    getInternalFrame().addItemChangedListener(this);
+		getInternalFrame().addItemChangedListener(this);
 
-    wlaEan.setText(LPMain.getInstance().getTextRespectUISPr(
-        "artikel.einkaufsean"));
-    wtfEan.setMandatoryField(true);
-    this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.NONE,
-        new Insets(0, 0, 0, 0), 0, 0));
+		wlaEan.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.einkaufsean"));
+		wtfEan.setMandatoryField(true);
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
+						0, 0, 0), 0, 0));
 
-    //jetzt meine felder
-    jpaWorkingOn = new JPanel();
-    gridBagLayoutWorkingPanel = new GridBagLayout();
-    jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-    this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0
-        , GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    jpaWorkingOn.add(wlaMenge,
-                        new GridBagConstraints(0, 0, 1, 1, 0.05, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wnfMenge,
-                        new GridBagConstraints(1, 0, 1, 1, 0.05, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wlaEan,
-                        new GridBagConstraints(2, 0, 1, 1, 0.05, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wtfEan,
-                        new GridBagConstraints(3, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    String[] aWhichButtonIUse = {
-        ACTION_UPDATE,
-        ACTION_SAVE,
-        ACTION_DELETE,
-        ACTION_DISCARD,
-    };
+		// jetzt meine felder
+		jpaWorkingOn = new JPanel();
+		gridBagLayoutWorkingPanel = new GridBagLayout();
+		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
+				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaMenge, new GridBagConstraints(0, 0, 1, 1, 0.05,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfMenge, new GridBagConstraints(1, 0, 1, 1, 0.05,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaEan, new GridBagConstraints(2, 0, 1, 1, 0.05, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfEan, new GridBagConstraints(3, 0, 1, 1, 0.1, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
+				ACTION_DELETE, ACTION_DISCARD, };
 
-    enableToolsPanelButtons(aWhichButtonIUse);
+		enableToolsPanelButtons(aWhichButtonIUse);
 
-  }
+	}
 
+	protected String getLockMeWer() throws Exception {
+		return HelperClient.LOCKME_ARTIKEL;
+	}
 
-  protected String getLockMeWer()
-      throws Exception {
-    return HelperClient.LOCKME_ARTIKEL;
-  }
+	protected void eventActionDelete(ActionEvent e,
+			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+			throws Throwable, Throwable {
+		DelegateFactory.getInstance().getArtikelDelegate()
+				.removeEinkaufsean(einkaufseanDto);
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false);
+	}
 
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
+			throws Throwable {
 
-  protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI,
-                                   boolean bNeedNoDeleteI)
-      throws Throwable, Throwable {
-    DelegateFactory.getInstance().getArtikelDelegate().removeEinkaufsean(einkaufseanDto);
-    this.setKeyWhenDetailPanel(null);
-    super.eventActionDelete(e, false, false);
-  }
+		super.eventYouAreSelected(false);
+		Object key = getKeyWhenDetailPanel();
 
+		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
+			leereAlleFelder(this);
+			clearStatusbar();
+		} else {
+			einkaufseanDto = DelegateFactory.getInstance().getArtikelDelegate()
+					.einkaufseanFindByPrimaryKey((Integer) key);
+			dto2Components();
+		}
 
-  public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-      throws Throwable {
+	}
 
-    super.eventYouAreSelected(false);
-    Object key = getKeyWhenDetailPanel();
-
-    if (key == null
-        || (key.equals(LPMain.getLockMeForNew()))) {
-      leereAlleFelder(this);
-      clearStatusbar();
-    }
-    else {
-      einkaufseanDto = DelegateFactory.getInstance().getArtikelDelegate().
-          einkaufseanFindByPrimaryKey( (Integer) key);
-      dto2Components();
-    }
-
-  }
-
-
-  public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-      throws Throwable {
-    if (allMandatoryFieldsSetDlg()) {
-      components2Dto();
-      if (einkaufseanDto.getArtikelIId() == null) {
-        einkaufseanDto.setArtikelIId(internalFrameArtikel.getArtikelDto().
-                                 getIId());
-        einkaufseanDto.setIId(DelegateFactory.getInstance().getArtikelDelegate().createEinkaufsean(
-            einkaufseanDto));
-        setKeyWhenDetailPanel(einkaufseanDto.getIId());
-      }
-      else {
-        DelegateFactory.getInstance().getArtikelDelegate().updateEinkaufsean(
-            einkaufseanDto);
-      }
-      super.eventActionSave(e, true);
-      if (getInternalFrame().getKeyWasForLockMe() == null) {
-        getInternalFrame().setKeyWasForLockMe(internalFrameArtikel.
-                                              getArtikelDto().getIId().
-                                              toString());
-      }
-      eventYouAreSelected(false);
-    }
-  }
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
+			throws Throwable {
+		if (allMandatoryFieldsSetDlg()) {
+			components2Dto();
+			if (einkaufseanDto.getIId() == null) {
+				einkaufseanDto.setArtikelIId(internalFrameArtikel
+						.getArtikelDto().getIId());
+				einkaufseanDto
+						.setIId(DelegateFactory.getInstance()
+								.getArtikelDelegate()
+								.createEinkaufsean(einkaufseanDto));
+				setKeyWhenDetailPanel(einkaufseanDto.getIId());
+			} else {
+				DelegateFactory.getInstance().getArtikelDelegate()
+						.updateEinkaufsean(einkaufseanDto);
+			}
+			super.eventActionSave(e, true);
+			if (getInternalFrame().getKeyWasForLockMe() == null) {
+				getInternalFrame().setKeyWasForLockMe(
+						internalFrameArtikel.getArtikelDto().getIId()
+								.toString());
+			}
+			eventYouAreSelected(false);
+		}
+	}
 }

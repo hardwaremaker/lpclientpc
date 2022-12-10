@@ -41,6 +41,7 @@ import javax.ejb.FinderException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
+import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.system.service.AutoBestellvorschlagDto;
 import com.lp.server.system.service.AutoBestellvorschlagFac;
 
@@ -54,7 +55,7 @@ public class AutoBestellvorschlagDelegate
   public AutoBestellvorschlagDelegate()
       throws RemoteException, CreateException, Throwable {
 	  context = new InitialContext();
-	  autoBestellvorschlagFac = (AutoBestellvorschlagFac) context.lookup("lpserver/AutoBestellvorschlagFacBean/remote");
+	  autoBestellvorschlagFac = lookupFac(context, AutoBestellvorschlagFac.class);
   }
 
 

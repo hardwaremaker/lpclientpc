@@ -87,6 +87,7 @@ public class PanelArtikelkommentarart extends PanelBasis {
 	protected PanelQueryFLR panelQueryFLRBranche = null;
 	private WrapperCheckBox wcbWebshop = new WrapperCheckBox();
 	private WrapperCheckBox wcbTooltip = new WrapperCheckBox();
+	private WrapperCheckBox wcbDetail = new WrapperCheckBox();
 
 	static final private String ACTION_SPECIAL_FLR_BRANCHE = "action_special_flr_branche";
 	protected WrapperButton wbuBranche = null;
@@ -186,6 +187,8 @@ public class PanelArtikelkommentarart extends PanelBasis {
 				"lp.webshop"));
 		wcbTooltip.setText(LPMain.getInstance().getTextRespectUISPr(
 				"artikel.artikelkommentarart.tooltip"));
+		wcbDetail.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.artikelkommentarart.detail"));
 
 		wbuBranche = new WrapperButton();
 		wbuBranche.setActionCommand(ACTION_SPECIAL_FLR_BRANCHE);
@@ -243,6 +246,10 @@ public class PanelArtikelkommentarart extends PanelBasis {
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 		
+		jpaWorkingOn.add(wcbDetail, new GridBagConstraints(3, 2, 2, 1, 0.1,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 0, 0));
+		
 
 		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
 				ACTION_DELETE, ACTION_DISCARD, };
@@ -274,6 +281,7 @@ public class PanelArtikelkommentarart extends PanelBasis {
 				wtfBezeichnung.getText());
 		artikelkommentarartDto.setBWebshop(wcbWebshop.getShort());
 		artikelkommentarartDto.setBTooltip(wcbTooltip.getShort());
+		artikelkommentarartDto.setBDetail(wcbDetail.getShort());
 	}
 
 	protected void dto2Components() throws Throwable {
@@ -286,6 +294,7 @@ public class PanelArtikelkommentarart extends PanelBasis {
 		}
 		wcbWebshop.setShort(artikelkommentarartDto.getBWebshop());
 		wcbTooltip.setShort(artikelkommentarartDto.getBTooltip());
+		wcbDetail.setShort(artikelkommentarartDto.getBDetail());
 
 		if (artikelkommentarartDto.getBrancheId() != null) {
 			BrancheDto brancheDto = DelegateFactory

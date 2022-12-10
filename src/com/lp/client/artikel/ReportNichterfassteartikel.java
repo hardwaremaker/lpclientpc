@@ -60,13 +60,13 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.InventurDto;
 import com.lp.server.artikel.service.InventurFac;
 import com.lp.server.artikel.service.LagerDto;
+import com.lp.server.artikel.service.LagerplatzDto;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class ReportNichterfassteartikel extends PanelBasis implements
-		PanelReportIfJRDS {
+public class ReportNichterfassteartikel extends PanelBasis implements PanelReportIfJRDS {
 	/**
 	 * 
 	 */
@@ -82,36 +82,45 @@ public class ReportNichterfassteartikel extends PanelBasis implements
 	private WrapperTextField wtfLagerplatzVon = new WrapperTextField();
 	private WrapperTextField wtfLagerplatzBis = new WrapperTextField();
 
+	private WrapperButton wbuLagerplatzVon = new WrapperButton();
+	private WrapperButton wbuLagerplatzBis = new WrapperButton();
+
 	private ButtonGroup bg = new ButtonGroup();
 	private WrapperRadioButton wrbArtikel = new WrapperRadioButton();
 	private WrapperRadioButton wrbLagerplatz = new WrapperRadioButton();
-	
+	private WrapperRadioButton wrbReferenznummer = new WrapperRadioButton();
+
 	private WrapperCheckBox wcbVersteckte = null;
-	
+
+	private WrapperCheckBox wcbNurInInventurlisteEnthalteneArtikel = new WrapperCheckBox();
 
 	private WrapperCheckBox wcbNurArtikelMitLagerstand = new WrapperCheckBox();
 	private PanelQueryFLR panelQueryFLRLager = null;
 	static final public String ACTION_SPECIAL_LAGER_FROM_LISTE = "action_lager_from_liste";
+	static final public String ACTION_SPECIAL_LAGERPLATZ_VON_FROM_LISTE = "ACTION_SPECIAL_LAGERPLATZ_VON_FROM_LISTE";
+	static final public String ACTION_SPECIAL_LAGERPLATZ_BIS_FROM_LISTE = "ACTION_SPECIAL_LAGERPLATZ_BIS_FROM_LISTE";
+
+	private PanelQueryFLR panelQueryFLRLagerplatzVon = null;
+	private PanelQueryFLR panelQueryFLRLagerplatzBis = null;
+
 	private JLabel wlaInventur = new JLabel();
 	private WrapperTextField wtfInventur = new WrapperTextField();
 
-	public ReportNichterfassteartikel(InternalFrameArtikel internalFrame,
-			String add2Title, Integer inventurIId) throws Throwable {
+	public ReportNichterfassteartikel(InternalFrameArtikel internalFrame, String add2Title, Integer inventurIId)
+			throws Throwable {
 		super(internalFrame, add2Title);
 		LPMain.getInstance().getTextRespectUISPr("artikel.inventurdeltaliste");
 		this.inventurIId = inventurIId;
 		jbInit();
 		initComponents();
 		if (inventurIId != null) {
-			InventurDto inventurDto = DelegateFactory.getInstance()
-					.getInventurDelegate()
+			InventurDto inventurDto = DelegateFactory.getInstance().getInventurDelegate()
 					.inventurFindByPrimaryKey(inventurIId);
 			wtfInventur.setText(inventurDto.getCBez());
 
 			if (inventurDto.getLagerIId() != null) {
 				lagerIId = inventurDto.getLagerIId();
-				LagerDto lagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerFindByPrimaryKey(inventurDto.getLagerIId());
 				wtfLager.setText(lagerDto.getCNr());
 				wbuLager.setEnabled(false);
@@ -127,93 +136,88 @@ public class ReportNichterfassteartikel extends PanelBasis implements
 	private void jbInit() throws Exception {
 		this.setLayout(gridBagLayout1);
 		jpaWorkingOn.setLayout(gridBagLayout2);
-		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.lager"));
+		wbuLager.setText(LPMain.getInstance().getTextRespectUISPr("button.lager"));
 		wtfLager.setEditable(false);
 		// wbuLager.setEnabled(false);
 		wbuLager.setActionCommand(this.ACTION_SPECIAL_LAGER_FROM_LISTE);
 		wbuLager.addActionListener(this);
 		getInternalFrame().addItemChangedListener(this);
-		wlaInventur.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.inventur.selektierteinventur"));
+		wlaInventur.setText(LPMain.getInstance().getTextRespectUISPr("artikel.inventur.selektierteinventur"));
 		wtfInventur.setEditable(false);
 		wtfInventur.setMandatoryField(true);
 
-		wrbArtikel.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.inventur.nichterfasste.sortierung.artikel"));
+		wrbArtikel
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.inventur.nichterfasste.sortierung.artikel"));
 		wrbArtikel.setSelected(true);
 
-		wrbLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.inventur.nichterfasste.sortierung.lagerplatz"));
+		wrbLagerplatz.setText(
+				LPMain.getInstance().getTextRespectUISPr("artikel.inventur.nichterfasste.sortierung.lagerplatz"));
 
-		wcbVersteckte = new WrapperCheckBox(
-				LPMain.getTextRespectUISPr("lp.versteckte"));
+		wcbVersteckte = new WrapperCheckBox(LPMain.getTextRespectUISPr("lp.versteckte"));
+
 		
+		
+		wcbNurInInventurlisteEnthalteneArtikel.setText(LPMain.getTextRespectUISPr("artikel.report.nichterfassteartikel.nurininventurliste"));
+		
+		wbuLagerplatzVon
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.inventur.nichterfasste.lagerplatz.von"));
+		wbuLagerplatzVon.setActionCommand(this.ACTION_SPECIAL_LAGERPLATZ_VON_FROM_LISTE);
+		wbuLagerplatzVon.addActionListener(this);
+
+		wbuLagerplatzBis
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.inventur.nichterfasste.lagerplatz.bis"));
+		wbuLagerplatzBis.setActionCommand(this.ACTION_SPECIAL_LAGERPLATZ_BIS_FROM_LISTE);
+		wbuLagerplatzBis.addActionListener(this);
+
+		wrbReferenznummer.setText(LPMain.getInstance().getTextRespectUISPr("lp.referenznummer"));
+
 		bg.add(wrbArtikel);
 		bg.add(wrbLagerplatz);
+		bg.add(wrbReferenznummer);
 
 		wcbNurArtikelMitLagerstand
-				.setText(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventur.lagerstandgroessernull"));
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.inventur.lagerstandgroessernull"));
 
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,
-						0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 1, 1, 1, 0.3, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 1, 1, 1, 0.1, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaInventur, new GridBagConstraints(0, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfInventur, new GridBagConstraints(1, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wtfLager, new GridBagConstraints(1, 1, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuLager, new GridBagConstraints(0, 1, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaInventur, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfInventur, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventur.nichterfasste.sortierung")),
-				new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wrbArtikel, new GridBagConstraints(3, 0, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wcbNurArtikelMitLagerstand, new GridBagConstraints(0,
-				2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				new WrapperLabel(LPMain.getInstance().getTextRespectUISPr("artikel.inventur.nichterfasste.sortierung")),
+				new GridBagConstraints(2, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+						new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbArtikel, new GridBagConstraints(3, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbNurArtikelMitLagerstand, new GridBagConstraints(0, 2, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(2, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+
+		jpaWorkingOn.add(wrbReferenznummer, new GridBagConstraints(3, 2, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wrbLagerplatz, new GridBagConstraints(3, 1, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
 		
-		jpaWorkingOn.add(wcbVersteckte, new GridBagConstraints(3,
-				2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbNurInInventurlisteEnthalteneArtikel, new GridBagConstraints(0, 3, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		jpaWorkingOn.add(wbuLagerplatzVon, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wrbLagerplatz, new GridBagConstraints(3, 1, 1, 1, 0.1,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventur.nichterfasste.lagerplatz.von")),
-				new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wtfLagerplatzVon, new GridBagConstraints(1, 4, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfLagerplatzVon, new GridBagConstraints(1, 4, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(
-				new WrapperLabel(LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventur.nichterfasste.lagerplatz.bis")),
-				new GridBagConstraints(2, 4, 1, 1, 0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wtfLagerplatzBis, new GridBagConstraints(3, 4, 1, 1,
-				0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuLagerplatzBis, new GridBagConstraints(2, 4, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfLagerplatzBis, new GridBagConstraints(3, 4, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 	}
@@ -227,8 +231,7 @@ public class ReportNichterfassteartikel extends PanelBasis implements
 	}
 
 	void dialogQueryLagerFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRLager = ArtikelFilterFactory.getInstance()
-				.createPanelFLRLager_MitLeerenButton(getInternalFrame());
+		panelQueryFLRLager = ArtikelFilterFactory.getInstance().createPanelFLRLager_MitLeerenButton(getInternalFrame());
 
 		new DialogQuery(panelQueryFLRLager);
 	}
@@ -239,17 +242,33 @@ public class ReportNichterfassteartikel extends PanelBasis implements
 
 			if (e.getSource() == panelQueryFLRLager) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LagerDto lagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerFindByPrimaryKey((Integer) key);
 				wtfLager.setText(lagerDto.getCNr());
 				lagerIId = lagerDto.getIId();
 				wtfLager.setText(lagerDto.getCNr());
+			} else if (e.getSource() == panelQueryFLRLagerplatzVon) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				LagerplatzDto lagerplatzDto = DelegateFactory.getInstance().getLagerDelegate()
+						.lagerplatzFindByPrimaryKey((Integer) key);
+				wtfLagerplatzVon.setText(lagerplatzDto.getCLagerplatz());
+			} else if (e.getSource() == panelQueryFLRLagerplatzBis) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				LagerplatzDto lagerplatzDto = DelegateFactory.getInstance().getLagerDelegate()
+						.lagerplatzFindByPrimaryKey((Integer) key);
+				wtfLagerplatzBis.setText(lagerplatzDto.getCLagerplatz());
 			}
+
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
 			if (e.getSource() == panelQueryFLRLager) {
 				wtfLager.setText(null);
 				lagerIId = null;
+			}
+			if (e.getSource() == panelQueryFLRLagerplatzVon) {
+				wtfLagerplatzVon.setText(null);
+			}
+			if (e.getSource() == panelQueryFLRLagerplatzBis) {
+				wtfLagerplatzBis.setText(null);
 			}
 		}
 
@@ -259,16 +278,32 @@ public class ReportNichterfassteartikel extends PanelBasis implements
 		if (e.getActionCommand().equals(ACTION_SPECIAL_LAGER_FROM_LISTE)) {
 			dialogQueryLagerFromListe(e);
 		}
+		if (e.getActionCommand().equals(ACTION_SPECIAL_LAGERPLATZ_VON_FROM_LISTE)) {
+			panelQueryFLRLagerplatzVon = ArtikelFilterFactory.getInstance().createPanelFLRLagerplatz(getInternalFrame(),
+					null, true);
+
+			new DialogQuery(panelQueryFLRLagerplatzVon);
+		}
+		if (e.getActionCommand().equals(ACTION_SPECIAL_LAGERPLATZ_BIS_FROM_LISTE)) {
+			panelQueryFLRLagerplatzBis = ArtikelFilterFactory.getInstance().createPanelFLRLagerplatz(getInternalFrame(),
+					null, true);
+			new DialogQuery(panelQueryFLRLagerplatzBis);
+		}
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getInventurDelegate()
-				.printNichterfassteartikel(inventurIId, lagerIId,
-						wcbNurArtikelMitLagerstand.isSelected(),
-						wrbLagerplatz.isSelected(), wtfLagerplatzVon.getText(),
-						wtfLagerplatzBis.getText(),wcbVersteckte.isSelected());
+
+		int iSortierung = InventurFac.REPORT_NICHT_ERFASSTE_ARTIKEL_SORTIERUNG_ARTIKELNR;
+		if (wrbLagerplatz.isSelected()) {
+			iSortierung = InventurFac.REPORT_NICHT_ERFASSTE_ARTIKEL_SORTIERUNG_LAGERPLATZ;
+		} else if (wrbReferenznummer.isSelected()) {
+			iSortierung = InventurFac.REPORT_NICHT_ERFASSTE_ARTIKEL_SORTIERUNG_REFERENZNUMMER;
+		}
+
+		return DelegateFactory.getInstance().getInventurDelegate().printNichterfassteartikel(inventurIId, lagerIId,
+				wcbNurArtikelMitLagerstand.isSelected(), iSortierung, wtfLagerplatzVon.getText(),
+				wtfLagerplatzBis.getText(), wcbVersteckte.isSelected(),
+				wcbNurInInventurlisteEnthalteneArtikel.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -276,8 +311,7 @@ public class ReportNichterfassteartikel extends PanelBasis implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 }

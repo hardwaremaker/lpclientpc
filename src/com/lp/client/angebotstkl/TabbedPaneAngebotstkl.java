@@ -32,18 +32,27 @@
  ******************************************************************************/
 package com.lp.client.angebotstkl;
 
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.math.BigDecimal;
 
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.event.ChangeEvent;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.xml.sax.SAXException;
 
+import com.lp.client.artikel.DialogNeueArtikelnummer;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.ICopyPaste;
 import com.lp.client.frame.LockStateValue;
@@ -63,12 +72,14 @@ import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.client.stueckliste.StuecklisteFilterFactory;
 import com.lp.client.stueckliste.importassistent.StklImportController;
-import com.lp.client.system.SystemFilterFactory;
 import com.lp.client.util.fastlanereader.gui.QueryType;
+import com.lp.server.angebotstkl.service.AgstklDto;
 import com.lp.server.angebotstkl.service.AgstklarbeitsplanDto;
 import com.lp.server.angebotstkl.service.AgstklpositionDto;
 import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.LagerDto;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.partner.service.KundeDto;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.MandantFac;
@@ -77,6 +88,7 @@ import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.service.BelegpositionDto;
 import com.lp.service.POSDocument2POSDto;
 import com.lp.service.StklImportSpezifikation;
+import com.lp.util.GotoHelper;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
@@ -101,16 +113,25 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	private PanelBasis panelDetailMengenstaffel = null;
 	private PanelSplit panelSplitMengenstaffel = null; // FLR 1:n Liste
 
+	private PanelQuery panelQueryMaterial = null;
+	private PanelBasis panelDetailMaterial = null;
+	private PanelSplit panelSplitMaterial = null;
+
 	public static int IDX_PANEL_AUSWAHL = -1;
 	private static int IDX_PANEL_KOPFDATEN = -1;
 	private static int IDX_PANEL_POSITIONEN = -1;
 	private static int IDX_PANEL_ARBEITSPLAN = -1;
 	private static int IDX_PANEL_MENGENSTAFFEL = -1;
 	private static int IDX_PANEL_AUFSCHLAEGE = -1;
+	private static int IDX_PANEL_MATERIAL = -1;
 
 	private PanelQueryFLR panelStueckliste = null;
 
 	private PanelQueryFLR panelAgstkl = null;
+
+	private JLabel datenGeaendert = new JLabel();
+
+	public String sRechtModulweit = null;
 
 	private static final String ACTION_SPECIAL_IMPORT = "action_special_import";
 	private static final String ACTION_SPECIAL_IMPORT_STKL = "action_special_import_stkl";
@@ -118,15 +139,23 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	private static final String ACTION_SPECIAL_PREISE_NEU_RECHNEN_KALK = "action_special_preise_neu_rechnen";
 	private static final String ACTION_SPECIAL_INTELLIGENTERCSVIMPORT_POSITIONEN = "ACTION_SPECIAL_INTELLIGENTERCSVIMPORT_POSITIONEN";
 
-	private final String BUTTON_IMPORTAGSTUECKLISTEPOSITIONEN = PanelBasis.ACTION_MY_OWN_NEW
-			+ ACTION_SPECIAL_IMPORT;
+	private final String MENU_BEARBEITEN_HANDARTIKEL_UMWANDELN = "MENU_BEARBEITEN_HANDARTIKEL_UMANDELN";
+
+	private final static String MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN = "MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN";
+
+	private final static String MY_OWN_NEW_MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN = PanelBasis.ACTION_MY_OWN_NEW_ENABLED_ON_MULTISELECT
+			+ MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN;
+
+	private static final String ACTION_SPECIAL_MENGENSTAFFELN_NEU_KALKULIEREN = PanelBasis.ACTION_MY_OWN_NEW
+			+ "action_special_mengenstaffeln_neu_kalkulieren";
+
+	private final String BUTTON_IMPORTAGSTUECKLISTEPOSITIONEN = PanelBasis.ACTION_MY_OWN_NEW + ACTION_SPECIAL_IMPORT;
 
 	private static final String ACTION_SPECIAL_IMPORT_ARBEITSPLAN = "action_special_import_arbeitsplan";
 	private final String BUTTON_IMPORTAGSTUECKLISTEARBEITSPLAN = PanelBasis.ACTION_MY_OWN_NEW
 			+ ACTION_SPECIAL_IMPORT_ARBEITSPLAN;
 
-	private final String BUTTON_IMPORTSTUECKLISTEPOSITIONEN = PanelBasis.ACTION_MY_OWN_NEW
-			+ ACTION_SPECIAL_IMPORT_STKL;
+	private final String BUTTON_IMPORTSTUECKLISTEPOSITIONEN = PanelBasis.ACTION_MY_OWN_NEW + ACTION_SPECIAL_IMPORT_STKL;
 
 	private final String BUTTON_IMPORTSTUECKLISTEARBEITSLPAN = PanelBasis.ACTION_MY_OWN_NEW
 			+ ACTION_SPECIAL_IMPORT_STKL_ARBEITSPLAN;
@@ -137,16 +166,27 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	private final String BUTTON_INTELLIGENTERIMPORTCSV_AGSTKLPOSITIONEN = PanelBasis.ACTION_MY_OWN_NEW
 			+ ACTION_SPECIAL_INTELLIGENTERCSVIMPORT_POSITIONEN;
 
+	private final String BUTTON_SORTIERE_NACH_ARTIKELNUMMER = PanelBasis.ACTION_MY_OWN_NEW
+			+ "ACTION_SPECIAL_SORTIERE_NACH_ARTIKELNUMMER";
+
 	private final String MENU_DATEI_DRUCKEN = "MENU_DATEI_DRUCKEN";
 
 	private WrapperMenuBar wrapperMenuBar = null;
 
 	private boolean bPositionen = true;
 
+	public boolean bSchnellerfassung = false;
+
 	public TabbedPaneAngebotstkl(InternalFrame internalFrameI) throws Throwable {
 
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"lp.angebotsstueckliste"));
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr("lp.angebotsstueckliste"));
+
+		sRechtModulweit = internalFrameI.getRechtModulweit();
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MV_AG_SCHNELLERFASSUNG)) {
+			bSchnellerfassung = true;
+		}
 
 		jbInit();
 		initComponents();
@@ -161,8 +201,7 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	}
 
 	private void dialogAgstkl(ItemChangedEvent e) throws Throwable {
-		panelAgstkl = AngebotstklFilterFactory.getInstance()
-				.createPanelFLRAgstkl(getInternalFrame(), true, false);
+		panelAgstkl = AngebotstklFilterFactory.getInstance().createPanelFLRAgstkl(getInternalFrame(), true, false);
 		new DialogQuery(panelAgstkl);
 	}
 
@@ -177,28 +216,19 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	private void refreshAuswahl() throws Throwable {
 		if (panelQueryAgstkl == null) {
 
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
-			panelQueryAgstkl = new PanelQuery(AngebotstklFilterFactory
-					.getInstance().createQTAgstkl(), AngebotstklFilterFactory
-					.getInstance().createFKAgstklMandantCNr(),
-					QueryParameters.UC_ID_AGSTKL, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("auft.title.panel.auswahl"),
-					true);
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
+			panelQueryAgstkl = new PanelQuery(AngebotstklFilterFactory.getInstance().createQTAgstkl(),
+					AngebotstklFilterFactory.getInstance().createFKAgstklMandantCNr(), QueryParameters.UC_ID_AGSTKL,
+					aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("auft.title.panel.auswahl"), true);
 
-			panelQueryAgstkl
-					.befuellePanelFilterkriterienDirektUndVersteckte(
-							AngebotstklFilterFactory.getInstance()
-									.createFKDAgstklbelegnumer(),
-							AngebotstklFilterFactory.getInstance()
-									.createFKDKundeName(), null);
+			panelQueryAgstkl.befuellePanelFilterkriterienDirekt(
+					AngebotstklFilterFactory.getInstance().createFKDAgstklbelegnumer(),
+					AngebotstklFilterFactory.getInstance().createFKDKundeName());
 
-			panelQueryAgstkl.addDirektFilter(AngebotstklFilterFactory
-					.getInstance().createFKDAgstklprojekt());
+			panelQueryAgstkl.addDirektFilter(AngebotstklFilterFactory.getInstance().createFKDAgstklprojekt());
 
-			panelQueryAgstkl.addDirektFilter(AngebotstklFilterFactory
-					.getInstance().createFKDAgstklAngebote());
+			panelQueryAgstkl.addDirektFilter(AngebotstklFilterFactory.getInstance().createFKDAgstklAngebote());
 
 			setComponentAt(IDX_PANEL_AUSWAHL, panelQueryAgstkl);
 		}
@@ -206,9 +236,8 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 	private void createKopfdaten(Integer key) throws Throwable {
 		if (panelDetailAgstkl == null) {
-			panelDetailAgstkl = new PanelAngebotstklKopfdaten(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.kopfdaten"), key);
+			panelDetailAgstkl = new PanelAngebotstklKopfdaten(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"), key);
 			setComponentAt(IDX_PANEL_KOPFDATEN, panelDetailAgstkl);
 		}
 	}
@@ -217,9 +246,8 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 		if (panelDetailAgstklAufschlaege != null) {
 			panelDetailAgstklAufschlaege = null;
 		}
-		panelDetailAgstklAufschlaege = new PanelAngebotstklAufschlaege(
-				getInternalFrame(), LPMain.getInstance().getTextRespectUISPr(
-						"as.aufschlag"), key);
+		panelDetailAgstklAufschlaege = new PanelAngebotstklAufschlaege(getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("as.aufschlag"), key);
 		setComponentAt(IDX_PANEL_AUFSCHLAEGE, panelDetailAgstklAufschlaege);
 
 	}
@@ -231,14 +259,12 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 			// Die Angebot hat einen Key vom Typ Integer
 			if (getInternalFrame().getKeyWasForLockMe() != null) {
-				iIdAngebot = new Integer(Integer.parseInt(getInternalFrame()
-						.getKeyWasForLockMe()));
+				iIdAngebot = new Integer(Integer.parseInt(getInternalFrame().getKeyWasForLockMe()));
 			}
 
-			panelDetailAgstkl = new PanelAngebotstklKopfdaten(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.panel.kopfdaten"),
-					iIdAngebot); // empty bei leerer angebotsliste
+			panelDetailAgstkl = new PanelAngebotstklKopfdaten(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.panel.kopfdaten"), iIdAngebot); // empty bei leerer
+																									// angebotsliste
 
 			setComponentAt(IDX_PANEL_KOPFDATEN, panelDetailAgstkl);
 		}
@@ -252,33 +278,22 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 				// das Angebot drucken
 
-				if (LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
+				if (LPMain.getInstance().getDesktop()
+						.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
 
-					getInternalFrame().showReportKriterien(
-							new ReportAngebotstklmengenstaffel(
-									getInternalFrame(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getCNr()));
+					getInternalFrame().showReportKriterien(new ReportAngebotstklmengenstaffel(getInternalFrame(),
+							getInternalFrameAngebotstkl().getAgstklDto().getIId(),
+							getInternalFrameAngebotstkl().getAgstklDto().getCNr()));
 				} else {
-					getInternalFrame().showReportKriterien(
-							new ReportAngebotstkl(getInternalFrame(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getCNr()));
+					getInternalFrame().showReportKriterien(new ReportAngebotstkl(getInternalFrame(),
+							getInternalFrameAngebotstkl().getAgstklDto().getIId(),
+							getInternalFrameAngebotstkl().getAgstklDto().getCNr()));
 				}
 
 			} else {
 				// es ist keine Angbotsstueckliste ausgewaehlt
-				DialogFactory.showModalDialog(LPMain.getInstance()
-						.getTextRespectUISPr("lp.error"), LPMain.getInstance()
-						.getTextRespectUISPr("as.warning.keineas"));
+				DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+						LPMain.getInstance().getTextRespectUISPr("as.warning.keineas"));
 			}
 		}
 	}
@@ -290,71 +305,48 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	 */
 	private void jbInit() throws Throwable {
 
-		int tabIndex = 0;
-		IDX_PANEL_AUSWAHL = tabIndex;
+		IDX_PANEL_AUSWAHL =
 
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_AUSWAHL);
+				reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("lp.auswahl"));
 
-		tabIndex++;
-		IDX_PANEL_KOPFDATEN = tabIndex;
+		IDX_PANEL_KOPFDATEN =
 
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"),
-				IDX_PANEL_KOPFDATEN);
-		tabIndex++;
-		IDX_PANEL_POSITIONEN = tabIndex;
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.positionen"),
-				null, null,
-				LPMain.getInstance().getTextRespectUISPr("lp.positionen"),
-				IDX_PANEL_POSITIONEN);
+				reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"), null, null,
+						LPMain.getInstance().getTextRespectUISPr("lp.kopfdaten"));
 
-		if (LPMain
-				.getInstance()
-				.getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
-			tabIndex++;
-			IDX_PANEL_ARBEITSPLAN = tabIndex;
-			insertTab(
-					LPMain.getInstance().getTextRespectUISPr(
-							"as.agstkl.arbeitsplan"),
-					null,
-					null,
-					LPMain.getInstance().getTextRespectUISPr(
-							"as.agstkl.arbeitsplan"), IDX_PANEL_ARBEITSPLAN);
+		IDX_PANEL_POSITIONEN = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("lp.positionen"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.positionen"));
 
-			tabIndex++;
-			IDX_PANEL_MENGENSTAFFEL = tabIndex;
-			insertTab(
-					LPMain.getInstance().getTextRespectUISPr(
-							"as.agstkl.mengenstaffel"),
-					null,
-					null,
-					LPMain.getInstance().getTextRespectUISPr(
-							"as.agstkl.mengenstaffel"), IDX_PANEL_MENGENSTAFFEL);
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
+
+			IDX_PANEL_ARBEITSPLAN = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("as.agstkl.arbeitsplan"),
+					null, null, LPMain.getInstance().getTextRespectUISPr("as.agstkl.arbeitsplan"));
+
+		}
+
+		IDX_PANEL_MATERIAL = reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("agstkl.material"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("agstkl.material"));
+
+		if (LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
+
+			IDX_PANEL_MENGENSTAFFEL = reiterHinzufuegen(
+					LPMain.getInstance().getTextRespectUISPr("as.agstkl.mengenstaffel"), null, null,
+					LPMain.getInstance().getTextRespectUISPr("as.agstkl.mengenstaffel"));
 
 		}
 
 		if (getInternalFrameAngebotstkl().iKalkulationsart == 2
 				|| getInternalFrameAngebotstkl().iKalkulationsart == 3) {
-			if (!LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
-				tabIndex++;
-				IDX_PANEL_AUFSCHLAEGE = tabIndex;
+			if (!LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
 
-				insertTab(
-						LPMain.getInstance()
-								.getTextRespectUISPr("as.aufschlag"), null,
-						null,
-						LPMain.getInstance()
-								.getTextRespectUISPr("as.aufschlag"),
-						IDX_PANEL_AUFSCHLAEGE);
+				IDX_PANEL_AUFSCHLAEGE =
+
+						reiterHinzufuegen(LPMain.getInstance().getTextRespectUISPr("as.aufschlag"), null, null,
+								LPMain.getInstance().getTextRespectUISPr("as.aufschlag"));
 			}
 		}
 
@@ -363,30 +355,17 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 		panelQueryAgstkl.eventYouAreSelected(false);
 
 		if ((Integer) panelQueryAgstkl.getSelectedId() != null) {
-			getInternalFrameAngebotstkl()
-					.setAgstklDto(
-							DelegateFactory
-									.getInstance()
-									.getAngebotstklDelegate()
-									.agstklFindByPrimaryKey(
-											(Integer) panelQueryAgstkl
-													.getSelectedId()));
+			getInternalFrameAngebotstkl().setAgstklDto(DelegateFactory.getInstance().getAngebotstklDelegate()
+					.agstklFindByPrimaryKey((Integer) panelQueryAgstkl.getSelectedId()));
 		}
 
 		if ((Integer) panelQueryAgstkl.getSelectedId() != null) {
-			getInternalFrameAngebotstkl()
-					.setAgstklDto(
-							DelegateFactory
-									.getInstance()
-									.getAngebotstklDelegate()
-									.agstklFindByPrimaryKey(
-											(Integer) panelQueryAgstkl
-													.getSelectedId()));
+			getInternalFrameAngebotstkl().setAgstklDto(DelegateFactory.getInstance().getAngebotstklDelegate()
+					.agstklFindByPrimaryKey((Integer) panelQueryAgstkl.getSelectedId()));
 		}
 
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelQueryAgstkl,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelQueryAgstkl, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		this.addChangeListener(this);
@@ -406,10 +385,8 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 	public void refreshTitle() throws Throwable {
 
-		getInternalFrame().setLpTitle(
-				InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
-				LPMain.getInstance().getTextRespectUISPr(
-						"lp.angebotsstueckliste"));
+		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLUNTEN,
+				LPMain.getInstance().getTextRespectUISPr("lp.angebotsstueckliste"));
 		getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_OHRWASCHLOBEN,
 				((PanelBasis) this.getSelectedComponent()).getAdd2Title());
 
@@ -418,26 +395,17 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 			if (getInternalFrameAngebotstkl().getAgstklDto().getKundeIId() != null) {
 
-				KundeDto kundeDto = DelegateFactory
-						.getInstance()
-						.getKundeDelegate()
-						.kundeFindByPrimaryKey(
-								getInternalFrameAngebotstkl().getAgstklDto()
-										.getKundeIId());
+				KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+						.kundeFindByPrimaryKey(getInternalFrameAngebotstkl().getAgstklDto().getKundeIId());
 
-				sBezeichnung = kundeDto.getPartnerDto()
-						.formatFixTitelName1Name2();
+				sBezeichnung = kundeDto.getPartnerDto().formatFixTitelName1Name2();
 			}
 
 			if (getInternalFrameAngebotstkl().getAgstklDto().getCBez() != null) {
-				sBezeichnung += " "
-						+ getInternalFrameAngebotstkl().getAgstklDto()
-								.getCBez();
+				sBezeichnung += " " + getInternalFrameAngebotstkl().getAgstklDto().getCBez();
 			}
-			getInternalFrame().setLpTitle(
-					InternalFrame.TITLE_IDX_AS_I_LIKE,
-					getInternalFrameAngebotstkl().getAgstklDto().getCNr()
-							+ ", " + sBezeichnung);
+			getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+					getInternalFrameAngebotstkl().getAgstklDto().getCNr() + ", " + sBezeichnung);
 		}
 	}
 
@@ -459,6 +427,38 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	protected void lPActionEvent(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(MENU_DATEI_DRUCKEN)) {
 			printAngebotstkl();
+		} else if (e.getActionCommand().equals(MENU_BEARBEITEN_HANDARTIKEL_UMWANDELN)) {
+			if (panelQueryAngStklPos != null && panelQueryAngStklPos.getSelectedId() != null) {
+
+				AgstklpositionDto posDto = DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+						.agstklpositionFindByPrimaryKey((Integer) panelQueryAngStklPos.getSelectedId());
+
+				if (posDto.getArtikelIId() != null) {
+
+					ArtikelDto aDto = DelegateFactory.getInstance().getArtikelDelegate()
+							.artikelFindByPrimaryKey(posDto.getArtikelIId());
+					if (aDto.getArtikelartCNr().equals(ArtikelFac.ARTIKELART_HANDARTIKEL)) {
+						DialogNeueArtikelnummer d = new DialogNeueArtikelnummer(getInternalFrame());
+						LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+						d.setVisible(true);
+						if (d.getArtikelnummerNeu() != null) {
+
+							DelegateFactory.getInstance().getArtikelDelegate().wandleHandeingabeInArtikelUm(
+									posDto.getIId(), ArtikelFac.HANDARTIKEL_UMWANDELN_AGSTKLPOSITION,
+									d.getArtikelnummerNeu());
+						}
+
+					} else {
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.info"), LPMain
+								.getInstance().getTextRespectUISPr("angebot.bearbeiten.handartikelumwandeln.error"));
+					}
+
+				}
+				panelSplitAngStk.eventYouAreSelected(false);
+				panelQueryAngStklPos.setSelectedId(posDto.getIId());
+			}
+		} else if (e.getActionCommand().equals(MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN)) {
+			aufBelegDruckenMitPreisen();
 		}
 
 	}
@@ -474,60 +474,37 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 				if (bPositionen == true) {
 
-					DelegateFactory
-							.getInstance()
-							.getAngebotstklpositionDelegate()
-							.kopiereAgstklPositionen(
-									(Integer) panelAgstkl.getSelectedId(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId());
+					DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+							.kopiereAgstklPositionenMitPreisUpdate((Integer) panelAgstkl.getSelectedId(),
+									getInternalFrameAngebotstkl().getAgstklDto().getIId());
 					panelSplitAngStk.eventYouAreSelected(false);
 				} else {
-					DelegateFactory
-							.getInstance()
-							.getAngebotstklDelegate()
-							.kopiereAgstklArbeitsplan(
-									(Integer) panelAgstkl.getSelectedId(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId());
+					DelegateFactory.getInstance().getAngebotstklDelegate().kopiereAgstklArbeitsplan(
+							(Integer) panelAgstkl.getSelectedId(),
+							getInternalFrameAngebotstkl().getAgstklDto().getIId());
 					panelSplitArbeitsplan.eventYouAreSelected(false);
 				}
 			} else if (eI.getSource() == panelStueckliste) {
 
 				if (bPositionen == true) {
 
-					DelegateFactory
-							.getInstance()
-							.getAngebotstklDelegate()
-							.kopierePositionenAusStueckliste(
-									(Integer) panelStueckliste.getSelectedId(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId());
+					DelegateFactory.getInstance().getAngebotstklDelegate().kopierePositionenAusStueckliste(
+							(Integer) panelStueckliste.getSelectedId(),
+							getInternalFrameAngebotstkl().getAgstklDto().getIId());
 					// PJ18725
-					if (!LPMain
-							.getInstance()
-							.getDesktop()
-							.darfAnwenderAufZusatzfunktionZugreifen(
-									MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
-						DelegateFactory
-								.getInstance()
-								.getAngebotstklDelegate()
+					if (!LPMain.getInstance().getDesktop()
+							.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_AGSTKL_ARBEITSPLAN)) {
+						DelegateFactory.getInstance().getAngebotstklDelegate()
 								.kopiereArbeitsplanAusStuecklisteInPositionen(
-										(Integer) panelStueckliste
-												.getSelectedId(),
-										getInternalFrameAngebotstkl()
-												.getAgstklDto().getIId());
+										(Integer) panelStueckliste.getSelectedId(),
+										getInternalFrameAngebotstkl().getAgstklDto().getIId());
 					}
 
 					panelSplitAngStk.eventYouAreSelected(false);
 				} else {
-					DelegateFactory
-							.getInstance()
-							.getAngebotstklDelegate()
-							.kopiereArbeitsplanAusStuecklisteInArbeitsplan(
-									(Integer) panelStueckliste.getSelectedId(),
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId());
+					DelegateFactory.getInstance().getAngebotstklDelegate()
+							.kopiereArbeitsplanAusStuecklisteInArbeitsplan((Integer) panelStueckliste.getSelectedId(),
+									getInternalFrameAngebotstkl().getAgstklDto().getIId());
 					panelSplitArbeitsplan.eventYouAreSelected(false);
 				}
 			}
@@ -540,28 +517,34 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			} else if (sAspectInfo.endsWith(ACTION_SPECIAL_IMPORT_ARBEITSPLAN)) {
 				bPositionen = false;
 				dialogAgstkl(eI);
-			} else if (sAspectInfo
-					.endsWith(ACTION_SPECIAL_IMPORT_STKL_ARBEITSPLAN)) {
+			} else if (sAspectInfo.endsWith(ACTION_SPECIAL_IMPORT_STKL_ARBEITSPLAN)) {
 				bPositionen = false;
 				dialogStueckliste(eI);
 			} else if (sAspectInfo.endsWith(ACTION_SPECIAL_IMPORT_STKL)) {
 				bPositionen = true;
 				dialogStueckliste(eI);
-			} else if (sAspectInfo
-					.endsWith(ACTION_SPECIAL_PREISE_NEU_RECHNEN_KALK)) {
+			} else if (sAspectInfo.equals(BUTTON_SORTIERE_NACH_ARTIKELNUMMER)) {
 
-				boolean b = DialogFactory.showModalJaNeinDialog(
-						getInternalFrame(),
-						LPMain.getInstance().getTextRespectUISPr(
-								"agstkl.warnung.neuberechnen"));
+				boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("lp.sortierenach.frage"));
 
 				if (b == true) {
-					DelegateFactory
-							.getInstance()
-							.getAngebotstklpositionDelegate()
-							.preiseGemaessKalkulationsartUpdaten(
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId());
+
+					DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+							.sortiereNachArtikelnummer(getInternalFrameAngebotstkl().getAgstklDto().getIId());
+
+					panelQueryAngStklPos.eventYouAreSelected(false);
+
+				}
+
+			} else if (sAspectInfo.endsWith(ACTION_SPECIAL_PREISE_NEU_RECHNEN_KALK)) {
+
+				boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("agstkl.warnung.neuberechnen"));
+
+				if (b == true) {
+					DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+							.preiseGemaessKalkulationsartUpdaten(getInternalFrameAngebotstkl().getAgstklDto().getIId());
 					panelQueryAngStklPos.eventYouAreSelected(false);
 				}
 			} else if (sAspectInfo.equals(PanelBasis.ACTION_EINFUEGEN_LIKE_NEW)) {
@@ -570,35 +553,22 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				} else if (eI.getSource().equals(panelQueryArbeitsplan)) {
 					einfuegenHV();
 				}
-			} else if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_INTELLIGENTER_STUECKLISTENIMPORT)
-					&& sAspectInfo
-							.endsWith(ACTION_SPECIAL_INTELLIGENTERCSVIMPORT_POSITIONEN)) {
+			} else if (sAspectInfo.endsWith(ACTION_SPECIAL_INTELLIGENTERCSVIMPORT_POSITIONEN)) {
+				actionIntelligenterStklImport();
+			} else if (sAspectInfo != null && sAspectInfo.endsWith(ACTION_SPECIAL_MENGENSTAFFELN_NEU_KALKULIEREN)) {
+				if (getInternalFrameAngebotstkl().getAgstklDto().getIId() != null) {
 
-				if (LPMain
-						.getInstance()
-						.getDesktop()
-						.darfAnwenderAufZusatzfunktionZugreifen(
-								MandantFac.ZUSATZFUNKTION_KUNDESONDERKONDITIONEN)) {
-					AssistentView av = new AssistentView(
-							getInternalFrameAngebotstkl(),
-							LPMain.getTextRespectUISPr("stkl.intelligenterstklimport"),
-							new StklImportController(
-									getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId(),
-									StklImportSpezifikation.SpezifikationsTyp.ANGEBOTSSTKL_SPEZ,
-									getInternalFrame()));
-					getInternalFrame().showPanelDialog(av);
-				} else {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr("lp.hint"),
-									LPMain.getTextRespectUISPr("stkl.error.keinekundesokoberechtigung"));
+					DelegateFactory.getInstance().getAngebotstklDelegate().preiseDerMengenstaffelnNeuKalkulieren(
+							getInternalFrameAngebotstkl().getAgstklDto().getIId());
+					datenGeaendert.setText("");
+					panelQueryMengenstaffel.eventYouAreSelected(false);
 				}
 			}
+
+			else if (sAspectInfo != null && sAspectInfo.endsWith(MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN)) {
+				aufBelegDruckenMitPreisen();
+			}
+
 		}
 
 		else if (eI.getID() == ItemChangedEvent.ACTION_SAVE) {
@@ -637,6 +607,13 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 					panelQueryMengenstaffel.setSelectedId(oKey);
 				}
 				panelSplitMengenstaffel.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelDetailMaterial) {
+				Object oKey = panelDetailMaterial.getKeyWhenDetailPanel();
+				if (!oKey.equals(LPMain.getLockMeForNew())) {
+					panelQueryMaterial.eventYouAreSelected(false);
+					panelQueryMaterial.setSelectedId(oKey);
+				}
+				panelSplitMaterial.eventYouAreSelected(false);
 			}
 		}
 		if (eI.getID() == ItemChangedEvent.ACTION_POSITION_VONNNACHNMINUS1) {
@@ -645,17 +622,12 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 				// wenn die Position nicht die erste ist
 				if (iPos > 0) {
-					Integer iIdPosition = (Integer) panelQueryAngStklPos
-							.getSelectedId();
+					Integer iIdPosition = (Integer) panelQueryAngStklPos.getSelectedId();
 
-					Integer iIdPositionMinus1 = (Integer) panelQueryAngStklPos
-							.getTable().getValueAt(iPos - 1, 0);
+					Integer iIdPositionMinus1 = (Integer) panelQueryAngStklPos.getTable().getValueAt(iPos - 1, 0);
 
-					DelegateFactory
-							.getInstance()
-							.getAngebotstklpositionDelegate()
-							.vertauscheAgstklpositionen(iIdPosition,
-									iIdPositionMinus1);
+					DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+							.vertauscheAgstklpositionen(iIdPosition, iIdPositionMinus1);
 
 					// die Liste neu anzeigen und den richtigen Datensatz
 					// markieren
@@ -668,17 +640,12 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 				// wenn die Position nicht die letzte ist
 				if (iPos < panelQueryAngStklPos.getTable().getRowCount() - 1) {
-					Integer iIdPosition = (Integer) panelQueryAngStklPos
-							.getSelectedId();
+					Integer iIdPosition = (Integer) panelQueryAngStklPos.getSelectedId();
 
-					Integer iIdPositionPlus1 = (Integer) panelQueryAngStklPos
-							.getTable().getValueAt(iPos + 1, 0);
+					Integer iIdPositionPlus1 = (Integer) panelQueryAngStklPos.getTable().getValueAt(iPos + 1, 0);
 
-					DelegateFactory
-							.getInstance()
-							.getAngebotstklpositionDelegate()
-							.vertauscheAgstklpositionen(iIdPosition,
-									iIdPositionPlus1);
+					DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+							.vertauscheAgstklpositionen(iIdPosition, iIdPositionPlus1);
 
 					// die Liste neu anzeigen und den richtigen Datensatz
 					// markieren
@@ -697,53 +664,33 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			if (eI.getSource() == panelQueryAgstkl) {
 
 				if (panelQueryAgstkl.getSelectedId() != null) {
-					getInternalFrameAngebotstkl().setKeyWasForLockMe(
-							panelQueryAgstkl.getSelectedId() + "");
-					getInternalFrameAngebotstkl().setAgstklDto(
-							DelegateFactory
-									.getInstance()
-									.getAngebotstklDelegate()
-									.agstklFindByPrimaryKey(
-											(Integer) panelQueryAgstkl
-													.getSelectedId()));
+					getInternalFrameAngebotstkl().setKeyWasForLockMe(panelQueryAgstkl.getSelectedId() + "");
+					getInternalFrameAngebotstkl().setAgstklDto(DelegateFactory.getInstance().getAngebotstklDelegate()
+							.agstklFindByPrimaryKey((Integer) panelQueryAgstkl.getSelectedId()));
 
 					if (getInternalFrameAngebotstkl().getAgstklDto() != null) {
 
 						String sBezeichnung = "";
 
-						if (getInternalFrameAngebotstkl().getAgstklDto()
-								.getKundeIId() != null) {
+						if (getInternalFrameAngebotstkl().getAgstklDto().getKundeIId() != null) {
 
-							KundeDto kundeDto = DelegateFactory
-									.getInstance()
-									.getKundeDelegate()
-									.kundeFindByPrimaryKey(
-											getInternalFrameAngebotstkl()
-													.getAgstklDto()
-													.getKundeIId());
+							KundeDto kundeDto = DelegateFactory.getInstance().getKundeDelegate()
+									.kundeFindByPrimaryKey(getInternalFrameAngebotstkl().getAgstklDto().getKundeIId());
 
-							sBezeichnung = kundeDto.getPartnerDto()
-									.formatFixTitelName1Name2();
+							sBezeichnung = kundeDto.getPartnerDto().formatFixTitelName1Name2();
 						}
 
-						if (getInternalFrameAngebotstkl().getAgstklDto()
-								.getCBez() != null) {
-							sBezeichnung += " "
-									+ getInternalFrameAngebotstkl()
-											.getAgstklDto().getCBez();
+						if (getInternalFrameAngebotstkl().getAgstklDto().getCBez() != null) {
+							sBezeichnung += " " + getInternalFrameAngebotstkl().getAgstklDto().getCBez();
 						}
 
-						getInternalFrame().setLpTitle(
-								InternalFrame.TITLE_IDX_AS_I_LIKE,
-								getInternalFrameAngebotstkl().getAgstklDto()
-										.getCNr() + ", " + sBezeichnung);
+						getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE,
+								getInternalFrameAngebotstkl().getAgstklDto().getCNr() + ", " + sBezeichnung);
 					}
 				} else {
 
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, (false));
-					getInternalFrame().setLpTitle(
-							InternalFrame.TITLE_IDX_AS_I_LIKE, "");
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, (false));
+					getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, "");
 
 				}
 			} else if (eI.getSource() == panelQueryAngStklPos) {
@@ -752,47 +699,45 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				panelDetailAngStklPos.eventYouAreSelected(false);
 
 				// im QP die Buttons in den Zustand nolocking/save setzen.
-				panelQueryAngStklPos.updateButtons(panelDetailAngStklPos
-						.getLockedstateDetailMainKey());
+				panelQueryAngStklPos.updateButtons(panelDetailAngStklPos.getLockedstateDetailMainKey());
 			} else if (eI.getSource() == panelQueryArbeitsplan) {
 				Object key = ((ISourceEvent) eI.getSource()).getIdSelected();
 				panelDetailArbeitsplan.setKeyWhenDetailPanel(key);
 				panelDetailArbeitsplan.eventYouAreSelected(false);
-				panelQueryArbeitsplan.updateButtons(panelDetailArbeitsplan
-						.getLockedstateDetailMainKey());
+				panelQueryArbeitsplan.updateButtons(panelDetailArbeitsplan.getLockedstateDetailMainKey());
 			} else if (eI.getSource() == panelQueryMengenstaffel) {
 				Object key = ((ISourceEvent) eI.getSource()).getIdSelected();
 				panelDetailMengenstaffel.setKeyWhenDetailPanel(key);
 				panelDetailMengenstaffel.eventYouAreSelected(false);
-				panelQueryMengenstaffel.updateButtons(panelDetailMengenstaffel
-						.getLockedstateDetailMainKey());
+				panelQueryMengenstaffel.updateButtons(panelDetailMengenstaffel.getLockedstateDetailMainKey());
+			} else if (eI.getSource() == panelQueryMaterial) {
+				Object key = ((ISourceEvent) eI.getSource()).getIdSelected();
+				panelDetailMaterial.setKeyWhenDetailPanel(key);
+				panelDetailMaterial.eventYouAreSelected(false);
+				panelQueryMaterial.updateButtons(panelDetailMaterial.getLockedstateDetailMainKey());
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			// hier kommt man nach upd im D bei einem 1:n hin.
 			if (eI.getSource() == panelDetailAngStklPos) {
 				// im QP die Buttons in den Zustand neu setzen.
-				panelQueryAngStklPos.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryAngStklPos.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (eI.getSource() == panelDetailArbeitsplan) {
-				panelQueryArbeitsplan.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryArbeitsplan.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (eI.getSource() == panelDetailMengenstaffel) {
-				panelQueryMengenstaffel.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryMengenstaffel.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
+			} else if (eI.getSource() == panelDetailMaterial) {
+				panelQueryMaterial.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
 			// aktiviere ein QP ...
 			if (eI.getSource() == panelDetailAgstkl) {
 
 				panelQueryAgstkl.eventYouAreSelected(false);
-				getInternalFrameAngebotstkl().getAgstklDto().setIId(
-						(Integer) panelQueryAgstkl.getSelectedId());
-				panelDetailAgstkl.setKeyWhenDetailPanel(panelQueryAgstkl
-						.getSelectedId());
+				getInternalFrameAngebotstkl().getAgstklDto().setIId((Integer) panelQueryAgstkl.getSelectedId());
+				panelDetailAgstkl.setKeyWhenDetailPanel(panelQueryAgstkl.getSelectedId());
 				this.setSelectedComponent(panelQueryAgstkl);
 				if (panelQueryAgstkl.getSelectedId() == null) {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, false);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 				}
 
 			} else if (eI.getSource() == panelDetailAngStklPos) {
@@ -800,8 +745,7 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				// ueberschrieben
 				setKeyWasForLockMe();
 				if (panelDetailAngStklPos.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryAngStklPos
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryAngStklPos.getId2SelectAfterDelete();
 					panelQueryAngStklPos.setSelectedId(oNaechster);
 				}
 				panelSplitAngStk.eventYouAreSelected(false); // refresh auf das
@@ -810,19 +754,24 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			} else if (eI.getSource() == panelDetailArbeitsplan) {
 				setKeyWasForLockMe();
 				if (panelDetailArbeitsplan.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryArbeitsplan
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryArbeitsplan.getId2SelectAfterDelete();
 					panelQueryArbeitsplan.setSelectedId(oNaechster);
 				}
 				panelSplitArbeitsplan.eventYouAreSelected(false);
 			} else if (eI.getSource() == panelDetailMengenstaffel) {
 				setKeyWasForLockMe();
 				if (panelDetailMengenstaffel.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryMengenstaffel
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryMengenstaffel.getId2SelectAfterDelete();
 					panelQueryMengenstaffel.setSelectedId(oNaechster);
 				}
 				panelSplitMengenstaffel.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelDetailMaterial) {
+				setKeyWasForLockMe();
+				if (panelDetailMaterial.getKeyWhenDetailPanel() == null) {
+					Object oNaechster = panelQueryMaterial.getId2SelectAfterDelete();
+					panelQueryMaterial.setSelectedId(oNaechster);
+				}
+				panelSplitMaterial.eventYouAreSelected(false);
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_YOU_ARE_SELECTED) {
 			if (eI.getSource() instanceof AssistentView) {
@@ -834,6 +783,10 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			if (eI.getSource() == panelDetailAngStklPos) {
 				panelSplitAngStk.eventYouAreSelected(false); // das 1:n Panel
 																// neu aufbauen
+			} else if (eI.getSource() == panelDetailMengenstaffel) {
+				panelSplitMengenstaffel.eventYouAreSelected(false);
+			} else if (eI.getSource() == panelDetailMaterial) {
+				panelSplitMaterial.eventYouAreSelected(false);
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_NEW) {
 			if (eI.getSource() == panelQueryAgstkl) {
@@ -841,8 +794,7 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				// wenn es bisher keinen eintrag gibt, die restlichen
 				// panels aktivieren
 				if (panelQueryAgstkl.getSelectedId() == null) {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, true);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, true);
 				}
 
 				panelDetailAgstkl.eventActionNew(eI, true, false);
@@ -860,6 +812,10 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				panelDetailMengenstaffel.eventActionNew(eI, true, false);
 				panelDetailMengenstaffel.eventYouAreSelected(false);
 				setSelectedComponent(panelSplitMengenstaffel); // ui
+			} else if (eI.getSource() == panelQueryMaterial) {
+				panelDetailMaterial.eventActionNew(eI, true, false);
+				panelDetailMaterial.eventYouAreSelected(false);
+				setSelectedComponent(panelSplitMaterial); // ui
 			}
 		} else if (eI.getID() == ItemChangedEvent.ACTION_KOPIEREN) {
 			if (eI.getSource().equals(panelQueryAngStklPos)) {
@@ -870,6 +826,70 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 		}
 	}
 
+	private void aufBelegDruckenMitPreisen() throws ExceptionLP, Throwable {
+		if (getInternalFrameAngebotstkl().getAgstklDto() != null) {
+			JCheckBox mitdrucken = new JCheckBox(LPMain.getTextRespectUISPr("stkl.positionen.mitdrucken"));
+			JCheckBox mitpreisen = new JCheckBox(LPMain.getTextRespectUISPr("agstkl.positionen.mitpreisen"));
+			mitpreisen.setEnabled(false);
+			mitdrucken.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					mitpreisen.setVisible(true);
+					mitpreisen.setEnabled(true);
+					if (!mitdrucken.isSelected()) {
+						mitpreisen.setEnabled(false);
+						mitpreisen.setSelected(false);
+					}
+				}
+			});
+
+			String msg = "Optionen für alle/selektierte Positionen ändern: ";
+
+			Object[] msgContent = { msg, mitdrucken, mitpreisen };
+
+			Object[] options = { LPMain.getTextRespectUISPr("as.optionen.aendern.alle"),
+					LPMain.getTextRespectUISPr("as.optionen.aendern.nurselektierte"),
+					LPMain.getTextRespectUISPr("lp.abbrechen") };
+			int n = JOptionPane.showOptionDialog(this, msgContent, LPMain.getTextRespectUISPr("lp.frage"),
+					JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
+
+			if (n == 0) {
+				DelegateFactory.getInstance().getAngebotstklpositionDelegate().updateAgstpositionenOptionen(
+						getInternalFrameAngebotstkl().getAgstklDto().getIId(), mitdrucken.isSelected(),
+						mitpreisen.isSelected(), null);
+
+			} else if (n == 1) {
+				DelegateFactory.getInstance().getAngebotstklpositionDelegate().updateAgstpositionenOptionen(
+						getInternalFrameAngebotstkl().getAgstklDto().getIId(), mitdrucken.isSelected(),
+						mitpreisen.isSelected(), panelQueryAngStklPos.getSelectedIdsAsInteger());
+			}
+
+			panelSplitAngStk.eventYouAreSelected(false);
+
+		}
+	}
+
+	/**
+	 * @throws Throwable
+	 */
+	private void actionIntelligenterStklImport() throws Throwable {
+		if (!hasZusatzfunktionIntelligenterStklImport())
+			return;
+
+		if (!hasZusatzfunktionKundesonderkonditionen()) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+					LPMain.getTextRespectUISPr("stkl.error.keinekundesokoberechtigung"));
+			return;
+		}
+
+		AssistentView av = new AssistentView(getInternalFrameAngebotstkl(),
+				LPMain.getTextRespectUISPr("agstkl.intelligenteragstklimport"),
+				new StklImportController(getInternalFrameAngebotstkl().getAgstklDto().getIId(),
+						StklImportSpezifikation.SpezifikationsTyp.ANGEBOTSSTKL_SPEZ, getInternalFrame()));
+		getInternalFrame().showPanelDialog(av);
+	}
+
 	/**
 	 * einfuegenHV
 	 * 
@@ -878,22 +898,16 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	 * @throws SAXException
 	 * @throws Throwable
 	 */
-	public void einfuegenHV() throws IOException, ParserConfigurationException,
-			SAXException, Throwable {
+	public void einfuegenHV() throws IOException, ParserConfigurationException, SAXException, Throwable {
 
-		Object o = LPMain.getInstance().getPasteBuffer()
-				.readObjectFromPasteBuffer();
+		Object o = LPMain.getInstance().getPasteBuffer().readObjectFromPasteBuffer();
 		int selectedPanelIndex = this.getSelectedIndex();
 		if (o instanceof BelegpositionDto[]) {
 			if (selectedPanelIndex == IDX_PANEL_POSITIONEN) {
 
-				AgstklpositionDto[] agstklpositionDtos = DelegateFactory
-						.getInstance()
-						.getBelegpostionkonvertierungDelegate()
-						.konvertiereNachAgstklpositionDto(
-								(BelegpositionDto[]) o,
-								getInternalFrameAngebotstkl().getAgstklDto()
-										.getIId());
+				AgstklpositionDto[] agstklpositionDtos = DelegateFactory.getInstance()
+						.getBelegpostionkonvertierungDelegate().konvertiereNachAgstklpositionDto((BelegpositionDto[]) o,
+								getInternalFrameAngebotstkl().getAgstklDto().getIId());
 
 				if (agstklpositionDtos != null) {
 					Integer iId = null;
@@ -904,62 +918,42 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 							try {
 								agstklpositionDto.setIId(null);
 
-								agstklpositionDto
-										.setBelegIId(getInternalFrameAngebotstkl()
-												.getAgstklDto().getIId());
+								agstklpositionDto.setBelegIId(getInternalFrameAngebotstkl().getAgstklDto().getIId());
 								if (b == false) {
 
 									// Zusatzbezeichnung
 									if (agstklpositionDto.getArtikelIId() != null) {
-										ArtikelDto artikelDto = DelegateFactory
-												.getInstance()
-												.getArtikelDelegate()
-												.artikelFindByPrimaryKey(
-														agstklpositionDto
-																.getArtikelIId());
+										ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate()
+												.artikelFindByPrimaryKey(agstklpositionDto.getArtikelIId());
 										if (artikelDto.getArtikelsprDto() != null) {
-											agstklpositionDto
-													.setCZusatzbez(artikelDto
-															.getArtikelsprDto()
-															.getCZbez());
+											agstklpositionDto.setCZusatzbez(artikelDto.getArtikelsprDto().getCZbez());
 										}
 									}
 
-									Integer iIdAktuellePosition = (Integer) panelQueryAngStklPos
-											.getSelectedId();
+									Integer iIdAktuellePosition = (Integer) panelQueryAngStklPos.getSelectedId();
 
 									// erstepos: 0 die erste Position steht an
 									// der Stelle 1
-									Integer iSortAktuellePosition = new Integer(
-											1);
+									Integer iSortAktuellePosition = new Integer(1);
 
 									// erstepos: 1 die erste Position steht an
 									// der Stelle 1
 									if (iIdAktuellePosition != null) {
-										iSortAktuellePosition = DelegateFactory
-												.getInstance()
+										iSortAktuellePosition = DelegateFactory.getInstance()
 												.getAngebotstklpositionDelegate()
-												.agstklpositionFindByPrimaryKey(
-														iIdAktuellePosition)
-												.getISort();
+												.agstklpositionFindByPrimaryKey(iIdAktuellePosition).getISort();
 
 										// Die bestehenden Positionen muessen
 										// Platz fuer die neue schaffen
-										DelegateFactory
-												.getInstance()
-												.getAngebotstklpositionDelegate()
+										DelegateFactory.getInstance().getAngebotstklpositionDelegate()
 												.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-														getInternalFrameAngebotstkl()
-																.getAgstklDto()
-																.getIId(),
-														iSortAktuellePosition
-																.intValue());
+														getInternalFrameAngebotstkl().getAgstklDto().getIId(),
+														iSortAktuellePosition.intValue());
 
 										// Die neue Position wird an frei
 										// gemachte
 										// Position gesetzt
-										agstklpositionDto
-												.setISort(iSortAktuellePosition);
+										agstklpositionDto.setISort(iSortAktuellePosition);
 									} else {
 										agstklpositionDto.setISort(null);
 									}
@@ -970,17 +964,11 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 								}
 
 								if (iId == null) {
-									iId = DelegateFactory
-											.getInstance()
-											.getAngebotstklpositionDelegate()
-											.createAgstklposition(
-													agstklpositionDto);
+									iId = DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+											.createAgstklposition(agstklpositionDto);
 								} else {
-									DelegateFactory
-											.getInstance()
-											.getAngebotstklpositionDelegate()
-											.createAgstklposition(
-													agstklpositionDto);
+									DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+											.createAgstklposition(agstklpositionDto);
 								}
 
 							} catch (Throwable t) {
@@ -998,11 +986,9 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				}
 			} else if (selectedPanelIndex == IDX_PANEL_ARBEITSPLAN) {
 
-				AgstklarbeitsplanDto[] positionDtos = DelegateFactory
-						.getInstance()
+				AgstklarbeitsplanDto[] positionDtos = DelegateFactory.getInstance()
 						.getBelegpostionkonvertierungDelegate()
-						.konvertiereNachAgstklarbeitsplanDto(
-								(BelegpositionDto[]) o);
+						.konvertiereNachAgstklarbeitsplanDto((BelegpositionDto[]) o);
 
 				int iInserted = 0;
 				if (positionDtos != null) {
@@ -1011,13 +997,10 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 						AgstklarbeitsplanDto positionDto = positionDtos[i];
 						try {
 							positionDto.setIId(null);
-							positionDto
-									.setAgstklIId(getInternalFrameAngebotstkl()
-											.getAgstklDto().getIId());
+							positionDto.setAgstklIId(getInternalFrameAngebotstkl().getAgstklDto().getIId());
 
 							// wir legen eine neue position an
-							iId = DelegateFactory.getInstance()
-									.getAngebotstklDelegate()
+							iId = DelegateFactory.getInstance().getAngebotstklDelegate()
 									.createAgstklarbeitsplan(positionDto);
 							iInserted++;
 						} catch (Throwable t) {
@@ -1043,22 +1026,39 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	/**
 	 * Behandle ChangeEvent; zB Tabwechsel oben.
 	 * 
-	 * @param e
-	 *            ChangeEvent
+	 * @param e ChangeEvent
 	 * @throws Throwable
 	 */
 	public void lPEventObjectChanged(ChangeEvent e) throws Throwable {
 
 		super.lPEventObjectChanged(e);
+
+		getInternalFrameAngebotstkl().setRechtModulweit(sRechtModulweit);
+
 		int selectedIndex = this.getSelectedIndex();
+
+		if (bSchnellerfassung && getInternalFrameAngebotstkl().getAgstklDto() != null) {
+
+			if (!Helper.short2boolean(getInternalFrameAngebotstkl().getAgstklDto().getBVorlage())) {
+
+				String s = DelegateFactory.getInstance().getAngebotstklDelegate()
+						.getAngeboteDieBestimmteAngebotsstuecklisteVerwenden(
+								getInternalFrameAngebotstkl().getAgstklDto().getIId());
+				if (s != null && s.length() > 0) {
+					if (selectedIndex > IDX_PANEL_KOPFDATEN) {
+						getInternalFrameAngebotstkl().setRechtModulweit(RechteFac.RECHT_MODULWEIT_READ);
+					}
+				}
+			}
+
+		}
 
 		if (selectedIndex == IDX_PANEL_AUSWAHL) {
 			refreshAuswahl();
 			panelQueryAgstkl.eventYouAreSelected(false);
 			panelQueryAgstkl.updateButtons();
 			if (panelQueryAgstkl.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_AUSWAHL, false);
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 			}
 
 		} else if (selectedIndex == IDX_PANEL_KOPFDATEN) {
@@ -1083,15 +1083,13 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			if (getInternalFrameAngebotstkl().getAgstklDto() != null) {
 				key = getInternalFrameAngebotstkl().getAgstklDto().getIId();
 
-				FilterKriterium[] defaultfk = AngebotstklFilterFactory
-						.getInstance().createFKAgstkl(key);
+				FilterKriterium[] defaultfk = AngebotstklFilterFactory.getInstance().createFKAgstkl(key);
 				panelQueryArbeitsplan.setDefaultFilter(defaultfk);
 			}
 
 			panelSplitArbeitsplan.eventYouAreSelected(false);
 
-			panelQueryArbeitsplan.updateButtons(panelDetailArbeitsplan
-					.getLockedstateDetailMainKey());
+			panelQueryArbeitsplan.updateButtons(panelDetailArbeitsplan.getLockedstateDetailMainKey());
 		} else if (selectedIndex == IDX_PANEL_MENGENSTAFFEL) {
 
 			refreshAngebotstklmengenstaffel();
@@ -1100,15 +1098,28 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			if (getInternalFrameAngebotstkl().getAgstklDto() != null) {
 				key = getInternalFrameAngebotstkl().getAgstklDto().getIId();
 
-				FilterKriterium[] defaultfk = AngebotstklFilterFactory
-						.getInstance().createFKAgstkl(key);
+				FilterKriterium[] defaultfk = AngebotstklFilterFactory.getInstance().createFKAgstkl(key);
 				panelQueryMengenstaffel.setDefaultFilter(defaultfk);
 			}
 
 			panelSplitMengenstaffel.eventYouAreSelected(false);
 
-			panelQueryMengenstaffel.updateButtons(panelDetailMengenstaffel
-					.getLockedstateDetailMainKey());
+			panelQueryMengenstaffel.updateButtons(panelDetailMengenstaffel.getLockedstateDetailMainKey());
+		} else if (selectedIndex == IDX_PANEL_MATERIAL) {
+
+			refreshAngebotstklmaterial();
+
+			Integer key = null;
+			if (getInternalFrameAngebotstkl().getAgstklDto() != null) {
+				key = getInternalFrameAngebotstkl().getAgstklDto().getIId();
+
+				FilterKriterium[] defaultfk = AngebotstklFilterFactory.getInstance().createFKAgstkl(key);
+				panelQueryMaterial.setDefaultFilter(defaultfk);
+			}
+
+			panelSplitMaterial.eventYouAreSelected(false);
+
+			panelQueryMaterial.updateButtons(panelDetailMaterial.getLockedstateDetailMainKey());
 		} else if (selectedIndex == IDX_PANEL_POSITIONEN) {
 			refreshAngebotstklPositionen();
 
@@ -1116,15 +1127,13 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			if (getInternalFrameAngebotstkl().getAgstklDto() != null) {
 				key = getInternalFrameAngebotstkl().getAgstklDto().getIId();
 
-				FilterKriterium[] defaultfk = AngebotstklFilterFactory
-						.getInstance().createFKAgstkl(key);
+				FilterKriterium[] defaultfk = AngebotstklFilterFactory.getInstance().createFKAgstkl(key);
 				panelQueryAngStklPos.setDefaultFilter(defaultfk);
 			}
 
 			panelSplitAngStk.eventYouAreSelected(false);
 
-			panelQueryAngStklPos.updateButtons(panelDetailAngStklPos
-					.getLockedstateDetailMainKey());
+			panelQueryAngStklPos.updateButtons(panelDetailAngStklPos.getLockedstateDetailMainKey());
 		}
 	}
 
@@ -1147,14 +1156,10 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				Integer aIIdPosition[] = new Integer[aoIIdPosition.length];
 				for (int i = 0; i < aIIdPosition.length; i++) {
 					aIIdPosition[i] = (Integer) aoIIdPosition[i];
-					dtos[i] = DelegateFactory
-							.getInstance()
-							.getAngebotstklpositionDelegate()
-							.agstklpositionFindByPrimaryKey(
-									(Integer) aoIIdPosition[i]);
+					dtos[i] = DelegateFactory.getInstance().getAngebotstklpositionDelegate()
+							.agstklpositionFindByPrimaryKey((Integer) aoIIdPosition[i]);
 				}
-				LPMain.getInstance().getPasteBuffer()
-						.writeObjectToPasteBuffer(dtos);
+				LPMain.getInstance().getPasteBuffer().writeObjectToPasteBuffer(dtos);
 			}
 		} else if (selectedPanelIndex == IDX_PANEL_ARBEITSPLAN) {
 			Object aoIIdPosition[] = panelQueryArbeitsplan.getSelectedIds();
@@ -1164,14 +1169,10 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 				Integer aIIdPosition[] = new Integer[aoIIdPosition.length];
 				for (int i = 0; i < aIIdPosition.length; i++) {
 					aIIdPosition[i] = (Integer) aoIIdPosition[i];
-					dtos[i] = DelegateFactory
-							.getInstance()
-							.getAngebotstklDelegate()
-							.agstklarbeitsplanFindByPrimaryKey(
-									(Integer) aoIIdPosition[i]);
+					dtos[i] = DelegateFactory.getInstance().getAngebotstklDelegate()
+							.agstklarbeitsplanFindByPrimaryKey((Integer) aoIIdPosition[i]);
 				}
-				LPMain.getInstance().getPasteBuffer()
-						.writeObjectToPasteBuffer(dtos);
+				LPMain.getInstance().getPasteBuffer().writeObjectToPasteBuffer(dtos);
 			}
 		}
 
@@ -1183,25 +1184,61 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 			// Menue Datei; ein neuer Eintrag wird immer oben im Menue
 			// eingetragen
-			JMenu jmModul = (JMenu) wrapperMenuBar
-					.getComponent(WrapperMenuBar.MENU_MODUL);
+			JMenu jmModul = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_MODUL);
 
 			jmModul.add(new JSeparator(), 0);
 
-			JMenuItem menuItemDateiDrucken = new JMenuItem(LPMain.getInstance()
-					.getTextRespectUISPr("lp.menu.drucken"));
+			JMenuItem menuItemDateiDrucken = new JMenuItem(LPMain.getInstance().getTextRespectUISPr("lp.menu.drucken"));
 			menuItemDateiDrucken.addActionListener(this);
 			menuItemDateiDrucken.setActionCommand(MENU_DATEI_DRUCKEN);
 			jmModul.add(menuItemDateiDrucken, 0);
+
+			JMenu jmBearbeiten = (JMenu) wrapperMenuBar.getComponent(WrapperMenuBar.MENU_BEARBEITEN);
+
+			JMenuItem menuItemAufBelegmitdrucken = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("as.bearbeiten.aufbelegmitdrucken"));
+			menuItemAufBelegmitdrucken.addActionListener(this);
+			menuItemAufBelegmitdrucken.setActionCommand(MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN);
+			jmBearbeiten.add(menuItemAufBelegmitdrucken, 0);
+
+			JMenuItem menuItemHandartikelUmwandeln = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("angebot.bearbeiten.handartikelumwandeln"));
+			menuItemHandartikelUmwandeln.addActionListener(this);
+			menuItemHandartikelUmwandeln.setActionCommand(MENU_BEARBEITEN_HANDARTIKEL_UMWANDELN);
+			jmBearbeiten.add(menuItemHandartikelUmwandeln, 0);
 
 		}
 
 		return wrapperMenuBar;
 	}
 
+	public boolean zeigeMeldungPreiseFixiertUndArchiviereDokumentBeiAenderung() throws Throwable {
+
+		if (DelegateFactory.getInstance().getAngebotstklDelegate()
+				.sindMengenstaffelnvorhandenUndPreiseFixiert(getInternalFrameAngebotstkl().getAgstklDto().getIId())) {
+
+			boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+
+					LPMain.getInstance().getTextRespectUISPr("agstkl.preisefixiert.meldung.dialogjanein"),
+					LPMain.getInstance().getTextRespectUISPr("lp.frage"));
+
+			if (b == true) {
+				DelegateFactory.getInstance().getAngebotstklDelegate()
+						.alteVersionInDokumentenablageKopierenUndAgstklAufGeaendertStellen(
+								getInternalFrameAngebotstkl().getAgstklDto().getIId());
+
+			}
+			return b;
+
+		} else {
+			return true;
+		}
+
+	}
+
 	private void dialogStueckliste(ItemChangedEvent e) throws Throwable {
-		panelStueckliste = StuecklisteFilterFactory.getInstance()
-				.createPanelFLRStueckliste(getInternalFrame(), null, false);
+		panelStueckliste = StuecklisteFilterFactory.getInstance().createPanelFLRStueckliste(getInternalFrame(), null,
+				false);
 		new DialogQuery(panelStueckliste);
 	}
 
@@ -1210,89 +1247,74 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 			if (getInternalFrameAngebotstkl().iKalkulationsart == 2
 					|| getInternalFrameAngebotstkl().iKalkulationsart == 3) {
-				panelDetailAngStklPos = new PanelAgstklPositionenEinkauf(
-						getInternalFrame(), LPMain.getInstance()
-								.getTextRespectUISPr("angb.panel.positionen"),
-						null); // eventuell
-								// gibt
-								// es
-								// noch
-								// keine
-								// position
+				panelDetailAngStklPos = new PanelAgstklPositionenEinkauf(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("angb.panel.positionen"), null); // eventuell
+																									// gibt
+																									// es
+																									// noch
+																									// keine
+																									// position
 
 			} else {
-				panelDetailAngStklPos = new PanelAngebotstklPositionen(
-						getInternalFrame(), LPMain.getInstance()
-								.getTextRespectUISPr("angb.panel.positionen"),
-						null); // eventuell
-								// gibt
-								// es
-								// noch
-								// keine
-								// position
+				panelDetailAngStklPos = new PanelAngebotstklPositionen(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("angb.panel.positionen"), null); // eventuell
+																									// gibt
+																									// es
+																									// noch
+																									// keine
+																									// position
 			}
 
 			QueryType[] qtPositionen = null;
-			FilterKriterium[] filtersPositionen = AngebotstklFilterFactory
-					.getInstance().createFKAgstkl(
-							getInternalFrameAngebotstkl().getAgstklDto()
-									.getIId());
+			FilterKriterium[] filtersPositionen = AngebotstklFilterFactory.getInstance()
+					.createFKAgstkl(getInternalFrameAngebotstkl().getAgstklDto().getIId());
 
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
-					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1,
-					PanelBasis.ACTION_POSITION_VORPOSITIONEINFUEGEN,
-					PanelBasis.ACTION_KOPIEREN,
-					PanelBasis.ACTION_EINFUEGEN_LIKE_NEW, };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_POSITION_VONNNACHNMINUS1,
+					PanelBasis.ACTION_POSITION_VONNNACHNPLUS1, PanelBasis.ACTION_POSITION_VORPOSITIONEINFUEGEN,
+					PanelBasis.ACTION_KOPIEREN, PanelBasis.ACTION_EINFUEGEN_LIKE_NEW, };
 
-			panelQueryAngStklPos = new PanelQuery(qtPositionen,
-					filtersPositionen, QueryParameters.UC_ID_AGSTKLPOSITION,
-					aWhichButtonIUse, getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.panel.positionen"), true); // flag
-																					// ,
-																					// damit
-																					// flr
-																					// erst
-																					// beim
-																					// aufruf
-																					// des
-																					// panels
-																					// loslaeuft
+			panelQueryAngStklPos = new PanelQuery(qtPositionen, filtersPositionen, QueryParameters.UC_ID_AGSTKLPOSITION,
+					aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.panel.positionen"), true); // flag
+																								// ,
+																								// damit
+																								// flr
+																								// erst
+																								// beim
+																								// aufruf
+																								// des
+																								// panels
+																								// loslaeuft
 
-			panelQueryAngStklPos.createAndSaveAndShowButton(
-					"/com/lp/client/res/text_code_colored16x16.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"stkl.positionen.importausandererstueckliste"),
+			panelQueryAngStklPos.createAndSaveAndShowButton("/com/lp/client/res/text_code_colored16x16.png",
+					LPMain.getInstance().getTextRespectUISPr("stkl.positionen.importausandererstueckliste"),
 					BUTTON_IMPORTSTUECKLISTEPOSITIONEN, null);
 
-			panelQueryAngStklPos.createAndSaveAndShowButton(
-					"/com/lp/client/res/calculator16x16.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"agstkl.preiseneurechnen.kalk2"),
+			panelQueryAngStklPos.createAndSaveAndShowButton("/com/lp/client/res/calculator16x16.png",
+					LPMain.getInstance().getTextRespectUISPr("agstkl.preiseneurechnen.kalk2"),
 					BUTTON_PREISE_NEU_RECHNEN, null);
 
-			panelQueryAngStklPos.createAndSaveAndShowButton(
-					"/com/lp/client/res/note_add16x16.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"as.positionen.importausandererstueckliste"),
+			panelQueryAngStklPos.createAndSaveAndShowButton("/com/lp/client/res/note_add16x16.png",
+					LPMain.getInstance().getTextRespectUISPr("as.positionen.importausandererstueckliste"),
 					BUTTON_IMPORTAGSTUECKLISTEPOSITIONEN, null);
 
-			if (LPMain
-					.getInstance()
-					.getDesktop()
-					.darfAnwenderAufZusatzfunktionZugreifen(
-							MandantFac.ZUSATZFUNKTION_INTELLIGENTER_STUECKLISTENIMPORT)) {
-				panelQueryAngStklPos.createAndSaveAndShowButton(
-						"/com/lp/client/res/document_into.png",
-						LPMain.getInstance().getTextRespectUISPr(
-								"stkl.intelligenterstklimport"),
+			panelQueryAngStklPos.createAndSaveAndShowButton("/com/lp/client/res/sort_az_descending.png",
+					LPMain.getTextRespectUISPr("ls.sortierenachartikelnummer"), BUTTON_SORTIERE_NACH_ARTIKELNUMMER,
+					null);
+
+			if (hasZusatzfunktionIntelligenterStklImport()) {
+				panelQueryAngStklPos.createAndSaveAndShowButton("/com/lp/client/res/document_into.png",
+						LPMain.getInstance().getTextRespectUISPr("agstkl.intelligenteragstklimport"),
 						BUTTON_INTELLIGENTERIMPORTCSV_AGSTKLPOSITIONEN, null);
 			}
 
+			panelQueryAngStklPos.createAndSaveAndShowButton("/com/lp/client/res/document_check16x16.png",
+					LPMain.getTextRespectUISPr("as.bearbeiten.aufbelegmitdrucken"),
+					MY_OWN_NEW_MENU_BEARBEITEN_AUF_BELEG_MITDRUCKEN_MIT_PREISEN, RechteFac.RECHT_AS_ANGEBOTSTKL_CUD);
+
 			panelQueryAngStklPos.setMultipleRowSelectionEnabled(true);
 
-			panelSplitAngStk = new PanelSplit(getInternalFrame(),
-					panelDetailAngStklPos, panelQueryAngStklPos, 180);
+			panelSplitAngStk = new PanelSplit(getInternalFrame(), panelDetailAngStklPos, panelQueryAngStklPos, 160);
 
 			setComponentAt(IDX_PANEL_POSITIONEN, panelSplitAngStk);
 		}
@@ -1303,39 +1325,30 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 	private PanelSplit refreshAngebotstklarbeitsplan() throws Throwable {
 		if (panelSplitArbeitsplan == null) {
 
-			panelDetailArbeitsplan = new PanelAgstklarbeitsplan(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.panel.positionen"), null);
+			panelDetailArbeitsplan = new PanelAgstklarbeitsplan(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.panel.positionen"), null);
 
 			QueryType[] qtPositionen = null;
-			FilterKriterium[] filtersPositionen = AngebotstklFilterFactory
-					.getInstance().createFKAgstkl(
-							getInternalFrameAngebotstkl().getAgstklDto()
-									.getIId());
+			FilterKriterium[] filtersPositionen = AngebotstklFilterFactory.getInstance()
+					.createFKAgstkl(getInternalFrameAngebotstkl().getAgstklDto().getIId());
 
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_KOPIEREN,
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_KOPIEREN,
 					PanelBasis.ACTION_EINFUEGEN_LIKE_NEW };
 
-			panelQueryArbeitsplan = new PanelQuery(qtPositionen,
-					filtersPositionen, QueryParameters.UC_ID_AGSTKLARBEITSPLAN,
-					aWhichButtonIUse, getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("angb.panel.positionen"), true);
+			panelQueryArbeitsplan = new PanelQuery(qtPositionen, filtersPositionen,
+					QueryParameters.UC_ID_AGSTKLARBEITSPLAN, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("angb.panel.positionen"), true);
 
-			panelQueryArbeitsplan.createAndSaveAndShowButton(
-					"/com/lp/client/res/text_code_colored16x16.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"agstkl.positionen.importausanderem.arbeitsplan"),
+			panelQueryArbeitsplan.createAndSaveAndShowButton("/com/lp/client/res/text_code_colored16x16.png",
+					LPMain.getInstance().getTextRespectUISPr("agstkl.positionen.importausanderem.arbeitsplan"),
 					BUTTON_IMPORTSTUECKLISTEARBEITSLPAN, null);
 
-			panelQueryArbeitsplan.createAndSaveAndShowButton(
-					"/com/lp/client/res/note_add16x16.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"as.positionen.importausandererstueckliste"),
+			panelQueryArbeitsplan.createAndSaveAndShowButton("/com/lp/client/res/note_add16x16.png",
+					LPMain.getInstance().getTextRespectUISPr("as.positionen.importausandererstueckliste"),
 					BUTTON_IMPORTAGSTUECKLISTEARBEITSPLAN, null);
 			panelQueryArbeitsplan.setMultipleRowSelectionEnabled(true);
-			panelSplitArbeitsplan = new PanelSplit(getInternalFrame(),
-					panelDetailArbeitsplan, panelQueryArbeitsplan, 180);
+			panelSplitArbeitsplan = new PanelSplit(getInternalFrame(), panelDetailArbeitsplan, panelQueryArbeitsplan,
+					180);
 
 			setComponentAt(IDX_PANEL_ARBEITSPLAN, panelSplitArbeitsplan);
 		}
@@ -1345,38 +1358,86 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 
 	private PanelSplit refreshAngebotstklmengenstaffel() throws Throwable {
 		if (panelSplitMengenstaffel == null) {
+			if (LPMain.getInstance().getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_MV_AG_SCHNELLERFASSUNG)) {
+				panelDetailMengenstaffel = new PanelAgstklmengenstaffelSchnellerfassung(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("as.agstkl.mengenstaffel"), null, this);
 
-			panelDetailMengenstaffel = new PanelAgstklmengenstaffel(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("as.agstkl.mengenstaffel"),
-					null, this);
+				QueryType[] qtPositionen = null;
+				FilterKriterium[] filtersPositionen = AngebotstklFilterFactory.getInstance()
+						.createFKAgstkl(getInternalFrameAngebotstkl().getAgstklDto().getIId());
 
-			QueryType[] qtPositionen = null;
-			FilterKriterium[] filtersPositionen = AngebotstklFilterFactory
-					.getInstance().createFKAgstkl(
-							getInternalFrameAngebotstkl().getAgstklDto()
-									.getIId());
+				String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
 
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
+				panelQueryMengenstaffel = new PanelQuery(qtPositionen, filtersPositionen,
+						QueryParameters.UC_ID_AGSTKLMENGENSTAFFEL_SCHNELLERFASSUNG, aWhichButtonIUse,
+						getInternalFrame(), LPMain.getInstance().getTextRespectUISPr("as.agstkl.mengenstaffel"), true);
 
-			panelQueryMengenstaffel = new PanelQuery(qtPositionen,
-					filtersPositionen,
-					QueryParameters.UC_ID_AGSTKLMENGENSTAFFEL,
-					aWhichButtonIUse, getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("as.agstkl.mengenstaffel"),
-					true);
+				panelSplitMengenstaffel = new PanelSplit(getInternalFrame(), panelDetailMengenstaffel,
+						panelQueryMengenstaffel, 280);
+			} else {
+				panelDetailMengenstaffel = new PanelAgstklmengenstaffel(getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("as.agstkl.mengenstaffel"), null, this);
 
-			panelSplitMengenstaffel = new PanelSplit(getInternalFrame(),
-					panelDetailMengenstaffel, panelQueryMengenstaffel, 280);
+				QueryType[] qtPositionen = null;
+				FilterKriterium[] filtersPositionen = AngebotstklFilterFactory.getInstance()
+						.createFKAgstkl(getInternalFrameAngebotstkl().getAgstklDto().getIId());
+
+				String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
+
+				panelQueryMengenstaffel = new PanelQuery(qtPositionen, filtersPositionen,
+						QueryParameters.UC_ID_AGSTKLMENGENSTAFFEL, aWhichButtonIUse, getInternalFrame(),
+						LPMain.getInstance().getTextRespectUISPr("as.agstkl.mengenstaffel"), true);
+
+				panelQueryMengenstaffel.createAndSaveAndShowButton("/com/lp/client/res/safe_into.png",
+						LPMain.getTextRespectUISPr("agstkl.mengenstaffel.preiseneukalkulieren"),
+						ACTION_SPECIAL_MENGENSTAFFELN_NEU_KALKULIEREN, RechteFac.RECHT_AS_ANGEBOTSTKL_CUD);
+				panelQueryMengenstaffel.getToolBar().getToolsPanelCenter().add(datenGeaendert);
+				panelSplitMengenstaffel = new PanelSplit(getInternalFrame(), panelDetailMengenstaffel,
+						panelQueryMengenstaffel, 280);
+			}
 
 			setComponentAt(IDX_PANEL_MENGENSTAFFEL, panelSplitMengenstaffel);
+		}
+
+		AgstklDto agstklDto = DelegateFactory.getInstance().getAngebotstklDelegate()
+				.agstklFindByPrimaryKey(getInternalFrameAngebotstkl().getAgstklDto().getIId());
+
+		if (Helper.short2boolean(agstklDto.getBDatengeaendert()) == true) {
+			datenGeaendert.setForeground(Color.RED);
+			datenGeaendert.setText(LPMain.getTextRespectUISPr("agstkl.preisefixiert.meldung.panel"));
+		} else {
+			datenGeaendert.setText(null);
 		}
 
 		return panelSplitMengenstaffel;
 	}
 
-	public void fillMustFields(BelegpositionDto belegposDtoI, int xalOfBelegPosI)
-			throws Throwable {
+	private PanelSplit refreshAngebotstklmaterial() throws Throwable {
+		if (panelSplitMaterial == null) {
+
+			panelDetailMaterial = new PanelAgstklmaterial(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("agstkl.material"), null, this);
+
+			QueryType[] qtPositionen = null;
+			FilterKriterium[] filtersPositionen = AngebotstklFilterFactory.getInstance()
+					.createFKAgstkl(getInternalFrameAngebotstkl().getAgstklDto().getIId());
+
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
+
+			panelQueryMaterial = new PanelQuery(qtPositionen, filtersPositionen, QueryParameters.UC_ID_AGSTKLMATERIAL,
+					aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("as.agstkl.mengenstaffel"), true);
+
+			panelSplitMaterial = new PanelSplit(getInternalFrame(), panelDetailMaterial, panelQueryMaterial, 380);
+
+			setComponentAt(IDX_PANEL_MATERIAL, panelSplitMaterial);
+		}
+
+		return panelSplitMengenstaffel;
+	}
+
+	public void fillMustFields(BelegpositionDto belegposDtoI, int xalOfBelegPosI) throws Throwable {
 		AgstklpositionDto angStklPosDto = (AgstklpositionDto) belegposDtoI;
 
 		String sPosArt = angStklPosDto.getPositionsartCNr();
@@ -1387,23 +1448,17 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			throw new IllegalArgumentException(sMsg);
 		}
 
-		angStklPosDto.setBelegIId(getInternalFrameAngebotstkl().getAgstklDto()
-				.getIId());
+		angStklPosDto.setBelegIId(getInternalFrameAngebotstkl().getAgstklDto().getIId());
 		angStklPosDto.setISort(xalOfBelegPosI + 1000);
 
 		if (angStklPosDto.getNGestehungspreis() == null) {
 			// WH: 2007-01-15: Gestpreis aus Hauptlager des Mandanten
 			// uebernehmen
 			if (angStklPosDto.getArtikelIId() != null) {
-				LagerDto lagerDto = DelegateFactory.getInstance()
-						.getLagerDelegate().getHauptlagerDesMandanten();
+				LagerDto lagerDto = DelegateFactory.getInstance().getLagerDelegate().getHauptlagerDesMandanten();
 
-				BigDecimal preis = DelegateFactory
-						.getInstance()
-						.getLagerDelegate()
-						.getGemittelterGestehungspreisEinesLagers(
-								angStklPosDto.getArtikelIId(),
-								lagerDto.getIId());
+				BigDecimal preis = DelegateFactory.getInstance().getLagerDelegate()
+						.getGemittelterGestehungspreisEinesLagers(angStklPosDto.getArtikelIId(), lagerDto.getIId());
 				angStklPosDto.setNGestehungspreis(preis);
 			} else {
 				angStklPosDto.setNGestehungspreis(new BigDecimal(0));
@@ -1413,8 +1468,7 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			angStklPosDto.setBDrucken(Helper.boolean2Short(true));
 		}
 		if (angStklPosDto.getBRabattsatzuebersteuert() == null) {
-			angStklPosDto.setBRabattsatzuebersteuert(Helper
-					.boolean2Short(false));
+			angStklPosDto.setBRabattsatzuebersteuert(Helper.boolean2Short(false));
 		}
 		if (angStklPosDto.getNNettoeinzelpreis() == null) {
 			angStklPosDto.setNNettoeinzelpreis(new BigDecimal(0));
@@ -1426,16 +1480,23 @@ public class TabbedPaneAngebotstkl extends TabbedPane implements ICopyPaste {
 			angStklPosDto.setFRabattsatz(0.0);
 		}
 		if (angStklPosDto.getBArtikelbezeichnunguebersteuert() == null) {
-			angStklPosDto.setBArtikelbezeichnunguebersteuert(Helper
-					.boolean2Short(false));
+			angStklPosDto.setBArtikelbezeichnunguebersteuert(Helper.boolean2Short(false));
 		}
 
 	}
 
-	public Integer saveBelegPosAsTextpos(
-			POSDocument2POSDto pOSDocument2POSDtoI, int xalOfBelegPosI)
+	public Integer saveBelegPosAsTextpos(POSDocument2POSDto pOSDocument2POSDtoI, int xalOfBelegPosI)
 			throws ExceptionLP, Throwable {
 		return null;
 	}
 
+	private boolean hasZusatzfunktionIntelligenterStklImport() {
+		return LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_INTELLIGENTER_STUECKLISTENIMPORT);
+	}
+
+	private boolean hasZusatzfunktionKundesonderkonditionen() {
+		return LPMain.getInstance().getDesktop()
+				.darfAnwenderAufZusatzfunktionZugreifen(MandantFac.ZUSATZFUNKTION_KUNDESONDERKONDITIONEN);
+	}
 }

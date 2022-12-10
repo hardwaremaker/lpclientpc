@@ -32,9 +32,7 @@
  ******************************************************************************/
 package com.lp.client.frame.component;
 
-
-
-
+import java.awt.event.ActionEvent;
 import java.util.EventObject;
 
 import com.lp.client.frame.direktanlegen.DialogLagerplatzanlegen;
@@ -42,65 +40,66 @@ import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
-public class PanelQueryFLRLagerplatzAnlegen
-    extends PanelQueryFLR
-{
-  /**
+public class PanelQueryFLRLagerplatzAnlegen extends PanelQueryFLR {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-public PanelQueryFLRLagerplatzAnlegen(QueryType[] typesI,
-                       FilterKriterium[] filtersI,
-                       String[] aWhichButtonIUseI,
-                       InternalFrame internalFrameI,
-                       String add2TitleI)
-      throws Throwable {
-    super(typesI, filtersI, QueryParameters.UC_ID_LAGERPLATZ, aWhichButtonIUseI, internalFrameI, add2TitleI);
-  }
+	public PanelQueryFLRLagerplatzAnlegen(QueryType[] typesI, FilterKriterium[] filtersI, String[] aWhichButtonIUseI,
+			InternalFrame internalFrameI, String add2TitleI) throws Throwable {
+		super(typesI, filtersI, QueryParameters.UC_ID_LAGERPLATZ, aWhichButtonIUseI, internalFrameI, add2TitleI);
+	}
 
+	/**
+	 * Konstruktor fuer eine FLR Liste, in der ein bestimmter Datensatz selektiert
+	 * ist. <br>
+	 * Der Key dieses Datensatzes wird als Parameter uebergeben.
+	 * 
+	 * @param typesI            die UI Filterkriterien fuer den Benutzer
+	 * @param filtersI          die default Filterkriterien, die fuer den Benutzer
+	 *                          nicht sichtbar sind
+	 * @param idUsecaseI        die ID des gewuenschten UseCase
+	 * @param aWhichButtonIUseI welche Buttons sind auf dem Panel sichtbar
+	 * @param internalFrameI    den InternalFrame als Kontext setzen
+	 * @param add2TitleI        der Titel dieses Panels
+	 * @param oSelectedIdI      der Datensatz mit diesem Key soll selektiert werden
+	 * @throws Throwable
+	 */
+	public PanelQueryFLRLagerplatzAnlegen(QueryType[] typesI, FilterKriterium[] filtersI, String[] aWhichButtonIUseI,
+			InternalFrame internalFrameI, String add2TitleI, Object oSelectedIdI) throws Throwable {
+		super(typesI, filtersI, QueryParameters.UC_ID_LAGERPLATZ, aWhichButtonIUseI, internalFrameI, add2TitleI,
+				oSelectedIdI);
+	}
 
-  /**
-   * Konstruktor fuer eine FLR Liste, in der ein bestimmter Datensatz selektiert ist.
-   * <br>Der Key dieses Datensatzes wird als Parameter uebergeben.
-   * @param typesI die UI Filterkriterien fuer den Benutzer
-   * @param filtersI die default Filterkriterien, die fuer den Benutzer nicht sichtbar sind
-   * @param idUsecaseI die ID des gewuenschten UseCase
-   * @param aWhichButtonIUseI welche Buttons sind auf dem Panel sichtbar
-   * @param internalFrameI den InternalFrame als Kontext setzen
-   * @param add2TitleI der Titel dieses Panels
-   * @param oSelectedIdI der Datensatz mit diesem Key soll selektiert werden
-   * @throws Throwable
-   */
-  public PanelQueryFLRLagerplatzAnlegen(QueryType[] typesI,
-                       FilterKriterium[] filtersI,
-                       String[] aWhichButtonIUseI,
-                       InternalFrame internalFrameI,
-                       String add2TitleI,
-                       Object oSelectedIdI)
-      throws Throwable {
-    super(typesI, filtersI, QueryParameters.UC_ID_LAGERPLATZ, aWhichButtonIUseI, internalFrameI, add2TitleI,
-          oSelectedIdI);
-  }
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
+		DialogLagerplatzanlegen d = new DialogLagerplatzanlegen(getInternalFrame(), null);
+		d.setModal(true);
+		d.setBounds(this.getBounds());
+		d.setLocation(this.getLocationOnScreen());
+		d.setVisible(true);
 
-  public void eventActionNew(EventObject eventObject,
-                             boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws Throwable {
-      DialogLagerplatzanlegen d = new DialogLagerplatzanlegen(getInternalFrame());
-      d.setModal(true);
-      d.setBounds(this.getBounds());
-      d.setLocation(this.getLocationOnScreen());
-      d.setVisible(true);
+		if (d.getNeueLaagerplatzIId() != null) {
+			this.eventActionRefresh(null, false);
+			this.setSelectedId(d.getNeueLaagerplatzIId());
+			getInternalFrame().fireItemChanged(this, ItemChangedEvent.GOTO_DETAIL_PANEL);
+			dialog.dispose();
+		}
+		d.dispose();
+	}
 
-      if (d.getNeueLaagerplatzIId() != null) {
-        this.eventActionRefresh(null,false);
-        this.setSelectedId(d.getNeueLaagerplatzIId());
-        getInternalFrame().fireItemChanged(this, ItemChangedEvent.GOTO_DETAIL_PANEL);
-        dialog.dispose();
-      }
-      d.dispose();
-  }
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		DialogLagerplatzanlegen d = new DialogLagerplatzanlegen(getInternalFrame(), (Integer) getSelectedId());
+		d.setModal(true);
+		d.setBounds(this.getBounds());
+		d.setLocation(this.getLocationOnScreen());
+		d.setVisible(true);
 
+		if (d.getNeueLaagerplatzIId() != null) {
+			this.eventActionRefresh(null, false);
+			this.setSelectedId(d.getNeueLaagerplatzIId());
+		}
+		d.dispose();
+	}
 
 }

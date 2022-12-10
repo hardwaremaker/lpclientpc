@@ -78,10 +78,18 @@ public class PanelPflegeNew extends PanelBasis implements PflegeEventListener,
 
 		tree.register(new DokumentenpfadeErneuern());
 		tree.register(new DokumenteImportieren());
-		tree.register(new ZwsMinusRabatteKorrigieren2276()) ;
+		tree.register(new JcrDump());
+		tree.register(new ZwsMinusRabatteKorrigieren2276());
+		tree.register(new ZwsMinusRabatteKorrigieren5524());
 		tree.register(new PflegeHvDirekthilfe());
+		tree.register(new PflegeLoseMitErledigtenAuftraegenErledigen());
+		tree.register(new NettoEinzelpreisMinusRabatteKorrigieren6402());
+		tree.register(new LieferscheinpositionenKorrigieren6999());
+		tree.register(new PflegeXSLVorlage(iFrame));
+		tree.register(new PflegeRechtschreibung());
+		tree.register(new PflegeAnsprechpartnerRechnungsadresse());
+		tree.register(new PflegeAutomatikjobsSynchronisieren());
 //		tree.register(new PflegeMock());
-
 	}
 
 	private void selectPflegefunktion(IPflegefunktion pflege) {

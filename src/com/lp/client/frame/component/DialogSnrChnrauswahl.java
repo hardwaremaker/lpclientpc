@@ -65,8 +65,7 @@ import com.lp.server.artikel.service.SeriennrChargennrMitMengeDto;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class DialogSnrChnrauswahl extends JDialog implements KeyListener,
-		MouseListener {
+public class DialogSnrChnrauswahl extends JDialog implements KeyListener, MouseListener {
 
 	private static final long serialVersionUID = 1L;
 	JPanel panel1 = new JPanel();
@@ -79,23 +78,19 @@ public class DialogSnrChnrauswahl extends JDialog implements KeyListener,
 	JScrollPane jScrollPane1 = new JScrollPane();
 	JTable jTableSnrChnrs = new JTable();
 	JButton jButtonUebernehmen = new JButton();
+	ArrayList<SeriennrChargennrAufLagerDto> alListeMitSelektiertenBereinigt = null;
 
-	public DialogSnrChnrauswahl(Integer artikelIId, Integer lagerIId,
-			boolean bMultiselection,
-			List<SeriennrChargennrMitMengeDto> alSeriennummernBereitsSelektiert)
-			throws Throwable {
+	public DialogSnrChnrauswahl(Integer artikelIId, Integer lagerIId, boolean bMultiselection,
+			List<SeriennrChargennrMitMengeDto> alSeriennummernBereitsSelektiert) throws Throwable {
 		super(LPMain.getInstance().getDesktop(), "", true);
 
-		SeriennrChargennrAufLagerDto[] dtos = DelegateFactory.getInstance()
-				.getLagerDelegate()
+		SeriennrChargennrAufLagerDto[] dtos = DelegateFactory.getInstance().getLagerDelegate()
 				.getAllSerienChargennrAufLager(artikelIId, lagerIId, true);
-		ArtikelDto artikelDto = DelegateFactory.getInstance()
-				.getArtikelDelegate().artikelFindByPrimaryKey(artikelIId);
-		setTitle("Auswahl Seriennummern f\u00FCr Artikel "
-				+ artikelDto.formatArtikelbezeichnung());
+		ArtikelDto artikelDto = DelegateFactory.getInstance().getArtikelDelegate().artikelFindByPrimaryKey(artikelIId);
+		setTitle("Auswahl Serien/Chargennummern f\u00FCr Artikel " + artikelDto.formatArtikelbezeichnung());
 		bSnrBehaftet = Helper.short2boolean(artikelDto.getBSeriennrtragend());
 
-		ArrayList<SeriennrChargennrAufLagerDto> alListeMitSelektiertenBereinigt = new ArrayList<SeriennrChargennrAufLagerDto>();
+		alListeMitSelektiertenBereinigt = new ArrayList<SeriennrChargennrAufLagerDto>();
 
 		for (int i = 0; i < dtos.length; i++) {
 
@@ -106,13 +101,11 @@ public class DialogSnrChnrauswahl extends JDialog implements KeyListener,
 			if (alSeriennummernBereitsSelektiert != null) {
 				for (int j = 0; j < alSeriennummernBereitsSelektiert.size(); j++) {
 
-					if (dtoZeile.getCSeriennrChargennr().equals(
-							alSeriennummernBereitsSelektiert.get(j)
-									.getCSeriennrChargennr())) {
+					if (dtoZeile.getCSeriennrChargennr()
+							.equals(alSeriennummernBereitsSelektiert.get(j).getCSeriennrChargennr())) {
 						bGefunden = true;
-						BigDecimal mengeNeu = dtoZeile.getNMenge().subtract(
-								alSeriennummernBereitsSelektiert.get(j)
-										.getNMenge());
+						BigDecimal mengeNeu = dtoZeile.getNMenge()
+								.subtract(alSeriennummernBereitsSelektiert.get(j).getNMenge());
 						dtoZeile.setNMenge(mengeNeu);
 						if (mengeNeu.doubleValue() > 0) {
 							alListeMitSelektiertenBereinigt.add(dtoZeile);
@@ -135,31 +128,23 @@ public class DialogSnrChnrauswahl extends JDialog implements KeyListener,
 		Object[][] data = null;
 		String[] colNames = null;
 		if (bSnrBehaftet) {
-			colNames = new String[] {
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.seriennummer"),
+			colNames = new String[] { LPMain.getInstance().getTextRespectUISPr("artikel.seriennummer"),
 					LPMain.getInstance().getTextRespectUISPr("artikel.lager.version") };
 			data = new String[alListeMitSelektiertenBereinigt.size()][2];
 			for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
 				if (alListeMitSelektiertenBereinigt.get(i) != null) {
-					data[i][0] = alListeMitSelektiertenBereinigt.get(i)
-							.getCSeriennrChargennr();
-					data[i][1] = alListeMitSelektiertenBereinigt.get(i)
-							.getCVersion();
+					data[i][0] = alListeMitSelektiertenBereinigt.get(i).getCSeriennrChargennr();
+					data[i][1] = alListeMitSelektiertenBereinigt.get(i).getCVersion();
 				}
 			}
 		} else {
-			colNames = new String[] {
-					LPMain.getInstance().getTextRespectUISPr(
-							"lp.chargennummer_lang"),
+			colNames = new String[] { LPMain.getInstance().getTextRespectUISPr("lp.chargennummer_lang"),
 					LPMain.getInstance().getTextRespectUISPr("lp.menge") };
 			data = new Object[alListeMitSelektiertenBereinigt.size()][2];
 			for (int i = 0; i < alListeMitSelektiertenBereinigt.size(); i++) {
 				if (alListeMitSelektiertenBereinigt.get(i) != null) {
-					data[i][0] = alListeMitSelektiertenBereinigt.get(i)
-							.getCSeriennrChargennr();
-					data[i][1] = alListeMitSelektiertenBereinigt.get(i)
-							.getNMenge();
+					data[i][0] = alListeMitSelektiertenBereinigt.get(i).getCSeriennrChargennr();
+					data[i][1] = alListeMitSelektiertenBereinigt.get(i).getNMenge();
 				}
 			}
 
@@ -172,19 +157,16 @@ public class DialogSnrChnrauswahl extends JDialog implements KeyListener,
 
 		if (!bSnrBehaftet) {
 
-			NumberColumnFormat numberCF2 = new NumberColumnFormat(
-					"###,###,###.####");
+			NumberColumnFormat numberCF2 = new NumberColumnFormat("###,###,###.####");
 			TableColumn tc = jTableSnrChnrs.getColumnModel().getColumn(1);
 			tc.setCellRenderer(numberCF2.getRenderer());
 			tc.setCellEditor(numberCF2.getEditor());
 		}
 
 		if (bMultiselection) {
-			jTableSnrChnrs
-					.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			jTableSnrChnrs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		} else {
-			jTableSnrChnrs
-					.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			jTableSnrChnrs.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		}
 
 		jScrollPane.getViewport().add(jTableSnrChnrs);
@@ -200,41 +182,39 @@ public class DialogSnrChnrauswahl extends JDialog implements KeyListener,
 
 	private void jbInit() throws Exception {
 		panel1.setLayout(gridBagLayout1);
-		jButtonUebernehmen.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.uebernehmen"));
-		jButtonUebernehmen
-				.addActionListener(new DialogSnrChnr_jButtonUebernehmen_actionAdapter(
-						this));
+		jButtonUebernehmen.setText(LPMain.getInstance().getTextRespectUISPr("lp.uebernehmen"));
+		jButtonUebernehmen.addActionListener(new DialogSnrChnr_jButtonUebernehmen_actionAdapter(this));
 		add(panel1);
-		panel1.add(jScrollPane, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
-		panel1.add(jButtonUebernehmen, new GridBagConstraints(0, 2, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		panel1.add(jScrollPane, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		panel1.add(jButtonUebernehmen, new GridBagConstraints(0, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	public void jButtonUebernehmen_actionPerformed(ActionEvent e) {
 		int[] rows = jTableSnrChnrs.getSelectedRows();
 		sSeriennrChargennrArray = new String[rows.length];
 		for (int i = 0; i < rows.length; i++) {
-			sSeriennrChargennrArray[i] = (String) jTableSnrChnrs.getModel()
-					.getValueAt(rows[i], 0);
+			sSeriennrChargennrArray[i] = (String) jTableSnrChnrs.getModel().getValueAt(rows[i], 0);
 
 			if (bSnrBehaftet) {
 
 				SeriennrChargennrMitMengeDto snrDto = new SeriennrChargennrMitMengeDto(
-						(String) jTableSnrChnrs.getModel().getValueAt(rows[i],
-								0), new BigDecimal(1));
-				snrDto.setCVersion((String) jTableSnrChnrs.getModel()
-						.getValueAt(rows[i], 1));
+						(String) jTableSnrChnrs.getModel().getValueAt(rows[i], 0), new BigDecimal(1));
+				snrDto.setCVersion((String) jTableSnrChnrs.getModel().getValueAt(rows[i], 1));
 
 				alSeriennummern.add(snrDto);
 			} else {
-				alSeriennummern.add(new SeriennrChargennrMitMengeDto(
-						(String) jTableSnrChnrs.getModel().getValueAt(rows[i],
-								0), (BigDecimal) jTableSnrChnrs.getModel()
-								.getValueAt(rows[i], 1)));
+
+				SeriennrChargennrMitMengeDto chnrDto = new SeriennrChargennrMitMengeDto(
+						(String) jTableSnrChnrs.getModel().getValueAt(rows[i], 0),
+						(BigDecimal) jTableSnrChnrs.getModel().getValueAt(rows[i], 1));
+
+				if (alListeMitSelektiertenBereinigt != null && alListeMitSelektiertenBereinigt.size() > i) {
+					chnrDto.setCVersion(alListeMitSelektiertenBereinigt.get(i).getCVersion());
+				}
+
+				alSeriennummern.add(chnrDto);
 			}
 
 		}

@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.eingangsrechnung;
@@ -44,6 +44,7 @@ import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.WrapperButton;
 import com.lp.client.frame.component.WrapperDateField;
@@ -52,6 +53,7 @@ import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
+import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
 import com.lp.client.pc.LPMain;
 import com.lp.server.eingangsrechnung.service.EingangsrechnungDto;
@@ -59,6 +61,7 @@ import com.lp.server.eingangsrechnung.service.EingangsrechnungReportFac;
 import com.lp.server.partner.service.LieferantDto;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.MailtextDto;
 import com.lp.server.system.service.MandantDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
@@ -69,7 +72,7 @@ import com.lp.util.Helper;
 public class ReportEingangsrechnung extends ReportBeleg {
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 
@@ -190,6 +193,7 @@ public class ReportEingangsrechnung extends ReportBeleg {
 		wlaProzent2.setHorizontalAlignment(SwingConstants.LEFT);
 		wlaZahlungsziel.setText(LPMain
 				.getTextRespectUISPr("label.zahlungsziel"));
+		HelperClient.setMinimumAndPreferredSize(wlaZahlungsziel, HelperClient.getSizeFactoredDimension(80));
 		wlaZusatzText.setText(LPMain.getTextRespectUISPr("lp.zusatztext"));
 
 		wlaSchecknummer.setText(LPMain.getTextRespectUISPr("er.schecknummer"));
@@ -310,7 +314,7 @@ public class ReportEingangsrechnung extends ReportBeleg {
 				new Insets(2, 2, 2, 2), 0, 0));
 
 	}
-	
+
 	@Override
 	protected String getLockMeWer() throws Exception {
 		// lock ist hier egal
@@ -331,7 +335,7 @@ public class ReportEingangsrechnung extends ReportBeleg {
 	}
 
 	private void setDefaults() throws Throwable {
-		wnfKopien.setInteger(new Integer(0));
+//		wnfKopien.setInteger(new Integer(0));
 
 		if (erDto.getZahlungszielIId() != null) {
 			ZahlungszielDto zahlungszielDto = DelegateFactory.getInstance()
@@ -426,7 +430,9 @@ public class ReportEingangsrechnung extends ReportBeleg {
 				.getInstance()
 				.getEingangsrechnungDelegate()
 				.printEingangsrechnung(erDto.getIId(), getReportname(),
-						wnfKopien.getInteger(), wnfBetrag.getBigDecimal(),
+//						wnfKopien.getInteger(),
+						getKopien(),
+						wnfBetrag.getBigDecimal(),
 						wtfZusatztext.getText(),
 						wnfSchecknummer.getInteger());
 		jasperPrint = aJasperPrint[0];
@@ -490,5 +496,9 @@ public class ReportEingangsrechnung extends ReportBeleg {
 		//Drucken aendert den Status nicht
 	}
 
-	
+	@Override
+	public MailtextDto getMailtextDto() throws Throwable {
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
+		return mailtextDto;
+	}
 }

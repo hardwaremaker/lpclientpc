@@ -47,6 +47,7 @@ import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -70,10 +71,17 @@ public class PanelBereich extends PanelBasis {
 	private GridBagLayout gridBagLayoutWorkingPanel = null;
 	private WrapperLabel wlaBezeichnung = new WrapperLabel();
 	private WrapperTextField wtfBezeichnung = new WrapperTextField();
+	private WrapperCheckBox wcbMitBetreiber = new WrapperCheckBox();
+	private WrapperCheckBox wcbMitArtikel = new WrapperCheckBox();
+	private WrapperCheckBox wcbArtikelEindeutig = new WrapperCheckBox();
+	private WrapperCheckBox wcbDurchgefuehrtInOffene = new WrapperCheckBox();
+	private WrapperCheckBox wcbDetailtextIstPflichtfeld = new WrapperCheckBox();
+	
+	private WrapperCheckBox wcbArtikelPflichtfeld = new WrapperCheckBox();
+	
 	private BereichDto bereichDto = null;
 
-	public PanelBereich(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	public PanelBereich(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		jbInit();
 		setDefaults();
@@ -88,8 +96,7 @@ public class PanelBereich extends PanelBasis {
 	private void setDefaults() {
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		bereichDto = new BereichDto();
 		leereAlleFelder(this);
@@ -98,18 +105,45 @@ public class PanelBereich extends PanelBasis {
 	/**
 	 * Hier kommen die events meiner speziellen Buttons an.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+
+		if (e.getSource().equals(wcbMitArtikel)) {
+			if (wcbMitArtikel.isSelected()) {
+				wcbArtikelEindeutig.setEnabled(true);
+				wcbArtikelPflichtfeld.setEnabled(true);
+
+			} else {
+				wcbArtikelEindeutig.setEnabled(false);
+				wcbArtikelPflichtfeld.setEnabled(false);
+				wcbArtikelEindeutig.setSelected(false);
+				wcbArtikelPflichtfeld.setSelected(false);
+
+			}
+
+		}
+
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
+		super.eventActionUpdate(aE, bNeedNoUpdateI);
+		if (wcbMitArtikel.isSelected()) {
+			wcbArtikelEindeutig.setEnabled(true);
+			wcbArtikelPflichtfeld.setEnabled(true);
+
+		} else {
+			wcbArtikelEindeutig.setEnabled(false);
+			wcbArtikelPflichtfeld.setEnabled(false);
+
+		}
+
+	}
+
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		DelegateFactory.getInstance().getProjektServiceDelegate()
-				.removeBereich(bereichDto);
+		DelegateFactory.getInstance().getProjektServiceDelegate().removeBereich(bereichDto);
 		this.setKeyWhenDetailPanel(null);
 		super.eventActionDelete(e, false, false);
 	}
@@ -117,25 +151,40 @@ public class PanelBereich extends PanelBasis {
 	protected void components2Dto() throws Throwable {
 		bereichDto.setCBez(wtfBezeichnung.getText());
 		bereichDto.setMandantCNr(LPMain.getTheClient().getMandant());
+		bereichDto.setBProjektMitBetreiber(wcbMitBetreiber.getShort());
+
+		bereichDto.setBProjektMitArtikel(wcbMitArtikel.getShort());
+		bereichDto.setBProjektArtikeleindeutig(wcbArtikelEindeutig.getShort());
+		bereichDto.setBProjektArtikelPflichtfeld(wcbArtikelPflichtfeld.getShort());
+		
+		bereichDto.setBDurchgefuehrtVonInOffene(wcbDurchgefuehrtInOffene.getShort());
+		
+		bereichDto.setBDetailtextIstPflichtfeld(wcbDetailtextIstPflichtfeld.getShort());
+
 	}
 
 	protected void dto2Components() {
 		wtfBezeichnung.setText(bereichDto.getCBez());
+		wcbMitBetreiber.setShort(bereichDto.getBProjektMitBetreiber());
+
+		wcbMitArtikel.setShort(bereichDto.getBProjektMitArtikel());
+		wcbArtikelEindeutig.setShort(bereichDto.getBProjektArtikeleindeutig());
+		wcbArtikelPflichtfeld.setShort(bereichDto.getBProjektArtikelPflichtfeld());
+		
+		wcbDurchgefuehrtInOffene.setShort(bereichDto.getBDurchgefuehrtVonInOffene());
+		wcbDetailtextIstPflichtfeld.setShort(bereichDto.getBDetailtextIstPflichtfeld());
 
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (allMandatoryFieldsSetDlg()) {
 			components2Dto();
 			if (bereichDto.getIId() == null) {
 				bereichDto.setCBez(wtfBezeichnung.getText());
-				bereichDto.setIId(DelegateFactory.getInstance()
-						.getProjektServiceDelegate().createBereich(bereichDto));
+				bereichDto.setIId(DelegateFactory.getInstance().getProjektServiceDelegate().createBereich(bereichDto));
 				setKeyWhenDetailPanel(bereichDto.getIId());
 			} else {
-				DelegateFactory.getInstance().getProjektServiceDelegate()
-						.updateBereich(bereichDto);
+				DelegateFactory.getInstance().getProjektServiceDelegate().updateBereich(bereichDto);
 			}
 			super.eventActionSave(e, true);
 
@@ -162,33 +211,62 @@ public class PanelBereich extends PanelBasis {
 		jpaButtonAction = getToolsPanel();
 		this.setActionMap(null);
 
-		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.bezeichnung"));
+		wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
 		wtfBezeichnung.setText("");
 		wtfBezeichnung.setMandatoryField(true);
+
+		wcbMitBetreiber.setText(LPMain.getInstance().getTextRespectUISPr("proj.bereich.mitbetreiber"));
+
+		wcbMitArtikel.setText(LPMain.getInstance().getTextRespectUISPr("proj.bereich.mitartikel"));
+
+		wcbArtikelEindeutig.setText(LPMain.getInstance().getTextRespectUISPr("proj.bereich.artikeleindeutig"));
+
+		wcbArtikelPflichtfeld.setText(LPMain.getInstance().getTextRespectUISPr("proj.bereich.artikelpflichtfeld"));
+		
+		wcbDetailtextIstPflichtfeld.setText(LPMain.getInstance().getTextRespectUISPr("proj.bereich.detailtextistpflichtfeld"));
+		
+		wcbMitArtikel.addActionListener(this);
+		
+		
+		wcbDurchgefuehrtInOffene.setText(LPMain.getInstance().getTextRespectUISPr("proj.bereich.durchgefuehrtinoffene"));
+		
+
 		getInternalFrame().addItemChangedListener(this);
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 		// jetzt meine felder
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, 0, 1, 1,
-				0.1, 0.0, GridBagConstraints.CENTER,
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, 0, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, 0, 1, 1,
-				0.3, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, 0, 2, 1, 0.3, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DELETE, ACTION_DISCARD, };
+		jpaWorkingOn.add(wcbMitBetreiber, new GridBagConstraints(1, 1, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbDetailtextIstPflichtfeld, new GridBagConstraints(2, 1, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		
+		jpaWorkingOn.add(wcbMitArtikel, new GridBagConstraints(1, 2, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbArtikelEindeutig, new GridBagConstraints(2, 2, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wcbArtikelPflichtfeld, new GridBagConstraints(2, 3, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		
+		jpaWorkingOn.add(wcbDurchgefuehrtInOffene, new GridBagConstraints(1, 3, 1, 1, 0.4, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DELETE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
@@ -198,21 +276,31 @@ public class PanelBereich extends PanelBasis {
 		return HelperClient.LOCKME_BEREICH;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 		Object key = getKeyWhenDetailPanel();
 
-		if (key == null
-				|| (key != null && key.equals(LPMain.getLockMeForNew()))) {
+		if (key == null || (key != null && key.equals(LPMain.getLockMeForNew()))) {
 
 			leereAlleFelder(this);
 
 			clearStatusbar();
+
+			if (key != null && key.equals(LPMain.getLockMeForNew())) {
+				if (wcbMitArtikel.isSelected()) {
+					wcbArtikelEindeutig.setEnabled(true);
+					wcbArtikelPflichtfeld.setEnabled(true);
+
+				} else {
+					wcbArtikelEindeutig.setEnabled(false);
+					wcbArtikelPflichtfeld.setEnabled(false);
+
+				}
+			}
+
 		} else {
-			bereichDto = DelegateFactory.getInstance()
-					.getProjektServiceDelegate()
+			bereichDto = DelegateFactory.getInstance().getProjektServiceDelegate()
 					.bereichFindByPrimaryKey((Integer) key);
 
 			dto2Components();

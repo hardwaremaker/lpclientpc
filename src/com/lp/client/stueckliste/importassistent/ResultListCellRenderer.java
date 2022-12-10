@@ -44,6 +44,7 @@ import javax.swing.ListCellRenderer;
 import net.miginfocom.swing.MigLayout;
 
 import com.lp.server.artikel.service.ArtikelDto;
+import com.lp.util.Helper;
 
 public class ResultListCellRenderer extends JPanel implements ListCellRenderer {
 	
@@ -77,15 +78,18 @@ public class ResultListCellRenderer extends JPanel implements ListCellRenderer {
 		if(value instanceof ArtikelDto) {
 			ArtikelDto dto = (ArtikelDto) value;
 			cnr.setText(dto.getCNr());
-			if(value != StklImportPage3Ctrl.HANDARTIKEL 
-					&& value != StklImportPage3Ctrl.FLR_LISTE
-					&& value != StklImportPage3Ctrl.ZUVIELE_ARTIKEL_FLR_LISTE) {
+			if(!Helper.isOneOf(value, StklImportPage3Ctrl.HANDARTIKEL, 
+					StklImportPage3Ctrl.FLR_LISTE, 
+					StklImportPage3Ctrl.ZUVIELE_ARTIKEL_FLR_LISTE, 
+					StklImportPage3Ctrl.ARTIKEL_ERZEUGEN)) {
 				cBez.setText(dto.getArtikelsprDto().getCBez());
 				cZBez.setText(dto.getArtikelsprDto().getCZbez());
 				cZBez2.setText(dto.getArtikelsprDto().getCZbez2());
 				showBez = true;
 			} else if(value == StklImportPage3Ctrl.ZUVIELE_ARTIKEL_FLR_LISTE) {
 				cBez.setText(dto.getArtikelsprDto().getCBez());
+				cZBez.setText(null);
+				cZBez2.setText(null);
 				showBez = true;
 			}
 		}

@@ -101,7 +101,7 @@ public class PanelKollektivuestd
 
   protected JComponent getFirstFocusableComponent()
       throws Exception {
-    return wtfBis;
+    return wcoTagesart;
   }
 
 
@@ -229,7 +229,20 @@ public class PanelKollektivuestd
     wla0000.setText("00:00 "+LPMain.getInstance().getTextRespectUISPr("lp.uhr") +" -");
     wla2400.setText(" - 24:00 "+LPMain.getInstance().getTextRespectUISPr("lp.uhr"));
 
-
+    Dimension labelDimension = HelperClient.getSizeFactoredDimension(90);
+    HelperClient.setMinimumAndPreferredSize(wcoTagesart, labelDimension);
+    HelperClient.setMinimumAndPreferredSize(wla0000, labelDimension);
+    HelperClient.setMinimumAndPreferredSize(wla2400, labelDimension);
+    HelperClient.setMinimumAndPreferredSize(wlaBis, labelDimension);
+    HelperClient.setMinimumAndPreferredSize(wlaAb, labelDimension);
+    HelperClient.setMinimumAndPreferredSize(wcbRestdestages, labelDimension);
+    HelperClient.setMinimumAndPreferredSize(wcbPausenIgnorieren,HelperClient.getSizeFactoredDimension(120));
+    
+    Dimension timeFieldDimension = HelperClient.getSizeFactoredDimension(75);
+    HelperClient.setMinimumAndPreferredSize(wtfBis, timeFieldDimension);
+    HelperClient.setMinimumAndPreferredSize(wtfAb, timeFieldDimension);
+   
+    
     wcbRestdestages.setText(LPMain.getInstance().getTextRespectUISPr(
         "pers.zutritt.restdestages"));
     wcbPausenIgnorieren.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -260,7 +273,7 @@ public class PanelKollektivuestd
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
         0, 0));
     jpaWorkingOn.add(wcoTagesart, new GridBagConstraints(2, 0, 5, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 150,
+        , GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0,
         0));
 
 
@@ -268,30 +281,30 @@ public class PanelKollektivuestd
 
         jpaWorkingOn.add(wla0000, new GridBagConstraints(0, 1, 1, 1, 0, 0.0
             , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-          80, 0));
+          0, 0));
     jpaWorkingOn.add(wlaBis, new GridBagConstraints(1, 1, 1, 1, 0, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        100, 0));
-    jpaWorkingOn.add(wtfBis, new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        50, 0));
-    jpaWorkingOn.add(wlaAb, new GridBagConstraints(3, 1, 1, 1, 0.05, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
         0, 0));
-    jpaWorkingOn.add(wtfAb, new GridBagConstraints(4, 1, 1, 1, 0.0, 0.0
+    jpaWorkingOn.add(wtfBis, new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 2, 0, 0),
+        0, 0));
+    jpaWorkingOn.add(wlaAb, new GridBagConstraints(3, 1, 1, 1, 0.0, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        50, 0));
+       0, 0));
+    jpaWorkingOn.add(wtfAb, new GridBagConstraints(4, 1, 1, 1, 0.0, 0.0
+        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 2, 0, 0),
+        0, 0));
 
     jpaWorkingOn.add(wcbRestdestages, new GridBagConstraints(5, 1, 1, 1, 0.0, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        120, 0));
+       0, 0));
 
     jpaWorkingOn.add(wla2400, new GridBagConstraints(6, 1, 1, 1, 0, 0.0
                 , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-          80, 0));
+          0, 0));
     jpaWorkingOn.add(wcbPausenIgnorieren, new GridBagConstraints(5, 0, 1, 1, 0.0, 0.0
             , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-            120, 0));
+            0, 0));
 
 
     String[] aWhichButtonIUse = {

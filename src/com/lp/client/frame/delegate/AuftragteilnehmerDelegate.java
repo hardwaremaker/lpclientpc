@@ -38,6 +38,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.AuftragteilnehmerDto;
 import com.lp.server.auftrag.service.AuftragteilnehmerFac;
 
@@ -65,7 +66,7 @@ public class AuftragteilnehmerDelegate
   public AuftragteilnehmerDelegate() throws ExceptionLP {
     try {
     	context = new InitialContext();
-    	auftragteilnehmerFac = (AuftragteilnehmerFac) context.lookup("lpserver/AuftragteilnehmerFacBean/remote");
+    	auftragteilnehmerFac = lookupFac(context, AuftragteilnehmerFac.class);
     }
     catch (Throwable t) {
       handleThrowable(t);
@@ -90,7 +91,7 @@ public class AuftragteilnehmerDelegate
     try {
       iIdTeilnehmerO = auftragteilnehmerFac.createAuftragteilnehmer(
           auftragteilnehmerDto,
-          LPMain.getInstance().getTheClient().getIDUser());
+          LPMain.getInstance().getTheClient());
     }
     catch (Throwable ex) {
       handleThrowable(ex);

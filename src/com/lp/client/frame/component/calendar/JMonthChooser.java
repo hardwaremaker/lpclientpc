@@ -95,8 +95,8 @@ public class JMonthChooser extends JPanel implements ItemListener,
 
 	private int oldSpinnerValue = 0;
 
-	// needed for comparison
-	private JDayChooser dayChooser;
+//	// needed for comparison
+//	private JDayChooser dayChooser;
 
 	private JYearChooser yearChooser;
 
@@ -269,10 +269,6 @@ public class JMonthChooser extends JPanel implements ItemListener,
 			comboBox.setSelectedIndex(month);
 		}
 
-		if (dayChooser != null) {
-			dayChooser.setMonth(month);
-		}
-
 		firePropertyChange("month", oldMonth, month);
 	}
 
@@ -303,16 +299,6 @@ public class JMonthChooser extends JPanel implements ItemListener,
 	 */
 	public int getMonth() {
 		return month;
-	}
-
-	/**
-	 * Convenience method set a day chooser.
-	 *
-	 * @param dayChooser
-	 *            the day chooser
-	 */
-	public void setDayChooser(JDayChooser dayChooser) {
-		this.dayChooser = dayChooser;
 	}
 
 	/**

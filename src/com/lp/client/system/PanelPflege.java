@@ -51,13 +51,9 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.filechooser.FileFilter;
-
-import net.miginfocom.swing.MigLayout;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.frame.Defaults;
@@ -72,10 +68,17 @@ import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.frameposition.LocalSettingsPathGenerator;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.CsvFileOpener;
+import com.lp.client.frame.filechooser.open.FileOpenerFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.finanz.service.FibuFehlerDto;
+import com.lp.server.util.HvOptional;
 import com.lp.util.Helper;
 import com.lp.util.csv.LPCSVReader;
+
+import net.miginfocom.swing.MigLayout;
 
 public class PanelPflege extends PanelBasis {
 
@@ -105,6 +108,7 @@ public class PanelPflege extends PanelBasis {
 	private final String MENUE_PFLEGE_LAGERBEWEGUNGEN_MIT_BELEGE = "MENUE_PFLEGE_LAGERBEWEGUNGEN_MIT_BELEGE";
 	private final String MENUE_PFLEGE_PRUEFE_VOLLSTAENDIG_VERBRAUCHT = "MENUE_PFLEGE_PRUEFE_VOLLSTAENDIG_VERBRAUCHT";
 	private final String MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN = "MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN";
+	private final String MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN_PER_SQL = "MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN_PER_SQL";
 	private final String MENUE_PFLEGE_PRUEFE_BESTELLTLISTE = "MENUE_PFLEGE_PRUEFE_BESTELLTLISTE";
 	private final String MENUE_PFLEGE_PRUEFE_RAHMENBEDARFE = "MENUE_PFLEGE_PRUEFE_RAHMENBEDARFE";
 	private final String MENUE_PFLEGE_PRUEFE_AUFTRAGSERIENNUMMERN = "MENUE_PFLEGE_PRUEFE_AUFTRAGSERIENNUMMERN";
@@ -120,6 +124,9 @@ public class PanelPflege extends PanelBasis {
 	private final String MENUE_PFLEGE_SI_WERTE_NACHTRAGEN = "MENUE_PFLEGE_SI_WERTE_NACHTRAGEN";
 	private final String MENUE_PFLEGE_LOSE_IM_ZEITRAUM_NACHKALKULIEREN = "LOSE_IM_ZEITRAUM_NACHKALKULIEREN";
 	private final String MENUE_PFLEGE_MATERIALZUSCHLAG_KURS_DATUM = "MATERIALZUSCHLAG_KURS_DATUM";
+	private final String MENUE_PFLEGE_TELEFONNUMMERN = "TELEFONNUMMERN";
+	private final String MENUE_PFLEGE_TEXT_AUS_PDF = "TEXT_AUS_PDF";
+	private final String MENUE_PFLEGE_RELOAD_MANDANTENPARAMETER = "MENUE_PFLEGE_RELOAD_RELOAD_MANDANTENPARAMETER";
 
 	private final String MENUE_PFLEGE_EKPREISE_IM_ZEITRAUM_RUECKPFLEGEN = "EKPREISE_IM_ZEITRAUM_RUECKPFLEGEN";
 
@@ -127,8 +134,7 @@ public class PanelPflege extends PanelBasis {
 	private final String MENUE_PFLEGE_SNRVERSION = "PFLEGE_SNRVERSION";
 	private final String MENUE_PFLEGE_GESTEHUNGSPREISE_IMPORTIEREN = "GESTEHUNGSPREISE_IMPORTIEREN";
 
-	public PanelPflege(InternalFrame internalFrame, String add2TitleI)
-			throws Throwable {
+	public PanelPflege(InternalFrame internalFrame, String add2TitleI) throws Throwable {
 		super(internalFrame, add2TitleI, null);
 		jbInit();
 		setDefaults();
@@ -139,14 +145,12 @@ public class PanelPflege extends PanelBasis {
 	protected void setDefaults() {
 	}
 
-	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-			boolean bNeedNoNewI) throws Throwable {
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI, boolean bNeedNoNewI) throws Throwable {
 		super.eventActionNew(eventObject, true, false);
 		leereAlleFelder(this);
 	}
 
-	protected void eventActionDelete(ActionEvent e,
-			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+	protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
 
 	}
@@ -155,8 +159,7 @@ public class PanelPflege extends PanelBasis {
 		return null;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 
 		super.eventYouAreSelected(false);
 
@@ -168,32 +171,21 @@ public class PanelPflege extends PanelBasis {
 		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
 
 			if (e.getSource() == panelQueryFLRPreislisten) {
-				Integer iId = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer iId = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 				java.sql.Date datum = DialogFactory.showDatumseingabe();
 				if (datum != null) {
-					DelegateFactory
-							.getInstance()
-							.getVkPreisfindungDelegate()
-							.pflegeRabattsaetzeNachpflegen(iId,
-									Helper.cutDate(datum));
-					DialogFactory.showModalDialog("Hinweis",
-							"Rabatts\u00E4tze nachgetragen.");
+					DelegateFactory.getInstance().getVkPreisfindungDelegate().pflegeRabattsaetzeNachpflegen(iId,
+							Helper.cutDate(datum));
+					DialogFactory.showModalDialog("Hinweis", "Rabatts\u00E4tze nachgetragen.");
 				}
 
 			} else if (e.getSource() == panelQueryFLRLager) {
 
-				Integer lagerIId = (Integer) ((ISourceEvent) e.getSource())
-						.getIdSelected();
+				Integer lagerIId = (Integer) ((ISourceEvent) e.getSource()).getIdSelected();
 
-				File[] files = HelperClient.chooseFile(this,
-						HelperClient.FILE_FILTER_CSV, false);
-				File f = null;
-				if (files != null && files.length > 0) {
-					f = files[0];
-				}
-				if (f != null) {
-					LPCSVReader reader = new LPCSVReader(new FileReader(f), ';');
+				HvOptional<CsvFile> csvFile = FileOpenerFactory.gestehungspreiseImportCsv(this);
+				if (csvFile.isPresent()) {
+					LPCSVReader reader = csvFile.get().createLPCSVReader();
 
 					String[] sLine;
 					// Erste Zeile Auslassen (Ueberschrift)
@@ -209,8 +201,7 @@ public class PanelPflege extends PanelBasis {
 						if (sLine.length < 2) {
 
 							DialogFactory.showModalDialog("Fehler",
-									"Jede Zeile muss genau 2 Spalten haben (Zeile "
-											+ i + ")");
+									"Jede Zeile muss genau 2 Spalten haben (Zeile " + i + ")");
 							return;
 						}
 
@@ -225,8 +216,8 @@ public class PanelPflege extends PanelBasis {
 						} catch (NumberFormatException ex) {
 
 							DialogFactory.showModalDialog("Fehler",
-									"In Spalte 2 muss immer eine gueltige Zahl vorhanden sein.(Zeile "
-											+ i + " " + sLine[1] + ")");
+									"In Spalte 2 muss immer eine gueltige Zahl vorhanden sein.(Zeile " + i + " "
+											+ sLine[1] + ")");
 							return;
 						}
 
@@ -236,8 +227,7 @@ public class PanelPflege extends PanelBasis {
 						sLine = reader.readNext();
 					} while (sLine != null);
 
-					DelegateFactory.getInstance().getLagerDelegate()
-							.gestehungspreiseImportieren(alDaten, lagerIId);
+					DelegateFactory.getInstance().getLagerDelegate().gestehungspreiseImportieren(alDaten, lagerIId);
 
 				}
 
@@ -262,18 +252,14 @@ public class PanelPflege extends PanelBasis {
 
 		getInternalFrame().addItemChangedListener(this);
 		// jetzt meine felder
-		jpaWorkingOn = new JPanel(new MigLayout("wrap 3",
-				"[fill,60%|fill,20%|fill,20%]",
-				"[fill,33%][fill,33%][fill,33%]"));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 1, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn = new JPanel(
+				new MigLayout("wrap 3", "[fill,60%|fill,20%|fill,20%]", "[fill,33%][fill,33%][fill,33%]"));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.SOUTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 1, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-		JPanel artikel = new JPanel(new MigLayout("wrap 2",
-				"[fill,50%|fill,50%]", "[fill]"));
+		JPanel artikel = new JPanel(new MigLayout("wrap 2", "[fill,50%|fill,50%]", "[fill]"));
 		artikel.setBorder(BorderFactory.createTitledBorder("Artikel"));
 		jpaWorkingOn.add(artikel, "span 1 3");
 
@@ -287,10 +273,8 @@ public class PanelPflege extends PanelBasis {
 		JPanel rechnung = new JPanel(new MigLayout("wrap 1", "[fill,100%]"));
 		rechnung.setBorder(BorderFactory.createTitledBorder("Rechnung"));
 		jpaWorkingOn.add(rechnung);
-		JPanel eingangsrechnung = new JPanel(new MigLayout("wrap 1",
-				"[fill,100%]"));
-		eingangsrechnung.setBorder(BorderFactory
-				.createTitledBorder("Eingangsrechnung"));
+		JPanel eingangsrechnung = new JPanel(new MigLayout("wrap 1", "[fill,100%]"));
+		eingangsrechnung.setBorder(BorderFactory.createTitledBorder("Eingangsrechnung"));
 		jpaWorkingOn.add(eingangsrechnung);
 
 		JPanel fertigung = new JPanel(new MigLayout("wrap 1", "[fill,100%]"));
@@ -301,73 +285,60 @@ public class PanelPflege extends PanelBasis {
 		hinweis.setBorder(BorderFactory.createTitledBorder("Hinweis"));
 		jpaWorkingOn.add(hinweis);
 
-		JButton btnPruefeRechnungswert = new AutoWrapButton(
-				"Pr\u00FCfe Rechnungswert");
+		JButton btnPruefeRechnungswert = new AutoWrapButton("Pr\u00FCfe Rechnungswert");
 		btnPruefeRechnungswert.setActionCommand(ACTION_PRUEFE_RECHNUNGSWERT);
 		btnPruefeRechnungswert.addActionListener(this);
 		deaktiviereWennNichtLPAdmin(btnPruefeRechnungswert);
 		rechnung.add(btnPruefeRechnungswert);
 
-		JButton btnRabattsaetzeNachtragen = new AutoWrapButton(
-				"Rabatts\u00E4tze einer Preisliste nachtragen");
-		btnRabattsaetzeNachtragen
-				.setActionCommand(ACTION_RABATTSATZ_NACHTRAGEN);
+		JButton btnRabattsaetzeNachtragen = new AutoWrapButton("Rabatts\u00E4tze einer Preisliste nachtragen");
+		btnRabattsaetzeNachtragen.setActionCommand(ACTION_RABATTSATZ_NACHTRAGEN);
 		btnRabattsaetzeNachtragen.addActionListener(this);
 		artikel.add(btnRabattsaetzeNachtragen);
 		deaktiviereWennNichtLPAdmin(btnRabattsaetzeNachtragen);
 
-		JButton btnPflegeBestellStati = new AutoWrapButton(
-				LPMain.getTextRespectUISPr("bes.menu.pflege.bestellstati"));
-		btnPflegeBestellStati
-				.setActionCommand(MENU_PFLEGE_BESTELLSTATI_PRUEFEN);
+		JButton btnPflegeBestellStati = new AutoWrapButton(LPMain.getTextRespectUISPr("bes.menu.pflege.bestellstati"));
+		btnPflegeBestellStati.setActionCommand(MENU_PFLEGE_BESTELLSTATI_PRUEFEN);
 		btnPflegeBestellStati.addActionListener(this);
 		best.add(btnPflegeBestellStati);
 		deaktiviereWennNichtLPAdmin(btnPflegeBestellStati);
 
 		JButton btnPflegeBestellposStati = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("bes.menu.pflege.bestellposstati"));
-		btnPflegeBestellposStati
-				.setActionCommand(MENU_PFLEGE_BESTELLPOSITION_PRUEFEN);
+		btnPflegeBestellposStati.setActionCommand(MENU_PFLEGE_BESTELLPOSITION_PRUEFEN);
 		btnPflegeBestellposStati.addActionListener(this);
 		best.add(btnPflegeBestellposStati);
 		deaktiviereWennNichtLPAdmin(btnPflegeBestellposStati);
 
-		JButton btnERPReispflege = new AutoWrapButton(
-				LPMain.getTextRespectUISPr("er.pflege.preiseneuberechnen"));
-		btnERPReispflege
-				.setActionCommand(MENUE_ACTION_PFLEGE_PREISENEUBERECHNEN);
+		JButton btnERPReispflege = new AutoWrapButton(LPMain.getTextRespectUISPr("er.pflege.preiseneuberechnen"));
+		btnERPReispflege.setActionCommand(MENUE_ACTION_PFLEGE_PREISENEUBERECHNEN);
 		btnERPReispflege.addActionListener(this);
 		eingangsrechnung.add(btnERPReispflege);
 
 		// SP1902
 		// deaktiviereWennNichtLPAdmin(btnERPReispflege);
 
-		JButton btnPflegeFehlmengen = new AutoWrapButton(
-				LPMain.getTextRespectUISPr("fert.menu.pruefefehlmengen"));
-		btnPflegeFehlmengen
-				.setActionCommand(MENUE_ACTION_PFLEGE_FEHLMENGEN_PRUEFEN);
+		JButton btnPflegeFehlmengen = new AutoWrapButton(LPMain.getTextRespectUISPr("fert.menu.pruefefehlmengen"));
+		btnPflegeFehlmengen.setActionCommand(MENUE_ACTION_PFLEGE_FEHLMENGEN_PRUEFEN);
 		btnPflegeFehlmengen.addActionListener(this);
 		fertigung.add(btnPflegeFehlmengen);
 
 		JButton btnPflegeNachkalkulatnio = new AutoWrapButton(
 				"<html> Lose einer St\u00FCckliste <br> nachkalkulieren </html>");
-		btnPflegeNachkalkulatnio
-				.setActionCommand(MENUE_ACTION_STUECKLISTE_NACHKALKULIEREN);
+		btnPflegeNachkalkulatnio.setActionCommand(MENUE_ACTION_STUECKLISTE_NACHKALKULIEREN);
 		btnPflegeNachkalkulatnio.addActionListener(this);
 		fertigung.add(btnPflegeNachkalkulatnio);
 		deaktiviereWennNichtLPAdmin(btnPflegeNachkalkulatnio);
 
 		JButton btnPflegeLoseNachkalkulieren = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("fert.pflege.loseimzeitraum.nachkalkulieren"));
-		btnPflegeLoseNachkalkulieren
-				.setActionCommand(MENUE_PFLEGE_LOSE_IM_ZEITRAUM_NACHKALKULIEREN);
+		btnPflegeLoseNachkalkulieren.setActionCommand(MENUE_PFLEGE_LOSE_IM_ZEITRAUM_NACHKALKULIEREN);
 		btnPflegeLoseNachkalkulieren.addActionListener(this);
 		fertigung.add(btnPflegeLoseNachkalkulieren);
 
 		JButton btnPflegeLagerabgangursprung = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.pruefelagerabgangursprung"));
-		btnPflegeLagerabgangursprung
-				.setActionCommand(MENUE_PFLEGE_LAGERABGANGURSPRUNG);
+		btnPflegeLagerabgangursprung.setActionCommand(MENUE_PFLEGE_LAGERABGANGURSPRUNG);
 		btnPflegeLagerabgangursprung.addActionListener(this);
 		artikel.add(btnPflegeLagerabgangursprung);
 		deaktiviereWennNichtLPAdmin(btnPflegeLagerabgangursprung);
@@ -381,53 +352,52 @@ public class PanelPflege extends PanelBasis {
 
 		JButton btnPflegeBelege = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.pruefebelegegegenlagerbewegungenaufkonsistenz"));
-		btnPflegeBelege
-				.setActionCommand(MENUE_PFLEGE_BELEGE_MIT_LAGERBEWEGUNGEN);
+		btnPflegeBelege.setActionCommand(MENUE_PFLEGE_BELEGE_MIT_LAGERBEWEGUNGEN);
 		btnPflegeBelege.addActionListener(this);
 		artikel.add(btnPflegeBelege);
 		deaktiviereWennNichtLPAdmin(btnPflegeBelege);
 
 		JButton btnPflegeBelege2 = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.pruefelagerbewegungengegenbelegpositionenaufkonsistenz"));
-		btnPflegeBelege2
-				.setActionCommand(MENUE_PFLEGE_LAGERBEWEGUNGEN_MIT_BELEGE);
+		btnPflegeBelege2.setActionCommand(MENUE_PFLEGE_LAGERBEWEGUNGEN_MIT_BELEGE);
 		btnPflegeBelege2.addActionListener(this);
 		artikel.add(btnPflegeBelege2);
 		deaktiviereWennNichtLPAdmin(btnPflegeBelege2);
 
 		JButton btnPflegeVerbraucht = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.pruefevollstaendigverbraucht"));
-		btnPflegeVerbraucht
-				.setActionCommand(MENUE_PFLEGE_PRUEFE_VOLLSTAENDIG_VERBRAUCHT);
+		btnPflegeVerbraucht.setActionCommand(MENUE_PFLEGE_PRUEFE_VOLLSTAENDIG_VERBRAUCHT);
 		btnPflegeVerbraucht.addActionListener(this);
 		artikel.add(btnPflegeVerbraucht);
 		deaktiviereWennNichtLPAdmin(btnPflegeVerbraucht);
 
 		JButton btnPruefeReservierungen = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.pruefereservierungen"));
-		btnPruefeReservierungen
-				.setActionCommand(MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN);
+		btnPruefeReservierungen.setActionCommand(MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN);
 		btnPruefeReservierungen.addActionListener(this);
 		artikel.add(btnPruefeReservierungen);
 
+		JButton btnPruefeReservierungenPerSQL = new AutoWrapButton(
+				LPMain.getTextRespectUISPr("artikel.report.pruefereservierungen") + "(SQL)");
+		btnPruefeReservierungenPerSQL.setActionCommand(MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN_PER_SQL);
+		btnPruefeReservierungenPerSQL.addActionListener(this);
+		artikel.add(btnPruefeReservierungenPerSQL);
+
 		JButton btnPruefeBestelltliste = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.pruefebestelltliste"));
-		btnPruefeBestelltliste
-				.setActionCommand(MENUE_PFLEGE_PRUEFE_BESTELLTLISTE);
+		btnPruefeBestelltliste.setActionCommand(MENUE_PFLEGE_PRUEFE_BESTELLTLISTE);
 		btnPruefeBestelltliste.addActionListener(this);
 		artikel.add(btnPruefeBestelltliste);
 
 		JButton btnPruefeRahmenbedarfe = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.prueferahmenbedarfe"));
-		btnPruefeRahmenbedarfe
-				.setActionCommand(MENUE_PFLEGE_PRUEFE_RAHMENBEDARFE);
+		btnPruefeRahmenbedarfe.setActionCommand(MENUE_PFLEGE_PRUEFE_RAHMENBEDARFE);
 		btnPruefeRahmenbedarfe.addActionListener(this);
 		artikel.add(btnPruefeRahmenbedarfe);
 
 		JButton btnPruefeAuftragseriennummern = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.report.auftragseriennummern"));
-		btnPruefeAuftragseriennummern
-				.setActionCommand(MENUE_PFLEGE_PRUEFE_AUFTRAGSERIENNUMMERN);
+		btnPruefeAuftragseriennummern.setActionCommand(MENUE_PFLEGE_PRUEFE_AUFTRAGSERIENNUMMERN);
 		btnPruefeAuftragseriennummern.addActionListener(this);
 		artikel.add(btnPruefeAuftragseriennummern);
 		deaktiviereWennNichtLPAdmin(btnPruefeAuftragseriennummern);
@@ -441,63 +411,50 @@ public class PanelPflege extends PanelBasis {
 
 		JButton btnPruefeVkpreislb = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.pflege.pruefevkpreislagerbewegung"));
-		btnPruefeVkpreislb
-				.setActionCommand(MENUE_PFLEGE_PRUEFE_VKPREISLAGERBEWEGUNG);
+		btnPruefeVkpreislb.setActionCommand(MENUE_PFLEGE_PRUEFE_VKPREISLAGERBEWEGUNG);
 		btnPruefeVkpreislb.addActionListener(this);
 		artikel.add(btnPruefeVkpreislb);
 		deaktiviereWennNichtLPAdmin(btnPruefeVkpreislb);
 
 		JButton btnPruefeVerbrauchteMengen = new AutoWrapButton(
 				LPMain.getTextRespectUISPr("artikel.pflege.pruefeverkauftemengen"));
-		btnPruefeVerbrauchteMengen
-				.setActionCommand(MENUE_PFLEGE_PRUEFE_VERBRAUCHTEMENGEN);
+		btnPruefeVerbrauchteMengen.setActionCommand(MENUE_PFLEGE_PRUEFE_VERBRAUCHTEMENGEN);
 		btnPruefeVerbrauchteMengen.addActionListener(this);
 		artikel.add(btnPruefeVerbrauchteMengen);
 		deaktiviereWennNichtLPAdmin(btnPruefeVerbrauchteMengen);
 
-		JButton btnPruefeIIdBuchung = new AutoWrapButton(
-				"Pr\u00FCfe I_ID_BUCHUNG");
+		JButton btnPruefeIIdBuchung = new AutoWrapButton("Pr\u00FCfe I_ID_BUCHUNG");
 		btnPruefeIIdBuchung.setActionCommand(MENUE_PFLEGE_PRUEFE_I_ID_BUCHUNG);
 		btnPruefeIIdBuchung.addActionListener(this);
 		artikel.add(btnPruefeIIdBuchung);
 		deaktiviereWennNichtLPAdmin(btnPruefeIIdBuchung);
 
-		JButton btnLagerbewNachtragen = new AutoWrapButton(
-				"Lagerbewegungen ab. Datum nachtragen");
-		btnLagerbewNachtragen
-				.setActionCommand(MENUE_PFLEGE_LAGERBEW_NACHTRAGEN);
+		JButton btnLagerbewNachtragen = new AutoWrapButton("Lagerbewegungen ab. Datum nachtragen");
+		btnLagerbewNachtragen.setActionCommand(MENUE_PFLEGE_LAGERBEW_NACHTRAGEN);
 		btnLagerbewNachtragen.addActionListener(this);
 		artikel.add(btnLagerbewNachtragen);
 		deaktiviereWennNichtLPAdmin(btnLagerbewNachtragen);
 
-		JButton btnLagerbewKonstruierenausHAND = new AutoWrapButton(
-				"Lagerbewegungen aus HAND nachtragen");
-		btnLagerbewKonstruierenausHAND
-				.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_HAND);
+		JButton btnLagerbewKonstruierenausHAND = new AutoWrapButton("Lagerbewegungen aus HAND nachtragen");
+		btnLagerbewKonstruierenausHAND.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_HAND);
 		btnLagerbewKonstruierenausHAND.addActionListener(this);
 		artikel.add(btnLagerbewKonstruierenausHAND);
 		deaktiviereWennNichtLPAdmin(btnLagerbewKonstruierenausHAND);
 
-		JButton btnLagerbewKonstruierenausLSRE = new AutoWrapButton(
-				"Lagerbewegungen aus LS/RE nachtragen");
-		btnLagerbewKonstruierenausLSRE
-				.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LS_RE);
+		JButton btnLagerbewKonstruierenausLSRE = new AutoWrapButton("Lagerbewegungen aus LS/RE nachtragen");
+		btnLagerbewKonstruierenausLSRE.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LS_RE);
 		btnLagerbewKonstruierenausLSRE.addActionListener(this);
 		artikel.add(btnLagerbewKonstruierenausLSRE);
 		deaktiviereWennNichtLPAdmin(btnLagerbewKonstruierenausLSRE);
 
-		JButton btnLagerbewKonstruierenausLOS = new AutoWrapButton(
-				"Lagerbewegungen aus LOS nachtragen");
-		btnLagerbewKonstruierenausLOS
-				.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LOS);
+		JButton btnLagerbewKonstruierenausLOS = new AutoWrapButton("Lagerbewegungen aus LOS nachtragen");
+		btnLagerbewKonstruierenausLOS.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LOS);
 		btnLagerbewKonstruierenausLOS.addActionListener(this);
 		artikel.add(btnLagerbewKonstruierenausLOS);
 		deaktiviereWennNichtLPAdmin(btnLagerbewKonstruierenausLOS);
 
-		JButton btnLagerbewKonstruierenausBEST = new AutoWrapButton(
-				"Lagerbewegungen aus BESTELLUNG nachtragen");
-		btnLagerbewKonstruierenausBEST
-				.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_BEST);
+		JButton btnLagerbewKonstruierenausBEST = new AutoWrapButton("Lagerbewegungen aus BESTELLUNG nachtragen");
+		btnLagerbewKonstruierenausBEST.setActionCommand(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_BEST);
 		btnLagerbewKonstruierenausBEST.addActionListener(this);
 		artikel.add(btnLagerbewKonstruierenausBEST);
 		deaktiviereWennNichtLPAdmin(btnLagerbewKonstruierenausBEST);
@@ -507,30 +464,24 @@ public class PanelPflege extends PanelBasis {
 		btnSiWerteNachtragen.addActionListener(this);
 		artikel.add(btnSiWerteNachtragen);
 
-		JButton btnMaterialzuschlagKursDatumNachtragen = new AutoWrapButton(
-				"Materialzuschlag Kurs/Datum nachtragen");
-		btnMaterialzuschlagKursDatumNachtragen
-				.setActionCommand(MENUE_PFLEGE_MATERIALZUSCHLAG_KURS_DATUM);
+		JButton btnMaterialzuschlagKursDatumNachtragen = new AutoWrapButton("Materialzuschlag Kurs/Datum nachtragen");
+		btnMaterialzuschlagKursDatumNachtragen.setActionCommand(MENUE_PFLEGE_MATERIALZUSCHLAG_KURS_DATUM);
 		btnMaterialzuschlagKursDatumNachtragen.addActionListener(this);
 		artikel.add(btnMaterialzuschlagKursDatumNachtragen);
 
-		JButton btnSnrVersion = new AutoWrapButton(
-				"Versionen aus Zugang mit Abgang abgleichen");
+		JButton btnSnrVersion = new AutoWrapButton("Versionen aus Zugang mit Abgang abgleichen");
 		btnSnrVersion.setActionCommand(MENUE_PFLEGE_SNRVERSION);
 		btnSnrVersion.addActionListener(this);
 		artikel.add(btnSnrVersion);
 
 		JButton btngelifertPreiseNachtragen = new AutoWrapButton(
 				"Geliefert-Preis aus WEP als EK-Preis zur\u00FCckpflegen");
-		btngelifertPreiseNachtragen
-				.setActionCommand(MENUE_PFLEGE_EKPREISE_IM_ZEITRAUM_RUECKPFLEGEN);
+		btngelifertPreiseNachtragen.setActionCommand(MENUE_PFLEGE_EKPREISE_IM_ZEITRAUM_RUECKPFLEGEN);
 		btngelifertPreiseNachtragen.addActionListener(this);
 		best.add(btngelifertPreiseNachtragen);
 
-		JButton btnGestpreiseImportieren = new AutoWrapButton(
-				"Gestehungspreise importieren (CSV)");
-		btnGestpreiseImportieren
-				.setActionCommand(MENUE_PFLEGE_GESTEHUNGSPREISE_IMPORTIEREN);
+		JButton btnGestpreiseImportieren = new AutoWrapButton("Gestehungspreise importieren (CSV)");
+		btnGestpreiseImportieren.setActionCommand(MENUE_PFLEGE_GESTEHUNGSPREISE_IMPORTIEREN);
 		btnGestpreiseImportieren.addActionListener(this);
 		artikel.add(btnGestpreiseImportieren);
 
@@ -544,23 +495,35 @@ public class PanelPflege extends PanelBasis {
 		btnZeitdatenVONBIS.addActionListener(this);
 		allgemein.add(btnZeitdatenVONBIS);
 
+		JButton btnTelefonnummern = new AutoWrapButton("Telefonnummern");
+		btnTelefonnummern.setActionCommand(MENUE_PFLEGE_TELEFONNUMMERN);
+		btnTelefonnummern.addActionListener(this);
+		allgemein.add(btnTelefonnummern);
+		
+		JButton btnTextAusPDF = new AutoWrapButton("Text aus PDF in Artikelkommentar");
+		btnTextAusPDF.setToolTipText("Text aus PDF in Artikelkommentar speichern");
+		btnTextAusPDF.setActionCommand(MENUE_PFLEGE_TEXT_AUS_PDF);
+		btnTextAusPDF.addActionListener(this);
+		allgemein.add(btnTextAusPDF);
+		
+		JButton btnReloadMANDANTENPARAMETER = new AutoWrapButton("Mandantenparameter neu laden");
+		btnReloadMANDANTENPARAMETER.setActionCommand(MENUE_PFLEGE_RELOAD_MANDANTENPARAMETER);
+		btnReloadMANDANTENPARAMETER.addActionListener(this);
+		allgemein.add(btnReloadMANDANTENPARAMETER);
+		
+
 		// Hinweis
 
-		JLabel achtung = new JLabel(
-				"<html><font size=\"6\" color=\"#FF0000\">!!!!!!!!!!!!!!!!!</font></html>");
+		JLabel achtung = new JLabel("<html><font size=\"6\" color=\"#FF0000\">!!!!!!!!!!!!!!!!!</font></html>");
 
-		JLabel lblHinweis1 = new JLabel(
-				LPMain.getTextRespectUISPr("lp.pflege.hinweis"));
+		JLabel lblHinweis1 = new JLabel(LPMain.getTextRespectUISPr("lp.pflege.hinweis"));
 		lblHinweis1.setForeground(Color.RED);
 
-		JLabel lblHinweis2 = new JLabel(
-				LPMain.getTextRespectUISPr("lp.pflege.hinweis1"));
+		JLabel lblHinweis2 = new JLabel(LPMain.getTextRespectUISPr("lp.pflege.hinweis1"));
 		lblHinweis2.setForeground(Color.RED);
-		JLabel lblHinweis3 = new JLabel(
-				LPMain.getTextRespectUISPr("lp.pflege.hinweis2"));
+		JLabel lblHinweis3 = new JLabel(LPMain.getTextRespectUISPr("lp.pflege.hinweis2"));
 		lblHinweis3.setForeground(Color.RED);
-		JLabel lblHinweis4 = new JLabel(
-				LPMain.getTextRespectUISPr("lp.pflege.hinweis3"));
+		JLabel lblHinweis4 = new JLabel(LPMain.getTextRespectUISPr("lp.pflege.hinweis3"));
 		lblHinweis4.setForeground(Color.RED);
 
 		hinweis.add(achtung);
@@ -580,43 +543,35 @@ public class PanelPflege extends PanelBasis {
 	}
 
 	private File getLogFile(String baseFilename) {
-		return new File(new LocalSettingsPathGenerator().getLogPath(),
-				baseFilename);
+		return new File(new LocalSettingsPathGenerator().getLogPath(), baseFilename);
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(ACTION_PRUEFE_RECHNUNGSWERT)) {
-			DelegateFactory.getInstance().getRechnungDelegate()
-					.pruefeRechnungswert();
+			DelegateFactory.getInstance().getRechnungDelegate().pruefeRechnungswert();
 
-			DialogFactory
-					.showModalDialog(
-							"Hinweis",
-							"Pr\u00FCfung durchgef\u00FChrt! Sie finden das Pr\u00FCfergebnis in der Tabelle LP_PROTOKOLL");
+			DialogFactory.showModalDialog("Hinweis",
+					"Pr\u00FCfung durchgef\u00FChrt! Sie finden das Pr\u00FCfergebnis in der Tabelle LP_PROTOKOLL");
 
 		} else if (e.getActionCommand().equals(ACTION_RABATTSATZ_NACHTRAGEN)) {
 
-			panelQueryFLRPreislisten = ArtikelFilterFactory.getInstance()
-					.createPanelFLRPreisliste(getInternalFrame(), null);
+			panelQueryFLRPreislisten = ArtikelFilterFactory.getInstance().createPanelFLRPreisliste(getInternalFrame(),
+					null);
 			new DialogQuery(panelQueryFLRPreislisten);
 
 		} else if (e.getActionCommand().equals(MENUE_PFLEGE_RELOAD_LP_TEXT)) {
-			DelegateFactory.getInstance().getBenutzerServicesDelegate()
-					.reloadUebersteuertenText();
+			DelegateFactory.getInstance().getBenutzerServicesDelegate().reloadUebersteuertenText();
 			Defaults.getInstance().reloadSpezifischeTexte();
 			DirekthilfeCache.reload();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_RELOAD_MANDANTENPARAMETER)) {
+			DelegateFactory.getInstance().getParameterDelegate().leereMandantenparameterCache();
 		} else if (e.getActionCommand().equals(MENUE_PFLEGE_ZEITDATEN_VON_BIS)) {
-			DelegateFactory.getInstance().getZeiterfassungDelegate()
-					.pflegeUmstellungAufVonBisErfassung();
-		} else if (e.getActionCommand().equals(
-				MENU_PFLEGE_BESTELLPOSITION_PRUEFEN)) {
-			boolean doIt = DialogFactory
-					.showModalJaNeinDialog(
-							getInternalFrame(),
-							LPMain.getTextRespectUISPr("bes.pflege.bestellstatigeprueft"));
+			DelegateFactory.getInstance().getZeiterfassungDelegate().pflegeUmstellungAufVonBisErfassung();
+		} else if (e.getActionCommand().equals(MENU_PFLEGE_BESTELLPOSITION_PRUEFEN)) {
+			boolean doIt = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+					LPMain.getTextRespectUISPr("bes.pflege.bestellstatigeprueft"));
 			if (doIt) {
-				String sForFile = DelegateFactory.getInstance()
-						.getBestellungDelegate().checkBestellpositionStati();
+				String sForFile = DelegateFactory.getInstance().getBestellungDelegate().checkBestellpositionStati();
 				File file = new File("Bestellpositionstati_pruefen.log");
 				if (!file.exists()) {
 					file.createNewFile();
@@ -624,15 +579,11 @@ public class PanelPflege extends PanelBasis {
 				BufferedWriter bw = new BufferedWriter(new FileWriter(file));
 				bw.write(sForFile);
 				bw.close();
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.hinweis"),
-						LPMain.getTextRespectUISPr("lp.log.gespeichert") + " "
-								+ file.getAbsolutePath());
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+						LPMain.getTextRespectUISPr("lp.log.gespeichert") + " " + file.getAbsolutePath());
 			}
-		} else if (e.getActionCommand()
-				.equals(MENUE_PFLEGE_LAGERABGANGURSPRUNG)) {
-			String s = DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeLagerabgangurpsrung();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_LAGERABGANGURSPRUNG)) {
+			String s = DelegateFactory.getInstance().getLagerDelegate().pruefeLagerabgangurpsrung();
 
 			// java.io.File ausgabedatei = new
 			// java.io.File("c:/lagerabgangursprung.txt");
@@ -644,18 +595,31 @@ public class PanelPflege extends PanelBasis {
 
 		} else if (e.getActionCommand().equals(MENUE_PFLEGE_LAGERSTAENDE)) {
 
-			String artikelId = (String) JOptionPane.showInputDialog(this,
-					"Bitte artikelIId angeben: ", "Eingabe",
-					JOptionPane.PLAIN_MESSAGE);
+			String artikelnummer = (String) JOptionPane.showInputDialog(this,
+					"Bitte Artikelnummer angeben: (LEER = Alle) ", "Eingabe", JOptionPane.PLAIN_MESSAGE);
 
-			Integer artikelIID = null;
+			boolean bFehlerKorrigieren = false;
 
-			if (artikelId != null && artikelId.length() > 0) {
-				artikelIID = new Integer(artikelId);
+			if (artikelnummer != null && artikelnummer.length() > 0) {
+				// Eine
+
+				bFehlerKorrigieren = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("lp.lagerstandpruefen.sicherheitsabfrage.korrigeren"));
+
+			} else {
+				// Alle
+
+				boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+						LPMain.getTextRespectUISPr("lp.lagerstandfuerallepruefen.sicherheitsabfrage"));
+
+				if (b == false) {
+					return;
+				}
+
 			}
 
 			String s = DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeQuickLagerstandGegenEchtenLagerstand(artikelIID);
+					.pruefeQuickLagerstandGegenEchtenLagerstand(artikelnummer, bFehlerKorrigieren);
 
 			// java.io.File ausgabedatei = new
 			// java.io.File("c:/lagerstaende.txt");
@@ -665,11 +629,24 @@ public class PanelPflege extends PanelBasis {
 			bw.write(s);
 			bw.close();
 
-		} else if (e.getActionCommand()
-				.equals(MENUE_PFLEGE_PRUEFE_I_ID_BUCHUNG)) {
+			if (artikelnummer == null || artikelnummer.length() == 0) {
+				//SP8256
+				int size = s.split("\n").length;
+				if (size > 1) {
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+							LPMain.getMessageTextRespectUISPr("artikel.pflege.info.pruefelagerstaende.error",
+									ausgabedatei.getAbsolutePath()));
+				} else {
 
-			String artikelId = (String) JOptionPane.showInputDialog(this,
-					"Bitte artikelIId angeben: ", "Eingabe",
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+							LPMain.getMessageTextRespectUISPr("artikel.pflege.info.pruefelagerstaende.ok"));
+				}
+
+			}
+
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_I_ID_BUCHUNG)) {
+
+			String artikelId = (String) JOptionPane.showInputDialog(this, "Bitte artikelIId angeben: ", "Eingabe",
 					JOptionPane.PLAIN_MESSAGE);
 
 			Integer artikelIID = null;
@@ -678,8 +655,7 @@ public class PanelPflege extends PanelBasis {
 				artikelIID = new Integer(artikelId);
 			}
 
-			String s = DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeIIdBuchungen(artikelIID);
+			String s = DelegateFactory.getInstance().getLagerDelegate().pruefeIIdBuchungen(artikelIID);
 
 			// java.io.File ausgabedatei = new
 			// java.io.File("c:/i_id_buchung.txt");
@@ -689,18 +665,13 @@ public class PanelPflege extends PanelBasis {
 			bw.write(s);
 			bw.close();
 
-		} else if (e.getActionCommand()
-				.equals(MENUE_PFLEGE_LAGERBEW_NACHTRAGEN)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_LAGERBEW_NACHTRAGEN)) {
 
-			java.sql.Date datum = DialogFactory
-					.showDatumseingabe("Ab welchem Datum:");
+			java.sql.Date datum = DialogFactory.showDatumseingabe("Ab welchem Datum:");
 			if (datum != null) {
 
-				String s = DelegateFactory
-						.getInstance()
-						.getLagerDelegate()
-						.fehlendeAbbuchungenNachtragen(
-								new java.sql.Timestamp(datum.getTime()));
+				String s = DelegateFactory.getInstance().getLagerDelegate()
+						.fehlendeAbbuchungenNachtragen(new java.sql.Timestamp(datum.getTime()));
 
 				java.io.File ausgabedatei = getLogFile("laberbew_nachtragen.txt");
 				java.io.FileWriter fw = new java.io.FileWriter(ausgabedatei);
@@ -709,40 +680,28 @@ public class PanelPflege extends PanelBasis {
 				bw.close();
 			}
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LS_RE)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LS_RE)) {
 
-			DelegateFactory.getInstance().getLagerDelegate()
-					.konstruiereLagergewegungenLSREAusBelegen();
+			DelegateFactory.getInstance().getLagerDelegate().konstruiereLagergewegungenLSREAusBelegen();
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LOS)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_LOS)) {
 
-			DelegateFactory.getInstance().getLagerDelegate()
-					.konstruiereLagergewegungenLOSAusBelegen();
+			DelegateFactory.getInstance().getLagerDelegate().konstruiereLagergewegungenLOSAusBelegen();
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_BEST)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_BEST)) {
 
-			DelegateFactory.getInstance().getLagerDelegate()
-					.konstruiereLagergewegungenBESTAusBelegen();
+			DelegateFactory.getInstance().getLagerDelegate().konstruiereLagergewegungenBESTAusBelegen();
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_HAND)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_KONSTRUIERE_LAGERBEW_HAND)) {
 
-			DelegateFactory.getInstance().getLagerDelegate()
-					.konstruiereLagergewegungenHAND();
+			DelegateFactory.getInstance().getLagerDelegate().konstruiereLagergewegungenHAND();
 
-		} else if (e.getActionCommand()
-				.equals(MENUE_PFLEGE_SI_WERTE_NACHTRAGEN)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_SI_WERTE_NACHTRAGEN)) {
 
-			DelegateFactory.getInstance().getArtikelDelegate()
-					.alleSIwerteNachtragen();
+			DelegateFactory.getInstance().getArtikelDelegate().alleSIwerteNachtragen();
 
-		}  else if (e.getActionCommand()
-				.equals(MENU_PFLEGE_BESTELLSTATI_PRUEFEN)) {
-			String sForFile = DelegateFactory.getInstance()
-					.getBestellungDelegate().checkBestellStati();
+		} else if (e.getActionCommand().equals(MENU_PFLEGE_BESTELLSTATI_PRUEFEN)) {
+			String sForFile = DelegateFactory.getInstance().getBestellungDelegate().checkBestellStati();
 			File file = new File("Bestellstati_pruefen.log");
 			if (!file.exists()) {
 				file.createNewFile();
@@ -750,90 +709,66 @@ public class PanelPflege extends PanelBasis {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(file));
 			bw.append(sForFile);
 			bw.close();
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.hinweis"),
-					LPMain.getTextRespectUISPr("lp.log.gespeichert") + " "
-							+ file.getAbsolutePath());
-		} else if (e.getActionCommand().equals(
-				MENUE_ACTION_PFLEGE_PREISENEUBERECHNEN)) {
+			DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+					LPMain.getTextRespectUISPr("lp.log.gespeichert") + " " + file.getAbsolutePath());
+		} else if (e.getActionCommand().equals(MENUE_ACTION_PFLEGE_PREISENEUBERECHNEN)) {
 			/*
-			 * DelegateFactory.getInstance().getEingangsrechnungDelegate()
-			 * .pruefePreise();
+			 * DelegateFactory.getInstance().getEingangsrechnungDelegate() .pruefePreise();
 			 */
-			Map<?, ?> geschaeftsjahre = DelegateFactory.getInstance()
-					.getSystemDelegate().getAllGeschaeftsjahr();
-			ArrayList<Object> optionen = DialogFactory
-					.showBelegKurspruefungOptionen(geschaeftsjahre);
+			Map<?, ?> geschaeftsjahre = DelegateFactory.getInstance().getSystemDelegate().getAllGeschaeftsjahr();
+			ArrayList<Object> optionen = DialogFactory.showBelegKurspruefungOptionen(geschaeftsjahre);
 			Integer geschaeftsjahr = (Integer) optionen.get(0);
 			if (geschaeftsjahr != null) {
 				Boolean nurPruefen = (Boolean) optionen.get(1);
-				ArrayList<FibuFehlerDto> fibufehler = DelegateFactory
-						.getInstance().getFinanzServiceDelegate()
+				ArrayList<FibuFehlerDto> fibufehler = DelegateFactory.getInstance().getFinanzServiceDelegate()
 						.pruefeBelegeKurs(geschaeftsjahr, nurPruefen);
 				if (fibufehler != null)
 					if (fibufehler.size() > 0)
-						DialogFactory.showBelegPruefergebnis(
-								getInternalFrame(), fibufehler, "Kursfehler");
+						DialogFactory.showBelegPruefergebnis(getInternalFrame(), fibufehler, "Kursfehler");
 					else if (nurPruefen)
 						JOptionPane.showMessageDialog(getInternalFrame(),
 								"Kurspr\u00FCfung ohne Fehler abgeschlossen.");
 					else
-						JOptionPane
-								.showMessageDialog(getInternalFrame(),
-										"Kurskorrektur abgeschlossen. Korrekturen entnehmen Sie dem Server-Logfile.");
+						JOptionPane.showMessageDialog(getInternalFrame(),
+								"Kurskorrektur abgeschlossen. Korrekturen entnehmen Sie dem Server-Logfile.");
 			}
-		} else if (e.getActionCommand().equals(
-				MENUE_ACTION_PFLEGE_FEHLMENGEN_PRUEFEN)) {
-			DelegateFactory.getInstance().getFehlmengeDelegate()
-					.pruefeFehlmengen();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_MATERIALZUSCHLAG_KURS_DATUM)) {
-			DelegateFactory.getInstance().getMaterialDelegate()
-					.pflegeMaterialzuschlagsKursUndDatumNachtragen();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_GESTEHUNGSPREISE_IMPORTIEREN)) {
-			panelQueryFLRLager = ArtikelFilterFactory.getInstance()
-					.createPanelFLRLager(getInternalFrame(), null);
-			panelQueryFLRLager
-					.setAdd2Title("F\u00FCr welches Lager sollen die Gest-Preise importiert werden?");
+		} else if (e.getActionCommand().equals(MENUE_ACTION_PFLEGE_FEHLMENGEN_PRUEFEN)) {
+			DelegateFactory.getInstance().getFehlmengeDelegate().pruefeFehlmengen();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_MATERIALZUSCHLAG_KURS_DATUM)) {
+			DelegateFactory.getInstance().getMaterialDelegate().pflegeMaterialzuschlagsKursUndDatumNachtragen();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_TELEFONNUMMERN)) {
+			DelegateFactory.getInstance().getPflegeDelegate().telefonnummerntabelleSynchronisieren();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_TEXT_AUS_PDF)) {
+			DelegateFactory.getInstance().getPflegeDelegate().textAusPdfInXKommentarAktualisieren();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_GESTEHUNGSPREISE_IMPORTIEREN)) {
+			panelQueryFLRLager = ArtikelFilterFactory.getInstance().createPanelFLRLager(getInternalFrame(), null);
+			panelQueryFLRLager.setAdd2Title("F\u00FCr welches Lager sollen die Gest-Preise importiert werden?");
 			new DialogQuery(panelQueryFLRLager);
 		} else if (e.getActionCommand().equals(MENUE_PFLEGE_SNRVERSION)) {
-			DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeSeriennummernMitVersion();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_LOSE_IM_ZEITRAUM_NACHKALKULIEREN)) {
-			java.sql.Date[] datum = DialogFactory
-					.showDatumseingabeVonBis(LPMain
-							.getTextRespectUISPr("fert.pflege.loseimzeitraum.nachkalkulieren.bereich"));
+			DelegateFactory.getInstance().getLagerDelegate().pruefeSeriennummernMitVersion();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_LOSE_IM_ZEITRAUM_NACHKALKULIEREN)) {
+			java.sql.Date[] datum = DialogFactory.showDatumseingabeVonBis(
+					LPMain.getTextRespectUISPr("fert.pflege.loseimzeitraum.nachkalkulieren.bereich"));
 
 			if (datum[0] != null && datum[1] != null) {
 
-				DelegateFactory
-						.getInstance()
-						.getFertigungDelegate()
-						.erledigteLoseImZeitraumNachkalkulieren(datum[0],
-								datum[1]);
+				DelegateFactory.getInstance().getFertigungDelegate().erledigteLoseImZeitraumNachkalkulieren(datum[0],
+						datum[1]);
 			}
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_EKPREISE_IM_ZEITRAUM_RUECKPFLEGEN)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_EKPREISE_IM_ZEITRAUM_RUECKPFLEGEN)) {
 			java.sql.Date[] datum = DialogFactory
-					.showDatumseingabeVonBis(LPMain
-							.getTextRespectUISPr("fert.pflege.ekpreisezurueckpflegen.bereich"));
+					.showDatumseingabeVonBis(LPMain.getTextRespectUISPr("fert.pflege.ekpreisezurueckpflegen.bereich"));
 
 			if (datum[0] != null && datum[1] != null) {
 
-				DelegateFactory
-						.getInstance()
-						.getWareneingangDelegate()
-						.geliefertPreiseAllerWEPRueckpflegen(datum[0], datum[1]);
+				DelegateFactory.getInstance().getWareneingangDelegate().geliefertPreiseAllerWEPRueckpflegen(datum[0],
+						datum[1]);
 			}
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_BELEGE_MIT_LAGERBEWEGUNGEN)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_BELEGE_MIT_LAGERBEWEGUNGEN)) {
 
-			String s = DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeBelegeMitLagerbewegungen();
+			String s = DelegateFactory.getInstance().getLagerDelegate().pruefeBelegeMitLagerbewegungen();
 
 			// java.io.File ausgabedatei = new
 			// java.io.File("c:/lagerbewegungbelege.txt");
@@ -843,10 +778,8 @@ public class PanelPflege extends PanelBasis {
 			bw.write(s);
 			bw.close();
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_LAGERBEWEGUNGEN_MIT_BELEGE)) {
-			String s = DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeLagerbewegungenMitBelege();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_LAGERBEWEGUNGEN_MIT_BELEGE)) {
+			String s = DelegateFactory.getInstance().getLagerDelegate().pruefeLagerbewegungenMitBelege();
 
 			// java.io.File ausgabedatei = new
 			// java.io.File("c:/belegelagerbewegung.txt");
@@ -856,11 +789,9 @@ public class PanelPflege extends PanelBasis {
 			bw.write(s);
 			bw.close();
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_PRUEFE_VOLLSTAENDIG_VERBRAUCHT)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_VOLLSTAENDIG_VERBRAUCHT)) {
 
-			String artikelId = (String) JOptionPane.showInputDialog(this,
-					"Bitte artikelIId angeben: ", "Eingabe",
+			String artikelId = (String) JOptionPane.showInputDialog(this, "Bitte artikelIId angeben: ", "Eingabe",
 					JOptionPane.PLAIN_MESSAGE);
 
 			Integer artikelIID = null;
@@ -869,11 +800,9 @@ public class PanelPflege extends PanelBasis {
 				artikelIID = new Integer(artikelId);
 			}
 
-			boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
-					"Sollen die Fehler korrigiert werden?");
+			boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(), "Sollen die Fehler korrigiert werden?");
 
-			String s = DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeVollstaendigVerbraucht(artikelIID, b);
+			String s = DelegateFactory.getInstance().getLagerDelegate().pruefeVollstaendigVerbraucht(artikelIID, b);
 
 			// java.io.File ausgabedatei = new
 			// java.io.File("c:/vollstverbraucht.txt");
@@ -883,11 +812,9 @@ public class PanelPflege extends PanelBasis {
 			bw.write(s);
 			bw.close();
 
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_PRUEFE_VERBRAUCHTEMENGEN)) {
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_VERBRAUCHTEMENGEN)) {
 
-			String s = DelegateFactory.getInstance().getLagerDelegate()
-					.pruefeVerbrauchteMenge();
+			String s = DelegateFactory.getInstance().getLagerDelegate().pruefeVerbrauchteMenge();
 
 			// java.io.File ausgabedatei = new
 			// java.io.File("c:/verbrauchtemengen.txt");
@@ -899,87 +826,54 @@ public class PanelPflege extends PanelBasis {
 
 		}
 
-		else if (e.getActionCommand()
-				.equals(MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN)) {
-			DelegateFactory.getInstance().getReservierungDelegate()
-					.pruefeReservierungen();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_PRUEFE_BESTELLTLISTE)) {
-			DelegateFactory.getInstance().getArtikelbestelltDelegate()
-					.pruefeBestelltliste();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_PRUEFE_RAHMENBEDARFE)) {
-			DelegateFactory.getInstance().getRahmenbedarfeDelegate()
-					.aktualisiereAlleRahmenauftaegeEinesMandanten();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_PRUEFE_AUFTRAGSERIENNUMMERN)) {
-			DelegateFactory.getInstance().getAuftragpositionDelegate()
-					.pruefeAuftragseriennumern();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_PRUEFE_VKPFSTAFFELMENGE)) {
-			DelegateFactory.getInstance().getVkPreisfindungDelegate()
-					.pruefeVkpfStaffelmenge();
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_PRUEFE_VKPREISLAGERBEWEGUNG)) {
+		else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN)) {
+			DelegateFactory.getInstance().getReservierungDelegate().pruefeReservierungen();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_RESERVIERUNGEN_PER_SQL)) {
+			DelegateFactory.getInstance().getReservierungDelegate().pruefeReservierungenPerSQL();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_BESTELLTLISTE)) {
+			DelegateFactory.getInstance().getArtikelbestelltDelegate().pruefeBestelltliste();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_RAHMENBEDARFE)) {
+			DelegateFactory.getInstance().getRahmenbedarfeDelegate().aktualisiereAlleRahmenauftaegeEinesMandanten();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_AUFTRAGSERIENNUMMERN)) {
+			DelegateFactory.getInstance().getAuftragpositionDelegate().pruefeAuftragseriennumern();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_VKPFSTAFFELMENGE)) {
+			DelegateFactory.getInstance().getVkPreisfindungDelegate().pruefeVkpfStaffelmenge();
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_PRUEFE_VKPREISLAGERBEWEGUNG)) {
 
-			boolean b = DialogFactory
-					.showModalJaNeinDialog(
-							getInternalFrame(),
-							"Wenn Sie diese Pflegefunktion ausf\u00FChren, sind Preiskorrekturen auf den Belegen nicht mehr sichtbar. Wollen Sie diese Pflegefunktion wirklich ausf\u00FChren?");
+			boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+					"Wenn Sie diese Pflegefunktion ausf\u00FChren, sind Preiskorrekturen auf den Belegen nicht mehr sichtbar. Wollen Sie diese Pflegefunktion wirklich ausf\u00FChren?");
 
 			if (b == true) {
-				DelegateFactory.getInstance().getLieferscheinpositionDelegate()
-						.pruefeVKPreisAufLagerbewegung();
+				DelegateFactory.getInstance().getLieferscheinpositionDelegate().pruefeVKPreisAufLagerbewegung();
 			}
-		} else if (e.getActionCommand().equals(
-				MENUE_ACTION_STUECKLISTE_NACHKALKULIEREN)) {
+		} else if (e.getActionCommand().equals(MENUE_ACTION_STUECKLISTE_NACHKALKULIEREN)) {
 
-			String response = JOptionPane
-					.showInputDialog(
-							null,
-							"Bitte Artikelnummer eingeben, oder @, um eine Textdatei einzulesen:",
-							"", JOptionPane.QUESTION_MESSAGE);
+			String response = JOptionPane.showInputDialog(null,
+					"Bitte Artikelnummer eingeben, oder @, um eine Textdatei einzulesen:", "",
+					JOptionPane.QUESTION_MESSAGE);
 
 			if (response != null) {
 				String artikelnummer = response;
 
-				response = JOptionPane
-						.showInputDialog(
-								null,
-								"Bitte das Datum, ab dem die Lose neu berechnet werden sollen (im Format TT/MM/JJJJ):",
-								"", JOptionPane.QUESTION_MESSAGE);
+				response = JOptionPane.showInputDialog(null,
+						"Bitte das Datum, ab dem die Lose neu berechnet werden sollen (im Format TT/MM/JJJJ):", "",
+						JOptionPane.QUESTION_MESSAGE);
 
 				if (artikelnummer.length() > 0) {
 
 					if (artikelnummer.equals("@")) {
 
-						JFileChooser fc = new JFileChooser();
-						fc.setFileFilter(new FileFilter() {
-							public boolean accept(File f) {
-								return f.getName().toLowerCase()
-										.endsWith("csv")
-										|| f.isDirectory();
-							}
-
-							public String getDescription() {
-								return "CSV-Dateien";
-							}
-						});
-						int returnVal = fc.showOpenDialog(LPMain.getInstance()
-								.getDesktop());
-						if (returnVal == JFileChooser.APPROVE_OPTION) {
-							File file = fc.getSelectedFile();
-
+						HvOptional<CsvFile> csv = new CsvFileOpener(
+								LPMain.getInstance().getDesktop(), 
+								FileChooserConfigToken.ImportLastCsv).selectSingle();
+						if (csv.isPresent()) {
+							File file = csv.get().getFile();
 							try {
-								BufferedReader in = new BufferedReader(
-										new FileReader(file));
+								BufferedReader in = new BufferedReader(new FileReader(file));
 								String zeile = null;
 								while ((zeile = in.readLine()) != null) {
-									DelegateFactory
-											.getInstance()
-											.getFertigungDelegate()
-											.alleLoseEinerStuecklisteNachkalkulieren(
-													zeile, response);
+									DelegateFactory.getInstance().getFertigungDelegate()
+											.alleLoseEinerStuecklisteNachkalkulieren(zeile, response);
 								}
 								in.close();
 							} catch (IOException eh) {
@@ -989,11 +883,8 @@ public class PanelPflege extends PanelBasis {
 						}
 
 					} else {
-						DelegateFactory
-								.getInstance()
-								.getFertigungDelegate()
-								.alleLoseEinerStuecklisteNachkalkulieren(
-										artikelnummer, response);
+						DelegateFactory.getInstance().getFertigungDelegate()
+								.alleLoseEinerStuecklisteNachkalkulieren(artikelnummer, response);
 					}
 
 				}
@@ -1003,8 +894,7 @@ public class PanelPflege extends PanelBasis {
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 
 	}
 

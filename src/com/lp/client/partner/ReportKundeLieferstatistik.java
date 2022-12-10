@@ -48,6 +48,7 @@ import javax.swing.JPanel;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.ItemChangedEvent;
@@ -94,6 +95,7 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 	private WrapperCheckBox wcbMitTexteingaben = new WrapperCheckBox();
 	private WrapperCheckBox wcbVerdichtet = new WrapperCheckBox();
 	private WrapperCheckBox wcbMonatsstatistik = new WrapperCheckBox();
+	private WrapperCheckBox wcbArtikelgruppe = new WrapperCheckBox();
 	private WrapperCheckBox wcbRechnungsdatum = new WrapperCheckBox();
 	private WrapperCheckBox wcbEingeschraenkt = new WrapperCheckBox();
 	private WrapperSelectField wsfArtikelgruppe = new WrapperSelectField(
@@ -179,6 +181,10 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 						.getTextRespectUISPr("part.kunde.lieferstatistik.rechnungsadresse"));
 		wrbLieferadresse.setSelected(true);
 
+		
+		wcbArtikelgruppe.setText(LPMain.getInstance().getTextRespectUISPr(
+				"part.kunde.lieferstatistik.artikelgruppe"));
+		
 		wcbEingeschraenkt.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.eingeschraenkt"));
 		wcbEingeschraenkt.setSelected(true);
@@ -193,8 +199,8 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 
 		wdfVon.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(c
 				.getTimeInMillis())));
-		wdfBis.setTimestamp(Helper.cutTimestamp(new java.sql.Timestamp(System
-				.currentTimeMillis() + 24 * 3600000)));
+		wdfBis.setTimestamp(Helper.cutTimestamp(Helper.addiereTageZuTimestamp(new java.sql.Timestamp(System
+				.currentTimeMillis()),1)));
 
 		wcbMonatsstatistik.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.statistik.monate"));
@@ -202,6 +208,9 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 		wcbMonatsstatistik.addActionListener(this);
 		wcbVerdichtet.addActionListener(this);
 		getInternalFrame().addItemChangedListener(this);
+
+		HelperClient.setMinimumAndPreferredSize(wcbRechnungsdatum,
+				HelperClient.getSizeFactoredDimension(120));
 
 		int iZeile = 0;
 		this.add(jpaWorkingOn, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
@@ -234,12 +243,17 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wlaSortierung, new GridBagConstraints(0, iZeile, 1, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wrbIdent, new GridBagConstraints(1, iZeile, 2, 1, 0.0,
+		jpaWorkingOn.add(wrbIdent, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbVerdichtet, new GridBagConstraints(3, iZeile, 2, 1,
+		
+		jpaWorkingOn.add(wcbVerdichtet, new GridBagConstraints(2, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
+		
+		jpaWorkingOn.add(wcbArtikelgruppe, new GridBagConstraints(3, iZeile, 2, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 150, 0));
+				new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wcbMonatsstatistik, new GridBagConstraints(5, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
@@ -250,11 +264,11 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 		jpaWorkingOn.add(wrbDatum, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
-		
-		jpaWorkingOn.add(wcbRechnungsdatum, new GridBagConstraints(2, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 100, 0));
-		
+
+		jpaWorkingOn.add(wcbRechnungsdatum, new GridBagConstraints(2, iZeile,
+				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
 		jpaWorkingOn.add(wcbMitTexteingaben, new GridBagConstraints(3, iZeile,
 				2, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
@@ -289,7 +303,7 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 				new GridBagConstraints(5, iZeile, 1, 1, 0.0, 0.0,
 						GridBagConstraints.CENTER,
 						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						180, 0));
+						0, 0));
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -382,6 +396,7 @@ public class ReportKundeLieferstatistik extends PanelBasis implements
 						wdfBis.getDate(), iSortierung,
 						wcbMitTexteingaben.isSelected(),
 						wcbVerdichtet.isSelected(),
+						wcbArtikelgruppe.isSelected(),
 						wcbEingeschraenkt.isSelected(),
 						wcbMonatsstatistik.isSelected(), iOptionAdresse,
 						wcbRechnungsdatum.isSelected());

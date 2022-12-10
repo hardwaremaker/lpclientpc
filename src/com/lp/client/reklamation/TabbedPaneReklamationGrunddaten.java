@@ -46,6 +46,7 @@ import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.pc.LPMain;
 import com.lp.client.stueckliste.InternalFrameStueckliste;
 import com.lp.client.stueckliste.StuecklisteFilterFactory;
+import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 
 @SuppressWarnings("static-access")
@@ -153,8 +154,8 @@ public class TabbedPaneReklamationGrunddaten extends TabbedPane {
 					panelBottomSchwere, panelQuerySchwere, 350);
 
 			panelQuerySchwere.befuellePanelFilterkriterienDirekt(
-					StuecklisteFilterFactory.getInstance()
-							.createFKDBezeichnungAllgemein(), null);
+					ReklamationFilterFactory.getInstance()
+							.createFKDSchwereKennung(), null);
 
 			setComponentAt(IDX_PANEL_SCHWERE, panelSplitSchwere);
 		}
@@ -212,8 +213,8 @@ public class TabbedPaneReklamationGrunddaten extends TabbedPane {
 					panelBottomBeurteilung, panelQueryBeurteilung, 350);
 
 			panelQueryBeurteilung.befuellePanelFilterkriterienDirekt(
-					StuecklisteFilterFactory.getInstance()
-							.createFKDBezeichnungAllgemein(), null);
+					ReklamationFilterFactory.getInstance()
+							.createFKDBehandlungKennung(), null);
 
 			setComponentAt(IDX_PANEL_BEURTEILUNG, panelSplitBeurteilung);
 		}

@@ -112,12 +112,25 @@ public class PanelZeitmodelltag extends PanelBasis {
 
 	private WrapperLabel wlaRundungBeginn = new WrapperLabel();
 	private WrapperLabel wlaRundungEnde = new WrapperLabel();
+	
+	private WrapperLabel wlaSchichterkennung = new WrapperLabel();
+	private WrapperTimeField wtfSchichterkennung = new WrapperTimeField();
+	
 
 	private WrapperCheckBox wcbRundesondertatigkeiten = new WrapperCheckBox();
+	private WrapperCheckBox wcbBeginnVortag = new WrapperCheckBox();
 
 	private WrapperSpinner wspRundungEnde = new WrapperSpinner(0, 0, 60, 5);
 	private WrapperSpinner wspRundungBeginn = new WrapperSpinner(0, 0, 60, 5);
 
+	
+	private WrapperLabel wlaGehtAkzeptiertAb = new WrapperLabel();
+	private WrapperTimeField wtfGehtAkzeptiertAb = new WrapperTimeField();
+	
+	private WrapperLabel wlaKommtAkzeptiertBis = new WrapperLabel();
+	private WrapperTimeField wtfKommtAkzeptiertBis = new WrapperTimeField();
+	
+	
 	public PanelZeitmodelltag(InternalFrame internalFrame, String add2TitleI,
 			Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
@@ -172,7 +185,12 @@ public class PanelZeitmodelltag extends PanelBasis {
 		zeitmodelltagDto.setTagesartIId((Integer) wcoTagesart
 				.getKeyOfSelectedItem());
 		zeitmodelltagDto.setUBeginn(wtfKommt.getTime());
+		
+		zeitmodelltagDto.setBBeginnVortag(wcbBeginnVortag.getShort());
+		
 		zeitmodelltagDto.setUEnde(wtfGeht.getTime());
+		zeitmodelltagDto.setUEndeAkzeptiertAb(wtfGehtAkzeptiertAb.getTime());
+		zeitmodelltagDto.setUBeginnAkzeptiertBis(wtfKommtAkzeptiertBis.getTime());
 		zeitmodelltagDto.setUMindestpause(wtfMindestpausenzeit.getTime());
 		zeitmodelltagDto.setUAutopauseab(wtfAutopauseab.getTime());
 		zeitmodelltagDto.setUMindestpause2(wtfMindestpausenzeit2.getTime());
@@ -187,6 +205,7 @@ public class PanelZeitmodelltag extends PanelBasis {
 
 		zeitmodelltagDto.setBRundesondertaetigkeiten(wcbRundesondertatigkeiten
 				.getShort());
+		zeitmodelltagDto.setUSchichterkennung(wtfSchichterkennung.getTime());
 
 	}
 
@@ -196,13 +215,19 @@ public class PanelZeitmodelltag extends PanelBasis {
 		wtfAutopauseab2.setTime(zeitmodelltagDto.getUAutopauseab2());
 		wtfAutopauseab3.setTime(zeitmodelltagDto.getUAutopauseab3());
 		wtfGeht.setTime(zeitmodelltagDto.getUEnde());
+		wtfGehtAkzeptiertAb.setTime(zeitmodelltagDto.getUEndeAkzeptiertAb());
+		wtfKommtAkzeptiertBis.setTime(zeitmodelltagDto.getUBeginnAkzeptiertBis());
 		wtfKommt.setTime(zeitmodelltagDto.getUBeginn());
+		
+		wcbBeginnVortag.setShort(zeitmodelltagDto.getBBeginnVortag());
+		
 		wtfMindestpausenzeit.setTime(zeitmodelltagDto.getUMindestpause());
 		wtfMindestpausenzeit2.setTime(zeitmodelltagDto.getUMindestpause2());
 		wtfMindestpausenzeit3.setTime(zeitmodelltagDto.getUMindestpause3());
 		wtfSollzeit.setTime(zeitmodelltagDto.getUSollzeit());
 		wtfErlaubteAnwesenheit.setTime(zeitmodelltagDto
 				.getUErlaubteanwesenheitszeit());
+		wtfSchichterkennung.setTime(zeitmodelltagDto.getUSchichterkennung());
 
 		wcoTagesart.setKeyOfSelectedItem(zeitmodelltagDto.getTagesartIId());
 
@@ -302,9 +327,20 @@ public class PanelZeitmodelltag extends PanelBasis {
 						"pers.zeitmodelltag.erlaubteanwesenheitszeit"));
 		wlaGeht.setText(LPMain.getInstance().getTextRespectUISPr(
 				"pers.zeitmodelltag.geht"));
+		wlaGehtAkzeptiertAb.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodelltag.gehtakzeptierab"));
+		
+		wlaKommtAkzeptiertBis.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodelltag.kommtakzeptiertbis"));
+		
 		wlaMindestpausenzeit.setText(LPMain.getInstance().getTextRespectUISPr(
 				"pers.zeitmodelltag.mindestpausenzeit"));
+		wlaSchichterkennung.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodelltag.schichterkennung"));
 
+		wcbBeginnVortag.setText(LPMain.getInstance().getTextRespectUISPr(
+				"pers.zeitmodelltag.bgeinnvortag"));
+		
 		if (bPausenNurWarnung) {
 			wlaAutopauseab.setText(LPMain.getInstance().getTextRespectUISPr(
 					"pers.zeitmodelltag.autopauseabjeweils"));
@@ -382,7 +418,7 @@ public class PanelZeitmodelltag extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		jpaWorkingOn.add(wtfKommt, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 50, 0));
+				new Insets(2, 2, 2, 2), 70, 0));
 		ImageIcon iicon = new ImageIcon(getClass().getResource(
 				"/com/lp/client/res/clock16x16.png"));
 		WrapperLabel wlaUeberschrift0 = new WrapperLabel(iicon);
@@ -390,6 +426,12 @@ public class PanelZeitmodelltag extends PanelBasis {
 		jpaWorkingOn.add(wlaUeberschrift0, new GridBagConstraints(2, iZeile, 1,
 				1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 20, 0));
+		
+		jpaWorkingOn.add(wcbBeginnVortag, new GridBagConstraints(2, iZeile, 1,
+				1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 25, 2, 2), 70, 0));
+
+		
 
 		jpaWorkingOn.add(wlaSollzeit, new GridBagConstraints(3, iZeile, 1, 1,
 				0.35, 0.0, GridBagConstraints.CENTER,
@@ -434,10 +476,25 @@ public class PanelZeitmodelltag extends PanelBasis {
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaRundungBeginn, new GridBagConstraints(0, iZeile, 1,
+		
+		jpaWorkingOn.add(wlaKommtAkzeptiertBis, new GridBagConstraints(0, iZeile, 1, 1,0,
+				0.0, GridBagConstraints.SOUTH, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wtfKommtAkzeptiertBis, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
+				0.0, GridBagConstraints.SOUTH, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 60, 0));
+		iicon = new ImageIcon(getClass().getResource(
+				"/com/lp/client/res/clock16x16.png"));
+		WrapperLabel wlaUeberschrift99 = new WrapperLabel(iicon);
+		wlaUeberschrift99.setHorizontalAlignment(SwingConstants.LEFT);
+		jpaWorkingOn.add(wlaUeberschrift99, new GridBagConstraints(2, iZeile, 1,
+				1, 0, 0.0, GridBagConstraints.SOUTH,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 20, 0));
+		
+		jpaWorkingOn.add(wlaRundungBeginn, new GridBagConstraints(0, iZeile+2, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(10, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wspRundungBeginn, new GridBagConstraints(1, iZeile, 1,
+		jpaWorkingOn.add(wspRundungBeginn, new GridBagConstraints(1, iZeile+2, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.NONE, new Insets(10, 2, 2, 2), 70, 0));
 
@@ -455,10 +512,26 @@ public class PanelZeitmodelltag extends PanelBasis {
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(10, 2, 2, 2), 30, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaRundungEnde, new GridBagConstraints(0, iZeile, 1,
+		
+		
+		jpaWorkingOn.add(wlaGehtAkzeptiertAb, new GridBagConstraints(0, iZeile, 1, 1,0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 100, 0));
+		jpaWorkingOn.add(wtfGehtAkzeptiertAb, new GridBagConstraints(1, iZeile, 1, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(2, 2, 2, 2), 60, 0));
+		iicon = new ImageIcon(getClass().getResource(
+				"/com/lp/client/res/clock16x16.png"));
+		WrapperLabel wlaUeberschrift100 = new WrapperLabel(iicon);
+		wlaUeberschrift100.setHorizontalAlignment(SwingConstants.LEFT);
+		jpaWorkingOn.add(wlaUeberschrift100, new GridBagConstraints(2, iZeile, 1,
+				1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 20, 0));
+		
+		jpaWorkingOn.add(wlaRundungEnde, new GridBagConstraints(0, iZeile+2, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wspRundungEnde, new GridBagConstraints(1, iZeile, 1,
+		jpaWorkingOn.add(wspRundungEnde, new GridBagConstraints(1, iZeile+2, 1,
 				1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 70, 0));
 
@@ -478,8 +551,25 @@ public class PanelZeitmodelltag extends PanelBasis {
 		iZeile++;
 
 		jpaWorkingOn.add(wcbRundesondertatigkeiten, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				iZeile+2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		
+		jpaWorkingOn.add(wlaSchichterkennung, new GridBagConstraints(0,
+				iZeile+3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSchichterkennung, new GridBagConstraints(1,
+				iZeile+3, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		
+		iicon = new ImageIcon(getClass().getResource(
+				"/com/lp/client/res/clock16x16.png"));
+		WrapperLabel wlaIconSchichterkennung = new WrapperLabel(iicon);
+		wlaIconSchichterkennung.setHorizontalAlignment(SwingConstants.LEFT);
+		jpaWorkingOn.add(wlaIconSchichterkennung, new GridBagConstraints(2, iZeile+3, 1,
+				1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 20, 0));
+		
 		if (bPausenNurWarnung == false) {
 			jpaWorkingOn.add(wlaAutopauseab2, new GridBagConstraints(2, iZeile,
 					2, 1, 0.0, 0.0, GridBagConstraints.CENTER,

@@ -52,7 +52,14 @@ public class DropPanelSplit extends PanelSplit implements ISupportDropLocationEm
 		
 		installDragSupport() ;
 	}
-	
+	public DropPanelSplit(InternalFrame internalFrame, PanelBasis panelHeadI,int dividerLocationHeadI,
+            PanelBasis panelDetailI,
+            PanelQuery panelQueryI,
+            int dividerLocationI) throws Throwable {
+		super(internalFrame,panelHeadI,dividerLocationHeadI, panelDetailI, panelQueryI, dividerLocationI) ;
+		
+		installDragSupport() ;
+	}
 	protected void installDragSupport() {
 		setTransferHandler(new ToTransferHandlerEmailMeta());
 //		setDropTarget(dt);

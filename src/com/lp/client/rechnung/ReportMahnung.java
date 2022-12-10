@@ -59,6 +59,7 @@ import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.component.WrapperTextNumberField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.report.IDruckTypeReport;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
 import com.lp.client.frame.report.ReportBeleg;
@@ -78,7 +79,7 @@ import com.lp.util.EJBExceptionLP;
 import com.lp.util.Helper;
 
 @SuppressWarnings("static-access")
-public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
+public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS, IDruckTypeReport {
 
 	/**
 	 * 
@@ -124,11 +125,13 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 
 	private Boolean bAusfuerlich = null;
 
-	public ReportMahnung(InternalFrame internalFrame, PanelBasis panelToRefresh, String add2Title,
+	public ReportMahnung(InternalFrame internalFrame,
+			PanelBasis panelToRefresh, String add2Title,
 			RechnungDto rechnungDto, PanelQuery panelQueryRechnungen)
 			throws Throwable {
-		super(internalFrame, panelToRefresh, add2Title, LocaleFac.BELEGART_RECHNUNG,
-				rechnungDto.getIId(), rechnungDto.getKostenstelleIId());
+		super(internalFrame, panelToRefresh, add2Title,
+				LocaleFac.BELEGART_RECHNUNG, rechnungDto.getIId(), rechnungDto
+						.getKostenstelleIId());
 		ParametermandantDto parameter = DelegateFactory
 				.getInstance()
 				.getParameterDelegate()
@@ -144,7 +147,7 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 		setDefaults();
 		initComponents();
 	}
-	
+
 	@Override
 	protected String getLockMeWer() throws Exception {
 		// lock ist hier egal
@@ -192,17 +195,15 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 		wlaWaehrung2.setText(rechnungDto.getWaehrungCNr());
 		wlaWaehrung3.setText(rechnungDto.getWaehrungCNr());
 
-		
-		Integer aktuelleMahnstufeIId=DelegateFactory.getInstance()
-		.getMahnwesenDelegate()
-		.getAktuelleMahnstufeEinerRechnung(rechnungDto.getIId());
-		
+		Integer aktuelleMahnstufeIId = DelegateFactory.getInstance()
+				.getMahnwesenDelegate()
+				.getAktuelleMahnstufeEinerRechnung(rechnungDto.getIId());
+
 		wdfLetztesMahndatum.setDate(DelegateFactory.getInstance()
 				.getMahnwesenDelegate()
 				.getAktuellesMahndatumEinerRechnung(rechnungDto.getIId()));
 		if (aktuelleMahnstufeIId != null) {
-			wtnfLetzteMahnstufe.setText(aktuelleMahnstufeIId
-					.toString());
+			wtnfLetzteMahnstufe.setText(aktuelleMahnstufeIId.toString());
 		}
 		Integer mahnstufeIId = DelegateFactory.getInstance()
 				.getMahnwesenDelegate()
@@ -262,26 +263,13 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 			}
 			bg.add(wrbMahnstufen[i]);
 		}
-		wlaWaehrung1.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wlaWaehrung1.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wlaWaehrung1, HelperClient.getSizeFactoredDimension(30));
 		wlaBelegdatum.setMinimumSize(new Dimension(60, Defaults.getInstance()
 				.getControlHeight()));
 		wlaBelegdatum.setPreferredSize(new Dimension(60, Defaults.getInstance()
 				.getControlHeight()));
-		wlaLetztesMahndatum.setMinimumSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
-		wlaLetztesMahndatum.setPreferredSize(new Dimension(80, Defaults
-				.getInstance().getControlHeight()));
-		wlaLetzteMahnstufe.setMinimumSize(new Dimension(60, Defaults
-				.getInstance().getControlHeight()));
-		wlaLetzteMahnstufe.setPreferredSize(new Dimension(60, Defaults
-				.getInstance().getControlHeight()));
-		wlaZieldatum.setMinimumSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
-		wlaZieldatum.setPreferredSize(new Dimension(30, Defaults.getInstance()
-				.getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wlaLetztesMahndatum, HelperClient.getSizeFactoredDimension(60));
+		HelperClient.setMinimumAndPreferredSize(wlaLetzteMahnstufe, HelperClient.getSizeFactoredDimension(80));
 		wlaBelegdatum.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.belegdatum"));
 		wlaZieldatum.setText(LPMain.getInstance().getTextRespectUISPr(
@@ -468,7 +456,7 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 							.getRechnungDelegate()
 							.printRechnungAlsMahnung(rechnungDto.getIId(),
 									mahnstufeDtos[i].getIId(), locKunde,
-									isBPrintLogo());
+									isBPrintLogo(), sDrucktype);
 				} else {
 					print = DelegateFactory
 							.getInstance()
@@ -482,7 +470,7 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 		// }
 		// refresh auf die Liste
 		panelQueryRechnungen.eventYouAreSelected(false);
-		return print;
+		return kopienHinzufuegen(print);
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -492,6 +480,12 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 	public MailtextDto getMailtextDto() throws Throwable {
 		MailtextDto mailtextDto = PanelReportKriterien
 				.getDefaultMailtextDto(this);
+		if (rechnungDto != null) {
+			mailtextDto.setMailBelegnummer(rechnungDto.getCNr());
+			mailtextDto.setMailAnprechpartnerIId(rechnungDto.getAnsprechpartnerIId());
+			mailtextDto.setMailFusstext(rechnungDto.getCFusstextuebersteuert());
+			mailtextDto.setMailKopftext(rechnungDto.getCKopftextuebersteuert());
+		}
 		return mailtextDto;
 	}
 
@@ -532,11 +526,11 @@ public class ReportMahnung extends ReportBeleg implements PanelReportIfJRDS {
 	protected void aktiviereBelegImpl(Timestamp t) throws Throwable {
 		// wird schon in getReport() gemacht
 	}
-	
+
 	@Override
 	protected Timestamp berechneBelegImpl() throws Throwable {
 		// wird schon in getReport() gemacht
 		return null;
 	}
-	
+
 }

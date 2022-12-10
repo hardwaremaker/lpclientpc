@@ -45,11 +45,8 @@ import java.util.Map.Entry;
 import javax.swing.AbstractListModel;
 import javax.swing.BorderFactory;
 import javax.swing.ComboBoxModel;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.component.InternalFrame;
@@ -289,7 +286,7 @@ public class ReportPeriodeBase extends PanelBasis implements PanelReportIfJRDS
 			while(iterator.hasNext()) {
 				Entry<Integer, String> entry = iterator.next() ;
 				if(entry.getValue().equals(selectedItem)) {
-					return 1 + entry.getKey() ;
+					return 1 + getPeriodeForMonth(entry.getKey());
 				}
 			}
 

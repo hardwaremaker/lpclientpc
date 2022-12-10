@@ -391,15 +391,15 @@ public class ReportLosstatistik extends PanelBasis implements PanelReportIfJRDS 
 		if (wrbErledigt.isSelected()) {
 
 			if (auftragIId == null && losIId == null) {
-				java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-						.getTimestamp().getTime() + 24 * 3600000);
+				java.sql.Timestamp wdfBisTemp = Helper.addiereTageZuTimestamp(wdfBis
+						.getTimestamp(),1);
 
 				jasperPrint = DelegateFactory
 						.getInstance()
 						.getFertigungDelegate()
 						.printLosstatistik(
-								Helper.cutTimestamp(wdfVon.getTimestamp()),
-								Helper.cutTimestamp(wdfBisTemp), losIId,
+								wdrBereich.getTimestampVon(),
+								wdrBereich.getTimestampBis(), losIId,
 								stuecklisteIId, auftragIId,
 								wcbArbeitsplanSortiertNachAG.isSelected(),
 								wcbVerdichtetNachArtikel.isSelected(),null);
@@ -415,8 +415,7 @@ public class ReportLosstatistik extends PanelBasis implements PanelReportIfJRDS 
 			}
 		} else {
 			if (auftragIId == null && losIId == null) {
-				java.sql.Timestamp wdfBisTemp = new java.sql.Timestamp(wdfBis
-						.getTimestamp().getTime() + 24 * 3600000);
+				
 
 				jasperPrint = DelegateFactory
 						.getInstance()

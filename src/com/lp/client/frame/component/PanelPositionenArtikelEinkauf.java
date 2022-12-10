@@ -95,10 +95,10 @@ public class PanelPositionenArtikelEinkauf extends PanelPositionenPreiseingabe {
 	 */
 	public PanelPositionenArtikelEinkauf(InternalFrame internalFrame,
 			String add2TitleI, Object key, String sLockMeWer,
-			int iSpaltenbreite1I) throws Throwable {
+			int iSpaltenbreite1I, PanelBasis panelBasisFuerGetKeyWhenDetailPanel) throws Throwable {
 		super(internalFrame, add2TitleI, key, sLockMeWer,
 				internalFrame.bRechtDarfPreiseSehenEinkauf,
-				internalFrame.bRechtDarfPreiseAendernEinkauf, iSpaltenbreite1I);
+				internalFrame.bRechtDarfPreiseAendernEinkauf, iSpaltenbreite1I, panelBasisFuerGetKeyWhenDetailPanel);
 		jbInit();
 		initComponents();
 	}

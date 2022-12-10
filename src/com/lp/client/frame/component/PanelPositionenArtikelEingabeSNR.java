@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.frame.component;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.Point;
@@ -47,136 +46,110 @@ import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access") 
-public class PanelPositionenArtikelEingabeSNR
-    extends PanelPositionenArtikelVerkauf
-{
-  /**
+@SuppressWarnings("static-access")
+public class PanelPositionenArtikelEingabeSNR extends PanelPositionenArtikelVerkauf {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-public WrapperSNRField wtfSeriennr = null;
-  public WrapperButton wbuSeriennr = null;
-  static final public String ACTION_SPECIAL_SNRAUSWAHL =
-      "action_snrauswahl";
+	public WrapperSNRField wtfSeriennr = null;
+	public WrapperLabel wlaSeriennr = null;
 
-  public PanelPositionenArtikelEingabeSNR(InternalFrame internalFrame,
-                                          String add2TitleI,
-                                          Object key,
-                                          String sLockMeWer,
-                                          int iSpaltenbreite1I)
-      throws Throwable {
-    super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I); // VKPF
-    jbInitPanel();
-    initComponents();
-  }
+	public PanelPositionenArtikelEingabeSNR(InternalFrame internalFrame, String add2TitleI, Object key,
+			String sLockMeWer, int iSpaltenbreite1I, PanelBasis panelBasisFuerGetKeyWhenDetailPanel) throws Throwable {
+		super(internalFrame, add2TitleI, key, sLockMeWer, iSpaltenbreite1I, panelBasisFuerGetKeyWhenDetailPanel); // VKPF
+		jbInitPanel();
+		initComponents();
+	}
 
+	private void jbInitPanel() throws Throwable {
+		wtfSeriennr = new WrapperSNRField();
+		wtfSeriennr.setEditable(false);
+		ParametermandantDto parameter = DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
+				LPMain.getInstance().getTheClient().getMandant(), ParameterFac.KATEGORIE_AUFTRAG,
+				ParameterFac.PARAMETER_AUFTRAGSERIENNUMMERN_MIT_ETIKETTEN);
 
-  private void jbInitPanel()
-      throws Throwable {
-    wtfSeriennr = new WrapperSNRField();
-    wtfSeriennr.setEditable(false);
-    ParametermandantDto parameter =
-        DelegateFactory.getInstance().getParameterDelegate().getMandantparameter(
-            LPMain.getInstance().getTheClient().getMandant(),
-            ParameterFac.KATEGORIE_AUFTRAG,
-            ParameterFac.PARAMETER_AUFTRAGSERIENNUMMERN_MIT_ETIKETTEN);
+		Short sValue = new Short(parameter.getCWert());
+		if (Helper.short2boolean(sValue)) {
+			wtfSeriennr.setMandatoryField(false);
+		} else {
+			wtfSeriennr.setMandatoryField(true);
+		}
+		wlaSeriennr = new WrapperLabel();
+		
+		wlaSeriennr.setText(LPMain.getInstance().getTextRespectUISPr("artikel.report.seriennummern") + "...");
+		
+	}
 
-    Short sValue = new Short(parameter.getCWert());
-    if (Helper.short2boolean(sValue)) {
-      wtfSeriennr.setMandatoryField(false);
-     }else{
-      wtfSeriennr.setMandatoryField(true);
-     }
-    wbuSeriennr = new WrapperButton();
-    wbuSeriennr.addActionListener(this);
-    wbuSeriennr.setActionCommand(ACTION_SPECIAL_SNRAUSWAHL);
-    wbuSeriennr.setText(LPMain.getInstance().getTextRespectUISPr("artikel.report.seriennummern")+"...");
-    wbuSeriennr.setEnabled(false);
-  }
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		super.eventActionSpecial(e);
 
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_AUFTRAG_SERIENNUMMERN, ParameterFac.KATEGORIE_AUFTRAG,
+						LPMain.getTheClient().getMandant());
+		boolean bAuftragSnr = (Boolean) parameter.getCWertAsObject();
 
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-    super.eventActionSpecial(e);
-    if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(
-        MandantFac.
-        ZUSATZFUNKTION_AUFTRAG_SERIENNUMMERN)) {
-      aktualisiereFelderSnrChnr(true);
-    }
-    if (e.getActionCommand().equals(ACTION_SPECIAL_SNRAUSWAHL)) {
-      InternalFrameAuftrag intFrame = (InternalFrameAuftrag)getInternalFrame();
-      DialogAuftragSnrauswahl d = new DialogAuftragSnrauswahl(intFrame,
-          intFrame.getTabbedPaneAuftrag(),
-          (Integer)intFrame.getTabbedPaneAuftrag().getAuftragPositionenTop().getSelectedId());
-      java.awt.Dimension panelSize = this.getSize();
-      d.setMaximumSize(panelSize);
-      d.setMinimumSize(panelSize);
-      d.setPreferredSize(panelSize);
-      Point p = this.getLocation();
-      d.setLocation(p);
-      d.setVisible(true);
-     }
+		if (bAuftragSnr) {
+			aktualisiereFelderSnrChnr(true);
+		}
+		/*if (e.getActionCommand().equals(ACTION_SPECIAL_SNRAUSWAHL)) {
+			InternalFrameAuftrag intFrame = (InternalFrameAuftrag) getInternalFrame();
+			DialogAuftragSnrauswahl d = new DialogAuftragSnrauswahl(intFrame, intFrame.getTabbedPaneAuftrag(),
+					(Integer) intFrame.getTabbedPaneAuftrag().getAuftragPositionenTop().getSelectedId());
+			java.awt.Dimension panelSize = this.getSize();
+			d.setMaximumSize(panelSize);
+			d.setMinimumSize(panelSize);
+			d.setPreferredSize(panelSize);
+			Point p = this.getLocation();
+			d.setLocation(p);
+			d.setVisible(true);
+		}*/
 
-  }
+	}
 
+	public void aktualisiereFelderSnrChnr(boolean bEnableField) {
+		if (getArtikelDto() != null && getArtikelDto().getIId() != null) {
+			if (Helper.short2boolean(getArtikelDto().getBSeriennrtragend())) {
+				add(wlaSeriennr, new GridBagConstraints(0, 9, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+						GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+				add(wtfSeriennr, new GridBagConstraints(1, 9, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
+						GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+			} else {
+				remove(wtfSeriennr);
+			}
+			if (bEnableField) {
+				wtfSeriennr.setEditable(bEnableField);
+			}
+		} else {
+			remove(wtfSeriennr);
+		}
+	}
 
-  public void aktualisiereFelderSnrChnr(boolean bEnableField) {
-    if(getArtikelDto() != null && getArtikelDto().getIId() != null ) {
-      if (Helper.short2boolean(getArtikelDto().getBSeriennrtragend())) {
-        add(wbuSeriennr,
-            new GridBagConstraints(0, 8, 1, 1, 0.0, 0.0
-                                   , GridBagConstraints.WEST,
-                                   GridBagConstraints.BOTH,
-                                   new Insets(2, 2, 2, 2),
-                                   0, 0));
-        add(wtfSeriennr,
-            new GridBagConstraints(1, 8, 3, 1, 0.0, 0.0
-                                   , GridBagConstraints.WEST,
-                                   GridBagConstraints.BOTH,
-                                   new Insets(2, 2, 2, 2),
-                                   0, 0));
-      }
-      else {
-        remove(wtfSeriennr);
-      }
-      if (bEnableField) {
-        wtfSeriennr.setEditable(bEnableField);
-        wbuSeriennr.setEnabled(bEnableField);
-      }
-    } else {
-      remove(wtfSeriennr);
-    }
-  }
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		super.eventItemchanged(eI);
+		ItemChangedEvent e = (ItemChangedEvent) eI;
+		if (e.getID() == ItemChangedEvent.ACTION_KRITERIEN_HAVE_BEEN_SELECTED) {
 
+		}
+	}
 
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
+		super.eventYouAreSelected(false); // buttons schalten
 
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    super.eventItemchanged(eI);
-    ItemChangedEvent e = (ItemChangedEvent) eI;
-    if (e.getID() == ItemChangedEvent.ACTION_KRITERIEN_HAVE_BEEN_SELECTED) {
+	}
 
-    }
-  }
+	public void artikelDto2components() throws Throwable {
+		super.artikelDto2components();
 
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_AUFTRAG_SERIENNUMMERN, ParameterFac.KATEGORIE_AUFTRAG,
+						LPMain.getTheClient().getMandant());
+		boolean bAuftragSnr = (Boolean) parameter.getCWertAsObject();
 
-  public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-      throws Throwable {
-      super.eventYouAreSelected(false); // buttons schalten
+		if (bAuftragSnr) {
+			aktualisiereFelderSnrChnr(true);
+		}
 
-}
-
-
-    public void artikelDto2components()
-        throws Throwable {
-      super.artikelDto2components();
-      if (LPMain.getInstance().getDesktop().darfAnwenderAufZusatzfunktionZugreifen(
-          MandantFac.
-          ZUSATZFUNKTION_AUFTRAG_SERIENNUMMERN)) {
-        aktualisiereFelderSnrChnr(true);
-      }
-
-    }
+	}
 
 }

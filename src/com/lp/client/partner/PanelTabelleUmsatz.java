@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.partner;
 
-
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
@@ -44,109 +43,118 @@ import com.lp.client.frame.Defaults;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelTabelle;
 import com.lp.client.frame.component.WrapperLabel;
+import com.lp.client.pc.LPMain;
+import com.lp.server.partner.service.KundeFac;
+import com.lp.server.rechnung.service.RechnungFac;
+import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 
 /**
  *
- * <p> Diese Klasse kuemmert sich ...</p>
+ * <p>
+ * Diese Klasse kuemmert sich ...
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellung: ? ?; dd.mm.05</p>
+ * <p>
+ * Erstellung: ? ?; dd.mm.05
+ * </p>
  *
- * <p>@author $Author: christian $</p>
+ * <p>
+ * 
+ * @author $Author: christian $
+ *         </p>
  *
  * @version not attributable Date $Date: 2009/04/08 08:40:01 $
  */
-public class PanelTabelleUmsatz
-    extends PanelTabelle
-{
-  /**
+public class PanelTabelleUmsatz extends PanelTabelle {
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-private WrapperLabel wlaKritAuswertung = null;
+	private WrapperLabel wlaKritAuswertung = null;
 
-  // das soll in der optionalen zweiten Zeile stehen
-  private WrapperLabel wlaUmsatz = null;
-  private String sAnrede = null;
+	// das soll in der optionalen zweiten Zeile stehen
+	private WrapperLabel wlaUmsatz = null;
+	private String sAnrede = null;
 
-  /**
-   * PanelTabelle.
-   *
-   * @param iUsecaseIdI die eindeutige UseCase ID
-   * @param sTitelTabbedPaneI der Titel des aktuellen TabbedPane
-   * @param oInternalFrameI der uebergeordente InternalFrame
-   * @param sAnredeI String
-   * @throws Throwable
-   */
-  public PanelTabelleUmsatz(int iUsecaseIdI,
-                            String sTitelTabbedPaneI,
-                            InternalFrame oInternalFrameI,
-                            String sAnredeI)
-      throws Throwable {
+	/**
+	 * PanelTabelle.
+	 *
+	 * @param iUsecaseIdI       die eindeutige UseCase ID
+	 * @param sTitelTabbedPaneI der Titel des aktuellen TabbedPane
+	 * @param oInternalFrameI   der uebergeordente InternalFrame
+	 * @param sAnredeI          String
+	 * @throws Throwable
+	 */
+	public PanelTabelleUmsatz(int iUsecaseIdI, String sTitelTabbedPaneI, InternalFrame oInternalFrameI, String sAnredeI)
+			throws Throwable {
 
-    super(iUsecaseIdI, sTitelTabbedPaneI, oInternalFrameI);
+		super(iUsecaseIdI, sTitelTabbedPaneI, oInternalFrameI);
 
-    this.sAnrede = sAnredeI;
+		this.sAnrede = sAnredeI;
 
-    jbInit();
-    initComponents();
-  }
-  
-  public void setAnrede(String sAnrede){
-	  this.sAnrede = sAnrede;
-  }
+		jbInit();
+		initComponents();
+	}
 
+	public void setAnrede(String sAnrede) {
+		
 
-  /**
-   * Initialisiere alle Komponenten; braucht der JBX-Designer; hier bitte keine
-   * wilden Dinge wie zum Server gehen, etc. machen.
-   *
-   * @throws Throwable
-   */
-  private void jbInit()
-      throws Throwable {
-    wlaKritAuswertung = new WrapperLabel();
-    wlaUmsatz = new WrapperLabel();
-    wlaUmsatz.setHorizontalAlignment(SwingConstants.CENTER);
-    wlaUmsatz.setMaximumSize(new Dimension(SPALTENBREITE_ZEILENHEADER,
-                                           Defaults.getInstance().getControlHeight()));
-    getPanelOptionaleZweiteZeile().add(wlaUmsatz,
-                                       new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0,
-        GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-    setFirstColumnVisible(false);
-  }
+		if (getDefaultFilter() != null) {
+			FilterKriterium fkJahr = getDefaultFilter()[KundeFac.IDX_KRIT_JAHR];
+			if (fkJahr.kritName.equals(RechnungFac.KRIT_JAHR_GESCHAEFTSJAHR)) {
+				sAnrede += " (" + LPMain.getTextRespectUISPr("part.umsatz.auswertung.nach.gfjahr") + ")";
+			} else {
+				sAnrede += " (" + LPMain.getTextRespectUISPr("part.umsatz.auswertung.nach.kalenderjahr") + ")";
+			}
+		}
+		
+		this.sAnrede = sAnrede;
+		
+	}
 
+	/**
+	 * Initialisiere alle Komponenten; braucht der JBX-Designer; hier bitte keine
+	 * wilden Dinge wie zum Server gehen, etc. machen.
+	 *
+	 * @throws Throwable
+	 */
+	private void jbInit() throws Throwable {
+		wlaKritAuswertung = new WrapperLabel();
+		wlaUmsatz = new WrapperLabel();
+		wlaUmsatz.setHorizontalAlignment(SwingConstants.CENTER);
+		wlaUmsatz.setMaximumSize(new Dimension(SPALTENBREITE_ZEILENHEADER, Defaults.getInstance().getControlHeight()));
+		getPanelOptionaleZweiteZeile().add(wlaUmsatz, new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		setFirstColumnVisible(false);
+	}
 
-  /**
-   * eventActionRefresh
-   *
-   * @param e ActionEvent
-   * @param bNeedNoRefreshI boolean
-   * @throws Throwable
-   */
-  protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-      throws Throwable {
+	/**
+	 * eventActionRefresh
+	 *
+	 * @param e               ActionEvent
+	 * @param bNeedNoRefreshI boolean
+	 * @throws Throwable
+	 */
+	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI) throws Throwable {
 
-    super.eventActionRefresh(e, bNeedNoRefreshI);
+		super.eventActionRefresh(e, bNeedNoRefreshI);
 
-    wlaKritAuswertung.setText("");
-    wlaKritAuswertung.setMaximumSize(new Dimension(350,
-        Defaults.getInstance().getControlHeight()));
-    wlaKritAuswertung.setMinimumSize(new Dimension(350,
-        Defaults.getInstance().getControlHeight()));
-    wlaKritAuswertung.setPreferredSize(new Dimension(350,
-        Defaults.getInstance().getControlHeight()));
-    wlaKritAuswertung.setHorizontalAlignment(SwingConstants.LEADING);
-    getPanelFilterKriterien().add(wlaKritAuswertung);
+		wlaKritAuswertung.setText("");
+		wlaKritAuswertung.setMaximumSize(new Dimension(350, Defaults.getInstance().getControlHeight()));
+		wlaKritAuswertung.setMinimumSize(new Dimension(350, Defaults.getInstance().getControlHeight()));
+		wlaKritAuswertung.setPreferredSize(new Dimension(350, Defaults.getInstance().getControlHeight()));
+		wlaKritAuswertung.setHorizontalAlignment(SwingConstants.LEADING);
+		getPanelFilterKriterien().add(wlaKritAuswertung);
 
-    wlaUmsatz.setText(sAnrede);
-  }
+		wlaUmsatz.setText(sAnrede);
+	}
 
-
-  protected String getLockMeWer()
-      throws Exception {
-    return null;
-  }
+	protected String getLockMeWer() throws Exception {
+		return null;
+	}
 }

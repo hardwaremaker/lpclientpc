@@ -41,7 +41,6 @@ import java.awt.event.FocusEvent;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EventObject;
-import java.util.List;
 
 import javax.swing.JComponent;
 import javax.swing.SwingConstants;
@@ -49,7 +48,6 @@ import javax.swing.SwingConstants;
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.HelperClient;
-import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.system.service.SystemFac;
@@ -120,7 +118,7 @@ public class PanelPositionenIntelligenteZwischensumme extends PanelBasis {
 				LPMain.getTextRespectUISPr("label.bezeichnung"));
 		HelperClient.setDefaultsToComponent(wlaBezeichnung, BREITE_SPALTE_1);
 
-		wtfBezeichnung = new WrapperTextField();
+		wtfBezeichnung = new WrapperTextField(80);
 
 		wlaRabattsatz = new WrapperLabel(
 				LPMain.getTextRespectUISPr("label.rabatt"));
@@ -366,7 +364,8 @@ public class PanelPositionenIntelligenteZwischensumme extends PanelBasis {
 
 		positionDto.setCBez(wtfBezeichnung.getText());
 		positionDto.setBZwsPositionspreisDrucken(wcbPositionspreisZeigen.getShort()) ;
-
+		positionDto.setFZusatzrabattsatz(new Double(0));
+		
 		zwController.setBelegDto(rechnungDto);
 		return zwsPositionIId;
 	}

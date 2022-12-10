@@ -187,16 +187,16 @@ private TabbedPanePartner tpPartner = null;
 
     super.eventYouAreSelected(false);
 
-    Integer iId = getTabbedPanePartner().getPartnerDto().getIId();
+    Integer iId = getTabbedPanePartner().getServicePartnerDto().getIId();
 
-    getTabbedPanePartner().setPartnerDto(
+    getTabbedPanePartner().setServicePartnerDto(
         DelegateFactory.getInstance().getPartnerDelegate().
         partnerFindByPrimaryKey(iId));
     dto2Components();
 
     getInternalFrame().setLpTitle(
         InternalFrame.TITLE_IDX_AS_I_LIKE,
-        getTabbedPanePartner().getPartnerDto().formatFixTitelName1Name2());
+        getTabbedPanePartner().getServicePartnerDto().formatFixTitelName1Name2());
   }
 
 
@@ -245,7 +245,7 @@ private TabbedPanePartner tpPartner = null;
 
 
   protected PartnerDto getPartnerDto() {
-    return getTabbedPanePartner().getPartnerDto();
+    return getTabbedPanePartner().getServicePartnerDto();
   }
 
 

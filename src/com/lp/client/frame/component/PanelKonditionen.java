@@ -38,6 +38,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -59,15 +60,22 @@ import com.lp.server.system.service.ZahlungszielDto;
 
 @SuppressWarnings("static-access")
 /**
- * <p><I>Basispanel fuer alle Konditionenpanels</I> </p>
+ * <p>
+ * <I>Basispanel fuer alle Konditionenpanels</I>
+ * </p>
  *
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
  *
- * <p>Erstellungsdatum <I>21.03.05</I></p>
+ * <p>
+ * Erstellungsdatum <I>21.03.05</I>
+ * </p>
  *
- * <p> </p>
+ * <p>
+ * </p>
  *
- * @author  Martin Bluehweis
+ * @author Martin Bluehweis
  * @version $Revision: 1.5 $
  */
 public abstract class PanelKonditionen extends PanelBasis {
@@ -114,8 +122,15 @@ public abstract class PanelKonditionen extends PanelBasis {
 	protected WrapperLabel wlaLieferartort = new WrapperLabel();
 	protected WrapperTextField wtfLieferartort = new WrapperTextField();
 
-	public PanelKonditionen(InternalFrame internalFrame, String add2TitleI,
-			Object key) throws Throwable {
+	protected WrapperLabel wlaVerrechenbar = new WrapperLabel();
+	protected WrapperComboBox wcoVerrechenbar = new WrapperComboBox();
+
+	protected WrapperSelectField wsfVerrechnungsmodell = new WrapperSelectField(WrapperSelectField.VERRECHNUNGSMODELL,
+			getInternalFrame(), false);
+
+	protected Integer kundeIId_FuerKundespediteur = null;
+
+	public PanelKonditionen(InternalFrame internalFrame, String add2TitleI, Object key) throws Throwable {
 		super(internalFrame, add2TitleI, key);
 		jbInit();
 		setDefaults();
@@ -135,34 +150,24 @@ public abstract class PanelKonditionen extends PanelBasis {
 		jPanelWorkingOn.setBorder(border1);
 
 		// wreditf: 2 instantiierung (braucht internalFrame und Titel)
-		wefFusstext = new WrapperEditorFieldTextmodul(getInternalFrame(), LPMain
-				.getInstance().getTextRespectUISPr("label.fusstext"));
-		wefKopftext = new WrapperEditorFieldTextmodul(getInternalFrame(), LPMain
-				.getInstance().getTextRespectUISPr("label.kopftext"));
-		wlaKopftext.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.kopftext"));
+		wefFusstext = new WrapperEditorFieldTextmodul(getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("label.fusstext"));
+		wefKopftext = new WrapperEditorFieldTextmodul(getInternalFrame(),
+				LPMain.getInstance().getTextRespectUISPr("label.kopftext"));
+		wlaKopftext.setText(LPMain.getInstance().getTextRespectUISPr("label.kopftext"));
 		HelperClient.setDefaultsToComponent(wlaKopftext, 110);
-		wlaFusstext.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.fusstext"));
-		wbuLieferart.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.lieferart"));
-		wbuLieferart.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-				"button.lieferart.tooltip"));
-		wbuZahlungsziel.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.zahlungsziel"));
-		wbuZahlungsziel.setToolTipText(LPMain.getInstance()
-				.getTextRespectUISPr("button.zahlungsziel.tooltip"));
-		wbuSpedition.setText(LPMain.getInstance().getTextRespectUISPr(
-				"button.spediteur"));
-		wbuSpedition.setToolTipText(LPMain.getInstance().getTextRespectUISPr(
-				"button.spediteur.tooltip"));
-		wlaAllgemeinerRabatt.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.allgemeinerrabatt"));
-		wlaMehrwertsteuer.setText(LPMain.getInstance().getTextRespectUISPr(
-				"label.mwst"));
+		wlaFusstext.setText(LPMain.getInstance().getTextRespectUISPr("label.fusstext"));
+		wbuLieferart.setText(LPMain.getInstance().getTextRespectUISPr("button.lieferart"));
+		wbuLieferart.setToolTipText(LPMain.getInstance().getTextRespectUISPr("button.lieferart.tooltip"));
+		wbuZahlungsziel.setText(LPMain.getInstance().getTextRespectUISPr("button.zahlungsziel"));
+		wbuZahlungsziel.setToolTipText(LPMain.getInstance().getTextRespectUISPr("button.zahlungsziel.tooltip"));
+		wbuSpedition.setText(LPMain.getInstance().getTextRespectUISPr("button.spediteur"));
+		wbuSpedition.setToolTipText(LPMain.getInstance().getTextRespectUISPr("button.spediteur.tooltip"));
+		wlaAllgemeinerRabatt.setText(LPMain.getInstance().getTextRespectUISPr("label.allgemeinerrabatt"));
+		wlaMehrwertsteuer.setText(LPMain.getInstance().getTextRespectUISPr("label.mwst"));
+		wlaVerrechenbar.setText(LPMain.getInstance().getTextRespectUISPr("auftrag.verrechenbar.klein"));
 		wlaProzent2.setText("%");
-		wlaLieferartort.setText(LPMain.getInstance().getTextRespectUISPr(
-		"lp.lieferort"));
+		wlaLieferartort.setText(LPMain.getInstance().getTextRespectUISPr("lp.lieferort"));
 		wlaProzent2.setHorizontalAlignment(SwingConstants.LEFT);
 		// activatable
 		wtfZahlungsziel.setActivatable(true);
@@ -173,12 +178,9 @@ public abstract class PanelKonditionen extends PanelBasis {
 		wtfSpedition.setActivatable(false);
 		wtfZahlungsziel.setActivatable(false);
 		// sizes
-		wnfAllgemeinerRabatt.setMaximumSize(new Dimension(10000, Defaults
-				.getInstance().getControlHeight()));
-		wnfAllgemeinerRabatt.setMinimumSize(new Dimension(70, Defaults
-				.getInstance().getControlHeight()));
-		wnfAllgemeinerRabatt.setPreferredSize(new Dimension(70, Defaults
-				.getInstance().getControlHeight()));
+		wnfAllgemeinerRabatt.setMaximumSize(new Dimension(10000, Defaults.getInstance().getControlHeight()));
+		wnfAllgemeinerRabatt.setMinimumSize(new Dimension(70, Defaults.getInstance().getControlHeight()));
+		wnfAllgemeinerRabatt.setPreferredSize(new Dimension(70, Defaults.getInstance().getControlHeight()));
 
 		// Actionpanel
 		JPanel panelButtonAction = getToolsPanel();
@@ -191,76 +193,70 @@ public abstract class PanelKonditionen extends PanelBasis {
 		wbuSpedition.addActionListener(this);
 		wbuZahlungsziel.addActionListener(this);
 
-		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
-		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(
-						0, 0, 0, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelWorkingOn.add(wbuLieferart, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		this.add(panelButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jPanelWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelWorkingOn.add(wbuLieferart, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfLieferart, new GridBagConstraints(1, iZeile, 1,
-				1, 0.3, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wtfLieferart, new GridBagConstraints(1, iZeile, 1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		jPanelWorkingOn.add(wlaLieferartort, new GridBagConstraints(2, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
-		jPanelWorkingOn.add(wtfLieferartort, new GridBagConstraints(3, iZeile,
-				3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
+		jPanelWorkingOn.add(wlaLieferartort, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		jPanelWorkingOn.add(wtfLieferartort, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
 
 		iZeile++;
-		jPanelWorkingOn.add(wbuZahlungsziel, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfZahlungsziel, new GridBagConstraints(1, iZeile,
-				5, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wbuZahlungsziel, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wtfZahlungsziel, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaVerrechenbar, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 50, 0));
+		jPanelWorkingOn.add(wcoVerrechenbar, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 150, 0));
+		wlaVerrechenbar.setVisible(false);
+		wcoVerrechenbar.setVisible(false);
 		iZeile++;
-		jPanelWorkingOn.add(wbuSpedition, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+
+		jPanelWorkingOn.add(wbuSpedition, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wtfSpedition, new GridBagConstraints(1, iZeile, 5,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wtfSpedition, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+
+		jPanelWorkingOn.add(wsfVerrechnungsmodell.getWrapperButton(), new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 80, 0));
+		jPanelWorkingOn.add(wsfVerrechnungsmodell.getWrapperTextField(), new GridBagConstraints(3, iZeile, 3, 1, 0.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		wsfVerrechnungsmodell.getWrapperButton().setVisible(false);
+		wsfVerrechnungsmodell.getWrapperTextField().setVisible(false);
+
 		iZeile++;
-		jPanelWorkingOn.add(wlaAllgemeinerRabatt, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jPanelWorkingOn.add(wlaAllgemeinerRabatt, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wnfAllgemeinerRabatt, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaProzent2, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wnfAllgemeinerRabatt, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaProzent2, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wlaAllgemeinerRabattText, new GridBagConstraints(3,
-				iZeile, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaAllgemeinerRabattText, new GridBagConstraints(3, iZeile, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jPanelWorkingOn.add(wlaMehrwertsteuer, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wcoMehrwertsteuer, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wlaMehrwertsteuer, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wcoMehrwertsteuer, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jPanelWorkingOn.add(wlaKopftext, new GridBagConstraints(0, 100, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wefKopftext, new GridBagConstraints(1, 100, 5, 1,
-				0.0, 0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
-		jPanelWorkingOn.add(wlaFusstext, new GridBagConstraints(0, 101, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jPanelWorkingOn.add(wefFusstext, new GridBagConstraints(1, 101, 5, 1,
-				0.0, 0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		jPanelWorkingOn.add(wlaKopftext, new GridBagConstraints(0, 100, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wefKopftext, new GridBagConstraints(1, 100, 5, 1, 0.0, 0.5, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		jPanelWorkingOn.add(wlaFusstext, new GridBagConstraints(0, 101, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jPanelWorkingOn.add(wefFusstext, new GridBagConstraints(1, 101, 5, 1, 0.0, 0.5, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 	}
 
 	/**
@@ -269,17 +265,14 @@ public abstract class PanelKonditionen extends PanelBasis {
 	 * @throws Throwable
 	 */
 	private void fuelleComboboxen() throws Throwable {
-		wcoMehrwertsteuer.setMap(DelegateFactory
-				.getInstance()
-				.getMandantDelegate()
-				.getAllMwstsatzbez(
-						LPMain.getInstance().getTheClient().getMandant()));
+		wcoMehrwertsteuer.setMap(DelegateFactory.getInstance().getMandantDelegate()
+				.getAllMwstsatzbez(LPMain.getInstance().getTheClient().getMandant()));
+		wcoVerrechenbar.setMap(DelegateFactory.getInstance().getAuftragServiceDelegate().getAllVerrechenbar());
 	}
 
 	private void setDefaultsForThisPanel() throws Throwable {
 		fuelleComboboxen();
-		this.wcoMehrwertsteuer
-				.setKeyOfSelectedItem(MandantFac.MWST_NORMALSTEUERSATZ);
+		this.wcoMehrwertsteuer.setKeyOfSelectedItem(MandantFac.MWST_NORMALSTEUERSATZ);
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
@@ -292,28 +285,25 @@ public abstract class PanelKonditionen extends PanelBasis {
 				Integer key = (Integer) panelQueryFLRSpediteur.getSelectedId();
 				holeSpediteur(key);
 			} else if (e.getSource() == panelQueryFLRZahlungsziel) {
-				Integer key = (Integer) panelQueryFLRZahlungsziel
-						.getSelectedId();
+				Integer key = (Integer) panelQueryFLRZahlungsziel.getSelectedId();
 				holeZahlungsziel(key);
 			}
 		}
 	}
 
+	protected void setKundeIId_FuerKundepediteur(Integer kundeIId) {
+		kundeIId_FuerKundespediteur = kundeIId;
+	}
+
 	private void setDefaults() throws Throwable {
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD };
 		this.enableToolsPanelButtons(aWhichButtonIUse);
 		// Mandantenparameter fuer Positionskontierung bestimmen
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_KUNDEN_POSITIONSKONTIERUNG,
-						ParameterFac.KATEGORIE_KUNDEN,
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_KUNDEN_POSITIONSKONTIERUNG, ParameterFac.KATEGORIE_KUNDEN,
 						LPMain.getInstance().getTheClient().getMandant());
 
-		isPositionskontierung = ((Boolean) parameter.getCWertAsObject())
-				.booleanValue();
+		isPositionskontierung = ((Boolean) parameter.getCWertAsObject()).booleanValue();
 		isPositionskontierung = true;
 		if (isPositionskontierung) {
 			wcoMehrwertsteuer.setVisible(false);
@@ -322,6 +312,8 @@ public abstract class PanelKonditionen extends PanelBasis {
 			wcoMehrwertsteuer.setEnabled(true);
 			wcoMehrwertsteuer.setActivatable(true);
 		}
+
+		setVisibleVerrechenbar(false);
 	}
 
 	protected String getLockMeWer() {
@@ -340,8 +332,7 @@ public abstract class PanelKonditionen extends PanelBasis {
 
 	protected final void holeZahlungsziel(Integer key) throws Throwable {
 		if (key != null) {
-			zahlungszielDto = DelegateFactory.getInstance()
-					.getMandantDelegate().zahlungszielFindByPrimaryKey(key);
+			zahlungszielDto = DelegateFactory.getInstance().getMandantDelegate().zahlungszielFindByPrimaryKey(key);
 		} else {
 			zahlungszielDto = null;
 		}
@@ -350,8 +341,7 @@ public abstract class PanelKonditionen extends PanelBasis {
 
 	protected final void holeLieferart(Integer key) throws Throwable {
 		if (key != null) {
-			lieferartDto = DelegateFactory.getInstance().getLocaleDelegate()
-					.lieferartFindByPrimaryKey(key);
+			lieferartDto = DelegateFactory.getInstance().getLocaleDelegate().lieferartFindByPrimaryKey(key);
 		} else {
 			lieferartDto = null;
 		}
@@ -360,8 +350,7 @@ public abstract class PanelKonditionen extends PanelBasis {
 
 	protected final void holeSpediteur(Integer key) throws Throwable {
 		if (key != null) {
-			spediteurDto = DelegateFactory.getInstance().getMandantDelegate()
-					.spediteurFindByPrimaryKey(key);
+			spediteurDto = DelegateFactory.getInstance().getMandantDelegate().spediteurFindByPrimaryKey(key);
 		} else {
 			spediteurDto = null;
 		}
@@ -371,8 +360,7 @@ public abstract class PanelKonditionen extends PanelBasis {
 	private void dto2ComponentsZahlungsziel() {
 		if (zahlungszielDto != null) {
 			if (zahlungszielDto.getZahlungszielsprDto() != null) {
-				wtfZahlungsziel.setText(zahlungszielDto.getZahlungszielsprDto()
-						.getCBezeichnung());
+				wtfZahlungsziel.setText(zahlungszielDto.getZahlungszielsprDto().getCBezeichnung());
 			} else {
 				wtfZahlungsziel.setText(zahlungszielDto.getCBez());
 			}
@@ -387,8 +375,7 @@ public abstract class PanelKonditionen extends PanelBasis {
 			String cBezLieferart = lieferartDto.getCNr();
 
 			if (lieferartDto.getLieferartsprDto() != null) {
-				cBezLieferart = lieferartDto.getLieferartsprDto()
-						.getCBezeichnung();
+				cBezLieferart = lieferartDto.getLieferartsprDto().getCBezeichnung();
 			}
 
 			wtfLieferart.setText(cBezLieferart == null ? lieferartDto.getCNr() : cBezLieferart);
@@ -408,8 +395,7 @@ public abstract class PanelKonditionen extends PanelBasis {
 	/**
 	 * Dialogfenster zur Zahlungszieleauswahl.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	private void dialogQueryZahlungsziel(ActionEvent e) throws Throwable {
@@ -417,17 +403,15 @@ public abstract class PanelKonditionen extends PanelBasis {
 		if (zahlungszielDto != null) {
 			zahlungszielIId = zahlungszielDto.getIId();
 		}
-		panelQueryFLRZahlungsziel = SystemFilterFactory
-				.getInstance()
-				.createPanelFLRZahlungsziel(getInternalFrame(), zahlungszielIId);
+		panelQueryFLRZahlungsziel = SystemFilterFactory.getInstance().createPanelFLRZahlungsziel(getInternalFrame(),
+				zahlungszielIId);
 		new DialogQuery(panelQueryFLRZahlungsziel);
 	}
 
 	/**
 	 * Dialogfenster zur Lieferartenauswahl.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	private void dialogQueryLieferart(ActionEvent e) throws Throwable {
@@ -435,16 +419,15 @@ public abstract class PanelKonditionen extends PanelBasis {
 		if (lieferartDto != null) {
 			lieferartIId = lieferartDto.getIId();
 		}
-		panelQueryFLRLieferart = SystemFilterFactory.getInstance()
-				.createPanelFLRLieferart(getInternalFrame(), lieferartIId);
+		panelQueryFLRLieferart = SystemFilterFactory.getInstance().createPanelFLRLieferart(getInternalFrame(),
+				lieferartIId);
 		new DialogQuery(panelQueryFLRLieferart);
 	}
 
 	/**
 	 * Dialogfenster zur Spediteurauswahl.
 	 * 
-	 * @param e
-	 *            ActionEvent
+	 * @param e ActionEvent
 	 * @throws Throwable
 	 */
 	private void dialogQuerySpediteur(ActionEvent e) throws Throwable {
@@ -452,14 +435,43 @@ public abstract class PanelKonditionen extends PanelBasis {
 		if (spediteurDto != null) {
 			spediteurIId = spediteurDto.getIId();
 		}
-		panelQueryFLRSpediteur = SystemFilterFactory.getInstance()
-				.createPanelFLRSpediteur(getInternalFrame(), spediteurIId);
+
+		if (kundeIId_FuerKundespediteur != null) {
+			Set<Integer> kundenIIds = DelegateFactory.getInstance().getKundeDelegate()
+					.getSpediteurIIdsEinesKunden(kundeIId_FuerKundespediteur);
+			if (kundenIIds != null && kundenIIds.size() > 0) {
+				panelQueryFLRSpediteur = SystemFilterFactory.getInstance().createPanelFLRSpediteurKundespediteur(
+						getInternalFrame(), spediteurIId, kundeIId_FuerKundespediteur);
+			}else {
+				panelQueryFLRSpediteur = SystemFilterFactory.getInstance().createPanelFLRSpediteur(getInternalFrame(),
+						spediteurIId);
+			}
+		} else {
+			panelQueryFLRSpediteur = SystemFilterFactory.getInstance().createPanelFLRSpediteur(getInternalFrame(),
+					spediteurIId);
+		}
+
 		new DialogQuery(panelQueryFLRSpediteur);
 	}
 
 	protected void setVisibleLieferart(boolean bVisible) {
 		wbuLieferart.setVisible(bVisible);
 		wtfLieferart.setVisible(bVisible);
+	}
+
+	protected void setVisibleVerrechnungsmodell(boolean bVisible) {
+		wsfVerrechnungsmodell.getWrapperButton().setVisible(bVisible);
+		wsfVerrechnungsmodell.getWrapperTextField().setVisible(bVisible);
+		wsfVerrechnungsmodell.setMandatoryField(bVisible);
+	}
+
+	protected void setVisibleVerrechenbar(boolean bVisible) throws Throwable {
+		wlaVerrechenbar.setVisible(bVisible);
+		wcoVerrechenbar.setVisible(bVisible);
+		wcoVerrechenbar.setMandatoryField(bVisible);
+		if (bVisible == true) {
+			wcoVerrechenbar.setMap(DelegateFactory.getInstance().getAuftragServiceDelegate().getAllVerrechenbar());
+		}
 	}
 
 	protected void setVisibleSpediteur(boolean bVisible) {

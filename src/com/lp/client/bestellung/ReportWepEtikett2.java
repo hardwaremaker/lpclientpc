@@ -38,6 +38,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
 
+import javax.swing.JCheckBox;
 import javax.swing.SwingConstants;
 
 import com.lp.client.artikel.ArtikelFilterFactory;
@@ -51,6 +52,7 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelDialog;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperFormattedTextField;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperNumberField;
@@ -85,8 +87,7 @@ import com.lp.server.util.report.JasperPrintLP;
  * 
  * @version $Revision: 1.17 $
  */
-public class ReportWepEtikett2 extends ReportEtikett implements
-		PanelReportIfJRDS {
+public class ReportWepEtikett2 extends ReportEtikett implements PanelReportIfJRDS {
 
 	/**
 	 * 
@@ -120,18 +121,20 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 	private WrapperLabel wlaHandmenge = null;
 	private WrapperNumberField wnfHandmenge = null;
 
+	private JCheckBox wcbInklLosbuchungen = new JCheckBox();
+
 	private PanelQueryFLR panelQueryFLRLagerplatz = null;
 	private PanelQueryFLR panelQueryFLRArtikellagerplatz = null;
 	private Integer lagerplatzIId = null;
+	private String chargennummer = null;
 
 	// protected JPanel jpaWorkingOn = new JPanel();
 	// private WrapperLabel wlaExemplare = null;
 	// protected WrapperNumberField wnfExemplare = null;
 
-	public ReportWepEtikett2(InternalFrame internalFrame,
-			WareneingangDto wareneingangDto, WareneingangspositionDto weposDto,
-			BestellpositionDto bestellpositionDto, ArtikelDto artikelDto,
-			ArtikellieferantDto artikellieferantDto, String sAdd2Title)
+	public ReportWepEtikett2(InternalFrame internalFrame, WareneingangDto wareneingangDto,
+			WareneingangspositionDto weposDto, BestellpositionDto bestellpositionDto, ArtikelDto artikelDto,
+			ArtikellieferantDto artikellieferantDto, String sAdd2Title, String chargennummer, Integer lagerplatzIId)
 			throws Throwable {
 		super(internalFrame, sAdd2Title);
 		this.wareneingangDto = wareneingangDto;
@@ -139,6 +142,8 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		this.bestellpositionDto = bestellpositionDto;
 		this.artikelDto = artikelDto;
 		this.artikellieferantDto = artikellieferantDto;
+		this.chargennummer = chargennummer;
+		this.lagerplatzIId = lagerplatzIId;
 		jbInit();
 		setDefaults();
 	}
@@ -152,8 +157,7 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		}
 	}
 
-	public ReportWepEtikett2(InternalFrame internalFrame, String sAdd2Title)
-			throws Throwable {
+	public ReportWepEtikett2(InternalFrame internalFrame, String sAdd2Title) throws Throwable {
 		super(internalFrame, sAdd2Title);
 		jbInit();
 		setDefaults();
@@ -162,8 +166,7 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 
 	private void jbInit() throws Throwable {
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD };
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 		// jpaWorkingOn.setLayout(new GridBagLayout());
@@ -173,43 +176,33 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		 * wlaExemplare.setText(LPMain.getInstance().getTextRespectUISPr(
 		 * "report.exemplare")); wlaExemplare.setMinimumSize(new Dimension(100,
 		 * Defaults.getInstance() .getControlHeight()));
-		 * wlaExemplare.setPreferredSize(new Dimension(100,
-		 * Defaults.getInstance() .getControlHeight())); wnfExemplare = new
-		 * WrapperNumberField(); wnfExemplare.setMinimumSize(new Dimension(30,
+		 * wlaExemplare.setPreferredSize(new Dimension(100, Defaults.getInstance()
+		 * .getControlHeight())); wnfExemplare = new WrapperNumberField();
+		 * wnfExemplare.setMinimumSize(new Dimension(30, Defaults.getInstance()
+		 * .getControlHeight())); wnfExemplare.setPreferredSize(new Dimension(30,
 		 * Defaults.getInstance() .getControlHeight()));
-		 * wnfExemplare.setPreferredSize(new Dimension(30,
-		 * Defaults.getInstance() .getControlHeight()));
-		 * wnfExemplare.setFractionDigits(0);
-		 * wnfExemplare.setMaximumIntegerDigits(2);
+		 * wnfExemplare.setFractionDigits(0); wnfExemplare.setMaximumIntegerDigits(2);
 		 */
 
 		wlaVerpackungseinheit = new WrapperLabel();
-		wlaVerpackungseinheit.setText(LPMain.getInstance().getTextRespectUISPr(
-				"artikel.verpackungseinheit"));
-		wlaVerpackungseinheit.setMinimumSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
-		wlaVerpackungseinheit.setPreferredSize(new Dimension(100, Defaults
-				.getInstance().getControlHeight()));
+		wlaVerpackungseinheit.setText(LPMain.getInstance().getTextRespectUISPr("artikel.verpackungseinheit"));
+		wlaVerpackungseinheit.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
+		wlaVerpackungseinheit.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
 
 		wnfVerpackungseinheit = new WrapperNumberField();
-		wnfVerpackungseinheit.setMinimumSize(new Dimension(30, Defaults
-				.getInstance().getControlHeight()));
-		wnfVerpackungseinheit.setPreferredSize(new Dimension(30, Defaults
-				.getInstance().getControlHeight()));
+		wnfVerpackungseinheit.setMinimumSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wnfVerpackungseinheit.setPreferredSize(new Dimension(30, Defaults.getInstance().getControlHeight()));
+		wnfVerpackungseinheit.setFractionDigits(0);
 		wbuWarenverkehrsnummer = new WrapperButton();
-		wbuWarenverkehrsnummer.setText(LPMain.getInstance()
-				.getTextRespectUISPr("artikel.sonstiges.warenverkehrsnummer")
-				+ "...");
 		wbuWarenverkehrsnummer
-				.setActionCommand(ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE);
+				.setText(LPMain.getInstance().getTextRespectUISPr("artikel.sonstiges.warenverkehrsnummer") + "...");
+		wbuWarenverkehrsnummer.setActionCommand(ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE);
 		wbuWarenverkehrsnummer.addActionListener(this);
 
 		wtfWarenverkehrsnummer = new WrapperFormattedTextField();
-		wtfWarenverkehrsnummer
-				.setFormat(ArtikelFac.PATTERN_WARENVERKEHRSNUMMER);
+		wtfWarenverkehrsnummer.setFormat(ArtikelFac.PATTERN_WARENVERKEHRSNUMMER);
 		wlaGewicht = new WrapperLabel();
-		wlaGewicht.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.gewicht"));
+		wlaGewicht.setText(LPMain.getInstance().getTextRespectUISPr("lp.gewicht"));
 		wnfGewicht = new WrapperNumberField();
 		wlaEinheit = new WrapperLabel();
 		wlaEinheit.setHorizontalAlignment(SwingConstants.LEFT);
@@ -217,8 +210,7 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		wlaEinheit.setText("kg");
 
 		wbuLagerplatz = new WrapperButton();
-		wbuLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.lagerplatz"));
+		wbuLagerplatz.setText(LPMain.getInstance().getTextRespectUISPr("lp.lagerplatz"));
 		wbuLagerplatz.setActionCommand(ACTION_SPECIAL_LAGERPLATZ_FROM_LISTE);
 		wbuLagerplatz.addActionListener(this);
 
@@ -226,112 +218,76 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		wtfLagerplatz.setActivatable(false);
 
 		wlaKommentar = new WrapperLabel();
-		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.kommentar"));
+		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr("lp.kommentar"));
 		wtfKommentar = new WrapperTextField();
 
 		wlaHandmenge = new WrapperLabel();
-		wlaHandmenge.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.handmenge"));
+		wlaHandmenge.setText(LPMain.getInstance().getTextRespectUISPr("lp.handmenge"));
 		wnfHandmenge = new WrapperNumberField();
 
 		wbuUrsprungsland = new WrapperButton();
-		wbuUrsprungsland.setText(LPMain.getInstance().getTextRespectUISPr(
-				"lp.ursprungsland")
-				+ "...");
+		wbuUrsprungsland.setText(LPMain.getInstance().getTextRespectUISPr("lp.ursprungsland") + "...");
 		wbuUrsprungsland.setActionCommand(ACTION_SPECIAL_LAND_FROM_LISTE);
 		wbuUrsprungsland.addActionListener(this);
 		wtfUrsprungsland = new WrapperTextField();
 
-		// this.setLayout(super.getLayout());
-		/*
-		 * jpaWorkingOn.add(wlaExemplare, new GridBagConstraints(0, iZeile, 1,
-		 * 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new
-		 * Insets(2, 2, 2, 2), 0, 0)); jpaWorkingOn.add(wnfExemplare, new
-		 * GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-		 * GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(2, 2,
-		 * 2, 2), 0, 0));
-		 */
-		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(2, iZeile,
-				1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		wcbInklLosbuchungen.setText(LPMain.getInstance().getTextRespectUISPr("bes.wepetikett.inkl.losbuchungen"));
+
+		jpaWorkingOn.add(wcbInklLosbuchungen, new GridBagConstraints(1, iZeile, 1, 1, 0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(new WrapperLabel(), new GridBagConstraints(2, iZeile, 1, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaVerpackungseinheit, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfVerpackungseinheit, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaVerpackungseinheit, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfVerpackungseinheit, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wbuWarenverkehrsnummer, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfWarenverkehrsnummer, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuWarenverkehrsnummer, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfWarenverkehrsnummer, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
-		jpaWorkingOn.add(wlaGewicht, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaGewicht, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfGewicht, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wnfGewicht, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaEinheit, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaEinheit, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wbuLagerplatz, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wbuLagerplatz, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfLagerplatz, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wtfLagerplatz, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getParametermandant(
-						ParameterFac.PARAMETER_LAGERBEWEGUNG_MIT_URSPRUNG,
-						ParameterFac.KATEGORIE_ARTIKEL,
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+				.getParametermandant(ParameterFac.PARAMETER_LAGERBEWEGUNG_MIT_URSPRUNG, ParameterFac.KATEGORIE_ARTIKEL,
 						LPMain.getTheClient().getMandant());
-		boolean bHerstellerUrsprungsland = ((Boolean) parameter
-				.getCWertAsObject());
+		boolean bHerstellerUrsprungsland = ((Boolean) parameter.getCWertAsObject());
 		if (bHerstellerUrsprungsland == false) {
 			iZeile++;
-			jpaWorkingOn.add(wbuUrsprungsland,
-					new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
-			jpaWorkingOn.add(wtfUrsprungsland,
-					new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
-							GridBagConstraints.CENTER,
-							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
-									2), 0, 0));
+			jpaWorkingOn.add(wbuUrsprungsland, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wtfUrsprungsland, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		}
 		iZeile++;
-		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaKommentar, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfKommentar, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaHandmenge, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wnfHandmenge, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		jpaWorkingOn.add(wlaHandmenge, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wnfHandmenge, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		iZeile++;
-		this.add(getToolsPanel(), new GridBagConstraints(0, iZeile, 1, 1, 1.0,
-				1.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getToolsPanel(), new GridBagConstraints(0, iZeile, 1, 1, 1.0, 1.0, GridBagConstraints.NORTHWEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 
 	}
 
@@ -340,11 +296,17 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		if (landDto != null) {
 			artikelDto.setLandIIdUrsprungsland(landDto.getIID());
 		}
-		artikelDto.setCWarenverkehrsnummer(wtfWarenverkehrsnummer
-				.getFormattedText());
+
+		// SP3655
+		String sWVN = wtfWarenverkehrsnummer.getFormattedText();
+		if (sWVN != null && !sWVN.equals("")) {
+			artikelDto.setCWarenverkehrsnummer(wtfWarenverkehrsnummer.getFormattedText());
+		} else {
+			artikelDto.setCWarenverkehrsnummer(null);
+		}
+
 		if (artikellieferantDto != null)
-			artikellieferantDto.setNVerpackungseinheit(wnfVerpackungseinheit
-					.getBigDecimal());
+			artikellieferantDto.setNVerpackungseinheit(wnfVerpackungseinheit.getBigDecimal());
 
 	}
 
@@ -358,20 +320,24 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		wnfGewicht.setDouble(artikelDto.getFGewichtkg());
 		wtfWarenverkehrsnummer.setText(artikelDto.getCWarenverkehrsnummer());
 		if (artikellieferantDto != null)
-			wnfVerpackungseinheit.setBigDecimal(artikellieferantDto
-					.getNVerpackungseinheit());
+			wnfVerpackungseinheit.setBigDecimal(artikellieferantDto.getNVerpackungseinheit());
 
-		ArtikellagerplaetzeDto dto = DelegateFactory
-				.getInstance()
-				.getLagerDelegate()
-				.artikellagerplaetzeFindByArtikelIIdLagerIId(
-						artikelDto.getIId(), wareneingangDto.getLagerIId());
-		if (dto != null) {
-			wtfLagerplatz.setText(dto.getLagerplatzDto().getCLagerplatz());
-			lagerplatzIId = dto.getLagerplatzIId();
+		if (lagerplatzIId != null) {
+			LagerplatzDto lDto = DelegateFactory.getInstance().getLagerDelegate()
+					.lagerplatzFindByPrimaryKey(lagerplatzIId);
+			wtfLagerplatz.setText(lDto.getCLagerplatz());
+
 		} else {
-			wtfLagerplatz.setText(null);
-			lagerplatzIId = null;
+
+			ArtikellagerplaetzeDto dto = DelegateFactory.getInstance().getLagerDelegate()
+					.artikellagerplaetzeFindByArtikelIIdLagerIId(artikelDto.getIId(), wareneingangDto.getLagerIId());
+			if (dto != null) {
+				wtfLagerplatz.setText(dto.getLagerplatzDto().getCLagerplatz());
+				lagerplatzIId = dto.getLagerplatzIId();
+			} else {
+				wtfLagerplatz.setText(null);
+				lagerplatzIId = null;
+			}
 		}
 
 	}
@@ -389,19 +355,11 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
-		return DelegateFactory
-				.getInstance()
-				.getBestellungDelegate()
-				.printWepEtikett(weposDto.getIId(),
-						bestellpositionDto.getIId(),
-						wareneingangDto.getLagerIId(),
-						wnfExemplare.getInteger(),
-						wnfVerpackungseinheit.getInteger(),
-						wnfGewicht.getDouble(),
-						wtfWarenverkehrsnummer.getFormattedText(),
-						wtfLagerplatz.getText(), wtfUrsprungsland.getText(),
-						wtfKommentar.getText(), wnfHandmenge.getBigDecimal(),
-						null);
+		return DelegateFactory.getInstance().getBestellungDelegate().printWepEtikett(weposDto.getIId(),
+				bestellpositionDto.getIId(), wareneingangDto.getLagerIId(), wnfExemplare.getInteger(),
+				wnfVerpackungseinheit.getInteger(), wnfGewicht.getDouble(), wtfWarenverkehrsnummer.getFormattedText(),
+				wtfLagerplatz.getText(), wtfUrsprungsland.getText(), wtfKommentar.getText(),
+				wnfHandmenge.getBigDecimal(), chargennummer, wcbInklLosbuchungen.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {
@@ -409,13 +367,11 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 	}
 
 	public MailtextDto getMailtextDto() throws Throwable {
-		MailtextDto mailtextDto = PanelReportKriterien
-				.getDefaultMailtextDto(this);
+		MailtextDto mailtextDto = PanelReportKriterien.getDefaultMailtextDto(this);
 		return mailtextDto;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		super.eventYouAreSelected(false);
 		setDefaults();
 		dto2Components();
@@ -432,28 +388,20 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
 
-		if (e.getActionCommand().equals(
-				PanelDialog.ACTION_SPECIAL_CLOSE_PANELDIALOG)) {
+		if (e.getActionCommand().equals(PanelDialog.ACTION_SPECIAL_CLOSE_PANELDIALOG)) {
 			int z = 0;
 		}
 
-		if (e.getActionCommand().equals(
-				ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE)) {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_WARENVERKEHRSNUMMER_FROM_LISTE)) {
 			dialogQueryWarenverkehrsnummerFromListe(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LAND_FROM_LISTE)) {
 			dialogQueryLandFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_LAGERPLATZ_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LAGERPLATZ_FROM_LISTE)) {
 
-			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getParametermandant(
-							ParameterFac.PARAMETER_WARENEINGANG_LAGERPLATZ_NUR_DEFINIERTE,
-							ParameterFac.KATEGORIE_BESTELLUNG,
-							LPMain.getTheClient().getMandant());
-			boolean bWareneingangNurDefinierte = ((Boolean) parameter
-					.getCWertAsObject());
+			ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate()
+					.getParametermandant(ParameterFac.PARAMETER_WARENEINGANG_LAGERPLATZ_NUR_DEFINIERTE,
+							ParameterFac.KATEGORIE_BESTELLUNG, LPMain.getTheClient().getMandant());
+			boolean bWareneingangNurDefinierte = ((Boolean) parameter.getCWertAsObject());
 			if (bWareneingangNurDefinierte == true) {
 				dialogQueryArtikellagerplatzFromListe(e);
 			} else {
@@ -464,17 +412,15 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 	}
 
 	void dialogQueryLagerplatzFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRLagerplatz = ArtikelFilterFactory.getInstance()
-				.createPanelFLRLagerplatz(getInternalFrame(), lagerplatzIId,
-						true);
+		panelQueryFLRLagerplatz = ArtikelFilterFactory.getInstance().createPanelFLRLagerplatz(getInternalFrame(),
+				wareneingangDto.getLagerIId(), lagerplatzIId, true);
 
 		new DialogQuery(panelQueryFLRLagerplatz);
 	}
 
 	void dialogQueryArtikellagerplatzFromListe(ActionEvent e) throws Throwable {
 		panelQueryFLRArtikellagerplatz = ArtikelFilterFactory.getInstance()
-				.createPanelFLRArtikellagerplaetze(getInternalFrame(),
-						bestellpositionDto.getArtikelIId(), true);
+				.createPanelFLRArtikellagerplaetze(getInternalFrame(), bestellpositionDto.getArtikelIId(), true);
 
 		new DialogQuery(panelQueryFLRArtikellagerplatz);
 	}
@@ -487,26 +433,22 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 				wtfWarenverkehrsnummer.setText((String) key);
 			} else if (e.getSource() == panelQueryFLRLand) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				landDto = DelegateFactory.getInstance().getSystemDelegate()
-						.landFindByPrimaryKey((Integer) key);
+				landDto = DelegateFactory.getInstance().getSystemDelegate().landFindByPrimaryKey((Integer) key);
 				wtfUrsprungsland.setText(landDto.getCName());
 			} else if (e.getSource() == panelQueryFLRLagerplatz) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 
-				LagerplatzDto lagerplatzDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerplatzDto lagerplatzDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerplatzFindByPrimaryKey((Integer) key);
 				wtfLagerplatz.setText(lagerplatzDto.getCLagerplatz());
 				lagerplatzIId = lagerplatzDto.getIId();
 			} else if (e.getSource() == panelQueryFLRArtikellagerplatz) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
 
-				ArtikellagerplaetzeDto apDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				ArtikellagerplaetzeDto apDto = DelegateFactory.getInstance().getLagerDelegate()
 						.artikellagerplaetzeFindByPrimaryKey((Integer) key);
 
-				LagerplatzDto lagerplatzDto = DelegateFactory.getInstance()
-						.getLagerDelegate()
+				LagerplatzDto lagerplatzDto = DelegateFactory.getInstance().getLagerDelegate()
 						.lagerplatzFindByPrimaryKey(apDto.getLagerplatzIId());
 				wtfLagerplatz.setText(lagerplatzDto.getCLagerplatz());
 				lagerplatzIId = lagerplatzDto.getIId();
@@ -522,21 +464,15 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		super.eventActionSave(e, true);
 		components2Dto();
 
 		if (artikellieferantDto != null)
-			DelegateFactory.getInstance().getArtikelDelegate()
-					.updateArtikellieferant(artikellieferantDto);
-		DelegateFactory.getInstance().getArtikelDelegate()
-				.updateArtikel(artikelDto);
-		DelegateFactory
-				.getInstance()
-				.getLagerDelegate()
-				.artikellagerplatzCRUD(artikelDto.getIId(),
-						wareneingangDto.getLagerIId(), lagerplatzIId);
+			DelegateFactory.getInstance().getArtikelDelegate().updateArtikellieferant(artikellieferantDto);
+		DelegateFactory.getInstance().getArtikelDelegate().updateArtikel(artikelDto);
+		DelegateFactory.getInstance().getLagerDelegate().artikellagerplatzCRUD(artikelDto.getIId(),
+				wareneingangDto.getLagerIId(), lagerplatzIId);
 
 	}
 
@@ -545,25 +481,19 @@ public class ReportWepEtikett2 extends ReportEtikett implements
 
 	}
 
-	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
-			throws Throwable {
+	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI) throws Throwable {
 		super.eventActionUpdate(aE, false); // Buttons schalten
-		if (artikellieferantDto == null)
-			wnfVerpackungseinheit.setActivatable(false);
 
 	}
 
-	void dialogQueryWarenverkehrsnummerFromListe(ActionEvent e)
-			throws Throwable {
+	void dialogQueryWarenverkehrsnummerFromListe(ActionEvent e) throws Throwable {
 		panelQueryFLRWarenverkehrsnummer = FinanzFilterFactory.getInstance()
-				.createPanelFLRWarenverkehrsnummer(getInternalFrame(),
-						wtfWarenverkehrsnummer.getFormattedText());
+				.createPanelFLRWarenverkehrsnummer(getInternalFrame(), wtfWarenverkehrsnummer.getFormattedText());
 		new DialogQuery(panelQueryFLRWarenverkehrsnummer);
 	}
 
 	void dialogQueryLandFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRLand = SystemFilterFactory.getInstance()
-				.createPanelFLRLand(getInternalFrame(), null, true);
+		panelQueryFLRLand = SystemFilterFactory.getInstance().createPanelFLRLand(getInternalFrame(), null, true);
 		// vorbesetzen
 		if (landDto != null) {
 			panelQueryFLRLand.setSelectedId(landDto.getIID());

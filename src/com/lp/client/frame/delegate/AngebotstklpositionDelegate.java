@@ -32,278 +32,334 @@
  ******************************************************************************/
 package com.lp.client.frame.delegate;
 
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.angebotstkl.service.AgstklmaterialDto;
 import com.lp.server.angebotstkl.service.AgstklpositionDto;
+import com.lp.server.angebotstkl.service.AngebotstklFac;
 import com.lp.server.angebotstkl.service.AngebotstklpositionFac;
-
+import com.lp.server.system.service.TheClientDto;
 
 /**
- * <p><I>Diese Klasse kuemmert sich um die Angebotstklposition.</I> </p>
- * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
- * <p>Erstellungsdatum <I>12.07.05</I></p>
+ * <p>
+ * <I>Diese Klasse kuemmert sich um die Angebotstklposition.</I>
+ * </p>
+ * <p>
+ * Copyright Logistik Pur Software GmbH (c) 2004-2008
+ * </p>
+ * <p>
+ * Erstellungsdatum <I>12.07.05</I>
+ * </p>
+ * 
  * @author $Author: heidi $
  * @version $Revision: 1.6 $
  */
-public class AngebotstklpositionDelegate
-    extends Delegate
-{
-  private Context context;
-  private AngebotstklpositionFac angebotstklpositionFac;
+public class AngebotstklpositionDelegate extends Delegate {
+	private Context context;
+	private AngebotstklpositionFac angebotstklpositionFac;
 
-  public AngebotstklpositionDelegate()
-      throws ExceptionLP {
-    try {
-    	context = new InitialContext();
-    	angebotstklpositionFac = (AngebotstklpositionFac) context.lookup("lpserver/AngebotstklpositionFacBean/remote");
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
-  }
-
-  public void preiseGemaessKalkulationsartUpdaten(Integer agstklIId) throws ExceptionLP {
+	public AngebotstklpositionDelegate() throws ExceptionLP {
 		try {
-			angebotstklpositionFac
-					.preiseGemaessKalkulationsartUpdaten(agstklIId, LPMain.getTheClient());
+			context = new InitialContext();
+			angebotstklpositionFac = lookupFac(context, AngebotstklpositionFac.class);
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void preiseGemaessKalkulationsartUpdaten(Integer agstklIId) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.preiseGemaessKalkulationsartUpdaten(agstklIId, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
-			
+
 		}
 
 	}
 
-  public void kopiereAgstklPositionen(Integer stuecklisteIId_Quelle,
-                                            Integer stuecklisteIId_Ziel)
-      throws
-      ExceptionLP {
-    try {
-      angebotstklpositionFac.kopiereAgstklPositionen(stuecklisteIId_Quelle,
-          stuecklisteIId_Ziel, LPMain.getTheClient());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
-  }
-  public String getPositionAsStringDocumentWS(Integer aIIdAngebotStklPosI[])
-      throws ExceptionLP {
+	public void kopiereAgstklPositionen(Integer stuecklisteIId_Quelle, Integer stuecklisteIId_Ziel) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.kopiereAgstklPositionen(stuecklisteIId_Quelle, stuecklisteIId_Ziel,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
 
-    String sRet = null;
-    try {
-      sRet = angebotstklpositionFac.getPositionAsStringDocumentWS(
-          aIIdAngebotStklPosI, LPMain.getTheClient().getIDUser());
-    }
-    catch (Throwable ex) {
-      handleThrowable(ex);
-    }
+	public String getPositionAsStringDocumentWS(Integer aIIdAngebotStklPosI[]) throws ExceptionLP {
 
-    return sRet;
-  }
+		String sRet = null;
+		try {
+			sRet = angebotstklpositionFac.getPositionAsStringDocumentWS(aIIdAngebotStklPosI,
+					LPMain.getTheClient().getIDUser());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
 
+		return sRet;
+	}
 
-  public void vertauscheAgstklpositionen(Integer iIdPosition1I,
-                                         Integer iIdPosition2I)
-      throws ExceptionLP {
-    try {
-      angebotstklpositionFac.vertauscheAgstklpositionen(
-          iIdPosition1I,
-          iIdPosition2I);
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
-  }
+	public void vertauscheAgstklpositionen(Integer iIdPosition1I, Integer iIdPosition2I) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.vertauscheAgstklpositionen(iIdPosition1I, iIdPosition2I);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
+	public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer agstklIId, int iSortierungNeuePositionI)
+			throws ExceptionLP {
+		try {
+			angebotstklpositionFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(agstklIId,
+					iSortierungNeuePositionI);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
-  public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer agstklIId,
-      int iSortierungNeuePositionI)
-      throws ExceptionLP {
-    try {
-      angebotstklpositionFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(
-          agstklIId,
-          iSortierungNeuePositionI);
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
-  }
+	public void sortiereNachArtikelnummer(Integer einkaufsangebotIId) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.sortiereNachArtikelnummer(einkaufsangebotIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
+	/**
+	 * Anlegen einer neuen Angebotstklposition.
+	 *
+	 * @param angebotstklpositionDtoI die neue Angebotstklposition
+	 * @return Integer PK der neuen Angebotstklposition
+	 * @throws ExceptionLP
+	 */
+	public Integer createAgstklposition(AgstklpositionDto angebotstklpositionDtoI) throws ExceptionLP {
+		Integer iIdAngebotstklposition = null;
 
-  /**
-   * Anlegen einer neuen Angebotstklposition.
-   *
-   * @param angebotstklpositionDtoI die neue Angebotstklposition
-   * @return Integer PK der neuen Angebotstklposition
-   * @throws ExceptionLP
-   */
-  public Integer createAgstklposition(AgstklpositionDto angebotstklpositionDtoI)
-      throws ExceptionLP {
-    Integer iIdAngebotstklposition = null;
+		try {
+			iIdAngebotstklposition = angebotstklpositionFac.createAgstklposition(angebotstklpositionDtoI,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-    try {
-      iIdAngebotstklposition = angebotstklpositionFac.createAgstklposition(
-          angebotstklpositionDtoI,
-          LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+		return iIdAngebotstklposition;
+	}
 
-    return iIdAngebotstklposition;
-  }
+	public Integer createAgstklmaterial(AgstklmaterialDto dto) throws ExceptionLP {
+		Integer iIdAngebotstklposition = null;
 
+		try {
+			iIdAngebotstklposition = angebotstklpositionFac.createAgstklmaterial(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-  /**
-   * Eine Angebotstklposition loeschen.
-   * @param angebotstklpositionDtoI die Angebotstklposition
-   * @throws ExceptionLP Ausnahme
-   */
-  public void removeAgstklposition(AgstklpositionDto angebotstklpositionDtoI)
-      throws ExceptionLP {
-    try {
-      angebotstklpositionFac.removeAgstklposition(
-          angebotstklpositionDtoI,
-          LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
-  }
+		return iIdAngebotstklposition;
+	}
 
+	/**
+	 * Eine Angebotstklposition loeschen.
+	 * 
+	 * @param angebotstklpositionDtoI die Angebotstklposition
+	 * @throws ExceptionLP Ausnahme
+	 */
+	public void removeAgstklposition(AgstklpositionDto angebotstklpositionDtoI) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.removeAgstklposition(angebotstklpositionDtoI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
-  /**
-   * Eine bestehende Angebotstklposition aktualisieren.
-   * @param angebotstklpositionDtoI die Angebotstklposition
-   * @throws ExceptionLP Ausnahme
-   */
-  public void updateAgstklposition(AgstklpositionDto angebotstklpositionDtoI)
-      throws ExceptionLP {
-    try {
-      angebotstklpositionFac.updateAgstklposition(
-          angebotstklpositionDtoI,
-          LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
-  }
+	public void removeAgstklmaterial(AgstklmaterialDto dto) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.removeAgstklmaterial(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
+	/**
+	 * Eine bestehende Angebotstklposition aktualisieren.
+	 * 
+	 * @param angebotstklpositionDtoI die Angebotstklposition
+	 * @throws ExceptionLP Ausnahme
+	 */
+	public void updateAgstklposition(AgstklpositionDto angebotstklpositionDtoI) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.updateAgstklposition(angebotstklpositionDtoI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
-  public AgstklpositionDto agstklpositionFindByPrimaryKey(Integer iIdAngebotstklpositionI)
-      throws ExceptionLP {
-    AgstklpositionDto angebotstklpositionDto = null;
+	public void updateAgstklmaterial(AgstklmaterialDto dto) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.updateAgstklmaterial(dto, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
-    try {
-      angebotstklpositionDto = angebotstklpositionFac.agstklpositionFindByPrimaryKey(
-          iIdAngebotstklpositionI,
-          LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+	public void updateAgstpositionenOptionen(Integer angebotstklIId, boolean bAufBelegMitdrucken, boolean bMitPreisen,
+			ArrayList<Integer> selectedIds) throws ExceptionLP {
+		try {
+			angebotstklpositionFac.updateAgstpositionenOptionen(angebotstklIId, bAufBelegMitdrucken, bMitPreisen,
+					selectedIds, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
 
-    return angebotstklpositionDto;
-  }
+	public AgstklpositionDto agstklpositionFindByPrimaryKey(Integer iIdAngebotstklpositionI) throws ExceptionLP {
+		AgstklpositionDto angebotstklpositionDto = null;
 
+		try {
+			angebotstklpositionDto = angebotstklpositionFac.agstklpositionFindByPrimaryKey(iIdAngebotstklpositionI,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-  public AgstklpositionDto[] agstklpositionFindByAgstklIIdBDruckenOhneExc(Integer
-      iIdAngebotstkl, Short bDrucken)
-      throws ExceptionLP {
-    AgstklpositionDto[] angebotstklpositionDto = null;
+		return angebotstklpositionDto;
+	}
 
-    try {
-      angebotstklpositionDto = angebotstklpositionFac.
-          agstklpositionFindByAgstklIIdBDruckenOhneExc(
-              iIdAngebotstkl, bDrucken,
-              LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+	public AgstklmaterialDto agstklmaterialFindByPrimaryKey(Integer agstklmaterialIId) throws ExceptionLP {
+		AgstklmaterialDto dto = null;
 
-    return angebotstklpositionDto;
-  }
+		try {
+			dto = angebotstklpositionFac.agstklmaterialFindByPrimaryKey(agstklmaterialIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
+		return dto;
+	}
 
-  /**
-   * Das maximale iSort bei den Angebotstklpositionen fuer eine bestimmte
-   * Angebotstkl bestimmen.
-   * @param iIdAngebotstklI die aktuelle Angebotstkl
-   * @return Integer das maximale iSort
-   * @throws ExceptionLP Ausnahme
-   */
-  public Integer getMaxISort(Integer iIdAngebotstklI)
-      throws ExceptionLP {
-    Integer iiAnzahl = null;
+	public AgstklpositionDto[] agstklpositionFindByAgstklIIdMengeNotNullOhneExc(Integer iIdAgstklI) throws ExceptionLP {
+		AgstklpositionDto[] angebotstklpositionDtos = null;
 
-    try {
-      iiAnzahl = angebotstklpositionFac.getMaxISort(iIdAngebotstklI,
-          LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+		try {
+			angebotstklpositionDtos = angebotstklpositionFac
+					.agstklpositionFindByAgstklIIdMengeNotNullOhneExc(iIdAgstklI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-    return iiAnzahl;
-  }
+		return angebotstklpositionDtos;
+	}
 
+	public AgstklpositionDto[] agstklpositionFindByAgstklIIdBDruckenOhneExc(Integer iIdAngebotstkl, Short bDrucken)
+			throws ExceptionLP {
+		AgstklpositionDto[] angebotstklpositionDto = null;
 
-  /**
-   * Zwei bestehende Angebotstklpositionen in Bezug auf ihr iSort umreihen.
-   * @param iIdPosition1I PK der ersten Position
-   * @param iIdPosition2I PK der zweiten Position
-   * @throws ExceptionLP Ausnahme
-   */
-  /*public void vertauscheAngebotstklpositionen(Integer iIdPosition1I,
-                                         Integer iIdPosition2I) throws ExceptionLP {
-   try {
-     angebotstklpositionFac.vertauscheAngebotstklpositionen(iIdPosition1I, iIdPosition2I, LPMain.getTheClient());
-   }
-   catch (Throwable t) {
-     handleThrowable(t);
-    }
-     }*/
+		try {
+			angebotstklpositionDto = angebotstklpositionFac.agstklpositionFindByAgstklIIdBDruckenOhneExc(iIdAngebotstkl,
+					bDrucken, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-  /**
-   * Wenn eine neue Position im Hinblick auf iSort vor einer bestehenden
-   * eingefuegt werden soll, dann schafft diese Methode Platz fuer den neuen
-   * Datensatz.
-   * <br>Diese Methode wird am Client aufgerufen, bevor die neue Position
-   * abgespeichert wird.
-   * @param iIdAngebotstklI PK der Angebotstkl
-   * @param iSortierungNeuePositionI die Stelle, an der eingefuegt werden soll
-   * @throws ExceptionLP Ausnahme
-   */
-  /*public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer iIdAngebotstklI,
-      int iSortierungNeuePositionI) throws ExceptionLP {
-    try {
-      angebotstklpositionFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(iIdAngebotstklI, iSortierungNeuePositionI, LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
-     }*/
+		return angebotstklpositionDto;
+	}
 
-  /**
-   * Berechnet die Anzahl der Positionen zu einer bestimmten Angebotstkl.
-   * @param iIdAngebotstklI PK der Angebotstkl
-   * @return int die Anzahl der Positonen
-   * @throws ExceptionLP Ausnahme
-   */
-  /*public int getAnzahlMengenbehafteteAngebotstklpositionen(Integer iIdAngebotstklI) throws ExceptionLP {
-    int iAnzahl = 0;
+	public ArrayList<AgstklmaterialDto> agstklmaterialFindByAgstklIId(Integer iIdAgstklI) throws ExceptionLP {
+		try {
+			return angebotstklpositionFac.agstklmaterialFindByAgstklIId(iIdAgstklI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
 
-    try {
-      iAnzahl = angebotstklpositionFac.getAnzahlMengenbehafteteAngebotstklpositionen(iIdAngebotstklI, LPMain.getTheClient());
-    }
-    catch (Throwable t) {
-      handleThrowable(t);
-    }
+	/**
+	 * Das maximale iSort bei den Angebotstklpositionen fuer eine bestimmte
+	 * Angebotstkl bestimmen.
+	 * 
+	 * @param iIdAngebotstklI die aktuelle Angebotstkl
+	 * @return Integer das maximale iSort
+	 * @throws ExceptionLP Ausnahme
+	 */
+	public Integer getMaxISort(Integer iIdAngebotstklI) throws ExceptionLP {
+		Integer iiAnzahl = null;
 
-    return iAnzahl;
-     }*/
+		try {
+			iiAnzahl = angebotstklpositionFac.getMaxISort(iIdAngebotstklI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return iiAnzahl;
+	}
+
+	/**
+	 * Zwei bestehende Angebotstklpositionen in Bezug auf ihr iSort umreihen.
+	 * 
+	 * @param iIdPosition1I PK der ersten Position
+	 * @param iIdPosition2I PK der zweiten Position
+	 * @throws ExceptionLP Ausnahme
+	 */
+	/*
+	 * public void vertauscheAngebotstklpositionen(Integer iIdPosition1I, Integer
+	 * iIdPosition2I) throws ExceptionLP { try {
+	 * angebotstklpositionFac.vertauscheAngebotstklpositionen(iIdPosition1I,
+	 * iIdPosition2I, LPMain.getTheClient()); } catch (Throwable t) {
+	 * handleThrowable(t); } }
+	 */
+
+	/**
+	 * Wenn eine neue Position im Hinblick auf iSort vor einer bestehenden
+	 * eingefuegt werden soll, dann schafft diese Methode Platz fuer den neuen
+	 * Datensatz. <br>
+	 * Diese Methode wird am Client aufgerufen, bevor die neue Position
+	 * abgespeichert wird.
+	 * 
+	 * @param iIdAngebotstklI          PK der Angebotstkl
+	 * @param iSortierungNeuePositionI die Stelle, an der eingefuegt werden soll
+	 * @throws ExceptionLP Ausnahme
+	 */
+	/*
+	 * public void sortierungAnpassenBeiEinfuegenEinerPositionVorPosition(Integer
+	 * iIdAngebotstklI, int iSortierungNeuePositionI) throws ExceptionLP { try {
+	 * angebotstklpositionFac.sortierungAnpassenBeiEinfuegenEinerPositionVorPosition
+	 * (iIdAngebotstklI, iSortierungNeuePositionI, LPMain.getTheClient()); } catch
+	 * (Throwable t) { handleThrowable(t); } }
+	 */
+
+	/**
+	 * Berechnet die Anzahl der Positionen zu einer bestimmten Angebotstkl.
+	 * 
+	 * @param iIdAngebotstklI PK der Angebotstkl
+	 * @return int die Anzahl der Positonen
+	 * @throws ExceptionLP Ausnahme
+	 */
+	/*
+	 * public int getAnzahlMengenbehafteteAngebotstklpositionen(Integer
+	 * iIdAngebotstklI) throws ExceptionLP { int iAnzahl = 0;
+	 * 
+	 * try { iAnzahl =
+	 * angebotstklpositionFac.getAnzahlMengenbehafteteAngebotstklpositionen(
+	 * iIdAngebotstklI, LPMain.getTheClient()); } catch (Throwable t) {
+	 * handleThrowable(t); }
+	 * 
+	 * return iAnzahl; }
+	 */
+
+	public void kopiereAgstklPositionenMitPreisUpdate(Integer agstklIId_Quelle, Integer agstklIId_Ziel)
+			throws ExceptionLP {
+		try {
+			angebotstklpositionFac.kopiereAgstklPositionenMitPreisUpdate(agstklIId_Quelle, agstklIId_Ziel,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
 }

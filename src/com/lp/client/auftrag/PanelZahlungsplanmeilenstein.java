@@ -52,10 +52,8 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
-import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperLabel;
-import com.lp.client.frame.component.WrapperNumberField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
@@ -64,15 +62,12 @@ import com.lp.client.util.fastlanereader.gui.QueryType;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.MeilensteinDto;
 import com.lp.server.auftrag.service.ZahlungsplanmeilensteinDto;
-import com.lp.server.auftrag.service.ZeitplanDto;
-import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
 /**
  * <p>In diesem Fenster werden Auftragteilnehmer erfasst.
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -134,8 +129,8 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 				.createFKMandantCNr();
 
 		panelQueryFLRMeilenstein = new PanelQueryFLR(qt, fk,
-				QueryParameters.UC_ID_MEILENSTEIN, null, intFrame, LPMain
-						.getInstance().getTextRespectUISPr("auft.meilenstein"),
+				QueryParameters.UC_ID_MEILENSTEIN, null, intFrame, 
+				LPMain.getTextRespectUISPr("auft.meilenstein"),
 				zahlungsplanmeilensteinDto.getMeilensteinId());
 
 		new DialogQuery(panelQueryFLRMeilenstein);
@@ -177,13 +172,10 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 		// wegen Dialogauswahl auf FLR events hoeren
 		getInternalFrame().addItemChangedListener(this);
 
-		wbuMeilenstein.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.meilenstein"));
-		wlaKommentar.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.kommentar"));
+		wbuMeilenstein.setText(LPMain.getTextRespectUISPr("auft.meilenstein"));
+		wlaKommentar.setText(LPMain.getTextRespectUISPr("auft.zeitplan.kommentar"));
 
-		wlaKommentarLang.setText(LPMain.getInstance().getTextRespectUISPr(
-				"auft.zeitplan.kommentar"));
+		wlaKommentarLang.setText(LPMain.getTextRespectUISPr("auft.zeitplan.kommentar"));
 
 		wlaErledigt.setHorizontalAlignment(SwingConstants.LEFT);
 
@@ -202,7 +194,7 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 
 		jPanelWorkingOn.add(wbuMeilenstein, new GridBagConstraints(0, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 80, 0));
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 170, 0));
 		jPanelWorkingOn.add(wtfMeilenstein, new GridBagConstraints(1, iZeile,
 				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
@@ -292,36 +284,30 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
 			boolean bNeedNoNewI) throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
 
-			super.eventActionNew(eventObject, true, false);
+		super.eventActionNew(eventObject, true, false);
 
-			this.resetPanel();
+		this.resetPanel();
 
-		} else {
-			tpAuftrag.getAuftragTeilnehmerTop().updateButtons(
-					tpAuftrag.getAuftragTeilnehmerBottom()
-							.getLockedstateDetailMainKey());
-		}
 	}
 
 	protected void eventActionUpdate(ActionEvent aE, boolean bNeedNoUpdateI)
 			throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
-			super.eventActionUpdate(aE, false);
-		}
+
+		super.eventActionUpdate(aE, false);
+
 	}
 
 	protected void eventActionDelete(ActionEvent e,
 			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
 			throws Throwable {
-		if (tpAuftrag.istAktualisierenAuftragErlaubt()) {
-			DelegateFactory.getInstance().getAuftragServiceDelegate()
-					.removeZahlungsplanmeilenstein(zahlungsplanmeilensteinDto);
-			this.setKeyWhenDetailPanel(null);
-			super.eventActionDelete(e, false, false); // keyWasForLockMe nicht
-														// ueberschreiben
-		}
+
+		DelegateFactory.getInstance().getAuftragServiceDelegate()
+				.removeZahlungsplanmeilenstein(zahlungsplanmeilensteinDto);
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false); // keyWasForLockMe nicht
+													// ueberschreiben
+
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
@@ -371,7 +357,7 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 					.setText(LPMain
 							.getTextRespectUISPr("auft.zahlungsplanmeilenstein.erledigtam")
 							+ " "
-							+ Helper.formatDatum(
+							+ Helper.formatTimestamp(
 									zahlungsplanmeilensteinDto.getTErledigt(),
 									LPMain.getTheClient().getLocUi())
 							+ ", "
@@ -413,10 +399,7 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 
 		}
 
-		tpAuftrag.setTitleAuftrag(LPMain.getInstance().getTextRespectUISPr(
-				"auft.meilenstein"));
-
-		tpAuftrag.enablePanelsNachBitmuster();
+		tpAuftrag.setTitleAuftrag(LPMain.getTextRespectUISPr("auft.meilenstein"));
 
 		aktualisiereStatusbar();
 	}
@@ -431,30 +414,8 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 		setStatusbarStatusCNr(tpAuftrag.getAuftragStatus());
 	}
 
-	/**
-	 * Verwerfen der aktuelle Usereingabe und zurueckgehen auf den bestehenden
-	 * Datensatz, wenn einer existiert.
-	 * 
-	 * @param e
-	 *            Ereignis
-	 * @throws Throwable
-	 *             Ausnahme
-	 */
-	protected void eventActionDiscard(ActionEvent e) throws Throwable {
-		super.eventActionDiscard(e);
-
-		tpAuftrag.enablePanelsNachBitmuster();
-	}
-
 	protected String getLockMeWer() throws Exception {
 		return HelperClient.LOCKME_AUFTRAG;
-	}
-
-	protected void eventActionRefresh(ActionEvent e, boolean bNeedNoRefreshI)
-			throws Throwable {
-		super.eventActionRefresh(e, bNeedNoRefreshI);
-
-		tpAuftrag.enablePanelsNachBitmuster();
 	}
 
 	public LockStateValue getLockedstateDetailMainKey() throws Throwable {
@@ -464,10 +425,6 @@ public class PanelZahlungsplanmeilenstein extends PanelBasis {
 		if (tpAuftrag.getAuftragDto().getIId() != null) {
 			if (tpAuftrag.getAuftragDto().getStatusCNr()
 					.equals(AuftragServiceFac.AUFTRAGSTATUS_STORNIERT)
-					|| tpAuftrag
-							.getAuftragDto()
-							.getStatusCNr()
-							.equals(AuftragServiceFac.AUFTRAGSTATUS_TEILERLEDIGT)
 					|| tpAuftrag.getAuftragDto().getStatusCNr()
 							.equals(AuftragServiceFac.AUFTRAGSTATUS_ERLEDIGT)) {
 				lsv = new LockStateValue(

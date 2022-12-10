@@ -102,28 +102,79 @@ public class ReklamationFilterFactory {
 				true, true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
+	
+	public FilterKriteriumDirekt createFKDReklamationKundeLieferant()
+			throws Throwable {
+		return new FilterKriteriumDirekt("KUNDE_LIEFERANT", "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
+						.getTextRespectUISPr("rekla.filter.kundelieferant"),
+				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als '%XX'
+				true, true, Facade.MAX_UNBESCHRAENKT); // ignore case
+	}
+
+	
 	public FilterKriteriumDirekt createFKDReklamationKdReklaNr()
 			throws Throwable {
 		return new FilterKriteriumDirekt("c_kdreklanr", "",
 				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-						.getTextRespectUISPr("rekla.kdreklanr"),
+						.getTextRespectUISPr("rekla.filter.kdreklanrkdlsnr"),
 				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als '%XX'
 				true, true, Facade.MAX_UNBESCHRAENKT); // ignore case
 	}
 
 	protected QueryType[] createQTReklamationauswahl() {
 
-		QueryType[] types = new QueryType[2];
+		QueryType[] types = new QueryType[1];
 
 		FilterKriterium f1 = new FilterKriterium("flrfehlerangabe.c_bez", true,
 				"", FilterKriterium.OPERATOR_LIKE, true);
 
 		types[0] = new QueryType(LPMain.getInstance().getTextRespectUISPr(
 				"rekla.fehlerangabe"), f1,
-				new String[] { FilterKriterium.OPERATOR_EQUAL }, true, true);
+				new String[] { FilterKriterium.OPERATOR_EQUAL, FilterKriterium.OPERATOR_NOT_EQUAL }, true, true);
 		return types;
 	}
 
+	public FilterKriterium[] createFKReklamationKey(Integer reklamationIId)
+			throws Throwable {
+		
+		FilterKriterium[] kriterien = new FilterKriterium[1];
+		kriterien[0] = new FilterKriterium("i_id", true, reklamationIId + "",
+				FilterKriterium.OPERATOR_EQUAL, false);
+
+		return kriterien;
+	}
+	
+	public FilterKriteriumDirekt createFKDProjekt() throws Throwable {
+		return new FilterKriteriumDirekt("c_projekt", "",
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("label.projekt"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, // wrapWithSingleQuotes
+				true, // ignore case
+				Facade.MAX_UNBESCHRAENKT);
+	}
+	
+	public FilterKriteriumDirekt createFKDGrund() throws Throwable {
+		return new FilterKriteriumDirekt("c_grund", "",
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("rekla.grund"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, // wrapWithSingleQuotes
+				true, // ignore case
+				Facade.MAX_UNBESCHRAENKT);
+	}
+	
+	public FilterKriteriumDirekt createFKDGrundKommentar() throws Throwable {
+		return new FilterKriteriumDirekt("x_grund_lang", "",
+				FilterKriterium.OPERATOR_LIKE, 
+				LPMain.getTextRespectUISPr("rekla.grundkommentar"),
+				FilterKriteriumDirekt.EXTENDED_SEARCH, 
+				false, // wrapWithSingleQuotes
+				true, // ignore case
+				Facade.MAX_UNBESCHRAENKT);
+	}
+	
 	public FilterKriteriumDirekt createFKDMaschinengruppe() throws Throwable {
 		return new FilterKriteriumDirekt(
 				"flrmaschine.flrmaschinengruppe.c_bez", "",
@@ -149,6 +200,35 @@ public class ReklamationFilterFactory {
 			panelQueryFLRMassnahme.setSelectedId(selectedId);
 		}
 		return panelQueryFLRMassnahme;
+
+	}
+
+	public PanelQueryFLR createPanelFLRReklamation(InternalFrame internalFrameI,
+			Integer selectedId) throws Throwable {
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
+				PanelBasis.ACTION_LEEREN };
+
+		PanelQueryFLR panelQueryReklamation = new PanelQueryFLR(ReklamationFilterFactory
+				.getInstance().createQTReklamationauswahl(), SystemFilterFactory.getInstance().createFKMandantCNr(),
+				QueryParameters.UC_ID_REKLAMATION, aWhichButtonIUse,
+				internalFrameI, LPMain.getInstance().getTextRespectUISPr(
+						"auft.title.panel.auswahl"));
+		panelQueryReklamation.befuellePanelFilterkriterienDirekt(
+				ReklamationFilterFactory.getInstance()
+						.createFKDReklamationsnummer(),
+				ReklamationFilterFactory.getInstance()
+						.createFKDReklamationArtikelnummer());
+		panelQueryReklamation.addDirektFilter(ReklamationFilterFactory
+				.getInstance().createFKDReklamationKdReklaNr());
+		panelQueryReklamation.addDirektFilter(ReklamationFilterFactory
+				.getInstance().createFKDMaschinengruppe());
+		
+	
+		
+		if (selectedId != null) {
+			panelQueryReklamation.setSelectedId(selectedId);
+		}
+		return panelQueryReklamation;
 
 	}
 
@@ -183,6 +263,24 @@ public class ReklamationFilterFactory {
 		return kriterien;
 	}
 
+	public FilterKriteriumDirekt createFKDBehandlungKennung() {
+		return new FilterKriteriumDirekt("behandlung.c_nr", "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
+						.getTextRespectUISPr("label.kennung"),
+				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als 'XX%'
+				true, true, Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
+	}
+
+	
+	public FilterKriteriumDirekt createFKDSchwereKennung() {
+		return new FilterKriteriumDirekt("schwere.c_nr", "",
+				FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
+						.getTextRespectUISPr("label.kennung"),
+				FilterKriteriumDirekt.PROZENT_TRAILING, // Auswertung als 'XX%'
+				true, true, Facade.MAX_UNBESCHRAENKT); // wrapWithSingleQuotes
+	}
+
+	
 	public PanelQueryFLR createPanelFLRBehandlung(InternalFrame internalFrameI,
 			Integer selectedId, boolean bMitLeerenButton) throws Throwable {
 		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
@@ -193,7 +291,7 @@ public class ReklamationFilterFactory {
 				internalFrameI, LPMain.getInstance().getTextRespectUISPr(
 						"rekla.behandlung"));
 		panelQueryFLRBeurteilung.befuellePanelFilterkriterienDirekt(
-				SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+				createFKDBehandlungKennung(), null);
 		if (selectedId != null) {
 			panelQueryFLRBeurteilung.setSelectedId(selectedId);
 		}

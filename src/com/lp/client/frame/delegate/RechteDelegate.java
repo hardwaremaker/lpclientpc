@@ -41,6 +41,7 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.benutzer.service.RechtDto;
 import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.benutzer.service.RollerechtDto;
+import com.lp.server.rechnung.service.RechnungServiceFac;
 
 
 public class RechteDelegate
@@ -51,7 +52,7 @@ public class RechteDelegate
   public RechteDelegate()
       throws Exception {
     context = new InitialContext();
-    rechteFac = (RechteFac) context.lookup("lpserver/RechteFacBean/remote");
+    rechteFac = lookupFac(context, RechteFac.class);
   }
 
   public void createRecht(RechtDto rechtDto)
@@ -105,7 +106,7 @@ public class RechteDelegate
       throws ExceptionLP {
 
     try {
-      rechteFac.removeRollerecht(rollerechtDto);
+      rechteFac.removeRollerecht(rollerechtDto, LPMain.getTheClient());
     }
     catch (Throwable ex) {
       handleThrowable(ex);

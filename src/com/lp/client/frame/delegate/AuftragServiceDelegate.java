@@ -41,17 +41,22 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.auftrag.service.AuftragReportFac;
 import com.lp.server.auftrag.service.AuftragServiceFac;
 import com.lp.server.auftrag.service.AuftragartDto;
 import com.lp.server.auftrag.service.AuftragauftragdokumentDto;
 import com.lp.server.auftrag.service.AuftragbegruendungDto;
 import com.lp.server.auftrag.service.AuftragdokumentDto;
+import com.lp.server.auftrag.service.AuftragkostenstelleDto;
 import com.lp.server.auftrag.service.AuftragpositionArtDto;
 import com.lp.server.auftrag.service.AuftragtextDto;
 import com.lp.server.auftrag.service.MeilensteinDto;
+import com.lp.server.auftrag.service.VerrechenbarDto;
 import com.lp.server.auftrag.service.ZahlungsplanDto;
 import com.lp.server.auftrag.service.ZahlungsplanmeilensteinDto;
 import com.lp.server.auftrag.service.ZeitplanDto;
+import com.lp.server.auftrag.service.ZeitplantypDto;
+import com.lp.server.auftrag.service.ZeitplantypdetailDto;
 import com.lp.server.lieferschein.service.BegruendungDto;
 import com.lp.server.system.service.MediaFac;
 import com.lp.server.system.service.TheClientDto;
@@ -77,8 +82,7 @@ public class AuftragServiceDelegate extends Delegate {
 	public AuftragServiceDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			auftragServiceFac = (AuftragServiceFac) context
-					.lookup("lpserver/AuftragServiceFacBean/remote");
+			auftragServiceFac = lookupFac(context, AuftragServiceFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -161,6 +165,30 @@ public class AuftragServiceDelegate extends Delegate {
 
 	}
 
+	public ZeitplantypDto zeitplantypFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+
+		try {
+			return auftragServiceFac.zeitplantypFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
+	public ZeitplantypdetailDto zeitplantypdetailFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+
+		try {
+			return auftragServiceFac.zeitplantypdetailFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
 	public ZahlungsplanDto zahlungsplanFindByPrimaryKey(Integer iId)
 			throws ExceptionLP {
 
@@ -186,6 +214,19 @@ public class AuftragServiceDelegate extends Delegate {
 
 	}
 
+	public ZahlungsplanmeilensteinDto[] zahlungsplanmeilensteinFindByZahlungplanIIdOrderByTErledigt(
+			Integer zahlungsplanIId) throws ExceptionLP {
+
+		try {
+			return auftragServiceFac
+					.zahlungsplanmeilensteinFindByZahlungplanIIdOrderByTErledigt(zahlungsplanIId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+			return null;
+		}
+
+	}
+
 	public void toggleZahlungplanmeilensteinErledigt(
 			Integer zahlungsplanmeilensteinIId) throws ExceptionLP {
 
@@ -193,6 +234,32 @@ public class AuftragServiceDelegate extends Delegate {
 			auftragServiceFac.toggleZahlungplanmeilensteinErledigt(
 					zahlungsplanmeilensteinIId, LPMain.getInstance()
 							.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+
+		}
+
+	}
+
+	public void toggleZeitplanDauerErledigt(Integer zeitplanIId)
+			throws ExceptionLP {
+
+		try {
+			auftragServiceFac.toggleZeitplanDauerErledigt(zeitplanIId, LPMain
+					.getInstance().getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+
+		}
+
+	}
+
+	public void toggleZeitplanMaterialErledigt(Integer zeitplanIId)
+			throws ExceptionLP {
+
+		try {
+			auftragServiceFac.toggleZeitplanMaterialErledigt(zeitplanIId,
+					LPMain.getInstance().getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 
@@ -226,6 +293,20 @@ public class AuftragServiceDelegate extends Delegate {
 		}
 
 		return auftragdokumentDto;
+	}
+
+	public AuftragkostenstelleDto auftragkostenstelleFindByPrimaryKey(
+			Integer iId) throws ExceptionLP {
+		AuftragkostenstelleDto auftragkostenstelleDto = null;
+
+		try {
+			auftragkostenstelleDto = auftragServiceFac
+					.auftragkostenstelleFindByPrimaryKey(iId);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return auftragkostenstelleDto;
 	}
 
 	public AuftragdokumentDto[] auftragdokumentFindByBVersteckt()
@@ -323,13 +404,44 @@ public class AuftragServiceDelegate extends Delegate {
 		return iId;
 	}
 
+	public Integer createZeitplantyp(ZeitplantypDto zeitplantypDto)
+			throws ExceptionLP {
+		Integer iId = null;
+
+		try {
+
+			iId = auftragServiceFac.createZeitplantyp(zeitplantypDto,
+					LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return iId;
+	}
+
+	public Integer createZeitplantypdetail(
+			ZeitplantypdetailDto zeitplantypdetailDto) throws ExceptionLP {
+		Integer iId = null;
+
+		try {
+
+			iId = auftragServiceFac.createZeitplantypdetail(
+					zeitplantypdetailDto, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+
+		return iId;
+	}
+
 	public Integer createZahlungsplan(ZahlungsplanDto zahlungsplanDto)
 			throws ExceptionLP {
 		Integer iId = null;
 
 		try {
 
-			iId = auftragServiceFac.createZahlungsplan(zahlungsplanDto);
+			iId = auftragServiceFac.createZahlungsplan(zahlungsplanDto,
+					LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -362,9 +474,35 @@ public class AuftragServiceDelegate extends Delegate {
 		}
 	}
 
+	public void removeVerrechenbar(VerrechenbarDto dto) throws ExceptionLP {
+		try {
+			auftragServiceFac.removeVerrechenbar(dto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
 	public void removeZeitplan(ZeitplanDto zeitplanDto) throws ExceptionLP {
 		try {
 			auftragServiceFac.removeZeitplan(zeitplanDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeZeitplantyp(ZeitplantypDto zeitplantypDto)
+			throws ExceptionLP {
+		try {
+			auftragServiceFac.removeZeitplantyp(zeitplantypDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void removeZeitplantypdetail(
+			ZeitplantypdetailDto zeitplantypdetailDto) throws ExceptionLP {
+		try {
+			auftragServiceFac.removeZeitplantypdetail(zeitplantypdetailDto);
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -394,6 +532,14 @@ public class AuftragServiceDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			auftragServiceFac.updateAuftragtext(auftragtextDto);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void updateVerrechenbar(VerrechenbarDto dto) throws ExceptionLP {
+		try {
+			auftragServiceFac.updateVerrechenbar(dto, LPMain.getTheClient());
 		} catch (Throwable ex) {
 			handleThrowable(ex);
 		}
@@ -430,6 +576,19 @@ public class AuftragServiceDelegate extends Delegate {
 		try {
 			arten = auftragServiceFac.getAuftragart(pLocKunde, LPMain
 					.getInstance().getUISprLocale());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return arten;
+	}
+
+	public Map<?, ?> getAllVerrechenbar() throws ExceptionLP {
+
+		Map<?, ?> arten = null;
+
+		try {
+			arten = auftragServiceFac.getAllVerrechenbar();
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -475,6 +634,18 @@ public class AuftragServiceDelegate extends Delegate {
 		return cNr;
 	}
 
+	public Integer createVerrechenbar(VerrechenbarDto dto) throws ExceptionLP {
+
+		try {
+			return auftragServiceFac.createVerrechenbar(dto,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+
+	}
+
 	public Integer createMeilenstein(MeilensteinDto meilensteinDto)
 			throws ExceptionLP {
 		Integer iId = null;
@@ -502,6 +673,20 @@ public class AuftragServiceDelegate extends Delegate {
 		return iId;
 	}
 
+	public Integer createAuftragkostenstelle(AuftragkostenstelleDto dto)
+			throws ExceptionLP {
+		Integer iId = null;
+
+		try {
+			iId = auftragServiceFac.createAuftragkostenstelle(dto,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return iId;
+	}
+
 	public void removeAuftragart(AuftragartDto auftragartDtoI, String cNrUserI)
 			throws ExceptionLP {
 		try {
@@ -516,6 +701,15 @@ public class AuftragServiceDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			auftragServiceFac.removeAuftragdokument(auftragdokumentDto);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void removeAuftragkostenstelle(
+			AuftragkostenstelleDto auftragkostenstelleDto) throws ExceptionLP {
+		try {
+			auftragServiceFac.removeAuftragkostenstelle(auftragkostenstelleDto);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -549,10 +743,30 @@ public class AuftragServiceDelegate extends Delegate {
 		}
 	}
 
+	public void updateZeitplantyp(ZeitplantypDto zeitplantypDto)
+			throws ExceptionLP {
+		try {
+			auftragServiceFac.updateZeitplantyp(zeitplantypDto,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public void updateZeitplantypdetail(
+			ZeitplantypdetailDto zeitplantypdetailDto) throws ExceptionLP {
+		try {
+			auftragServiceFac.updateZeitplantypdetail(zeitplantypdetailDto);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
 	public void updateZahlungsplan(ZahlungsplanDto zahlungsplanDto)
 			throws ExceptionLP {
 		try {
-			auftragServiceFac.updateZahlungsplan(zahlungsplanDto);
+			auftragServiceFac.updateZahlungsplan(zahlungsplanDto,
+					LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -573,6 +787,14 @@ public class AuftragServiceDelegate extends Delegate {
 			throws ExceptionLP {
 		try {
 			auftragServiceFac.updateAuftragdokument(auftragdokumentDto);
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+	public void updateAuftragkostenstelle(AuftragkostenstelleDto dto)
+			throws ExceptionLP {
+		try {
+			auftragServiceFac.updateAuftragkostenstelle(dto);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -667,6 +889,16 @@ public class AuftragServiceDelegate extends Delegate {
 		return auftragpositionartDto;
 	}
 
+	public VerrechenbarDto verrechenbarFindByPrimaryKey(Integer iId)
+			throws ExceptionLP {
+		try {
+			return auftragServiceFac.verrechenbarFindByPrimaryKey(iId);
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
 	/**
 	 * Alle verfuegbaren Auftragspositionsarten in bestmoeglicher Uebersetzung
 	 * aus der DB holen.
@@ -693,6 +925,65 @@ public class AuftragServiceDelegate extends Delegate {
 		AuftragartDto[] toReturn = null;
 		try {
 			toReturn = auftragServiceFac.auftragartFindAll();
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+		return toReturn;
+	}
+
+	public void vertauscheMeilenstein(Integer iIdPosition1I,
+			Integer iIdPosition2I) throws ExceptionLP {
+		try {
+			auftragServiceFac.vertauscheMeilenstein(iIdPosition1I,
+					iIdPosition2I);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void vertauscheVerrechenbar(Integer iIdPosition1I,
+			Integer iIdPosition2I) throws ExceptionLP {
+		try {
+			auftragServiceFac.vertauscheVerrechenbar(iIdPosition1I,
+					iIdPosition2I);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void vertauscheZeitplantypdetail(Integer iIdPosition1I,
+			Integer iIdPosition2I) throws ExceptionLP {
+		try {
+			auftragServiceFac.vertauscheZeitplantypdetail(iIdPosition1I,
+					iIdPosition2I);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void vertauscheZahlungsplanmeilenstein(Integer iIdPosition1I,
+			Integer iIdPosition2I) throws ExceptionLP {
+		try {
+			auftragServiceFac.vertauscheZahlungsplanmeilenstein(iIdPosition1I,
+					iIdPosition2I);
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+
+	public void importierteZeitplanAusZeitplantyp(Integer zeitplantypIId,
+			Integer auftragIId) throws ExceptionLP {
+		try {
+			auftragServiceFac.importierteZeitplanAusZeitplantyp(zeitplantypIId,
+					auftragIId, LPMain.getTheClient());
+		} catch (Throwable ex) {
+			handleThrowable(ex);
+		}
+	}
+	public AuftragkostenstelleDto[] auftragkostenstellefindByAuftrag(Integer auftragIId) throws ExceptionLP {
+		AuftragkostenstelleDto[] toReturn = null;
+		try {
+			toReturn = auftragServiceFac.auftragkostenstellefindByAuftrag(auftragIId);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

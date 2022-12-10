@@ -91,6 +91,8 @@ public class ReportHitliste extends PanelBasis implements PanelReportIfJRDS {
 
 	private WrapperCheckBox wcbMitHandlagerbewegungen = new WrapperCheckBox();
 	private WrapperCheckBox wcbMitFertigung = new WrapperCheckBox();
+	
+	private WrapperCheckBox wcbNurVerrechnetePositionen = new WrapperCheckBox();
 
 	private ButtonGroup buttonGroupSortierung = new ButtonGroup();
 	private WrapperRadioButton wrbSortierungIdent = new WrapperRadioButton();
@@ -234,6 +236,10 @@ public class ReportHitliste extends PanelBasis implements PanelReportIfJRDS {
 				"lp.verkaufswert"));
 		wrbSortierungDBWert.setText(LPMain.getInstance().getTextRespectUISPr(
 				"lp.dbwert"));
+		
+		wcbNurVerrechnetePositionen.setText(LPMain.getInstance().getTextRespectUISPr(
+				"artikel.materiabedarfsvorschau.nurverrechnete"));
+		wcbNurVerrechnetePositionen.setSelected(true);
 
 		buttonGroupSortierung.add(wrbSortierungIdent);
 		buttonGroupSortierung.add(wrbSortierungArtikelgruppe);
@@ -300,16 +306,19 @@ public class ReportHitliste extends PanelBasis implements PanelReportIfJRDS {
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
 
-		jpaWorkingOn.add(wcbMitFertigung, new GridBagConstraints(4, 8, 1, 1, 0,
+		jpaWorkingOn.add(wcbNurVerrechnetePositionen, new GridBagConstraints(4, 8, 1, 1, 0,
 				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbMitHandlagerbewegungen, new GridBagConstraints(4,
+		jpaWorkingOn.add(wcbMitFertigung, new GridBagConstraints(4,
 				9, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wcbMitHandlagerbewegungen, new GridBagConstraints(4,
+				10, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		if (DelegateFactory.getInstance().getTheJudgeDelegate()
 				.hatRecht(RechteFac.RECHT_LP_DARF_VERSTECKTE_SEHEN)) {
 			jpaWorkingOn.add(wcbVersteckte,
-					new GridBagConstraints(4, 10, 1, 1, 0, 0.0,
+					new GridBagConstraints(4, 11, 1, 1, 0, 0.0,
 							GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2,
 									2), 0, 0));
@@ -322,7 +331,7 @@ public class ReportHitliste extends PanelBasis implements PanelReportIfJRDS {
 	}
 
 	public String getReportname() {
-		return LagerReportFac.REPORT_LADENHUETER;
+		return LagerReportFac.REPORT_HITLISTE;
 	}
 
 	public JasperPrintLP getReport(String sDrucktype) throws Throwable {
@@ -353,7 +362,7 @@ public class ReportHitliste extends PanelBasis implements PanelReportIfJRDS {
 						Helper.short2Boolean(wcbMitHandlagerbewegungen
 								.getShort()),
 						Helper.short2Boolean(wcbMitFertigung.getShort()),
-						wcbVersteckte.isSelected());
+						wcbVersteckte.isSelected(),wcbNurVerrechnetePositionen.isSelected());
 	}
 
 	public boolean getBErstelleReportSofort() {

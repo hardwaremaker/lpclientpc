@@ -40,6 +40,7 @@ import javax.swing.JComponent;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.report.PanelReportIfJRDS;
 import com.lp.client.frame.report.PanelReportKriterien;
+import com.lp.client.pc.LPMain;
 import com.lp.server.personal.service.ZeiterfassungFac;
 import com.lp.server.system.service.MailtextDto;
 import com.lp.server.util.report.JasperPrintLP;
@@ -75,6 +76,7 @@ public class ReportWochenabrechnung extends ReportZeiterfassung implements
 	}
 
 	private void jbInit() throws Throwable {
+		wcbNurAnwesende.setVisible(false);
 		addZeitraumAuswahl();
 	}
 
@@ -92,9 +94,9 @@ public class ReportWochenabrechnung extends ReportZeiterfassung implements
 		jasperPrint = DelegateFactory
 				.getInstance()
 				.getZeiterfassungDelegate()
-				.printWochenabrechnung(getPersonalIId(), wdfVon.getTimestamp(),
-						wdfBis.getTimestamp(), getPersonAuswahl(),
-						mitVersteckten(),nurAnwesende());
+				.printWochenabrechnung(getPersonalIId(), wdrBereich.getTimestampVon(),
+						wdrBereich.getTimestampBis(), getPersonAuswahl(), getKostenstelleIIdAbteilung(),
+						mitVersteckten());
 
 		return jasperPrint;
 	}

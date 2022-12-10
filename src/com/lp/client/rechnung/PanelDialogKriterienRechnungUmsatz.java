@@ -45,6 +45,7 @@ import javax.swing.SwingConstants;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelDialogKriterien;
@@ -55,6 +56,8 @@ import com.lp.client.frame.component.WrapperRadioButton;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.rechnung.service.RechnungFac;
+import com.lp.server.system.service.ParameterFac;
+import com.lp.server.system.service.ParametermandantDto;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 
 @SuppressWarnings("static-access")
@@ -126,6 +129,7 @@ public class PanelDialogKriterienRechnungUmsatz extends PanelDialogKriterien {
 		wcbGutschriftenBeruecksichtigen = new WrapperCheckBox();
 		wcbGutschriftenBeruecksichtigen.setText(LPMain.getInstance()
 				.getTextRespectUISPr("rechnung.gutschriftenberuecksichtigen"));
+		HelperClient.setMinimumAndPreferredSize(wcbGutschriftenBeruecksichtigen, HelperClient.getSizeFactoredDimension(180));
 
 		wlaEmptyLabel2 = new WrapperLabel();
 
@@ -186,7 +190,18 @@ public class PanelDialogKriterienRechnungUmsatz extends PanelDialogKriterien {
 
 	private void setDefaults() throws Throwable {
 		wcbGutschriftenBeruecksichtigen.setSelected(true);
-		wrbKalenderjahr.setSelected(true);
+		
+		
+		ParametermandantDto parameter = (ParametermandantDto) DelegateFactory.getInstance().getParameterDelegate().getParametermandant(
+				ParameterFac.PARAMETER_UMSATZUEBERSICHT_GESCHAEFTSJAHR, ParameterFac.KATEGORIE_ALLGEMEIN,
+				LPMain.getTheClient().getMandant());
+		boolean bGF = ((Boolean) parameter.getCWertAsObject());
+		if(bGF==true) {
+			wrbGeschaeftsjahr.setSelected(true);
+		}else {
+			wrbKalenderjahr.setSelected(true);
+		}
+		
 		wrbGeschaeftsjahr.setVisible(true);
 		comboBoxVorbesetzen();
 	}

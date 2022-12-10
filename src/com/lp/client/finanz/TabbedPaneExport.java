@@ -36,13 +36,16 @@ import java.awt.Dimension;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
+import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.swing.JDialog;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -51,11 +54,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.event.ChangeEvent;
 
-import net.sf.jasperreports.engine.JasperExportManager;
-import net.sf.jasperreports.engine.JasperPrint;
-
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.HvCreatingCachingProvider;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
@@ -65,27 +65,37 @@ import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.component.WrapperMenuItem;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.open.CsvFile;
+import com.lp.client.frame.filechooser.open.FileOpenerFactory;
 import com.lp.client.pc.LPButtonAction;
 import com.lp.client.pc.LPMain;
 import com.lp.client.system.SystemFilterFactory;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.eingangsrechnung.service.EingangsrechnungDto;
 import com.lp.server.finanz.service.ExportdatenDto;
 import com.lp.server.finanz.service.ExportlaufDto;
 import com.lp.server.finanz.service.FibuExportKriterienDto;
-import com.lp.server.finanz.service.FinanzServiceFac;
+import com.lp.server.partner.service.LieferantDto;
+import com.lp.server.rechnung.service.RechnungReportFac;
 import com.lp.server.system.jcr.service.JCRDocDto;
 import com.lp.server.system.jcr.service.JCRDocFac;
 import com.lp.server.system.jcr.service.PrintInfoDto;
 import com.lp.server.system.jcr.service.docnode.DocNodeBase;
 import com.lp.server.system.jcr.service.docnode.DocNodeFile;
+import com.lp.server.system.jcr.service.docnode.DocNodeVersion;
 import com.lp.server.system.service.LocaleFac;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.server.util.HvOptional;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.EJBExceptionLP;
+import com.lp.util.HVPDFExporter;
 import com.lp.util.Helper;
-import com.lp.util.csv.LPCSVReader;
+
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JRExporterParameter;
+import net.sf.jasperreports.engine.JasperPrint;
 
 /**
  * <p>
@@ -315,7 +325,7 @@ public class TabbedPaneExport extends TabbedPane {
 				createExportlauf();
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_DISCARD) {
-			if (e.getSource() == getPdKriterienExportlauf()) {
+			if (e.getSource() == pdKriterienExportlauf) {
 				getPanelQueryExportlauf().eventYouAreSelected(false);
 			}
 		}
@@ -355,28 +365,22 @@ public class TabbedPaneExport extends TabbedPane {
 			importOffenePosten();
 		}
 		if (e.getActionCommand().equals(MENU_ACTION_EXPORT_DEBITORENKONTEN)) {
-			exportiereKonten(FinanzServiceFac.KONTOTYP_DEBITOR);
+			JDialog dialog = new DialogKontoExport(new KontoExporterDebitoren(), getInternalFrame());
+			dialog.setVisible(true);
 		}
 		if (e.getActionCommand().equals(MENU_ACTION_EXPORT_KREDITORENKONTEN)) {
-			exportiereKonten(FinanzServiceFac.KONTOTYP_KREDITOR);
+			JDialog dialog = new DialogKontoExport(new KontoExporterKreditoren(), getInternalFrame());
+			dialog.setVisible(true);
 		}
 		if (e.getActionCommand().equals(MENU_ACTION_EXPORT_SACHKONTEN)) {
-			exportiereKonten(FinanzServiceFac.KONTOTYP_SACHKONTO);
+			exportiereKonten(new KontoExporterSachkonten());
 		}
 	}
 
 	private void importOffenePosten() throws Throwable {
-		File[] files = HelperClient.chooseFile(this,
-				HelperClient.FILE_FILTER_CSV, false);
-		File f = null;
-		if (files != null && files.length > 0) {
-			f = files[0];
-		}
-		if (f != null) {
-			ArrayList<String[]> al;
-			LPCSVReader reader = new LPCSVReader(new FileReader(f), ';');
-			al = (ArrayList<String[]>) reader.readAll();
-			reader.close();
+		HvOptional<CsvFile> csvFile = FileOpenerFactory.finanzOffenePostenImportCsv(this);
+		if (csvFile.isPresent()) {
+			List<String[]> al = csvFile.get().read();
 			if (al.size() > 0) {
 				String err = DelegateFactory.getInstance()
 						.getFibuExportDelegate().importiereOffenePosten(al);
@@ -421,7 +425,7 @@ public class TabbedPaneExport extends TabbedPane {
 					.getSBelegartCNr());
 			String data = DelegateFactory.getInstance().getFibuExportDelegate()
 					.exportiereBelege(exportKriterienDto);
-			saveExportFile(data, getPdKriterienExportlauf().getSBelegartCNr());
+			saveExportFile(getBelegExporter(getPdKriterienExportlauf().getSBelegartCNr()), data);
 		} catch (Throwable t) {
 			handleExportExceptions(t);
 		} finally {
@@ -438,6 +442,18 @@ public class TabbedPaneExport extends TabbedPane {
 				setExportlaufDto(exportlaufDto);
 			}
 		}
+	}
+
+	private IBelegExporter getBelegExporter(String sBelegartCNr) throws Exception {
+		if (sBelegartCNr.equals(LocaleFac.BELEGART_EINGANGSRECHNUNG)) {
+			return new EingangsrechnungExporter();
+		} else if (sBelegartCNr.equals(LocaleFac.BELEGART_RECHNUNG)) {
+			return new RechnungExporter();
+		} else if (sBelegartCNr.equals(LocaleFac.BELEGART_GUTSCHRIFT)) {
+			return new GutschriftExporter();
+		}
+		
+		throw new Exception("Unbekannte Belegart '" + sBelegartCNr + "'");
 	}
 
 	private PanelQuery getPanelQueryExportlauf() throws Throwable {
@@ -538,7 +554,7 @@ public class TabbedPaneExport extends TabbedPane {
 	private void handleExportExceptions(Throwable t) throws Throwable {
 		if (t instanceof ExceptionLP) {
 			ExceptionLP e = (ExceptionLP) t;
-			ArrayList<?> a = e.getAlInfoForTheClient();
+			List<?> a = e.getAlInfoForTheClient();
 			StringBuffer sb = new StringBuffer();
 			if (a != null && !a.isEmpty()) {
 				for (Iterator<?> iter = a.iterator(); iter.hasNext();) {
@@ -633,7 +649,7 @@ public class TabbedPaneExport extends TabbedPane {
 			}
 				break;
 			case EJBExceptionLP.FEHLER_FINANZ_EXPORT_KORREKTURBUCHUNG_ZUHOCH: {
-				sToken = "finanz.error.korrekturzuhoch";
+				sToken = "finanz.error.export.korrekturzuhoch";
 			}
 				break;
 			case EJBExceptionLP.FEHLER_FINANZ_EXPORT_KEINKURS_ZUDATUM: {
@@ -665,232 +681,62 @@ public class TabbedPaneExport extends TabbedPane {
 		}
 	}
 
-	private void saveExportFile(String data, String sBelegartCNr)
-			throws Throwable {
-		if (data != null) {
-			ParametermandantDto parameter = null;
-			if (sBelegartCNr.equals(LocaleFac.BELEGART_EINGANGSRECHNUNG)) {
-				parameter = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getMandantparameter(
-								LPMain.getTheClient().getMandant(),
-								ParameterFac.KATEGORIE_FINANZ,
-								ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_EINGANGSRECHNUNG);
-			} else if (sBelegartCNr.equals(LocaleFac.BELEGART_RECHNUNG)) {
-				parameter = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getMandantparameter(
-								LPMain.getTheClient().getMandant(),
-								ParameterFac.KATEGORIE_FINANZ,
-								ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_RECHNUNG);
-			} else if (sBelegartCNr.equals(LocaleFac.BELEGART_GUTSCHRIFT)) {
-				parameter = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getMandantparameter(
-								LPMain.getTheClient().getMandant(),
-								ParameterFac.KATEGORIE_FINANZ,
-								ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_GUTSCHRIFT);
-			}
-			// Id des erzeugten Exportlaufs holen
-			Integer iIdLetzterExportlauf = DelegateFactory.getInstance()
-					.getFibuExportDelegate().exportlaufFindLetztenExportlauf();
-			ParametermandantDto pASCII = DelegateFactory
-					.getInstance()
-					.getParameterDelegate()
-					.getMandantparameter(LPMain.getTheClient().getMandant(),
-							ParameterFac.KATEGORIE_FINANZ,
-							ParameterFac.PARAMETER_FINANZ_EXPORT_ASCII);
-			Boolean bASCII = false;
-			if (pASCII != null) {
-				bASCII = (Boolean) pASCII.getCWertAsObject();
-			}
-			// Daten speichern
-
-			boolean bSaved = LPMain.getInstance()
-					.saveFile(getInternalFrame(), parameter.getCWert(),
-							data.getBytes("windows-1252"), bASCII);
-			if (bSaved) {
-				ParametermandantDto pMitBelegen = null;
-				pMitBelegen = DelegateFactory
-						.getInstance()
-						.getParameterDelegate()
-						.getMandantparameter(
-								LPMain.getTheClient().getMandant(),
-								ParameterFac.KATEGORIE_FINANZ,
-								ParameterFac.PARAMETER_FINANZ_EXPORT_MIT_BELEGEN);
-				if (pMitBelegen.getCWert().equals("1"))
-					saveExportDokumente(iIdLetzterExportlauf, sBelegartCNr,
-							new File(parameter.getCWert()).getParent());
-			}
-			if (!bSaved) {
-				// Falls nicht gespeichert werden konnte, wird der Exportlauf
-				// zurueckgenommen
-				DelegateFactory
-						.getInstance()
-						.getFibuExportDelegate()
-						.nehmeExportlaufZurueckUndLoescheIhn(
-								iIdLetzterExportlauf);
-			} else {
-				DialogFactory.showModalDialog(
-						LPMain.getTextRespectUISPr("lp.hint"),
-						LPMain.getTextRespectUISPr("fb.export.datensichern2"));
-			}
-		} else {
-			DialogFactory
-					.showModalDialog(
-							LPMain.getTextRespectUISPr("lp.hint"),
-							LPMain.getTextRespectUISPr("fb.export.keinebelegezuexportieren"));
-		}
+	private ParametermandantDto getParametermandantFinanz(String parameter) throws ExceptionLP, Throwable {
+		return DelegateFactory.getInstance().getParameterDelegate()
+				.getMandantparameter(LPMain.getTheClient().getMandant(),
+						ParameterFac.KATEGORIE_FINANZ, parameter);
 	}
+	private String getParameterWertFinanz(String parameter) throws ExceptionLP, Throwable {
+		ParametermandantDto paramDto = getParametermandantFinanz(parameter);
+		return paramDto != null ? paramDto.getCWert() : null;
+	}
+	
+	private void saveExportFile(IBelegExporter belegExporter, String data) throws ExceptionLP, Throwable {
+		if (data == null) {
+			DialogFactory.showModalDialog(
+					LPMain.getTextRespectUISPr("lp.hint"),
+					LPMain.getTextRespectUISPr("fb.export.keinebelegezuexportieren"));
+			return;
+		}
+		
+		// Id des erzeugten Exportlaufs holen
+		Integer iIdLetzterExportlauf = DelegateFactory.getInstance()
+				.getFibuExportDelegate().exportlaufFindLetztenExportlauf();
+		ParametermandantDto pASCII = getParametermandantFinanz(
+				ParameterFac.PARAMETER_FINANZ_EXPORT_ASCII);
+		Boolean bASCII = false;
+		if (pASCII != null) {
+			bASCII = (Boolean) pASCII.getCWertAsObject();
+		}
 
-	private void saveExportDokumente(Integer exportlaufIId, String belegartCNr,
-			String exportDir) {
-		ExportdatenDto[] exportdatenDtos;
+		boolean bSaved = LPMain.getInstance()
+				.saveFile(getInternalFrame(), belegExporter.getExportPath(),
+						data.getBytes("windows-1252"), bASCII);
+		if (!bSaved) {
+			// Falls nicht gespeichert werden konnte, wird der Exportlauf
+			// zurueckgenommen
+			DelegateFactory.getInstance().getFibuExportDelegate()
+					.nehmeExportlaufZurueckUndLoescheIhn(
+							iIdLetzterExportlauf);
+			return;
+		}
+		
+		saveExportDokumente(belegExporter, iIdLetzterExportlauf);
+
+		DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hint"),
+					LPMain.getTextRespectUISPr("fb.export.datensichern2"));
+	}
+	
+	private boolean exportDokumente() {
 		try {
-			exportdatenDtos = DelegateFactory
-					.getInstance()
-					.getFibuExportDelegate()
-					.exportdatenFindByExportlaufIIdBelegartCNr(exportlaufIId,
-							belegartCNr);
-			if (belegartCNr.equals(LocaleFac.BELEGART_EINGANGSRECHNUNG)) {
-				saveExportDokumenteEr(exportdatenDtos, exportDir);
-			} else if (belegartCNr.equals(LocaleFac.BELEGART_RECHNUNG)) {
-				saveExportDokumenteAr(exportdatenDtos, exportDir);
-			} else if (belegartCNr.equals(LocaleFac.BELEGART_GUTSCHRIFT)) {
-				saveExportDokumenteGs(exportdatenDtos, exportDir);
-			}
-		} catch (ExceptionLP e) {
-			e.printStackTrace();
+			String paramMitBelegen = getParameterWertFinanz(ParameterFac.PARAMETER_FINANZ_EXPORT_MIT_BELEGEN);
+			return "1".equals(paramMitBelegen);
 		} catch (Throwable e) {
-			e.printStackTrace();
+			myLogger.error(e);
 		}
+		return false;
 	}
-
-	private void saveExportDokumenteEr(ExportdatenDto[] exportdatenDtos,
-			String exportDir) {
-		for (int i = 0; i < exportdatenDtos.length; i++) {
-			try {
-				PrintInfoDto values = DelegateFactory
-						.getInstance()
-						.getJCRDocDelegate()
-						.getPathAndPartnerAndTable(
-								exportdatenDtos[i].getIBelegiid(),
-								QueryParameters.UC_ID_EINGANGSRECHNUNG);
-				JCRDocDto jcr = new JCRDocDto();
-				jcr.setDocPath(values.getDocPath()); // + "/ER");
-				jcr.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
-				jcr.setlPartner(values.getiId());
-				jcr.setsTable(values.getTable());
-				// HELIUMV/Eingangsrechng/Eingangsrechng/11.0000204/ER
-				ArrayList<?> jcrdocs = getJcrDocs(jcr);
-				for (int j = 0; j < jcrdocs.size(); j++) {
-					if (jcrdocs.get(j) instanceof JCRDocDto) {
-						jcr = getLastJcrVersion((JCRDocDto) jcrdocs.get(j));
-						if (jcr == null)
-							jcr = (JCRDocDto) jcrdocs.get(j);
-						if (jcr != null) {
-							// eine gefunden, als PDF speichern
-							JCRDocDto jcrdocDto = DelegateFactory.getInstance()
-									.getJCRDocDelegate().getData(jcr);
-							if (jcrdocDto.getbData() != null) {
-								saveAs(exportDir, jcrdocDto);
-								// saveAsPdf(exportDir, jcrdocDto, "RE");
-							}
-						}
-					}
-				}
-			} catch (ExceptionLP e) {
-				e.printStackTrace();
-			} catch (Throwable e) {
-				e.printStackTrace();
-			}
-		}
-
-	}
-
-	private void saveExportDokumenteAr(ExportdatenDto[] exportdatenDtos,
-			String exportDir) {
-		for (int i = 0; i < exportdatenDtos.length; i++) {
-			try {
-				PrintInfoDto values = DelegateFactory
-						.getInstance()
-						.getJCRDocDelegate()
-						.getPathAndPartnerAndTable(
-								exportdatenDtos[i].getIBelegiid(),
-								QueryParameters.UC_ID_RECHNUNG);
-				JCRDocDto jcr = new JCRDocDto();
-				jcr.setDocPath(values.getDocPath().add(
-						new DocNodeFile("rech_rechnung.jasper")));
-				jcr.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
-				jcr.setlPartner(values.getiId());
-				jcr.setsTable(values.getTable());
-
-				jcr = getLastJcrVersion(jcr);
-				if (jcr != null) {
-					// eine gefunden, als PDF speichern
-					JCRDocDto jcrdocDto = DelegateFactory.getInstance()
-							.getJCRDocDelegate().getData(jcr);
-					if (jcrdocDto.getbData() != null) {
-						saveAsPdf(exportDir, jcrdocDto, "RE");
-					}
-				}
-			} catch (ExceptionLP e) {
-				e.printStackTrace();
-			} catch (Throwable e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	private void saveExportDokumenteGs(ExportdatenDto[] exportdatenDtos,
-			String exportDir) {
-		for (int i = 0; i < exportdatenDtos.length; i++) {
-			try {
-				PrintInfoDto values = DelegateFactory
-						.getInstance()
-						.getJCRDocDelegate()
-						.getPathAndPartnerAndTable(
-								exportdatenDtos[i].getIBelegiid(),
-								QueryParameters.UC_ID_GUTSCHRIFT);
-				JCRDocDto jcr = new JCRDocDto();
-				jcr.setDocPath(values.getDocPath().add(
-						new DocNodeFile("rech_gutschrift.jasper")));
-				jcr.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
-				jcr.setlPartner(values.getiId());
-				jcr.setsTable(values.getTable());
-
-				jcr = getLastJcrVersion(jcr);
-				// if (jcr == null) {
-				// // aufgrund eines Bug sind die Gutschriften teilweise bei den
-				// Rechnungen abgelegt
-				// jcr = new JCRDocDto();
-				// jcr.setsFullNodePath(((String)
-				// values[0]).replace("Gutschrift","Rechnung") +
-				// "/rech_gutschrift.jasper");
-				// jcr.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
-				// jcr.setlPartner((Integer) values[1]);
-				// jcr.setsTable((String)values[2]);
-				// jcr = getLastJcrVersion(jcr);
-				// }
-				if (jcr != null) {
-					// eine gefunden, als PDF speichern
-					JCRDocDto jcrdocDto = DelegateFactory.getInstance()
-							.getJCRDocDelegate().getData(jcr);
-					if (jcrdocDto.getbData() != null) {
-						saveAsPdf(exportDir, jcrdocDto, "GS");
-					}
-				}
-			} catch (ExceptionLP e) {
-				e.printStackTrace();
-			} catch (Throwable e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
+	
 	private ArrayList<JCRDocDto> getJcrDocs(JCRDocDto jcr) {
 		ArrayList<JCRDocDto> al = new ArrayList<JCRDocDto>();
 		List<DocNodeBase> children;
@@ -898,67 +744,62 @@ public class TabbedPaneExport extends TabbedPane {
 			children = DelegateFactory.getInstance().getJCRDocDelegate()
 					.getDocNodeChildrenFromNode(jcr.getDocPath());
 			for (DocNodeBase docNode : children) {
-				al.add(DelegateFactory
-						.getInstance()
-						.getJCRDocDelegate()
-						.getJCRDocDtoFromNode(
-								jcr.getDocPath().getDeepCopy().add(docNode)));
+				HvOptional<JCRDocDto> fetchedDoc = HvOptional.ofNullable(
+						DelegateFactory.getInstance().getJCRDocDelegate()
+						.getJCRDocDtoFromNode(jcr.getDocPath().getDeepCopy().add(docNode)));
+				if (fetchedDoc.isPresent()) {
+					al.add(fetchedDoc.get());
+				}
 			}
-		} catch (ExceptionLP e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (Throwable e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			myLogger.error("Fehler beim Holen der Dokumente fuer Beleg " + jcr.getsBelegnummer(), e);
 		}
 
 		return al;
 	}
 
-	private JCRDocDto getLastJcrVersion(JCRDocDto jcr) {
-		ArrayList<?> al = new ArrayList<Object>();
-		try {
-			al = DelegateFactory.getInstance().getJCRDocDelegate()
-					.getAllDocumentVersions(jcr);
-		} catch (ExceptionLP e) {
-			e.printStackTrace();
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
-
-		long version = -1;
-		int last = -1;
-		// letzte Version nehmen
-		for (int j = 0; j < al.size(); j++) {
-			if (al.get(j) instanceof JCRDocDto) {
-				JCRDocDto jcrdocDto = (JCRDocDto) al.get(j);
-				if (jcrdocDto.getlVersion() > version) {
-					version = jcrdocDto.getlVersion();
-					last = j;
-				}
-			}
-		}
-		if (last >= 0)
-			return (JCRDocDto) al.get(last);
-		else
-			return null;
+	private JCRDocDto getLastJcrVersion(JCRDocDto jcr) throws ExceptionLP, Throwable {
+		DocNodeVersion docVersion = DelegateFactory.getInstance().getJCRDocDelegate().getLastJcrDocVersion(jcr);
+		return docVersion != null ? docVersion.getJCRDocDto() : null;
 	}
 
 	private void saveAsPdf(String exportDir, JCRDocDto jcrdocDto, String kennung) {
 		try {
-			ByteArrayInputStream bStream = new ByteArrayInputStream(
-					jcrdocDto.getbData());
-			ObjectInputStream oStream = new ObjectInputStream(bStream);
-			JasperPrint jPrint = (JasperPrint) oStream.readObject();
-			byte[] ba = JasperExportManager.exportReportToPdf(jPrint);
-			File file = new File(exportDir + "\\" + kennung
-					+ jcrdocDto.getsBelegnummer().replace(".", "_") + ".pdf");
-			FileOutputStream fo = new FileOutputStream(file);
-			fo.write(ba);
-			fo.flush();
-			fo.close();
+			String filename = kennung
+					+ jcrdocDto.getsBelegnummer().replaceAll("[^a-zA-Z0-9]", "_") + ".pdf";
+			File file = new File(exportDir, filename);
+			saveAsPdf(file, jcrdocDto, kennung);
 		} catch (Exception e) {
-			e.printStackTrace();
+			myLogger.error("Fehler beim Speichern des Exportdokuments '" + kennung
+					+ jcrdocDto.getsBelegnummer() + "'", e);
+			DialogFactory.showModalDialog(
+					LPMain.getTextRespectUISPr("lp.error"),
+					"Fehler beim Speichern des Exportdokuments " + kennung
+							+ jcrdocDto.getsBelegnummer() + "\n"
+							+ e.getMessage());
+		}
+	}
+	
+	private void saveAsPdf(File file, JCRDocDto jcrdocDto, String kennung) throws ClassNotFoundException, IOException, JRException {
+		ByteArrayInputStream bStream = new ByteArrayInputStream(
+				jcrdocDto.getbData());
+		ObjectInputStream oStream = new ObjectInputStream(bStream);
+		JasperPrint jPrint = (JasperPrint) oStream.readObject();
+		HVPDFExporter exporter = new HVPDFExporter();
+		exporter.setParameter(JRExporterParameter.JASPER_PRINT, jPrint);
+		exporter.setParameter(JRExporterParameter.OUTPUT_FILE, file);
+		exporter.exportReport();
+	}
+
+	private void saveAs(String exportDir, JCRDocDto jcrdocDto, String kennung) {
+		try {
+			String filename = kennung + jcrdocDto.getsBelegnummer().replaceAll("[^a-zA-Z0-9]", "_") 
+					+ "_" + jcrdocDto.getsFilename();
+			File file = new File(exportDir, filename);
+			saveAs(file, jcrdocDto, kennung);
+		} catch (Exception e) {
+			myLogger.error("Fehler beim Speichern des Exportdokuments '" + kennung
+					+ jcrdocDto.getsBelegnummer() + "'", e);
 			DialogFactory.showModalDialog(
 					LPMain.getTextRespectUISPr("lp.error"),
 					"Fehler beim Speichern des Exportdokuments " + kennung
@@ -967,64 +808,15 @@ public class TabbedPaneExport extends TabbedPane {
 		}
 	}
 
-	private void saveAs(String exportDir, JCRDocDto jcrdocDto) {
-		try {
-			File file = new File(exportDir + "\\" + jcrdocDto.getsName()
-					+ jcrdocDto.getsBelegnummer().replace(".", "_") + ".pdf");
-			FileOutputStream fo = new FileOutputStream(file);
-			fo.write(jcrdocDto.getbData());
-			fo.flush();
-			fo.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.error"),
-					"Fehler beim Speichern des Exportdokuments ER"
-							+ jcrdocDto.getsBelegnummer() + "\n"
-							+ e.getMessage());
-		}
+	private void saveAs(File file, JCRDocDto jcrdocDto, String kennung) throws IOException {
+		FileOutputStream fo = new FileOutputStream(file);
+		fo.write(jcrdocDto.getbData());
+		fo.flush();
+		fo.close();
 	}
 
-	private void exportiereKonten(String kontotypCNr) throws Throwable {
-		String sParameter = null;
-		// Die Zieldatei ist fuer jeden kontotyp in einem mandantenparameter
-		// definiert
-		if (kontotypCNr.equals(FinanzServiceFac.KONTOTYP_DEBITOR)) {
-			sParameter = ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_DEBITORENKONTEN;
-		} else if (kontotypCNr.equals(FinanzServiceFac.KONTOTYP_KREDITOR)) {
-			sParameter = ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_KREDITORENKONTEN;
-		} else if (kontotypCNr.equals(FinanzServiceFac.KONTOTYP_SACHKONTO)) {
-			sParameter = ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_SACHKONTEN;
-		}
-		// Parameter holen
-		ParametermandantDto parameter = DelegateFactory
-				.getInstance()
-				.getParameterDelegate()
-				.getMandantparameter(LPMain.getTheClient().getMandant(),
-						ParameterFac.KATEGORIE_FINANZ, sParameter);
-		// Daten holen
-		String sDaten = DelegateFactory.getInstance().getFibuExportDelegate()
-				.exportierePersonenkonten(kontotypCNr);
-		if (sDaten != null) {
-			// und speichern
-			LPMain.getInstance().saveFile(getInternalFrame(),
-					parameter.getCWert(), sDaten.getBytes(), false);
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.hint"),
-					LPMain.getTextRespectUISPr("fb.export.datensichern"));
-		} else {
-			String sToken = null;
-			if (kontotypCNr.equals(FinanzServiceFac.KONTOTYP_DEBITOR)) {
-				sToken = "fb.export.keinedebitorenkonteneingetragen";
-			} else if (kontotypCNr.equals(FinanzServiceFac.KONTOTYP_KREDITOR)) {
-				sToken = "fb.export.keinekreditorenkonteneingetragen";
-			} else if (kontotypCNr.equals(FinanzServiceFac.KONTOTYP_SACHKONTO)) {
-				sToken = "fb.export.keinesachkonteneingetragen";
-			}
-			DialogFactory.showModalDialog(
-					LPMain.getTextRespectUISPr("lp.hint"),
-					LPMain.getTextRespectUISPr(sToken));
-		}
+	private void exportiereKonten(KontoExporter kontoExporter) throws Throwable {
+		kontoExporter.exportAndSaveKonten(getInternalFrame(), false);
 	}
 
 	private PanelDialogKriterienExportlauf getPdKriterienExportlauf()
@@ -1035,5 +827,291 @@ public class TabbedPaneExport extends TabbedPane {
 					LPMain.getTextRespectUISPr("fb.kriterien.exportlauf"));
 		}
 		return pdKriterienExportlauf;
+	}
+
+	private ExportdatenDto[] holeExportdatenDtos(Integer exportlaufIId, String belegartCnr) throws ExceptionLP, Throwable {
+			return DelegateFactory.getInstance().getFibuExportDelegate()
+					.exportdatenFindByExportlaufIIdBelegartCNr(exportlaufIId, belegartCnr);
+	}
+	
+	private PrintInfoDto holePrintInfo(Integer belegIId, Integer usecaseIId) throws ExceptionLP, Throwable {
+		return DelegateFactory.getInstance().getJCRDocDelegate()
+				.getPathAndPartnerAndTable(belegIId, usecaseIId);
+	}
+	
+	private void saveExportDokumente(IBelegExporter belegExporter, Integer exportlaufIId) {
+		if (!exportDokumente()) return;
+		
+		try {
+			ExportdatenDto[] exportdaten = holeExportdatenDtos(exportlaufIId, belegExporter.getBelegartCNr());
+			
+			for (ExportdatenDto data : exportdaten) {
+				saveExportDokumenteOfBeleg(belegExporter, data.getIBelegiid());
+			}
+		} catch (Throwable t) {
+			myLogger.error(t);
+			DialogFactory.showModalDialog(
+					LPMain.getTextRespectUISPr("lp.error"),
+					"Fehler beim Exportieren der Dokumente der Belege mit Belegart " 
+							+ belegExporter.getBelegartCNr());
+		}
+	}
+
+	private void saveExportDokumenteOfBeleg(IBelegExporter belegExporter, Integer belegId) throws Throwable {
+		List<JCRDocDto> jcrDocs = belegExporter.getJCRDocs(belegId);
+		for (JCRDocDto doc : jcrDocs) {
+			JCRDocDto docLatestVersion = getLastJcrVersion(doc);
+			if (docLatestVersion == null) continue;
+			
+			docLatestVersion = DelegateFactory.getInstance().getJCRDocDelegate().getData(docLatestVersion);
+			belegExporter.saveDoc(docLatestVersion);
+		}
+	}
+	
+	public JCRDocDto setupDefaultJCRDocDto(PrintInfoDto printInfo) {
+		JCRDocDto doc = new JCRDocDto();
+		doc.setDocPath(printInfo.getDocPath());
+		doc.setsBelegart(JCRDocFac.DEFAULT_ARCHIV_BELEGART);
+		doc.setlPartner(printInfo.getiId());
+		doc.setsTable(printInfo.getTable());
+		return doc;
+	}
+
+	private interface IBelegExporter {
+		String getBelegartCNr();
+		String getExportPath() throws ExceptionLP, Throwable;
+		void saveDoc(JCRDocDto doc) throws ExceptionLP, Throwable;
+		Integer getUsecaseId();
+		List<JCRDocDto> getJCRDocs(Integer belegIId) throws ExceptionLP, Throwable;
+	}
+	
+	private class RechnungExporter implements IBelegExporter {
+
+		public String getBelegartCNr() {
+			return LocaleFac.BELEGART_RECHNUNG;
+		}
+		
+		public String getExportDirPath() throws ExceptionLP, Throwable {
+			return new File(getExportPath()).getParent();
+		}
+
+		@Override
+		public String getExportPath() throws ExceptionLP, Throwable {
+			return getParameterWertFinanz(ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_RECHNUNG);
+		}
+
+		public JCRDocDto setupJCRDocDto(PrintInfoDto printInfo) {
+			JCRDocDto doc = setupDefaultJCRDocDto(printInfo);
+			doc.setDocPath(printInfo.getDocPath().add(
+					new DocNodeFile(RechnungReportFac.REPORT_RECHNUNG)));
+			return doc;
+		}
+
+		@Override
+		public void saveDoc(JCRDocDto doc) throws ExceptionLP, Throwable {
+			if (doc == null || doc.getbData() == null) return;
+			saveAsPdf(getExportDirPath(), doc, "RE");
+		}
+
+		@Override
+		public Integer getUsecaseId() {
+			return QueryParameters.UC_ID_RECHNUNG;
+		}
+
+		@Override
+		public List<JCRDocDto> getJCRDocs(Integer belegIId) throws ExceptionLP, Throwable {
+			PrintInfoDto printInfo = holePrintInfo(belegIId, getUsecaseId());
+			List<JCRDocDto> docList = new ArrayList<JCRDocDto>();
+			docList.add(setupJCRDocDto(printInfo));
+			return docList;
+		}
+	}
+	
+	private class GutschriftExporter extends RechnungExporter {
+		@Override
+		public String getBelegartCNr() {
+			return LocaleFac.BELEGART_GUTSCHRIFT;
+		}
+		
+		@Override
+		public String getExportPath() throws ExceptionLP, Throwable {
+			return getParameterWertFinanz(ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_GUTSCHRIFT);
+		}
+
+		@Override
+		public JCRDocDto setupJCRDocDto(PrintInfoDto printInfo) {
+			JCRDocDto doc = super.setupJCRDocDto(printInfo);
+			doc.setDocPath(printInfo.getDocPath().add(new DocNodeFile(RechnungReportFac.REPORT_GUTSCHRIFT)));
+			return doc;
+		}
+		
+		@Override
+		public void saveDoc(JCRDocDto doc) throws ExceptionLP, Throwable {
+			if (doc == null || doc.getbData() == null) return;
+			saveAsPdf(getExportDirPath(), doc, "GS");
+		}
+		
+		@Override
+		public Integer getUsecaseId() {
+			return QueryParameters.UC_ID_GUTSCHRIFT;
+		};
+	}
+	
+	private class EingangsrechnungExporter implements IBelegExporter {
+
+		@Override
+		public String getBelegartCNr() {
+			return LocaleFac.BELEGART_EINGANGSRECHNUNG;
+		}
+
+		@Override
+		public String getExportPath() throws ExceptionLP, Throwable {
+			return getParameterWertFinanz(ParameterFac.PARAMETER_FINANZ_EXPORTZIEL_EINGANGSRECHNUNG);
+		}
+
+		@Override
+		public void saveDoc(JCRDocDto doc) throws ExceptionLP, Throwable {
+			if (doc == null || doc.getbData() == null) return;
+			
+			if (isJRPrint(doc)) {
+				saveAsPdf(new File(getExportPath()).getParent(), doc, "ER");
+			} else {
+				saveAs(new File(getExportPath()).getParent(), doc, "ER");
+			}
+		}
+
+		@Override
+		public Integer getUsecaseId() {
+			return QueryParameters.UC_ID_EINGANGSRECHNUNG;
+		}
+
+		@Override
+		public List<JCRDocDto> getJCRDocs(Integer belegIId) throws ExceptionLP, Throwable {
+			PrintInfoDto printInfo = holePrintInfo(belegIId, getUsecaseId());
+			return getJcrDocs(setupDefaultJCRDocDto(printInfo));
+		}
+		
+	}
+	
+	private boolean isJRPrint(JCRDocDto doc) {
+		return doc.getsMIME() != null && doc.getsMIME().toLowerCase().endsWith(".jrprint");
+	}
+
+	public void saveEingangsrechnungBelege(List<EingangsrechnungDto> eingangsrechnungen, String directory) throws Throwable {
+		EingangsrechnungExporterModulER erExporter = new EingangsrechnungExporterModulER(directory);
+		erExporter.export(eingangsrechnungen);
+	}
+	
+	private class EingangsrechnungExporterModulER extends EingangsrechnungExporter {
+		private String directory;
+		private boolean shouldOverwrite = false;
+		private DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
+		private EingangsrechnungDto currentEr = null;
+		private Integer count = 0;
+		private HvCreatingCachingProvider<Integer, LieferantDto> lieferantCache = new HvCreatingCachingProvider<Integer, LieferantDto>() {
+			protected LieferantDto provideValue(Integer key, Integer transformedKey) throws ExceptionLP {
+				try {
+					LieferantDto lieferantDto = DelegateFactory.getInstance().getLieferantDelegate().lieferantFindByPrimaryKey(key);
+					return lieferantDto;
+				} catch (Throwable e) {
+					throw new ExceptionLP(EJBExceptionLP.FEHLER_BEI_FINDBYPRIMARYKEY, e);
+				}
+			}
+		};
+		
+		public EingangsrechnungExporterModulER(String directory) {
+			this.directory = directory;
+		}
+		
+		public void export(List<EingangsrechnungDto> eingangsrechnungen) throws Throwable {
+			for (EingangsrechnungDto er : eingangsrechnungen) {
+				currentEr = er;
+				count = 0;
+				saveExportDokumenteOfBeleg(this, er.getIId());
+			}
+		}
+
+		@Override
+		public String getExportPath() throws ExceptionLP, Throwable {
+			return directory;
+		}
+		
+		@Override
+		public void saveDoc(JCRDocDto doc) throws ExceptionLP, Throwable {
+			if (doc == null || doc.getbData() == null) return;
+			
+			String filename = createFilename();
+			File file = new File(getExportPath(), filename);
+			if (!(isJRPrint(doc) || isPdf(doc)))
+				return;
+			
+			if (file.exists() && !shouldOverwrite) {
+				if (!dialogShouldOverwrite(filename)) {
+					return;
+				}
+			}
+			
+			if (isJRPrint(doc)) {
+				saveAsPdf(file, doc, "ER");
+				count++;
+			} else if (isPdf(doc)){
+				saveAs(file, doc, "ER");
+				count++;
+			}
+		}
+		
+		private boolean isPdf(JCRDocDto doc) {
+			return doc.getsMIME() != null && doc.getsMIME().toLowerCase().endsWith("pdf");
+		}
+
+		private String createFilename() throws ExceptionLP {
+			LieferantDto lieferantDto = lieferantCache.getValueOfKey(currentEr.getLieferantIId());
+			StringBuilder filename = new StringBuilder();
+			filename.append(eliminateSpecialChars(lieferantDto.getPartnerDto().getCName1nachnamefirmazeile1()));
+			
+			HvOptional<String> liefReNr = HvOptional.ofNullable(currentEr.getCLieferantenrechnungsnummer());
+			if (liefReNr.isPresent()) {
+				filename.append("_")
+					.append(eliminateSpecialChars(liefReNr.get()));
+			}
+			
+			filename.append("_")
+				.append(dateFormatter.format(currentEr.getDBelegdatum()))
+				.append(count > 0 ? ("_" + count) : "")
+				.append(".pdf");
+			
+			return filename.toString();
+		}
+		
+		protected String eliminateSpecialChars(String value) {
+			String[] charFrom = new String[] { "\u00E4", "\u00C4", "\u00F6",
+					"\u00D6", "\u00FC", "\u00DC", "\u00DF" };
+			String[] charTo = new String[] { "ae", "Ae", "oe", "Oe", "ue", "Ue",
+					"ss" };
+
+			for (int i = 0; i < charFrom.length; i++)
+				value = value.replaceAll(charFrom[i], charTo[i]);
+
+			return value.replaceAll("[^a-zA-Z0-9\\s-]", "-");
+		}
+		
+		private boolean dialogShouldOverwrite(String filename) {
+			Object[] options = { LPMain.getTextRespectUISPr("lp.ja"), LPMain.getTextRespectUISPr("er.export.dokumente.alleueberschreiben"),
+					LPMain.getTextRespectUISPr("lp.nein") };
+			int selected = JOptionPane.showOptionDialog(getInternalFrame(), 
+					LPMain.getMessageTextRespectUISPr("lp.datei.existiertueberschreiben", filename), "", 
+					JOptionPane.YES_NO_CANCEL_OPTION,
+					JOptionPane.QUESTION_MESSAGE, null, // don't use a custom Icon
+					options, // the titles of buttons
+					options[0]); // default button title
+			if (selected == 1)
+				shouldOverwrite = true;
+			
+			return selected != 2;
+		}
+	}
+	
+	private class BelegDocsCounter {
+		
 	}
 }

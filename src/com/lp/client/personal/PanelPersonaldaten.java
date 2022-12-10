@@ -51,14 +51,12 @@ import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
 import com.lp.client.frame.component.PanelQueryFLR;
 import com.lp.client.frame.component.WrapperButton;
-import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperComboBox;
 import com.lp.client.frame.component.WrapperDateField;
 import com.lp.client.frame.component.WrapperEditorField;
 import com.lp.client.frame.component.WrapperEditorFieldKommentar;
 import com.lp.client.frame.component.WrapperEmailField;
 import com.lp.client.frame.component.WrapperLabel;
-import com.lp.client.frame.component.WrapperPasswordField;
 import com.lp.client.frame.component.WrapperTelefonField;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
@@ -72,6 +70,7 @@ import com.lp.server.partner.service.PartnerFac;
 import com.lp.server.personal.service.BerufDto;
 import com.lp.server.personal.service.KollektivDto;
 import com.lp.server.personal.service.LohngruppeDto;
+import com.lp.server.personal.service.MaschinengruppeDto;
 import com.lp.server.personal.service.PendlerpauschaleDto;
 import com.lp.server.personal.service.PersonalDto;
 import com.lp.server.personal.service.PersonalFac;
@@ -79,7 +78,9 @@ import com.lp.server.personal.service.ReligionDto;
 import com.lp.server.system.service.LandDto;
 import com.lp.server.system.service.LandplzortDto;
 import com.lp.server.system.service.SystemFac;
+import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
+import com.lp.util.Helper;
 
 //@SuppressWarnings("static-access")
 public class PanelPersonaldaten extends PanelBasis {
@@ -108,10 +109,6 @@ public class PanelPersonaldaten extends PanelBasis {
 	private WrapperTextField wtfBeruf = new WrapperTextField();
 	private WrapperButton wbuLohngruppe = new WrapperButton();
 	private WrapperTextField wtfLohngruppe = new WrapperTextField();
-	private WrapperCheckBox wcbKeineAnzeigeInAnwesenheitsliste = new WrapperCheckBox();
-	private WrapperCheckBox wcbBekommtUeberstundenausbezahlt = new WrapperCheckBox();
-	private WrapperCheckBox wcbAnwesenheitslisteTermial = new WrapperCheckBox();
-	private WrapperCheckBox wcbAnwesenheitslisteAlleTermial = new WrapperCheckBox();
 	private WrapperEditorField wefSignatur = null;
 	private WrapperLabel wlaSignatur = new WrapperLabel();
 
@@ -126,7 +123,6 @@ public class PanelPersonaldaten extends PanelBasis {
 	private WrapperTextField wtfFirmenzugehoerigkeit = new WrapperTextField();
 	private WrapperButton wbuFirmenzugehoerigkeit = new WrapperButton();
 
-	private WrapperCheckBox wcbTelefonzeitStarten = null;
 	private WrapperLabel wlaDurchwahl = null;
 	private WrapperTextField wtfDurchwahl = null;
 	private WrapperLabel wlaEmail = null;
@@ -153,15 +149,6 @@ public class PanelPersonaldaten extends PanelBasis {
 	private PanelQueryFLR panelQueryFLRLohngrupe = null;
 	private PanelQueryFLR panelQueryFLRfirmenzugehoerigkeit = null;
 
-	private WrapperLabel wlaImapBenutzer = new WrapperLabel();
-	private WrapperTextField wtfImapBenutzer = new WrapperTextField();
-
-	private WrapperLabel wlaImapKennwort = new WrapperLabel();
-	private WrapperPasswordField wtfImapKennwort = new WrapperPasswordField();
-
-	private WrapperLabel wlaImapInboxFolder = new WrapperLabel() ;
-	private WrapperTextField wtfImapInboxFolder = new WrapperTextField() ;
-	
 	static final public String ACTION_SPECIAL_GEBURTSORT_FROM_LISTE = "action_geburtsort_from_liste";
 	static final public String ACTION_SPECIAL_SOZIALVERISCHERER_FROM_LISTE = "action_sozialversicherer_from_liste";
 	static final public String ACTION_SPECIAL_STAATSANGEHOERIGKEIT_FROM_LISTE = "action_staatsangehoerigkeit_from_liste";
@@ -172,8 +159,12 @@ public class PanelPersonaldaten extends PanelBasis {
 	static final public String ACTION_SPECIAL_LOHNGRUPPE_FROM_LISTE = "action_lohngruppe_from_liste";
 	static final public String ACTION_SPECIAL_FIRMENZUGEHOERIGKEIT_FROM_LISTE = "action_firmenzugehoerigkeit_from_liste";
 
-	public PanelPersonaldaten(InternalFrame internalFrame, String add2TitleI,
-			Object pk) throws Throwable {
+	static final public String ACTION_SPECIAL_MASCHINENGRUPPE_FROM_LISTE = "ACTION_SPECIAL_MASCHINENGRUPPE_FROM_LISTE";
+	private WrapperButton wbuMaschinengruppe = new WrapperButton();
+	private WrapperTextField wtfMaschinengruppe = new WrapperTextField();
+	private PanelQueryFLR panelQueryFLRMaschinengruppe = null;
+
+	public PanelPersonaldaten(InternalFrame internalFrame, String add2TitleI, Object pk) throws Throwable {
 		super(internalFrame, add2TitleI, pk);
 		internalFramePersonal = (InternalFramePersonal) internalFrame;
 		jbInit();
@@ -190,16 +181,11 @@ public class PanelPersonaldaten extends PanelBasis {
 		return wdfGeburtsdatum;
 	}
 
-	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-			throws Throwable {
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI) throws Throwable {
 		leereAlleFelder(this);
 		super.eventYouAreSelected(false);
-		personalDto = DelegateFactory
-				.getInstance()
-				.getPersonalDelegate()
-				.personalFindByPrimaryKey(
-						((InternalFramePersonal) getInternalFrame())
-								.getPersonalDto().getIId());
+		personalDto = DelegateFactory.getInstance().getPersonalDelegate()
+				.personalFindByPrimaryKey(((InternalFramePersonal) getInternalFrame()).getPersonalDto().getIId());
 		dto2Components();
 	}
 
@@ -216,130 +202,91 @@ public class PanelPersonaldaten extends PanelBasis {
 		jpaWorkingOn = new JPanel();
 		gridBagLayoutWorkingPanel = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-		wlaGeburtsdatum.setText(LPMain.getTextRespectUISPr(
-				"pers.personalangehoerige.geburtsdatum"));
-		wbuGeburtsort.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.geburtsort")
-				+ "...");
+		wlaGeburtsdatum.setText(LPMain.getTextRespectUISPr("pers.personalangehoerige.geburtsdatum"));
+		wbuGeburtsort.setText(LPMain.getTextRespectUISPr("pers.personaldaten.geburtsort") + "...");
 
-		wlaSignatur.setText(LPMain.getTextRespectUISPr(
-				"pers.signatur"));
-		wefSignatur = new WrapperEditorFieldKommentar(getInternalFrame(),
-				LPMain.getTextRespectUISPr("pers.signatur"));
+		wlaSignatur.setText(LPMain.getTextRespectUISPr("pers.signatur"));
+		wefSignatur = new WrapperEditorFieldKommentar(getInternalFrame(), LPMain.getTextRespectUISPr("pers.signatur"));
 
 		wefSignatur.getLpEditor().getTextBlockAttributes(-1).capacity = SystemFac.MAX_LAENGE_EDITORTEXT_WENN_NTEXT;
 
-		wbuGeburtsort
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_GEBURTSORT_FROM_LISTE);
+		wbuMaschinengruppe.setText(LPMain.getTextRespectUISPr("pers.maschinengruppe") + "...");
+		wbuMaschinengruppe.setActionCommand(ACTION_SPECIAL_MASCHINENGRUPPE_FROM_LISTE);
+		wbuMaschinengruppe.addActionListener(this);
+		wtfMaschinengruppe.setColumnsMax(Facade.MAX_UNBESCHRAENKT);
+		wtfMaschinengruppe.setActivatable(false);
+
+		wbuGeburtsort.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_GEBURTSORT_FROM_LISTE);
 		wbuGeburtsort.addActionListener(this);
 		wtfGeburtsort.setActivatable(false);
 		wtfGeburtsort.setText("");
 		wtfGeburtsort.setColumnsMax(200);
-		wlaSozialversicherungsnummer.setText(LPMain.getTextRespectUISPr(
-						"pers.personalangehoerige.sozialversicherungsnummer"));
+		wlaSozialversicherungsnummer
+				.setText(LPMain.getTextRespectUISPr("pers.personalangehoerige.sozialversicherungsnummer"));
 		wtfsozialversicherungsnummer.setText("");
-		wtfsozialversicherungsnummer
-				.setColumnsMax(PersonalFac.MAX_PERSONAL_SOZIALVERSNR);
-		wbuSozialversicherer.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.sozialversicherer")
-				+ "...");
-		wbuSozialversicherer
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_SOZIALVERISCHERER_FROM_LISTE);
+		wtfsozialversicherungsnummer.setColumnsMax(PersonalFac.MAX_PERSONAL_SOZIALVERSNR);
+		wbuSozialversicherer.setText(LPMain.getTextRespectUISPr("pers.personaldaten.sozialversicherer") + "...");
+		wbuSozialversicherer.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_SOZIALVERISCHERER_FROM_LISTE);
 		wbuSozialversicherer.addActionListener(this);
-		wbuKollektiv.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.kollektiv")
-				+ "...");
-		wbuKollektiv
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_KOLLEKTIV_FROM_LISTE);
+		wbuKollektiv.setText(LPMain.getTextRespectUISPr("pers.personaldaten.kollektiv") + "...");
+		wbuKollektiv.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_KOLLEKTIV_FROM_LISTE);
 		wbuKollektiv.addActionListener(this);
 		wtfKollektiv.setActivatable(false);
 		wtfKollektiv.setText("");
 		wtfKollektiv.setColumnsMax(80);
 		wtfSozialversicherer.setActivatable(false);
 		wtfSozialversicherer.setColumnsMax(200);
-		wbuBeruf.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.beruf")
-				+ "...");
+		wbuBeruf.setText(LPMain.getTextRespectUISPr("pers.personaldaten.beruf") + "...");
 		wbuBeruf.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_BERUF_FROM_LISTE);
 		wbuBeruf.addActionListener(this);
 		wtfBeruf.setActivatable(false);
 		wtfBeruf.setText("");
 		wtfBeruf.setColumnsMax(80);
 
-		wbuLohngruppe.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.lohngruppe")
-				+ "...");
-		wbuLohngruppe
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_LOHNGRUPPE_FROM_LISTE);
+		wbuLohngruppe.setText(LPMain.getTextRespectUISPr("pers.personaldaten.lohngruppe") + "...");
+		wbuLohngruppe.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_LOHNGRUPPE_FROM_LISTE);
 		wbuLohngruppe.addActionListener(this);
 		wtfLohngruppe.setActivatable(false);
 		wtfLohngruppe.setText("");
 		wtfLohngruppe.setColumnsMax(80);
-		wcbKeineAnzeigeInAnwesenheitsliste.setText(LPMain.getTextRespectUISPr(
-						"pers.personaldaten.keineanzeigeinanwesenheitsliste"));
-		wcbBekommtUeberstundenausbezahlt.setText(LPMain.getTextRespectUISPr(
-						"pers.personaldaten.keineueberstundenauszahlung"));
-		wcbAnwesenheitslisteTermial.setText(LPMain.getTextRespectUISPr(
-						"pers.personaldaten.anwesenheitslisteterminal"));
-		wcbAnwesenheitslisteAlleTermial.setText(LPMain.getTextRespectUISPr(
-						"pers.personaldaten.anwesenheitslistealleterminal"));
 
 		wtfPendlerpauschale.setSelectionStart(17);
 		wtfPendlerpauschale.setActivatable(false);
 		wtfPendlerpauschale.setText("");
 		wtfPendlerpauschale.setColumnsMax(80);
-		wbuPendlerpauschale.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.pendlerpauschale")
-				+ "...");
-		wbuPendlerpauschale
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_PENDLERPAUSCHALE_FROM_LISTE);
+		wbuPendlerpauschale.setText(LPMain.getTextRespectUISPr("pers.personaldaten.pendlerpauschale") + "...");
+		wbuPendlerpauschale.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_PENDLERPAUSCHALE_FROM_LISTE);
 		wbuPendlerpauschale.addActionListener(this);
-		wlaFamilienstand.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.familienstand"));
+		wlaFamilienstand.setText(LPMain.getTextRespectUISPr("pers.personaldaten.familienstand"));
 		wtfStaatsangehoerigkeit.setActivatable(false);
 		wtfStaatsangehoerigkeit.setText("");
 		wtfStaatsangehoerigkeit.setColumnsMax(80);
-		wbuStaatsangehoerigkeit.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.staatsangehoerigkeit") + "...");
-		wbuStaatsangehoerigkeit
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_STAATSANGEHOERIGKEIT_FROM_LISTE);
+		wbuStaatsangehoerigkeit.setText(LPMain.getTextRespectUISPr("pers.personaldaten.staatsangehoerigkeit") + "...");
+		wbuStaatsangehoerigkeit.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_STAATSANGEHOERIGKEIT_FROM_LISTE);
 		wbuStaatsangehoerigkeit.addActionListener(this);
 		wtfReligion.setActivatable(false);
 		wtfReligion.setText("");
 		wtfReligion.setColumnsMax(80);
-		wbuReligion.setText(LPMain.getTextRespectUISPr(
-				"lp.religion")
-				+ "...");
-		wbuReligion
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_RELIGION_FROM_LISTE);
+		wbuReligion.setText(LPMain.getTextRespectUISPr("lp.religion") + "...");
+		wbuReligion.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_RELIGION_FROM_LISTE);
 		wbuReligion.addActionListener(this);
 		wtfFirmenzugehoerigkeit.setActivatable(false);
 		wtfFirmenzugehoerigkeit.setText("");
 		wtfFirmenzugehoerigkeit.setColumnsMax(200);
 		wcbFamilienstand.setMandatoryField(false);
-		wbuFirmenzugehoerigkeit.setText(LPMain.getTextRespectUISPr(
-				"pers.personaldaten.firmenzugehoerigkeit")
-				+ "...");
-		wbuFirmenzugehoerigkeit
-				.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_FIRMENZUGEHOERIGKEIT_FROM_LISTE);
+		wbuFirmenzugehoerigkeit.setText(LPMain.getTextRespectUISPr("pers.personaldaten.firmenzugehoerigkeit") + "...");
+		wbuFirmenzugehoerigkeit.setActionCommand(PanelPersonaldaten.ACTION_SPECIAL_FIRMENZUGEHOERIGKEIT_FROM_LISTE);
 		wbuFirmenzugehoerigkeit.addActionListener(this);
 
-		wlaUnterschriftsfunktion.setText(LPMain.getTextRespectUISPr(
-				"benutzer.unterschriftsfunktion"));
-		wlaUnterschriftstext.setText(LPMain.getTextRespectUISPr(
-				"benutzer.unterschriftstext"));
+		wlaUnterschriftsfunktion.setText(LPMain.getTextRespectUISPr("benutzer.unterschriftsfunktion"));
+		wlaUnterschriftstext.setText(LPMain.getTextRespectUISPr("benutzer.unterschriftstext"));
 
-		wtfImapBenutzer.setColumnsMax(80);
-
-		wtfUnterschriftsfunktion
-				.setColumnsMax(BenutzerFac.MAX_BENUTZERMANDANTSYSTEMROLLE_C_UNTERSCHRIFTSFUNKTION);
-		wtfUnterschriftstext
-				.setColumnsMax(BenutzerFac.MAX_BENUTZERMANDANTSYSTEMROLLE_C_UNTERSCHRIFTSTEXT);
+		wtfUnterschriftsfunktion.setColumnsMax(BenutzerFac.MAX_BENUTZERMANDANTSYSTEMROLLE_C_UNTERSCHRIFTSFUNKTION);
+		wtfUnterschriftstext.setColumnsMax(BenutzerFac.MAX_BENUTZERMANDANTSYSTEMROLLE_C_UNTERSCHRIFTSTEXT);
 
 		wlaDurchwahl = new WrapperLabel();
-		wlaDurchwahl.setText(LPMain.getTextRespectUISPr(
-				"label.absenderdaten") + ": "+ LPMain.getTextRespectUISPr(
-				"lp.durchwahl"));
+		wlaDurchwahl.setText(
+				LPMain.getTextRespectUISPr("label.absenderdaten") + ": " + LPMain.getTextRespectUISPr("lp.durchwahl"));
 
 		wtfDurchwahl = new WrapperTextField(PartnerFac.MAX_KOMMART_INHALT);
 		wlaEmail = new WrapperLabel();
@@ -347,275 +294,174 @@ public class PanelPersonaldaten extends PanelBasis {
 		wtfEmail = new WrapperEmailField();
 
 		wlaFaxdurchwahl = new WrapperLabel();
-		wlaFaxdurchwahl = new WrapperLabel(LPMain
-				.getTextRespectUISPr("lp.faxdurchwahl"));
+		wlaFaxdurchwahl = new WrapperLabel(LPMain.getTextRespectUISPr("lp.faxdurchwahl"));
 		wtfFaxdurchwahl = new WrapperTextField(PartnerFac.MAX_KOMMART_INHALT);
 
 		wlaHandy = new WrapperLabel();
-		wlaHandy = new WrapperLabel(LPMain.getTextRespectUISPr(
-				"lp.handy"));
+		wlaHandy = new WrapperLabel(LPMain.getTextRespectUISPr("lp.handy"));
 		wtfHandy = new WrapperTelefonField(PartnerFac.MAX_KOMMART_INHALT);
 
 		wlaDirektfax = new WrapperLabel();
-		wlaDirektfax = new WrapperLabel(LPMain
-				.getTextRespectUISPr("lp.direktfax"));
+		wlaDirektfax = new WrapperLabel(LPMain.getTextRespectUISPr("lp.direktfax"));
 		wtfDirektfax = new WrapperTextField(PartnerFac.MAX_KOMMART_INHALT);
 
-		wcbTelefonzeitStarten = new WrapperCheckBox(
-				LPMain.getTextRespectUISPr("pers.telefonzeitstarten") );
+		HelperClient.setMinimumAndPreferredSize(wlaFamilienstand, HelperClient.getSizeFactoredDimension(180));
+		HelperClient.setMinimumAndPreferredSize(wlaGeburtsdatum, HelperClient.getSizeFactoredDimension(150));
 
-		wlaImapBenutzer.setText(LPMain.getTextRespectUISPr(
-				"pers.imapuser"));
-		wlaImapKennwort.setText(LPMain.getTextRespectUISPr(
-				"pers.imapkennwort"));
-
-		wlaImapInboxFolder.setText(LPMain.getTextRespectUISPr("pers.imapinboxfolder")) ;
-		wtfImapInboxFolder.setColumnsMax(80) ;
-		
-		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
-						0, 0, 0), 0, 0));
-		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTHEAST, GridBagConstraints.BOTH,
-				new Insets(-9, 0, 9, 0), 0, 0));
-		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.BOTH, new Insets(-9, 0, 9, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
 		iZeile = 0;
-		jpaWorkingOn.add(wlaFamilienstand, new GridBagConstraints(0, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 150, 0));
-		jpaWorkingOn.add(wcbFamilienstand, new GridBagConstraints(1, iZeile, 1,
-				1, 2, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wlaGeburtsdatum, new GridBagConstraints(2, iZeile, 1,
-				1, 0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 150, 0));
-		jpaWorkingOn.add(wdfGeburtsdatum, new GridBagConstraints(3, iZeile, 2,
-				1, 2, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wbuGeburtsort, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfGeburtsort, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wlaSozialversicherungsnummer, new GridBagConstraints(
-				0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wtfsozialversicherungsnummer, new GridBagConstraints(
-				1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wbuSozialversicherer, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfSozialversicherer, new GridBagConstraints(3,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wbuStaatsangehoerigkeit, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfStaatsangehoerigkeit, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wbuReligion, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfReligion, new GridBagConstraints(3, iZeile, 2, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wbuKollektiv, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfKollektiv, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuBeruf, new GridBagConstraints(2, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfBeruf, new GridBagConstraints(3, iZeile, 2, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-
-		jpaWorkingOn.add(wbuPendlerpauschale, new GridBagConstraints(0, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-
-		jpaWorkingOn.add(wtfPendlerpauschale, new GridBagConstraints(1, iZeile,
-				1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuLohngruppe, new GridBagConstraints(2, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2), 0, 0));
-		jpaWorkingOn.add(wtfLohngruppe, new GridBagConstraints(3, iZeile, 2, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wtfFirmenzugehoerigkeit, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuFirmenzugehoerigkeit, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaFamilienstand, new GridBagConstraints(0, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-
-		iZeile++;
-		jpaWorkingOn.add(wlaUnterschriftsfunktion, new GridBagConstraints(0,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfUnterschriftsfunktion, new GridBagConstraints(1,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaUnterschriftstext, new GridBagConstraints(2,
-				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfUnterschriftstext, new GridBagConstraints(3,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcbKeineAnzeigeInAnwesenheitsliste,
-				new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wlaImapBenutzer, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfImapBenutzer, new GridBagConstraints(3, iZeile, 2,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		iZeile++;
-		jpaWorkingOn.add(wcbBekommtUeberstundenausbezahlt,
-				new GridBagConstraints(0, iZeile, 2, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
-		jpaWorkingOn.add(wlaImapKennwort, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfImapKennwort, new GridBagConstraints(3, iZeile, 2,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wcbFamilienstand, new GridBagConstraints(1, iZeile, 1, 1, 2, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 
-		++iZeile ;
-		jpaWorkingOn.add(wcbTelefonzeitStarten, new GridBagConstraints(0, iZeile,
-				2, 1, 0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaImapInboxFolder, new GridBagConstraints(2, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaGeburtsdatum, new GridBagConstraints(2, iZeile, 1, 1, 0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfImapInboxFolder, new GridBagConstraints(3, iZeile, 2,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wdfGeburtsdatum, new GridBagConstraints(3, iZeile, 2, 1, 2, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wbuGeburtsort, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfGeburtsort, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		iZeile++;
+		jpaWorkingOn.add(wlaSozialversicherungsnummer, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wtfsozialversicherungsnummer, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wbuSozialversicherer, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfSozialversicherer, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wbuStaatsangehoerigkeit, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfStaatsangehoerigkeit, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wbuReligion, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfReligion, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wbuKollektiv, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfKollektiv, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuBeruf, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBeruf, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+
+		jpaWorkingOn.add(wbuPendlerpauschale, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		jpaWorkingOn.add(wtfPendlerpauschale, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuLohngruppe, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2), 0, 0));
+		jpaWorkingOn.add(wtfLohngruppe, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wtfFirmenzugehoerigkeit, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wbuFirmenzugehoerigkeit, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+
+		jpaWorkingOn.add(wbuMaschinengruppe, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 0, 2), 0, 0));
+		jpaWorkingOn.add(wtfMaschinengruppe, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
 		
 		iZeile++;
-		jpaWorkingOn.add(wcbAnwesenheitslisteTermial, new GridBagConstraints(0,
-				iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wcbAnwesenheitslisteAlleTermial,
-				new GridBagConstraints(2, iZeile, 3, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2),
-						0, 0));
+		jpaWorkingOn.add(wlaUnterschriftsfunktion, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 20, 2), 0, 0));
+		jpaWorkingOn.add(wtfUnterschriftsfunktion, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 20, 2), 0, 0));
+		jpaWorkingOn.add(wlaUnterschriftstext, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 20, 2), 0, 0));
+		jpaWorkingOn.add(wtfUnterschriftstext, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(2, 2, 20, 2), 0, 0));
 
 		// Zeile
-//		iZeile++;
-//		jpaWorkingOn.add(wcbTelefonzeitStarten, new GridBagConstraints(0, iZeile, 2,
-//				1, 0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-//				new Insets(2, 2, 2, 2), 0, 0));
+		// iZeile++;
+		// jpaWorkingOn.add(wcbTelefonzeitStarten, new GridBagConstraints(0,
+		// iZeile, 2,
+		// 1, 0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
+		// new Insets(2, 2, 2, 2), 0, 0));
 
 		iZeile++;
-		jpaWorkingOn.add(wlaDurchwahl, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfDurchwahl, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaEmail, new GridBagConstraints(2, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfEmail, new GridBagConstraints(3, iZeile, 2, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		// Zeile
-		iZeile++;
-		jpaWorkingOn.add(wlaFaxdurchwahl, new GridBagConstraints(0, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfFaxdurchwahl, new GridBagConstraints(1, iZeile, 1,
-				1, 0.0, 0.0, GridBagConstraints.CENTER,
+		jpaWorkingOn.add(wlaDurchwahl, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
 				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wlaHandy, new GridBagConstraints(2, iZeile, 1, 1, 0.0,
-				0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfHandy, new GridBagConstraints(3, iZeile, 2, 1, 0.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfDurchwahl, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaEmail, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfEmail, new GridBagConstraints(3, iZeile, 2, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 		// Zeile
 		iZeile++;
-		jpaWorkingOn.add(wlaDirektfax, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.NORTH, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wtfDirektfax, new GridBagConstraints(1, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaFaxdurchwahl, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfFaxdurchwahl, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wlaHandy, new GridBagConstraints(2, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfHandy, new GridBagConstraints(3, iZeile, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		// Zeile
 		iZeile++;
-		jpaWorkingOn.add(wlaSignatur, new GridBagConstraints(0, iZeile, 1, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wefSignatur, new GridBagConstraints(1, iZeile, 4, 1,
-				0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-				new Insets(2, 2, 2, 2), 0, 35));
+		jpaWorkingOn.add(wlaDirektfax, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.NORTH,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfDirektfax, new GridBagConstraints(1, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+		jpaWorkingOn.add(wlaSignatur, new GridBagConstraints(0, iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wefSignatur, new GridBagConstraints(1, iZeile, 4, 1, 0.0, 1, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 
-		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
-				ACTION_DISCARD, };
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE, ACTION_DISCARD, };
 
 		enableToolsPanelButtons(aWhichButtonIUse);
 
 	}
 
 	protected void setDefaults() throws Throwable {
-		wcbFamilienstand.setMap(DelegateFactory.getInstance()
-				.getPersonalDelegate().getAllSprFamilienstaende());
+		wcbFamilienstand.setMap(DelegateFactory.getInstance().getPersonalDelegate().getAllSprFamilienstaende());
 	}
 
 	protected void eventActionSpecial(ActionEvent e) throws Throwable {
-		if (e.getActionCommand().equals(
-				ACTION_SPECIAL_SOZIALVERISCHERER_FROM_LISTE)) {
+		if (e.getActionCommand().equals(ACTION_SPECIAL_SOZIALVERISCHERER_FROM_LISTE)) {
 			dialogQuerySozialversichererFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_GEBURTSORT_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_GEBURTSORT_FROM_LISTE)) {
 			dialogQueryGeburtsortFromListe(e);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_BERUF_FROM_LISTE)) {
 			dialogQueryBerufFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_FIRMENZUGEHOERIGKEIT_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_FIRMENZUGEHOERIGKEIT_FROM_LISTE)) {
 			dialogQueryFirmenzugehoerigkeitFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_KOLLEKTIV_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_KOLLEKTIV_FROM_LISTE)) {
 			dialogQueryKollektivFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_LOHNGRUPPE_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_LOHNGRUPPE_FROM_LISTE)) {
 			dialogQueryLohngruppeFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_PENDLERPAUSCHALE_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_PENDLERPAUSCHALE_FROM_LISTE)) {
 			dialogQueryPendlerpauschaleFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_RELIGION_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_RELIGION_FROM_LISTE)) {
 			dialogQueryRelgionFromListe(e);
-		} else if (e.getActionCommand().equals(
-				ACTION_SPECIAL_STAATSANGEHOERIGKEIT_FROM_LISTE)) {
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_STAATSANGEHOERIGKEIT_FROM_LISTE)) {
 			dialogQueryStaatsangehoerigkeitFromListe(e);
+		} else if (e.getActionCommand().equals(ACTION_SPECIAL_MASCHINENGRUPPE_FROM_LISTE)) {
+			dialogQueryMaschinengruppeFromListe(e);
 		}
 	}
 
@@ -627,28 +473,24 @@ public class PanelPersonaldaten extends PanelBasis {
 			wtfKollektiv.setText(personalDto.getKollektivDto().getCBez());
 		}
 		if (personalDto.getPendlerpauschaleDto() != null) {
-			wtfPendlerpauschale.setText(personalDto.getPendlerpauschaleDto()
-					.getCBez());
+			wtfPendlerpauschale.setText(personalDto.getPendlerpauschaleDto().getCBez());
 		}
 		if (personalDto.getReligionDto() != null) {
 			wtfReligion.setText(personalDto.getReligionDto().getCNr());
 		}
 		if (personalDto.getLandplzortDto_Geburtsort() != null) {
-			wtfGeburtsort.setText(personalDto.getLandplzortDto_Geburtsort()
-					.formatLandPlzOrt());
+			wtfGeburtsort.setText(personalDto.getLandplzortDto_Geburtsort().formatLandPlzOrt());
 		}
 		if (personalDto.getLohngruppeIId() != null) {
 			wtfLohngruppe.setText(personalDto.getLohngruppeDto().getCBez());
 		}
 		if (personalDto.getPartnerDto_Sozialversicherer() != null) {
-			wtfSozialversicherer.setText(personalDto
-					.getPartnerDto_Sozialversicherer().formatTitelAnrede());
+			wtfSozialversicherer.setText(personalDto.getPartnerDto_Sozialversicherer().formatTitelAnrede());
 		} else {
 			wtfSozialversicherer.setText(null);
 		}
 		if (personalDto.getPartnerDto_Firma() != null) {
-			wtfFirmenzugehoerigkeit.setText(personalDto.getPartnerDto_Firma()
-					.formatTitelAnrede());
+			wtfFirmenzugehoerigkeit.setText(personalDto.getPartnerDto_Firma().formatTitelAnrede());
 		} else {
 			wtfFirmenzugehoerigkeit.setText(null);
 		}
@@ -659,63 +501,40 @@ public class PanelPersonaldaten extends PanelBasis {
 		} else {
 			wtfStaatsangehoerigkeit.setText(null);
 		}
-		wcbFamilienstand
-				.setKeyOfSelectedItem(personalDto.getFamilienstandCNr());
-
-		wcbBekommtUeberstundenausbezahlt.setShort(personalDto
-				.getBUeberstundenausbezahlt());
-
-		if (personalDto.getBAnwesenheitsliste().intValue() == 0) {
-			wcbKeineAnzeigeInAnwesenheitsliste.setShort(new Short((short) 1));
-		} else {
-			wcbKeineAnzeigeInAnwesenheitsliste.setShort(new Short((short) 0));
-		}
-
-		wcbTelefonzeitStarten.setShort(personalDto
-				.getBTelefonzeitstarten());
-		
-		wcbAnwesenheitslisteTermial.setShort(personalDto
-				.getBAnwesenheitTerminal());
-		wcbAnwesenheitslisteAlleTermial.setShort(personalDto
-				.getBAnwesenheitalleterminal());
+		wcbFamilienstand.setKeyOfSelectedItem(personalDto.getFamilienstandCNr());
 
 		wdfGeburtsdatum.setTimestamp(personalDto.getTGeburtsdatum());
 
-		wtfUnterschriftsfunktion.setText(personalDto
-				.getCUnterschriftsfunktion());
+		wtfUnterschriftsfunktion.setText(personalDto.getCUnterschriftsfunktion());
 		wtfUnterschriftstext.setText(personalDto.getCUnterschriftstext());
-
-		wtfImapBenutzer.setText(personalDto.getCImapbenutzer());
-
-		wtfImapKennwort.setText("**********");
 
 		wtfDirektfax.setText(personalDto.getCDirektfax());
 
 		wtfEmail.setEmail(personalDto.getCEmail(), null);
+		wtfEmail.setMailLocale(personalDto.getPartnerDto() != null
+				? Helper.string2Locale(personalDto.getPartnerDto().getLocaleCNrKommunikation())
+				: null);
 
 		wtfFaxdurchwahl.setText(personalDto.getCFax());
 
 		if (personalDto.getCHandy() != null) {
-			wtfHandy.setPartnerKommunikationDto(personalDto.getPartnerDto(),
-					personalDto.getCHandy());
+			wtfHandy.setPartnerKommunikationDto(personalDto.getPartnerDto(), personalDto.getCHandy());
 		} else {
 			wtfHandy.setPartnerKommunikationDto(null, null);
 		}
 
 		wtfDurchwahl.setText(personalDto.getCTelefon());
 
-		wefSignatur.setText(DelegateFactory
-				.getInstance()
-				.getPersonalDelegate()
-				.getSignatur(personalDto.getIId(),
-						LPMain.getTheClient().getLocUiAsString()));
+		wefSignatur.setText(DelegateFactory.getInstance().getPersonalDelegate().getSignatur(personalDto.getIId(),
+				LPMain.getTheClient().getLocUiAsString()));
 
-		if(personalDto.getCImapInboxFolder() != null) {
-			wtfImapInboxFolder.setText(personalDto.getCImapInboxFolder()) ;
-		} else {
-			wtfImapInboxFolder.setText("") ;
+		if (personalDto.getMaschinengruppeIId() != null) {
+			MaschinengruppeDto maschiengruppeDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
+					.maschinengruppeFindByPrimaryKey(
+							personalDto.getMaschinengruppeIId());
+			wtfMaschinengruppe.setText(maschiengruppeDto.getCBez());
 		}
-		
+
 		this.setStatusbarPersonalIIdAendern(personalDto.getPersonalIIdAendern());
 		this.setStatusbarPersonalIIdAnlegen(personalDto.getPersonalIIdAnlegen());
 		this.setStatusbarTAnlegen(personalDto.getTAnlegen());
@@ -723,63 +542,52 @@ public class PanelPersonaldaten extends PanelBasis {
 	}
 
 	void dialogQuerySozialversichererFromListe(ActionEvent e) throws Throwable {
-		panelQueryFLRSozialversicherer = PartnerFilterFactory.getInstance()
-				.createPanelFLRPartner(getInternalFrame(),
-						personalDto.getPartnerIIdSozialversicherer(), true);
+		panelQueryFLRSozialversicherer = PartnerFilterFactory.getInstance().createPanelFLRPartner(getInternalFrame(),
+				personalDto.getPartnerIIdSozialversicherer(), true);
 
 		new DialogQuery(panelQueryFLRSozialversicherer);
 	}
 
-	void dialogQueryFirmenzugehoerigkeitFromListe(ActionEvent e)
-			throws Throwable {
-		panelQueryFLRfirmenzugehoerigkeit = PartnerFilterFactory.getInstance()
-				.createPanelFLRPartner(getInternalFrame(),
-						personalDto.getPartnerIIdFirma(), true);
+	void dialogQueryFirmenzugehoerigkeitFromListe(ActionEvent e) throws Throwable {
+		panelQueryFLRfirmenzugehoerigkeit = PartnerFilterFactory.getInstance().createPanelFLRPartner(getInternalFrame(),
+				personalDto.getPartnerIIdFirma(), true);
 		new DialogQuery(panelQueryFLRfirmenzugehoerigkeit);
 	}
 
 	void dialogQueryGeburtsortFromListe(ActionEvent e) throws Throwable {
 
-		panelQueryFLRGeburtsort = SystemFilterFactory.getInstance()
-				.createPanelFLRLandplzort(getInternalFrame(),
-						personalDto.getLandplzortIIdGeburt(), true);
+		panelQueryFLRGeburtsort = SystemFilterFactory.getInstance().createPanelFLRLandplzort(getInternalFrame(),
+				personalDto.getLandplzortIIdGeburt(), true);
 
 		new DialogQuery(panelQueryFLRGeburtsort);
 	}
 
 	void dialogQueryRelgionFromListe(ActionEvent e) throws Throwable {
 
-		panelQueryFLRReligion = PersonalFilterFactory.getInstance()
-				.createPanelFLRReligion(getInternalFrame(),
-						personalDto.getReligionIId());
+		panelQueryFLRReligion = PersonalFilterFactory.getInstance().createPanelFLRReligion(getInternalFrame(),
+				personalDto.getReligionIId());
 
 		new DialogQuery(panelQueryFLRReligion);
 	}
 
 	void dialogQueryBerufFromListe(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRBeruf = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_BERUF, aWhichButtonIUse,
-				internalFramePersonal, LPMain
-				.getTextRespectUISPr("title.berufauswahlliste"));
-		panelQueryFLRBeruf.befuellePanelFilterkriterienDirekt(
-				SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+		panelQueryFLRBeruf = new PanelQueryFLR(null, null, QueryParameters.UC_ID_BERUF, aWhichButtonIUse,
+				internalFramePersonal, LPMain.getTextRespectUISPr("title.berufauswahlliste"));
+		panelQueryFLRBeruf.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(),
+				null);
 		panelQueryFLRBeruf.setSelectedId(personalDto.getBerufIId());
 		new DialogQuery(panelQueryFLRBeruf);
 	}
 
 	void dialogQueryLohngruppeFromListe(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRLohngrupe = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_LOHNGRUPPE, aWhichButtonIUse,
-				internalFramePersonal, LPMain
-				.getTextRespectUISPr("title.lohngruppeauswahlliste"));
-		panelQueryFLRLohngrupe.befuellePanelFilterkriterienDirekt(
-				SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+		panelQueryFLRLohngrupe = new PanelQueryFLR(null, null, QueryParameters.UC_ID_LOHNGRUPPE, aWhichButtonIUse,
+				internalFramePersonal, LPMain.getTextRespectUISPr("title.lohngruppeauswahlliste"));
+		panelQueryFLRLohngrupe
+				.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
 		panelQueryFLRLohngrupe.setSelectedId(personalDto.getLohngruppeIId());
 
@@ -787,49 +595,51 @@ public class PanelPersonaldaten extends PanelBasis {
 	}
 
 	void dialogQueryKollektivFromListe(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRKollektiv = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_KOLLEKTIV, aWhichButtonIUse,
-				internalFramePersonal, LPMain.getTextRespectUISPr(
-						"title.kollektivauswahlliste"));
-		panelQueryFLRKollektiv.befuellePanelFilterkriterienDirekt(
-				SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+		panelQueryFLRKollektiv = new PanelQueryFLR(null, null, QueryParameters.UC_ID_KOLLEKTIV, aWhichButtonIUse,
+				internalFramePersonal, LPMain.getTextRespectUISPr("title.kollektivauswahlliste"));
+		panelQueryFLRKollektiv
+				.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 		panelQueryFLRKollektiv.setSelectedId(personalDto.getKollektivIId());
 
 		new DialogQuery(panelQueryFLRKollektiv);
 	}
 
+	void dialogQueryMaschinengruppeFromListe(ActionEvent e) throws Throwable {
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
+
+		panelQueryFLRMaschinengruppe = new PanelQueryFLR(null, SystemFilterFactory.getInstance().createFKMandantCNr(),
+				QueryParameters.UC_ID_MASCHINENGRUPPE, aWhichButtonIUse, getInternalFrame(),
+				LPMain.getTextRespectUISPr("pers.maschinengruppe"));
+		panelQueryFLRMaschinengruppe
+				.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+		panelQueryFLRMaschinengruppe.setSelectedId(personalDto.getMaschinengruppeIId());
+
+		new DialogQuery(panelQueryFLRMaschinengruppe);
+	}
+
 	void dialogQueryPendlerpauschaleFromListe(ActionEvent e) throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRPendlerpauschale = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_PENDLERPAUSCHALE, aWhichButtonIUse,
-				internalFramePersonal, LPMain.getTextRespectUISPr(
-								"title.pendlerpauschaleauswahlliste"));
-		panelQueryFLRPendlerpauschale.befuellePanelFilterkriterienDirekt(
-				SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
+		panelQueryFLRPendlerpauschale = new PanelQueryFLR(null, null, QueryParameters.UC_ID_PENDLERPAUSCHALE,
+				aWhichButtonIUse, internalFramePersonal,
+				LPMain.getTextRespectUISPr("title.pendlerpauschaleauswahlliste"));
+		panelQueryFLRPendlerpauschale
+				.befuellePanelFilterkriterienDirekt(SystemFilterFactory.getInstance().createFKDBezeichnung(), null);
 
-		panelQueryFLRPendlerpauschale.setSelectedId(personalDto
-				.getKollektivIId());
+		panelQueryFLRPendlerpauschale.setSelectedId(personalDto.getKollektivIId());
 
 		new DialogQuery(panelQueryFLRPendlerpauschale);
 	}
 
-	void dialogQueryStaatsangehoerigkeitFromListe(ActionEvent e)
-			throws Throwable {
-		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH,
-				PanelBasis.ACTION_LEEREN };
+	void dialogQueryStaatsangehoerigkeitFromListe(ActionEvent e) throws Throwable {
+		String[] aWhichButtonIUse = { PanelBasis.ACTION_REFRESH, PanelBasis.ACTION_LEEREN };
 
-		panelQueryFLRStaatsangehoerigkeit = new PanelQueryFLR(null, null,
-				QueryParameters.UC_ID_LAND, aWhichButtonIUse,
-				internalFramePersonal, LPMain
-						.getTextRespectUISPr("title.landauswahlliste"));
+		panelQueryFLRStaatsangehoerigkeit = new PanelQueryFLR(null, null, QueryParameters.UC_ID_LAND, aWhichButtonIUse,
+				internalFramePersonal, LPMain.getTextRespectUISPr("title.landauswahlliste"));
 
-		panelQueryFLRStaatsangehoerigkeit.setSelectedId(personalDto
-				.getLandIIdStaatsangehoerigkeit());
+		panelQueryFLRStaatsangehoerigkeit.setSelectedId(personalDto.getLandIIdStaatsangehoerigkeit());
 
 		new DialogQuery(panelQueryFLRStaatsangehoerigkeit);
 	}
@@ -837,36 +647,13 @@ public class PanelPersonaldaten extends PanelBasis {
 	protected void components2Dto() throws Throwable {
 
 		personalDto.setCSozialversnr(wtfsozialversicherungsnummer.getText());
-		personalDto.setFamilienstandCNr((String) wcbFamilienstand
-				.getKeyOfSelectedItem());
-		personalDto.setBUeberstundenausbezahlt(wcbBekommtUeberstundenausbezahlt
-				.getShort());
+		personalDto.setFamilienstandCNr((String) wcbFamilienstand.getKeyOfSelectedItem());
 
-		personalDto.setCUnterschriftsfunktion(wtfUnterschriftsfunktion
-				.getText());
+		personalDto.setCUnterschriftsfunktion(wtfUnterschriftsfunktion.getText());
 		personalDto.setCUnterschriftstext(wtfUnterschriftstext.getText());
 
-		personalDto.setCImapbenutzer(wtfImapBenutzer.getText());
-		if (!new String(wtfImapKennwort.getPassword()).equals("**********")) {
-			personalDto.setCImapkennwort(new String(wtfImapKennwort
-					.getPassword()));
-		}
-
-		if (wcbKeineAnzeigeInAnwesenheitsliste.getShort().intValue() == 0) {
-			personalDto.setBAnwesenheitsliste(new Short((short) 1));
-		} else {
-			personalDto.setBAnwesenheitsliste(new Short((short) 0));
-		}
-		personalDto.setBAnwesenheitTerminal(wcbAnwesenheitslisteTermial
-				.getShort());
-		personalDto.setBAnwesenheitalleterminal(wcbAnwesenheitslisteAlleTermial
-				.getShort());
 		personalDto.setTGeburtsdatum(wdfGeburtsdatum.getTimestamp());
 
-		
-		personalDto.setBTelefonzeitstarten(wcbTelefonzeitStarten
-				.getShort());
-		
 		// Kommunikationsdaten
 
 		personalDto.setCDirektfax(wtfDirektfax.getText());
@@ -878,8 +665,7 @@ public class PanelPersonaldaten extends PanelBasis {
 		personalDto.setCFax(wtfFaxdurchwahl.getText());
 
 		personalDto.setCHandy(wtfHandy.getText());
-		
-		personalDto.setCImapInboxFolder(wtfImapInboxFolder.getText());
+
 	}
 
 	protected void eventItemchanged(EventObject eI) throws Throwable {
@@ -888,80 +674,68 @@ public class PanelPersonaldaten extends PanelBasis {
 
 			if (e.getSource() == panelQueryFLRBeruf) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				BerufDto berufDto = DelegateFactory.getInstance()
-						.getPersonalDelegate()
+				BerufDto berufDto = DelegateFactory.getInstance().getPersonalDelegate()
 						.berufFindByPrimaryKey((Integer) key);
 				wtfBeruf.setText(berufDto.getCBez());
 				personalDto.setBerufIId(berufDto.getIId());
 			} else if (e.getSource() == panelQueryFLRfirmenzugehoerigkeit) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				PartnerDto partnerTempDto = DelegateFactory.getInstance()
-						.getPartnerDelegate()
+				PartnerDto partnerTempDto = DelegateFactory.getInstance().getPartnerDelegate()
 						.partnerFindByPrimaryKey((Integer) key);
-				if (partnerTempDto.getIId().equals(
-						internalFramePersonal.getPersonalDto().getPartnerDto()
-								.getIId())) {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getTextRespectUISPr(
-											"lp.error"),
-									LPMain.getTextRespectUISPr(
-													"pers.error.kannnichtselbstzugeordnetwerden"));
+				if (partnerTempDto.getIId().equals(internalFramePersonal.getPersonalDto().getPartnerDto().getIId())) {
+					DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+							LPMain.getTextRespectUISPr("pers.error.kannnichtselbstzugeordnetwerden"));
 				} else {
-					wtfFirmenzugehoerigkeit.setText(partnerTempDto
-							.formatAnrede());
+					wtfFirmenzugehoerigkeit.setText(partnerTempDto.formatAnrede());
 					personalDto.setPartnerIIdFirma(partnerTempDto.getIId());
 				}
 			} else if (e.getSource() == panelQueryFLRGeburtsort) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LandplzortDto landplzortDto = DelegateFactory.getInstance()
-						.getSystemDelegate()
+				LandplzortDto landplzortDto = DelegateFactory.getInstance().getSystemDelegate()
 						.landplzortFindByPrimaryKey((Integer) key);
 				wtfGeburtsort.setText(landplzortDto.formatLandPlzOrt());
 				personalDto.setLandplzortIIdGeburt(landplzortDto.getIId());
 			} else if (e.getSource() == panelQueryFLRKollektiv) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				KollektivDto kollektivDto = DelegateFactory.getInstance()
-						.getPersonalDelegate()
+				KollektivDto kollektivDto = DelegateFactory.getInstance().getPersonalDelegate()
 						.kollektivFindByPrimaryKey((Integer) key);
 				wtfKollektiv.setText(kollektivDto.getCBez());
 				personalDto.setKollektivIId(kollektivDto.getIId());
 			} else if (e.getSource() == panelQueryFLRLohngrupe) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LohngruppeDto lohngruppeDto = DelegateFactory.getInstance()
-						.getPersonalDelegate()
+				LohngruppeDto lohngruppeDto = DelegateFactory.getInstance().getPersonalDelegate()
 						.lohngruppeFindByPrimaryKey((Integer) key);
 				wtfLohngruppe.setText(lohngruppeDto.getCBez());
 				personalDto.setLohngruppeIId(lohngruppeDto.getIId());
 			} else if (e.getSource() == panelQueryFLRPendlerpauschale) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				PendlerpauschaleDto pendlerpauschaleDto = DelegateFactory
-						.getInstance().getPersonalDelegate()
+				PendlerpauschaleDto pendlerpauschaleDto = DelegateFactory.getInstance().getPersonalDelegate()
 						.pendlerpauschaleFindByPrimaryKey((Integer) key);
 				wtfPendlerpauschale.setText(pendlerpauschaleDto.getCBez());
-				personalDto
-						.setPendlerpauschaleIId(pendlerpauschaleDto.getIId());
+				personalDto.setPendlerpauschaleIId(pendlerpauschaleDto.getIId());
 			} else if (e.getSource() == panelQueryFLRReligion) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				ReligionDto religionDto = DelegateFactory.getInstance()
-						.getPersonalDelegate()
+				ReligionDto religionDto = DelegateFactory.getInstance().getPersonalDelegate()
 						.religionFindByPrimaryKey((Integer) key);
 				wtfReligion.setText(religionDto.getCNr());
 				personalDto.setReligionIId(religionDto.getIId());
 			} else if (e.getSource() == panelQueryFLRSozialversicherer) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				PartnerDto partnerDto = DelegateFactory.getInstance()
-						.getPartnerDelegate()
+				PartnerDto partnerDto = DelegateFactory.getInstance().getPartnerDelegate()
 						.partnerFindByPrimaryKey((Integer) key);
 				wtfSozialversicherer.setText(partnerDto.formatAnrede());
 				personalDto.setPartnerIIdSozialversicherer(partnerDto.getIId());
 			} else if (e.getSource() == panelQueryFLRStaatsangehoerigkeit) {
 				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
-				LandDto landDto = DelegateFactory.getInstance()
-						.getSystemDelegate()
-						.landFindByPrimaryKey((Integer) key);
+				LandDto landDto = DelegateFactory.getInstance().getSystemDelegate().landFindByPrimaryKey((Integer) key);
 				wtfStaatsangehoerigkeit.setText(landDto.getCLkz());
 				personalDto.setLandIIdStaatsangehoerigkeit(landDto.getIID());
+			} else if (e.getSource() == panelQueryFLRMaschinengruppe) {
+				Object key = ((ISourceEvent) e.getSource()).getIdSelected();
+				MaschinengruppeDto maschiengruppeDto = DelegateFactory.getInstance().getZeiterfassungDelegate()
+						.maschinengruppeFindByPrimaryKey((Integer) key);
+				wtfMaschinengruppe.setText(maschiengruppeDto.getCBez());
+				personalDto.setMaschinengruppeIId(maschiengruppeDto.getIId());
 			}
 		} else if (e.getID() == ItemChangedEvent.ACTION_LEEREN) {
 			if (e.getSource() == panelQueryFLRBeruf) {
@@ -1000,20 +774,19 @@ public class PanelPersonaldaten extends PanelBasis {
 				wtfStaatsangehoerigkeit.setText(null);
 				personalDto.setLandDto(null);
 				personalDto.setLandIIdStaatsangehoerigkeit(null);
+			}else if (e.getSource() == panelQueryFLRMaschinengruppe) {
+				wtfMaschinengruppe.setText(null);
+				personalDto.setMaschinengruppeIId(null);
 			}
 		}
 	}
 
-	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-			throws Throwable {
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI) throws Throwable {
 		if (super.allMandatoryFieldsSetDlg()) {
 			components2Dto();
-			DelegateFactory.getInstance().getPersonalDelegate()
-					.updatePersonal(personalDto);
-			DelegateFactory
-					.getInstance()
-					.getPersonalDelegate()
-					.updateSignatur(personalDto.getIId(), wefSignatur.getText());
+			DelegateFactory.getInstance().getPersonalDelegate().updatePersonal(personalDto);
+			DelegateFactory.getInstance().getPersonalDelegate().updateSignatur(personalDto.getIId(),
+					wefSignatur.getText());
 		}
 		super.eventActionSave(e, true);
 	}

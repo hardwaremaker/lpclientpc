@@ -34,8 +34,10 @@ package com.lp.client.frame.delegate;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -44,12 +46,14 @@ import com.lp.client.frame.ExceptionLP;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.server.anfrage.service.AnfrageServiceFac;
 import com.lp.server.angebot.service.AngebotDto;
 import com.lp.server.angebot.service.AngebotFac;
 import com.lp.server.auftrag.service.AuftragDto;
 import com.lp.server.lieferschein.service.LieferscheinDto;
 import com.lp.server.system.service.BelegPruefungDto;
 import com.lp.server.system.service.LocaleFac;
+import com.lp.server.system.service.TheClientDto;
 
 /**
  * <p>
@@ -72,8 +76,8 @@ public class AngebotDelegate extends Delegate {
 	public AngebotDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			angebotFac = (AngebotFac) context
-					.lookup("lpserver/AngebotFacBean/remote");
+
+			angebotFac = lookupFac(context, AngebotFac.class);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -83,18 +87,15 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Anlegen einer neuen Angebot.
 	 * 
-	 * @param angebotDtoI
-	 *            die neue Angebot
+	 * @param angebotDtoI die neue Angebot
 	 * @return Integer PK der neuen Angebot
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public Integer createAngebot(AngebotDto angebotDtoI) throws ExceptionLP {
 		Integer iIdAngebot = null;
 
 		try {
-			iIdAngebot = angebotFac.createAngebot(angebotDtoI,
-					LPMain.getTheClient());
+			iIdAngebot = angebotFac.createAngebot(angebotDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -105,10 +106,8 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Eine Angebot stornieren.
 	 * 
-	 * @param angebotDtoI
-	 *            das Angebot
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param angebotDtoI das Angebot
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void storniereAngebot(AngebotDto angebotDtoI) throws ExceptionLP {
 		try {
@@ -121,10 +120,8 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Eine Angebot mit Status 'Storniert' auf 'Offen' setzen.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK der Angebot
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAngebotI PK der Angebot
+	 * @throws ExceptionLP Ausnahme
 	 */
 	public void stornoAufheben(Integer iIdAngebotI) throws ExceptionLP {
 		try {
@@ -137,18 +134,13 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Eine Angebot manuell auf erledigt setzen.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK der Angebot
-	 * @param cNrAngeboterledigungsgrundI
-	 *            der Erledigungsgrund
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAngebotI                 PK der Angebot
+	 * @param cNrAngeboterledigungsgrundI der Erledigungsgrund
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void angebotManuellErledigen(Integer iIdAngebotI,
-			String cNrAngeboterledigungsgrundI) throws ExceptionLP {
+	public void angebotManuellErledigen(Integer iIdAngebotI, String cNrAngeboterledigungsgrundI) throws ExceptionLP {
 		try {
-			angebotFac.angebotManuellErledigen(iIdAngebotI,
-					cNrAngeboterledigungsgrundI, LPMain.getTheClient());
+			angebotFac.angebotManuellErledigen(iIdAngebotI, cNrAngeboterledigungsgrundI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -157,21 +149,16 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Eine Angebot manuell auf erledigt setzen.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK der Angebot
-	 * @param iIdAuftragI
-	 *            der Auftrag
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAngebotI PK der Angebot
+	 * @param iIdAuftragI der Auftrag
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public boolean angebotManuellErledigendurchAuftrag(Integer iIdAngebotI,
-			Integer iIdAuftragI) throws ExceptionLP {
+	public String angebotManuellErledigendurchAuftrag(Integer iIdAngebotI, ArrayList<Integer> iIdAuftragIs) throws ExceptionLP {
 		try {
-			return angebotFac.angebotManuellErledigendurchAuftrag(iIdAngebotI,
-					iIdAuftragI, LPMain.getTheClient());
+			return angebotFac.angebotManuellErledigendurchAuftrag(iIdAngebotI, iIdAuftragIs, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
-			return false;
+			return null;
 		}
 	}
 
@@ -180,16 +167,12 @@ public class AngebotDelegate extends Delegate {
 	 * Diese Aktion ist nur moeglich, wenn der 'Erledigt' Status manuell gesetzt
 	 * wurde.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK des Angebots
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAngebotI PK des Angebots
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void manuelleErledigungAufheben(Integer iIdAngebotI)
-			throws ExceptionLP {
+	public void manuelleErledigungAufheben(Integer iIdAngebotI) throws ExceptionLP {
 		try {
-			angebotFac.manuelleErledigungAufheben(iIdAngebotI,
-					LPMain.getTheClient());
+			angebotFac.manuelleErledigungAufheben(iIdAngebotI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -198,18 +181,13 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Eine bestehende Angebot aktualisieren.
 	 * 
-	 * @param angebotDtoI
-	 *            das aktuelle Angebot
-	 * @param waehrungOriCNrI
-	 *            die urspruengliche Waehrung
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param angebotDtoI     das aktuelle Angebot
+	 * @param waehrungOriCNrI die urspruengliche Waehrung
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public boolean updateAngebot(AngebotDto angebotDtoI, String waehrungOriCNrI)
-			throws ExceptionLP {
+	public boolean updateAngebot(AngebotDto angebotDtoI, String waehrungOriCNrI) throws ExceptionLP {
 		try {
-			return angebotFac.updateAngebot(angebotDtoI, waehrungOriCNrI,
-					LPMain.getTheClient());
+			return angebotFac.updateAngebot(angebotDtoI, waehrungOriCNrI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 			return false;
@@ -219,43 +197,35 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Angebotstatus eines bestehenden Angebot aendern.
 	 * 
-	 * @param angebotDto
-	 *            AngebotDto
-	 * @param pStatus
-	 *            String
+	 * @param angebotDto AngebotDto
+	 * @param pStatus    String
 	 * @throws ExceptionLP
 	 */
-	public void setAngebotstatus(AngebotDto angebotDto, String pStatus)
-			throws ExceptionLP {
+	public void setAngebotstatus(AngebotDto angebotDto, String pStatus) throws ExceptionLP {
 		angebotDto.setStatusCNr(pStatus);
 		updateAngebot(angebotDto, null);
 	}
 
 	/**
-	 * Die Daten eines Angebots aktualisieren ohne weitere Aenderungen
-	 * vorzunehmen. Pflege der Akquisedaten.
+	 * Die Daten eines Angebots aktualisieren ohne weitere Aenderungen vorzunehmen.
+	 * Pflege der Akquisedaten.
 	 * 
-	 * @param angebotDtoI
-	 *            AngebotDto
+	 * @param angebotDtoI AngebotDto
 	 * @throws ExceptionLP
 	 */
-	public void updateAngebotOhneWeitereAktion(AngebotDto angebotDtoI)
-			throws ExceptionLP {
+	public void updateAngebotOhneWeitereAktion(AngebotDto angebotDtoI) throws ExceptionLP {
 		try {
-			angebotFac.updateAngebotOhneWeitereAktion(angebotDtoI,
-					LPMain.getTheClient());
+			angebotFac.updateAngebotOhneWeitereAktion(angebotDtoI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public AngebotDto angebotFindByPrimaryKey(Integer iIdAngebotI)
-			throws ExceptionLP {
+	public AngebotDto angebotFindByPrimaryKey(Integer iIdAngebotI) throws ExceptionLP {
 		AngebotDto angebotDto = null;
 
 		try {
-			angebotDto = angebotFac.angebotFindByPrimaryKey(iIdAngebotI,
-					LPMain.getTheClient());
+			angebotDto = angebotFac.angebotFindByPrimaryKey(iIdAngebotI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -265,8 +235,7 @@ public class AngebotDelegate extends Delegate {
 
 	public AngebotDto angebotFindByCNr(String cNr) throws ExceptionLP {
 		try {
-			return angebotFac.angebotFindByCNrMandantCNrOhneEx(cNr, LPMain
-					.getTheClient().getMandant());
+			return angebotFac.angebotFindByCNrMandantCNrOhneEx(cNr, LPMain.getTheClient().getMandant());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -274,17 +243,17 @@ public class AngebotDelegate extends Delegate {
 		return null;
 	}
 
-	public void aktiviereBelegControlled(Integer iid, Timestamp t)
-			throws ExceptionLP {
+	public void aktiviereBelegControlled(Integer iid, Timestamp t) throws ExceptionLP {
 		try {
 			BelegPruefungDto pruefungDto = angebotFac.aktiviereBelegControlled(iid, t, LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto);			
+			dialogBelegpruefung(pruefungDto);
 			// SP1881
 //			DelegateFactory
 //					.getInstance()
 //					.getSystemDelegate()
 //					.enthaeltEinVKBelegUmsatzsteuerObwohlKundeSteuerfrei(
 //							LocaleFac.BELEGART_ANGEBOT, iid);
+
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
@@ -292,47 +261,40 @@ public class AngebotDelegate extends Delegate {
 
 	public Timestamp berechneBelegControlled(Integer iid) throws ExceptionLP {
 		try {
-			BelegPruefungDto pruefungDto = angebotFac.berechneBelegControlled(iid,
-					LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto) ;
-			return pruefungDto.getBerechnungsZeitpunkt() ;
+			BelegPruefungDto pruefungDto = angebotFac.berechneBelegControlled(iid, LPMain.getTheClient());
+			dialogBelegpruefung(pruefungDto);
+			return pruefungDto.getBerechnungsZeitpunkt();
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
 		return null;
 	}
-
 
 	public Timestamp berechneAktiviereBelegControlled(Integer iid) throws ExceptionLP {
 		try {
-			BelegPruefungDto pruefungDto = angebotFac.berechneAktiviereBelegControlled(iid,
-					LPMain.getTheClient());
-			dialogBelegpruefung(pruefungDto) ;
-			return pruefungDto.getBerechnungsZeitpunkt() ;
+			BelegPruefungDto pruefungDto = angebotFac.berechneAktiviereBelegControlled(iid, LPMain.getTheClient());
+			dialogBelegpruefung(pruefungDto);
+			return pruefungDto.getBerechnungsZeitpunkt();
 		} catch (Throwable t1) {
 			handleThrowable(t1);
 		}
 		return null;
 	}
-	
+
 	/**
-	 * Berechne den Gesamtwert eines bestimmten Angebots in der
-	 * Angebotswaehrung. <br>
+	 * Berechne den Gesamtwert eines bestimmten Angebots in der Angebotswaehrung.
+	 * <br>
 	 * Beruecksichtigt werden alle mengenbehafteten Positionen.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK des Angebots
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAngebotI PK des Angebots
+	 * @throws ExceptionLP Ausnahme
 	 * @return BigDecimal der Gesamtwert des Angebots
 	 */
-	public BigDecimal berechneNettowertGesamt(Integer iIdAngebotI)
-			throws ExceptionLP {
+	public BigDecimal berechneNettowertGesamt(Integer iIdAngebotI) throws ExceptionLP {
 		BigDecimal nGesamtwert = null;
 
 		try {
-			nGesamtwert = angebotFac.berechneNettowertGesamt(iIdAngebotI,
-					LPMain.getTheClient());
+			nGesamtwert = angebotFac.berechneNettowertGesamt(iIdAngebotI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -345,27 +307,75 @@ public class AngebotDelegate extends Delegate {
 	 * Angebots. <br>
 	 * Es werden auch die Positionen kopiert.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK des bestehenden Angebots
+	 * @param iIdAngebotI PK des bestehenden Angebots
 	 * @return Integer PK des neuen Angebots
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public Integer erzeugeAngebotAusAngebot(Integer iIdAngebotI,
-			InternalFrame interalFrame) throws ExceptionLP {
+	public Integer erzeugeAngebotAusAngebot(Integer iIdAngebotI, InternalFrame interalFrame) throws ExceptionLP {
 		Integer iIdAngebot = null;
 
 		try {
-			iIdAngebot = angebotFac.erzeugeAngebotAusAngebot(iIdAngebotI,
-					LPMain.getTheClient());
+			iIdAngebot = angebotFac.erzeugeAngebotAusAngebot(iIdAngebotI, LPMain.getTheClient());
 
 			if (iIdAngebot != null) {
 				AngebotDto agDto = angebotFindByPrimaryKey(iIdAngebot);
-				DelegateFactory
-						.getInstance()
-						.getKundeDelegate()
-						.pruefeKunde(agDto.getKundeIIdAngebotsadresse(),
-								LocaleFac.BELEGART_ANGEBOT, interalFrame);
+				DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(agDto.getKundeIIdAngebotsadresse(),
+						LocaleFac.BELEGART_ANGEBOT, interalFrame);
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						agDto.getAnsprechpartnerIIdKunde(), agDto.getAnsprechpartnerIIdLieferadresse(),
+						agDto.getAnsprechpartnerIIdRechnungsadresse());
+
+			}
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return iIdAngebot;
+	}
+
+	public Integer erzeugeAngebotAusAuftrag(Integer auftragIId, InternalFrame interalFrame) throws ExceptionLP {
+		Integer iIdAngebot = null;
+
+		try {
+			iIdAngebot = angebotFac.erzeugeAngebotAusAuftrag(auftragIId, LPMain.getTheClient());
+
+			if (iIdAngebot != null) {
+				AngebotDto agDto = angebotFindByPrimaryKey(iIdAngebot);
+				DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(agDto.getKundeIIdAngebotsadresse(),
+						LocaleFac.BELEGART_ANGEBOT, interalFrame);
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						agDto.getAnsprechpartnerIIdKunde(), agDto.getAnsprechpartnerIIdLieferadresse(),
+						agDto.getAnsprechpartnerIIdRechnungsadresse());
+			}
+
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return iIdAngebot;
+	}
+
+	public Integer erzeugeAngebotAusRechnung(Integer rechnungIId, InternalFrame interalFrame) throws ExceptionLP {
+		Integer iIdAngebot = null;
+
+		try {
+			iIdAngebot = angebotFac.erzeugeAngebotAusRechnung(rechnungIId, LPMain.getTheClient());
+
+			if (iIdAngebot != null) {
+				AngebotDto agDto = angebotFindByPrimaryKey(iIdAngebot);
+				DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(agDto.getKundeIIdAngebotsadresse(),
+						LocaleFac.BELEGART_ANGEBOT, interalFrame);
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						agDto.getAnsprechpartnerIIdKunde(), agDto.getAnsprechpartnerIIdLieferadresse(),
+						agDto.getAnsprechpartnerIIdRechnungsadresse());
+
 			}
 
 		} catch (Throwable t) {
@@ -376,53 +386,49 @@ public class AngebotDelegate extends Delegate {
 	}
 
 	/**
-	 * Methode zum Erzeugen eines Auftrags als Kopie eines bestehenden Angebots. <br>
+	 * Methode zum Erzeugen eines Auftrags als Kopie eines bestehenden Angebots.
+	 * <br>
 	 * Es werden auch die Positionen kopiert.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK des bestehenden Angebots
+	 * @param iIdAngebotI PK des bestehenden Angebots
 	 * @return Integer PK des neuen Auftrags
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public Integer erzeugeAuftragAusAngebot(Integer iIdAngebotI,
-			boolean bMitZeitDaten, boolean bRahmenauftrag,
-			InternalFrame interalFrame) throws ExceptionLP {
+	public Integer erzeugeAuftragAusAngebot(Integer iIdAngebotI, boolean bMitZeitDaten, boolean bRahmenauftrag,
+			boolean bAlternativPositionenUebernehmen, InternalFrame interalFrame) throws ExceptionLP {
 		Integer iIdAuftrag = null;
 
 		try {
-			iIdAuftrag = angebotFac.erzeugeAuftragAusAngebot(iIdAngebotI,
-					bMitZeitDaten, bRahmenauftrag, LPMain.getTheClient());
+			iIdAuftrag = angebotFac.erzeugeAuftragAusAngebot(iIdAngebotI, bMitZeitDaten, bRahmenauftrag,
+					bAlternativPositionenUebernehmen, LPMain.getTheClient());
 
 			if (iIdAuftrag != null) {
 
 				HashMap<Integer, Integer> hmKunden = new HashMap<Integer, Integer>();
 
-				AuftragDto abDto = DelegateFactory.getInstance()
-						.getAuftragDelegate()
+				AuftragDto abDto = DelegateFactory.getInstance().getAuftragDelegate()
 						.auftragFindByPrimaryKey(iIdAuftrag);
 
-				hmKunden.put(abDto.getKundeIIdAuftragsadresse(),
-						abDto.getKundeIIdAuftragsadresse());
+				hmKunden.put(abDto.getKundeIIdAuftragsadresse(), abDto.getKundeIIdAuftragsadresse());
 				if (!hmKunden.containsKey(abDto.getKundeIIdRechnungsadresse())) {
-					hmKunden.put(abDto.getKundeIIdRechnungsadresse(),
-							abDto.getKundeIIdRechnungsadresse());
+					hmKunden.put(abDto.getKundeIIdRechnungsadresse(), abDto.getKundeIIdRechnungsadresse());
 				}
 
 				if (!hmKunden.containsKey(abDto.getKundeIIdLieferadresse())) {
-					hmKunden.put(abDto.getKundeIIdLieferadresse(),
-							abDto.getKundeIIdLieferadresse());
+					hmKunden.put(abDto.getKundeIIdLieferadresse(), abDto.getKundeIIdLieferadresse());
 				}
 
 				Iterator<Integer> it = hmKunden.keySet().iterator();
 
 				while (it.hasNext()) {
-					DelegateFactory
-							.getInstance()
-							.getKundeDelegate()
-							.pruefeKunde(it.next(), LocaleFac.BELEGART_AUFTRAG,
-									interalFrame);
+					DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(it.next(), LocaleFac.BELEGART_AUFTRAG,
+							interalFrame);
 				}
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						abDto.getAnsprechparnterIId(), abDto.getAnsprechpartnerIIdLieferadresse(),
+						abDto.getAnsprechpartnerIIdRechnungsadresse());
 
 			}
 
@@ -436,46 +442,39 @@ public class AngebotDelegate extends Delegate {
 	/**
 	 * Methode zum Erzeugen eines Lieferscheins aus einem bestehenden Angebot.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK des bestehenden Angebots
+	 * @param iIdAngebotI PK des bestehenden Angebots
 	 * @return Integer PK des neuen Lieferscheins
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public Integer erzeugeLieferscheinAusAngebot(Integer iIdAngebotI,
-			InternalFrame interalFrame) throws ExceptionLP {
+	public Integer erzeugeLieferscheinAusAngebot(Integer iIdAngebotI, InternalFrame interalFrame) throws ExceptionLP {
 		Integer lieferscheinIId = null;
 
 		try {
-			lieferscheinIId = angebotFac.erzeugeLieferscheinAusAngebot(
-					iIdAngebotI, LPMain.getTheClient());
+			lieferscheinIId = angebotFac.erzeugeLieferscheinAusAngebot(iIdAngebotI, LPMain.getTheClient());
 
 			if (lieferscheinIId != null) {
 
 				HashMap<Integer, Integer> hmKunden = new HashMap<Integer, Integer>();
 
-				LieferscheinDto lsDto = DelegateFactory.getInstance()
-						.getLsDelegate()
+				LieferscheinDto lsDto = DelegateFactory.getInstance().getLsDelegate()
 						.lieferscheinFindByPrimaryKey(lieferscheinIId);
 
-				hmKunden.put(lsDto.getKundeIIdLieferadresse(),
-						lsDto.getKundeIIdLieferadresse());
+				hmKunden.put(lsDto.getKundeIIdLieferadresse(), lsDto.getKundeIIdLieferadresse());
 
 				if (!hmKunden.containsKey(lsDto.getKundeIIdRechnungsadresse())) {
-					hmKunden.put(lsDto.getKundeIIdRechnungsadresse(),
-							lsDto.getKundeIIdRechnungsadresse());
+					hmKunden.put(lsDto.getKundeIIdRechnungsadresse(), lsDto.getKundeIIdRechnungsadresse());
 				}
 
 				Iterator<Integer> it = hmKunden.keySet().iterator();
 
 				while (it.hasNext()) {
-					DelegateFactory
-							.getInstance()
-							.getKundeDelegate()
-							.pruefeKunde(it.next(),
-									LocaleFac.BELEGART_LIEFERSCHEIN,
-									interalFrame);
+					DelegateFactory.getInstance().getKundeDelegate().pruefeKunde(it.next(),
+							LocaleFac.BELEGART_LIEFERSCHEIN, interalFrame);
 				}
+
+				// SP6638
+				DelegateFactory.getInstance().getAnsprechpartnerDelegate().pruefeObAnsprechpartnerVersteckt(
+						lsDto.getAnsprechpartnerIId(), lsDto.getAnsprechpartnerIIdRechnungsadresse());
 
 			}
 
@@ -487,36 +486,28 @@ public class AngebotDelegate extends Delegate {
 	}
 
 	/**
-	 * Wenn die Zu- und Abschlaege in den Positionen geaendert wurden, dann
-	 * werden im Anschluss die davon abhaengigen Werte neu berechnet.
+	 * Wenn die Zu- und Abschlaege in den Positionen geaendert wurden, dann werden
+	 * im Anschluss die davon abhaengigen Werte neu berechnet.
 	 * 
-	 * @param iIdAngebotI
-	 *            PK des Angebots
-	 * @throws ExceptionLP
-	 *             Ausnahme
+	 * @param iIdAngebotI PK des Angebots
+	 * @throws ExceptionLP Ausnahme
 	 */
-	public void updateAngebotKonditionen(Integer iIdAngebotI)
-			throws ExceptionLP {
+	public void updateAngebotKonditionen(Integer iIdAngebotI) throws ExceptionLP {
 		try {
-			angebotFac.updateAngebotKonditionen(iIdAngebotI,
-					LPMain.getTheClient());
+			angebotFac.updateAngebotKonditionen(iIdAngebotI, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
 	}
 
-	public void korrekturbetragZuruecknehmen(Integer iIdAngebotI)
-			throws ExceptionLP {
+	public void korrekturbetragZuruecknehmen(Integer iIdAngebotI) throws ExceptionLP {
 		try {
 
 			AngebotDto agDto = angebotFindByPrimaryKey(iIdAngebotI);
 
-			if (agDto.getNKorrekturbetrag() != null
-					&& agDto.getNKorrekturbetrag().doubleValue() != 0) {
-				DialogFactory
-						.showModalDialog(
-								LPMain.getTextRespectUISPr("lp.hinweis"),
-								LPMain.getTextRespectUISPr("lp.korrekturbetragzurueckgenommen"));
+			if (agDto.getNKorrekturbetrag() != null && agDto.getNKorrekturbetrag().doubleValue() != 0) {
+				DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.hinweis"),
+						LPMain.getTextRespectUISPr("lp.korrekturbetragzurueckgenommen"));
 			}
 
 			angebotFac.korrekturbetragZuruecknehmen(iIdAngebotI);
@@ -525,12 +516,49 @@ public class AngebotDelegate extends Delegate {
 		}
 	}
 
-	public void setzeVersandzeitpunktAufJetzt(Integer iAngebotIId,
-			String sDruckart) throws ExceptionLP {
+	public void setzeVersandzeitpunktAufJetzt(Integer iAngebotIId, String sDruckart) throws ExceptionLP {
 		try {
 			angebotFac.setzeVersandzeitpunktAufJetzt(iAngebotIId, sDruckart);
 		} catch (Throwable t) {
 			handleThrowable(t);
+		}
+	}
+
+	public void repairAngebotZws5524(Integer angebotId) throws ExceptionLP {
+		try {
+			angebotFac.repairAngebotZws5524(angebotId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+	}
+
+	public List<Integer> repairAngebotZws5524GetList() throws ExceptionLP {
+		try {
+			return angebotFac.repairAngebotZws5524GetList(LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return new ArrayList<Integer>();
+	}
+
+	public AngebotDto erzeugeAenderungsangebot(Integer angebotIId) throws ExceptionLP {
+		try {
+			return angebotFac.erzeugeAenderungsangebot(angebotIId, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+			return null;
+		}
+	}
+
+	public void uebersteuereIntelligenteZwischensumme(Integer angebotpositionIId,
+			BigDecimal bdBetragInBelegwaehrungUebersteuert) throws ExceptionLP {
+		try {
+			angebotFac.uebersteuereIntelligenteZwischensumme(angebotpositionIId, bdBetragInBelegwaehrungUebersteuert,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+
 		}
 	}
 

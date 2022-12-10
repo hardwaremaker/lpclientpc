@@ -252,15 +252,15 @@ public class PanelZeitmodelltagpause
     jpaWorkingOn.add(wlaBeginn, new GridBagConstraints(0, 1, 1, 1, 0.05, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
         0, 0));
-    jpaWorkingOn.add(wtfBeginn, new GridBagConstraints(1, 1, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        50, 0));
+    jpaWorkingOn.add(wtfBeginn, new GridBagConstraints(1, 1, 1, 1, 0.05, 0.0
+        , GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0),
+        80, 0));
     jpaWorkingOn.add(wlaKommt, new GridBagConstraints(2, 1, 1, 1, 0.05, 0.0
         , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
         0, 0));
-    jpaWorkingOn.add(wtfEnde, new GridBagConstraints(3, 1, 1, 1, 0.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0),
-        50, 0));
+    jpaWorkingOn.add(wtfEnde, new GridBagConstraints(3, 1, 1, 1, 0.05, 0.0
+        , GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0),
+        80, 0));
     String[] aWhichButtonIUse = {
         ACTION_UPDATE,
         ACTION_SAVE,

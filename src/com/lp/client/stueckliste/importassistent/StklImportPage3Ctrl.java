@@ -42,7 +42,6 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.BoundedRangeModel;
 import javax.swing.DefaultBoundedRangeModel;
 import javax.swing.SwingWorker;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
 import com.lp.client.frame.ExceptionLP;
@@ -54,33 +53,32 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.artikel.service.ArtikelsprDto;
-import com.lp.server.stueckliste.service.CondensedResultList;
 import com.lp.server.stueckliste.service.IStklImportResult;
-import com.lp.server.system.service.MandantFac;
+import com.lp.server.system.service.MandantDto;
+import com.lp.util.Helper;
 
-public class StklImportPage3Ctrl extends AssistentPageController {
+public abstract class StklImportPage3Ctrl extends AssistentPageController {
 	
 	protected static final int LINES_PER_SERVER_CALL = 5;
 	
 	public static final ArtikelDto HANDARTIKEL = getHandartikel();
 	public static final ArtikelDto FLR_LISTE = getFLRAuswahl();
 	public static final ArtikelDto ZUVIELE_ARTIKEL_FLR_LISTE = getZuvieleArtikel();
+	public static final ArtikelDto ARTIKEL_ERZEUGEN = getArtikelErzeugen();
 	
-	private StklImportModel model;
-	private int progress = 0;
-	private boolean isBusyImporting = true;
-	private BoundedRangeModel boundedRangeModel;
-	private boolean zusammengefasst = true;
-	private SwingWorker<List<IStklImportResult>, Void> worker;
-	private IStklImportResult resultWaitingForArtikelIId;
-	private INeedArtikelAuswahlListener artikelAuswahlListener;
-	private boolean bZentralerArtikelstamm;
+	protected StklImportModel model;
+	protected int progress = 0;
+	protected boolean isBusyImporting = true;
+	protected BoundedRangeModel boundedRangeModel;
+	protected boolean zusammengefasst = true;
+	protected int cbMappingUpdateState = WrapperTristateCheckbox.SELECTED;
+	protected SwingWorker<List<IStklImportResult>, Void> worker;
+	protected IStklImportResult resultWaitingForArtikelIId;
+	protected INeedArtikelAuswahlListener artikelAuswahlListener;
+	private Boolean demo = null;
 	
 	public StklImportPage3Ctrl(StklImportModel model) {
 		this.model = model;
-		this.bZentralerArtikelstamm = LPMain.getInstance().getDesktop()
-				.darfAnwenderAufZusatzfunktionZugreifen(
-						MandantFac.ZUSATZFUNKTION_ZENTRALER_ARTIKELSTAMM);
 	}
 
 	private static ArtikelDto getHandartikel() {
@@ -166,16 +164,10 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 		return boundedRangeModel;
 	}
 	
-	public TableModel getResultTableModel() {
-		if(model.getResults() != null) {
-			List<IStklImportResult> results = zusammengefasst ?
-					new CondensedResultList(model.getResults()) : model.getResults();
-			return new ResultTableModel(this, results, model.getSelectedSpezifikation().getColumnTypes());
-		}
-		return new DefaultTableModel();
-	}
+	public abstract TableModel getResultTableModel();
 	
 	public void tableModelValueChanged() {
+		updateCheckboxStatus();
 		fireNavigationUpdateEvent();
 		fireDataUpdateEvent();
 	}
@@ -206,8 +198,7 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 			if(res.getSelectedIndex() == null || res.getSelectedIndex() == -1)
 				res.setSelectedIndex(res.getFoundItems().indexOf(HANDARTIKEL));
 		}
-		fireDataUpdateEvent();
-		fireNavigationUpdateEvent();
+		tableModelValueChanged();
 	}
 	
 	public boolean isBusyImporting() {
@@ -218,7 +209,7 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 		return getResultWaitingForArtikelIId() != null;
 	}
 	
-	public void setChoosenArtikelIId(Integer iid) {
+	public void setChosenArtikelIId(Integer iid) {
 		if(isWaitingForArtikelIId()) {
 			if(iid == null) {
 				getResultWaitingForArtikelIId().setSelectedIndex(-1);
@@ -231,6 +222,7 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 					foundItems.add(0, artikel);
 					getResultWaitingForArtikelIId().setFoundItems(foundItems);
 					getResultWaitingForArtikelIId().setSelectedIndex(0);
+					doSomethingWithJustChosenArtikel(iid);
 				} catch (Throwable e) {
 					getResultWaitingForArtikelIId().setSelectedIndex(null);
 				}
@@ -238,6 +230,17 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 		}
 	}
 	
+	/**
+	 * Zu &uuml;berschreibende Methode, wenn mit dem gerade aus dem Auswahlfenster
+	 * ausgew&auml;hlten Artikel noch etwas getan werden muss.
+	 * 
+	 * @param iid Id des gerade ausgew&auml;hlten Artikels
+	 */
+	protected void doSomethingWithJustChosenArtikel(Integer iid) {
+		//wenn weitere Schritte mit dem gerade ausgew&auml;hlten Artikel n&ouml;tig sind
+		//dann diese Methode &uuml;berschreiben
+	}
+
 	public void setResultWaitingForArtikelIId(
 			IStklImportResult resultWaitingForArtikelIId) {
 		this.resultWaitingForArtikelIId = resultWaitingForArtikelIId;
@@ -267,8 +270,6 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 			this.model = model;
 			 delegate = DelegateFactory.getInstance().getStuecklisteDelegate();
 		}
-		
-		
 
 		@Override
 		protected List<IStklImportResult> doInBackground() throws Exception {
@@ -285,9 +286,14 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 				}
 				setProgress((int)(i*100f/model.getImportLines().size()));
 			}
+			
 			for(IStklImportResult result : results) {
 				if(!result.isTotalMatch()) {
 					result.getFoundItems().add(HANDARTIKEL);
+					if (isDemo()) {
+						result.getFoundItems().add(ARTIKEL_ERZEUGEN);
+					}
+					
 					if(result.foundTooManyArticles()) {
 						result.getFoundItems().add(ZUVIELE_ARTIKEL_FLR_LISTE);
 					} else {
@@ -303,14 +309,20 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 			try {
 				if(!isCancelled())
 				model.setResults(get());
+				updateCheckboxStatus();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (ExecutionException e) {
 				e.printStackTrace();
 			}
+			
 			setBusyImporting(false);
 			fireNavigationUpdateEvent();
 		}
+	}
+	
+	protected void updateCheckboxStatus() {
+		setMappingUpdateStatusAusStklImportResults();
 	}
 	
 	protected class ProgressListener implements PropertyChangeListener {
@@ -327,81 +339,104 @@ public class StklImportPage3Ctrl extends AssistentPageController {
 	}
 
 	/**
-	 * Selektiert die Soko Updates aller importierten Stklresults. Sind die
-	 * Soko Updates unterschiedlich gesetzt (HALFSELECTED) werden alle auf true
-	 * gesetzt.
+	 * Selektiert die Artikelnummer Mapping Updates aller importierten Stklresults
+	 * in der Tabelle. Sind diese unterschiedlich gesetzt (HALFSELECTED) werden alle 
+	 * auf true gesetzt.
 	 * 
 	 * @param status gibt den Status der Tristate Checkbox an, nach dem alle
-	 * Soko Updates gesetzt werden
+	 * Mapping Updates gesetzt werden
 	 */
-	public void selektiereSokoUpdate(int status) {
+	public void selektiereMappingUpdate(int status) {
 		for(IStklImportResult res : model.getResults()) {
 			if(status == WrapperTristateCheckbox.SELECTED)
-				res.setSokoUpdate(false);
+				res.setUpdateArtikelnummerMapping(false);
 			else
-				res.setSokoUpdate(true);
+				res.setUpdateArtikelnummerMapping(true);
 		}
+		setMappingUpdateStatusAusStklImportResults();
 		fireDataUpdateEvent();
 	}
 	
 	/**
-	 * Berechnet den Status der SokoUpdate Tristate Checkbox
+	 * Berechnet den Status der Tristate Checkbox des MappingUpdate der
+	 * Artikelnummern
 	 * 
-	 * @return Status der Soko Updates:
-	 * 	SELECTED, wenn alle Soko Updates auf true sind;
-	 * 	DESELECTED, wenn alle Soko Updates auf false sind;
-	 * 	HALFSELECTED, wenn sich Soko Updates unterscheiden;
+	 * @return Status der Mapping Updates aller Artikel in der Tabelle:
+	 * 	SELECTED, wenn alle auf true sind;
+	 * 	DESELECTED, wenn alle auf false sind;
+	 * 	HALFSELECTED, wenn sich welche unterscheiden;
 	 * 	DISABLE, wenn keine Imports geladen oder nur TotalMatches und/oder Handartikel gefunden wurden.
 	 */
-	public int getSokoUpdateStatusFromStklImportResults() {
-		IStklImportResult lastStklImportResult = null;
-		IStklImportResult res;
-		
-		if(model.getResults() == null)
-			return WrapperTristateCheckbox.DISABLE;
-		
-		Iterator<IStklImportResult> iter = model.getResults().iterator();
-		while(iter.hasNext()) {
-			res = iter.next();
-			if(res.isTotalMatch() || 
-					(res.getSelectedArtikelDto() != null 
-					&& res.getSelectedArtikelDto().getArtikelartCNr().equals(ArtikelFac.ARTIKELART_HANDARTIKEL))) {
-				continue;
-			}
-			if(lastStklImportResult != null) {
-				if(res.getSokoUpdate() != lastStklImportResult.getSokoUpdate())
-					return WrapperTristateCheckbox.HALFSELECTED;
-			}
-			lastStklImportResult = res;
-		}
-		
-		if(lastStklImportResult == null)
-			return WrapperTristateCheckbox.DISABLE;
-		
-		return lastStklImportResult.getSokoUpdate() 
-				? WrapperTristateCheckbox.SELECTED : WrapperTristateCheckbox.DESELECTED;
-	}
-	
-	/**
-	 * Gibt an, ob die SokoUpdate Tristate Checkbox oberhalb der Tabelle
-	 * angezeigt werden soll.
-	 * 
-	 * @return true, w
-	 */
-	public int getSokoUpdateTristateCheckboxStatus() {
+	public void setMappingUpdateStatusAusStklImportResults() {
 		TableModel resultTableModel = getResultTableModel();
 		if(resultTableModel instanceof ResultTableModel
-				&& ((ResultTableModel) resultTableModel).kundenartikelnummerColumnTypeExists()) {
-			return getSokoUpdateStatusFromStklImportResults();
-		}
-		return WrapperTristateCheckbox.DISABLE;
-	}
+				&& ((ResultTableModel) resultTableModel).bezugsobjektArtikelnummerColumnTypeExists()
+				&& model.getResults() != null) {
+			IStklImportResult lastStklImportResult = null;
+			Iterator<IStklImportResult> iter = model.getResults().iterator();
 
+			while(iter.hasNext()) {
+				IStklImportResult res = iter.next();
+				if(res.getSelectedArtikelDto() != null 
+						&& ArtikelFac.ARTIKELART_HANDARTIKEL.equals(res.getSelectedArtikelDto().getArtikelartCNr())) {
+					continue;
+				}
+				if(lastStklImportResult != null) {
+					if(res.isUpdateArtikelnummerMapping() != lastStklImportResult.isUpdateArtikelnummerMapping()) {
+						cbMappingUpdateState = WrapperTristateCheckbox.HALFSELECTED;
+						return;
+					}
+				}
+				lastStklImportResult = res;
+			}
+			
+			if(lastStklImportResult != null) {
+				cbMappingUpdateState = lastStklImportResult.isUpdateArtikelnummerMapping() 
+						? WrapperTristateCheckbox.SELECTED : WrapperTristateCheckbox.DESELECTED;
+				return;
+			}
+		}
+		cbMappingUpdateState = WrapperTristateCheckbox.DISABLE;
+	}
+	
+	public int getMappingUpdateStatus() {
+		return cbMappingUpdateState;
+	}
+	
 	public void setUpdateArtikel(boolean selected) {
 		model.setUpdateArtikel(selected);		
 	}
 	
-	public boolean darfArtikelUpdaten() {
-		return bZentralerArtikelstamm;
+	public abstract String getMappingUpdateTristateCheckboxText();
+	
+	public Integer getStklIId() {
+		return model.getStklIId();
+	}
+
+	public void undefinierteAlsArtikelerzeugen() {
+		for(IStklImportResult res : model.getResults()) {
+			if(res.getSelectedIndex() == null || res.getSelectedIndex() == -1) {
+				res.setSelectedIndex(res.getFoundItems().indexOf(ARTIKEL_ERZEUGEN));
+			}
+		}
+		tableModelValueChanged();
+	}
+
+	private static ArtikelDto getArtikelErzeugen() {
+		ArtikelDto artikel = new ArtikelDto();
+		artikel.setCNr(LPMain.getTextRespectUISPr("stkl.intelligenterstklimport.neuerartikel"));
+		artikel.setArtikelartCNr(ArtikelFac.ARTIKELART_ARTIKEL);
+		return artikel;
+	}
+	
+	public boolean isDemo() {
+		if (demo == null) {
+			try {
+				demo = LPMain.getInstance().getDesktopController().hatTestFeature();
+			} catch (Throwable e) {
+				demo = Boolean.FALSE;
+			}
+		}
+		return demo;
 	}
 }

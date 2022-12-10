@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.zeiterfassung;
 
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -45,201 +44,277 @@ import javax.swing.JPanel;
 import javax.swing.border.Border;
 
 import com.lp.client.frame.HelperClient;
+import com.lp.client.frame.component.DialogQuery;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
 import com.lp.client.frame.component.PanelBasis;
+import com.lp.client.frame.component.PanelQueryFLR;
+import com.lp.client.frame.component.WrapperButton;
+import com.lp.client.frame.component.WrapperCheckBox;
 import com.lp.client.frame.component.WrapperLabel;
 import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.stueckliste.StuecklisteFilterFactory;
 import com.lp.server.personal.service.MaschinengruppeDto;
 import com.lp.server.personal.service.PersonalFac;
+import com.lp.server.stueckliste.service.FertigungsgruppeDto;
 
+public class PanelMaschinengruppe extends PanelBasis {
 
-public class PanelMaschinengruppe
-    extends PanelBasis
-{
-
-  /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-//von hier ...
-  private GridBagLayout gridBagLayoutAll = null;
-  private JPanel jpaWorkingOn = new JPanel();
-  private JPanel jpaButtonAction = null;
-  private Border border = null;
-  private GridBagLayout gridBagLayoutWorkingPanel = null;
-  private WrapperLabel wlaBezeichnung = new WrapperLabel();
-  private WrapperTextField wtfBezeichnung = new WrapperTextField();
-  private MaschinengruppeDto maschinengruppeDto = null;
-  public PanelMaschinengruppe(InternalFrame internalFrame, String add2TitleI,
-                               Object pk)
-      throws Throwable {
-    super(internalFrame, add2TitleI, pk);
-    jbInit();
-    setDefaults();
-    initComponents();
-    enableAllComponents(this, false);
-  }
+	// von hier ...
+	private GridBagLayout gridBagLayoutAll = null;
+	private JPanel jpaWorkingOn = new JPanel();
+	private JPanel jpaButtonAction = null;
+	private Border border = null;
+	private GridBagLayout gridBagLayoutWorkingPanel = null;
+	private WrapperLabel wlaKurzbezeichnung = new WrapperLabel();
+	private WrapperTextField wtfKurzbezeichnung = new WrapperTextField();
+	private WrapperLabel wlaBezeichnung = new WrapperLabel();
+	private WrapperTextField wtfBezeichnung = new WrapperTextField();
 
+	private WrapperCheckBox wcbInAuslastungsanzeige = new WrapperCheckBox();
 
-  protected  void setDefaults() {
-  }
+	private MaschinengruppeDto maschinengruppeDto = null;
 
+	private WrapperTextField wtfFertigungsgruppe = null;
+	private WrapperButton wbuFertigungsgruppe = null;
 
-  protected JComponent getFirstFocusableComponent()
-      throws Exception {
-    return wtfBezeichnung;
-  }
+	static final public String ACTION_SPECIAL_FERTIGUNGSGRUPPE_FROM_LISTE = "action_special_fertigungsgruppe_from_liste";
 
+	private PanelQueryFLR panelQueryFLRFertigungsgruppe = null;
 
-  public void eventActionNew(EventObject eventObject, boolean bLockMeI,
-                             boolean bNeedNoNewI)
-      throws Throwable {
-    super.eventActionNew(eventObject, true, false);
-    maschinengruppeDto = new MaschinengruppeDto();
-    // getInternalFrame().setKeyWasForLockMe(LPMain.getLockMeForNew());
+	public PanelMaschinengruppe(InternalFrame internalFrame, String add2TitleI,
+			Object pk) throws Throwable {
+		super(internalFrame, add2TitleI, pk);
+		jbInit();
+		setDefaults();
+		initComponents();
+		enableAllComponents(this, false);
+	}
 
-    leereAlleFelder(this);
-  }
+	protected void setDefaults() {
+	}
 
+	protected JComponent getFirstFocusableComponent() throws Exception {
+		return wtfBezeichnung;
+	}
 
-  protected void eventActionSpecial(ActionEvent e)
-      throws Throwable {
-  }
+	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
+			boolean bNeedNoNewI) throws Throwable {
+		super.eventActionNew(eventObject, true, false);
+		maschinengruppeDto = new MaschinengruppeDto();
+		// getInternalFrame().setKeyWasForLockMe(LPMain.getLockMeForNew());
 
+		leereAlleFelder(this);
+	}
 
-  protected void eventActionDelete(ActionEvent e, boolean bAdministrateLockKeyI,
-                                   boolean bNeedNoDeleteI)
-      throws Throwable {
-    DelegateFactory.getInstance().getZeiterfassungDelegate().removeMaschinengruppe(
-        maschinengruppeDto);
-    this.setKeyWhenDetailPanel(null);
-    super.eventActionDelete(e, false, false);
-  }
+	protected void eventActionSpecial(ActionEvent e) throws Throwable {
+		if (e.getActionCommand().equals(
+				ACTION_SPECIAL_FERTIGUNGSGRUPPE_FROM_LISTE)) {
+			dialogQueryFertigungsgruppeFromListe(e);
+		}
+	}
 
+	protected void eventActionDelete(ActionEvent e,
+			boolean bAdministrateLockKeyI, boolean bNeedNoDeleteI)
+			throws Throwable {
+		DelegateFactory.getInstance().getZeiterfassungDelegate()
+				.removeMaschinengruppe(maschinengruppeDto);
+		this.setKeyWhenDetailPanel(null);
+		super.eventActionDelete(e, false, false);
+	}
 
-  protected void components2Dto() {
-    maschinengruppeDto.setCBez(wtfBezeichnung.getText());
+	private void dialogQueryFertigungsgruppeFromListe(ActionEvent e)
+			throws Throwable {
+		panelQueryFLRFertigungsgruppe = StuecklisteFilterFactory.getInstance()
+				.createPanelFLRFertigungsgruppe(getInternalFrame(),
+						maschinengruppeDto.getFertigungsgruppeIId(), false);
+		new DialogQuery(panelQueryFLRFertigungsgruppe);
+	}
 
-  }
+	protected void components2Dto() {
+		maschinengruppeDto.setCKbez(wtfKurzbezeichnung.getText());
+		maschinengruppeDto.setCBez(wtfBezeichnung.getText());
+		maschinengruppeDto.setBAuslastungsanzeige(wcbInAuslastungsanzeige
+				.getShort());
 
+	}
 
-  protected void dto2Components() {
-    wtfBezeichnung.setText(maschinengruppeDto.getCBez());
+	protected void dto2Components() throws Throwable {
+		wtfKurzbezeichnung.setText(maschinengruppeDto.getCKbez());
+		wtfBezeichnung.setText(maschinengruppeDto.getCBez());
+		wcbInAuslastungsanzeige.setShort(maschinengruppeDto
+				.getBAuslastungsanzeige());
 
-  }
+		FertigungsgruppeDto fertigungsgruppeDto = DelegateFactory
+				.getInstance()
+				.getStuecklisteDelegate()
+				.fertigungsgruppeFindByPrimaryKey(
+						maschinengruppeDto.getFertigungsgruppeIId());
+		wtfFertigungsgruppe.setText(fertigungsgruppeDto.getCBez());
 
+	}
 
-  public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
-      throws Throwable {
-    if (allMandatoryFieldsSetDlg()) {
-      components2Dto();
-      if (maschinengruppeDto.getIId() == null) {
-        maschinengruppeDto.setIId(DelegateFactory.getInstance().getZeiterfassungDelegate().
-                                   createMaschinengruppe(
-                                       maschinengruppeDto));
-        setKeyWhenDetailPanel(maschinengruppeDto.getIId());
-      }
-      else {
-        DelegateFactory.getInstance().getZeiterfassungDelegate().updateMaschinengruppe(
-            maschinengruppeDto);
-      }
-      super.eventActionSave(e, true);
+	public void eventActionSave(ActionEvent e, boolean bNeedNoSaveI)
+			throws Throwable {
+		if (allMandatoryFieldsSetDlg()) {
+			components2Dto();
+			if (maschinengruppeDto.getIId() == null) {
+				maschinengruppeDto.setIId(DelegateFactory.getInstance()
+						.getZeiterfassungDelegate()
+						.createMaschinengruppe(maschinengruppeDto));
+				setKeyWhenDetailPanel(maschinengruppeDto.getIId());
+			} else {
+				DelegateFactory.getInstance().getZeiterfassungDelegate()
+						.updateMaschinengruppe(maschinengruppeDto);
+			}
+			super.eventActionSave(e, true);
 
-      if (getInternalFrame().getKeyWasForLockMe() == null) {
-        getInternalFrame().setKeyWasForLockMe(maschinengruppeDto.getIId() + "");
-      }
-      eventYouAreSelected(false);
-    }
-  }
+			if (getInternalFrame().getKeyWasForLockMe() == null) {
+				getInternalFrame().setKeyWasForLockMe(
+						maschinengruppeDto.getIId() + "");
+			}
+			eventYouAreSelected(false);
+		}
+	}
 
+	protected void eventItemchanged(EventObject eI) throws Throwable {
+		ItemChangedEvent e = (ItemChangedEvent) eI;
 
-  protected void eventItemchanged(EventObject eI)
-      throws Throwable {
-    ItemChangedEvent e = (ItemChangedEvent) eI;
-  }
+		if (e.getID() == ItemChangedEvent.GOTO_DETAIL_PANEL) {
+			if (e.getSource() == panelQueryFLRFertigungsgruppe) {
+				Object oKey = panelQueryFLRFertigungsgruppe.getSelectedId();
 
+				FertigungsgruppeDto fertigungsgruppeDto = DelegateFactory
+						.getInstance().getStuecklisteDelegate()
+						.fertigungsgruppeFindByPrimaryKey((Integer) oKey);
+				wtfFertigungsgruppe.setText(fertigungsgruppeDto.getCBez());
 
-  private void jbInit()
-      throws Throwable {
-    //von hier ...
-    border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-    setBorder(border);
-    //das Aussenpanel hat immer das Gridbaglayout.
-    gridBagLayoutAll = new GridBagLayout();
-    this.setLayout(gridBagLayoutAll);
+				maschinengruppeDto.setFertigungsgruppeIId(fertigungsgruppeDto
+						.getIId());
 
-    //Actionpanel von Oberklasse holen und anhaengen.
-    jpaButtonAction = getToolsPanel();
-    this.setActionMap(null);
+			}
+		}
 
-    wlaBezeichnung.setText(LPMain.getInstance().getTextRespectUISPr("lp.bezeichnung"));
-    wtfBezeichnung.setColumnsMax(PersonalFac.MAX_PENDLERPAUSCHALE_BEZEICHNUNG);
-    wtfBezeichnung.setText("");
-    wtfBezeichnung.setMandatoryField(true);
-    getInternalFrame().addItemChangedListener(this);
-    this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
-        , GridBagConstraints.WEST, GridBagConstraints.NONE,
-        new Insets(0, 0, 0, 0), 0, 0));
+	}
 
-    //jetzt meine felder
-    jpaWorkingOn = new JPanel();
-    gridBagLayoutWorkingPanel = new GridBagLayout();
-    jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
-    this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0
-        , GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0, 0.0
-        , GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-        new Insets(0, 0, 0, 0), 0, 0));
-    jpaWorkingOn.add(wlaBezeichnung,
-                        new GridBagConstraints(0, 0, 1, 1, 0.1, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    jpaWorkingOn.add(wtfBezeichnung,
-                        new GridBagConstraints(1, 0, 1, 1, 0.3, 0.0
-                                               , GridBagConstraints.CENTER,
-                                               GridBagConstraints.HORIZONTAL,
-                                               new Insets(2, 2, 2, 2), 0, 0));
-    String[] aWhichButtonIUse = {
-        ACTION_UPDATE,
-        ACTION_SAVE,
-        ACTION_DELETE,
-        ACTION_DISCARD,
-    };
+	private void jbInit() throws Throwable {
+		// von hier ...
+		border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+		setBorder(border);
+		// das Aussenpanel hat immer das Gridbaglayout.
+		gridBagLayoutAll = new GridBagLayout();
+		this.setLayout(gridBagLayoutAll);
 
-    enableToolsPanelButtons(aWhichButtonIUse);
+		// Actionpanel von Oberklasse holen und anhaengen.
+		jpaButtonAction = getToolsPanel();
+		this.setActionMap(null);
 
-  }
+		wcbInAuslastungsanzeige
+				.setText(LPMain
+						.getTextRespectUISPr("pers.maschinengruppe.inauslastungsanzeige"));
 
+		wbuFertigungsgruppe = new WrapperButton();
+		wbuFertigungsgruppe.setText(LPMain
+				.getTextRespectUISPr("stkl.fertigungsgruppe") + "...");
 
-  protected String getLockMeWer()
-      throws Exception {
-    return HelperClient.LOCKME_MASCHINENGRUPPE;
-  }
+		wbuFertigungsgruppe
+				.setActionCommand(ACTION_SPECIAL_FERTIGUNGSGRUPPE_FROM_LISTE);
+		wbuFertigungsgruppe.addActionListener(this);
+		wtfFertigungsgruppe = new WrapperTextField();
+		wtfFertigungsgruppe.setActivatable(false);
+		wtfFertigungsgruppe.setMandatoryField(true);
 
+		wlaKurzbezeichnung.setText(LPMain
+				.getTextRespectUISPr("maschine.kurzbez"));
+		wtfKurzbezeichnung.setColumnsMax(2);
+		wtfKurzbezeichnung.setText("");
+		wtfKurzbezeichnung.setMandatoryField(true);
 
-  public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
-      throws Throwable {
+		wlaBezeichnung.setText(LPMain.getTextRespectUISPr("lp.bezeichnung"));
+		wtfBezeichnung
+				.setColumnsMax(PersonalFac.MAX_PENDLERPAUSCHALE_BEZEICHNUNG);
+		wtfBezeichnung.setText("");
+		wtfBezeichnung.setMandatoryField(true);
+		getInternalFrame().addItemChangedListener(this);
+		this.add(jpaButtonAction, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,
+						0, 0, 0), 0, 0));
 
-    super.eventYouAreSelected(false);
-    Object key = getKeyWhenDetailPanel();
+		// jetzt meine felder
+		jpaWorkingOn = new JPanel();
+		gridBagLayoutWorkingPanel = new GridBagLayout();
+		jpaWorkingOn.setLayout(gridBagLayoutWorkingPanel);
+		this.add(jpaWorkingOn, new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0,
+				GridBagConstraints.SOUTHEAST, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
+		this.add(getPanelStatusbar(), new GridBagConstraints(0, 2, 1, 1, 1.0,
+				0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+				new Insets(0, 0, 0, 0), 0, 0));
 
-    if (key == null
-        || (key.equals(LPMain.getLockMeForNew()))) {
+		iZeile++;
 
-      leereAlleFelder(this);
+		jpaWorkingOn.add(wlaKurzbezeichnung, new GridBagConstraints(0, iZeile,
+				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfKurzbezeichnung, new GridBagConstraints(1, iZeile,
+				1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
 
-      clearStatusbar();
-    }
-    else {
-      maschinengruppeDto = DelegateFactory.getInstance().getZeiterfassungDelegate().
-          maschinengruppeFindByPrimaryKey( (Integer) key);
+		jpaWorkingOn.add(wlaBezeichnung, new GridBagConstraints(0, iZeile, 1,
+				1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfBezeichnung, new GridBagConstraints(1, iZeile, 1,
+				1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
 
-      dto2Components();
-    }
-  }
+		jpaWorkingOn.add(wbuFertigungsgruppe, new GridBagConstraints(0, iZeile,
+				1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		jpaWorkingOn.add(wtfFertigungsgruppe, new GridBagConstraints(1, iZeile,
+				1, 1, 0.3, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+		iZeile++;
+
+		jpaWorkingOn.add(wcbInAuslastungsanzeige, new GridBagConstraints(1,
+				iZeile, 1, 1, 0.1, 0.0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(2, 2, 2, 2), 0, 0));
+
+		String[] aWhichButtonIUse = { ACTION_UPDATE, ACTION_SAVE,
+				ACTION_DELETE, ACTION_DISCARD, };
+
+		enableToolsPanelButtons(aWhichButtonIUse);
+
+	}
+
+	protected String getLockMeWer() throws Exception {
+		return HelperClient.LOCKME_MASCHINENGRUPPE;
+	}
+
+	public void eventYouAreSelected(boolean bNeedNoYouAreSelectedI)
+			throws Throwable {
+
+		super.eventYouAreSelected(false);
+		Object key = getKeyWhenDetailPanel();
+
+		if (key == null || (key.equals(LPMain.getLockMeForNew()))) {
+
+			leereAlleFelder(this);
+
+			clearStatusbar();
+		} else {
+			maschinengruppeDto = DelegateFactory.getInstance()
+					.getZeiterfassungDelegate()
+					.maschinengruppeFindByPrimaryKey((Integer) key);
+
+			dto2Components();
+		}
+	}
 }

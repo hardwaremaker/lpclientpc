@@ -32,7 +32,6 @@
  ******************************************************************************/
 package com.lp.client.auftrag;
 
-
 import java.util.EventObject;
 
 import javax.swing.ImageIcon;
@@ -40,6 +39,7 @@ import javax.swing.JTabbedPane;
 
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedEvent;
+import com.lp.client.frame.component.TabbedPane;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.pc.LPMain;
 import com.lp.server.auftrag.service.AuftragartDto;
@@ -48,8 +48,9 @@ import com.lp.server.auftrag.service.AuftragseriennrnDto;
 import com.lp.server.auftrag.service.AuftragtextDto;
 import com.lp.server.auftrag.service.MeilensteinDto;
 import com.lp.server.benutzer.service.RechteFac;
+import com.lp.server.system.service.MandantFac;
 
-@SuppressWarnings("static-access") 
+@SuppressWarnings("static-access")
 /**
  * <p>Rahmenfenster fuer das Modul Auftrag.</p>
  * <p>Copyright Logistik Pur Software GmbH (c) 2004-2008</p>
@@ -58,198 +59,242 @@ import com.lp.server.benutzer.service.RechteFac;
  * @author Uli Walch
  * @version $Revision: 1.4 $
  */
-public class InternalFrameAuftrag
-    extends InternalFrame
-{
+public class InternalFrameAuftrag extends InternalFrame {
 
-  /**
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-private TabbedPaneAuftrag tpAuftrag = null;
-  private TabbedPaneAuftragGrunddaten tpAuftragGrunddaten = null;
+	private TabbedPaneAuftrag tpAuftrag = null;
+	private TabbedPaneAuftragGrunddaten tpAuftragGrunddaten = null;
+	private TabbedPaneZeitplantyp tpZeitplantyp = null;
 
-  public static final int IDX_TABBED_PANE_AUFTRAG = 0;
-  private final int IDX_TABBED_PANE_AUFTRAGGRUNDDATEN = 1;
+	public static final int IDX_TABBED_PANE_AUFTRAG = 0;
+	private int IDX_TABBED_PANE_ZEITPLANTYP = -1;
+	private int IDX_TABBED_PANE_AUFTRAGGRUNDDATEN = -1;
 
-  private AuftragtextDto auftragtextDto = new AuftragtextDto();
-  private AuftragartDto auftragartDto = new AuftragartDto();
+	private AuftragtextDto auftragtextDto = new AuftragtextDto();
+	private AuftragartDto auftragartDto = new AuftragartDto();
 	private MeilensteinDto meilensteinDto = new MeilensteinDto();
-  public MeilensteinDto getMeilensteinDto() {
+
+	public MeilensteinDto getMeilensteinDto() {
 		return meilensteinDto;
 	}
-
 
 	public void setMeilensteinDto(MeilensteinDto meilensteinDto) {
 		this.meilensteinDto = meilensteinDto;
 	}
 
+	private AuftragpositionArtDto auftragpositionartDto = new AuftragpositionArtDto();
+	private AuftragseriennrnDto auftragseriennrnDto = new AuftragseriennrnDto();
 
-private AuftragpositionArtDto auftragpositionartDto = new AuftragpositionArtDto();
-  private AuftragseriennrnDto auftragseriennrnDto = new AuftragseriennrnDto();
+	// Wenn eine freie Auftragposition bei einer Abrufbestellung zu einem Rahmen
+	// erfasst wird, den Benutzer einmalig warnen
+	public static boolean bWarnungAusgesprochen = false;
 
-  // Wenn eine freie Auftragposition bei einer Abrufbestellung zu einem Rahmen
-  // erfasst wird, den Benutzer einmalig warnen
-  public static boolean bWarnungAusgesprochen = false;
+	public InternalFrameAuftrag(String title, String belegartCNr,
+			String sRechtModulweitI) throws Throwable {
 
-  public InternalFrameAuftrag(String title,
-                              String belegartCNr, String sRechtModulweitI)
-      throws Throwable {
+		super(title, belegartCNr, sRechtModulweitI);
+		jbInit();
+		initComponents();
+	}
 
-    super(title, belegartCNr, sRechtModulweitI);
-    jbInit();
-    initComponents();
-  }
+	private void jbInit() throws Throwable {
+		// Komponente Auftrag
 
+		int iIndex = IDX_TABBED_PANE_AUFTRAG;
 
-  private void jbInit()
-      throws Throwable {
-    // Komponente Auftrag
-    tabbedPaneRoot.insertTab(
-        LPMain.getInstance().getTextRespectUISPr("auft.auftrag"),
-        null,
-        null,
-        LPMain.getInstance().getTextRespectUISPr("auft.modulname.tooltip"),
-        IDX_TABBED_PANE_AUFTRAG);
+		tabbedPaneRoot.insertTab(
+				LPMain.getInstance().getTextRespectUISPr("auft.auftrag"),
+				null,
+				null,
+				LPMain.getInstance().getTextRespectUISPr(
+						"auft.modulname.tooltip"), iIndex);
 
-    // Komponente Auftraggrunddaten
-    // nur anzeigen wenn Benutzer Recht dazu hat
-    if(DelegateFactory.getInstance().getTheJudgeDelegate().hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)){
-      tabbedPaneRoot.insertTab(
-          LPMain.getInstance().getTextRespectUISPr("lp.grunddaten"),
-          null,
-          null,
-          LPMain.getInstance().getTextRespectUISPr("lp.tooltip.grunddaten"),
-          IDX_TABBED_PANE_AUFTRAGGRUNDDATEN);
-    }
-    // Default TabbedPane setzen
-    refreshTabbedPaneAuftrag();
-    tpAuftrag.lPEventObjectChanged(null);
-    tabbedPaneRoot.setSelectedComponent(tpAuftrag);
+		// Komponente Auftraggrunddaten
+		// nur anzeigen wenn Benutzer Recht dazu hat
+		if (DelegateFactory.getInstance().getTheJudgeDelegate()
+				.hatRecht(RechteFac.RECHT_LP_DARF_GRUNDDATEN_SEHEN)) {
+			if (LPMain
+					.getInstance()
+					.getDesktop()
+					.darfAnwenderAufZusatzfunktionZugreifen(
+							MandantFac.ZUSATZFUNKTION_ERWEITERTE_PROJEKTSTEUERUNG)|| LPMain
+							.getInstance()
+							.getDesktop()
+							.darfAnwenderAufZusatzfunktionZugreifen(
+									MandantFac.ZUSATZFUNKTION_KLEINE_PROJEKTSTEUERUNG)) {
+				iIndex++;
+				IDX_TABBED_PANE_ZEITPLANTYP = iIndex;
 
-    // dem frame das icon setzen
-    ImageIcon iicon = new javax.swing.ImageIcon(
-        getClass().getResource("/com/lp/client/res/auftrag16x16.png"));
-    setFrameIcon(iicon);
+				tabbedPaneRoot.insertTab(
+						LPMain.getInstance().getTextRespectUISPr(
+								"auft.zeitplantyp"),
+						null,
+						null,
+						LPMain.getInstance().getTextRespectUISPr(
+								"auft.zeitplantyp"),
+						IDX_TABBED_PANE_ZEITPLANTYP);
+			}
+			iIndex++;
+			IDX_TABBED_PANE_AUFTRAGGRUNDDATEN = iIndex;
 
-    // ich selbst moechte informiert werden.
-    addItemChangedListener(this);
-    // listener bin auch ich
-    registerChangeListeners();
-  }
+			tabbedPaneRoot.insertTab(
+					LPMain.getInstance().getTextRespectUISPr("lp.grunddaten"),
+					null,
+					null,
+					LPMain.getInstance().getTextRespectUISPr(
+							"lp.tooltip.grunddaten"),
+					IDX_TABBED_PANE_AUFTRAGGRUNDDATEN);
+		}
+		// Default TabbedPane setzen
+		refreshTabbedPaneAuftrag();
+		tpAuftrag.lPEventObjectChanged(null);
+		tabbedPaneRoot.setSelectedComponent(tpAuftrag);
 
-  //TODO-AGILCHANGES
-  /**
-   * AGILPRO CHANGES Changed visiblity from protected to public
-   *
-   * @author Lukas Lisowski
-   * @param e EventObject
-   * @throws Throwable
-   */
-  public void lPStateChanged(EventObject e) throws Throwable {
-    JTabbedPane tabbedPane = (JTabbedPane) ( (JTabbedPane) e.getSource()).
-        getSelectedComponent();
-    //TODO-AGILCHANGES
+		// dem frame das icon setzen
+		ImageIcon iicon = new javax.swing.ImageIcon(getClass().getResource(
+				"/com/lp/client/res/auftrag16x16.png"));
+		setFrameIcon(iicon);
+
+		// ich selbst moechte informiert werden.
+		addItemChangedListener(this);
+		// listener bin auch ich
+		registerChangeListeners();
+	}
+
+	// TODO-AGILCHANGES
 	/**
-	 * AGILPRO CHANGES BEGIN
+	 * AGILPRO CHANGES Changed visiblity from protected to public
+	 * 
 	 * @author Lukas Lisowski
+	 * @param e
+	 *            EventObject
+	 * @throws Throwable
 	 */
-    int selectedCur = 0;
+	public void lPStateChanged(EventObject e) throws Throwable {
 
-    try {
-      selectedCur = ( (JTabbedPane) e.getSource()).getSelectedIndex();
-    }
-    catch (Exception ex) {
+		int selectedCur = 0;
 
-      selectedCur = ( (com.lp.client.pc.Desktop) e.getSource()).getSelectedIndex();
-    }
-	/**
-	 * AGILPRO CHANGES END
-	 */
-    if (selectedCur == IDX_TABBED_PANE_AUFTRAG) {
-      refreshTabbedPaneAuftrag();
+		try {
+			selectedCur = ((JTabbedPane) e.getSource()).getSelectedIndex();
+		} catch (Exception ex) {
 
-      //Info an Tabbedpane, bist selektiert worden.
-      tpAuftrag.lPEventObjectChanged(null);
-    }
-    else
-    if (selectedCur == IDX_TABBED_PANE_AUFTRAGGRUNDDATEN) {
-      refreshTabbedPaneAuftraggrunddaten();
+			selectedCur = ((com.lp.client.pc.Desktop) e.getSource())
+					.getSelectedIndex();
+		}
 
-      //Info an Tabbedpane, bist selektiert worden.
-      tpAuftragGrunddaten.lPEventObjectChanged(null);
-    }
-  }
+		if (selectedCur == IDX_TABBED_PANE_AUFTRAG) {
+			refreshTabbedPaneAuftrag();
 
+			// Info an Tabbedpane, bist selektiert worden.
+			tpAuftrag.lPEventObjectChanged(null);
+		} else if (selectedCur == IDX_TABBED_PANE_AUFTRAGGRUNDDATEN) {
+			refreshTabbedPaneAuftraggrunddaten();
 
-  private void refreshTabbedPaneAuftrag() throws Throwable {
-    if (tpAuftrag == null) {
-      tpAuftrag = new TabbedPaneAuftrag(this);
-      tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_AUFTRAG,tpAuftrag);
-      initComponents();
-    }
-  }
+			// Info an Tabbedpane, bist selektiert worden.
+			tpAuftragGrunddaten.lPEventObjectChanged(null);
+		}else if (selectedCur == IDX_TABBED_PANE_ZEITPLANTYP) {
+			refreshTabbedPaneZeitplantyp();
 
-  private void refreshTabbedPaneAuftraggrunddaten()
-      throws Throwable {
-    if (tpAuftragGrunddaten == null) {
-      tpAuftragGrunddaten = new TabbedPaneAuftragGrunddaten(this);
-      tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_AUFTRAGGRUNDDATEN,
-                                    tpAuftragGrunddaten);
-      initComponents();
-    }
-  }
+			// Info an Tabbedpane, bist selektiert worden.
+			tpZeitplantyp.lPEventObjectChanged(null);
+		}
+	}
 
+	private void refreshTabbedPaneAuftrag() throws Throwable {
+		if (tpAuftrag == null) {
+			tpAuftrag = new TabbedPaneAuftrag(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_AUFTRAG, tpAuftrag);
+			initComponents();
+		}
+	}
 
-  public TabbedPaneAuftrag getTabbedPaneAuftrag()
-      throws Throwable {
-    return tpAuftrag;
-  }
+	private void refreshTabbedPaneAuftraggrunddaten() throws Throwable {
+		if (tpAuftragGrunddaten == null) {
+			tpAuftragGrunddaten = new TabbedPaneAuftragGrunddaten(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_AUFTRAGGRUNDDATEN,
+					tpAuftragGrunddaten);
+			initComponents();
+		}
+	}
 
-  public TabbedPaneAuftragGrunddaten getTabbedPaneAuftraggrunddaten()
-      throws Throwable {
-    return tpAuftragGrunddaten;
-  }
+	private void refreshTabbedPaneZeitplantyp() throws Throwable {
+		if (tpZeitplantyp == null) {
+			tpZeitplantyp = new TabbedPaneZeitplantyp(this);
+			tabbedPaneRoot.setComponentAt(IDX_TABBED_PANE_ZEITPLANTYP,
+					tpZeitplantyp);
+			initComponents();
+		}
+	}
 
-  public AuftragtextDto getAuftragtextDto() {
-    return this.auftragtextDto;
-  }
+	public TabbedPaneAuftrag getTabbedPaneAuftrag() {
+		return tpAuftrag;
+	}
+	public TabbedPaneZeitplantyp getTabbedPaneZeitplantyp() throws Throwable {
+		return tpZeitplantyp;
+	}
 
-  public void setAuftragtextDto(AuftragtextDto auftragtextDto) {
-    this.auftragtextDto = auftragtextDto;
-  }
+	public TabbedPaneAuftragGrunddaten getTabbedPaneAuftraggrunddaten()
+			throws Throwable {
+		return tpAuftragGrunddaten;
+	}
 
-  public AuftragartDto getAuftragartDto() {
-    return this.auftragartDto;
-  }
+	public AuftragtextDto getAuftragtextDto() {
+		return this.auftragtextDto;
+	}
 
-  public void setAuftragartDto(AuftragartDto auftragartDtoI) {
-    this.auftragartDto = auftragartDtoI;
-  }
+	public void setAuftragtextDto(AuftragtextDto auftragtextDto) {
+		this.auftragtextDto = auftragtextDto;
+	}
 
-  public AuftragpositionArtDto getAuftragpositionArtDto() {
-    return this.auftragpositionartDto;
-  }
+	public AuftragartDto getAuftragartDto() {
+		return this.auftragartDto;
+	}
 
-  public void setAuftragpositionArtDto(AuftragpositionArtDto auftragpositionArtDtoI) {
-    this.auftragpositionartDto = auftragpositionArtDtoI;
-  }
+	public void setAuftragartDto(AuftragartDto auftragartDtoI) {
+		this.auftragartDto = auftragartDtoI;
+	}
 
+	public AuftragpositionArtDto getAuftragpositionArtDto() {
+		return this.auftragpositionartDto;
+	}
 
-  public AuftragseriennrnDto getAuftragseriennrnDto() {
-    return this.auftragseriennrnDto;
-  }
+	public void setAuftragpositionArtDto(
+			AuftragpositionArtDto auftragpositionArtDtoI) {
+		this.auftragpositionartDto = auftragpositionArtDtoI;
+	}
 
-  public void setAuftragseriennrnDto(AuftragseriennrnDto auftragseriennrnDto) {
-    this.auftragseriennrnDto = auftragseriennrnDto;
-  }
+	public AuftragseriennrnDto getAuftragseriennrnDto() {
+		return this.auftragseriennrnDto;
+	}
 
+	public void setAuftragseriennrnDto(AuftragseriennrnDto auftragseriennrnDto) {
+		this.auftragseriennrnDto = auftragseriennrnDto;
+	}
 
-  public void lPEventItemChanged(ItemChangedEvent e) throws Throwable {
-    if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
-      if (e.getSource() == getTabbedPaneAuftrag().getSichtAuftragAufAndereBelegartenTop()) {
-        getTabbedPaneAuftrag().setSelectedComponent(getTabbedPaneAuftrag().getAuftragSichtLieferstatus());
-      }
-    }
-  }
+	public void lPEventItemChanged(ItemChangedEvent e) throws Throwable {
+		if (e.getID() == ItemChangedEvent.ACTION_GOTO_MY_DEFAULT_QP) {
+			if (e.getSource() == getTabbedPaneAuftrag()
+					.getSichtAuftragAufAndereBelegartenTop()) {
+				getTabbedPaneAuftrag().setSelectedComponent(
+						getTabbedPaneAuftrag().getAuftragSichtLieferstatus());
+			}
+		}
+	}
+	
+	@Override
+	public void enableAllPanelsExcept(boolean enableI) {
+		super.enableAllPanelsExcept(enableI);
+		
+		getTabbedPaneAuftrag().disableOnlyTabs();
+	}
+	
+	@Override
+	public void enableAllOberePanelsExceptMe(TabbedPane tpUnteresOhrI, int iOberesOhrI, boolean enableI) {
+		super.enableAllOberePanelsExceptMe(tpUnteresOhrI, iOberesOhrI, enableI);
+		
+		getTabbedPaneAuftrag().disableOnlyTabs();
+	}
 }

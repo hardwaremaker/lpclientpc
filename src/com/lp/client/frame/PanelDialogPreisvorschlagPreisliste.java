@@ -36,7 +36,10 @@ import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.math.BigDecimal;
+import java.util.OptionalInt;
 
 import javax.swing.SwingConstants;
 
@@ -54,6 +57,7 @@ import com.lp.server.artikel.service.VkpfartikelpreislisteDto;
 import com.lp.server.system.service.MwstsatzDto;
 import com.lp.server.system.service.ParameterFac;
 import com.lp.server.system.service.ParametermandantDto;
+import com.lp.util.Helper;
 
 /**
  * <p>
@@ -179,16 +183,17 @@ public class PanelDialogPreisvorschlagPreisliste extends
 
 			Integer preislisteIId = null;
 			if (preislisteDto == null) {
-				//wg. SP3032 auskommentiert
-				//DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), LPMain.getTextRespectUISPr("artikel.preisliste.keinepreisliste"));
-				//return;
+				// wg. SP3032 auskommentiert
+				// DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"),
+				// LPMain.getTextRespectUISPr("artikel.preisliste.keinepreisliste"));
+				// return;
 			} else {
 				awnfRabattsatz[i].setBigDecimal(preislisteDto
 						.getNArtikelstandardrabattsatz());
 				preislisteIId = preislisteDto.getVkpfartikelpreislisteIId();
 
 			}
-			
+
 			awlaProzent[i] = new WrapperLabel(LPMain.getInstance()
 					.getTextRespectUISPr("label.prozent"));
 			awlaProzent[i].setHorizontalAlignment(SwingConstants.LEADING);
@@ -239,7 +244,7 @@ public class PanelDialogPreisvorschlagPreisliste extends
 			}
 			// die Anzeige der Preise in diesem Panel erfolgt in der aktuellen
 			// Zielwaehrung
-			if(vkpInZielwaehrungDto == null) {
+			if (vkpInZielwaehrungDto == null) {
 				vkpInZielwaehrungDto = new VerkaufspreisDto();
 			}
 			aVerkaufspreisDtos[i] = vkpInZielwaehrungDto;
@@ -322,10 +327,20 @@ public class PanelDialogPreisvorschlagPreisliste extends
 						GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 
 						new Insets(2, 2, 2, 2), 0, 0));
+
+		wnfMaterialzuschlag.setBigDecimal(panelDialogPreisvorschlagDto
+				.getNMaterialzuschlag());
+
 		if (panelDialogPreisvorschlagDto.getArtikelDto().getMaterialIId() != null) {
+
+			jpaWorkingOn.add(wlaMaterialzuschlagZumBelegdatum,
+					new GridBagConstraints(5, iZeile, 2, 1, 0.0, 0.0,
+							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+							new Insets(2, 2, 2, 2), 0, 0));
+
 			iZeile++;
 
-			jpaWorkingOn.add(wlaMaterialzuschlag, new GridBagConstraints(0,
+			jpaWorkingOn.add(wrbMaterialzuschlag, new GridBagConstraints(0,
 					iZeile, 4, 1, 0.0, 0.0, GridBagConstraints.CENTER,
 					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			jpaWorkingOn.add(wnfMaterialzuschlag, new GridBagConstraints(4,
@@ -333,10 +348,20 @@ public class PanelDialogPreisvorschlagPreisliste extends
 					GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
 			jpaWorkingOn.add(wlaMaterialzuschlagWaehrung,
 					new GridBagConstraints(5, iZeile, 1, 1, 0.0, 0.0,
+							GridBagConstraints.WEST, GridBagConstraints.NONE,
+							new Insets(2, 2, 2, 2), 30, 0));
+			jpaWorkingOn.add(wrbMaterialzuschlagZumBelegdatum,
+					new GridBagConstraints(5, iZeile, 1, 1, 0.0, 0.0,
+							GridBagConstraints.EAST, GridBagConstraints.NONE,
+							new Insets(2, 2, 2, 2), 0, 0));
+			jpaWorkingOn.add(wnfMaterialzuschlagZumBelegdatum,
+					new GridBagConstraints(6, iZeile, 1, 1, 0.0, 0.0,
 							GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 							new Insets(2, 2, 2, 2), 0, 0));
-		}
 
+			befuelleUndPrufeMaterialzuschlagZumGueltigkeitsdatum();
+		}
+		
 		// die beiden Buttons fuer die anderen VK-Stufen
 		if (panelDialogPreisvorschlagDto.getBEditable()) {
 			iZeile++;
@@ -373,9 +398,29 @@ public class PanelDialogPreisvorschlagPreisliste extends
 		// oder
 		// die zuletzt manuell gewaehlte Preisliste.
 
-		wnfMaterialzuschlag.setBigDecimal(panelDialogPreisvorschlagDto
-				.getNMaterialzuschlag());
-
+		//SP8563
+		//Fixpreis immer anzeigen, wenn geändert
+		BigDecimal fixPreis = panelDialogPreisvorschlagDto.getNFixPreis();
+		if(fixPreis != null && panelDialogPreisvorschlagDto.getNMaterialzuschlag() != null) {
+			fixPreis = fixPreis.subtract(panelDialogPreisvorschlagDto.getNMaterialzuschlag());
+		}
+		OptionalInt idxFixpreisPreisliste = OptionalInt.empty();
+		for (int i = 0; i < aVkpfartikelpreislisteDtos.length; i++) {
+			if (awnfBerechneterPreis[i].getBigDecimal() != null
+					&& awnfBerechneterPreis[i].getBigDecimal()
+					.equals(panelDialogPreisvorschlagDto
+							.getNFixPreis())) {
+				if (awrbPreislistenname[i].isEnabled()) {
+					idxFixpreisPreisliste = OptionalInt.of(i);
+				}
+			}
+		}
+		if(!idxFixpreisPreisliste.isPresent()) {
+			wnfHandeingabeFixpreis.setBigDecimal(fixPreis);
+			UpdateFixpreisFuerMenge();
+		}
+		
+		
 		// PJ 15270
 		boolean selected = false;
 		if (panelDialogPreisvorschlagDto.getIIdPreislisteZuletztGewaehlt() != null
@@ -400,40 +445,31 @@ public class PanelDialogPreisvorschlagPreisliste extends
 		}
 		if (!selected) {
 
-			wnfHandeingabeFixpreis.setBigDecimal(panelDialogPreisvorschlagDto
-					.getAktuellerVerkaufspreisDto().einzelpreis);
+			if(fixPreis == null) {
+				wnfHandeingabeFixpreis.setBigDecimal(panelDialogPreisvorschlagDto
+						.getAktuellerVerkaufspreisDto().einzelpreis);
+			}
 			wnfHandeingabeRabattsatz.setDouble(panelDialogPreisvorschlagDto
 					.getAktuellerVerkaufspreisDto().rabattsatz);
 
-			if (panelDialogPreisvorschlagDto.getNFixPreis() != null) {
+			if (fixPreis != null) {
 
+				//PJ20587
+				if(panelDialogPreisvorschlagDto.isbArtikelGeaendert()){
+					wnfHandeingabeFixpreis.setBigDecimal(fixPreis);
+					fixPreis=Helper.rundeKaufmaennisch(panelDialogPreisvorschlagDto
+							.getAktuellerVerkaufspreisDto().einzelpreis, iPreiseUINachkommastellen) ;
+				}
+				
 				if (wnfVerkaufspreisbasis.getBigDecimal() != null
 						&& wnfVerkaufspreisbasis.getBigDecimal().equals(
-								panelDialogPreisvorschlagDto.getNFixPreis())) {
+								fixPreis)) {
 					wrbVerkaufspreisbasis.setSelected(true);
 
 				} else {
 
-					boolean bPreisGefunden = false;
-					for (int i = 0; i < aVkpfartikelpreislisteDtos.length; i++) {
-						if (awnfBerechneterPreis[i].getBigDecimal() != null
-								&& awnfBerechneterPreis[i].getBigDecimal()
-										.equals(panelDialogPreisvorschlagDto
-												.getNFixPreis())) {
-							if(awrbPreislistenname[i].isEnabled()) {
-								awrbPreislistenname[i].setSelected(true);
-								bPreisGefunden = true;
-							}
-						}
-					}
-					if (bPreisGefunden == false) {
-						BigDecimal fixPreis = panelDialogPreisvorschlagDto
-								.getNFixPreis();
-						if (panelDialogPreisvorschlagDto.getNMaterialzuschlag() != null) {
-							fixPreis = fixPreis
-									.subtract(panelDialogPreisvorschlagDto
-											.getNMaterialzuschlag());
-						}
+					if (idxFixpreisPreisliste.isPresent()) {
+					} else {
 						wrbHandeingabeFixpreis.setSelected(true);
 						wnfHandeingabeFixpreis.setBigDecimal(fixPreis);
 						wnfHandeingabeFixpreis
@@ -444,7 +480,7 @@ public class PanelDialogPreisvorschlagPreisliste extends
 				}
 
 			}
-
+			
 			// Wenn im Konstruktor keine gewaehlte Preisliste bestimmt wurde
 			// oder der Artikel
 			// in keiner der Preislisten des Mandanten enthalten ist dann
@@ -552,7 +588,8 @@ public class PanelDialogPreisvorschlagPreisliste extends
 	 */
 	protected void buildMeinErgebnis() throws Throwable {
 		for (int i = 0; i < aVkpfartikelpreislisteDtos.length; i++) {
-			if(awrbPreislistenname[i] == null) continue;
+			if (awrbPreislistenname[i] == null)
+				continue;
 			if (awrbPreislistenname[i].isSelected()) {
 				// die Preisliste hinterlegen
 				panelDialogPreisvorschlagDto
@@ -573,6 +610,15 @@ public class PanelDialogPreisvorschlagPreisliste extends
 						LPMain.getTheClient().getMandant());
 		boolean bPositionskontierung = ((Boolean) parameter.getCWertAsObject());
 
+		// SP5361
+		if (wrbMaterialzuschlagZumBelegdatum.isSelected()
+				&& panelDialogPreisvorschlagDto.getArtikelDto()
+						.getMaterialIId() != null) {
+			panelDialogPreisvorschlagDto
+					.setNMaterialzuschlag(wnfMaterialzuschlagZumBelegdatum
+							.getBigDecimal());
+		}
+
 		if (wrbHandeingabeFixpreis.isSelected()) {
 			panelDialogPreisvorschlagDto.setIIdPreislisteZuletztGewaehlt(null);
 			panelDialogPreisvorschlagDto
@@ -584,9 +630,13 @@ public class PanelDialogPreisvorschlagPreisliste extends
 				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
 						.getInstance()
 						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(
+						.mwstsatzFindZuDatum(
 								panelDialogPreisvorschlagDto.getKundeDto()
-										.getMwstsatzbezIId());
+										.getMwstsatzbezIId(),
+								new java.sql.Timestamp(
+										panelDialogPreisvorschlagDto
+												.getDatGueltigkeitsdatumFuerPreise()
+												.getTime()));
 
 				if (bPositionskontierung
 						&& panelDialogPreisvorschlagDto.getArtikelDto()
@@ -595,19 +645,23 @@ public class PanelDialogPreisvorschlagPreisliste extends
 					mwstsatzDtoAktuell = DelegateFactory
 							.getInstance()
 							.getMandantDelegate()
-							.mwstsatzFindByMwstsatzbezIIdAktuellster(
+							.mwstsatzFindZuDatum(
 									panelDialogPreisvorschlagDto
 											.getArtikelDto()
-											.getMwstsatzbezIId());
+											.getMwstsatzbezIId(),
+									new java.sql.Timestamp(
+											panelDialogPreisvorschlagDto
+													.getDatGueltigkeitsdatumFuerPreise()
+													.getTime()));
 				}
 
 				if (nVkbasisInBelegwaehrung.intValue() == 0)
 					nVkbasisInBelegwaehrung = wnfHandeingabeFixpreis
 							.getBigDecimal();
-				//auskommentiert wg. SP3124
-				//if (wnfHandeingabeFixpreis.getBigDecimal().intValue() == 0)
-				//	wnfHandeingabeFixpreis
-				//			.setBigDecimal(nVkbasisInBelegwaehrung);
+				// auskommentiert wg. SP3124
+				// if (wnfHandeingabeFixpreis.getBigDecimal().intValue() == 0)
+				// wnfHandeingabeFixpreis
+				// .setBigDecimal(nVkbasisInBelegwaehrung);
 				panelDialogPreisvorschlagDto
 						.setAktuellerVerkaufspreisDto(DelegateFactory
 								.getInstance()
@@ -641,9 +695,13 @@ public class PanelDialogPreisvorschlagPreisliste extends
 				MwstsatzDto mwstsatzDtoAktuell = DelegateFactory
 						.getInstance()
 						.getMandantDelegate()
-						.mwstsatzFindByMwstsatzbezIIdAktuellster(
+						.mwstsatzFindZuDatum(
 								panelDialogPreisvorschlagDto.getKundeDto()
-										.getMwstsatzbezIId());
+										.getMwstsatzbezIId(),
+								new java.sql.Timestamp(
+										panelDialogPreisvorschlagDto
+												.getDatGueltigkeitsdatumFuerPreise()
+												.getTime()));
 
 				if (bPositionskontierung
 						&& panelDialogPreisvorschlagDto.getArtikelDto()
@@ -652,10 +710,14 @@ public class PanelDialogPreisvorschlagPreisliste extends
 					mwstsatzDtoAktuell = DelegateFactory
 							.getInstance()
 							.getMandantDelegate()
-							.mwstsatzFindByMwstsatzbezIIdAktuellster(
+							.mwstsatzFindZuDatum(
 									panelDialogPreisvorschlagDto
 											.getArtikelDto()
-											.getMwstsatzbezIId());
+											.getMwstsatzbezIId(),
+									new java.sql.Timestamp(
+											panelDialogPreisvorschlagDto
+													.getDatGueltigkeitsdatumFuerPreise()
+													.getTime()));
 				}
 
 				// wenn es in der Anzeige einen Fixpreis gibt, dann gilt dieser
@@ -746,4 +808,5 @@ public class PanelDialogPreisvorschlagPreisliste extends
 				LPMain.getInstance().getTextRespectUISPr("vkpf.kundesoko"));
 		getWbuDritteStufe().setActionCommand(ACTION_SPECIAL_VKPFSTUFE3);
 	}
+	
 }

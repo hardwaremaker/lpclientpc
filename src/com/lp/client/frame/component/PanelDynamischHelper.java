@@ -33,6 +33,7 @@
 package com.lp.client.frame.component;
 
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -47,14 +48,18 @@ import java.util.StringTokenizer;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingConstants;
 
 import com.lp.client.artikel.InternalFrameArtikel;
+import com.lp.client.auftrag.InternalFrameAuftrag;
 import com.lp.client.frame.ExceptionLP;
-import com.lp.client.frame.component.DialogDynamischChargeneigenschaften.ExecButton;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.partner.InternalFrameKunde;
 import com.lp.client.pc.LPMain;
+import com.lp.client.projekt.InternalFrameProjekt;
+import com.lp.server.auftrag.service.AuftragDto;
+import com.lp.server.projekt.service.ProjektDto;
 import com.lp.server.system.service.PanelFac;
 import com.lp.server.system.service.PanelbeschreibungDto;
 import com.lp.server.system.service.PaneldatenDto;
@@ -115,7 +120,16 @@ public class PanelDynamischHelper {
 		boolean bWrapToScrollpane = false;
 
 		if (internalFrame instanceof InternalFrameArtikel
-				&& panelCNr.equals(PanelFac.PANEL_ARTIKELEIGENSCHAFTEN)) {
+				&& (panelCNr.equals(PanelFac.PANEL_ARTIKELEIGENSCHAFTEN))) {
+			dtos = DelegateFactory
+					.getInstance()
+					.getPanelDelegate()
+					.panelbeschreibungFindByPanelCNrMandantCNr(
+							panelCNr,
+							((InternalFrameArtikel) internalFrame)
+									.getArtikelDto().getArtgruIId());
+		} else if (internalFrame instanceof InternalFrameArtikel
+				&& (panelCNr.equals(PanelFac.PANEL_ARTIKELTECHNIK))) {
 			dtos = DelegateFactory
 					.getInstance()
 					.getPanelDelegate()
@@ -131,6 +145,36 @@ public class PanelDynamischHelper {
 							panelCNr,
 							((InternalFrameKunde) internalFrame).getKundeDto()
 									.getPartnerDto().getPartnerklasseIId());
+		} else if (internalFrame instanceof InternalFrameAuftrag
+				&& (panelCNr.equals(PanelFac.PANEL_AUFTRAGSEIGENSCHAFTEN))) {
+
+			AuftragDto aDto = ((InternalFrameAuftrag) internalFrame)
+					.getTabbedPaneAuftrag().getAuftragDto();
+			String projekttypCNr = null;
+			if (aDto.getProjektIId() != null) {
+				ProjektDto pjDto = DelegateFactory.getInstance()
+						.getProjektDelegate()
+						.projektFindByPrimaryKey(aDto.getProjektIId());
+				projekttypCNr = pjDto.getProjekttypCNr();
+			}
+
+			dtos = DelegateFactory
+					.getInstance()
+					.getPanelDelegate()
+					.panelbeschreibungFindByPanelCNrMandantCNrKostenstelleIId(
+							panelCNr, aDto.getKostIId(), projekttypCNr);
+		} else if (internalFrame instanceof InternalFrameProjekt) {
+			dtos = DelegateFactory
+					.getInstance()
+					.getPanelDelegate()
+					.panelbeschreibungFindByPanelCNrMandantCNrBereichIId(
+							panelCNr,
+							((InternalFrameProjekt) internalFrame)
+									.getTabbedPaneProjekt().getProjektDto()
+									.getBereichIId(),
+							((InternalFrameProjekt) internalFrame)
+									.getTabbedPaneProjekt().getProjektDto()
+									.getProjekttypCNr());
 		} else {
 			dtos = DelegateFactory
 					.getInstance()
@@ -161,6 +205,14 @@ public class PanelDynamischHelper {
 				}
 
 				label.setText(text);
+				
+				if(Helper.short2boolean(dto.getBUeberschrift())){
+					label.setHorizontalAlignment(SwingConstants.LEFT);
+					Font f = label.getFont();
+					// bold
+					label.setFont(f.deriveFont(f.getStyle() | Font.BOLD));
+				}
+				
 				comp = label;
 
 			} else if (dto.getCTyp().equals(PanelFac.TYP_WRAPPERCOMBOBOX)) {
@@ -229,6 +281,7 @@ public class PanelDynamischHelper {
 				WrapperTextField textfield = new WrapperTextField();
 				textfield.setMandatoryField(Helper.short2boolean(dto
 						.getBMandatory()));
+				textfield.setColumnsMax(3000);
 
 				textfield.setText(dto.getCDefault());
 
@@ -312,6 +365,7 @@ public class PanelDynamischHelper {
 
 			if (bWrapToScrollpane) {
 				comp = new JScrollPane(comp);
+				bWrapToScrollpane = false;
 			}
 
 			panelToAdd.add(comp, new GridBagConstraints(dto.getIGridx()
@@ -343,8 +397,22 @@ public class PanelDynamischHelper {
 			paneldatenDtos[i] = new PaneldatenDto();
 			paneldatenDtos[i].setPanelCNr(panelCNr);
 			paneldatenDtos[i].setCKey(oKey);
-			for (int j = 0; j < komponenten.length; j++) {
 
+			/*
+			 * Das ist problematisch, denn in der Server-Methode werden nur jene
+			 * dto gespeichert, die auch eine panelbeschreibungId haben.
+			 * WrapperLabel hat zum Beispiel keine (weil nicht in den
+			 * "erlaubten" Typen, und soll auch nicht gespeichert werden). Alle
+			 * Datentypen die tatsaechlich Eingaben enthalten werden im
+			 * jeweiligen Code-Teil sowieso ihre panelbeschreibungId speichern.
+			 * Deshalb wieder deaktiviert. Aber wieso kam diese Zeile ueberhaupt
+			 * herein?
+			 * 
+			 * ghp, 11.9.2015, SP3780
+			 */
+			// paneldatenDtos[i].setPanelbeschreibungIId(dtos[i]
+			// .getIId());
+			for (int j = 0; j < komponenten.length; j++) {
 				String name = komponenten[j].getName();
 				if (komponenten[j] instanceof WrapperEditorField) {
 					name = ((WrapperEditorField) komponenten[j])
@@ -379,7 +447,7 @@ public class PanelDynamischHelper {
 						paneldatenDtos[i].setPanelbeschreibungIId(dtos[i]
 								.getIId());
 						paneldatenDtos[i].setCDatentypkey("java.lang.String");
-					}else if (dtos[i].getCTyp().equals(
+					} else if (dtos[i].getCTyp().equals(
 							PanelFac.TYP_WRAPPERTEXTAREA)) {
 
 						if (((WrapperTextArea) komponenten[j]).getText() != null) {
@@ -443,6 +511,7 @@ public class PanelDynamischHelper {
 
 		if (paneldatenDtos != null) {
 			for (int i = 0; i < dtos.length; i++) {
+
 				for (int j = 0; j < komponenten.length; j++) {
 
 					String name = komponenten[j].getName();
@@ -455,8 +524,10 @@ public class PanelDynamischHelper {
 						if (dtos[i].getCTyp().equals(
 								PanelFac.TYP_WRAPPERTEXTFIELD)) {
 							for (int k = 0; k < paneldatenDtos.length; k++) {
-								if (paneldatenDtos[k].getPanelbeschreibungIId()
-										.equals(dtos[i].getIId())) {
+								if (paneldatenDtos[k].getPanelbeschreibungIId() != null
+										&& paneldatenDtos[k]
+												.getPanelbeschreibungIId()
+												.equals(dtos[i].getIId())) {
 									((WrapperTextField) komponenten[j])
 											.setText(paneldatenDtos[k]
 													.getXInhalt());
@@ -465,8 +536,10 @@ public class PanelDynamischHelper {
 						} else if (dtos[i].getCTyp().equals(
 								PanelFac.TYP_WRAPPERTEXTAREA)) {
 							for (int k = 0; k < paneldatenDtos.length; k++) {
-								if (paneldatenDtos[k].getPanelbeschreibungIId()
-										.equals(dtos[i].getIId())) {
+								if (paneldatenDtos[k].getPanelbeschreibungIId() != null
+										&& paneldatenDtos[k]
+												.getPanelbeschreibungIId()
+												.equals(dtos[i].getIId())) {
 									((WrapperTextArea) komponenten[j])
 											.setText(paneldatenDtos[k]
 													.getXInhalt());
@@ -475,8 +548,10 @@ public class PanelDynamischHelper {
 						} else if (dtos[i].getCTyp().equals(
 								PanelFac.TYP_WRAPPEREDITOR)) {
 							for (int k = 0; k < paneldatenDtos.length; k++) {
-								if (paneldatenDtos[k].getPanelbeschreibungIId()
-										.equals(dtos[i].getIId())) {
+								if (paneldatenDtos[k].getPanelbeschreibungIId() != null
+										&& paneldatenDtos[k]
+												.getPanelbeschreibungIId()
+												.equals(dtos[i].getIId())) {
 									((WrapperEditorField) komponenten[j])
 											.setText(paneldatenDtos[k]
 													.getXInhalt());
@@ -485,8 +560,10 @@ public class PanelDynamischHelper {
 						} else if (dtos[i].getCTyp().equals(
 								PanelFac.TYP_WRAPPERCHECKBOX)) {
 							for (int k = 0; k < paneldatenDtos.length; k++) {
-								if (paneldatenDtos[k].getPanelbeschreibungIId()
-										.equals(dtos[i].getIId())) {
+								if (paneldatenDtos[k].getPanelbeschreibungIId() != null
+										&& paneldatenDtos[k]
+												.getPanelbeschreibungIId()
+												.equals(dtos[i].getIId())) {
 									((WrapperCheckBox) komponenten[j])
 											.setShort(new Short(
 													paneldatenDtos[k]
@@ -496,8 +573,10 @@ public class PanelDynamischHelper {
 						} else if (dtos[i].getCTyp().equals(
 								PanelFac.TYP_WRAPPERCOMBOBOX)) {
 							for (int k = 0; k < paneldatenDtos.length; k++) {
-								if (paneldatenDtos[k].getPanelbeschreibungIId()
-										.equals(dtos[i].getIId())) {
+								if (paneldatenDtos[k].getPanelbeschreibungIId() != null
+										&& paneldatenDtos[k]
+												.getPanelbeschreibungIId()
+												.equals(dtos[i].getIId())) {
 									((WrapperComboBox) komponenten[j])
 											.setKeyOfSelectedItem(paneldatenDtos[k]
 													.getXInhalt());
@@ -506,8 +585,10 @@ public class PanelDynamischHelper {
 						} else if (dtos[i].getCTyp().equals(
 								PanelFac.TYP_WRAPPEREXECBUTTON)) {
 							for (int k = 0; k < paneldatenDtos.length; k++) {
-								if (paneldatenDtos[k].getPanelbeschreibungIId()
-										.equals(dtos[i].getIId())) {
+								if (paneldatenDtos[k].getPanelbeschreibungIId() != null
+										&& paneldatenDtos[k]
+												.getPanelbeschreibungIId()
+												.equals(dtos[i].getIId())) {
 									((ExecButton) komponenten[j])
 											.getTextfield().setText(
 													paneldatenDtos[k]

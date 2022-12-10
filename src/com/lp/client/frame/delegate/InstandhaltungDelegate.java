@@ -39,6 +39,7 @@ import javax.naming.InitialContext;
 
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
+import com.lp.server.inserat.service.InseratReportFac;
 import com.lp.server.instandhaltung.service.AnlageDto;
 import com.lp.server.instandhaltung.service.GeraetDto;
 import com.lp.server.instandhaltung.service.GeraetehistorieDto;
@@ -60,8 +61,7 @@ public class InstandhaltungDelegate extends Delegate {
 
 	public InstandhaltungDelegate() throws Exception {
 		context = new InitialContext();
-		instandhaltungFac = (InstandhaltungFac) context
-				.lookup("lpserver/InstandhaltungFacBean/remote");
+		instandhaltungFac = lookupFac(context, InstandhaltungFac.class);
 
 	}
 

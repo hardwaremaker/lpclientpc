@@ -75,6 +75,9 @@ private WrapperCheckBox wcbGutschriftenberuecksichtigen = null;
   private JPanel jpaWorkingOn = null;
   private WrapperComboBox wcoJahr = null;
   private WrapperLabel wlaPeriode = null;
+  private WrapperCheckBox wcbMitDeckungsbeitrag=null;
+  private WrapperCheckBox wcbOhneAndereMandanten=null;
+  private WrapperCheckBox wcbInclOffeneZumMonatsletzten=null;
 
 
   public ReportRechnungUmsatz(InternalFrame internalFrame, String sAdd2Title)
@@ -113,6 +116,19 @@ private WrapperCheckBox wcbGutschriftenberuecksichtigen = null;
     wcoJahr.setMinimumSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
     wcoJahr.setPreferredSize(new Dimension(100, Defaults.getInstance().getControlHeight()));
 
+    
+    wcbMitDeckungsbeitrag = new WrapperCheckBox();
+    wcbMitDeckungsbeitrag.setText(LPMain.getInstance().getTextRespectUISPr(
+        "rech.umsatz.mitdb"));
+    
+    wcbInclOffeneZumMonatsletzten = new WrapperCheckBox();
+    wcbInclOffeneZumMonatsletzten.setText(LPMain.getInstance().getTextRespectUISPr(
+        "rech.umsatz.incloffene"));
+    
+    wcbOhneAndereMandanten = new WrapperCheckBox();
+    wcbOhneAndereMandanten.setText(LPMain.getInstance().getTextRespectUISPr(
+        "rech.umsatz.ohneanderemandanten"));
+    
     this.add(jpaWorkingOn,
              new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.WEST,
                                     GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
@@ -135,6 +151,27 @@ private WrapperCheckBox wcbGutschriftenberuecksichtigen = null;
                                             GridBagConstraints.BOTH,
                                             new Insets(2, 2, 2, 2),
                                             0, 0));
+    jpaWorkingOn.add(wcbMitDeckungsbeitrag,
+            new GridBagConstraints(2, iZeile, 1, 1, 1.0, 0.0,
+                                   GridBagConstraints.WEST,
+                                   GridBagConstraints.BOTH,
+                                   new Insets(2, 2, 2, 2),
+                                   0, 0));
+    jpaWorkingOn.add(wcbOhneAndereMandanten,
+            new GridBagConstraints(3, iZeile, 1, 1, 1.0, 0.0,
+                                   GridBagConstraints.WEST,
+                                   GridBagConstraints.BOTH,
+                                   new Insets(2, 2, 2, 2),
+                                   0, 0));
+    
+    iZeile++;
+    jpaWorkingOn.add(wcbInclOffeneZumMonatsletzten,
+                     new GridBagConstraints(1, iZeile, 1, 1, 1.0, 0.0,
+                                            GridBagConstraints.WEST,
+                                            GridBagConstraints.BOTH,
+                                            new Insets(2, 2, 2, 2),
+                                            0, 0));
+    
   }
 
 
@@ -157,7 +194,7 @@ private WrapperCheckBox wcbGutschriftenberuecksichtigen = null;
       throws Throwable {
     return DelegateFactory.getInstance().getRechnungDelegate().printRechnungenUmsatz( (
         Integer) wcoJahr.getKeyOfSelectedItem(),
-        new Boolean(wcbGutschriftenberuecksichtigen.isSelected()));
+        new Boolean(wcbGutschriftenberuecksichtigen.isSelected()),wcbMitDeckungsbeitrag.isSelected(),wcbOhneAndereMandanten.isSelected(),wcbInclOffeneZumMonatsletzten.isSelected());
   }
 
 

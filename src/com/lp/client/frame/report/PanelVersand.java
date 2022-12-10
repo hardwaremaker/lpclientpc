@@ -32,6 +32,7 @@
  ******************************************************************************/
 package com.lp.client.frame.report;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -42,6 +43,8 @@ import java.sql.Timestamp;
 import javax.swing.JPanel;
 
 import com.lp.client.frame.Defaults;
+import com.lp.client.frame.ExceptionLP;
+import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.component.InternalFrame;
 import com.lp.client.frame.component.ItemChangedListener;
 import com.lp.client.frame.component.PanelQueryFLR;
@@ -54,8 +57,11 @@ import com.lp.client.pc.LPMain;
 import com.lp.server.partner.service.PartnerDto;
 import com.lp.server.system.service.VersandFac;
 import com.lp.server.system.service.VersandauftragDto;
+import com.lp.util.EJBExceptionLP;
+import com.lp.util.Helper;
 
-@SuppressWarnings("static-access")
+import net.miginfocom.swing.MigLayout;
+
 /**
  * <p><I>Diese Klasse kuemmert sich ...</I> </p>
  *
@@ -92,7 +98,6 @@ public abstract class PanelVersand extends JPanel implements ActionListener,
 	protected PanelQueryFLR panelQueryFLRPartner = null;
 	protected PanelQueryFLR panelQueryFLRAnsprechpartner = null;
 
-
 	protected static final String ACTION_SPECIAL_PARTNER = "action_special_partner";
 	protected static final String ACTION_SPECIAL_ANSPRECHPARTNER = "action_special_ansprechpartner";
 
@@ -101,20 +106,33 @@ public abstract class PanelVersand extends JPanel implements ActionListener,
 	public static final String ACTION_SPECIAL_SENDEN = "action_special_senden";
 	private String belegartCNr = null;
 	private Integer belegIId = null;
-
+	private JPanel panelButtons = null;
+	
 	public PanelVersand(InternalFrame internalFrame, String belegartCNr,
-			Integer belegIId,PartnerDto partnerDtoEmpfaenger) throws Throwable {
+			Integer belegIId, PartnerDto partnerDtoEmpfaenger) throws Throwable {
 		this.internalFrame = internalFrame;
 		this.belegartCNr = belegartCNr;
 		this.belegIId = belegIId;
-		this.partnerDtoEmpfaenger=partnerDtoEmpfaenger;
+		this.partnerDtoEmpfaenger = partnerDtoEmpfaenger;
 		jbInit();
 		setDefaults();
 	}
 
 	private void setDefaults() throws Throwable {
-		wtfBetreff.setText(DelegateFactory.getInstance().getVersandDelegate()
-				.getDefaultDateinameForBelegEmail(belegartCNr, belegIId));
+
+		if (partnerDtoEmpfaenger != null
+				&& partnerDtoEmpfaenger.getLocaleCNrKommunikation() != null) {
+			wtfBetreff.setText(DelegateFactory
+					.getInstance()
+					.getVersandDelegate()
+					.getDefaultDateinameForBelegEmail(belegartCNr, belegIId,
+							partnerDtoEmpfaenger.getLocaleCNrKommunikation()));
+		} else {
+			wtfBetreff.setText(DelegateFactory.getInstance()
+					.getVersandDelegate()
+					.getDefaultDateinameForBelegEmail(belegartCNr, belegIId));
+		}
+
 	}
 
 	protected InternalFrame getInternalFrame() {
@@ -132,28 +150,25 @@ public abstract class PanelVersand extends JPanel implements ActionListener,
 		jpaWorkingOn = new JPanel();
 		gridbagLayoutWorkingOn = new GridBagLayout();
 		jpaWorkingOn.setLayout(gridbagLayoutWorkingOn);
-		wbuSenden = new WrapperButton(LPMain.getInstance().getTextRespectUISPr(
+		wbuSenden = new WrapperButton(LPMain.getTextRespectUISPr(
 				"lp.senden"));
 		wbuSenden.setActionCommand(ACTION_SPECIAL_SENDEN);
-		wlaSendeZeitpunkt = new WrapperLabel(LPMain.getInstance()
+		wlaSendeZeitpunkt = new WrapperLabel(LPMain
 				.getTextRespectUISPr("label.sendezeitpunkt"));
 		wlaSendeZeitpunkt.setMinimumSize(new Dimension(100, Defaults
 				.getInstance().getControlHeight()));
 		wlaSendeZeitpunkt.setPreferredSize(new Dimension(100, Defaults
 				.getInstance().getControlHeight()));
 		wtsfSendeZeitpunkt = new WrapperTimestampField();
-		wtsfSendeZeitpunkt.setMinimumSize(new Dimension(200, Defaults
-				.getInstance().getControlHeight()));
-		wtsfSendeZeitpunkt.setPreferredSize(new Dimension(200, Defaults
-				.getInstance().getControlHeight()));
+		HelperClient.setMinimumAndPreferredSize(wtsfSendeZeitpunkt, HelperClient.getSizeFactoredDimension(220));
 		wtfEmpfaenger = new WrapperTextField(VersandFac.MAX_EMPFAENGER);
 		wtfEmpfaenger.setMandatoryField(true);
-		wbuEmpfaenger = new WrapperButton(LPMain.getInstance()
+		wbuEmpfaenger = new WrapperButton(LPMain
 				.getTextRespectUISPr("lp.versand.partner"));
 		wbuEmpfaenger.setActionCommand(ACTION_SPECIAL_PARTNER);
 		wbuEmpfaenger.addActionListener(this);
 
-		wbuEmpfaengerAnsp = new WrapperButton(LPMain.getInstance()
+		wbuEmpfaengerAnsp = new WrapperButton(LPMain
 				.getTextRespectUISPr("lp.versand.ansprechpartner"));
 		wbuEmpfaengerAnsp.setActionCommand(ACTION_SPECIAL_ANSPRECHPARTNER);
 		wbuEmpfaengerAnsp.addActionListener(this);
@@ -175,7 +190,7 @@ public abstract class PanelVersand extends JPanel implements ActionListener,
 		jpaWorkingOn.add(wtsfSendeZeitpunkt, new GridBagConstraints(1, iZeile,
 				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 				GridBagConstraints.NONE, new Insets(2, 2, 2, 2), 0, 0));
-		jpaWorkingOn.add(wbuSenden, new GridBagConstraints(2, iZeile, 3, 1,
+		jpaWorkingOn.add(installSendenButton(), new GridBagConstraints(2, iZeile, 3, 1,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
@@ -184,27 +199,52 @@ public abstract class PanelVersand extends JPanel implements ActionListener,
 				0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 				new Insets(2, 2, 2, 2), 70, 0));
 
-		if (partnerDtoEmpfaenger != null) {
+		jpaWorkingOn.add(wbuEmpfaengerAnsp, new GridBagConstraints(0,
+				iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, new Insets(2, 85, 2, 2), 70, 0));
+		showEmpfaengerAnspButton(partnerDtoEmpfaenger != null);
 
-			jpaWorkingOn.add(wbuEmpfaengerAnsp, new GridBagConstraints(0,
-					iZeile, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.NONE, new Insets(2, 85, 2, 2), 70, 0));
-		}
 		jpaWorkingOn.add(wlaEmpfaenger, new GridBagConstraints(0, iZeile, 1, 1,
 				0, 0.0, GridBagConstraints.EAST, GridBagConstraints.NONE,
-				new Insets(2, 150, 2, 2), 30, 0));
+				new Insets(2, 155, 2, 2), 30, 0));
 		jpaWorkingOn.add(wtfEmpfaenger, new GridBagConstraints(1, iZeile, 2, 1,
 				1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
 				new Insets(2, 2, 2, 2), 0, 0));
 		iZeile++;
 	}
 
+	protected JPanel getSendenActionPanel() {
+		if(panelButtons == null) {
+			panelButtons = new JPanel(new MigLayout(
+					"wrap 1, insets 0", ""));
+		}
+		return panelButtons;
+	}
+	
+	private Component installSendenButton() {
+		getSendenActionPanel().add(getWbuSenden(), "w 100%");
+//		return getWbuSenden();
+		return getSendenActionPanel();
+	}
+	
 	public VersandauftragDto getVersandauftragDto() throws Throwable {
 		VersandauftragDto dto = new VersandauftragDto();
 		dto.setCEmpfaenger(wtfEmpfaenger.getText());
 		dto.setTSendezeitpunktwunsch(wtsfSendeZeitpunkt.getTimestamp());
-		dto.setCBetreff(wtfBetreff.getText());
+		
+		String betreff = getCBetreff();
+		validateBetreff(betreff);
+		dto.setCBetreff(betreff);
+		
 		return dto;
+	}
+	
+	private void validateBetreff(String betreff) throws ExceptionLP {
+		if (Helper.isStringEmpty(betreff)) {
+			throw new ExceptionLP(EJBExceptionLP.FEHLER_BETREFF_IST_LEER,
+					new Exception(LPMain.getMessageTextRespectUISPr(
+							"Betreff ist leer.")));
+		}
 	}
 
 	public void setSendezeitpunkt(Timestamp tSendezeitpunkt) {
@@ -216,6 +256,10 @@ public abstract class PanelVersand extends JPanel implements ActionListener,
 		this.partnerDtoEmpfaenger = partnerDtoEmpfaenger;
 		this.ansprechpartnerIId = ansprechpartnerIId;
 		setVorschlag();
+	}
+
+	public PartnerDto getPartnerDtoEmpfaenger() {
+		return partnerDtoEmpfaenger;
 	}
 
 	public void setEmpfaenger(String sEmpfaenger) {
@@ -247,5 +291,13 @@ public abstract class PanelVersand extends JPanel implements ActionListener,
 
 	public Integer getbelegIId() {
 		return belegIId;
+	}
+	
+	/**
+	 * Setze sichtbarkeit von den Ansprechpartner Auswahl Buttons bei Empfaenger
+	 * @param visible
+	 */
+	protected void showEmpfaengerAnspButton(boolean visible) {
+		wbuEmpfaengerAnsp.setVisible(visible);
 	}
 }

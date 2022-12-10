@@ -32,15 +32,18 @@
  ******************************************************************************/
 package com.lp.client.artikel;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.event.ChangeEvent;
 
-import com.lp.client.frame.HelperClient;
 import com.lp.client.frame.LockStateValue;
 import com.lp.client.frame.component.ISourceEvent;
 import com.lp.client.frame.component.InternalFrame;
@@ -54,15 +57,20 @@ import com.lp.client.frame.component.WrapperMenuBar;
 import com.lp.client.frame.component.frameposition.LocalSettingsPathGenerator;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
+import com.lp.client.frame.filechooser.FileChooserBuilder;
+import com.lp.client.frame.filechooser.FileChooserConfigToken;
+import com.lp.client.frame.filechooser.open.CsvFile;
 import com.lp.client.pc.LPMain;
 import com.lp.server.artikel.service.InventurDto;
+import com.lp.server.artikel.service.InventurlisteImportResult;
+import com.lp.server.artikel.service.InventurprotokollDto;
 import com.lp.server.artikel.service.InvenurlisteImportDto;
+import com.lp.server.benutzer.service.RechteFac;
 import com.lp.server.util.Facade;
 import com.lp.server.util.fastlanereader.service.query.FilterKriterium;
 import com.lp.server.util.fastlanereader.service.query.FilterKriteriumDirekt;
 import com.lp.server.util.fastlanereader.service.query.QueryParameters;
 import com.lp.util.Helper;
-import com.lp.util.csv.LPCSVReader;
 
 @SuppressWarnings("static-access")
 /*
@@ -80,6 +88,7 @@ public class TabbedPaneInventur extends TabbedPane {
 	private static final long serialVersionUID = 1L;
 	private PanelQuery panelQueryInventur = null;
 	private PanelBasis panelDetailInventur = null;
+	private PanelBasis panelDetailInventurAbschliessen = null;
 
 	private PanelSplit panelSplitInventurliste = null;
 	private PanelQuery panelQueryInventurliste = null;
@@ -104,15 +113,12 @@ public class TabbedPaneInventur extends TabbedPane {
 	private static final String ACTION_SPECIAL_QUICKINSERT = "action_special_quickinsert";
 	private static final String ACTION_SPECIAL_CSVIMPORT = "action_special_csvimport";
 
-	private final String BUTTON_QUICKINSERT = PanelBasis.ALWAYSENABLED
-			+ ACTION_SPECIAL_QUICKINSERT;
+	private final String BUTTON_QUICKINSERT = PanelBasis.ALWAYSENABLED + ACTION_SPECIAL_QUICKINSERT;
 
-	private final String BUTTON_CSVIMPORT = PanelBasis.ALWAYSENABLED
-			+ ACTION_SPECIAL_CSVIMPORT;
+	private final String BUTTON_CSVIMPORT = PanelBasis.ALWAYSENABLED + ACTION_SPECIAL_CSVIMPORT;
 
 	private static final String ACTION_SPECIAL_PREISE_ABWERTEN = "action_special_preiseabwerten";
-	private final String BUTTON_PREISEABWERTEN = PanelBasis.ALWAYSENABLED
-			+ ACTION_SPECIAL_PREISE_ABWERTEN;
+	private final String BUTTON_PREISEABWERTEN = PanelBasis.ALWAYSENABLED + ACTION_SPECIAL_PREISE_ABWERTEN;
 
 	private static final String ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN = "action_special_inventurpreise_akutalisieren";
 	private static final String ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN_GESTPREIS_ZUM_INVENTURDATUM = "action_special_inventurpreise_akutalisieren_gestpreis_zum_inventurdatum";
@@ -126,17 +132,20 @@ public class TabbedPaneInventur extends TabbedPane {
 	private final String BUTTON_INVENTURPREISE_AKTUALISIEREN_EKPREIS = PanelBasis.ALWAYSENABLED
 			+ ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN_EKPREIS;
 
+	private static final String ACTION_SPECIAL_EINSTANDPREIS_AENDERN = "action_special_einstandspreis_aendern";
+	private final String BUTTON_EINSTANDPREIS_AENDERN = PanelBasis.ALWAYSENABLED + ACTION_SPECIAL_EINSTANDPREIS_AENDERN;
+
 	private final static int IDX_PANEL_AUSWAHL = 0;
 	private final static int IDX_PANEL_DETAIL = 1;
 	private final static int IDX_PANEL_INVENTURLISTE = 2;
 	private final static int IDX_PANEL_INVENTURPROTOKOLL = 3;
-	private final static int IDX_PANEL_INVENTURSTAND = 4;
+	private final static int IDX_PANEL_INVENTUR_ABSCHLIESSEN = 4;
+	private final static int IDX_PANEL_INVENTURSTAND = 5;
 
 	private WrapperMenuBar wrapperManuBar = null;
 
 	public TabbedPaneInventur(InternalFrame internalFrameI) throws Throwable {
-		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr(
-				"artikel.inventur"));
+		super(internalFrameI, LPMain.getInstance().getTextRespectUISPr("artikel.inventur"));
 		jbInit();
 		initComponents();
 	}
@@ -147,51 +156,30 @@ public class TabbedPaneInventur extends TabbedPane {
 
 	private void jbInit() throws Throwable {
 
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.auswahl"),
-				IDX_PANEL_AUSWAHL);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), IDX_PANEL_AUSWAHL);
 
-		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null,
-				null, LPMain.getInstance().getTextRespectUISPr("lp.detail"),
-				IDX_PANEL_DETAIL);
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventurliste"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventurliste"), IDX_PANEL_INVENTURLISTE);
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventurprotokoll"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventurprotokoll"),
-				IDX_PANEL_INVENTURPROTOKOLL);
-		insertTab(
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventurstand"),
-				null,
-				null,
-				LPMain.getInstance().getTextRespectUISPr(
-						"artikel.inventurstand"), IDX_PANEL_INVENTURSTAND);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("lp.detail"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("lp.detail"), IDX_PANEL_DETAIL);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste"), IDX_PANEL_INVENTURLISTE);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.inventurprotokoll"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("artikel.inventurprotokoll"), IDX_PANEL_INVENTURPROTOKOLL);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.inventur.abschliessen"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("artikel.inventur.abschliessen"),
+				IDX_PANEL_INVENTUR_ABSCHLIESSEN);
+		insertTab(LPMain.getInstance().getTextRespectUISPr("artikel.inventurstand"), null, null,
+				LPMain.getInstance().getTextRespectUISPr("artikel.inventurstand"), IDX_PANEL_INVENTURSTAND);
 
 		createAuswahl();
 
 		panelQueryInventur.eventYouAreSelected(false);
 		if ((Integer) panelQueryInventur.getSelectedId() != null) {
-			getInternalFrameArtikel().setInventurDto(
-					DelegateFactory
-							.getInstance()
-							.getInventurDelegate()
-							.inventurFindByPrimaryKey(
-									(Integer) panelQueryInventur
-											.getSelectedId()));
+			getInternalFrameArtikel().setInventurDto(DelegateFactory.getInstance().getInventurDelegate()
+					.inventurFindByPrimaryKey((Integer) panelQueryInventur.getSelectedId()));
 		}
 		// damit D2 einen aktuellen hat.
-		ItemChangedEvent it = new ItemChangedEvent(panelQueryInventur,
-				ItemChangedEvent.ITEM_CHANGED);
+		ItemChangedEvent it = new ItemChangedEvent(panelQueryInventur, ItemChangedEvent.ITEM_CHANGED);
 		lPEventItemChanged(it);
 
 		this.addChangeListener(this);
@@ -204,11 +192,9 @@ public class TabbedPaneInventur extends TabbedPane {
 			// Artikelauswahlliste
 			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW };
 			panelQueryInventur = new PanelQuery(null,
-					com.lp.client.system.SystemFilterFactory.getInstance()
-							.createFKMandantCNr(),
-					QueryParameters.UC_ID_INVENTUR, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("lp.auswahl"), true);
+					com.lp.client.system.SystemFilterFactory.getInstance().createFKMandantCNr(),
+					QueryParameters.UC_ID_INVENTUR, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.auswahl"), true);
 
 			setComponentAt(IDX_PANEL_AUSWAHL, panelQueryInventur);
 
@@ -217,9 +203,17 @@ public class TabbedPaneInventur extends TabbedPane {
 
 	private void createDetail(Integer key) throws Throwable {
 		if (panelDetailInventur == null) {
-			panelDetailInventur = new PanelInventur(getInternalFrame(), LPMain
-					.getInstance().getTextRespectUISPr("lp.detail"), key);
+			panelDetailInventur = new PanelInventur(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("lp.detail"), key);
 			setComponentAt(IDX_PANEL_DETAIL, panelDetailInventur);
+		}
+	}
+
+	private void createInventurAbschliessen(Integer key) throws Throwable {
+		if (panelDetailInventurAbschliessen == null) {
+			panelDetailInventurAbschliessen = new PanelInventurAbschliessen(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventur.abschliessen"), key);
+			setComponentAt(IDX_PANEL_INVENTUR_ABSCHLIESSEN, panelDetailInventurAbschliessen);
 		}
 	}
 
@@ -228,29 +222,25 @@ public class TabbedPaneInventur extends TabbedPane {
 		if (panelQueryInventurprotokoll == null) {
 
 			panelQueryInventurprotokoll = new PanelQuery(null,
-					ArtikelFilterFactory.getInstance()
-							.createFKInventurprotkoll(inventurIId),
-					QueryParameters.UC_ID_INVENTURPROTOKOLL, null,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("artikel.inventurprotokoll"),
-					true);
-			setComponentAt(IDX_PANEL_INVENTURPROTOKOLL,
-					panelQueryInventurprotokoll);
+					ArtikelFilterFactory.getInstance().createFKInventurprotkoll(inventurIId),
+					QueryParameters.UC_ID_INVENTURPROTOKOLL, null, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurprotokoll"), true);
+			setComponentAt(IDX_PANEL_INVENTURPROTOKOLL, panelQueryInventurprotokoll);
 			panelQueryInventurprotokoll.befuellePanelFilterkriterienDirekt(
-					new FilterKriteriumDirekt(
-							"flrinventurliste.flrartikel.c_nr", "",
-							FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-									.getTextRespectUISPr(
-											"artikel.artikelnummer"),
-							FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-							Facade.MAX_UNBESCHRAENKT)
+					new FilterKriteriumDirekt("flrinventurliste.flrartikel.c_nr", "", FilterKriterium.OPERATOR_LIKE,
+							LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer"),
+							FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT)
 
 					, null);
 
+			panelQueryInventurprotokoll.createAndSaveAndShowButton("/com/lp/client/res/edit.png",
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventur.einstandspreis.aendern"),
+					BUTTON_EINSTANDPREIS_AENDERN, RechteFac.RECHT_WW_ARTIKEL_GESTPREISE_CU);
+
 		} else {
 			// filter refreshen.
-			panelQueryInventurprotokoll.setDefaultFilter(ArtikelFilterFactory
-					.getInstance().createFKInventurprotkoll(inventurIId));
+			panelQueryInventurprotokoll
+					.setDefaultFilter(ArtikelFilterFactory.getInstance().createFKInventurprotkoll(inventurIId));
 		}
 	}
 
@@ -258,111 +248,80 @@ public class TabbedPaneInventur extends TabbedPane {
 
 		if (panelQueryInventurstand == null) {
 
-			panelQueryInventurstand = new PanelQuery(null, ArtikelFilterFactory
-					.getInstance().createFKInventurprotkoll(inventurIId),
-					QueryParameters.UC_ID_INVENTURSTAND, null,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("artikel.inventurstand"), true);
+			panelQueryInventurstand = new PanelQuery(null,
+					ArtikelFilterFactory.getInstance().createFKInventurprotkoll(inventurIId),
+					QueryParameters.UC_ID_INVENTURSTAND, null, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurstand"), true);
 
-			panelQueryInventurstand.createAndSaveAndShowButton(
-					"/com/lp/client/res/selection_down.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.inventur.preiseabwerten"),
-					BUTTON_PREISEABWERTEN, null);
+			panelQueryInventurstand.createAndSaveAndShowButton("/com/lp/client/res/selection_down.png",
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventur.preiseabwerten"), BUTTON_PREISEABWERTEN,
+					null);
 
-			panelQueryInventurstand.createAndSaveAndShowButton(
-					"/com/lp/client/res/selection_replace.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.inventur.inventurpreiseaktualisieren"),
+			panelQueryInventurstand.createAndSaveAndShowButton("/com/lp/client/res/selection_replace.png",
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventur.inventurpreiseaktualisieren"),
 					BUTTON_INVENTURPREISE_AKTUALISIEREN, null);
-			panelQueryInventurstand
-					.createAndSaveAndShowButton(
-							"/com/lp/client/res/selection_replace.png",
-							LPMain.getInstance()
-									.getTextRespectUISPr(
-											"artikel.inventur.inventurpreiseaktualisieren.gestpreisinventurdatum"),
-							BUTTON_INVENTURPREISE_AKTUALISIEREN_GESTPREIS_ZUM_INVENTURDATUM,
-							null);
-			panelQueryInventurstand
-					.createAndSaveAndShowButton(
-							"/com/lp/client/res/selection_recycle.png",
-							LPMain.getInstance()
-									.getTextRespectUISPr(
-											"artikel.inventur.inventurpreiseaktualisieren.ekpreisinventurdatum"),
-							BUTTON_INVENTURPREISE_AKTUALISIEREN_EKPREIS, null);
+			panelQueryInventurstand.createAndSaveAndShowButton("/com/lp/client/res/selection_replace.png",
+					LPMain.getInstance()
+							.getTextRespectUISPr("artikel.inventur.inventurpreiseaktualisieren.gestpreisinventurdatum"),
+					BUTTON_INVENTURPREISE_AKTUALISIEREN_GESTPREIS_ZUM_INVENTURDATUM, null);
+			panelQueryInventurstand.createAndSaveAndShowButton("/com/lp/client/res/selection_recycle.png",
+					LPMain.getInstance()
+							.getTextRespectUISPr("artikel.inventur.inventurpreiseaktualisieren.ekpreisinventurdatum"),
+					BUTTON_INVENTURPREISE_AKTUALISIEREN_EKPREIS, null);
 
-			panelQueryInventurstand.befuellePanelFilterkriterienDirekt(
-					new FilterKriteriumDirekt("flrartikel.c_nr", "",
-							FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-									.getTextRespectUISPr(
-											"artikel.artikelnummer"),
-							FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-							Facade.MAX_UNBESCHRAENKT)
+			panelQueryInventurstand.befuellePanelFilterkriterienDirekt(new FilterKriteriumDirekt("flrartikel.c_nr", "",
+					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer"),
+					FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT)
 
 					, null);
 
-			panelBottomInventurstand = new PanelInventurstand(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("artikel.inventurstand"), null);
-			panelSplitInventurstand = new PanelSplit(getInternalFrame(),
-					panelBottomInventurstand, panelQueryInventurstand, 240);
+			panelBottomInventurstand = new PanelInventurstand(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurstand"), null);
+			panelSplitInventurstand = new PanelSplit(getInternalFrame(), panelBottomInventurstand,
+					panelQueryInventurstand, 240);
 			setComponentAt(IDX_PANEL_INVENTURSTAND, panelSplitInventurstand);
 
 		} else {
 			// filter refreshen.
-			panelQueryInventurstand.setDefaultFilter(ArtikelFilterFactory
-					.getInstance().createFKInventurstand(inventurIId));
+			panelQueryInventurstand
+					.setDefaultFilter(ArtikelFilterFactory.getInstance().createFKInventurstand(inventurIId));
 		}
 	}
 
 	private void createInventurliste(Integer key) throws Throwable {
 
 		if (panelQueryInventurliste == null) {
-			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW,
-					PanelBasis.ACTION_FILTER };
+			String[] aWhichButtonIUse = { PanelBasis.ACTION_NEW, PanelBasis.ACTION_FILTER };
 
-			FilterKriterium[] filters = ArtikelFilterFactory.getInstance()
-					.createFKInventurliste(key);
+			FilterKriterium[] filters = ArtikelFilterFactory.getInstance().createFKInventurliste(key);
 
-			panelQueryInventurliste = new PanelQuery(ArtikelFilterFactory
-					.getInstance().createQTInventurliste(), filters,
-					QueryParameters.UC_ID_INVENTURLISTE, aWhichButtonIUse,
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("artikel.inventurliste"), true);
+			panelQueryInventurliste = new PanelQuery(ArtikelFilterFactory.getInstance().createQTInventurliste(),
+					filters, QueryParameters.UC_ID_INVENTURLISTE, aWhichButtonIUse, getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste"), true);
 
-			panelBottomInventurliste = new PanelInventurliste(
-					getInternalFrame(), LPMain.getInstance()
-							.getTextRespectUISPr("artikel.inventurliste"), null);
+			panelBottomInventurliste = new PanelInventurliste(getInternalFrame(),
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste"), null);
 
-			panelQueryInventurliste.createAndSaveAndShowButton(
-					"/com/lp/client/res/scanner16x16.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.inventurliste.schnelleingabe"),
+			panelQueryInventurliste.createAndSaveAndShowButton("/com/lp/client/res/scanner16x16.png",
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste.schnelleingabe"),
 					BUTTON_QUICKINSERT, null);
 
-			panelQueryInventurliste.createAndSaveAndShowButton(
-					"/com/lp/client/res/document_into.png",
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.inventurliste.csvimport"),
-					BUTTON_CSVIMPORT, null);
+			panelQueryInventurliste.createAndSaveAndShowButton("/com/lp/client/res/document_into.png",
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste.csvimport"), BUTTON_CSVIMPORT,
+					null);
 
-			panelQueryInventurliste.befuellePanelFilterkriterienDirekt(
-					new FilterKriteriumDirekt("flrartikel.c_nr", "",
-							FilterKriterium.OPERATOR_LIKE, LPMain.getInstance()
-									.getTextRespectUISPr(
-											"artikel.artikelnummer"),
-							FilterKriteriumDirekt.PROZENT_TRAILING, true, true,
-							Facade.MAX_UNBESCHRAENKT)
+			panelQueryInventurliste.befuellePanelFilterkriterienDirekt(new FilterKriteriumDirekt("flrartikel.c_nr", "",
+					FilterKriterium.OPERATOR_LIKE, LPMain.getInstance().getTextRespectUISPr("artikel.artikelnummer"),
+					FilterKriteriumDirekt.PROZENT_TRAILING, true, true, Facade.MAX_UNBESCHRAENKT)
 
 					, null);
 
-			panelSplitInventurliste = new PanelSplit(getInternalFrame(),
-					panelBottomInventurliste, panelQueryInventurliste, 280);
+			panelSplitInventurliste = new PanelSplit(getInternalFrame(), panelBottomInventurliste,
+					panelQueryInventurliste, 270);
 			setComponentAt(IDX_PANEL_INVENTURLISTE, panelSplitInventurliste);
 		} else {
 			// filter refreshen.
-			panelQueryInventurliste.setDefaultFilter(ArtikelFilterFactory
-					.getInstance().createFKInventurliste(key));
+			panelQueryInventurliste.setDefaultFilter(ArtikelFilterFactory.getInstance().createFKInventurliste(key));
 		}
 	}
 
@@ -391,31 +350,20 @@ public class TabbedPaneInventur extends TabbedPane {
 		} else if (e.getID() == ItemChangedEvent.ITEM_CHANGED) {
 			if (e.getSource() == panelQueryInventur) {
 				if (panelQueryInventur.getSelectedId() != null) {
-					getInternalFrameArtikel().setKeyWasForLockMe(
-							panelQueryInventur.getSelectedId() + "");
+					getInternalFrameArtikel().setKeyWasForLockMe(panelQueryInventur.getSelectedId() + "");
 
 					// Dto-setzen
-					getInternalFrameArtikel().setInventurDto(
-							DelegateFactory
-									.getInstance()
-									.getInventurDelegate()
-									.inventurFindByPrimaryKey(
-											(Integer) panelQueryInventur
-													.getSelectedId()));
-					String sBezeichnung = getInternalFrameArtikel()
-							.getInventurDto().getCBez();
-					getInternalFrame().setLpTitle(
-							InternalFrame.TITLE_IDX_AS_I_LIKE, sBezeichnung);
+					getInternalFrameArtikel().setInventurDto(DelegateFactory.getInstance().getInventurDelegate()
+							.inventurFindByPrimaryKey((Integer) panelQueryInventur.getSelectedId()));
+					String sBezeichnung = getInternalFrameArtikel().getInventurDto().getCBez();
+					getInternalFrame().setLpTitle(InternalFrame.TITLE_IDX_AS_I_LIKE, sBezeichnung);
 					if (panelQueryInventur.getSelectedId() == null) {
-						getInternalFrame().enableAllOberePanelsExceptMe(this,
-								IDX_PANEL_AUSWAHL, false);
+						getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 					} else {
-						getInternalFrame().enableAllOberePanelsExceptMe(this,
-								IDX_PANEL_AUSWAHL, true);
+						getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, true);
 					}
 				} else {
-					getInternalFrame().enableAllOberePanelsExceptMe(this,
-							IDX_PANEL_AUSWAHL, false);
+					getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 				}
 
 			} else if (e.getSource() == panelQueryInventurliste) {
@@ -440,11 +388,9 @@ public class TabbedPaneInventur extends TabbedPane {
 			refreshTitle();
 		} else if (e.getID() == ItemChangedEvent.ACTION_UPDATE) {
 			if (e.getSource() == panelBottomInventurliste) {
-				panelQueryInventurliste.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryInventurliste.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			} else if (e.getSource() == panelBottomInventurstand) {
-				panelQueryInventurstand.updateButtons(new LockStateValue(
-						PanelBasis.LOCK_FOR_NEW));
+				panelQueryInventurstand.updateButtons(new LockStateValue(PanelBasis.LOCK_FOR_NEW));
 			}
 		}
 
@@ -492,8 +438,7 @@ public class TabbedPaneInventur extends TabbedPane {
 			} else if (e.getSource() == panelBottomInventurliste) {
 				setKeyWasForLockMe();
 				if (panelBottomInventurliste.getKeyWhenDetailPanel() == null) {
-					Object oNaechster = panelQueryInventurliste
-							.getId2SelectAfterDelete();
+					Object oNaechster = panelQueryInventurliste.getId2SelectAfterDelete();
 					panelQueryInventurliste.setSelectedId(oNaechster);
 				}
 				panelSplitInventurliste.eventYouAreSelected(false);
@@ -504,215 +449,84 @@ public class TabbedPaneInventur extends TabbedPane {
 		} else if (e.getID() == ItemChangedEvent.ACTION_SPECIAL_BUTTON) {
 			String sAspectInfo = ((ISourceEvent) e.getSource()).getAspect();
 			if (e.getSource() == panelQueryInventurliste) {
-				if (!Helper.short2boolean(getInternalFrameArtikel()
-						.getInventurDto().getBInventurdurchgefuehrt())) {
-					if (sAspectInfo.endsWith(ACTION_SPECIAL_QUICKINSERT)) {
+				actionSpecialInventurliste(sAspectInfo);
 
-						DialogInventurlisteQuickInsert d = new DialogInventurlisteQuickInsert(
-								panelBottomInventurliste,
-								getInternalFrameArtikel().getInventurDto()
-										.getIId());
-						LPMain.getInstance().getDesktop()
-								.platziereDialogInDerMitteDesFensters(d);
-						d.setVisible(true);
-						panelSplitInventurliste.eventYouAreSelected(false);
-						panelQueryInventurliste.updateButtons();
-
-					} else if (sAspectInfo.endsWith(ACTION_SPECIAL_CSVIMPORT)) {
-
-						if (getInternalFrameArtikel().getInventurDto()
-								.getLagerIId() != null) {
-
-							File[] files = HelperClient.chooseFile(this,
-									HelperClient.FILE_FILTER_CSV, false);
-
-							if (files != null && files.length > 0) {
-
-								LPCSVReader reader = new LPCSVReader(
-										new FileReader(files[0]), ';');
-
-								String[] sLine;
-
-								ArrayList<InvenurlisteImportDto> alImportdaten = new ArrayList<InvenurlisteImportDto>();
-
-								do {
-									sLine = reader.readNext();
-
-									if (sLine != null) {
-										if (sLine.length < 2) {
-											DialogFactory
-													.showModalDialog(
-															LPMain.getInstance()
-																	.getTextRespectUISPr(
-																			"lp.error"),
-															"CSV-Datei muss genau 2 Spalten beinhalten.");
-											return;
-										}
-										InvenurlisteImportDto invenurlisteImportDto = new InvenurlisteImportDto();
-										invenurlisteImportDto
-												.setCArtikelnummer(sLine[0]);
-										invenurlisteImportDto
-												.setCInventurmenge(sLine[1]);
-										alImportdaten
-												.add(invenurlisteImportDto);
-
-									}
-
-								} while (sLine != null);
-								String s=DelegateFactory
-										.getInstance()
-										.getInventurDelegate()
-										.importiereInventurliste(
-												getInternalFrameArtikel()
-														.getInventurDto()
-														.getIId(),
-												alImportdaten);
-								
-								
-								
-								if(s.length()>0){
-									java.io.File ausgabedatei = new File(new LocalSettingsPathGenerator().getLogPath(), "error_csvimport_inventurliste.txt");
-									java.io.FileWriter fw = new java.io.FileWriter(ausgabedatei);
-									java.io.BufferedWriter bw = new java.io.BufferedWriter(fw);
-									bw.write(s);
-									bw.close();
-									
-									DialogFactory
-									.showModalDialog(
-											LPMain.getInstance()
-													.getTextRespectUISPr(
-															"lp.error"),
-											"CSV-Import durchgef\u00FChrt, es sind jedoch Fehler aufgetreten ("+ausgabedatei.getAbsolutePath()+")");
-									
-								} else {
-									DialogFactory
-									.showModalDialog(
-											LPMain.getInstance()
-													.getTextRespectUISPr(
-															"lp.error"),
-											"CSV-Import fehlerfrei durchgef\u00FChrt!");
-								}
-								
-								
-								
-
-								
-							}
-							
-							panelSplitInventurliste.eventYouAreSelected(false);
-							panelQueryInventurliste.updateButtons();
-							
-						} else {
-
-							// Fehler
-							DialogFactory
-									.showModalDialog(
-											LPMain.getInstance()
-													.getTextRespectUISPr(
-															"lp.error"),
-											LPMain.getInstance()
-													.getTextRespectUISPr(
-															"artikel.inventurliste.csvimport.error"));
-						}
-
-					}
-				} else {
-					DialogFactory
-							.showModalDialog(
-									LPMain.getInstance().getTextRespectUISPr(
-											"lp.error"),
-									LPMain.getInstance()
-											.getTextRespectUISPr(
-													"artikel.error.inventur.bereitsdurchgefuehrt"));
-
-				}
 			} else if (e.getSource() == panelQueryInventurstand) {
 
 				if (sAspectInfo.endsWith(ACTION_SPECIAL_PREISE_ABWERTEN)) {
-					if (!Helper.short2boolean(getInternalFrameArtikel()
-							.getInventurDto().getBAbwertungdurchgefuehrt())) {
+					if (!Helper
+							.short2boolean(getInternalFrameArtikel().getInventurDto().getBAbwertungdurchgefuehrt())) {
 
-						boolean b = DialogFactory
-								.showModalJaNeinDialog(getInternalFrame(),
-										"Sollen die St\u00FCcklisten auch abgewertet werden?");
+						boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+								"Sollen die St\u00FCcklisten auch abgewertet werden?");
 
-						DelegateFactory
-								.getInstance()
-								.getInventurDelegate()
-								.preiseAbwerten(
-										getInternalFrameArtikel()
-												.getInventurDto().getIId(), b);
+						DelegateFactory.getInstance().getInventurDelegate()
+								.preiseAbwerten(getInternalFrameArtikel().getInventurDto().getIId(), b);
 
-						InventurDto inventurDto = DelegateFactory
-								.getInstance()
-								.getInventurDelegate()
-								.inventurFindByPrimaryKey(
-										getInternalFrameArtikel()
-												.getInventurDto().getIId());
+						InventurDto inventurDto = DelegateFactory.getInstance().getInventurDelegate()
+								.inventurFindByPrimaryKey(getInternalFrameArtikel().getInventurDto().getIId());
 						getInternalFrameArtikel().setInventurDto(inventurDto);
 
 					} else {
-						DialogFactory
-								.showModalDialog(
-										LPMain.getInstance()
-												.getTextRespectUISPr("lp.error"),
-										LPMain.getInstance()
-												.getTextRespectUISPr(
-														"artikel.error.inventur.bereitsabgewertet"));
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								LPMain.getInstance().getTextRespectUISPr("artikel.error.inventur.bereitsabgewertet"));
 					}
-				} else if (sAspectInfo
-						.endsWith(ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN)) {
+				} else if (sAspectInfo.endsWith(ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN)) {
 
-					boolean b = DialogFactory
-							.showModalJaNeinDialog(
-									getInternalFrame(),
-									"Aktualisieren der Inventurpreise anhand aktueller Gestehungspreise bzw. EK-Preise?");
+					boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							"Aktualisieren der Inventurpreise anhand aktueller Gestehungspreise bzw. EK-Preise?");
 
 					if (b == true) {
 
-						DelegateFactory
-								.getInstance()
-								.getInventurDelegate()
-								.inventurpreiseAktualisieren(
-										getInternalFrameArtikel()
-												.getInventurDto().getIId(),
-										false);
+						DelegateFactory.getInstance().getInventurDelegate().inventurpreiseAktualisieren(
+								getInternalFrameArtikel().getInventurDto().getIId(), false);
 					}
-				} else if (sAspectInfo
-						.endsWith(ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN_EKPREIS)) {
+				} else if (sAspectInfo.endsWith(ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN_EKPREIS)) {
 
-					boolean b = DialogFactory
-							.showModalJaNeinDialog(getInternalFrame(),
-									"Aktualisieren der Inventurpreise anhand EK-Preise zum Inventurdatum?");
+					boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							"Aktualisieren der Inventurpreise anhand EK-Preise zum Inventurdatum?");
 
 					if (b == true) {
 
-						DelegateFactory
-								.getInstance()
-								.getInventurDelegate()
-								.inventurpreiseAufEkPreisSetzen(
-										getInternalFrameArtikel()
-												.getInventurDto().getIId());
+						DelegateFactory.getInstance().getInventurDelegate()
+								.inventurpreiseAufEkPreisSetzen(getInternalFrameArtikel().getInventurDto().getIId());
 					}
 				} else if (sAspectInfo
 						.endsWith(ACTION_SPECIAL_INVENTURPREISE_AKTUALISIEREN_GESTPREIS_ZUM_INVENTURDATUM)) {
 
-					boolean b = DialogFactory
-							.showModalJaNeinDialog(getInternalFrame(),
-									"Aktualisieren der Inventurpreise anhand Gestehungspreise zum Inventurdatum?");
+					boolean b = DialogFactory.showModalJaNeinDialog(getInternalFrame(),
+							"Aktualisieren der Inventurpreise anhand Gestehungspreise zum Inventurdatum?");
 
 					if (b == true) {
 
-						DelegateFactory
-								.getInstance()
-								.getInventurDelegate()
-								.inventurpreiseAktualisieren(
-										getInternalFrameArtikel()
-												.getInventurDto().getIId(),
-										true);
+						DelegateFactory.getInstance().getInventurDelegate()
+								.inventurpreiseAktualisieren(getInternalFrameArtikel().getInventurDto().getIId(), true);
 					}
 				}
 
+			} else if (e.getSource() == panelQueryInventurprotokoll) {
+				if (sAspectInfo.endsWith(ACTION_SPECIAL_EINSTANDPREIS_AENDERN)) {
+					if (panelQueryInventurprotokoll.getSelectedId() != null) {
+
+						InventurprotokollDto ipDto = DelegateFactory.getInstance().getInventurDelegate()
+								.inventurprotokollFindByPrimaryKey(
+										(Integer) panelQueryInventurprotokoll.getSelectedId());
+
+						if (ipDto.getNKorrekturmenge().doubleValue() > 0) {
+
+							DialogEinstandspreisInventur d = new DialogEinstandspreisInventur(ipDto,
+									getInternalFrame());
+							d.setTitle(LPMain.getTextRespectUISPr("artikel.inventur.einstandspreis.aendern"));
+							LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+
+							d.setVisible(true);
+						} else {
+							DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"),
+									LPMain.getTextRespectUISPr("artikel.inventur.einstandspreis.aendern.nurzubuchung"));
+						}
+
+					}
+				}
 			}
 		}
 
@@ -739,8 +553,7 @@ public class TabbedPaneInventur extends TabbedPane {
 			createAuswahl();
 			panelQueryInventur.eventYouAreSelected(false);
 			if (panelQueryInventur.getSelectedId() == null) {
-				getInternalFrame().enableAllOberePanelsExceptMe(this,
-						IDX_PANEL_AUSWAHL, false);
+				getInternalFrame().enableAllOberePanelsExceptMe(this, IDX_PANEL_AUSWAHL, false);
 			}
 			panelQueryInventur.updateButtons();
 		} else if (selectedIndex == IDX_PANEL_DETAIL) {
@@ -751,18 +564,22 @@ public class TabbedPaneInventur extends TabbedPane {
 			createDetail(key);
 			panelDetailInventur.eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_PANEL_INVENTURLISTE) {
-			createInventurliste(getInternalFrameArtikel().getInventurDto()
-					.getIId());
+			createInventurliste(getInternalFrameArtikel().getInventurDto().getIId());
 			panelSplitInventurliste.eventYouAreSelected(false);
 			panelQueryInventurliste.updateButtons();
 		} else if (selectedIndex == IDX_PANEL_INVENTURPROTOKOLL) {
-			createInventurprotokoll(getInternalFrameArtikel().getInventurDto()
-					.getIId());
+			createInventurprotokoll(getInternalFrameArtikel().getInventurDto().getIId());
 			panelQueryInventurprotokoll.eventYouAreSelected(false);
 			panelQueryInventurprotokoll.updateButtons();
+		} else if (selectedIndex == IDX_PANEL_INVENTUR_ABSCHLIESSEN) {
+			Integer key = null;
+			if (getInternalFrameArtikel().getInventurDto() != null) {
+				key = getInternalFrameArtikel().getInventurDto().getIId();
+			}
+			createInventurAbschliessen(key);
+			panelDetailInventurAbschliessen.eventYouAreSelected(false);
 		} else if (selectedIndex == IDX_PANEL_INVENTURSTAND) {
-			createInventurstand(getInternalFrameArtikel().getInventurDto()
-					.getIId());
+			createInventurstand(getInternalFrameArtikel().getInventurDto().getIId());
 			panelQueryInventurstand.eventYouAreSelected(false);
 			panelQueryInventurstand.updateButtons();
 		}
@@ -771,66 +588,68 @@ public class TabbedPaneInventur extends TabbedPane {
 
 	protected void lPActionEvent(java.awt.event.ActionEvent e) throws Throwable {
 		if (e.getActionCommand().equals(MENUE_INVENTUR_ACTION_ZAEHLLISTE)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"artikel.report.zaehlliste");
-			getInternalFrame().showReportKriterien(
-					new ReportZaehlliste(getInternalFrameArtikel(), add2Title));
-		} else if (e.getActionCommand().equals(
-				MENUE_INVENTUR_ACTION_INVENTURSTAND)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"artikel.report.inventurstand");
-			getInternalFrame().showReportKriterien(
-					new ReportInventurstand(getInternalFrameArtikel(),
-							add2Title, (Integer) panelQueryInventur
-									.getSelectedId()));
-		} else if (e.getActionCommand().equals(
-				MENUE_INVENTUR_ACTION_INVENTURLISTE)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"artikel.report.inventurliste");
-			getInternalFrame().showReportKriterien(
-					new ReportInventurliste(getInternalFrameArtikel(),
-							add2Title, (Integer) panelQueryInventur
-									.getSelectedId()));
-		} else if (e.getActionCommand().equals(
-				MENUE_INVENTUR_ACTION_INVENTURPROTOKOLL)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"artikel.inventurprotokoll");
-			getInternalFrame().showReportKriterien(
-					new ReportInventurprotokoll(getInternalFrameArtikel(),
-							add2Title, (Integer) panelQueryInventur
-									.getSelectedId()));
-		} else if (e.getActionCommand()
-				.equals(MENUE_INVENTUR_ACTION_DELTALISTE)) {
-			String add2Title = LPMain.getInstance().getTextRespectUISPr(
-					"artikel.inventurdeltaliste");
-			getInternalFrame().showReportKriterien(
-					new ReportNichterfassteartikel(getInternalFrameArtikel(),
-							add2Title, (Integer) panelQueryInventur
-									.getSelectedId()));
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_DURCHFUEHRUNG_ZURUECKNEHMEN)) {
-			if (panelQueryInventur.getSelectedId() != null) {
-				DelegateFactory
-						.getInstance()
-						.getInventurDelegate()
-						.inventurDurchfuehrungZuruecknehmen(
-								(Integer) panelQueryInventur.getSelectedId());
-				panelQueryInventur.eventYouAreSelected(false);
-			}
-		} else if (e.getActionCommand().equals(
-				MENUE_PFLEGE_IVENTURPROTOKOLL_AB_STICHTAG_ZURUECKNEHMEN)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("artikel.report.zaehlliste");
+			getInternalFrame().showReportKriterien(new ReportZaehlliste(getInternalFrameArtikel(),
+					(Integer) panelQueryInventur.getSelectedId(), add2Title));
+		} else if (e.getActionCommand().equals(MENUE_INVENTUR_ACTION_INVENTURSTAND)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("artikel.report.inventurstand");
+			getInternalFrame().showReportKriterien(new ReportInventurstand(getInternalFrameArtikel(), add2Title,
+					(Integer) panelQueryInventur.getSelectedId()));
+		} else if (e.getActionCommand().equals(MENUE_INVENTUR_ACTION_INVENTURLISTE)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("artikel.report.inventurliste");
+			getInternalFrame().showReportKriterien(new ReportInventurliste(getInternalFrameArtikel(), add2Title,
+					(Integer) panelQueryInventur.getSelectedId()));
+		} else if (e.getActionCommand().equals(MENUE_INVENTUR_ACTION_INVENTURPROTOKOLL)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("artikel.inventurprotokoll");
+			getInternalFrame().showReportKriterien(new ReportInventurprotokoll(getInternalFrameArtikel(), add2Title,
+					(Integer) panelQueryInventur.getSelectedId()));
+		} else if (e.getActionCommand().equals(MENUE_INVENTUR_ACTION_DELTALISTE)) {
+			String add2Title = LPMain.getInstance().getTextRespectUISPr("artikel.inventurdeltaliste");
+			getInternalFrame().showReportKriterien(new ReportNichterfassteartikel(getInternalFrameArtikel(), add2Title,
+					(Integer) panelQueryInventur.getSelectedId()));
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_DURCHFUEHRUNG_ZURUECKNEHMEN)) {
 			if (panelQueryInventur.getSelectedId() != null) {
 
-				java.sql.Date dDatum = DialogFactory
-						.showDatumseingabe("Ab welchem Datum sollen die Protokolleintr\u00E4ge zur\u00FCckgenommen werden?");
+				InventurDto iDto = DelegateFactory.getInstance().getInventurDelegate()
+						.inventurFindByPrimaryKey((Integer) panelQueryInventur.getSelectedId());
+
+				InventurDto[] dtos = DelegateFactory.getInstance().getInventurDelegate()
+						.inventurFindInventurenNachDatum(iDto.getTInventurdatum());
+
+				for (int i = 0; i < dtos.length; i++) {
+
+					boolean bNachfolgeInventurVorhanden = false;
+					if (iDto.getLagerIId() == null && dtos[i].getLagerIId() == null) {
+						bNachfolgeInventurVorhanden = true;
+					}
+
+					if (iDto.getLagerIId() != null && dtos[i].getLagerIId() == null) {
+						bNachfolgeInventurVorhanden = true;
+					}
+
+					if (iDto.getLagerIId() != null && iDto.getLagerIId().equals(dtos[i].getLagerIId())) {
+						bNachfolgeInventurVorhanden = true;
+					}
+
+					if (bNachfolgeInventurVorhanden == true) {
+						DialogFactory.showModalDialog(LPMain.getInstance().getTextRespectUISPr("lp.error"),
+								"Es gibt bereits Inventuren nach dem angegebenen Inventurdatum");
+						return;
+					}
+				}
+
+				DelegateFactory.getInstance().getInventurDelegate()
+						.inventurDurchfuehrungZuruecknehmen((Integer) panelQueryInventur.getSelectedId());
+				panelQueryInventur.eventYouAreSelected(false);
+			}
+		} else if (e.getActionCommand().equals(MENUE_PFLEGE_IVENTURPROTOKOLL_AB_STICHTAG_ZURUECKNEHMEN)) {
+			if (panelQueryInventur.getSelectedId() != null) {
+
+				java.sql.Date dDatum = DialogFactory.showDatumseingabe(
+						"Ab welchem Datum sollen die Protokolleintr\u00E4ge zur\u00FCckgenommen werden?");
 				if (dDatum != null) {
-					DelegateFactory
-							.getInstance()
-							.getInventurDelegate()
-							.invturprotokollZumStichtagZuruecknehmen(
-									(Integer) panelQueryInventur
-											.getSelectedId(),
-									dDatum);
+					DelegateFactory.getInstance().getInventurDelegate().invturprotokollZumStichtagZuruecknehmen(
+							(Integer) panelQueryInventur.getSelectedId(), dDatum);
 					panelQueryInventur.eventYouAreSelected(false);
 				}
 			}
@@ -843,36 +662,30 @@ public class TabbedPaneInventur extends TabbedPane {
 
 			JMenu menuInfo = new WrapperMenu("lp.info", this);
 
-			JMenuItem menuItemZaehlliste = new JMenuItem(LPMain.getInstance()
-					.getTextRespectUISPr("artikel.report.zaehlliste"));
+			JMenuItem menuItemZaehlliste = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("artikel.report.zaehlliste"));
 			menuItemZaehlliste.addActionListener(this);
-			menuItemZaehlliste
-					.setActionCommand(MENUE_INVENTUR_ACTION_ZAEHLLISTE);
+			menuItemZaehlliste.setActionCommand(MENUE_INVENTUR_ACTION_ZAEHLLISTE);
 
-			JMenuItem menuItemInventurstand = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr("artikel.inventurstand"));
+			JMenuItem menuItemInventurstand = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurstand"));
 			menuItemInventurstand.addActionListener(this);
-			menuItemInventurstand
-					.setActionCommand(MENUE_INVENTUR_ACTION_INVENTURSTAND);
+			menuItemInventurstand.setActionCommand(MENUE_INVENTUR_ACTION_INVENTURSTAND);
 
-			JMenuItem menuItemInventurliste = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr("artikel.inventurliste"));
+			JMenuItem menuItemInventurliste = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurliste"));
 			menuItemInventurliste.addActionListener(this);
-			menuItemInventurliste
-					.setActionCommand(MENUE_INVENTUR_ACTION_INVENTURLISTE);
+			menuItemInventurliste.setActionCommand(MENUE_INVENTUR_ACTION_INVENTURLISTE);
 
-			JMenuItem menuItemInventurprotokoll = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"artikel.inventurprotokoll"));
+			JMenuItem menuItemInventurprotokoll = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurprotokoll"));
 			menuItemInventurprotokoll.addActionListener(this);
-			menuItemInventurprotokoll
-					.setActionCommand(MENUE_INVENTUR_ACTION_INVENTURPROTOKOLL);
+			menuItemInventurprotokoll.setActionCommand(MENUE_INVENTUR_ACTION_INVENTURPROTOKOLL);
 
-			JMenuItem menuItemDeltaliste = new JMenuItem(LPMain.getInstance()
-					.getTextRespectUISPr("artikel.inventurdeltaliste"));
+			JMenuItem menuItemDeltaliste = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurdeltaliste"));
 			menuItemDeltaliste.addActionListener(this);
-			menuItemDeltaliste
-					.setActionCommand(MENUE_INVENTUR_ACTION_DELTALISTE);
+			menuItemDeltaliste.setActionCommand(MENUE_INVENTUR_ACTION_DELTALISTE);
 
 			menuInfo.add(menuItemZaehlliste);
 			menuInfo.add(menuItemInventurliste);
@@ -883,17 +696,14 @@ public class TabbedPaneInventur extends TabbedPane {
 
 			JMenu menuPflege = new WrapperMenu("lp.pflege", this);
 
-			JMenuItem menuItemdurchfuehrungZurucknehmen = new JMenuItem(LPMain
-					.getInstance().getTextRespectUISPr(
-							"artikel.inventur.zuruecknehmen"));
+			JMenuItem menuItemdurchfuehrungZurucknehmen = new JMenuItem(
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventur.zuruecknehmen"));
 			menuItemdurchfuehrungZurucknehmen.addActionListener(this);
-			menuItemdurchfuehrungZurucknehmen
-					.setActionCommand(MENUE_PFLEGE_DURCHFUEHRUNG_ZURUECKNEHMEN);
+			menuItemdurchfuehrungZurucknehmen.setActionCommand(MENUE_PFLEGE_DURCHFUEHRUNG_ZURUECKNEHMEN);
 			menuPflege.add(menuItemdurchfuehrungZurucknehmen);
 
 			JMenuItem menuItemProtokolleintraegeZurucknehmen = new JMenuItem(
-					LPMain.getInstance().getTextRespectUISPr(
-							"artikel.inventurprotokoll.zuruecknehmen"));
+					LPMain.getInstance().getTextRespectUISPr("artikel.inventurprotokoll.zuruecknehmen"));
 			menuItemProtokolleintraegeZurucknehmen.addActionListener(this);
 			menuItemProtokolleintraegeZurucknehmen
 					.setActionCommand(MENUE_PFLEGE_IVENTURPROTOKOLL_AB_STICHTAG_ZURUECKNEHMEN);
@@ -905,4 +715,98 @@ public class TabbedPaneInventur extends TabbedPane {
 
 	}
 
+	private InventurDto inventurDto() {
+		return getInternalFrameArtikel().getInventurDto();
+	}
+
+	private void dialogError(String tokenMsg, Object... values) {
+		String message = values.length > 0 ? LPMain.getMessageTextRespectUISPr(tokenMsg, values)
+				: LPMain.getTextRespectUISPr(tokenMsg);
+		DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.error"), message);
+	}
+
+	private void dialogInfo(String tokenMsg) {
+		DialogFactory.showModalDialog(LPMain.getTextRespectUISPr("lp.info"), LPMain.getTextRespectUISPr(tokenMsg));
+	}
+
+	private void actionSpecialInventurliste(String command) throws Throwable, FileNotFoundException, IOException {
+		if (command == null)
+			return;
+
+		if (Helper.isTrue(inventurDto().getBInventurdurchgefuehrt())) {
+			dialogError("artikel.error.inventur.bereitsdurchgefuehrt");
+			return;
+		}
+
+		if (command.endsWith(ACTION_SPECIAL_QUICKINSERT)) {
+			onActionQuickinsert();
+
+		} else if (command.endsWith(ACTION_SPECIAL_CSVIMPORT)) {
+			onActionCsvImport();
+		}
+	}
+
+	private void onActionCsvImport() throws FileNotFoundException, IOException, Throwable {
+		if (inventurDto().getLagerIId() == null) {
+			dialogError("artikel.inventurliste.csvimport.error");
+			return;
+		}
+
+		CsvFile csvFile = FileChooserBuilder.createOpenDialog(FileChooserConfigToken.ImportCsvInventurliste, this)
+				.addCsvFilter().openSingle();
+		if (csvFile.hasFile()) {
+			List<String[]> lines = csvFile.read(';');
+			ArrayList<InvenurlisteImportDto> importdaten = new ArrayList<InvenurlisteImportDto>();
+			Integer row = 0;
+			for (String[] line : lines) {
+				row++;
+				if (line == null || Helper.areStringsEmpty(line))
+					continue;
+
+				if (line.length < 2) {
+					dialogError("artikel.inventurliste.csvimport.error.zuwenigspalten");
+					return;
+				}
+
+				InvenurlisteImportDto importDto = new InvenurlisteImportDto();
+				importDto.setCArtikelnummer(line[0]);
+				importDto.setCInventurmenge(line[1]);
+				if (line.length > 2) {
+					importDto.setCSerienChargennummer(line[2]);
+				}
+				importDto.setZeile(row);
+				importdaten.add(importDto);
+			}
+
+			InventurlisteImportResult result = DelegateFactory.getInstance().getInventurDelegate()
+					.importiereInventurliste(inventurDto().getIId(), importdaten);
+			String s = result != null ? result.getLog() : "";
+			if (s.length() > 0) {
+				File ausgabedatei = new File(new LocalSettingsPathGenerator().getLogPath(),
+						"error_csvimport_inventurliste.txt");
+				FileWriter fw = new FileWriter(ausgabedatei);
+				BufferedWriter bw = new BufferedWriter(fw);
+				bw.write(s);
+				bw.close();
+
+				dialogError("artikel.inventurliste.csvimport.durchgefuehrtmitfehlern", ausgabedatei.getAbsolutePath());
+
+			} else {
+				dialogInfo("artikel.inventurliste.csvimport.durchfuehrungerfolgreich");
+			}
+		}
+
+		panelSplitInventurliste.eventYouAreSelected(false);
+		panelQueryInventurliste.updateButtons();
+
+	}
+
+	private void onActionQuickinsert() throws Throwable {
+		DialogInventurlisteQuickInsert d = new DialogInventurlisteQuickInsert(panelBottomInventurliste,
+				getInternalFrameArtikel().getInventurDto().getIId());
+		LPMain.getInstance().getDesktop().platziereDialogInDerMitteDesFensters(d);
+		d.setVisible(true);
+		panelSplitInventurliste.eventYouAreSelected(false);
+		panelQueryInventurliste.updateButtons();
+	}
 }

@@ -40,6 +40,7 @@ import javax.naming.InitialContext;
 import com.lp.client.frame.ExceptionLP;
 import com.lp.client.pc.LPMain;
 import com.lp.server.lieferschein.service.LieferscheinReportFac;
+import com.lp.server.lieferschein.service.LieferscheinpositionFac;
 import com.lp.server.lieferschein.service.ReportLieferscheinJournalKriterienDto;
 import com.lp.server.rechnung.service.ReportRechnungJournalKriterienDto;
 import com.lp.server.system.service.ReportJournalKriterienDto;
@@ -75,8 +76,8 @@ public class LieferscheinReportDelegate extends Delegate {
 	public LieferscheinReportDelegate() throws ExceptionLP {
 		try {
 			context = new InitialContext();
-			lieferscheinReportFac = (LieferscheinReportFac) context
-					.lookup("lpserver/LieferscheinReportFacBean/remote");
+			lieferscheinReportFac = lookupFac(context, LieferscheinReportFac.class);
+
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -169,13 +170,21 @@ public class LieferscheinReportDelegate extends Delegate {
 	 */
 	public JasperPrintLP printLieferscheinWAEtikett(Integer iIdLieferscheinI,
 			Integer lieferscheinpositionIId, Integer iPaketnummer,
-			BigDecimal bdHandmenge, Integer iExemplare) throws ExceptionLP {
+			BigDecimal bdHandmenge, Integer iExemplare,
+			Double gewichtUebersteuert,
+			java.sql.Timestamp tsLieferterminUebersteuert,
+			Integer iAnzahlPaketeUebersteuert,
+			String versandnummerUebersteuert, String versandnummer2Uebersteuert, boolean versandinfosSpeichern)
+			throws ExceptionLP {
 		JasperPrintLP print = null;
 
 		try {
 			print = lieferscheinReportFac.printLieferscheinWAEtikett(
 					iIdLieferscheinI, iPaketnummer, lieferscheinpositionIId,
-					bdHandmenge, iExemplare, LPMain.getTheClient());
+					bdHandmenge, iExemplare, LPMain.getTheClient(),
+					gewichtUebersteuert, tsLieferterminUebersteuert,
+					iAnzahlPaketeUebersteuert, versandnummerUebersteuert,
+					versandnummer2Uebersteuert, versandinfosSpeichern);
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -197,6 +206,19 @@ public class LieferscheinReportDelegate extends Delegate {
 		return print;
 	}
 
+	public JasperPrintLP printPackstuecke(String filter) throws ExceptionLP {
+		JasperPrintLP print = null;
+
+		try {
+			print = lieferscheinReportFac.printPackstuecke(filter,
+					LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return print;
+	}
+
 	/**
 	 * Alle offenen Lieferscheine fuer einen bestimmten Mandanten drucken.
 	 * 
@@ -208,13 +230,13 @@ public class LieferscheinReportDelegate extends Delegate {
 	 */
 	public JasperPrintLP printLieferscheinOffene(
 			ReportJournalKriterienDto reportJournalKriterienDtoI, Integer iArt,
-			boolean bMitDetails) throws ExceptionLP {
+			boolean bMitDetails, boolean bNurRueckgaben) throws ExceptionLP {
 		JasperPrintLP print = null;
 
 		try {
 			print = lieferscheinReportFac.printLieferscheinOffene(
 					reportJournalKriterienDtoI, iArt, bMitDetails,
-					LPMain.getTheClient());
+					bNurRueckgaben, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}
@@ -239,6 +261,20 @@ public class LieferscheinReportDelegate extends Delegate {
 		try {
 			print = lieferscheinReportFac.printLieferscheinAngelegte(
 					reportJournalKriterienDtoI, LPMain.getTheClient());
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
+
+		return print;
+	}
+	
+	public JasperPrintLP printPostVersandetikett(Integer iIdLieferscheinI, byte[] pdf)
+			throws ExceptionLP {
+		JasperPrintLP print = null;
+
+		try {
+			print = lieferscheinReportFac.printPostVersandetikett(
+					iIdLieferscheinI, pdf, LPMain.getTheClient());
 		} catch (Throwable t) {
 			handleThrowable(t);
 		}

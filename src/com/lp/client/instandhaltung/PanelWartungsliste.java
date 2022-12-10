@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.instandhaltung;
@@ -64,6 +64,7 @@ import com.lp.client.frame.component.WrapperTextField;
 import com.lp.client.frame.delegate.DelegateFactory;
 import com.lp.client.frame.dialog.DialogFactory;
 import com.lp.client.pc.LPMain;
+import com.lp.client.util.IconFactory;
 import com.lp.server.artikel.service.ArtikelDto;
 import com.lp.server.artikel.service.ArtikelFac;
 import com.lp.server.instandhaltung.service.WartungslisteDto;
@@ -74,7 +75,7 @@ import com.lp.util.Helper;
 public class PanelWartungsliste extends PanelBasis {
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	// von hier ...
@@ -139,6 +140,9 @@ public class PanelWartungsliste extends PanelBasis {
 
 	public void eventActionNew(EventObject eventObject, boolean bLockMeI,
 			boolean bNeedNoNewI) throws Throwable {
+
+		resetEditorButton();
+
 		letzterArtikel = wifArtikel.getArtikelDto();
 		super.eventActionNew(eventObject, true, false);
 		wartungslisteDto = new WartungslisteDto();
@@ -395,7 +399,10 @@ public class PanelWartungsliste extends PanelBasis {
 
 		wnfMenge.setFractionDigits(iNachkommastellenMenge);
 
-		wtfHandartikel.setColumnsMax(ArtikelFac.MAX_ARTIKEL_ARTIKELBEZEICHNUNG);
+		
+		int iLaengenBezeichung=DelegateFactory.getInstance().getArtikelDelegate().getLaengeArtikelBezeichnungen();
+		
+		wtfHandartikel.setColumnsMax(iLaengenBezeichung);
 		getInternalFrame().addItemChangedListener(this);
 		wcbPositionsart
 				.addActionListener(new PanelWartungsliste_wcbPositionsart_actionAdapter(
@@ -526,6 +533,7 @@ public class PanelWartungsliste extends PanelBasis {
 					.wartungslisteFindByPrimaryKey((Integer) key);
 
 			dto2Components();
+			setEditorButtonColor();
 		}
 	}
 
@@ -582,6 +590,16 @@ public class PanelWartungsliste extends PanelBasis {
 			jpaWorkingOn.revalidate();
 		}
 
+	}
+
+	private void setEditorButtonColor(){
+		getHmOfButtons().get(ACTION_TEXT).getButton().setIcon(
+				wartungslisteDto.getXBemerkung() != null && wartungslisteDto.getXBemerkung().length() > 0 ?
+						IconFactory.getCommentExist() : IconFactory.getEditorEdit());
+	}
+
+	private void resetEditorButton(){
+		getHmOfButtons().get(ACTION_TEXT).getButton().setIcon(IconFactory.getEditorEdit());
 	}
 
 }

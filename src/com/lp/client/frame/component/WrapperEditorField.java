@@ -2,32 +2,32 @@
  * HELIUM V, Open Source ERP software for sustained success
  * at small and medium-sized enterprises.
  * Copyright (C) 2004 - 2015 HELIUM V IT-Solutions GmbH
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published 
- * by the Free Software Foundation, either version 3 of theLicense, or 
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of theLicense, or
  * (at your option) any later version.
- * 
- * According to sec. 7 of the GNU Affero General Public License, version 3, 
+ *
+ * According to sec. 7 of the GNU Affero General Public License, version 3,
  * the terms of the AGPL are supplemented with the following terms:
- * 
- * "HELIUM V" and "HELIUM 5" are registered trademarks of 
- * HELIUM V IT-Solutions GmbH. The licensing of the program under the 
+ *
+ * "HELIUM V" and "HELIUM 5" are registered trademarks of
+ * HELIUM V IT-Solutions GmbH. The licensing of the program under the
  * AGPL does not imply a trademark license. Therefore any rights, title and
  * interest in our trademarks remain entirely with us. If you want to propagate
  * modified versions of the Program under the name "HELIUM V" or "HELIUM 5",
- * you may only do so if you have a written permission by HELIUM V IT-Solutions 
+ * you may only do so if you have a written permission by HELIUM V IT-Solutions
  * GmbH (to acquire a permission please contact HELIUM V IT-Solutions
  * at trademark@heliumv.com).
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contact: developers@heliumv.com
  ******************************************************************************/
 package com.lp.client.frame.component;
@@ -38,6 +38,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.EventObject;
+import java.util.Locale;
 
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
@@ -47,6 +48,7 @@ import javax.swing.KeyStroke;
 
 import com.lp.client.frame.Defaults;
 import com.lp.client.pc.LPMain;
+import com.lp.client.rechtschreibung.IRechtschreibPruefbar;
 import com.lp.editor.LpEditor;
 import com.lp.editor.util.TextBlockOverflowException;
 import com.lp.server.system.service.ParameterFac;
@@ -60,10 +62,10 @@ import com.lp.server.system.service.SystemFac;
  * @author  Martin Bluehweis
  * @version $Revision: 1.8 $
  */
-public class WrapperEditorField extends PanelBasis implements IControl {
-	
+public class WrapperEditorField extends PanelBasis implements IControl, IRechtschreibPruefbar {
+
 	private static final long serialVersionUID = 1L;
-	
+
 	private boolean isMandatoryField = false;
 	private boolean isMandatoryFieldDB = false;
 	private boolean isActivatable = true;
@@ -72,7 +74,7 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 	private static final String ACTION_SPECIAL_EDITORFIELD_DEFAULT = "action_special_editorfield_default";
 
 	private String nameFuerEigenschaftsdefinition = null;
-	
+
 	public String getNameFuerEigenschaftsdefinition() {
 		return nameFuerEigenschaftsdefinition;
 	}
@@ -94,7 +96,9 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 	public JScrollPane jspScrollPane = new JScrollPane();
 	public LpEditor lpEditor;
 	private boolean bWithoutButtons = false;
-
+	private boolean rechtschreibpruefungAktiv = false;
+	private Locale rechtschreibpruefungLocale = null;
+	
 	public WrapperEditorField(InternalFrame internalFrame, String addTitleI)
 			throws Throwable {
 		this(internalFrame, addTitleI, false);
@@ -105,10 +109,11 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 		super(internalFrame, addTitleI);
 		this.bWithoutButtons = bWithoutButtons;
 		jbInit();
+//		SwingRechtschreibWorker.createMitLocUI(lpEditor.getTextPane());
 		initComponents();
-
+		aktiviereRechtschreibpruefung();
 	}
-	
+
 	protected void setDocumentWidth(int width) {
 		lpEditor.setPageWidth(width);
 	}
@@ -116,6 +121,7 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 	private void jbInit() throws Throwable {
 		this.setLayout(gridBagLayout1);
 		lpEditor = new LpEditor(null);
+		lpEditor.setInternalFrame(getInternalFrame());
 //		lpEditor.setJasperReport(DelegateFactory.getInstance()
 //				.getSystemDelegate().getDreispalter(), false);
 		lpEditor.setPageWidth(ParameterCache.getPageWidth(ParameterFac.PARAMETER_EDITOR_BREITE_SONSTIGE));
@@ -182,7 +188,7 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 			lpEditor.setText(defaultText);
 		} else if (e.getActionCommand().equals(ACTION_SPECIAL_EDITORFIELD_EDIT)) {
 
-			getInternalFrame().showPanelEditor(this, this.getAdd2Title(), 
+			getInternalFrame().showPanelEditor(this, this.getAdd2Title(),
 					lpEditor.getText());
 			// getInternalFrame().showPanelEditor(this,
 			// this.getAdd2Title(),
@@ -200,7 +206,7 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 	/**
 	 * Den Default-Text fuer dieses Editorfeld setzen. wreditf: 3 optionaler
 	 * Default-Text
-	 * 
+	 *
 	 * @param defaultText
 	 *            String
 	 */
@@ -214,7 +220,7 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 
 	/**
 	 * Auf Basis des Editor-Styles einen Plaintext zur&uuml;ckliefern
-	 * 
+	 *
 	 * @return Text ohne HTML Encoding sofern im Editor isStyledText == false
 	 * @throws TextBlockOverflowException
 	 */
@@ -310,9 +316,31 @@ public class WrapperEditorField extends PanelBasis implements IControl {
 	public void setDefaultButtonMnemonic(char toSet) {
 		wbuDefault.setMnemonic(toSet);
 	}
-	
+
+	public boolean isRechtschreibpruefungAktiv() {
+		return rechtschreibpruefungAktiv;
+	}
+
 	@Override
 	public boolean hasContent() throws Throwable {
 		return getText() != null && !getText().trim().isEmpty();
+	}
+
+	@Override
+	public void aktiviereRechtschreibpruefung() {
+		rechtschreibpruefungAktiv  = true;
+	}
+
+	@Override
+	public void deaktiviereRechtschreibpruefung() {
+		rechtschreibpruefungAktiv  = false;
+	}
+	
+	public void setRechtschreibpruefungLocale(Locale loc) {
+		rechtschreibpruefungLocale = loc;
+	}
+
+	public Locale getRechtschreibpruefungLocale() {
+		return rechtschreibpruefungLocale;
 	}
 }
